@@ -1,4 +1,4 @@
-pragma solidity >=0.4.22 <0.6.0;
+pragma solidity ^0.5.0;
 
 interface BurnableERC20 {
 
@@ -38,9 +38,10 @@ interface BurnableERC20 {
 }
 
 
-contract GraphToken {
+contract GraphToken is BurnableERC20 {
 
-    // Token
-    BurnableERC20 internal token;
+    constructor () public {
+        // ...
+    }
 
 }
