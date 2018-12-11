@@ -1,5 +1,9 @@
 pragma solidity ^0.5.0;
 
+// ERC Token Standard #20 Interface
+// https://github.com/ethereum/EIPs/issues/20
+// Constructed according to OpenZeppelin Burnable Token contract
+// https://github.com/OpenZeppelin/zeppelin-solidity/
 interface BurnableERC20 {
 
     /* ERC20 BASIC */

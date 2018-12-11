@@ -35,5 +35,18 @@ contract Staking is Ownable {
     * @req 04 Curator can stake Graph Tokens for subgraphId
     * ...
     */
+
+    /* STATE VARIABLES */
+    // Minimum amount allowed to be staked
+    uint public minimumStakingAmount;
+
+    // Maximum number of Indexing Nodes staked higher than stake to consider 
+    uint public maxIndexers;
+
+    // Storage of staking amount for each Curator
+    mapping (address => uint) public curatorStakingAmount;
+
+    // Storage of staking amount for each Indexing Node
+    mapping (address => uint) public indexingNodeStakingAmount;
      
 }
