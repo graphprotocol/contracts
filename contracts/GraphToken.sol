@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.1;
 
 import "./Ownable.sol";
 
@@ -63,10 +63,17 @@ contract GraphToken is Ownable, BurnableERC20 {
     * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
     * ...
     */
-
+    
     /* STATE VARIABLES */
-    // Treasurers map to true
+    uint public _totalSupply;
+    
+   // Treasurers map to true
     mapping (address => bool) internal treasurers;
+    
+    /* Init GraphToken contract */
+    constructor (uint _initialSupply) public {
+        _totalSupply = _initialSupply;
+    }
 
     /* 
      * @notice Add a Treasurer to the treasurers mapping

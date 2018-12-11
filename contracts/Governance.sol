@@ -1,8 +1,8 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.1;
 
-import "./Ownable.sol";
+import "./Ownable2.sol";
 
-contract Governance is Ownable {
+contract Governance is Owned {
     
     /* 
     * @title Graph DAO Governance contract
@@ -20,6 +20,7 @@ contract Governance is Ownable {
     * @req 01 Contract has an owner/admin
     * @req 02 Owner can change minimumStakingAmount in Staking contract 
     * @req 03 Owner can change maxIndexers in Staking contract 
+    * @req 04 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
     * ...
     */
 
