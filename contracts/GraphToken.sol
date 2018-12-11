@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+import "./Ownable.sol";
+
 // ERC Token Standard #20 Interface
 // https://github.com/ethereum/EIPs/issues/20
 // Constructed according to OpenZeppelin Burnable Token contract
@@ -42,10 +44,48 @@ interface BurnableERC20 {
 }
 
 
-contract GraphToken is BurnableERC20 {
+contract GraphToken is Ownable, BurnableERC20 {
     
-    constructor () public {
-        // ...
+    /* 
+    * @title GraphToken contract
+    *
+    * @author Bryant Eisenbach
+    * @author Reuven Etzion
+    *
+    * @notice Contract Specification:
+    *
+    * Graph Tokens will have variable inflation to rewards specific activities
+    * in the network.
+    * 
+    * Requirements ("GraphToken" contract):
+    * @req 01 Implements ERC-20 (and what else?)
+    * @req 02 Has approved treasurers with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
+    * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
+    * ...
+    */
+
+    /* STATE VARIABLES */
+    // Treasurers map to true
+    mapping (address => bool) internal treasurers;
+
+    /* 
+     * @notice Add a Treasurer to the treasurers mapping
+     * @dev Only DAO owner may do this
+     *
+     * @param _newTreasurer (address) Address of the Treasurer to be added
+     */
+    function addTreasurer (address _newTreasurer) public onlyOwner {
+        treasurers[_newTreasurer] = true;
+    }
+
+    /* 
+     * @notice Remove a Treasurer from the treasurers mapping
+     * @dev Only DAO owner may do this
+     *
+     * @param _removedTreasurer (address) Address of the Treasurer to be removed
+     */
+    function removeTreasurer (address _removedTreasurer) public onlyOwner {
+        treasurers[_removedTreasurer] = false;
     }
 
 }
