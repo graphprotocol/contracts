@@ -39,7 +39,7 @@ interface BurnableERC20 {
 
 
 contract GraphToken is BurnableERC20 {
-
+    
     constructor () public {
         // ...
     }

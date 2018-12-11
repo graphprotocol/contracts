@@ -13,14 +13,14 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 
 ![Imgur](https://i.imgur.com/9uwiie1.png)
 
-## Solidity Contracts
-1. [Graph DAO](./dao)
-1. [Graph Token](./token)
-1. [Staking Contract](./staking)
-1. [Payment Channel](./payments)
-1. [Minting Channel](./minting)
-1. [Graph Name Service (GNS) Registry](./gns)
-1. [Dispute Resolution Contract](./disputes)
-1. [Rewards Manager Contract](./rewards)
-1. [Service Registry](./registry)
+## Primary Solidity Contracts
+1. [Graph DAO](./contracts/Governance.sol)
+1. [Graph Token](./contracts/GraphToken.sol)
+1. [Staking Contract](./contracts/Staking.sol)
+1. [Payment Channel](./contracts/)
+1. [Minting Channel](./contracts/)
+1. [Graph Name Service (GNS) Registry](./contracts/)
+1. [Dispute Resolution Contract](./contracts/)
+1. [Rewards Manager Contract](./contracts/)
+1. [Service Registry](./contracts/)
 

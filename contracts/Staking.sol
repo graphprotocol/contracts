@@ -1,6 +1,8 @@
 pragma solidity ^0.5.0;
 
-contract Staking {
+import "./Ownable.sol";
+
+contract Staking is Ownable {
     
     /* 
     * @title Staking contract
@@ -27,11 +29,11 @@ contract Staking {
     * else being equal, as this represents a greater economic security margin to the end user.
     * 
     * Requirements ("Staking" contract):
-    * @req 01 State variable minimumStakingAmount is editable by DAO
-    * @req 02 State variable maxIndexers is editable by DAO
+    * @req 01 State variable minimumStakingAmount is editable by Governance
+    * @req 02 State variable maxIndexers is editable by Governance
     * @req 03 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
     * @req 04 Curator can stake Graph Tokens for subgraphId
     * ...
     */
- 
+     
 }
