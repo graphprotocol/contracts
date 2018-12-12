@@ -213,7 +213,7 @@ contract GraphToken is Owned, BurnableERC20Token {
 
     // Burn _value amount of your own tokens
     function burn(uint256 value) public {
-        // TODO: check balance and burn tokens
+        // @TODO: check balance and burn tokens
     }
 
     

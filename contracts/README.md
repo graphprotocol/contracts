@@ -15,7 +15,9 @@
 ### Staking Contract ([Staking.sol](./Staking.sol))
 - Indexing Nodes stake Graph Tokens to participate in the data retrieval market for a specific subgraph, as identified by `subgraphId` .
 - Curators stake Graph Tokens to participate in a specific curation market, as identified by `subgraphId`
-- Staking amounts must meet criteria specified in technical spec, mechanism design section.
+- For a stakingAmount to be considered valid, it must meet the following requirements:
+    - `stakingAmount >= minimumStakingAmount` where `minimumStakingAmount` is set via governance.
+    - The `stakingAmount` must be in the set of the top N staking amounts, where N is determined by the `maxIndexers` parameter which is set via governance.
 
 ## (WIP...)
 
