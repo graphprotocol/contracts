@@ -21,6 +21,7 @@ contract Governance is Owned {
     * @req 02 Owner can change minimumStakingAmount in Staking contract 
     * @req 03 Owner can change maxIndexers in Staking contract 
     * @req 04 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
+    * @req 05 Mutli-sig would be the owner??..
     * ...
     */
 
