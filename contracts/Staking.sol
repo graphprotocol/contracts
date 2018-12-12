@@ -2,7 +2,7 @@ pragma solidity ^0.5.1;
 
 import "./Ownable.sol";
 
-contract Staking is Ownable {
+contract Staking is Owned {
     
     /* 
     * @title Staking contract

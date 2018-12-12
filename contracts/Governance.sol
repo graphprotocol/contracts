@@ -1,6 +1,6 @@
 pragma solidity ^0.5.1;
 
-import "./Ownable2.sol";
+import "./Ownable.sol";
 
 contract Governance is Owned {
     
@@ -17,11 +17,10 @@ contract Governance is Owned {
     * which enacts changes to the protocol via a multi-sig contract.
     * 
     * Requirements ("Governance" contract):
-    * @req 01 Contract has an owner/admin
+    * @req 01 Contract has an owner/admin (Mutli-sig would be the owner?)
     * @req 02 Owner can change minimumStakingAmount in Staking contract 
     * @req 03 Owner can change maxIndexers in Staking contract 
     * @req 04 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
-    * @req 05 Mutli-sig would be the owner??..
     * ...
     */
 
