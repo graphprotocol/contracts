@@ -18,6 +18,7 @@
 - For a stakingAmount to be considered valid, it must meet the following requirements:
     - `stakingAmount >= minimumStakingAmount` where `minimumStakingAmount` is set via governance.
     - The `stakingAmount` must be in the set of the top N staking amounts, where N is determined by the `maxIndexers` parameter which is set via governance.
+    - Market Curators and Indexing Nodes will have separate `minimumStakingAmount`s defined as `minimumCurationStakingamount` and `minimumIndexingStakingAmount`.
 
 ## (WIP...)
 
