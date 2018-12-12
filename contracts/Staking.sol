@@ -48,5 +48,21 @@ contract Staking is Owned {
 
     // Storage of staking amount for each Indexing Node
     mapping (address => uint) public indexingNodeStakingAmount;
+
+    /* Graph Token governed variables */
+    // Set the Minimum Staking Amount
+    function setMinimumStakingAmount (uint _minimumStakingAmount) public onlyOwner returns (bool success);
+
+    // Set the Maximum Indexers
+    function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
+
+    /* Graph Protocol Functions */
+    // Stake Graph Tokens for Indexing Node data retrieval by subgraphId
+    function stakeGraphTokensForIndexing (address _subgraphId, address _staker, uint _value) public returns (bool success);
+
+    // Stake Graph Tokens for market curation by subgraphId
+    function stakeGraphTokensForCuration (address _subgraphId, address _staker, uint _value) public returns (bool success);
+
+    // WIP...
      
 }

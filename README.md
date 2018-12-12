@@ -15,7 +15,7 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 
 ## Primary Solidity Contracts
 1. [Graph DAO](./contracts/Governance.sol)
-1. [Graph Token](./contracts/GraphToken2.sol)
+1. [Graph Token](./contracts/GraphToken.sol)
 1. [Staking Contract](./contracts/Staking.sol)
 1. [Payment Channel](./contracts/)
 1. [Minting Channel](./contracts/)

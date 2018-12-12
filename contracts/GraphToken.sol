@@ -219,8 +219,8 @@ contract GraphToken is Owned, BurnableERC20Token {
     
     /* Init Graph Token contract */
     constructor (uint _initialSupply) public {
-        name = "The Graph Token";
-        symbol = "TGT";
+        name = "The Graph Token"; // TODO: Confirm a name or lose this
+        symbol = "TGT"; // TODO: Confirm a sybol or lose this
         decimals = 18;  // 18 is the most common number of decimal places
         _totalSupply = _initialSupply * 10**uint(decimals);
         balances[owner] = _totalSupply;
