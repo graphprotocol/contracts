@@ -22,10 +22,12 @@
 
 ## (WIP...)
 
-## Supporting Contracts
+## Supporting Contracts &amp; Libraries
 ### SafeMath ([SafeMath.sol](./SafeMath.sol))
 - Math operations with safety checks that revert on error
 
 ### Ownable ([Ownable.sol](./Ownable.sol))
 - Owned contract from The Ethereum Wiki - ERC20 Token Standard
 
+### BuranableERC20Token ([BurnableERC20Token.sol](./BurnableERC20Token.sol))
+- Custom implimentation of the ERC20 Token Standard with burnable property added

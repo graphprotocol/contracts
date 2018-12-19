@@ -2,11 +2,9 @@ pragma solidity ^0.5.1;
 
 import "./GraphToken.sol";
 import "./Ownable.sol";
+import "./BurnableERC20Token.sol";
 
-contract Staking is 
-    Owned,
-    ApproveAndCallFallBack 
-{
+contract Staking is Owned, ApproveAndCallFallBack {
     
     /* 
     * @title Staking contract
@@ -88,13 +86,31 @@ contract Staking is
         
         // parse data to determine if we are staking Indexing or Curation
         if (_data) stakeGraphTokensForIndexing(
-            _data[""], // parse subgraphId
+            bytes32ToString(_data), // parse subgraphId
             _from, // staker
             _tokens // value
         );
         else stakeGraphTokensForCuration();
 
 
+    }
+
+    // Parse binary data to string
+    function bytes32ToString(bytes32 _data) public returns (string) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(_data) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
     }
 
     // WIP...

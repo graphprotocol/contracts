@@ -28,15 +28,15 @@ contract Governance is Owned {
 
     Owned[] internal governedContracts; // list of addresses of deployed contracts to be owned
 
-    constructor (Owned[] _governed) {
-        governed = _governed;
+    constructor (Owned[] memory _governed) public {
+        governedContracts = _governed;
     }
 
-    function acceptOwnership () {
+    function acceptOwnership () public {
         // iterate through the governed contracts and accept ownership (acceptOwnership)
     }
 
-    function transferOwnership (address newGoverner) {
+    function transferOwnership (address _newGoverner) public onlyOwner {
         // iterate through governed contracts and transfer to the newGoverner
     }
 }
