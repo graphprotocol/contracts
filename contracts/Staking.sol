@@ -1,8 +1,12 @@
 pragma solidity ^0.5.1;
 
+import "./GraphToken.sol";
 import "./Ownable.sol";
 
-contract Staking is Owned {
+contract Staking is 
+    Owned,
+    ApproveAndCallFallBack 
+{
     
     /* 
     * @title Staking contract
@@ -71,6 +75,27 @@ contract Staking is Owned {
     // Stake Graph Tokens for market curation by subgraphId
     // @TODO: Require stakingAmount >= minimumStakingAmount
     function stakeGraphTokensForCuration (string _subgraphId, address _staker, uint _value) public returns (bool success);
+
+    function receiveApproval (
+        address _from, // sender
+        uint256 _tokens, // value
+        address _token, // Graph Token address
+        bytes memory _data
+    ) public {
+
+        // @security - best practice - transferFrom will return false but not throw, so we use assert
+        assert(BurnableERC20Token(_token).tranferFrom(_from, address(this), _tokens));
+        
+        // parse data to determine if we are staking Indexing or Curation
+        if (_data) stakeGraphTokensForIndexing(
+            _data[""], // parse subgraphId
+            _from, // staker
+            _tokens // value
+        );
+        else stakeGraphTokensForCuration();
+
+
+    }
 
     // WIP...
      

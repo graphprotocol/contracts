@@ -60,7 +60,10 @@ contract ApproveAndCallFallBack {
 // ----------------------------------------------------------------------------
 // Burnable ERC20 Token, with the addition of symbol, name and decimals
 // ----------------------------------------------------------------------------
-contract GraphToken is Owned, BurnableERC20Token {
+contract GraphToken is
+    Owned,
+    BurnableERC20Token
+{
     
     /* 
     * @title GraphToken contract
@@ -74,7 +77,7 @@ contract GraphToken is Owned, BurnableERC20Token {
     * in the network.
     * 
     * Requirements ("GraphToken" contract):
-    * @req 01 Implements ERC-20 (and what else?)
+    * @req 01 Implements ERC-20 Standards plus is burnable
     * @req 02 Has approved treasurers with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
     * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
     * ...

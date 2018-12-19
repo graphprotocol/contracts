@@ -1,7 +1,7 @@
 pragma solidity ^0.5.1;
 
 // ----------------------------------------------------------------------------
-// Owned contract from ERC20 Token Standard - The Ethereum Wiki
+// Owned contract from The Ethereum Wiki - ERC20 Token Standard
 // https://theethereum.wiki/w/index.php/ERC20_Token_Standard
 // ----------------------------------------------------------------------------
 contract Owned {

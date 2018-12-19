@@ -24,3 +24,4 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 1. [Rewards Manager Contract](./contracts/)
 1. [Service Registry](./contracts/)
 
+*[See ./contracts/README.md for full list of contracts](./contracts/)*
