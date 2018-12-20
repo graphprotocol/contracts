@@ -23,9 +23,6 @@ contract BurnableERC20Token {
     // Total amount of tokens
     uint256 public totalSupply;
     
-    // Max uint256 value
-    uint256 constant public MAX_UINT256 = 2**256 - 1;
-    
     // Balances for each account
     mapping (address => uint256) balances;
     

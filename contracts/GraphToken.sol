@@ -24,7 +24,9 @@ contract GraphToken is
     * in the network.
     * 
     * Requirements ("GraphToken" contract):
-    * @req 01 Implements ERC-20 Standards plus is burnable
+    * @req 01 Implements ERC-20 Standards plus is Burnable (slashing) & Minting
+    *   Minting: see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/token/ERC20/ERC20Mintable.sol
+    *       (Ignore roles, Treasures are allowed to mint)
     * @req 02 Has approved treasurers with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
     * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
     * ...
@@ -33,19 +35,14 @@ contract GraphToken is
     /* Libraries */
     using SafeMath for uint256; // we explicitly use type uint256 even though uint is an alias for uint256
 
-    /* Events */
-    // Triggered when tokens are transferred.
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-
-    // Triggered whenever approve(address _spender, uint256 _value) is called.
-    event Approval(address indexed _tokenOwner, address indexed _spender, uint256 _value);
-
-    // Triggered whenever burn(uint256 _value) is called
-    event Burn(address indexed _burner, uint256 _value);
-
     /* STATE VARIABLES */
+    // ------------------------------------------------------
     // Treasurers map to true
     mapping (address => bool) internal treasurers;
+    // OR...
+    // Single Treasurer (V1?)
+    // address internal treasurer;
+    // ------------------------------------------------------
  
     /* BurnableERC20Token Functions */
     // ------------------------------------------------------------------------
@@ -103,34 +100,14 @@ contract GraphToken is
     // - 0 value transfers are allowed
     // ------------------------------------------------------------------------
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        // @TODO: Choose method logic
-
-        // From: https://theethereum.wiki/w/index.php/ERC20_Token_Standard
-        // balances[from] = balances[from].sub(_value);
-        // allowed[from][msg.sender] = allowed[from][msg.sender].sub(_value);
-        // balances[_to] = balances[_to].add(_value);
-        // emit Transfer(from, _to, _value);
-        // return true;
-
-        // From: https://github.com/OpenZeppelin/openzeppelin-solidity/blob/9b3710465583284b8c4c5d2245749246bb2e0094/contracts/token/ERC20/ERC20.sol
-        // require(_value <= balances[_from]);
-        // require(_value <= allowed[_from][msg.sender]);
-        // require(_to != address(0));
-        // balances[_from] = balances[_from].sub(_value);
-        // balances[_to] = balances[_to].add(_value);
-        // allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-        // emit Transfer(_from, _to, _value);
-        // return true;
-
-        // From: https://github.com/ConsenSys/Tokens/blob/master/contracts/eip20/EIP20.sol
-        uint256 allowance = allowed[_from][msg.sender];
-        require(balances[_from] >= _value && allowance >= _value);
-        balances[_to] += _value;
+        // See: https://github.com/OpenZeppelin/openzeppelin-solidity/blob/9b3710465583284b8c4c5d2245749246bb2e0094/contracts/token/ERC20/ERC20.sol
+        require(_value <= balances[_from]); // check balance
+        require(_value <= allowed[_from][msg.sender]); // check allowance
+        require(_to != address(0)); // address is good
         balances[_from] -= _value;
-        if (allowance < MAX_UINT256) {
-            allowed[_from][msg.sender] -= _value;
-        }
-        emit Transfer(_from, _to, _value); //solhint-disable-line indent, no-unused-vars
+        balances[_to] += _value;
+        allowed[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value);
         return true;
     }
 
