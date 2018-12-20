@@ -81,12 +81,29 @@ contract Governance is Owned {
 
     // Add a governor
     function addGovernor (address _newGovernor) public onlyGovernor {
+        // Prevent saving a duplicate
+        bool duplicate;
+        for (uint i = 0; i < governors.length; i++) {
+            if (governors[i] == _newGovernor) duplicate = true;
+        }
+        require(!duplicate);
+
+        // Add address to governors list
         governors.push(_newGovernor);
     }
 
     // Remove a governor
     function removeGovernor (address _removedGovernor) public onlyGovernor {
-        // @TODO: Pop the _removedGovernor from governors
+        // Sender cannot remove self
+        require(msg.sender != _removedGovernor);
+        
+        // Remove _removedGovernor from governors list
+        uint i = 0;
+        while (governors[i] != _removedGovernor) {
+            i++;
+        }
+        governors[i] = governors[governors.length - 1];
+        governors.length--;
     }
 
 }
