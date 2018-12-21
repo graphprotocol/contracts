@@ -1,6 +1,5 @@
 pragma solidity ^0.5.1;
 
-import "./SafeMath.sol";
 import "./Ownable.sol";
 import "./BurnableERC20Token.sol";
 import "./StandardERC20Token.sol";
@@ -36,9 +35,6 @@ contract GraphToken is
     * ...
     */
     
-    /* Libraries */
-    using SafeMath for uint256; // we explicitly use type uint256 even though uint is an alias for uint256
-
     /* STATE VARIABLES */
     // ------------------------------------------------------
     // Treasurers map to true
@@ -72,8 +68,8 @@ contract GraphToken is
     // - 0 value transfers are allowed
     // ------------------------------------------------------------------------
     function transfer(address _to, uint256 _value) public returns (bool success) {
-        balances[msg.sender] = balances[msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
+        balances[msg.sender] -= _value;
+        balances[_to] += _value;
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
@@ -169,13 +165,6 @@ contract GraphToken is
         emit Transfer(address(0), owner, totalSupply);
     }
     
-    /* Graph Token governed variables */
-    // Set the total token supply
-    function setTotalSupply(uint _newTotalSupply) external onlyOwner {
-        totalSupply = _newTotalSupply;
-    }
-    
-
     /* Graph Protocol Functions */
     /* 
      * @notice Add a Treasurer to the treasurers mapping

@@ -18,14 +18,15 @@ contract Governance is Owned {
     * 
     * Requirements ("Governance"/"DAO" contract):
     * @req 01 Contract has one or more Governor(s), majority can vote to perform Governor actions
-    * @req 02 Function to check Mutli-sig authorization
-    * @req 03 Make external call to minimumCurationStakingAmount in Staking contract as Governor
-    * @req 04 Make external call to minimumIndexingStakingAmount in Staking contract 
-    * @req 05 Make external call to maxIndexers in Staking contract 
-    * @req 06 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
+    *   - Function to check Mutli-sig authorization
+    * @req 02 Make external call to minimumCurationStakingAmount in Staking contract as Governor
+    * @req 03 Make external call to minimumIndexingStakingAmount in Staking contract 
+    * @req 04 Make external call to maxIndexers in Staking contract 
+    * @req 05 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
     * ...
     * Version 2
-    * @req 02 (V2) Change Mutli-sig to use a voting mechanism
+    * @req 01 (V2) Change Mutli-sig to use a voting mechanism
+    *   - Contract has one or more Governor(s), majority can vote to perform Governor actions
     */
 
     /* STATE VARIABLES */
@@ -42,12 +43,14 @@ contract Governance is Owned {
 
     // Governor-only modifier
     modifier onlyGovernor {
+        // V1 - Check that sender is a governor
         bool pass = false;
         for (uint i; i < governors.length; i++) {
             if (governors[i] == msg.sender) pass = true;
         }
         require(pass);
         _;
+        // @TODO: V2 - Check concensus of all governors
     }
 
     constructor (Owned[] memory _governed) public {
@@ -66,7 +69,7 @@ contract Governance is Owned {
     }
 
     // Initiate the transfer of ownership of the contracts in the governedContracts list
-    function transferContractOwnership (address _newGoverner) private onlyOwner {
+    function transferContractOwnership (address _newGoverner) public onlyGovernor {
         // iterate through governed contracts and transfer to the newGoverner
     }
     
