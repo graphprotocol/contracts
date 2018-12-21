@@ -78,19 +78,25 @@ contract Staking is Owned, ApproveAndCallFallBack {
         address _from, // sender
         uint256 _tokens, // value
         address _token, // Graph Token address
-        bytes memory _data
+        // bytes memory _data
+        string _subgraphId
     ) public {
 
         // @security - best practice - transferFrom will return false but not throw, so we use assert
         assert(BurnableERC20Token(_token).tranferFrom(_from, address(this), _tokens));
         
         // parse data to determine if we are staking Indexing or Curation
-        if (_data) stakeGraphTokensForIndexing(
-            bytes32ToString(_data), // parse subgraphId
-            _from, // staker
-            _tokens // value
-        );
-        else stakeGraphTokensForCuration();
+        if (_data.length > 0) {
+            // string _subgraphId = bytes32ToString(_data);
+            stakeGraphTokensForIndexing(
+                _subgraphId, // parse subgraphId
+                _from, // staker
+                _tokens // value
+            );
+        }
+        else {
+            stakeGraphTokensForCuration();
+        }
 
 
     }

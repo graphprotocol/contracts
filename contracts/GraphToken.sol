@@ -3,13 +3,17 @@ pragma solidity ^0.5.1;
 import "./SafeMath.sol";
 import "./Ownable.sol";
 import "./BurnableERC20Token.sol";
+import "./StandardERC20Token.sol";
+import "./ApproveAndCallFallBack.sol";
 
 // ----------------------------------------------------------------------------
 // Burnable ERC20 Token, with the addition of symbol, name and decimals
 // ----------------------------------------------------------------------------
 contract GraphToken is
     Owned,
-    BurnableERC20Token
+    StandardERC20Token,
+    BurnableERC20Token,
+    ApproveAndCallFallBack
 {
     
     /* 
@@ -146,7 +150,7 @@ contract GraphToken is
     // Owner can transfer out any accidentally sent ERC20 tokens
     // ------------------------------------------------------------------------
     function transferAnyERC20Token(address _tokenAddress, uint256 _value) public onlyOwner returns (bool success) {
-        return BurnableERC20Token(_tokenAddress).transfer(owner, _value);
+        return StandardERC20Token(_tokenAddress).transfer(owner, _value);
     }
 
     // Burn _value amount of your own tokens
