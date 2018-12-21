@@ -74,7 +74,6 @@ contract StandardERC20Token is ApproveAndCallFallBack {
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint _value) public returns (bool success);
     // ------------------------------------------------------------------------
     // Transfer `_value` from the `_from` account to the `_to` account
     //
@@ -121,13 +120,5 @@ contract StandardERC20Token is ApproveAndCallFallBack {
     function () external payable {
         revert();
     }
-
-    // ------------------------------------------------------------------------
-    // Owner can transfer out any accidentally sent ERC20 tokens
-    // ------------------------------------------------------------------------
-    function transferAnyERC20Token(address _tokenAddress, uint256 _value) public onlyOwner returns (bool success) {
-        return StandardERC20Token(_tokenAddress).transfer(owner, _value);
-    }
-
  }
 

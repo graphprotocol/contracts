@@ -41,12 +41,6 @@ contract GraphToken is
     // Single Treasurer (V1?)
     // address internal treasurer;
     // ------------------------------------------------------
- 
-    // Burn _value amount of your own tokens
-    function burn(uint256 _value) public {
-        // @TODO: check balance and burn tokens
-    }
-
     
     /* Init Graph Token contract */
     constructor (uint256 _initialSupply) public {
@@ -58,6 +52,19 @@ contract GraphToken is
         emit Transfer(address(0), owner, totalSupply);
     }
     
+    /* ERC20 functions */
+    // Burn _value amount of your own tokens
+    function burn(uint256 _value) public {
+        // @TODO: check balance and burn tokens
+    }
+
+    // ------------------------------------------------------------------------
+    // Owner can transfer out any accidentally sent ERC20 tokens
+    // ------------------------------------------------------------------------
+    // function transferAnyERC20Token(address _tokenAddress, uint256 _value) public onlyOwner returns (bool success) {
+    //     return StandardERC20Token(_tokenAddress).transfer(owner, _value);
+    // }
+ 
     /* Graph Protocol Functions */
     /* 
      * @notice Add a Treasurer to the treasurers mapping
