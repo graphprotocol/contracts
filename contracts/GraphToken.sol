@@ -3,7 +3,6 @@ pragma solidity ^0.5.1;
 import "./Ownable.sol";
 import "./BurnableERC20Token.sol";
 import "./StandardERC20Token.sol";
-import "./ApproveAndCallFallBack.sol";
 
 // ----------------------------------------------------------------------------
 // Burnable ERC20 Token, with the addition of symbol, name and decimals
@@ -11,8 +10,7 @@ import "./ApproveAndCallFallBack.sol";
 contract GraphToken is
     Owned,
     StandardERC20Token,
-    BurnableERC20Token,
-    ApproveAndCallFallBack
+    BurnableERC20Token
 {
     
     /* 
@@ -44,111 +42,6 @@ contract GraphToken is
     // address internal treasurer;
     // ------------------------------------------------------
  
-    /* BurnableERC20Token Functions */
-    // ------------------------------------------------------------------------
-    // Total supply
-    // ------------------------------------------------------------------------
-    // Getter should have been created by the base contract
-    // function totalSupply() public view returns (uint) {
-    //     return totalSupply.sub(balances[address(0)]);
-    // }
-
-
-    // ------------------------------------------------------------------------
-    // Get the token balance for account `tokenOwner`
-    // ------------------------------------------------------------------------
-    function balanceOf(address _tokenOwner) public view returns (uint balance) {
-        return balances[_tokenOwner];
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Transfer the balance from token owner's account to `to` account
-    // - Owner's account must have sufficient balance to transfer
-    // - 0 value transfers are allowed
-    // ------------------------------------------------------------------------
-    function transfer(address _to, uint256 _value) public returns (bool success) {
-        balances[msg.sender] -= _value;
-        balances[_to] += _value;
-        emit Transfer(msg.sender, _to, _value);
-        return true;
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Token owner can approve for `spender` to transferFrom(...) `tokens`
-    // from the token owner's account
-    //
-    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20-token-standard.md
-    // recommends that there are no checks for the approval double-spend attack
-    // as this should be implemented in user interfaces
-    // ------------------------------------------------------------------------
-    function approve(address _spender, uint256 _value) public returns (bool success) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Transfer `tokens` from the `from` account to the `to` account
-    //
-    // The calling account must already have sufficient tokens approve(...)-d
-    // for spending from the `from` account and
-    // - From account must have sufficient balance to transfer
-    // - Spender must have sufficient allowance to transfer
-    // - 0 value transfers are allowed
-    // ------------------------------------------------------------------------
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        // See: https://github.com/OpenZeppelin/openzeppelin-solidity/blob/9b3710465583284b8c4c5d2245749246bb2e0094/contracts/token/ERC20/ERC20.sol
-        require(_value <= balances[_from]); // check balance
-        require(_value <= allowed[_from][msg.sender]); // check allowance
-        require(_to != address(0)); // address is good
-        balances[_from] -= _value;
-        balances[_to] += _value;
-        allowed[_from][msg.sender] -= _value;
-        emit Transfer(_from, _to, _value);
-        return true;
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Returns the amount of tokens approved by the owner that can be
-    // transferred to the spender's account
-    // ------------------------------------------------------------------------
-    function allowance(address _tokenOwner, address _spender) public view returns (uint256 remaining) {
-        return allowed[_tokenOwner][_spender];
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Token owner can approve for `spender` to transferFrom(...) `tokens`
-    // from the token owner's account. The `spender` contract function
-    // `receiveApproval(...)` is then executed
-    // ------------------------------------------------------------------------
-    function approveAndCall(address _spender, uint256 _value, bytes memory _data) public returns (bool success) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        ApproveAndCallFallBack(_spender).receiveApproval(msg.sender, _value, address(this), _data);
-        return true;
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Don't accept ETH
-    // ------------------------------------------------------------------------
-    function () external payable {
-        revert();
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Owner can transfer out any accidentally sent ERC20 tokens
-    // ------------------------------------------------------------------------
-    function transferAnyERC20Token(address _tokenAddress, uint256 _value) public onlyOwner returns (bool success) {
-        return StandardERC20Token(_tokenAddress).transfer(owner, _value);
-    }
-
     // Burn _value amount of your own tokens
     function burn(uint256 _value) public {
         // @TODO: check balance and burn tokens

@@ -64,12 +64,12 @@ contract Governance is Owned {
     }
 
     // Accept the transfer of ownership of the contracts in the governedContracts list
-    function acceptContractOwnership () public {
+    function acceptOwnershipOfAllContracts () public {
         // iterate through governedContracts and accept ownership (acceptOwnership)
     }
 
     // Initiate the transfer of ownership of the contracts in the governedContracts list
-    function transferContractOwnership (address _newGoverner) public onlyGovernor {
+    function transferOwnershipOfAllContracts (address _newGoverner) public onlyGovernor {
         // iterate through governed contracts and transfer to the newGoverner
     }
     
