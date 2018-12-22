@@ -18,13 +18,13 @@ contract StandardERC20Token is ApproveAndCallFallBack {
     function by the compiler.
     */
     // Total amount of tokens
-    uint256 public totalSupply;
+    uint256 internal totalSupply;
     
     // Balances for each account
-    mapping (address => uint256) balances;
+    mapping (address => uint256) internal balances;
     
     // Owner of account approves the transfer of an amount to another account
-    mapping (address => mapping (address => uint256)) allowed;
+    mapping (address => mapping (address => uint256)) internal allowed;
     
     // Token details
     string public symbol;

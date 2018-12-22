@@ -1,7 +1,8 @@
 pragma solidity ^0.5.1;
 
 import "./Ownable.sol";
-import "./BurnableERC20Token.sol";
+import "./MintableERC20.sol";
+import "./BurnableERC20.sol";
 import "./StandardERC20Token.sol";
 
 // ----------------------------------------------------------------------------
@@ -10,7 +11,8 @@ import "./StandardERC20Token.sol";
 contract GraphToken is
     Owned,
     StandardERC20Token,
-    BurnableERC20Token
+    MintableERC20Interface,
+    BurnableERC20Interface
 {
     
     /* 
@@ -34,38 +36,49 @@ contract GraphToken is
     */
     
     /* STATE VARIABLES */
-    // ------------------------------------------------------
     // Treasurers map to true
     mapping (address => bool) internal treasurers;
-    // OR...
-    // Single Treasurer (V1?)
-    // address internal treasurer;
-    // ------------------------------------------------------
     
     /* Init Graph Token contract */
     constructor (uint256 _initialSupply) public {
         name = "The Graph Token"; // TODO: Confirm a name or lose this
         symbol = "TGT"; // TODO: Confirm a sybol or lose this
         decimals = 18;  // 18 is the most common number of decimal places
-        totalSupply = _initialSupply * 10**uint(decimals);
-        balances[owner] = totalSupply;
+        totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
+        balances[owner] = totalSupply; // Owner holds all tokens
         emit Transfer(address(0), owner, totalSupply);
     }
     
-    /* ERC20 functions */
-    // Burn _value amount of your own tokens
-    function burn(uint256 _value) public {
-        // @TODO: check balance and burn tokens
+    /* Graph Protocol Functions */
+    /**
+     * @dev Internal function that mints an amount of the token and assigns it to
+     * an account. This encapsulates the modification of balances such that the
+     * proper events are emitted.
+     * @param account The account that will receive the created tokens.
+     * @param value The amount that will be created.
+     */
+    function mint(address account, uint256 value) internal {
+        require(account != address(0));
+
+        totalSupply += value;
+        balances[account] += value;
+        emit Transfer(address(0), account, value);
     }
 
-    // ------------------------------------------------------------------------
-    // Owner can transfer out any accidentally sent ERC20 tokens
-    // ------------------------------------------------------------------------
-    // function transferAnyERC20Token(address _tokenAddress, uint256 _value) public onlyOwner returns (bool success) {
-    //     return StandardERC20Token(_tokenAddress).transfer(owner, _value);
-    // }
- 
-    /* Graph Protocol Functions */
+    /**
+     * @dev Internal function that burns an amount of the token of a given
+     * account.
+     * @param account The account whose tokens will be burnt.
+     * @param value The amount that will be burnt.
+     */
+    function burn(address account, uint256 value) internal {
+        require(account != address(0));
+
+        totalSupply -= value;
+        balances[account] -= value;
+        emit Transfer(account, address(0), value);
+    }
+
     /* 
      * @notice Add a Treasurer to the treasurers mapping
      * @dev Only DAO owner may do this
