@@ -34,33 +34,21 @@ contract Governance is Owned {
 
 
     /* STATE VARIABLES */
-    // List of governing members
-    address[] private members;
-
-    // List of addresses of upgradable contracts to be owned by the multisig
+    // List of upgradable contracts to be owned by the multisig
     Owned[] internal upgradableContracts;
 
     /* Contract Constructor */
-    /* @PARAM _upgradableContracts (string) - List of addresses of deployed contracts to be owned */
-    constructor (Owned[] memory _upgradableContracts) public {
+    /* @PARAM <list> _upgradableContracts - List of addresses of deployed contracts to be owned */
+    constructor (Owned[] memory _upgradableContracts, address _initialOwner) public {
         // Assign the contracts to be governed / owned
-        // @DEPLOYMENT: Contracts must be deployed in the correct order
+        // @DEPLOYMENT: Upgradable contracts must be deployed first
+        // @TODO: Parse _upgradableContracts
         if (_upgradableContracts.length > 0) upgradableContracts = _upgradableContracts;
 
-        // Sender will become the sole governing member
-        members.push(msg.sender);
+        // Set initial owner
+        if (address(_initialOwner) != address(0x0)) {owner = _initialOwner;}
+        else {owner = msg.sender;} // Sender will become the owner
     }
-
-    // Member-only modifier
-    modifier onlyMember {
-        bool pass = false;
-        for (uint i; i < members.length; i++) {
-            if (members[i] == msg.sender) pass = true;
-        }
-        require(pass);
-        _;
-    }
-
 
     // Accept the transfer of ownership of the contracts in the upgradableContracts list
     function acceptOwnershipOfAllContracts () public {
@@ -72,36 +60,4 @@ contract Governance is Owned {
         // iterate through governed contracts and transfer to the newGoverner
     }
     
-    // Get list of members
-    function getmembers () public view returns (address[] memory) {
-        return members;
-    }
-
-    // Add a member
-    function addMember (address _newMember) public onlyOwner {
-        // Prevent saving a duplicate
-        bool duplicate;
-        for (uint i = 0; i < members.length; i++) {
-            if (members[i] == _newMember) duplicate = true;
-        }
-        require(!duplicate);
-
-        // Add address to members list
-        members.push(_newMember);
-    }
-
-    // Remove a member
-    function removeMember (address _removedMember) public onlyOwner {
-        // Sender cannot remove self
-        require(msg.sender != _removedMember);
-        
-        // Remove _removedMember from members list
-        uint i = 0;
-        while (members[i] != _removedMember) {
-            i++;
-        }
-        members[i] = members[members.length - 1];
-        members.length--;
-    }
-
 }
