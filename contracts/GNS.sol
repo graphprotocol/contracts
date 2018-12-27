@@ -2,7 +2,7 @@ pragma solidity ^0.5.1;
 
 import "./Ownable.sol";
 
-contract Staking is Owned {
+contract GNS is Owned {
     
     /* 
     * @title Graph Name Service (GNS) contract
