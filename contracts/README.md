@@ -2,10 +2,11 @@
 
 ## Graph Protocol Contracts
 ### Graph DAO Contract ([Governance.sol](./Governance.sol))
-- Multi-sig contract governance contract
-- Upgrades all Graph smart contracts
-- Sets all parameters which are set via governance
-- Can be irreversibly replaced or upgraded on it's own authority (i.e. can replace itself).
+For now, the Governance contract, owned by the multisig, will serve as the DAO. Later we will have a DAO contract that manages voting and consensus on governance matters.
+- A multi-sig contract owns the Governance contract and all upgradable contracts
+- Upgrades all upgradable Graph smart contracts
+- Sets all parameters which are allowed to be set via governance
+- Can be irreversibly replaced or upgraded on its own authority (i.e. can replace itself).
 
 ### Graph Token Contract ([GraphToken.sol](./GraphToken.sol))
 - Implements ERC-20 (and what else?)
@@ -19,6 +20,13 @@
     - `stakingAmount >= minimumStakingAmount` where `minimumStakingAmount` is set via governance.
     - The `stakingAmount` must be in the set of the top N staking amounts, where N is determined by the `maxIndexers` parameter which is set via governance.
     - Market Curators and Indexing Nodes will have separate `minimumStakingAmount`s defined as `minimumCurationStakingamount` and `minimumIndexingStakingAmount`.
+
+### Graph Name Service (GNS) Registry ([GNS.sol](./GNS.sol))
+- Maps names to `subgraphId`
+- Namespace owners control names within a namespace
+- Top-level registrar assigns names to Ethereum Addresses
+- Mapping a name to a `subgraphId` also requires curating that `subgraphId`.
+- No contracts depend on the GNS Registry, but rather is consumed by users of The Graph.
 
 ## (WIP...)
 

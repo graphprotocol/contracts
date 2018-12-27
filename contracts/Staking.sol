@@ -2,7 +2,7 @@ pragma solidity ^0.5.1;
 
 import "./GraphToken.sol";
 import "./Ownable.sol";
-import "./BurnableERC20Token.sol";
+import "./BurnableERC20.sol";
 
 contract Staking is Owned {
     
@@ -31,11 +31,10 @@ contract Staking is Owned {
     * else being equal, as this represents a greater economic security margin to the end user.
     * 
     * Requirements ("Staking" contract):
-    * @req 01 State variable minimumCurationStakingAmount is editable by Governance
-    * @req 02 State variable minimumIndexingStakingAmount is editable by Governance
-    * @req 03 State variable maxIndexers is editable by Governance
-    * @req 04 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
-    * @req 05 Curator can stake Graph Tokens for subgraphId
+    * @req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
+    * @req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
+    * @req 03 Curator can stake Graph Tokens for subgraphId
+    * @req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
     * ...
     */
 
@@ -56,30 +55,57 @@ contract Staking is Owned {
     mapping (address => uint) public indexingNodeStakingAmount;
 
     /* Graph Token governed variables */
-    // Set the Minimum Staking Amount for Market Curators
+    /**
+     * @dev Set the Minimum Staking Amount for Market Curators
+     * @param <uint> _minimumCurationStakingAmount - Minimum amount allowed to be staked for Curation
+     */
     function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success);
 
-    // Set the Minimum Staking Amount for Indexing Nodes
+    /**
+     * @dev Set the Minimum Staking Amount for Indexing Nodes
+     * @param <uint> _minimumIndexingStakingAmount - Minimum amount allowed to be staked for Indexing Nodes
+     */
     function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
 
-    // Set the Maximum Indexers
+    /**
+     * @dev Set the maximum number of Indexing Nodes
+     * @param <uint> _maximumIndexers - Maximum number of Indexing Nodes allowed
+     */
     function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
 
     /* Graph Protocol Functions */
-    // Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-    // @TODO: Require stakingAmount >= minimumStakingAmount
-    function stakeGraphTokensForIndexing (string _subgraphId, address _staker, uint _value) public returns (bool success);
+    /**
+     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
+     * @param <string> _subgraphId - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param <address> _staker - Address of Staking party
+     * @param <uint> _value - Amount of Graph Tokens to be staked
+     * @TODO: Require _value >= setMinimumIndexingStakingAmount
+     */
+    function stakeGraphTokensForIndexing (
+        string _subgraphId, 
+        address _staker, 
+        uint _value
+    ) public returns (bool success);
 
-    // Stake Graph Tokens for market curation by subgraphId
-    // @TODO: Require stakingAmount >= minimumStakingAmount
-    function stakeGraphTokensForCuration (string _subgraphId, address _staker, uint _value) public returns (bool success);
+    /**
+     * @dev Stake Graph Tokens for Market Curation by subgraphId
+     * @param <string> _subgraphId - Subgraph ID the Curator is staking Graph Tokens for
+     * @param <address> _staker - Address of Staking party
+     * @param <uint> _value - Amount of Graph Tokens to be staked
+     * @TODO: Require _value >= minimumCurationStakingAmount
+     */
+    function stakeGraphTokensForCuration (
+        string _subgraphId, 
+        address _staker, 
+        uint _value
+    ) public returns (bool success);
 
     function receiveApproval (
         address _from, // sender
         uint256 _tokens, // value
         address _token, // Graph Token address
         // bytes memory _data
-        string _subgraphId
+        string _subgraphId // ID of Subgraph
     ) public {
 
         // @security - best practice - transferFrom will return false but not throw, so we use assert
