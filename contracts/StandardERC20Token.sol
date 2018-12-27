@@ -35,7 +35,7 @@ contract StandardERC20Token is ApproveAndCallFallBack {
     // ------------------------------------------------------------------------
     // Get the account balance of another account with address `_tokenOwner`
     // ------------------------------------------------------------------------
-    function balanceOf(address _tokenOwner) public view returns (uint balance) {
+    function balanceOf(address _tokenOwner) public view returns (uint256 balance) {
         return balances[_tokenOwner];
     }
 
@@ -96,10 +96,10 @@ contract StandardERC20Token is ApproveAndCallFallBack {
     }
 
     // Triggered when tokens are transferred.
-    event Transfer(address indexed _from, address indexed _to, uint _value);
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
 
     // Triggered whenever approve(address _spender, uint256 _value) is called.
-    event Approval(address indexed _tokenOwner, address indexed _spender, uint _value);
+    event Approval(address indexed _tokenOwner, address indexed _spender, uint256 _value);
 
     /* Additional ERC20 Token Functionality */
     // ------------------------------------------------------------------------

@@ -35,24 +35,36 @@ contract GraphToken is
     * ...
     * V2 Requirements
     * @req 01 Majority of multiple treasurers can mint tokens.
+    *
+    * @question: Will allowances be possible to delegate token burning to the contract (need?)
+    * @question: Do we want to init the contract with a specific supply? To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
     */
     
     /* STATE VARIABLES */
     // Treasurers map to true
     address[] private treasurers;
+
+    /* Modifiers */
+    modifier onlyTreasurer () {
+        bool isTreasurer = false;
+        for (uint i = 0; i < treasurers.length; i++) {
+            if (msg.sender == treasurers[i]) isTreasurer = true;
+        }
+        require(isTreasurer);
+        _;
+    }
     
     /* Init Graph Token contract */
-    /* @PARAM <_initialSupply> _initialSupply - Initial supply of Graph Tokens */
+    /* @PARAM _initialSupply <uint256> - Initial supply of Graph Tokens */
     constructor (uint256 _initialSupply) public {
+        
         name = "The Graph Token"; // TODO: Confirm a name or lose this
         symbol = "TGT"; // TODO: Confirm a sybol or lose this
         decimals = 18;  // 18 is the most common number of decimal places
         totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
-        // @Bryant: When the owner is changed, we need to move the total supply to the
-        //     new owner or should we assign this total supply to the multisig itself?
-        balances[owner] = totalSupply; // Owner holds all tokens
-        treasurers.push(owner); // DAO owner is initially the sole treasurer
-        emit Transfer(address(0), owner, totalSupply);
+        balances[msg.sender] = totalSupply; // Owner holds all tokens
+        treasurers.push(msg.sender); // DAO owner is initially the sole treasurer
+        emit Transfer(address(0), msg.sender, totalSupply);
     }
     
     /* Graph Protocol Functions */
@@ -60,10 +72,10 @@ contract GraphToken is
      * @dev Internal function that mints an amount of the token and assigns it to
      * an account. This encapsulates the modification of balances such that the
      * proper events are emitted.
-     * @param <address> account - The account that will receive the created tokens.
-     * @param <uint256> value - The amount that will be created.
+     * @param account <address> - The account that will receive the created tokens.
+     * @param value <uint256> - The amount that will be created.
      */
-    function mint(address account, uint256 value) internal {
+    function mint(address account, uint256 value) external onlyTreasurer {
         require(account != address(0));
 
         totalSupply += value;
@@ -74,22 +86,21 @@ contract GraphToken is
     /**
      * @dev Internal function that burns an amount of the token of a given
      * account.
-     * @param <address> account - The account whose tokens will be burnt.
-     * @param <uint256> value - The amount that will be burnt.
+     * @param value <uint256> - The amount that will be burnt.
      */
-    function burn(address account, uint256 value) internal {
-        require(account != address(0));
+    function burn(uint256 value) public {
+        require(balances[msg.sender] >= value);
 
         totalSupply -= value;
-        balances[account] -= value;
-        emit Transfer(account, address(0), value);
+        balances[msg.sender] -= value;
+        emit Transfer(msg.sender, address(0), value);
     }
 
     /* 
      * @notice Add a Treasurer to the treasurers list
      * @dev Only DAO owner may do this
      *
-     * @param <address> _newTreasurer - Address of the Treasurer to be added
+     * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
     function addTreasurer (address _newTreasurer) public onlyOwner {
         // Prevent saving a duplicate
@@ -107,7 +118,7 @@ contract GraphToken is
      * @notice Remove a Treasurer from the treasurers mapping
      * @dev Only DAO owner may do this
      *
-     * @param <address> _removedTreasurer - Address of the Treasurer to be removed
+     * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
     function removeTreasurer (address _removedTreasurer) public onlyOwner {
         // Sender cannot remove self

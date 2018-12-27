@@ -12,5 +12,5 @@ contract MintableERC20Interface {
      * @param account The account that will receive the created tokens.
      * @param value The amount that will be created.
      */
-    function mint(address account, uint256 value) internal;
+    function mint(address account, uint256 value) external;
 }

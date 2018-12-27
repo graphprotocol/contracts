@@ -57,28 +57,28 @@ contract Staking is Owned {
     /* Graph Token governed variables */
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
-     * @param <uint> _minimumCurationStakingAmount - Minimum amount allowed to be staked for Curation
+     * @param _minimumCurationStakingAmount <uint> - Minimum amount allowed to be staked for Curation
      */
     function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success);
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
-     * @param <uint> _minimumIndexingStakingAmount - Minimum amount allowed to be staked for Indexing Nodes
+     * @param _minimumIndexingStakingAmount <uint> - Minimum amount allowed to be staked for Indexing Nodes
      */
     function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
 
     /**
      * @dev Set the maximum number of Indexing Nodes
-     * @param <uint> _maximumIndexers - Maximum number of Indexing Nodes allowed
+     * @param _maximumIndexers <uint> - Maximum number of Indexing Nodes allowed
      */
     function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
 
     /* Graph Protocol Functions */
     /**
      * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-     * @param <string> _subgraphId - Subgraph ID the Indexing Node is staking Graph Tokens for
-     * @param <address> _staker - Address of Staking party
-     * @param <uint> _value - Amount of Graph Tokens to be staked
+     * @param _subgraphId <string> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint> - Amount of Graph Tokens to be staked
      * @TODO: Require _value >= setMinimumIndexingStakingAmount
      */
     function stakeGraphTokensForIndexing (
@@ -89,9 +89,9 @@ contract Staking is Owned {
 
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
-     * @param <string> _subgraphId - Subgraph ID the Curator is staking Graph Tokens for
-     * @param <address> _staker - Address of Staking party
-     * @param <uint> _value - Amount of Graph Tokens to be staked
+     * @param _subgraphId <string> - Subgraph ID the Curator is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint> - Amount of Graph Tokens to be staked
      * @TODO: Require _value >= minimumCurationStakingAmount
      */
     function stakeGraphTokensForCuration (

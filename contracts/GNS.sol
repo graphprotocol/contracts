@@ -38,7 +38,7 @@ contract GNS is Owned {
     * Requirements ("GNS" contract):
     * @req 01 Maps owners to domains
     * @req 02 Maps domain names to subgraphIds
-    * @req 03 Maps subdomain names to subgraphIds
+    * @req 03 Maps subdomain names to domains of subgraphIds
     * @req 04 Top-level registrar assigns names to Ethereum Addresses (not subgraphIds?)
     *   Q. 04 is a separate use for GNS? A simple map to ETH addresses? Or is a subgraphId an address?
     * ...
@@ -46,10 +46,12 @@ contract GNS is Owned {
 
     /* STATE VARIABLES */
     // Storage of Domain Names mapped to subgraphId's
-    mapping (string => string) public gnsDomains;
+    mapping (string => string) internal gnsDomains;
 
     // Storage of Sub Domain Names mapped to subgraphId's
-    mapping (string => mapping (string => string)) public gnsSubDomains;
+    // @todo: NOT FEASIBLE - REVISE
+    // @dev Define requirements further
+    mapping (string => mapping (string => string)) internal gnsSubDomains;
 
     /* Contract Constructor */
     constructor () public {}
@@ -57,15 +59,15 @@ contract GNS is Owned {
     /* Graph Protocol Functions */
     /**
      * @dev Retrieve subgraphId for given Domain Name
-     * @param <string> _domain - Domain of targeted subgraphId
+     * @param _domain <string> - Domain of targeted subgraphId
      */
-    function getDomainSubgraphId (string _domain) public view returns (string);
+    function getDomainSubgraphId (string memory _domain) public view returns (string memory);
 
     /**
      * @dev Retrieve subgraphId for given Subdomain Name
-     * @param <string> _subDomain - Domain of targeted subgraphId
+     * @param _subDomain <string> - Domain of targeted subgraphId
      */
-    function getDomainSubgraphId (string _subDomain) public view returns (string);
+    function getSubDomainSubgraphId (string memory _subDomain) public view returns (string memory);
 
     // WIP...
      

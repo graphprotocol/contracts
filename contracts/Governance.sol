@@ -19,6 +19,7 @@ contract Governance is Owned {
     * Requirements ("Governance" contract):
     * @req 01 Multisig contract will own this contract
     * @req 02 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
+    *   (GovA owns contracts 1-5 and can transfer ownership of 1-5 to GovB)
     * ...
     * Version 2
     * @req 01 (V2) Change Mutli-sig to use a voting mechanism
@@ -35,8 +36,8 @@ contract Governance is Owned {
 
     /**
      * @dev Governance Contract Constructor
-     * @param <list> _upgradableContracts - List of addresses of deployed contracts to be owned
-     * @param <address> _initialOwner - An initial owner is required; address(0x0) will default to msg.sender
+     * @param _upgradableContracts <list> - List of addresses of deployed contracts to be owned
+     * @param _initialOwner <address> - An initial owner is required; address(0x0) will default to msg.sender
      */
     constructor (Owned[] memory _upgradableContracts, address _initialOwner) public {
         // Assign the contracts to be governed / owned
@@ -60,7 +61,7 @@ contract Governance is Owned {
 
     /**
      * @dev Initiate the transfer of ownership of the contracts in the upgradableContracts list
-     * @param <address> _newGoverner - Address ownership will be transferred to
+     * @param _newGoverner <address> - Address ownership will be transferred to
      */
     function transferOwnershipOfAllContracts (address _newGoverner) public onlyOwner {
         // iterate through governed contracts and transfer to the newGoverner
