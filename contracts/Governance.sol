@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity ^0.5.2;
 
 import "./Ownable.sol";
 
@@ -32,7 +32,7 @@ contract Governance is Owned {
 
     /* STATE VARIABLES */
     // List of upgradable contracts to be owned by the multisig
-    Owned[] internal upgradableContracts;
+    Owned[] public upgradableContracts;
 
     /**
      * @dev Governance Contract Constructor

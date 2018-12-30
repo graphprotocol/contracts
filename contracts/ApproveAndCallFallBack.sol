@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity ^0.5.2;
 
 // ----------------------------------------------------------------------------
 // Contract function to receive approval and execute function in one call

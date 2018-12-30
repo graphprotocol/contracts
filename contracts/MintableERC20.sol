@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity ^0.5.2;
 
 // ----------------------------------------------------------------------------
 // Mintable ERC Token Standard #20 Abstract Contract / Interface

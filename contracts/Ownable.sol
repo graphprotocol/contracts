@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity ^0.5.2;
 
 // ----------------------------------------------------------------------------
 // Owned contract from The Ethereum Wiki - ERC20 Token Standard
