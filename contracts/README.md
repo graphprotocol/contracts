@@ -33,6 +33,12 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 - The ability to grant rewards may need to be splittable across multiple transactions and transaction originators for gas reasons.
 - (Maybe) can mint tokens to reward whichever user assumes the cost of paying transaction fees for minting the rewards.
 
+### Dispute Resolution Manager ([DisputeManager.sol](./DisputeManager.sol))
+- Has permission to slash balances in Staking Contract
+- Has a centralized arbitrator that decides disputes
+- Disputes require a deposit to create, equivalent to the amount that may be slashed.
+- In successful dispute, 50% (or some other amount set through governance), of slashing amount goes to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
+
 
 ## (WIP...)
 

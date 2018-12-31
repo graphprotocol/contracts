@@ -35,6 +35,7 @@ contract Staking is Owned {
     * @req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
     * @req 03 Curator can stake Graph Tokens for subgraphId
     * @req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
+    * @req 05 Dispute Resolution can slash staked tokens
     * ...
     */
 
@@ -95,7 +96,7 @@ contract Staking is Owned {
      * @TODO: Require _value >= minimumCurationStakingAmount
      */
     function stakeGraphTokensForCuration (
-        string _subgraphId, 
+        string memory _subgraphId, 
         address _staker, 
         uint _value
     ) public returns (bool success);
@@ -104,8 +105,7 @@ contract Staking is Owned {
         address _from, // sender
         uint256 _tokens, // value
         address _token, // Graph Token address
-        // bytes memory _data
-        string _subgraphId // ID of Subgraph
+        bytes memory _data
     ) public {
 
         // @security - best practice - transferFrom will return false but not throw, so we use assert
@@ -113,7 +113,7 @@ contract Staking is Owned {
         
         // parse data to determine if we are staking Indexing or Curation
         if (_data.length > 0) {
-            // string _subgraphId = bytes32ToString(_data);
+            string _subgraphId = bytes32ToString(_data);
             stakeGraphTokensForIndexing(
                 _subgraphId, // parse subgraphId
                 _from, // staker
@@ -128,22 +128,22 @@ contract Staking is Owned {
     }
 
     // Parse binary data to string
-    // function bytes32ToString(bytes32 _data) public returns (string) {
-    //     bytes memory bytesString = new bytes(32);
-    //     uint charCount = 0;
-    //     for (uint j = 0; j < 32; j++) {
-    //         byte char = byte(bytes32(uint(_data) * 2 ** (8 * j)));
-    //         if (char != 0) {
-    //             bytesString[charCount] = char;
-    //             charCount++;
-    //         }
-    //     }
-    //     bytes memory bytesStringTrimmed = new bytes(charCount);
-    //     for (j = 0; j < charCount; j++) {
-    //         bytesStringTrimmed[j] = bytesString[j];
-    //     }
-    //     return string(bytesStringTrimmed);
-    // }
+    function bytes32ToString(bytes32 _data) public returns (string memory) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(_data) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
+    }
 
     // WIP...
      
