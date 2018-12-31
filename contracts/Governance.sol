@@ -41,9 +41,9 @@ contract Governance is Owned {
      */
     constructor (Owned[] memory _upgradableContracts, address _initialOwner) public {
         // Assign the contracts to be governed / owned
-        // @DEPLOYMENT: Upgradable contracts must be deployed first
-        // @TODO: Parse _upgradableContracts
-        // @DEV: attempting casting the data as an Owned list
+        // @deployment: Upgradable contracts must be deployed first
+        // @todo: Parse _upgradableContracts
+        // @dev: attempting casting the data as an Owned list
         if (_upgradableContracts.length > 0) upgradableContracts = _upgradableContracts;
 
         // Set initial owner
