@@ -60,19 +60,19 @@ contract Staking is Owned {
      * @dev Set the Minimum Staking Amount for Market Curators
      * @param _minimumCurationStakingAmount <uint> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success) {}
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
      * @param _minimumIndexingStakingAmount <uint> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success) {}
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
+    function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success) {}
 
     /* Graph Protocol Functions */
     /**
@@ -80,21 +80,21 @@ contract Staking is Owned {
      * @param _subgraphId <string> - Subgraph ID the Indexing Node is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
      * @param _value <uint> - Amount of Graph Tokens to be staked
-     * @TODO: Require _value >= setMinimumIndexingStakingAmount
      */
+    // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
-        string _subgraphId, 
+        string memory _subgraphId, 
         address _staker, 
         uint _value
-    ) public returns (bool success);
+    ) public returns (bool success) {}
 
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <string> - Subgraph ID the Curator is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
      * @param _value <uint> - Amount of Graph Tokens to be staked
-     * @TODO: Require _value >= minimumCurationStakingAmount
      */
+    // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
         string memory _subgraphId, 
         address _staker, 
@@ -104,31 +104,31 @@ contract Staking is Owned {
     function receiveApproval (
         address _from, // sender
         uint256 _tokens, // value
-        address _token, // Graph Token address
+        address payable _token, // Graph Token address
         bytes memory _data
     ) public {
 
         // @security - best practice - transferFrom will return false but not throw, so we use assert
-        assert(BurnableERC20Token(_token).tranferFrom(_from, address(this), _tokens));
+        // assert(StandardERC20Token(_token).tranferFrom(_from, address(this), _tokens));
         
         // parse data to determine if we are staking Indexing or Curation
-        if (_data.length > 0) {
-            string _subgraphId = bytes32ToString(_data);
-            stakeGraphTokensForIndexing(
-                _subgraphId, // parse subgraphId
-                _from, // staker
-                _tokens // value
-            );
-        }
-        else {
-            stakeGraphTokensForCuration();
-        }
+        // if (_data.length > 0) {
+        //     string memory _subgraphId = bytes32ToString(_data);
+        //     stakeGraphTokensForIndexing(
+        //         _subgraphId, // parse subgraphId
+        //         _from, // staker
+        //         _tokens // value
+        //     );
+        // }
+        // else {
+        //     stakeGraphTokensForCuration();
+        // }
 
 
     }
 
     // Parse binary data to string
-    function bytes32ToString(bytes32 _data) public returns (string memory) {
+    function bytes32ToString(bytes32 _data) public pure returns (string memory) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
@@ -139,7 +139,7 @@ contract Staking is Owned {
             }
         }
         bytes memory bytesStringTrimmed = new bytes(charCount);
-        for (j = 0; j < charCount; j++) {
+        for (uint j = 0; j < charCount; j++) {
             bytesStringTrimmed[j] = bytesString[j];
         }
         return string(bytesStringTrimmed);
