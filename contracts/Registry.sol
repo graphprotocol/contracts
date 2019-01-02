@@ -30,7 +30,7 @@ contract Registry is Owned {
      * @dev Retrieve Ethereum address for given URL
      * @param _url <string> - URL mapped to desired address
      */
-    function getAddressForUrl (string memory _url) public view returns (address memory);
+    function getAddressForUrl (string memory _url) public view returns (address);
 
     // WIP...
      

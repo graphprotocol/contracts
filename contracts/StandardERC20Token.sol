@@ -5,7 +5,7 @@ import "./ApproveAndCallFallBack.sol";
 // ----------------------------------------------------------------------------
 // ERC Token Standard #20 Abstract Contract / Interface
 // ----------------------------------------------------------------------------
-contract StandardERC20Token is ApproveAndCallFallBack {
+contract StandardERC20Token {
 
     /* STATE VARIABLES */
     /* This is a slight change to the ERC20 base standard.

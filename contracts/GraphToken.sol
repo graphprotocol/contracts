@@ -86,14 +86,24 @@ contract GraphToken is
     /**
      * @dev Internal function that burns an amount of the token of a given
      * account.
-     * @param value <uint256> - The amount that will be burnt.
+     * @param _account <address> - The to burn tokens for.
+     * @param _value <uint256> - The amount that will be burnt.
      */
-    function burn(uint256 value) public {
-        require(balances[msg.sender] >= value);
+    function burn(address _account, uint256 _value) public {
 
-        totalSupply -= value;
-        balances[msg.sender] -= value;
-        emit Transfer(msg.sender, address(0), value);
+        // check balance
+        require(_value <= balances[_account]);
+
+        // burn our own tokens or someone else's
+        if (msg.sender != _account) {
+            require(_value <= allowed[_account][msg.sender]); // check allowance
+            allowed[_account][msg.sender] -= _value;
+        }
+
+        // Adjust balances and emit
+        balances[_account] -= _value;
+        totalSupply -= _value;
+        emit Transfer(_account, address(0), _value);
     }
 
     /* 
