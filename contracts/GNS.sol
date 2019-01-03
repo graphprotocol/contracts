@@ -54,7 +54,7 @@ contract GNS is Owned {
     mapping (string => mapping (string => string)) internal gnsSubDomains;
 
     /* Contract Constructor */
-    constructor () public {}
+    constructor () public;
 
     /* Graph Protocol Functions */
     /**

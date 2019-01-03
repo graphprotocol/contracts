@@ -35,28 +35,19 @@ contract StandardERC20Token {
     // ------------------------------------------------------------------------
     // Get the account balance of another account with address `_tokenOwner`
     // ------------------------------------------------------------------------
-    function balanceOf(address _tokenOwner) public view returns (uint256 balance) {
-        return balances[_tokenOwner];
-    }
+    function balanceOf(address _tokenOwner) public view returns (uint256 balance);
 
     // ------------------------------------------------------------------------
     // Returns the amount which _spender is still allowed to withdraw from _owner
     // ------------------------------------------------------------------------
-    function allowance(address _tokenOwner, address _spender) public view returns (uint256 remaining) {
-        return allowed[_tokenOwner][_spender];
-    }
+    function allowance(address _tokenOwner, address _spender) public view returns (uint256 remaining);
 
     // ------------------------------------------------------------------------
     // Transfer the balance from token owner's account to `_to` account
     // - Owner's account must have sufficient balance to transfer
     // - 0 value transfers are allowed
     // ------------------------------------------------------------------------
-    function transfer(address _to, uint256 _value) public returns (bool success) {
-        balances[msg.sender] -= _value;
-        balances[_to] += _value;
-        emit Transfer(msg.sender, _to, _value);
-        return true;
-    }
+    function transfer(address _to, uint256 _value) public returns (bool success);
 
     /* ERC20 Standard */
     // ------------------------------------------------------------------------
@@ -68,11 +59,7 @@ contract StandardERC20Token {
     // recommends that there are no checks for the approval double-spend attack
     // as this should be implemented in user interfaces
     // ------------------------------------------------------------------------
-    function approve(address _spender, uint256 _value) public returns (bool success) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-    }
+    function approve(address _spender, uint256 _value) public returns (bool success);
 
     // ------------------------------------------------------------------------
     // Transfer `_value` from the `_from` account to the `_to` account
@@ -83,17 +70,7 @@ contract StandardERC20Token {
     // - Spender must have sufficient allowance to transfer
     // - 0 value transfers are allowed
     // ------------------------------------------------------------------------
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        // See: https://github.com/OpenZeppelin/openzeppelin-solidity/blob/9b3710465583284b8c4c5d2245749246bb2e0094/contracts/token/ERC20/ERC20.sol
-        require(_value <= balances[_from]); // check balance
-        require(_value <= allowed[_from][msg.sender]); // check allowance
-        require(_to != address(0)); // address is good
-        balances[_from] -= _value;
-        balances[_to] += _value;
-        allowed[_from][msg.sender] -= _value;
-        emit Transfer(_from, _to, _value);
-        return true;
-    }
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success);
 
     // Triggered when tokens are transferred.
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
@@ -107,18 +84,11 @@ contract StandardERC20Token {
     // from the token owner's account. The `_spender` contract function
     // `receiveApproval(...)` is then executed
     // ------------------------------------------------------------------------
-    function approveAndCall(address _spender, uint256 _value, bytes memory _data) public returns (bool success) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        ApproveAndCallFallBack(_spender).receiveApproval(msg.sender, _value, address(this), _data);
-        return true;
-    }
+    function approveAndCall(address _spender, uint256 _value, bytes memory _data) public returns (bool success);
 
     // ------------------------------------------------------------------------
     // Don't accept ETH
     // ------------------------------------------------------------------------
-    function () external payable {
-        revert();
-    }
+    function () external payable;
  }
 

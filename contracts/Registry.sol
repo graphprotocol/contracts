@@ -23,7 +23,7 @@ contract Registry is Owned {
     mapping (string => address) internal registeredUrls;
 
     /* Contract Constructor */
-    constructor () public {}
+    constructor () public;
 
     /* Graph Protocol Functions */
     /**

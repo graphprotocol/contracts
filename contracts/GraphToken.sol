@@ -45,27 +45,11 @@ contract GraphToken is
     address[] private treasurers;
 
     /* Modifiers */
-    modifier onlyTreasurer () {
-        bool isTreasurer = false;
-        for (uint i = 0; i < treasurers.length; i++) {
-            if (msg.sender == treasurers[i]) isTreasurer = true;
-        }
-        require(isTreasurer);
-        _;
-    }
+    modifier onlyTreasurer ();
     
     /* Init Graph Token contract */
     /* @PARAM _initialSupply <uint256> - Initial supply of Graph Tokens */
-    constructor (uint256 _initialSupply) public {
-        
-        name = "The Graph Token"; // TODO: Confirm a name or lose this
-        symbol = "TGT"; // TODO: Confirm a sybol or lose this
-        decimals = 18;  // 18 is the most common number of decimal places
-        totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
-        balances[msg.sender] = totalSupply; // Owner holds all tokens
-        treasurers.push(msg.sender); // DAO owner is initially the sole treasurer
-        emit Transfer(address(0), msg.sender, totalSupply);
-    }
+    constructor (uint256 _initialSupply) public;
     
     /* Graph Protocol Functions */
     /**
@@ -75,13 +59,7 @@ contract GraphToken is
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mint(address account, uint256 value) external onlyTreasurer {
-        require(account != address(0));
-
-        totalSupply += value;
-        balances[account] += value;
-        emit Transfer(address(0), account, value);
-    }
+    function mint(address account, uint256 value) external onlyTreasurer;
 
     /**
      * @dev Internal function that burns an amount of the token of a given
@@ -89,22 +67,7 @@ contract GraphToken is
      * @param _account <address> - The to burn tokens for.
      * @param _value <uint256> - The amount that will be burnt.
      */
-    function burn(address _account, uint256 _value) public {
-
-        // check balance
-        require(_value <= balances[_account]);
-
-        // burn our own tokens or someone else's
-        if (msg.sender != _account) {
-            require(_value <= allowed[_account][msg.sender]); // check allowance
-            allowed[_account][msg.sender] -= _value;
-        }
-
-        // Adjust balances and emit
-        balances[_account] -= _value;
-        totalSupply -= _value;
-        emit Transfer(_account, address(0), _value);
-    }
+    function burn(address _account, uint256 _value) public;
 
     /* 
      * @notice Add a Treasurer to the treasurers list
@@ -112,17 +75,7 @@ contract GraphToken is
      *
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
-    function addTreasurer (address _newTreasurer) public onlyOwner {
-        // Prevent saving a duplicate
-        bool duplicate;
-        for (uint i = 0; i < treasurers.length; i++) {
-            if (treasurers[i] == _newTreasurer) duplicate = true;
-        }
-        require(!duplicate);
-
-        // Add address to treasurers list
-        treasurers.push(_newTreasurer);
-    }
+    function addTreasurer (address _newTreasurer) public onlyOwner;
 
     /* 
      * @notice Remove a Treasurer from the treasurers mapping
@@ -130,17 +83,6 @@ contract GraphToken is
      *
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
-    function removeTreasurer (address _removedTreasurer) public onlyOwner {
-        // Sender cannot remove self
-        require(msg.sender != _removedTreasurer);
-        
-        // Remove _removedTreasurer from treasurers list
-        uint i = 0;
-        while (treasurers[i] != _removedTreasurer) {
-            i++;
-        }
-        treasurers[i] = treasurers[treasurers.length - 1];
-        treasurers.length--;
-    }
+    function removeTreasurer (address _removedTreasurer) public onlyOwner;
 
 }

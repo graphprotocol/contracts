@@ -43,36 +43,24 @@ contract RewardManager is Owned {
     /**
      * @dev Reward Manager Contract Constructor
      */
-    constructor () public {
-        // Set initial curation rewards rate
-        curatorRewardRate = 300; // 3.00% in basis points (parts per 10,000)
-
-        // Set initial targeted participation rewards rate
-        targetParticipationRate = 300; // 3.00% in basis points (parts per 10,000);
-    }
+    constructor () public;
 
     /* Graph Protocol Functions */
     /**
      * @dev Multisig contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner {
-        // @todo: set curatorRewardRate
-    }
+    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
 
     /**
      * @dev Multisig contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner {
-        // @todo: set targetParticipationRate
-    }
+    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
 
     /**
      * @dev Multisig contract owns this contract and can mint tokens based on reward calculations
      */
-    function mintRewardTokens () public onlyOwner returns (bool success) {
-        // @todo: Mint Graph Tokens based on calculated rewards
-    }
+    function mintRewardTokens () public onlyOwner returns (bool success);
     
 }

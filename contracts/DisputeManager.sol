@@ -52,10 +52,8 @@ contract DisputeManager is Owned {
         bool stakeSlashed;
     }
 
-    /** */
-    constructor () public {
-        slashingPercent = 5000; // 50.00% in basis points (parts per 10,000)
-    }
+    /* Contract Constructor */
+    constructor () public;
 
     /* Graph Protocol Functions */
     /**
@@ -65,20 +63,18 @@ contract DisputeManager is Owned {
      * @dev _disputeId <string> Hash of readIndex data + disputer data
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (uint256 _disputeId) {}
+    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (uint256 _disputeId);
 
     /**
      * @dev Arbitrator (owner / multisig) can slash staked Graph Tokens in dispute
      * @param _disputeId <string> Hash of readIndex data + disputer data
      */
-    function slashStake (string memory _disputeId) public onlyOwner returns (bool success) {}
+    function slashStake (string memory _disputeId) public onlyOwner returns (bool success);
 
     /**
      * @dev Governance (owner / multisig) can update slashingPercent
      * @param _slashingPercent <uint128> Percent in basis points (parts per 10,000)
      */
-    function updateSlashingPercentage (uint128 _slashingPercent) public onlyOwner {
-        slashingPercent = _slashingPercent;
-    }
+    function updateSlashingPercentage (uint128 _slashingPercent) public onlyOwner returns (bool success);
 
 }

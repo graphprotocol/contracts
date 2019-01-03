@@ -39,32 +39,18 @@ contract Governance is Owned {
      * @param _upgradableContracts <list> - List of addresses of deployed contracts to be owned
      * @param _initialOwner <address> - An initial owner is required; address(0x0) will default to msg.sender
      */
-    constructor (Owned[] memory _upgradableContracts, address _initialOwner) public {
-        // Assign the contracts to be governed / owned
-        // @deployment: Upgradable contracts must be deployed first
-        // @todo: Parse _upgradableContracts
-        // @dev: attempting casting the data as an Owned list
-        if (_upgradableContracts.length > 0) upgradableContracts = _upgradableContracts;
-
-        // Set initial owner
-        if (address(_initialOwner) != address(0x0)) {owner = _initialOwner;}
-        else {owner = msg.sender;} // Sender will become the owner
-    }
+    constructor (Owned[] memory _upgradableContracts, address _initialOwner) public;
 
     /* Graph Protocol Functions */
     /**
      * @dev Accept the transfer of ownership of the contracts in the upgradableContracts list
      */
-    function acceptOwnershipOfAllContracts () public {
-        // iterate through upgradableContracts and accept ownership (acceptOwnership)
-    }
+    function acceptOwnershipOfAllContracts () public;
 
     /**
      * @dev Initiate the transfer of ownership of the contracts in the upgradableContracts list
      * @param _newGoverner <address> - Address ownership will be transferred to
      */
-    function transferOwnershipOfAllContracts (address _newGoverner) public onlyOwner {
-        // iterate through governed contracts and transfer to the newGoverner
-    }
+    function transferOwnershipOfAllContracts (address _newGoverner) public;
     
 }
