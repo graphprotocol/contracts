@@ -7,31 +7,54 @@ const address0 = 0x0000000000000000000000000000000000000000,
 
 let multiSigAddress
 
+// contract('MultiSigWallet', accounts => {
+
+//   it("...should have an address", () => {
+//     return MultiSigWallet.deployed()
+//     .then(instance => instance.contractAddress.call())
+//     .then(contractAddress => {
+//       multiSigAddress = contractAddress
+//       assert(multiSigAddress, "Has address.")
+//     })
+//   })
+
+//   it("...should have owners", () => {
+//     return MultiSigWallet.deployed()
+//     .then(instance => instance.getOwners.call())
+//     .then((owners) => {
+//       assert(owners.length > 0, `Has owners.`)
+//     })
+//   })
+
+//   it("...should have no transactions", () => {
+//     return MultiSigWallet.deployed()
+//     .then(instance => instance.getTransactionCount.call(false, false))
+//     .then(transactionCount => {
+//       assert(transactionCount == 0, "Has no transactions.")
+//     })
+//   })
+
+// })
+
 contract('MultiSigWallet', accounts => {
 
-  it("...should have an address", () => {
-    return MultiSigWallet.deployed()
-    .then(instance => instance.contractAddress.call())
-    .then(contractAddress => {
-      multiSigAddress = contractAddress
-      assert(multiSigAddress, "Has address.")
-    })
+  let instance
+
+  it("...should have an address", async () => {
+    instance = await MultiSigWallet.deployed()
+    const contractAddress = await instance.contractAddress.call()
+    multiSigAddress = contractAddress
+    return assert(multiSigAddress, "Has address.")
   })
 
-  it("...should have owners", () => {
-    return MultiSigWallet.deployed()
-    .then(instance => instance.getOwners.call())
-    .then((owners) => {
-      assert(owners.length > 0, `Has owners.`)
-    })
+  it("...should have owners", async () => {
+    const owners = await instance.getOwners.call()
+    assert(owners.length > 0, `Has owners.`)
   })
 
-  it("...should have no transactions", () => {
-    return MultiSigWallet.deployed()
-    .then(instance => instance.getTransactionCount.call(false, false))
-    .then(transactionCount => {
-      assert(transactionCount == 0, "Has no transactions.")
-    })
+  it("...should have no transactions", async () => {
+    const transactionCount = await instance.getTransactionCount.call(false, false)
+    assert(transactionCount == 0, "Has no transactions.")
   })
 
 })
@@ -54,69 +77,44 @@ contract('MultiSigWallet', accounts => {
 
 contract('Governance', accounts => {
 
-  it("...should have owner", () => {
-    return Governance.deployed()
-    .then(instance => instance.owner.call())
-    .then(owner => {
-      assert(owner, "Has owner.")
-    })
-  })
-
-  it("...should be owned by MultiSigWallet", () => {
-    return Governance.deployed()
-    .then(instance => instance.owner.call())
-    .then(owner => {
-      assert(owner == multiSigAddress, "MultiSigWallet is the owner.")
-    })
+  it("...should be owned by MultiSigWallet", async () => {
+    const instance = await Governance.deployed()
+    const owner = await instance.owner.call()
+    assert(owner == multiSigAddress, "MultiSigWallet is the owner.")
   })
 
 })
 
 contract('GovernanceCopy', accounts => {
 
-  it("...should have owner", () => {
-    return GovernanceCopy.deployed()
-    .then(instance => instance.owner.call())
-    .then(owner => {
-      console.log(`\tOwner of GovernanceCopy is ${owner}`)
-      assert(owner, "Has owner.")
-    })
+  let instance
+
+  it("...should have owner", async () => {
+    instance = await GovernanceCopy.deployed()
+    const owner = await instance.owner.call()
+    console.log(`\tOwner of GovernanceCopy is ${owner}`)
+    assert(owner, "Has owner.")
   })
 
-  it("...should NOT be owned by MultiSigWallet", () => {
-    return GovernanceCopy.deployed()
-    .then(instance => instance.owner.call())
-    .then(owner => {
-      assert(owner != multiSigAddress, "MultiSigWallet is the owner.")
-    })
+  it("...should NOT be owned by MultiSigWallet", async () => {
+    const owner = await instance.owner.call()
+    assert(owner != multiSigAddress, "MultiSigWallet is the owner.")
   })
 
-  it("...should have address", () => {
-    let instance
-    return GovernanceCopy.deployed()
-    .then(i => {instance = i})
-    .then(() => instance.senderAddress.call())
-    .then(senderAddress => {
-      console.log(`\tAddress of sender is ${senderAddress}`)
-      assert(senderAddress, "senderAddress")
-    })
-    .then(() => instance.contractAddress.call())
-    .then(contractAddress => {
-      console.log(`\tAddress of GovernanceCopy is ${contractAddress}`)
-      assert(contractAddress, "contractAddress")
-    })
+  it("...should have address", async () => {
+    const senderAddress = await instance.senderAddress.call()
+    console.log(`\tAddress of sender is ${senderAddress}`)
+    assert(senderAddress, "senderAddress exists")
+    const contractAddress = await instance.contractAddress.call()
+    console.log(`\tAddress of GovernanceCopy is ${contractAddress}`)
+    assert(contractAddress, "contractAddress exists")
   })
 
-  it("...should be able to transfer ownership of self", () => {
-    let instance
-    return GovernanceCopy.deployed()
-    .then(i => {instance = i})
-    .then(() => instance.transferOwnership.call(multiSigAddress))
-    .then(() => instance.newOwner.call())
-    .then(newOwner => {
-      console.log(`\tPending newOwner of GovernanceCopy is ${newOwner}`)
-      assert(newOwner == multiSigAddress, "Has pending newOwner.")
-    })
+  it("...should be able to transfer ownership of self", async () => {
+    await instance.transferOwnership.call(multiSigAddress)
+    const newOwner = await instance.newOwner.call()
+    console.log(`\tPending newOwner of GovernanceCopy is ${newOwner}`)
+    assert(newOwner == multiSigAddress, "Has pending newOwner.")
   })
 })
 
