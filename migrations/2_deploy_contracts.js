@@ -29,12 +29,12 @@ module.exports = function(deployer, network, accounts) {
   .then(() => deployer.deploy(RewardManager)) // contract 5
   .then(c => contracts.push(c.contract._address))
 
-  // One multisig to rule them all
+  // Multisig will own Governance, which will assign ownership of upgradable contracts
   .then(() => deployer.deploy(MultiSigWallet, accounts, Math.floor(accounts.length/2) || 1))
   .then(multiSigContract => deployer.deploy(
     Governance, 
-    contracts, 
-    multiSigContract.contract._address
+    contracts, // upgradable contracts
+    multiSigContract.contract._address // owner
   ))
 
   // Deploy a copy of governance not owned by the multisig (for testing)

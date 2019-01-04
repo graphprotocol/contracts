@@ -53,6 +53,12 @@ class Home extends Component {
             {/* <ContractData contract="Governance" method="allUpgradableContracts" /> */}
 
             <br /><br />
+            <strong>Governance:</strong> 
+            <br />
+            <strong>owner:</strong> <ContractData contract="Governance" method="owner" />
+            <br /><br />
+
+            <br /><br />
             <strong>GraphToken:</strong> <ContractData contract="Governance" method="upgradableContracts" methodArgs="0" />
             <br />
             <strong>owner:</strong> <ContractData contract="GraphToken" method="owner" />

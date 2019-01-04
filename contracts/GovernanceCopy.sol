@@ -49,6 +49,8 @@ contract GovernanceCopy is Owned {
         // Set initial owner
         if (address(_initialOwner) != address(0x0)) {owner = _initialOwner;}
         else {owner = msg.sender;} // Sender will become the owner
+
+        owner = msg.sender;
     }
 
     /* Graph Protocol Functions */
@@ -67,4 +69,13 @@ contract GovernanceCopy is Owned {
         // iterate through governed contracts and transfer to the newGoverner
     }
     
+    /// @dev Returns the address of this contract.
+    function contractAddress() public view returns (address) {
+        return address(this);
+    }
+    
+    /// @dev Returns the address of the sender.
+    function senderAddress() public view returns (address) {
+        return msg.sender;
+    }
 }
