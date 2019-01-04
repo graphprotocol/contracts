@@ -3,11 +3,12 @@ const GovernanceCopy = artifacts.require("./GovernanceCopy.sol")
 const MultiSigWallet = artifacts.require("./MultiSigWallet.sol")
 
 const address0 = 0x0000000000000000000000000000000000000000,
-      testData = 0x7ba20202020227465737464617461223a205b312c20322c20335da7d
+      testData = 0x7b2022617272617941223a205b312c20322c20335d207d
 
 let multiSigAddress
 
 contract('MultiSigWallet', accounts => {
+
   it("...should have an address", () => {
     return MultiSigWallet.deployed()
     .then(instance => instance.contractAddress.call())
@@ -16,9 +17,7 @@ contract('MultiSigWallet', accounts => {
       assert(multiSigAddress, "Has address.")
     })
   })
-})
 
-contract('MultiSigWallet', accounts => {
   it("...should have owners", () => {
     return MultiSigWallet.deployed()
     .then(instance => instance.getOwners.call())
@@ -26,9 +25,7 @@ contract('MultiSigWallet', accounts => {
       assert(owners.length > 0, `Has owners.`)
     })
   })
-})
 
-contract('MultiSigWallet', accounts => {
   it("...should have no transactions", () => {
     return MultiSigWallet.deployed()
     .then(instance => instance.getTransactionCount.call(false, false))
@@ -36,6 +33,7 @@ contract('MultiSigWallet', accounts => {
       assert(transactionCount == 0, "Has no transactions.")
     })
   })
+
 })
 
 /* This doesn't work because the addTransaction function is internal */
@@ -55,6 +53,7 @@ contract('MultiSigWallet', accounts => {
 // })
 
 contract('Governance', accounts => {
+
   it("...should have owner", () => {
     return Governance.deployed()
     .then(instance => instance.owner.call())
@@ -62,9 +61,7 @@ contract('Governance', accounts => {
       assert(owner, "Has owner.")
     })
   })
-})
 
-contract('Governance', accounts => {
   it("...should be owned by MultiSigWallet", () => {
     return Governance.deployed()
     .then(instance => instance.owner.call())
@@ -72,9 +69,11 @@ contract('Governance', accounts => {
       assert(owner == multiSigAddress, "MultiSigWallet is the owner.")
     })
   })
+
 })
 
 contract('GovernanceCopy', accounts => {
+
   it("...should have owner", () => {
     return GovernanceCopy.deployed()
     .then(instance => instance.owner.call())
@@ -83,9 +82,7 @@ contract('GovernanceCopy', accounts => {
       assert(owner, "Has owner.")
     })
   })
-})
 
-contract('GovernanceCopy', accounts => {
   it("...should NOT be owned by MultiSigWallet", () => {
     return GovernanceCopy.deployed()
     .then(instance => instance.owner.call())
@@ -93,9 +90,7 @@ contract('GovernanceCopy', accounts => {
       assert(owner != multiSigAddress, "MultiSigWallet is the owner.")
     })
   })
-})
 
-contract('GovernanceCopy', accounts => {
   it("...should have address", () => {
     let instance
     return GovernanceCopy.deployed()
@@ -111,9 +106,7 @@ contract('GovernanceCopy', accounts => {
       assert(contractAddress, "contractAddress")
     })
   })
-})
 
-contract('GovernanceCopy', accounts => {
   it("...should be able to transfer ownership of self", () => {
     let instance
     return GovernanceCopy.deployed()
