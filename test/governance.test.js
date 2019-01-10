@@ -1,120 +1,123 @@
 const Governance = artifacts.require("./Governance.sol")
-const GovernanceCopy = artifacts.require("./GovernanceCopy.sol")
-const MultiSigWallet = artifacts.require("./MultiSigWallet.sol")
+const Owned = artifacts.require("./Owned.sol")
 
-const address0 = 0x0000000000000000000000000000000000000000,
-      testData = 0x7b2022617272617941223a205b312c20322c20335d207d
+contract('Governance', accounts => {  
 
-let multiSigAddress
+  const originalOwnerAddress = accounts[0]
+  const newOwnerAddress = accounts[1]
+  const multiSigWalletAddress = originalOwnerAddress // spoof multisig for our testing purposes
+  let governanceInstance1, governanceInstance2, ownedInstance1, 
+    ownedInstance2, ownedInstance3, ownedInstance4, ownedInstance5
 
-// contract('MultiSigWallet', accounts => {
+  before(async () => {
+    // Init 5 Owned contracts
+    ownedInstance1 = await Owned.new()
+    ownedInstance2 = await Owned.new()
+    ownedInstance3 = await Owned.new()
+    ownedInstance4 = await Owned.new()
+    ownedInstance5 = await Owned.new()
+    const ownedInstances = [
+      ownedInstance1.address,
+      ownedInstance2.address,
+      ownedInstance3.address,
+      ownedInstance4.address,
+      ownedInstance5.address
+    ]
 
-//   it("...should have an address", () => {
-//     return MultiSigWallet.deployed()
-//     .then(instance => instance.contractAddress.call())
-//     .then(contractAddress => {
-//       multiSigAddress = contractAddress
-//       assert(multiSigAddress, "Has address.")
-//     })
-//   })
+    // Governance contracts are owned by the multisig wallet
+    governanceInstance1 = await Governance.new(ownedInstances, multiSigWalletAddress)
+    governanceInstance2 = await Governance.new(ownedInstances, multiSigWalletAddress)
 
-//   it("...should have owners", () => {
-//     return MultiSigWallet.deployed()
-//     .then(instance => instance.getOwners.call())
-//     .then((owners) => {
-//       assert(owners.length > 0, `Has owners.`)
-//     })
-//   })
+    // Set newOwner of Owned instances to Governance1 instance
+    await ownedInstance1.transferOwnership(governanceInstance1.address)
+    await ownedInstance2.transferOwnership(governanceInstance1.address)
+    await ownedInstance3.transferOwnership(governanceInstance1.address)
+    await ownedInstance4.transferOwnership(governanceInstance1.address)
+    await ownedInstance5.transferOwnership(governanceInstance1.address)
 
-//   it("...should have no transactions", () => {
-//     return MultiSigWallet.deployed()
-//     .then(instance => instance.getTransactionCount.call(false, false))
-//     .then(transactionCount => {
-//       assert(transactionCount == 0, "Has no transactions.")
-//     })
-//   })
+    // Governance1 contract accepts ownership
+    await governanceInstance1.acceptOwnershipOfAllContracts()
 
-// })
+    console.log(`\tAccount1 (multisigwallet) address: ${originalOwnerAddress}`)
+    console.log(`\tAccount2 address: ${newOwnerAddress}`)
+    console.log(`\tGovernance1 address: ${governanceInstance1.address}`)
+    console.log(`\tGovernance2 address: ${governanceInstance2.address}`)
 
-contract('MultiSigWallet', accounts => {
-
-  let instance
-
-  it("...should have an address", async () => {
-    instance = await MultiSigWallet.deployed()
-    const contractAddress = await instance.contractAddress.call()
-    multiSigAddress = contractAddress
-    return assert(multiSigAddress, "Has address.")
   })
-
-  it("...should have owners", async () => {
-    const owners = await instance.getOwners.call()
-    assert(owners.length > 0, `Has owners.`)
-  })
-
-  it("...should have no transactions", async () => {
-    const transactionCount = await instance.getTransactionCount.call(false, false)
-    assert(transactionCount == 0, "Has no transactions.")
-  })
-
-})
-
-/* This doesn't work because the addTransaction function is internal */
-/* The multisig is probably supposed to be inherited? */
-// contract('MultiSigWallet', accounts => {
-//   it("...should submit transaction", () => {
-//     return MultiSigWallet.deployed()
-//     .then(instance => instance.addTransaction.call(
-//       multiSigAddress, // destination
-//       0, // value
-//       testData // data
-//     ))
-//     .then(transactionId => {
-//       assert(transactionId, "Transaction was created.")
-//     })
-//   })
-// })
-
-contract('Governance', accounts => {
 
   it("...should be owned by MultiSigWallet", async () => {
-    const instance = await Governance.deployed()
-    const owner = await instance.owner.call()
-    assert(owner == multiSigAddress, "MultiSigWallet is the owner.")
+    const owner1 = await governanceInstance1.owner.call()
+    const owner2 = await governanceInstance2.owner.call()
+    console.log(`\tOwner of Governance1 is ${owner1}`)
+    console.log(`\tOwner of Governance2 is ${owner2}`)
+    assert(
+      owner1 == multiSigWalletAddress &&
+      owner2 == multiSigWalletAddress,
+      "MultiSigWallet is the owner."
+    )
+  })
+
+  it("...should be able to transfer ownership of self to Account2", async () => {
+    // Transfer ownership
+    await governanceInstance1.transferOwnership(newOwnerAddress)
+    const newOwner = await governanceInstance1.newOwner.call()
+    console.log(`\tPending newOwner of Governance1 is ${newOwner}`)
+    assert(newOwner == newOwnerAddress, "Has pending newOwner.")
+
+    // Accept ownership
+    await governanceInstance1.acceptOwnership({from: newOwnerAddress})
+    const updatedOwner = await governanceInstance1.owner.call()
+    assert(updatedOwner == newOwnerAddress, "Has new Owner.")
+  })
+
+  it("...should be owned by Account2", async () => {
+    const owner = await governanceInstance1.owner.call()
+    console.log(`\tUpdated Owner of Governance1 is ${owner}`)
+    assert(owner == newOwnerAddress, "Account2 is the owner.")
+  })
+
+  it("...should be able to transfer ownership of all contracts to a second Governance contract", async () => {
+    // Check owners
+    let ownedOwner1 = await ownedInstance1.owner.call()
+    let ownedOwner2 = await ownedInstance2.owner.call()
+    let ownedOwner3 = await ownedInstance3.owner.call()
+    let ownedOwner4 = await ownedInstance4.owner.call()
+    let ownedOwner5 = await ownedInstance5.owner.call()
+    assert(
+      ownedOwner1 == governanceInstance1.address &&
+      ownedOwner2 == governanceInstance1.address &&
+      ownedOwner3 == governanceInstance1.address &&
+      ownedOwner4 == governanceInstance1.address &&
+      ownedOwner5 == governanceInstance1.address, 
+      "Governance1 is owner of Owned instances"
+    )
+    console.log(`\tAll Owned contracts are owned by Governance1 ${governanceInstance1.address}`)
+
+    // Transfer ownership
+    await governanceInstance1.transferOwnershipOfAllContracts(governanceInstance2.address, {from: newOwnerAddress})
+    
+    // Accept ownership
+    await governanceInstance2.acceptOwnershipOfAllContracts()
+    ownedOwner1 = await ownedInstance1.owner.call()
+    ownedOwner2 = await ownedInstance2.owner.call()
+    ownedOwner3 = await ownedInstance3.owner.call()
+    ownedOwner4 = await ownedInstance4.owner.call()
+    ownedOwner5 = await ownedInstance5.owner.call()
+    assert(
+      ownedOwner1 == governanceInstance2.address &&
+      ownedOwner2 == governanceInstance2.address &&
+      ownedOwner3 == governanceInstance2.address &&
+      ownedOwner4 == governanceInstance2.address &&
+      ownedOwner5 == governanceInstance2.address, 
+      "Governance2 is owner of Owned instances"
+    )
+    console.log(`\tAll Owned contracts are owned by Governance2 ${governanceInstance2.address}`)
+
   })
 
 })
 
-contract('GovernanceCopy', accounts => {
-
-  let instance
-
-  it("...should have owner", async () => {
-    instance = await GovernanceCopy.deployed()
-    const owner = await instance.owner.call()
-    console.log(`\tOwner of GovernanceCopy is ${owner}`)
-    assert(owner, "Has owner.")
-  })
-
-  it("...should NOT be owned by MultiSigWallet", async () => {
-    const owner = await instance.owner.call()
-    assert(owner != multiSigAddress, "MultiSigWallet is the owner.")
-  })
-
-  it("...should have address", async () => {
-    const senderAddress = await instance.senderAddress.call()
-    console.log(`\tAddress of sender is ${senderAddress}`)
-    assert(senderAddress, "senderAddress exists")
-    const contractAddress = await instance.contractAddress.call()
-    console.log(`\tAddress of GovernanceCopy is ${contractAddress}`)
-    assert(contractAddress, "contractAddress exists")
-  })
-
-  it("...should be able to transfer ownership of self", async () => {
-    await instance.transferOwnership.call(multiSigAddress)
-    const newOwner = await instance.newOwner.call()
-    console.log(`\tPending newOwner of GovernanceCopy is ${newOwner}`)
-    assert(newOwner == multiSigAddress, "Has pending newOwner.")
-  })
-})
-
+/*
+  Next steps:
+    - Init 5 Owned instances and transfer ownership to a new governance contract
+*/

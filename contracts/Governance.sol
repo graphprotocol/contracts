@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./Ownable.sol";
+import "./Owned.sol";
 
 contract Governance is Owned {
     
@@ -42,8 +42,6 @@ contract Governance is Owned {
     constructor (Owned[] memory _upgradableContracts, address _initialOwner) public {
         // Assign the contracts to be governed / owned
         // @deployment: Upgradable contracts must be deployed first
-        // @todo: Parse _upgradableContracts
-        // @dev: attempting casting the data as an Owned list
         if (_upgradableContracts.length > 0) upgradableContracts = _upgradableContracts;
 
         // Set initial owner
@@ -57,14 +55,27 @@ contract Governance is Owned {
      */
     function acceptOwnershipOfAllContracts () public {
         // iterate through upgradableContracts and accept ownership (acceptOwnership)
+        for (uint i = 0; i < upgradableContracts.length; i++) {
+            Owned(upgradableContracts[i]).acceptOwnership();
+        }
     }
 
     /**
      * @dev Initiate the transfer of ownership of the contracts in the upgradableContracts list
-     * @param _newGoverner <address> - Address ownership will be transferred to
+     * @param _newGovernanceContract <address> - Address ownership will be transferred to
      */
-    function transferOwnershipOfAllContracts (address _newGoverner) public onlyOwner {
+    function transferOwnershipOfAllContracts (address _newGovernanceContract) public onlyOwner {
         // iterate through governed contracts and transfer to the newGoverner
+        for (uint i = 0; i < upgradableContracts.length; i++) {
+            Owned(upgradableContracts[i]).transferOwnership(_newGovernanceContract);
+        }
+
     }
+
+    /* Change parameters of upgradable contracts */
+    /* example */
+    // function setInflationRate (uint _newRate) public onlyOwner {
+    //     GraphToken.setInflationRate(_newRate);
+    // }
     
 }

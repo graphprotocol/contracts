@@ -1,7 +1,5 @@
 const Governance = artifacts.require("Governance")
-const GovernanceCopy = artifacts.require("GovernanceCopy")
 const MultiSigWallet = artifacts.require("MultiSigWallet")
-
 const GraphToken = artifacts.require("GraphToken")
 const GNS = artifacts.require("GNS")
 const Registry = artifacts.require("Registry")
@@ -35,13 +33,6 @@ module.exports = function(deployer, network, accounts) {
     Governance, 
     contracts, // upgradable contracts
     multiSigContract.contract._address // owner
-  ))
-
-  // Deploy a copy of governance not owned by the multisig (for testing)
-  .then(() => deployer.deploy(
-    GovernanceCopy,
-    contracts,
-    contracts[0]
   ))
 
 }
