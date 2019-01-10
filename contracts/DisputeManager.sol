@@ -60,10 +60,10 @@ contract DisputeManager is Owned {
      * @dev Create a dispute for the arbitrator (owner / multisig) to resolve
      * @param _readRequest <bytes> JSON RPC data request sent to readIndex
      * @param _readResponse <bytes> JSON RPC data response returned from readIndex
-     * @dev _disputeId <string> Hash of readIndex data + disputer data
+     * @return disputeId <string> ID for the newly created dispute (hash of readIndex data + disputer data)
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (uint256 _disputeId);
+    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (string disputeId) {}
 
     /**
      * @dev Arbitrator (owner / multisig) can slash staked Graph Tokens in dispute

@@ -9,8 +9,8 @@ contract MintableERC20Interface {
      * @dev Internal function that mints an amount of the token and assigns it to
      * an account. This encapsulates the modification of balances such that the
      * proper events are emitted.
-     * @param account The account that will receive the created tokens.
-     * @param value The amount that will be created.
+     * @param _account The account that will receive the created tokens.
+     * @param _value The amount that will be created.
      */
-    function mint(address account, uint256 value) external;
+    function mint(address _account, uint256 _value) external;
 }

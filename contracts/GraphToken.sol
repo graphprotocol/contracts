@@ -45,6 +45,7 @@ contract GraphToken is
     address[] private treasurers;
 
     /* Modifiers */
+    // Only a treasurers address is allowed
     modifier onlyTreasurer ();
     
     /* Init Graph Token contract */
@@ -59,7 +60,7 @@ contract GraphToken is
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mint(address account, uint256 value) external onlyTreasurer;
+    function mint(address _account, uint256 _value) external onlyTreasurer;
 
     /**
      * @dev Internal function that burns an amount of the token of a given
