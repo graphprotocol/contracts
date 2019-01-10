@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
 import "./GraphToken.sol";
-import "./Ownable.sol";
+import "./Owned.sol";
 import "./BurnableERC20.sol";
 
 contract Staking is Owned {

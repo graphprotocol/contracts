@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./Ownable.sol";
+import "./Owned.sol";
 
 contract DisputeManager is Owned {
     

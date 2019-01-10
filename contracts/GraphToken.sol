@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./Ownable.sol";
+import "./Owned.sol";
 import "./MintableERC20.sol";
 import "./BurnableERC20.sol";
 import "./StandardERC20Token.sol";
