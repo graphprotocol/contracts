@@ -48,9 +48,9 @@ contract Governance is Owned {
     function acceptOwnershipOfAllContracts () public;
 
     /**
-     * @dev Initiate the transfer of ownership of the contracts in the upgradableContracts list
-     * @param _newGoverner <address> - Address ownership will be transferred to
+     * @dev Initiate transferring ownership of the upgradable contracts to a new Governance contract
+     * @param _newGovernanceContract <address> - Address ownership will be transferred to
      */
-    function transferOwnershipOfAllContracts (address _newGoverner) public;
+    function transferOwnershipOfAllContracts (address _newGovernanceContract) public;
     
 }
