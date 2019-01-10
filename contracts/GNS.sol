@@ -60,14 +60,16 @@ contract GNS is Owned {
     /**
      * @dev Retrieve subgraphId for given Domain Name
      * @param _domain <string> - Domain of targeted subgraphId
+     * @return subgraphId <string> The subgraphId mapped to _domain
      */
-    function getDomainSubgraphId (string memory _domain) public view returns (string memory);
+    function getDomainSubgraphId (string memory _domain) public view returns (string memory subgraphId);
 
     /**
      * @dev Retrieve subgraphId for given Subdomain Name
      * @param _subDomain <string> - Domain of targeted subgraphId
+     * @return subgraphId <string> The subgraphId mapped to _subDomain
      */
-    function getSubDomainSubgraphId (string memory _subDomain) public view returns (string memory);
+    function getSubDomainSubgraphId (string memory _subDomain) public view returns (string memory subgraphId);
 
     // WIP...
      

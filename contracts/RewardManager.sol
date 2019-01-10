@@ -47,19 +47,19 @@ contract RewardManager is Owned {
 
     /* Graph Protocol Functions */
     /**
-     * @dev Multisig contract owns this contract and can update curatorRewardRate
+     * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
     function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
 
     /**
-     * @dev Multisig contract owns this contract and can update targetParticipationRate
+     * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
     function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
 
     /**
-     * @dev Multisig contract owns this contract and can mint tokens based on reward calculations
+     * @dev Governance contract owns this contract and can mint tokens based on reward calculations
      */
     function mintRewardTokens () public onlyOwner returns (bool success);
     
