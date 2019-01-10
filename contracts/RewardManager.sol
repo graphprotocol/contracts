@@ -62,7 +62,9 @@ contract RewardManager is Owned {
      * @dev Governance contract owns this contract and can mint tokens based on reward calculations
      * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract
      * @req Calculate rewards based on local variables and call the mint function in GraphToken
+     * @param account <address> - The account that will receive the created tokens.
+     * @param value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens () public onlyOwner returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
     
 }

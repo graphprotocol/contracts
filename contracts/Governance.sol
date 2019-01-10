@@ -54,14 +54,25 @@ contract Governance is Owned {
      */
     function transferOwnershipOfAllContracts (address _newGovernanceContract) public;
     
-    /******
-    *** The following interfaces will call onlyOwner functions in the upgradable contracts
-    ******/
     
+    /************************************************************************
+    *** The following interfaces will call onlyOwner functions in the upgradable contracts
+    ************************************************************************/
+    
+    /**
+     * @dev Governance can mint Graph Tokens
+     * @req Call mint function in GraphToken contract
+     * @param account <address> - The account that will receive the created tokens.
+     * @param value <uint256> - The amount that will be created.
+     */
+    function mintGraphTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+
     /**
      * @dev RewardManager contract can mint tokens based on reward calculations
      * @req Call mintRewardTokens function in RewardManager contract
+     * @param account <address> - The account that will receive the created tokens.
+     * @param value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens () public onlyOwner returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
 
 }
