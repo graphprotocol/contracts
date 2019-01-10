@@ -53,7 +53,7 @@ contract Governance is Owned {
      * @param _newGovernanceContract <address> - Address ownership will be transferred to
      */
     function transferOwnershipOfAllContracts (address _newGovernanceContract) public;
-    
+
     
     /************************************************************************
     *** The following interfaces will call onlyOwner functions in the upgradable contracts
@@ -66,6 +66,18 @@ contract Governance is Owned {
      * @param value <uint256> - The amount that will be created.
      */
     function mintGraphTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+
+    /**
+     * @dev RewardManager contract can update curatorRewardRate
+     * @param _newCuratorRewardRate <uint128> - New curation reward rate
+     */
+    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
+
+    /**
+     * @dev RewardManager contract can update targetParticipationRate
+     * @param _newTargetParticipationRate <uint128> - New curation reward rate
+     */
+    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
 
     /**
      * @dev RewardManager contract can mint tokens based on reward calculations
