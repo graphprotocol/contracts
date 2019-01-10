@@ -6,48 +6,48 @@ contract('Governance', accounts => {
   const originalOwnerAddress = accounts[0]
   const newOwnerAddress = accounts[1]
   const multiSigWalletAddress = originalOwnerAddress // spoof multisig for our testing purposes
-  let governanceInstance1, governanceInstance2, ownedInstance1, 
-    ownedInstance2, ownedInstance3, ownedInstance4, ownedInstance5
+  let governanceInstances = new Array(2)
+  let ownedInstances = new Array(5)
 
   before(async () => {
     // Init 5 Owned contracts
-    ownedInstance1 = await Owned.new()
-    ownedInstance2 = await Owned.new()
-    ownedInstance3 = await Owned.new()
-    ownedInstance4 = await Owned.new()
-    ownedInstance5 = await Owned.new()
-    const ownedInstances = [
-      ownedInstance1.address,
-      ownedInstance2.address,
-      ownedInstance3.address,
-      ownedInstance4.address,
-      ownedInstance5.address
+    ownedInstances[0] = await Owned.new()
+    ownedInstances[1] = await Owned.new()
+    ownedInstances[2] = await Owned.new()
+    ownedInstances[3] = await Owned.new()
+    ownedInstances[4] = await Owned.new()
+    const ownedInstanceAddresses = [
+      ownedInstances[0].address,
+      ownedInstances[1].address,
+      ownedInstances[2].address,
+      ownedInstances[3].address,
+      ownedInstances[4].address
     ]
 
     // Governance contracts are owned by the multisig wallet
-    governanceInstance1 = await Governance.new(ownedInstances, multiSigWalletAddress)
-    governanceInstance2 = await Governance.new(ownedInstances, multiSigWalletAddress)
+    governanceInstances[0] = await Governance.new(ownedInstanceAddresses, multiSigWalletAddress)
+    governanceInstances[1] = await Governance.new(ownedInstanceAddresses, multiSigWalletAddress)
 
     // Set newOwner of Owned instances to Governance1 instance
-    await ownedInstance1.transferOwnership(governanceInstance1.address)
-    await ownedInstance2.transferOwnership(governanceInstance1.address)
-    await ownedInstance3.transferOwnership(governanceInstance1.address)
-    await ownedInstance4.transferOwnership(governanceInstance1.address)
-    await ownedInstance5.transferOwnership(governanceInstance1.address)
+    await ownedInstances[0].transferOwnership(governanceInstances[0].address)
+    await ownedInstances[1].transferOwnership(governanceInstances[0].address)
+    await ownedInstances[2].transferOwnership(governanceInstances[0].address)
+    await ownedInstances[3].transferOwnership(governanceInstances[0].address)
+    await ownedInstances[4].transferOwnership(governanceInstances[0].address)
 
     // Governance1 contract accepts ownership
-    await governanceInstance1.acceptOwnershipOfAllContracts()
+    await governanceInstances[0].acceptOwnershipOfAllContracts()
 
     console.log(`\tAccount1 (multisigwallet) address: ${originalOwnerAddress}`)
     console.log(`\tAccount2 address: ${newOwnerAddress}`)
-    console.log(`\tGovernance1 address: ${governanceInstance1.address}`)
-    console.log(`\tGovernance2 address: ${governanceInstance2.address}`)
+    console.log(`\tGovernance1 address: ${governanceInstances[0].address}`)
+    console.log(`\tGovernance2 address: ${governanceInstances[1].address}`)
 
   })
 
   it("...should be owned by MultiSigWallet", async () => {
-    const owner1 = await governanceInstance1.owner.call()
-    const owner2 = await governanceInstance2.owner.call()
+    const owner1 = await governanceInstances[0].owner.call()
+    const owner2 = await governanceInstances[1].owner.call()
     console.log(`\tOwner of Governance1 is ${owner1}`)
     console.log(`\tOwner of Governance2 is ${owner2}`)
     assert(
@@ -59,65 +59,60 @@ contract('Governance', accounts => {
 
   it("...should be able to transfer ownership of self to Account2", async () => {
     // Transfer ownership
-    await governanceInstance1.transferOwnership(newOwnerAddress)
-    const newOwner = await governanceInstance1.newOwner.call()
+    await governanceInstances[0].transferOwnership(newOwnerAddress)
+    const newOwner = await governanceInstances[0].newOwner.call()
     console.log(`\tPending newOwner of Governance1 is ${newOwner}`)
     assert(newOwner == newOwnerAddress, "Has pending newOwner.")
 
     // Accept ownership
-    await governanceInstance1.acceptOwnership({from: newOwnerAddress})
-    const updatedOwner = await governanceInstance1.owner.call()
+    await governanceInstances[0].acceptOwnership({from: newOwnerAddress})
+    const updatedOwner = await governanceInstances[0].owner.call()
     assert(updatedOwner == newOwnerAddress, "Has new Owner.")
   })
 
   it("...should be owned by Account2", async () => {
-    const owner = await governanceInstance1.owner.call()
+    const owner = await governanceInstances[0].owner.call()
     console.log(`\tUpdated Owner of Governance1 is ${owner}`)
     assert(owner == newOwnerAddress, "Account2 is the owner.")
   })
 
   it("...should be able to transfer ownership of all contracts to a second Governance contract", async () => {
     // Check owners
-    let ownedOwner1 = await ownedInstance1.owner.call()
-    let ownedOwner2 = await ownedInstance2.owner.call()
-    let ownedOwner3 = await ownedInstance3.owner.call()
-    let ownedOwner4 = await ownedInstance4.owner.call()
-    let ownedOwner5 = await ownedInstance5.owner.call()
+    let ownedOwner1 = await ownedInstances[0].owner.call()
+    let ownedOwner2 = await ownedInstances[1].owner.call()
+    let ownedOwner3 = await ownedInstances[2].owner.call()
+    let ownedOwner4 = await ownedInstances[3].owner.call()
+    let ownedOwner5 = await ownedInstances[4].owner.call()
     assert(
-      ownedOwner1 == governanceInstance1.address &&
-      ownedOwner2 == governanceInstance1.address &&
-      ownedOwner3 == governanceInstance1.address &&
-      ownedOwner4 == governanceInstance1.address &&
-      ownedOwner5 == governanceInstance1.address, 
+      ownedOwner1 == governanceInstances[0].address &&
+      ownedOwner2 == governanceInstances[0].address &&
+      ownedOwner3 == governanceInstances[0].address &&
+      ownedOwner4 == governanceInstances[0].address &&
+      ownedOwner5 == governanceInstances[0].address, 
       "Governance1 is owner of Owned instances"
     )
-    console.log(`\tAll Owned contracts are owned by Governance1 ${governanceInstance1.address}`)
+    console.log(`\tAll Owned contracts are owned by Governance1 ${governanceInstances[0].address}`)
 
     // Transfer ownership
-    await governanceInstance1.transferOwnershipOfAllContracts(governanceInstance2.address, {from: newOwnerAddress})
+    await governanceInstances[0].transferOwnershipOfAllContracts(governanceInstances[1].address, {from: newOwnerAddress})
     
     // Accept ownership
-    await governanceInstance2.acceptOwnershipOfAllContracts()
-    ownedOwner1 = await ownedInstance1.owner.call()
-    ownedOwner2 = await ownedInstance2.owner.call()
-    ownedOwner3 = await ownedInstance3.owner.call()
-    ownedOwner4 = await ownedInstance4.owner.call()
-    ownedOwner5 = await ownedInstance5.owner.call()
+    await governanceInstances[1].acceptOwnershipOfAllContracts()
+    ownedOwner1 = await ownedInstances[0].owner.call()
+    ownedOwner2 = await ownedInstances[1].owner.call()
+    ownedOwner3 = await ownedInstances[2].owner.call()
+    ownedOwner4 = await ownedInstances[3].owner.call()
+    ownedOwner5 = await ownedInstances[4].owner.call()
     assert(
-      ownedOwner1 == governanceInstance2.address &&
-      ownedOwner2 == governanceInstance2.address &&
-      ownedOwner3 == governanceInstance2.address &&
-      ownedOwner4 == governanceInstance2.address &&
-      ownedOwner5 == governanceInstance2.address, 
+      ownedOwner1 == governanceInstances[1].address &&
+      ownedOwner2 == governanceInstances[1].address &&
+      ownedOwner3 == governanceInstances[1].address &&
+      ownedOwner4 == governanceInstances[1].address &&
+      ownedOwner5 == governanceInstances[1].address, 
       "Governance2 is owner of Owned instances"
     )
-    console.log(`\tAll Owned contracts are owned by Governance2 ${governanceInstance2.address}`)
+    console.log(`\tAll Owned contracts are owned by Governance2 ${governanceInstances[1].address}`)
 
   })
 
 })
-
-/*
-  Next steps:
-    - Init 5 Owned instances and transfer ownership to a new governance contract
-*/
