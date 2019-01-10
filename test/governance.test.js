@@ -42,38 +42,34 @@ contract('Governance', accounts => {
     console.log(`\tAccount2 address: ${newOwnerAddress}`)
     console.log(`\tGovernance1 address: ${governanceInstances[0].address}`)
     console.log(`\tGovernance2 address: ${governanceInstances[1].address}`)
-
   })
 
   it("...should be owned by MultiSigWallet", async () => {
     const owner1 = await governanceInstances[0].owner.call()
     const owner2 = await governanceInstances[1].owner.call()
-    console.log(`\tOwner of Governance1 is ${owner1}`)
-    console.log(`\tOwner of Governance2 is ${owner2}`)
     assert(
       owner1 == multiSigWalletAddress &&
       owner2 == multiSigWalletAddress,
       "MultiSigWallet is the owner."
     )
+    console.log(`\tOwner of Governance1 is ${owner1}`)
+    console.log(`\tOwner of Governance2 is ${owner2}`)
   })
 
   it("...should be able to transfer ownership of self to Account2", async () => {
     // Transfer ownership
     await governanceInstances[0].transferOwnership(newOwnerAddress)
     const newOwner = await governanceInstances[0].newOwner.call()
-    console.log(`\tPending newOwner of Governance1 is ${newOwner}`)
     assert(newOwner == newOwnerAddress, "Has pending newOwner.")
+    console.log(`\tPending newOwner of Governance1 is ${newOwner}`)
+  })
 
+  it("...should be owned by Account2 when accepted", async () => {
     // Accept ownership
     await governanceInstances[0].acceptOwnership({from: newOwnerAddress})
     const updatedOwner = await governanceInstances[0].owner.call()
     assert(updatedOwner == newOwnerAddress, "Has new Owner.")
-  })
-
-  it("...should be owned by Account2", async () => {
-    const owner = await governanceInstances[0].owner.call()
-    console.log(`\tUpdated Owner of Governance1 is ${owner}`)
-    assert(owner == newOwnerAddress, "Account2 is the owner.")
+    console.log(`\tUpdated Owner of Governance1 is ${updatedOwner}`)
   })
 
   it("...should be able to transfer ownership of all contracts to a second Governance contract", async () => {
@@ -111,8 +107,7 @@ contract('Governance', accounts => {
       ownedOwner5 == governanceInstances[1].address, 
       "Governance2 is owner of Owned instances"
     )
-    console.log(`\tAll Owned contracts are owned by Governance2 ${governanceInstances[1].address}`)
-
+    console.log(`\tAll Owned contracts have been transferred to Governance2 ${governanceInstances[1].address}`)
   })
 
 })
