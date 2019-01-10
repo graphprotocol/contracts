@@ -20,6 +20,7 @@ contract Governance is Owned {
     * @req 01 Multisig contract will own this contract
     * @req 02 Verify the goverance contract can upgrade itself to a second copy of the goverance contract (???)
     *   (GovA owns contracts 1-5 and can transfer ownership of 1-5 to GovB)
+    * @req 03 Define interfaces that will change certain parameters in the upgradable contracts
     * ...
     * Version 2
     * @req 01 (V2) Change Mutli-sig to use a voting mechanism
@@ -53,4 +54,14 @@ contract Governance is Owned {
      */
     function transferOwnershipOfAllContracts (address _newGovernanceContract) public;
     
+    /******
+    *** The following interfaces will call onlyOwner functions in the upgradable contracts
+    ******/
+    
+    /**
+     * @dev RewardManager contract can mint tokens based on reward calculations
+     * @req Call mintRewardTokens function in RewardManager contract
+     */
+    function mintRewardTokens () public onlyOwner returns (bool success);
+
 }

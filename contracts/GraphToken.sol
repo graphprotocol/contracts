@@ -30,7 +30,7 @@ contract GraphToken is
     * @req 01 Implements ERC-20 Standards plus is Burnable (slashing) & Minting
     *   Minting: see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/token/ERC20/ERC20Mintable.sol
     *       (Ignore roles, Treasures are allowed to mint)
-    * @req 02 Has a single treasurer with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
+    * @req 02 Has a treasurers list of contracts with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
     * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
     * ...
     * V2 Requirements
