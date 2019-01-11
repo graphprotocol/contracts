@@ -1,10 +1,10 @@
 pragma solidity ^0.5.2;
 
 import "./GraphToken.sol";
-import "./Owned.sol";
+import "./Governed.sol";
 import "./BurnableERC20.sol";
 
-contract Staking is Owned {
+contract Staking is Governed {
     
     /* 
     * @title Staking contract
@@ -64,19 +64,19 @@ contract Staking is Owned {
      * @dev Set the Minimum Staking Amount for Market Curators
      * @param _minimumCurationStakingAmount <uint> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
      * @param _minimumIndexingStakingAmount <uint> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
+    function setMaximumIndexers (uint _maximumIndexers) public onlyGovernance returns (bool success);
 
     /* Graph Protocol Functions */
     /**
@@ -116,7 +116,7 @@ contract Staking is Owned {
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
      * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyOwner returns (bool success);
+    function slashStake (bytes memory _disputeId) public onlyGovernance returns (bool success);
 
     // WIP...
      

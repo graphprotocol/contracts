@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import "./Owned.sol";
+import "./Governed.sol";
 
-contract RewardManager is Owned {
+contract RewardManager is Governed {
     
     /* 
     * @title Graph Protocol Reward Manager contract
@@ -50,13 +50,13 @@ contract RewardManager is Owned {
      * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
+    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyGovernance;
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
+    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyGovernance;
 
     /**
      * @dev Governance contract owns this contract and can mint tokens based on reward calculations
@@ -65,6 +65,6 @@ contract RewardManager is Owned {
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success);
     
 }

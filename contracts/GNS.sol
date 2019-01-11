@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import "./Owned.sol";
+import "./Governed.sol";
 
-contract GNS is Owned {
+contract GNS is Governed {
     
     /* 
     * @title Graph Name Service (GNS) contract

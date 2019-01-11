@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import "./Owned.sol";
+import "./Governed.sol";
 
-contract Registry is Owned {
+contract Registry is Governed {
     
     /* 
     * @title Graph Protocol Service Registry contract

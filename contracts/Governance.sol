@@ -1,6 +1,7 @@
 pragma solidity ^0.5.2;
 
 import "./Owned.sol";
+import "./Governed.sol";
 
 contract Governance is Owned {
     
@@ -27,20 +28,20 @@ contract Governance is Owned {
     *   - Majority of votes after N% of votes cast will trigger proposed actions
     */
 
-    // @FEATURE?: Add Owned contract to upgradableContracts?
-    // @FEATURE?: Remove or disable ownership of Owned contract?
+    // @FEATURE?: Add Governed contract to upgradableContracts?
+    // @FEATURE?: Remove or disable ownership of Governed contract?
 
 
     /* STATE VARIABLES */
-    // List of upgradable contracts to be owned by the multisig
-    Owned[] public upgradableContracts;
+    // List of upgradable contracts to be Governed by the Governance contract owned by the multisig
+    Governed[] public upgradableContracts;
 
     /**
      * @dev Governance Contract Constructor
-     * @param _upgradableContracts <list> - List of addresses of deployed contracts to be owned
+     * @param _upgradableContracts <list> - List of addresses of deployed contracts to be Governed
      * @param _initialOwner <address> - An initial owner is required; address(0x0) will default to msg.sender
      */
-    constructor (Owned[] memory _upgradableContracts, address _initialOwner) public;
+    constructor (Governed[] memory _upgradableContracts, address _initialOwner) public;
 
     /* Graph Protocol Functions */
     /**
@@ -56,7 +57,7 @@ contract Governance is Owned {
 
     
     /************************************************************************
-    *** The following interfaces will call onlyOwner functions in the upgradable contracts
+    *** The following interfaces will call onlyGovernance functions in the upgradable contracts
     ************************************************************************/
     
     /**

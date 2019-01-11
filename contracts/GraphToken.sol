@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./Owned.sol";
+import "./Governed.sol";
 import "./MintableERC20.sol";
 import "./BurnableERC20.sol";
 import "./StandardERC20Token.sol";
@@ -9,7 +9,7 @@ import "./StandardERC20Token.sol";
 // Burnable ERC20 Token, with the addition of symbol, name and decimals
 // ----------------------------------------------------------------------------
 contract GraphToken is
-    Owned,
+    Governed,
     StandardERC20Token,
     MintableERC20Interface,
     BurnableERC20Interface
@@ -77,7 +77,7 @@ contract GraphToken is
      *
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
-    function addTreasurer (address _newTreasurer) public onlyOwner;
+    function addTreasurer (address _newTreasurer) public onlyGovernance;
 
     /* 
      * @notice Remove a Treasurer from the treasurers mapping
@@ -85,6 +85,6 @@ contract GraphToken is
      *
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
-    function removeTreasurer (address _removedTreasurer) public onlyOwner;
+    function removeTreasurer (address _removedTreasurer) public onlyGovernance;
 
 }
