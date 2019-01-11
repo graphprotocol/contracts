@@ -32,12 +32,13 @@ contract GraphToken is
     *       (Ignore roles, Treasures are allowed to mint)
     * @req 02 Has a treasurers list of contracts with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
     * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
+    * @req 04 Allowances be used to delegate token burning 
+    * @req 05 Constructor takes a param to set the initial supply of tokens
     * ...
     * V2 Requirements
     * @req 01 Majority of multiple treasurers can mint tokens.
     *
-    * @question: Will allowances be possible to delegate token burning to the contract (need?)
-    * @question: Do we want to init the contract with a specific supply? To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
+    * @question: To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
     */
     
     /* STATE VARIABLES */

@@ -81,26 +81,26 @@ contract Staking is Owned {
     /* Graph Protocol Functions */
     /**
      * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-     * @param _subgraphId <string> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _subgraphId <bytes> - Subgraph ID the Indexing Node is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
      * @param _value <uint> - Amount of Graph Tokens to be staked
      */
     // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
-        string memory _subgraphId, 
+        bytes memory _subgraphId, 
         address _staker, 
         uint _value
     ) public returns (bool success);
 
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
-     * @param _subgraphId <string> - Subgraph ID the Curator is staking Graph Tokens for
+     * @param _subgraphId <bytes> - Subgraph ID the Curator is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
      * @param _value <uint> - Amount of Graph Tokens to be staked
      */
     // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
-        string memory _subgraphId, 
+        bytes memory _subgraphId, 
         address _staker, 
         uint _value
     ) public returns (bool success);

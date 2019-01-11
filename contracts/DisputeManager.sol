@@ -23,30 +23,28 @@ contract DisputeManager is Owned {
     * @req 02 Slash Stake: In successful dispute, slashingPercent of slashing amount goes 
     *   to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
     * @req 03 Owner/multisig can update slashingPercent
-    *
-    * @question: Will disputes need to be a list in order to iterate or list them? Or will
-    *   mapping work if events are emitted for each dispute saved?
+    * ...
     */
 
     /* Events */
     // Dispute was saved by Fisherman/disputor
-    event DisputeFiled (string _subgraphId, address _fisherman, string _disputeId);
+    event DisputeFiled (bytes _subgraphId, address _fisherman, bytes _disputeId);
 
     /* STATE VARIABLES */
     // Disputes created by the Fisherman or other authorized entites
-    // @key <string> _disputeId - Hash of readIndex data + disputer data
-    mapping (string => dispute) private disputes;
+    // @key <bytes> _disputeId - Hash of readIndex data + disputer data
+    mapping (bytes => dispute) private disputes;
 
     // Percent of stake to slash in successful dispute
-    uint128 public slashingPercent;
+    uint32 public slashingPercent;
 
     /* Structs */
     // Disputes contain info neccessary for the arbitrator to verify and resolve them
     struct dispute {
         bytes readRequest;
         bytes readResponse;
-        // string indexingNode; // needed?
-        // string subgraphId; // included in readRequest
+        // bytes indexingNode; // needed?
+        // bytes subgraphId; // included in readRequest
         address disputer;
         uint256 depositAmount;
         bool stakeSlashed;
@@ -60,16 +58,16 @@ contract DisputeManager is Owned {
      * @dev Create a dispute for the arbitrator (owner / multisig) to resolve
      * @param _readRequest <bytes> JSON RPC data request sent to readIndex
      * @param _readResponse <bytes> JSON RPC data response returned from readIndex
-     * @return disputeId <string> ID for the newly created dispute (hash of readIndex data + disputer data)
+     * @return disputeId <bytes> ID for the newly created dispute (hash of readIndex data + disputer data)
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (string disputeId) {}
+    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes disputeId) {}
 
     /**
      * @dev Arbitrator (owner / multisig) can slash staked Graph Tokens in dispute
-     * @param _disputeId <string> Hash of readIndex data + disputer data
+     * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (string memory _disputeId) public onlyOwner returns (bool success);
+    function slashStake (bytes memory _disputeId) public onlyOwner returns (bool success);
 
     /**
      * @dev Governance (owner / multisig) can update slashingPercent
