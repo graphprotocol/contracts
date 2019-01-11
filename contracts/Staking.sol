@@ -112,6 +112,12 @@ contract Staking is Owned {
         bytes memory _data
     ) public;
 
+    /**
+     * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
+     * @param _disputeId <bytes> Hash of readIndex data + disputer data
+     */
+    function slashStake (bytes memory _disputeId) public onlyOwner returns (bool success);
+
     // WIP...
      
 }

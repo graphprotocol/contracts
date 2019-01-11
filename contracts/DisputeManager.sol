@@ -64,12 +64,6 @@ contract DisputeManager is Owned {
     function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes disputeId) {}
 
     /**
-     * @dev Arbitrator (owner / multisig) can slash staked Graph Tokens in dispute
-     * @param _disputeId <bytes> Hash of readIndex data + disputer data
-     */
-    function slashStake (bytes memory _disputeId) public onlyOwner returns (bool success);
-
-    /**
      * @dev Governance (owner / multisig) can update slashingPercent
      * @param _slashingPercent <uint128> Percent in basis points (parts per 10,000)
      */
