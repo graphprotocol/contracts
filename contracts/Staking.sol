@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 
 import "./GraphToken.sol";
 import "./Governed.sol";
+import "./DisputeManager.sol";
 import "./BurnableERC20.sol";
 
 contract Staking is Governed {
@@ -49,11 +50,21 @@ contract Staking is Governed {
     // Maximum number of Indexing Nodes staked higher than stake to consider 
     uint public maxIndexers;
 
+    // Mapped Curators
+    mapping (address => Curator) public curators;
+
+    // Mapped Indexing Nodes
+    mapping (address => IndexingNode) public indexingNodes;
+
     // Storage of staking amount for each Curator
-    mapping (address => uint) public curatorStakingAmount;
+    mapping (address => uint256) public curatorStakingAmount;
 
     // Storage of staking amount for each Indexing Node
-    mapping (address => uint) public indexingNodeStakingAmount;
+    mapping (address => uint256) public indexingNodeStakingAmount;
+
+    /* Structs */
+    struct Curator {}
+    struct IndexingNode {}
 
     /**
      * @dev Staking Contract Constructor
@@ -62,47 +73,47 @@ contract Staking is Governed {
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
-     * @param _minimumCurationStakingAmount <uint> - Minimum amount allowed to be staked for Curation
+     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
-     * @param _minimumIndexingStakingAmount <uint> - Minimum amount allowed to be staked for Indexing Nodes
+     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
 
     /**
      * @dev Set the maximum number of Indexing Nodes
-     * @param _maximumIndexers <uint> - Maximum number of Indexing Nodes allowed
+     * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint _maximumIndexers) public onlyGovernance returns (bool success);
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success);
 
     /* Graph Protocol Functions */
     /**
      * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
      * @param _subgraphId <bytes> - Subgraph ID the Indexing Node is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
-     * @param _value <uint> - Amount of Graph Tokens to be staked
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
     // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
         bytes memory _subgraphId, 
         address _staker, 
-        uint _value
+        uint256 _value
     ) public returns (bool success);
 
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <bytes> - Subgraph ID the Curator is staking Graph Tokens for
      * @param _staker <address> - Address of Staking party
-     * @param _value <uint> - Amount of Graph Tokens to be staked
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
     // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
         bytes memory _subgraphId, 
         address _staker, 
-        uint _value
+        uint256 _value
     ) public returns (bool success);
 
     function receiveApproval (
@@ -116,7 +127,7 @@ contract Staking is Governed {
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
      * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyGovernance returns (bool success);
+    function slashStake (bytes memory _disputeId) public onlyDisputeManager returns (bool success);
 
     // WIP...
      
