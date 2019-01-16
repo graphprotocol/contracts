@@ -40,6 +40,10 @@ contract Staking is Governed {
     * ...
     */
 
+    /* Structs */
+    struct Curator {}
+    struct IndexingNode {}
+
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
     uint public minimumCurationStakingAmount;
@@ -60,11 +64,7 @@ contract Staking is Governed {
     mapping (address => uint256) public curatorStakingAmount;
 
     // Storage of staking amount for each Indexing Node
-    mapping (address => uint256) public indexingNodeStakingAmount;
-
-    /* Structs */
-    struct Curator {}
-    struct IndexingNode {}
+    mapping (address => mapping (bytes => uint256)) public indexingNodeStakingAmount;
 
     /**
      * @dev Staking Contract Constructor

@@ -1,9 +1,14 @@
 pragma solidity ^0.5.2;
 
-import "./Owned.sol";
+contract Governed {
+    address public governor;
 
-contract Governed is Owned {
+    event GovernanceTransferred(address indexed _from, address indexed _to);
+
+    constructor() public;
 
     modifier onlyGovernance;
+
+    function transferGovernance(address _newOwner) public onlyOwner;
 
 }

@@ -28,18 +28,7 @@ contract DisputeManager is Governed {
 
     /* Events */
     // Dispute was saved by Fisherman/disputor
-    event DisputeFiled (bytes _subgraphId, address _fisherman, bytes _disputeId);
-
-    /* STATE VARIABLES */
-    // The disputeManager is solely in control of arbitrating disputes
-    address public disputeManager;
-
-    // Disputes created by the Fisherman or other authorized entites
-    // @key <bytes> _disputeId - Hash of readIndex data + disputer data
-    mapping (bytes => dispute) private disputes;
-
-    // Percent of stake to slash in successful dispute
-    uint32 public slashingPercent;
+    event DisputeFiled (bytes _subgraphId, address _fisherman, bytes32 _disputeId);
 
     /* Structs */
     // Disputes contain info neccessary for the arbitrator to verify and resolve them
@@ -53,12 +42,23 @@ contract DisputeManager is Governed {
         bool stakeSlashed;
     }
 
-    /* Contract Constructor */
-    constructor () public;
+    /* STATE VARIABLES */
+    // The disputeManager is solely in control of arbitrating disputes
+    address public disputeManager;
+
+    // Disputes created by the Fisherman or other authorized entites
+    // @key <bytes> _disputeId - Hash of readIndex data + disputer data
+    mapping (bytes32 => dispute) private disputes;
+
+    // Percent of stake to slash in successful dispute
+    uint32 public slashingPercent;
 
     /* Modifiers */
     // Only the designated disputeManager
     modifier onlyDisputeManager;
+
+    /* Contract Constructor */
+    constructor () public;
 
     /* Graph Protocol Functions */
     /**
@@ -71,21 +71,21 @@ contract DisputeManager is Governed {
      * @dev Create a dispute for the disputeManager to resolve
      * @param _readRequest <bytes> JSON RPC data request sent to readIndex
      * @param _readResponse <bytes> JSON RPC data response returned from readIndex
-     * @return disputeId <bytes> ID for the newly created dispute (hash of readIndex data + disputer data)
+     * @return disputeId <bytes32> ID for the newly created dispute (hash of readIndex data + disputer data)
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes disputeId);
+    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes32 disputeId);
 
     /**
      * @dev Governance (owner / multisig) can update slashingPercent
-     * @param _slashingPercent <uint128> Percent in basis points (parts per 10,000)
+     * @param _slashingPercent <uint256> Percent in basis points (parts per 10,000)
      */
-    function updateSlashingPercentage (uint128 _slashingPercent) public onlyGovernance returns (bool success);
+    function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success);
 
     /**
      * @dev The disputeManager can verify a dispute as being valid.
-     * @param _disputeId <bytes> ID of the dispute to be verified
+     * @param _disputeId <bytes32> ID of the dispute to be verified
      */
-    function verifyDispute (bytes _disputeId) public onlyDisputeManager returns (bool success);
+    function verifyDispute (bytes32 _disputeId) public onlyDisputeManager returns (bool success);
 
 }
