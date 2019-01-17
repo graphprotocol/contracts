@@ -18,11 +18,9 @@ contract DisputeManager is Governed {
     * dispute resolution process.
     * 
     * Requirements ("Dispute Resolution Manager" contract):
-    * @req 01 Fishman/disputer can create dispute: In order to be created, disputes require 
-    *   a deposit of Graph Tokens equivalent to the amount that may be slashed.
-    * @req 02 Slash Stake: In successful dispute, slashingPercent of slashing amount goes 
+    * @req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes 
     *   to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
-    * @req 03 Governance can update slashingPercent
+    * @req 02 Governance can update slashingPercent
     * ...
     */
 
