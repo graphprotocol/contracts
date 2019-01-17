@@ -61,7 +61,7 @@ contract Governance is Owned {
     ************************************************************************/
     
     /**
-     * @dev Governance can mint Graph Tokens
+     * @dev Call GraphToken contract to mint Graph Tokens
      * @req Call mint function in GraphToken contract
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
@@ -69,23 +69,41 @@ contract Governance is Owned {
     function mintGraphTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
 
     /**
-     * @dev RewardManager contract can update curatorRewardRate
+     * @dev Call RewardManager contract to update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
     function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
 
     /**
-     * @dev RewardManager contract can update targetParticipationRate
+     * @dev Call RewardManager contract to update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
     function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
 
     /**
-     * @dev RewardManager contract can mint tokens based on reward calculations
+     * @dev Call RewardManager contract to mint tokens based on reward calculations
      * @req Call mintRewardTokens function in RewardManager contract
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
     function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+
+    /**
+     * @dev Call Staking contract to update minimumCurationStakingAmount
+     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
+     */
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyOwner returns (bool success);
+
+    /**
+     * @dev Call Staking contract to update minimumIndexingStakingAmount
+     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
+     */
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
+
+    /**
+     * @dev Call Staking contract to update maxIndexers
+     * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
+     */
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyOwner returns (bool success);
 
 }
