@@ -69,20 +69,20 @@ contract Governance is Owned {
     function mintGraphTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
 
     /**
-     * @dev Call RewardManager contract to update curatorRewardRate
+     * @dev Call RewardsManager contract to update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
     function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
 
     /**
-     * @dev Call RewardManager contract to update targetParticipationRate
+     * @dev Call RewardsManager contract to update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
     function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
 
     /**
-     * @dev Call RewardManager contract to mint tokens based on reward calculations
-     * @req Call mintRewardTokens function in RewardManager contract
+     * @dev Call RewardsManager contract to mint tokens based on reward calculations
+     * @req Call mintRewardTokens function in RewardsManager contract
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */

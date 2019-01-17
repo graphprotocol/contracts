@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import "./Governed.sol";
 
-contract RewardManager is Governed {
+contract RewardsManager is Governed {
     
     /* 
     * @title Graph Protocol Reward Manager contract

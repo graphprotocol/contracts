@@ -30,7 +30,7 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 - Mapping a name to a `subgraphId` also requires curating that `subgraphId`.
 - No contracts depend on the GNS Registry, but rather is consumed by users of The Graph.
 
-### Reward Manager ([RewardManager.sol](./RewardManager.sol))
+### Rewards Manager ([RewardsManager.sol](./RewardsManager.sol))
 - Has the ability to mint tokens according to the reward rules specified in mechanism design of technical specification.
 - The ability to grant rewards may need to be splittable across multiple transactions and transaction originators for gas reasons.
 - (Maybe) can mint tokens to reward whichever user assumes the cost of paying transaction fees for minting the rewards.
