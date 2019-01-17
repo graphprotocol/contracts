@@ -1,6 +1,8 @@
 # Contracts
 
 ## Graph Protocol Contracts
+![Restricted Calls Between Contracts](https://www.lucidchart.com/publicSegments/view/7b2d4166-1085-447f-bfb9-f2640e19794c/image.jpeg)
+
 ### Graph DAO Contract ([Governance.sol](./Governance.sol))
 For now, the Governance contract, owned by the multisig, will serve as the DAO. Later we will have a DAO contract that manages voting and consensus on governance matters.
 - A multi-sig contract owns the Governance contract and all upgradable contracts
@@ -49,6 +51,11 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 ## Supporting Contracts &amp; Libraries
 ### Ownable ([Ownable.sol](./Ownable.sol))
 - Owned contract from The Ethereum Wiki - ERC20 Token Standard
+- The `Governance` contract is "owned" by the MultiSigWallet
+
+### Governed ([Governed.sol](./Governed.sol))
+- Reduced version of the Owned contract from The Ethereum Wiki - ERC20 Token Standard
+- All upgradable contracts are "governed" by the `Governance` contract
 
 ### BuranableERC20Token ([BurnableERC20Token.sol](./BurnableERC20Token.sol))
 - Custom implimentation of the ERC20 Token Standard with burnable property added
