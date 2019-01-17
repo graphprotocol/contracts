@@ -78,7 +78,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Governance (owner / multisig) can update slashingPercent
-     * @param _slashingPercent <uint256> Percent in basis points (parts per 10,000)
+     * @param _slashingPercent <uint256> Slashing percent
      */
     function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success);
 

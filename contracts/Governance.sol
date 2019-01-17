@@ -106,4 +106,16 @@ contract Governance is Owned {
      */
     function setMaximumIndexers (uint256 _maximumIndexers) public onlyOwner returns (bool success);
 
+    /**
+     * @dev Call DisputeManager contract to set disputeManager
+     * @param _newDisputeManager <address> - Address of the new Dispute Manager
+     */
+    function setDisputeManager (address _newDisputeManager) public onlyOwner returns (bool success);
+
+    /**
+     * @dev Call DisputeManager contract to update slashingPercent
+     * @param _slashingPercent <uint256> - Slashing percent
+     */
+    function updateSlashingPercentage (uint256 _slashingPercent) public onlyOwner returns (bool success);
+
 }
