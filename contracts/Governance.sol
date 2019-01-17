@@ -62,7 +62,7 @@ contract Governance is Owned {
     
     /**
      * @dev Call GraphToken contract to mint Graph Tokens
-     * @req Call mint function in GraphToken contract
+     * @req Governance contract must first be added as a treasurer in the GraphToken contract
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
