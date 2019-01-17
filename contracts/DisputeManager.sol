@@ -41,8 +41,8 @@ contract DisputeManager is Governed {
     }
 
     /* STATE VARIABLES */
-    // The disputeManager is solely in control of arbitrating disputes
-    address public disputeManager;
+    // The arbitrator is solely in control of arbitrating disputes
+    address public arbitrator;
 
     // Disputes created by the Fisherman or other authorized entites
     // @key <bytes> _disputeId - Hash of readIndex data + disputer data
@@ -52,21 +52,21 @@ contract DisputeManager is Governed {
     uint32 public slashingPercent;
 
     /* Modifiers */
-    // Only the designated disputeManager
-    modifier onlyDisputeManager;
+    // Only the designated arbitrator
+    modifier onlyArbitrator;
 
     /* Contract Constructor */
     constructor () public;
 
     /* Graph Protocol Functions */
     /**
-     * @dev Governance can set the Dispute Manager
-     * @param _newDisputeManager <address> Address of the new Dispute Manager
+     * @dev Governance can set the Arbitrator
+     * @param _newArbitrator <address> Address of the new Arbitrator
      */
-    function setDisputeManager (address _newDisputeManager) public onlyGovernance returns (bool success);
+    function setArbitrator (address _newArbitrator) public onlyGovernance returns (bool success);
 
     /**
-     * @dev Create a dispute for the disputeManager to resolve
+     * @dev Create a dispute for the arbitrator to resolve
      * @param _readRequest <bytes> JSON RPC data request sent to readIndex
      * @param _readResponse <bytes> JSON RPC data response returned from readIndex
      * @return disputeId <bytes32> ID for the newly created dispute (hash of readIndex data + disputer data)
@@ -81,9 +81,9 @@ contract DisputeManager is Governed {
     function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success);
 
     /**
-     * @dev The disputeManager can verify a dispute as being valid.
+     * @dev The arbitrator can verify a dispute as being valid.
      * @param _disputeId <bytes32> ID of the dispute to be verified
      */
-    function verifyDispute (bytes32 _disputeId) public onlyDisputeManager returns (bool success);
+    function verifyDispute (bytes32 _disputeId) public onlyArbitrator returns (bool success);
 
 }

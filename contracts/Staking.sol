@@ -127,7 +127,7 @@ contract Staking is Governed {
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
      * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyDisputeManager returns (bool success);
+    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success);
 
     // WIP...
      
