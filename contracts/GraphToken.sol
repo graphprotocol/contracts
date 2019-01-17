@@ -69,7 +69,7 @@ contract GraphToken is
      * @param _account <address> - The to burn tokens for.
      * @param _value <uint256> - The amount that will be burnt.
      */
-    function burn(address _account, uint256 _value) public;
+    function burnFrom(address _account, uint256 _value) public;
 
     /* 
      * @notice Add a Treasurer to the treasurers list

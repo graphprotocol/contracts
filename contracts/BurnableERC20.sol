@@ -14,5 +14,5 @@ contract BurnableERC20Interface {
      * @param _account The account whose tokens will be burnt.
      * @param _value The amount that will be burnt.
      */
-    function burn(address _account, uint256 _value) public;
+    function burnFrom(address _account, uint256 _value) public;
 }
