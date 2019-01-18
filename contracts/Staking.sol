@@ -40,8 +40,16 @@ contract Staking is Governed {
     */
 
     /* Structs */
-    struct Curator {}
-    struct IndexingNode {}
+    struct Curator {
+        uint256 amountStaked;
+    }
+    struct IndexingNode {
+        uint256 amountStaked;
+    }
+    struct Subgraph {
+        uint256 totalCurationStake;
+        uint256 totalIndexingStake;
+    }
 
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
@@ -53,17 +61,18 @@ contract Staking is Governed {
     // Maximum number of Indexing Nodes staked higher than stake to consider 
     uint public maxIndexers;
 
-    // Mapped Curators
+    // Mapping subgraphId to list of addresses to Curators
+    // These mappings work together
     mapping (address => Curator) public curators;
+    mapping (bytes32 => address[]) public subgraphCurators;
 
-    // Mapped Indexing Nodes
+    // Mapping subgraphId to list of addresses to Indexing Nodes
+    // These mappings work together
     mapping (address => IndexingNode) public indexingNodes;
+    mapping (bytes32 => address[]) public subgraphIndexingNodes;
 
-    // Storage of staking amount for each Curator
-    mapping (address => uint256) public curatorStakingAmount;
-
-    // Storage of staking amount for each Indexing Node
-    mapping (address => mapping (bytes => uint256)) public indexingNodeStakingAmount;
+    // Subgraphs mapping
+    mapping (bytes32 => Subgraph) subgraphs;
 
     /**
      * @dev Staking Contract Constructor
