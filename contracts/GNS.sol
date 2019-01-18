@@ -39,19 +39,20 @@ contract GNS is Governed {
     * @req 01 Maps owners to domains
     * @req 02 Maps domain names to subgraphIds
     * @req 03 Maps subdomain names to domains of subgraphIds
-    * @req 04 Top-level registrar assigns names to Ethereum Addresses (not subgraphIds?)
-    *   Q. 04 is a separate use for GNS? A simple map to ETH addresses? Or is a subgraphId an address?
+    * @req 04 Event to emit human-readable names
     * ...
     */
+
+    /* Structs */
+    struct Domain {
+        address owner;
+        mapping (bytes32 => bytes32) subgraphNamesToIds;
+    }
 
     /* STATE VARIABLES */
     // Storage of Domain Names mapped to subgraphId's
     // @question - What are we mapping to here? The subgraphId's owner's address?
-    mapping (bytes32 => address) internal gnsDomains;
-
-    // Storage of Sub Domain Names mapped to subgraphId's
-    // @todo Discuss and refine requirements further
-    mapping (bytes32 => mapping (bytes32 => address)) internal gnsSubDomains;
+    mapping (bytes32 => Domain) internal gnsDomains;
 
     /* Contract Constructor */
     constructor () public;
