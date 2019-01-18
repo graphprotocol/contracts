@@ -50,9 +50,8 @@ contract GNS is Governed {
     mapping (bytes32 => address) internal gnsDomains;
 
     // Storage of Sub Domain Names mapped to subgraphId's
-    // @todo: NOT FEASIBLE - REVISE
-    // @dev Define requirements further
-    mapping (string => mapping (string => string)) internal gnsSubDomains;
+    // @todo Discuss and refine requirements further
+    mapping (bytes32 => mapping (bytes32 => address)) internal gnsSubDomains;
 
     /* Contract Constructor */
     constructor () public;
