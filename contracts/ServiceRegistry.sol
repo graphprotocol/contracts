@@ -16,6 +16,7 @@ contract ServiceRegistry is Governed {
     * @req 01 Maps Ethereum Addresses to URLs
     * @req 02 No other contracts depend on this, rather is consumed by users of The Graph.
     * ...
+    * @question - Who sets registeredUrls? Staking? (need interface)
     */
 
     /* STATE VARIABLES */
