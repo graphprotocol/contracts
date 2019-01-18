@@ -41,7 +41,7 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 - Disputes require a deposit to create, equivalent to the amount that may be slashed.
 - In successful dispute, 50% (or some other amount set through governance), of slashing amount goes to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
 
-### Service Registry ([Registry.sol](./Registry.sol))
+### Service Registry ([ServiceRegistry.sol](./ServiceRegistry.sol))
 - Maps Ethereum Addresses to URLs
 - No other contracts depend on this, rather is consumed by users of The Graph.
 

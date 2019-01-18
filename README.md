@@ -23,6 +23,6 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 1. [Graph Name Service (GNS) Registry](./contracts/GNS.sol)
 1. [Dispute Resolution Contract](./contracts/DisputeManager.sol)
 1. [Rewards Manager Contract](./contracts/RewardsManager.sol)
-1. [Service Registry](./contracts/Registry.sol)
+1. [Service Registry](./contracts/ServiceRegistry.sol)
 
 *[See ./contracts/README.md for full list of contracts](./contracts/)*
