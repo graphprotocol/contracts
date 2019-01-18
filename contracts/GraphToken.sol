@@ -1,22 +1,18 @@
 pragma solidity ^0.5.2;
 
 import "./Governed.sol";
-import "./MintableERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
-import "./StandardERC20Token.sol"; // redundant? openzeppelin ERC20 is inherited in ERC20Burnable
-/**
- * @NOTICE: OpenZeppelin ERC20 state variables use a preceding underscore
- *      Ex: _balances vs balances, _totalSupply vs totalSupply, etc.
- */
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 
 // ----------------------------------------------------------------------------
 // Burnable ERC20 Token, with the addition of symbol, name and decimals
 // ----------------------------------------------------------------------------
 contract GraphToken is
     Governed,
-    StandardERC20Token, // redundant?
-    MintableERC20Interface,
-    ERC20Burnable // openzeppelin contract inherits ERC20
+    ERC20, // @dev Redundant? Both Mintable and Burnable inherit ERC20
+    ERC20Burnable,
+    ERC20Mintable
 {
     
     /* 
