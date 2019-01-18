@@ -77,9 +77,6 @@ contract MultiSigWallet {
     /*
      * Public functions
      */
-    /// @dev Returns the address of this contract.
-    function contractAddress() public view returns (address);
-
     /// @dev Allows to add a new owner. Transaction has to be sent by wallet.
     /// @param owner Address of new owner.
     function addOwner(address owner)
