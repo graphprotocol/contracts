@@ -21,17 +21,12 @@ contract ServiceRegistry is Governed {
 
     /* STATE VARIABLES */
     // Storage of URLs mapped to Ethereum addresses
-    mapping (address => bytes) internal registeredUrls;
+    mapping (bytes32 => address) internal registeredUrls;
 
     /* Contract Constructor */
     constructor () public;
 
     /* Graph Protocol Functions */
-    /**
-     * @dev Retrieve Ethereum address for given URL
-     * @param _url <bytes> - URL mapped to desired address
-     */
-    function getAddressForUrl (bytes memory _url) public view returns (address);
 
     // WIP...
      
