@@ -3,7 +3,6 @@ pragma solidity ^0.5.2;
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "./DisputeManager.sol";
-import "./BurnableERC20.sol";
 
 contract Staking is Governed {
     

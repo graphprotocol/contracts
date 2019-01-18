@@ -56,6 +56,3 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 ### Governed ([Governed.sol](./Governed.sol))
 - Reduced version of the Owned contract from The Ethereum Wiki - ERC20 Token Standard
 - All upgradable contracts are "governed" by the `Governance` contract
-
-### BuranableERC20Token ([BurnableERC20Token.sol](./BurnableERC20Token.sol))
-- Custom implimentation of the ERC20 Token Standard with burnable property added
