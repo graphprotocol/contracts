@@ -42,6 +42,11 @@ contract GraphToken is
     */
     
     /* STATE VARIABLES */
+    // Token details
+    string public symbol = "GRT";
+    string public  name = "Graph Token";
+    uint8 public decimals = 18;
+
     // Treasurers map to true
     address[] private treasurers;
 
@@ -86,5 +91,10 @@ contract GraphToken is
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
     function removeTreasurer (address _removedTreasurer) public onlyGovernance;
+
+    // ------------------------------------------------------------------------
+    // Don't accept ETH
+    // ------------------------------------------------------------------------
+    function () external payable;
 
 }
