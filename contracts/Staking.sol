@@ -53,13 +53,13 @@ contract Staking is Governed {
 
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
-    uint public minimumCurationStakingAmount;
+    uint256 public minimumCurationStakingAmount;
 
     // Minimum amount allowed to be staked by Indexing Nodes
-    uint public minimumIndexingStakingAmount;
+    uint256 public minimumIndexingStakingAmount;
 
     // Maximum number of Indexing Nodes staked higher than stake to consider 
-    uint public maxIndexers;
+    uint256 public maxIndexers;
 
     // Mapping subgraphId to list of addresses to Curators
     // These mappings work together

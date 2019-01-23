@@ -72,13 +72,13 @@ contract Governance is Owned {
      * @dev Call RewardsManager contract to update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner;
+    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner;
+    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to mint tokens based on reward calculations
@@ -87,6 +87,13 @@ contract Governance is Owned {
      * @param value <uint256> - The amount that will be created.
      */
     function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+
+    /**
+     * @dev Call RewardsManager contract to update yearlyInflationRate
+     * @req Call updateYearlyInflationRate function in RewardsManager contract
+     * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
+     */
+    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyOwner returns (bool success);
 
     /**
      * @dev Call Staking contract to update minimumCurationStakingAmount

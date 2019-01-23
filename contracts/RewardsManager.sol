@@ -29,16 +29,28 @@ contract RewardsManager is Governed {
     * Requirements ("Reward Manager" contract):
     * @req 01 Has the ability to mint tokens according to the reward rules specified in mechanism 
     *   design of technical specification.
-    * @req 02 Mutlisig contract can update parameters { curatorRewardRate, targetParticipationRate }
+    * @req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
+    * @req 03 claimRewards function
+    * @req 04 uint256 for yearly inflation rate
+    * @req 05 a mapping that records the usage in queries of each index chain , which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
     */
 
 
     /* STATE VARIABLES */
     // Percentage of the total Graph Token supply
-    uint128 public curatorRewardRate;
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public curatorRewardRate;
 
     // Targeted participitation reward rate
-    uint128 public targetParticipationRate;
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public targetParticipationRate;
+
+    // Yearly Inflation Rate
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public yearlyInflationRate = 100000; // 10%
+
+    // Mapping of indexChainID to queryAmount
+    mapping (bytes32 => uint256) public indexChainQueryAmounts;
 
     /**
      * @dev Reward Manager Contract Constructor
@@ -48,23 +60,36 @@ contract RewardsManager is Governed {
     /* Graph Protocol Functions */
     /**
      * @dev Governance contract owns this contract and can update curatorRewardRate
-     * @param _newCuratorRewardRate <uint128> - New curation reward rate
+     * @param _newCuratorRewardRate <uint32> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyGovernance;
+    function updateCuratorRewardRate (uint32 _newCuratorRewardRate) public onlyGovernance returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
-     * @param _newTargetParticipationRate <uint128> - New curation reward rate
+     * @param _newTargetParticipationRate <uint32> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyGovernance;
+    function updateTargetParticipationRate (uint32 _newTargetParticipationRate) public onlyGovernance returns (bool success);
+
+    /**
+     * @dev Governance contract owns this contract and can update targetParticipationRate
+     * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
+     */
+    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can mint tokens based on reward calculations
      * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract
      * @req Calculate rewards based on local variables and call the mint function in GraphToken
-     * @param account <address> - The account that will receive the created tokens.
-     * @param value <uint256> - The amount that will be created.
+     * @param _account <address> - The account that will receive the created tokens.
+     * @param _value <uint256> - The amount that will be created.
      */
     function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success);
     
+    /**
+     * @dev Validators can claim rewards or add them to their stake
+     * @param _validatorId <bytes32> - ID of the validator claiming rewards
+     * @param _addToStake <bool> - Send the rewards back to the validator's stake
+     */
+    function claimRewards (bytes32 _validatorId, bool _addToStake) public returns (uint256 rewaredAmount);
+
 }
