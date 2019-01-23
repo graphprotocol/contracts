@@ -20,8 +20,8 @@ contract ServiceRegistry is Governed {
     */
 
     /* STATE VARIABLES */
-    // Storage of URLs mapped to Ethereum addresses
-    mapping (bytes32 => address) internal registeredUrls;
+    // Storage of Ethereum addresses mapped to Indexing Node URLs
+    mapping (address => bytes) internal registeredUrls;
 
     /* Contract Constructor */
     constructor () public;
