@@ -39,11 +39,11 @@ contract RewardsManager is Governed {
     /* STATE VARIABLES */
     // Percentage of the total Graph Token supply
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public curatorRewardRate;
+    uint256 public curatorRewardRate;
 
     // Targeted participitation reward rate
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public targetParticipationRate;
+    uint256 public targetParticipationRate;
 
     // Yearly Inflation Rate
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
@@ -60,15 +60,15 @@ contract RewardsManager is Governed {
     /* Graph Protocol Functions */
     /**
      * @dev Governance contract owns this contract and can update curatorRewardRate
-     * @param _newCuratorRewardRate <uint32> - New curation reward rate
+     * @param _newCuratorRewardRate <uint256> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint32 _newCuratorRewardRate) public onlyExecutor returns (bool success);
+    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyExecutor returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
-     * @param _newTargetParticipationRate <uint32> - New curation reward rate
+     * @param _newTargetParticipationRate <uint256> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint32 _newTargetParticipationRate) public onlyExecutor returns (bool success);
+    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyExecutor returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate

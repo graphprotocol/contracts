@@ -34,7 +34,7 @@ contract DisputeManager is Governed {
         bytes32 ipfsHash;
         uint8 ipfsHashFunction;
     }
-    
+
     // Disputes contain info neccessary for the arbitrator to verify and resolve them
     struct Dispute {
         IpfsHash ipfsHash;
@@ -56,7 +56,8 @@ contract DisputeManager is Governed {
     mapping (bytes32 => Dispute) private disputes;
 
     // Percent of stake to slash in successful dispute
-    uint32 public slashingPercent;
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public slashingPercent;
 
     /* Modifiers */
     // Only the designated arbitrator
