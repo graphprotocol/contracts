@@ -55,7 +55,8 @@ contract GNS is Governed {
     mapping (bytes32 => Domain) internal gnsDomains;
 
     /* Contract Constructor */
-    constructor () public;
+    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
+    constructor (address _governor) public Governed (_governor);
 
     /* Graph Protocol Functions */
 

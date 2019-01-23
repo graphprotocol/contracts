@@ -53,8 +53,9 @@ contract GraphToken is
     modifier onlyTreasurer ();
     
     /* Init Graph Token contract */
-    /* @PARAM _initialSupply <uint256> - Initial supply of Graph Tokens */
-    constructor (uint256 _initialSupply) public;
+    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
+    /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
+    constructor (address _governor, uint256 _initialSupply) public Governed (_governor);
     
     /* Graph Protocol Functions */
     /**
@@ -80,7 +81,7 @@ contract GraphToken is
      *
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
-    function addTreasurer (address _newTreasurer) public onlyExecutor;
+    function addTreasurer (address _newTreasurer) public onlyGovernance;
 
     /* 
      * @notice Remove a Treasurer from the treasurers mapping
@@ -88,7 +89,7 @@ contract GraphToken is
      *
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
-    function removeTreasurer (address _removedTreasurer) public onlyExecutor;
+    function removeTreasurer (address _removedTreasurer) public onlyGovernance;
 
     // ------------------------------------------------------------------------
     // Don't accept ETH

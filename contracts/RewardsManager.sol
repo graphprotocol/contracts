@@ -54,27 +54,28 @@ contract RewardsManager is Governed {
 
     /**
      * @dev Reward Manager Contract Constructor
+     * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor () public;
+    constructor (address _governor) public Governed (_governor);
 
     /* Graph Protocol Functions */
     /**
      * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint256> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyExecutor returns (bool success);
+    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyGovernance returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint256> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyExecutor returns (bool success);
+    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyGovernance returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
      */
-    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyExecutor returns (bool success);
+    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success);
 
     /**
      * @dev Governance contract owns this contract and can mint tokens based on reward calculations
@@ -83,7 +84,7 @@ contract RewardsManager is Governed {
      * @param _account <address> - The account that will receive the created tokens.
      * @param _value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (address _account, uint256 _value) public onlyExecutor returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success);
     
     /**
      * @dev Validators can claim rewards or add them to their stake

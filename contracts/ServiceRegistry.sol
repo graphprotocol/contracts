@@ -24,7 +24,8 @@ contract ServiceRegistry is Governed {
     mapping (address => bytes) internal registeredUrls;
 
     /* Contract Constructor */
-    constructor () public;
+    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
+    constructor (address _governor) public Governed (_governor);
 
     /* Graph Protocol Functions */
 
