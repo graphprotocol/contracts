@@ -130,7 +130,7 @@ contract Staking is Governed {
     function receiveApproval (
         address _from, // sender
         uint256 _tokens, // value
-        address payable _token, // Graph Token address
+        address _token, // Graph Token address
         bytes memory _data
     ) public;
 
