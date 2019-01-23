@@ -13,8 +13,8 @@ contract Owned {
 
     constructor() public;
 
-    modifier onlyOwner;
+    modifier onlyDAO;
 
-    function transferOwnership(address _newOwner) public onlyOwner;
+    function transferOwnership(address _newOwner) public onlyDAO;
     function acceptOwnership() public;
 }

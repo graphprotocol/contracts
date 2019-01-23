@@ -66,19 +66,19 @@ contract Governance is Owned {
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mintGraphTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+    function mintGraphTokens (address _account, uint256 _value) public onlyDAO returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to update curatorRewardRate
      * @param _newCuratorRewardRate <uint128> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyOwner returns (bool success);
+    function updateCuratorRewardRate (uint128 _newCuratorRewardRate) public onlyDAO returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to update targetParticipationRate
      * @param _newTargetParticipationRate <uint128> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyOwner returns (bool success);
+    function updateTargetParticipationRate (uint128 _newTargetParticipationRate) public onlyDAO returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to mint tokens based on reward calculations
@@ -86,43 +86,43 @@ contract Governance is Owned {
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (address _account, uint256 _value) public onlyOwner returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyDAO returns (bool success);
 
     /**
      * @dev Call RewardsManager contract to update yearlyInflationRate
      * @req Call updateYearlyInflationRate function in RewardsManager contract
      * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
      */
-    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyOwner returns (bool success);
+    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyDAO returns (bool success);
 
     /**
      * @dev Call Staking contract to update minimumCurationStakingAmount
      * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyDAO returns (bool success);
 
     /**
      * @dev Call Staking contract to update minimumIndexingStakingAmount
      * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyDAO returns (bool success);
 
     /**
      * @dev Call Staking contract to update maxIndexers
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint256 _maximumIndexers) public onlyOwner returns (bool success);
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyDAO returns (bool success);
 
     /**
      * @dev Call DisputeManager contract to set arbitrator
      * @param _newArbitrator <address> - Address of the new Arbitrator
      */
-    function setArbitrator (address _newArbitrator) public onlyOwner returns (bool success);
+    function setArbitrator (address _newArbitrator) public onlyDAO returns (bool success);
 
     /**
      * @dev Call DisputeManager contract to update slashingPercent
      * @param _slashingPercent <uint256> - Slashing percent
      */
-    function updateSlashingPercentage (uint256 _slashingPercent) public onlyOwner returns (bool success);
+    function updateSlashingPercentage (uint256 _slashingPercent) public onlyDAO returns (bool success);
 
 }
