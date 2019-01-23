@@ -29,8 +29,15 @@ contract DisputeManager is Governed {
     event DisputeFiled (bytes _subgraphId, address _fisherman, bytes32 _disputeId);
 
     /* Structs */
+    // Store 34 byte IPFS hash as 32 bytes
+    struct IpfsHash {
+        bytes32 ipfsHash;
+        uint8 ipfsHashFunction;
+    }
+    
     // Disputes contain info neccessary for the arbitrator to verify and resolve them
-    struct dispute {
+    struct Dispute {
+        IpfsHash ipfsHash;
         bytes readRequest;
         bytes readResponse;
         // bytes indexingNode; // needed?
@@ -45,8 +52,8 @@ contract DisputeManager is Governed {
     address public arbitrator;
 
     // Disputes created by the Fisherman or other authorized entites
-    // @key <bytes> _disputeId - Hash of readIndex data + disputer data
-    mapping (bytes32 => dispute) private disputes;
+    // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
+    mapping (bytes32 => Dispute) private disputes;
 
     // Percent of stake to slash in successful dispute
     uint32 public slashingPercent;
