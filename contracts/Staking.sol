@@ -83,19 +83,19 @@ contract Staking is Governed {
      * @dev Set the Minimum Staking Amount for Market Curators
      * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyExecutor returns (bool success);
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
      * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyExecutor returns (bool success);
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success);
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyExecutor returns (bool success);
 
     /* Graph Protocol Functions */
     /**

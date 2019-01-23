@@ -1,14 +1,14 @@
 pragma solidity ^0.5.2;
 
 contract Governed {
-    address public governor;
+    address public executor;
 
     event GovernanceTransferred(address indexed _from, address indexed _to);
 
     constructor() public;
 
-    modifier onlyGovernance;
+    modifier onlyExecutor;
 
-    function transferGovernance(address _newOwner) public onlyOwner;
+    function transferGovernance(address _newOwner) public onlyExecutor;
 
 }

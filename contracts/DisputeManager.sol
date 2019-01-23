@@ -63,7 +63,7 @@ contract DisputeManager is Governed {
      * @dev Governance can set the Arbitrator
      * @param _newArbitrator <address> Address of the new Arbitrator
      */
-    function setArbitrator (address _newArbitrator) public onlyGovernance returns (bool success);
+    function setArbitrator (address _newArbitrator) public onlyExecutor returns (bool success);
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
@@ -78,7 +78,7 @@ contract DisputeManager is Governed {
      * @dev Governance (owner / multisig) can update slashingPercent
      * @param _slashingPercent <uint256> Slashing percent
      */
-    function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success);
+    function updateSlashingPercentage (uint256 _slashingPercent) public onlyExecutor returns (bool success);
 
     /**
      * @dev The arbitrator can verify a dispute as being valid.

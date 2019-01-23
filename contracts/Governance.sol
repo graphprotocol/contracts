@@ -57,7 +57,7 @@ contract Governance is Owned {
 
     
     /************************************************************************
-    *** The following interfaces will call onlyGovernance functions in the upgradable contracts
+    *** The following interfaces will call onlyExecutor functions in the upgradable contracts
     ************************************************************************/
     
     /**

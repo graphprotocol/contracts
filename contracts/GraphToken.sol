@@ -80,7 +80,7 @@ contract GraphToken is
      *
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
-    function addTreasurer (address _newTreasurer) public onlyGovernance;
+    function addTreasurer (address _newTreasurer) public onlyExecutor;
 
     /* 
      * @notice Remove a Treasurer from the treasurers mapping
@@ -88,7 +88,7 @@ contract GraphToken is
      *
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
-    function removeTreasurer (address _removedTreasurer) public onlyGovernance;
+    function removeTreasurer (address _removedTreasurer) public onlyExecutor;
 
     // ------------------------------------------------------------------------
     // Don't accept ETH
