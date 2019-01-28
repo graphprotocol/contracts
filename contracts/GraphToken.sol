@@ -65,15 +65,14 @@ contract GraphToken is
      * @param account <address> - The account that will receive the created tokens.
      * @param value <uint256> - The amount that will be created.
      */
-    function mint(address _account, uint256 _value) external onlyTreasurer;
+    function mint (address _account, uint256 _value) external onlyTreasurer;
 
     /**
-     * @dev Internal function that burns an amount of the token of a given
-     * account.
+     * @dev Burns a specific amount of tokens from the target address and decrements allowance
      * @param _account <address> - The to burn tokens for.
      * @param _value <uint256> - The amount that will be burnt.
      */
-    function burnFrom(address _account, uint256 _value) public;
+    function burnFrom (address _account, uint256 _value) public;
 
     /* 
      * @notice Add a Treasurer to the treasurers list

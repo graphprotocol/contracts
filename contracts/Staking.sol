@@ -127,10 +127,18 @@ contract Staking is Governed {
         uint256 _value
     ) public returns (bool success);
 
+    /**
+     * @dev Receive approval to spend Graph Tokens of someone else
+     * @param _from <address> - Token holder's address
+     * @param _value <uint256> - Amount of Graph Tokens 
+     * @param _token <address> - Graph Token address
+     * @notice How does this actually work? Does it not need other functions?
+     * @ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing 
+     */
     function receiveApproval (
-        address _from, // sender
-        uint256 _tokens, // value
-        address _token, // Graph Token address
+        address _from,
+        uint256 _value,
+        address _token,
         bytes memory _data
     ) public;
 
