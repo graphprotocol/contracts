@@ -1,8 +1,10 @@
-pragma solidity ^0.5.1;
+pragma solidity ^0.5.2;
 
-import "./Ownable.sol";
+import "./GraphToken.sol";
+import "./Governed.sol";
+import "./DisputeManager.sol";
 
-contract Staking is Owned {
+contract Staking is Governed {
     
     /* 
     * @title Staking contract
@@ -29,48 +31,122 @@ contract Staking is Owned {
     * else being equal, as this represents a greater economic security margin to the end user.
     * 
     * Requirements ("Staking" contract):
-    * @req 01 State variable minimumCurationStakingAmount is editable by Governance
-    * @req 02 State variable minimumIndexingStakingAmount is editable by Governance
-    * @req 03 State variable maxIndexers is editable by Governance
-    * @req 04 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
-    * @req 05 Curator can stake Graph Tokens for subgraphId
+    * @req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
+    * @req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
+    * @req 03 Curator can stake Graph Tokens for subgraphId
+    * @req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
+    * @req 05 Dispute Resolution can slash staked tokens
     * ...
     */
 
+    /* Structs */
+    struct Curator {
+        uint256 amountStaked;
+    }
+    struct IndexingNode {
+        uint256 amountStaked;
+    }
+    struct Subgraph {
+        uint256 totalCurationStake;
+        uint256 totalIndexingStake;
+    }
+
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
-    uint public minimumCurationStakingAmount;
+    uint256 public minimumCurationStakingAmount;
 
     // Minimum amount allowed to be staked by Indexing Nodes
-    uint public minimumIndexingStakingAmount;
+    uint256 public minimumIndexingStakingAmount;
 
     // Maximum number of Indexing Nodes staked higher than stake to consider 
-    uint public maxIndexers;
+    uint256 public maxIndexers;
 
-    // Storage of staking amount for each Curator
-    mapping (address => uint) public curatorStakingAmount;
+    // Mapping subgraphId to list of addresses to Curators
+    // These mappings work together
+    mapping (address => Curator) public curators;
+    mapping (bytes32 => address[]) public subgraphCurators;
 
-    // Storage of staking amount for each Indexing Node
-    mapping (address => uint) public indexingNodeStakingAmount;
+    // Mapping subgraphId to list of addresses to Indexing Nodes
+    // These mappings work together
+    mapping (address => IndexingNode) public indexingNodes;
+    mapping (bytes32 => address[]) public subgraphIndexingNodes;
 
-    /* Graph Token governed variables */
-    // Set the Minimum Staking Amount for Market Curators
-    function setMinimumCurationStakingAmount (uint _minimumCurationStakingAmount) public onlyOwner returns (bool success);
+    // Subgraphs mapping
+    mapping (bytes32 => Subgraph) subgraphs;
 
-    // Set the Minimum Staking Amount for Indexing Nodes
-    function setMinimumIndexingStakingAmount (uint _minimumIndexingStakingAmount) public onlyOwner returns (bool success);
+    /**
+     * @dev Staking Contract Constructor
+     * @param _governor <address> - Address of the multisig contract as Governor of this contract
+     */
+    constructor (address _governor) public Governed (_governor);
 
-    // Set the Maximum Indexers
-    function setMaximumIndexers (uint _maximumIndexers) public onlyOwner returns (bool success);
+    /**
+     * @dev Set the Minimum Staking Amount for Market Curators
+     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
+     */
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
+
+    /**
+     * @dev Set the Minimum Staking Amount for Indexing Nodes
+     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
+     */
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
+
+    /**
+     * @dev Set the maximum number of Indexing Nodes
+     * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
+     */
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success);
 
     /* Graph Protocol Functions */
-    // Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-    // @TODO: Require stakingAmount >= minimumStakingAmount
-    function stakeGraphTokensForIndexing (string _subgraphId, address _staker, uint _value) public returns (bool success);
+    /**
+     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
+     */
+    // @todo: Require _value >= setMinimumIndexingStakingAmount
+    function stakeGraphTokensForIndexing (
+        bytes32 memory _subgraphId, 
+        address _staker, 
+        uint256 _value,
+        bytes memory _indexingRecords
+    ) public returns (bool success);
 
-    // Stake Graph Tokens for market curation by subgraphId
-    // @TODO: Require stakingAmount >= minimumStakingAmount
-    function stakeGraphTokensForCuration (string _subgraphId, address _staker, uint _value) public returns (bool success);
+    /**
+     * @dev Stake Graph Tokens for Market Curation by subgraphId
+     * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     */
+    // @todo: Require _value >= minimumCurationStakingAmount
+    function stakeGraphTokensForCuration (
+        bytes32 memory _subgraphId, 
+        address _staker, 
+        uint256 _value
+    ) public returns (bool success);
+
+    /**
+     * @dev Receive approval to spend Graph Tokens of someone else
+     * @param _from <address> - Token holder's address
+     * @param _value <uint256> - Amount of Graph Tokens 
+     * @param _token <address> - Graph Token address
+     * @notice How does this actually work? Does it not need other functions?
+     * @ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing 
+     */
+    function receiveApproval (
+        address _from,
+        uint256 _value,
+        address _token,
+        bytes memory _data
+    ) public;
+
+    /**
+     * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
+     * @param _disputeId <bytes> Hash of readIndex data + disputer data
+     */
+    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success);
 
     // WIP...
      

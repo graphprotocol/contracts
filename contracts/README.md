@@ -1,11 +1,14 @@
 # Contracts
 
 ## Graph Protocol Contracts
+![Restricted Calls Between Contracts](https://www.lucidchart.com/publicSegments/view/7b2d4166-1085-447f-bfb9-f2640e19794c/image.jpeg)
+
 ### Graph DAO Contract ([Governance.sol](./Governance.sol))
-- Multi-sig contract governance contract
-- Upgrades all Graph smart contracts
-- Sets all parameters which are set via governance
-- Can be irreversibly replaced or upgraded on it's own authority (i.e. can replace itself).
+For now, the Governance contract, owned by the multisig, will serve as the DAO. Later we will have a DAO contract that manages voting and consensus on governance matters.
+- A multi-sig contract owns the Governance contract and all upgradable contracts
+- Upgrades all upgradable Graph smart contracts
+- Sets all parameters which are allowed to be set via governance
+- Can be irreversibly replaced or upgraded on its own authority (i.e. can replace itself).
 
 ### Graph Token Contract ([GraphToken.sol](./GraphToken.sol))
 - Implements ERC-20 (and what else?)
@@ -20,11 +23,36 @@
     - The `stakingAmount` must be in the set of the top N staking amounts, where N is determined by the `maxIndexers` parameter which is set via governance.
     - Market Curators and Indexing Nodes will have separate `minimumStakingAmount`s defined as `minimumCurationStakingamount` and `minimumIndexingStakingAmount`.
 
+### Graph Name Service (GNS) Registry ([GNS.sol](./GNS.sol))
+- Maps names to `subgraphId`
+- Namespace owners control names within a namespace
+- Top-level registrar assigns names to Ethereum Addresses
+- Mapping a name to a `subgraphId` also requires curating that `subgraphId`.
+- No contracts depend on the GNS Registry, but rather is consumed by users of The Graph.
+
+### Rewards Manager ([RewardsManager.sol](./RewardsManager.sol))
+- Has the ability to mint tokens according to the reward rules specified in mechanism design of technical specification.
+- The ability to grant rewards may need to be splittable across multiple transactions and transaction originators for gas reasons.
+- (Maybe) can mint tokens to reward whichever user assumes the cost of paying transaction fees for minting the rewards.
+
+### Dispute Resolution Manager ([DisputeManager.sol](./DisputeManager.sol))
+- Has permission to slash balances in Staking Contract
+- Has a centralized arbitrator that decides disputes
+- Disputes require a deposit to create, equivalent to the amount that may be slashed.
+- In successful dispute, 50% (or some other amount set through governance), of slashing amount goes to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
+
+### Service Registry ([ServiceRegistry.sol](./ServiceRegistry.sol))
+- Maps Ethereum Addresses to URLs
+- No other contracts depend on this, rather is consumed by users of The Graph.
+
+
 ## (WIP...)
 
-## Supporting Contracts
-### SafeMath ([SafeMath.sol](./SafeMath.sol))
-- Math operations with safety checks that revert on error
-
+## Supporting Contracts &amp; Libraries
 ### Ownable ([Ownable.sol](./Ownable.sol))
-- Owned contract from ERC20 Token Standard
+- Owned contract from The Ethereum Wiki - ERC20 Token Standard
+- The `Governance` contract is "owned" by the MultiSigWallet
+
+### Governed ([Governed.sol](./Governed.sol))
+- Reduced version of the Owned contract from The Ethereum Wiki - ERC20 Token Standard
+- All upgradable contracts are "governed" by the `Governance` contract
