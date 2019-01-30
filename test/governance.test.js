@@ -17,16 +17,17 @@ contract('UpgradableContract', accounts => {
       accounts, 
       1 // require only 1 confirmation
     )
+    console.log(`\tMultiSigWallet1 address: ${multiSigInstances[0].address}`)
+
     // Deploy second multisig contract
     multiSigInstances[1] = await MultiSigWallet.new(
       accounts, 
       1 // require only 1 confirmation
     )
+    console.log(`\tMultiSigWallet2 address: ${multiSigInstances[1].address}`)
 
     // Save the MultiSig's address to set the upgradable contracts' `governor`
     const governor1 = multiSigInstances[0].address
-    console.log(`\tMultiSigWallet1 address: ${governor1}`)
-    console.log(`\tMultiSigWallet2 address: ${multiSigInstances[1].address}`)
 
     // Init 5 Governed contracts
     governedInstances[0] = await UpgradableContract.new(governor1)
@@ -47,15 +48,44 @@ contract('UpgradableContract', accounts => {
   })
 
   it("...should be able to transfer ownership of self to MultiSigWallet2", async () => {
-    // const txData = await governedInstances[0].transferGovernance.getData(multiSigInstances[1].address)
-    // const txData = await governedInstances[0].contract.methods.transferGovernance.getData(multiSigInstances[1].address)
-    // const txData = governedInstances[0].transferGovernance(multiSigInstances[1]).encodeABI()
-    // const txData = governedInstances[0].contract.methods.transferGovernance(multiSigInstances[1]).encodeABI()
-    // const myContract = new web3.eth.Contract(governedInstances[1].contract._jsonInterface)
-    // const txData = myContract.transferGovernance.getData(multiSigInstances[1].address)
-    // console.log({
-    //   txData,
-    // })
+    const txData = governedInstances[0].contract.methods.transferGovernance(multiSigInstances[1].address).encodeABI()
+    // console.log({txData})
+
+    const transaction = await multiSigInstances[0].submitTransaction(
+      governedInstances[0].address, // destination
+      0, // value
+      txData // byte data
+    )
+    // console.log({transaction})
+
+    const transactionId = getParamFromTxEvent(
+      transaction,
+      'transactionId',
+      null,
+      'Submission'
+    )
+    // console.log({transactionId})
+
+    // await multiSigInstances[0].contract.methods.confirmTransaction(transactionId).call({from: accounts[1]})
+    assert.equal(await governedInstances[0].governor.call(), multiSigInstances[1].address)
+
   })
   
 })
+
+function getParamFromTxEvent(transaction, paramName, contractFactory, eventName) {
+  assert.isObject(transaction)
+  let logs = transaction.logs || []
+  if(eventName != null) {
+      logs = logs.filter((l) => l.event === eventName)
+  }
+  assert.equal(logs.length, 1, 'too many logs found!')
+  let param = logs[0].args[paramName]
+  if(contractFactory != null) {
+      let contract = contractFactory.at(param)
+      assert.isObject(contract, `getting ${paramName} failed for ${param}`)
+      return contract
+  } else {
+      return param
+  }
+}

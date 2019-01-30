@@ -45,7 +45,7 @@ contract Governed {
      * @dev The current `governor` can assign a new `governor`
      * @param _newGovernor <address> Address of new `governor`
      */
-    function transferGovernance(address _newGovernor) public onlyGovernance returns (bool) {
+    function transferGovernance(address _newGovernor) public view onlyGovernance returns (bool) {
         governor == _newGovernor;
     }
 
