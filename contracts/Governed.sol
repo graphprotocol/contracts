@@ -32,14 +32,21 @@ contract Governed {
      * @dev All `Governed` contracts are constructed using an address for the `governor`
      * @param _governor <address> Address of initial `governor` of the contract
      */
-    constructor(address _governor) public;
+    constructor(address _governor) public {
+        governor = _governor;
+    }
 
-    modifier onlyGovernance;
+    modifier onlyGovernance {
+        require(msg.sender == governor);
+        _;
+    }
 
     /**
      * @dev The current `governor` can assign a new `governor`
      * @param _newGovernor <address> Address of new `governor`
      */
-    function transferGovernance(address _newGovernor) public onlyGovernance;
+    function transferGovernance(address _newGovernor) public view onlyGovernance returns (bool) {
+        governor == _newGovernor;
+    }
 
 }
