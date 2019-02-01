@@ -154,6 +154,8 @@ contract GraphToken is
     // ------------------------------------------------------------------------
     // Don't accept ETH
     // ------------------------------------------------------------------------
-    function () external payable;
+    function () external payable {
+        revert();
+    }
 
 }
