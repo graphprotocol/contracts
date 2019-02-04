@@ -3,8 +3,8 @@ pragma solidity ^0.5.2;
 import "./Governed.sol";
 
 contract ServiceRegistry is Governed {
-    
-    /* 
+
+    /*
     * @title Graph Protocol Service Registry contract
     *
     * @author Bryant Eisenbach
@@ -31,7 +31,21 @@ contract ServiceRegistry is Governed {
     }
 
     /* Graph Protocol Functions */
+    /*
+     * @notice Retrieve in bytes, the Url of the service provider using their address
+     *
+     * @param _serviceProvider <address> - Address of the Service Provider
+     */
+    function getUrl (address _serviceProvider) external returns (bytes)
 
+    /*
+     * @notice Set service provider url from their address
+     * @dev Only DAO owner may do this
+     *
+     * @param _serviceProvider <address> - Address of the service provider
+     * @param _url <bytes> - URL of the service provider
+     */
+    function setUrl (address _serviceProvider, bytes _url) external onlyGovernance
     // WIP...
-     
+
 }
