@@ -44,10 +44,9 @@ contract GNS is Governed {
     */
 
     /* Events */
-
-    event subdomainAdded(bytes32 indexed domainID, bytes32 subdomainID);
+    event domainAdded(bytes32 indexed domainID, address indexed owner);
+    event subdomainAdded(bytes32 indexed domainID, bytes32 indexed subdomainID, bytes32 subdomainName);
     event subdomainDeleted(bytes32 indexed domainID, bytes32 subdomainID);
-    event subgraphIdAdded(bytes32 indexed domainID, bytes32 indexed subdomainID, bytes32 subdomainName);
     /* Structs */
     struct Domain {
         address owner;
@@ -79,7 +78,7 @@ contract GNS is Governed {
      * @param _domainSubgraphID <bytes32> - IPLD Hash of the subgraph manifest
      * @param _owner <address> - Address of domain owner
      */
-    function registerDomain (bytes32 _domainSubraphID, address _owner) external onlyGovernance;
+    function registerDomain (bytes32 _domainSubraphID) external;
 
     /*
      * @notice Add a subdomain to the provided subGraphId
