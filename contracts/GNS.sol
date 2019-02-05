@@ -45,9 +45,9 @@ contract GNS is Governed {
 
     /* Events */
 
-    event subdomainAdded(bytes32 domainID, bytes32 subdomainID);
-    event subdomainDeleted(bytes32 domainID, bytes32 subdomainID);
-    event subgraphIdAdded(bytes32 domainID, bytes32 subdomainName, bytes32 subdomainID);
+    event subdomainAdded(bytes32 indexed domainID, bytes32 subdomainID);
+    event subdomainDeleted(bytes32 indexed domainID, bytes32 subdomainID);
+    event subgraphIdAdded(bytes32 indexed domainID, bytes32 indexed subdomainID, bytes32 subdomainName);
     /* Structs */
     struct Domain {
         address owner;
