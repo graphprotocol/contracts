@@ -3,6 +3,8 @@
 ## Graph Protocol Contracts
 ![Restricted Calls Between Contracts](https://www.lucidchart.com/publicSegments/view/7b2d4166-1085-447f-bfb9-f2640e19794c/image.jpeg)
 
+![Open Calls and Their Initiators](https://www.lucidchart.com/publicSegments/view/36fcf559-ab1f-42c9-bbb2-01f78274698e/image.jpeg)
+
 ### Graph DAO Contract ([Governance.sol](./Governance.sol))
 For now, the Governance contract, owned by the multisig, will serve as the DAO. Later we will have a DAO contract that manages voting and consensus on governance matters.
 - A multi-sig contract owns the Governance contract and all upgradable contracts
