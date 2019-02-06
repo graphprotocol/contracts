@@ -55,7 +55,7 @@ contract GraphToken is
     /* Modifiers */
     // Only a treasurers address is allowed
     modifier onlyTreasurer () {
-        require(treasurers[msg.sender] == true);
+        require(treasurers[msg.sender]);
         _;
     }
     
