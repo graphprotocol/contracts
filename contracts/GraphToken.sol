@@ -77,43 +77,6 @@ contract GraphToken is
     }
     
     /* Graph Protocol Functions */
-    /**
-     * @dev Internal function that mints an amount of the token and assigns it to
-     * an account. This encapsulates the modification of balances such that the
-     * proper events are emitted.
-     * @param account <address> - The account that will receive the created tokens.
-     * @param value <uint256> - The amount that will be created.
-     */
-    function mint (address _account, uint256 _value) external onlyTreasurer {
-        require(_account != address(0));
-
-        totalSupply += _value;
-        balances[_account] += _value;
-        emit Transfer(address(0), _account, _value);
-    }
-
-    /**
-     * @dev Burns a specific amount of tokens from the target address and decrements allowance
-     * @param _account <address> - The to burn tokens for.
-     * @param _value <uint256> - The amount that will be burnt.
-     */
-    function burnFrom (address _account, uint256 _value) public {
-
-        // check balance
-        require(_value <= balances[_account]);
-
-        // check allowances before burning someone else's tokens
-        if (msg.sender != _account) {
-            require(_value <= allowed[_account][msg.sender]); // check allowance
-            allowed[_account][msg.sender] -= _value;
-        }
-
-        // Adjust balances and emit
-        balances[_account] -= _value;
-        totalSupply -= _value;
-        emit Transfer(_account, address(0), _value);
-    }
-
     /* 
      * @notice Add a Treasurer to the treasurers list
      * @dev Only DAO owner may do this
