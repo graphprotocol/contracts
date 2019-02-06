@@ -38,6 +38,10 @@ contract GraphToken is
     *
     * @question: To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
     */
+
+    /* Events */
+    event AddTreasurer (address treasurer);
+    event RemoveTreasurer (address treasurer);
     
     /* STATE VARIABLES */
     // Token details
@@ -46,16 +50,12 @@ contract GraphToken is
     uint8 public decimals = 18;
 
     // Treasurers map to true
-    address[] private treasurers;
+    mapping (address => bool) public treasurers;
 
     /* Modifiers */
     // Only a treasurers address is allowed
     modifier onlyTreasurer () {
-        bool isTreasurer = false;
-        for (uint i = 0; i < treasurers.length; i++) {
-            if (msg.sender == treasurers[i]) isTreasurer = true;
-        }
-        require(isTreasurer);
+        require(treasurers[msg.sender] == true);
         _;
     }
     
@@ -64,7 +64,10 @@ contract GraphToken is
     /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
     constructor (address _governor, uint256 _initialSupply) public Governed (_governor) {
         totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
-        treasurers.push(_governor); // Governor (multisig) is initially the sole treasurer
+
+        // Governor (multisig) is initially the sole treasurer
+        treasurers[_governor] = true;
+        emit AddTreasurer(_governor);
 
         // @question: Who should own the initial supply of tokens?
         // @dev If `governor` owns the tokens, we need to transfer when governor changes
@@ -84,15 +87,8 @@ contract GraphToken is
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
     function addTreasurer (address _newTreasurer) public onlyGovernance {
-        // Prevent saving a duplicate
-        bool duplicate;
-        for (uint i = 0; i < treasurers.length; i++) {
-            if (treasurers[i] == _newTreasurer) duplicate = true;
-        }
-        require(!duplicate);
-
-        // Add address to treasurers list
-        treasurers.push(_newTreasurer);
+        treasurers[_newTreasurer] = true;
+        emit AddTreasurer(_newTreasurer);
     }
 
     /* 
@@ -105,13 +101,9 @@ contract GraphToken is
         // Sender cannot remove self
         require(msg.sender != _removedTreasurer);
         
-        // Remove _removedTreasurer from treasurers list
-        uint i = 0;
-        while (treasurers[i] != _removedTreasurer) {
-            i++;
-        }
-        treasurers[i] = treasurers[treasurers.length - 1];
-        treasurers.length--;
+        // Mark _removedTreasurer as false in mapping
+        treasurers[_removedTreasurer] = false;
+        emit RemoveTreasurer(_removedTreasurer);
     }
 
     // ------------------------------------------------------------------------
