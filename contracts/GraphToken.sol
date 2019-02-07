@@ -49,6 +49,10 @@ contract GraphToken is
     string public  name = "Graph Token";
     uint8 public decimals = 18;
 
+    // ERC20 variables made public
+    mapping (address => uint256) public _balances;
+    uint256 public _totalSupply;
+
     // Treasurers map to true
     mapping (address => bool) public treasurers;
 
@@ -63,7 +67,7 @@ contract GraphToken is
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
     /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
     constructor (address _governor, uint256 _initialSupply) public Governed (_governor) {
-        totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
+        _totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
 
         // Governor (multisig) is initially the sole treasurer
         treasurers[_governor] = true;
@@ -71,11 +75,11 @@ contract GraphToken is
 
         // @question: Who should own the initial supply of tokens?
         // @dev If `governor` owns the tokens, we need to transfer when governor changes
-        balances[msg.sender] = totalSupply; // Deployment address holds all tokens
+        _balances[msg.sender] = _totalSupply; // Deployment address holds all tokens
         emit Transfer(
             address(0), // from
             msg.sender, // to
-            totalSupply // value
+            _totalSupply // value
         );
     }
     
