@@ -45,12 +45,9 @@ contract('UpgradableContract', accounts => {
   })
 
   it("...should be able to transfer ownership of self to MultiSigWallet2", async () => {
-    const govOfUpgradable1_A = await governedInstances[0].governor.call()
-
     const txData = governedInstances[0].contract.methods.transferGovernance(
       multiSigInstances[1].address
     ).encodeABI()
-    console.log({txData})
     assert(txData.length, "Transaction data is constructed.")
 
     const transaction = await multiSigInstances[0].submitTransaction(
