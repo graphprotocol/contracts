@@ -14,14 +14,14 @@ contract('UpgradableContract', accounts => {
       [accounts[0], accounts[1], accounts[2]], // owners
       2 // required confirmations
     )
-    console.log(`\tMultiSigWallet1 address: ${multiSigInstances[0].address}`)
+    // console.log(`\tMultiSigWallet1 address: ${multiSigInstances[0].address}`)
 
     // Deploy second multisig contract
     multiSigInstances[1] = await MultiSigWallet.new(
       [accounts[3], accounts[4], accounts[5]], // owners
       2 // required confirmations
     )
-    console.log(`\tMultiSigWallet2 address: ${multiSigInstances[1].address}`)
+    // console.log(`\tMultiSigWallet2 address: ${multiSigInstances[1].address}`)
 
     // Save the MultiSig's address to set the upgradable contracts' `governor`
     const governor1 = multiSigInstances[0].address
@@ -41,7 +41,7 @@ contract('UpgradableContract', accounts => {
       governor == multiSigInstances[0].address,
       "MultiSigWallet1 is the governor."
     )
-    console.log(`\tGovernor of UpgradableContract1 is ${governor}`)
+    // console.log(`\tGovernor of UpgradableContract1 is ${governor}`)
   })
 
   it("...should be able to transfer ownership of self to MultiSigWallet2", async () => {

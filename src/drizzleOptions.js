@@ -1,10 +1,9 @@
 import MultiSigWallet from './../build/contracts/MultiSigWallet.json'
-import Governance from './../build/contracts/Governance.json'
-import GraphToken from './../build/contracts/GraphToken.json'
-import GNS from './../build/contracts/GNS.json'
-import Registry from './../build/contracts/Registry.json'
-import RewardManager from './../build/contracts/RewardManager.json'
-import Staking from './../build/contracts/Staking.json'
+// import GraphToken from './../build/contracts/GraphToken.json'
+// import GNS from './../build/contracts/GNS.json'
+// import Registry from './../build/contracts/Registry.json'
+// import RewardManager from './../build/contracts/RewardManager.json'
+// import Staking from './../build/contracts/Staking.json'
 
 const drizzleOptions = {
   web3: {
@@ -15,13 +14,7 @@ const drizzleOptions = {
     }
   },
   contracts: [
-    MultiSigWallet,
-    Governance,
-    GraphToken,
-    GNS,
-    Registry,
-    RewardManager,
-    Staking
+    MultiSigWallet
   ],
   // events: {
   //   SimpleStorage: ['StorageSet']

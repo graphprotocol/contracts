@@ -1,3 +1,4 @@
+const GraphToken = artifacts.require("GraphToken")
 const MultiSigWallet = artifacts.require("MultiSigWallet")
 const UpgradableContract = artifacts.require("UpgradableContract")
 
@@ -14,6 +15,13 @@ module.exports = function(deployer, network, accounts) {
   .then(multiSigContract => deployer.deploy(
     UpgradableContract, 
     multiSigContract.contract._address // governor
+  ))
+
+  // Deploy the token contract
+  .then(multiSigContract => deployer.deploy(
+    GraphToken, 
+    multiSigContract.contract._address, // governor
+    1000000 // initial supply
   ))
 
 }
