@@ -18,9 +18,9 @@ contract DisputeManager is Governed {
     * dispute resolution process.
     * 
     * Requirements ("Dispute Resolution Manager" contract):
-    * @req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes 
+    * req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes
     *   to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
-    * @req 02 Governance can update slashingPercent
+    * req 02 Governance can update slashingPercent
     * ...
     */
 
@@ -61,18 +61,27 @@ contract DisputeManager is Governed {
 
     /* Modifiers */
     // Only the designated arbitrator
-    modifier onlyArbitrator;
+    modifier onlyArbitrator () {
+        require(msg.sender == arbitrator);
+        _;
+    }
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed (_governor);
+    constructor (address _governor) public Governed(_governor)
+    {
+        revert();
+    }
 
     /* Graph Protocol Functions */
     /**
      * @dev Governance can set the Arbitrator
      * @param _newArbitrator <address> Address of the new Arbitrator
      */
-    function setArbitrator (address _newArbitrator) public onlyGovernance returns (bool success);
+    function setArbitrator (address _newArbitrator) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
@@ -81,18 +90,27 @@ contract DisputeManager is Governed {
      * @return disputeId <bytes32> ID for the newly created dispute (hash of readIndex data + disputer data)
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes32 disputeId);
+    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes32 disputeId)
+    {
+        revert();
+    }
 
     /**
      * @dev Governance (owner / multisig) can update slashingPercent
      * @param _slashingPercent <uint256> Slashing percent
      */
-    function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success);
+    function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev The arbitrator can verify a dispute as being valid.
      * @param _disputeId <bytes32> ID of the dispute to be verified
      */
-    function verifyDispute (bytes32 _disputeId) public onlyArbitrator returns (bool success);
+    function verifyDispute (bytes32 _disputeId) public onlyArbitrator returns (bool success)
+    {
+        revert();
+    }
 
 }

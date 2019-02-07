@@ -25,16 +25,16 @@ contract GraphToken is
     * in the network.
     * 
     * V1 Requirements ("GraphToken" contract):
-    * @req 01 Implements ERC-20 Standards plus is Burnable (slashing) & Minting
+    * req 01 Implements ERC-20 Standards plus is Burnable (slashing) & Minting
     *   Minting: see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/token/ERC20/ERC20Mintable.sol
     *       (Ignore roles, Treasures are allowed to mint)
-    * @req 02 Has a treasurers list of contracts with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
-    * @req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
-    * @req 04 Allowances be used to delegate token burning 
-    * @req 05 Constructor takes a param to set the initial supply of tokens
+    * req 02 Has a treasurers list of contracts with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
+    * req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
+    * req 04 Allowances be used to delegate token burning
+    * req 05 Constructor takes a param to set the initial supply of tokens
     * ...
     * V2 Requirements
-    * @req 01 Majority of multiple treasurers can mint tokens.
+    * req 01 Majority of multiple treasurers can mint tokens.
     *
     * @question: To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
     */
@@ -62,21 +62,9 @@ contract GraphToken is
     /* Init Graph Token contract */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
     /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
-    constructor (address _governor, uint256 _initialSupply) public Governed (_governor) {
-        totalSupply = _initialSupply * 10**uint(decimals); // Initial totalSupply
-
-        // Governor (multisig) is initially the sole treasurer
-        treasurers[_governor] = true;
-        emit AddTreasurer(_governor);
-
-        // @question: Who should own the initial supply of tokens?
-        // @dev If `governor` owns the tokens, we need to transfer when governor changes
-        balances[msg.sender] = totalSupply; // Deployment address holds all tokens
-        emit Transfer(
-            address(0), // from
-            msg.sender, // to
-            totalSupply // value
-        );
+    constructor (address _governor, uint256 _initialSupply) public Governed (_governor)
+    {
+        revert();
     }
     
     /* Graph Protocol Functions */
@@ -86,9 +74,9 @@ contract GraphToken is
      *
      * @param _newTreasurer <address> - Address of the Treasurer to be added
      */
-    function addTreasurer (address _newTreasurer) public onlyGovernance {
-        treasurers[_newTreasurer] = true;
-        emit AddTreasurer(_newTreasurer);
+    function addTreasurer (address _newTreasurer) public onlyGovernance
+    {
+        revert();
     }
 
     /* 
@@ -97,20 +85,11 @@ contract GraphToken is
      *
      * @param _removedTreasurer <address> - Address of the Treasurer to be removed
      */
-    function removeTreasurer (address _removedTreasurer) public onlyGovernance {
-        // Sender cannot remove self
-        require(msg.sender != _removedTreasurer);
-        
-        // Mark _removedTreasurer as false in mapping
-        treasurers[_removedTreasurer] = false;
-        emit RemoveTreasurer(_removedTreasurer);
-    }
-
-    // ------------------------------------------------------------------------
-    // Don't accept ETH
-    // ------------------------------------------------------------------------
-    function () external payable {
+    function removeTreasurer (address _removedTreasurer) public onlyGovernance
+    {
         revert();
     }
 
+    // @dev Don't accept ETH
+    function () external payable { revert(); }
 }

@@ -15,12 +15,12 @@ contract Governed {
     * which enacts changes to the protocol via a multi-sig contract.
     * 
     * Requirements ("Governed" contract):
-    * @req 01 Multisig contract will own this contract
-    * @req 02 Verify the Governed contracts can upgrade themselves to a new `governor`
+    * req 01 Multisig contract will own this contract
+    * req 02 Verify the Governed contracts can upgrade themselves to a new `governor`
     *   (GovA owns contracts 1-5 and can transfer ownership of 1-5 to GovB)
     * ...
     * Version 2
-    * @req 01 (V2) Change Mutli-sig to use a voting mechanism
+    * req 01 (V2) Change Mutli-sig to use a voting mechanism
     *   - Majority of votes after N% of votes cast will trigger proposed actions
     */
 

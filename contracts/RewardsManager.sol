@@ -27,12 +27,12 @@ contract RewardsManager is Governed {
     * via inflation.
     * 
     * Requirements ("Reward Manager" contract):
-    * @req 01 Has the ability to mint tokens according to the reward rules specified in mechanism 
+    * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism
     *   design of technical specification.
-    * @req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
-    * @req 03 claimRewards function
-    * @req 04 uint256 for yearly inflation rate
-    * @req 05 a mapping that records the usage in queries of each index chain , which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
+    * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
+    * req 03 claimRewards function
+    * req 04 uint256 for yearly inflation rate
+    * req 05 a mapping that records the usage in queries of each index chain , which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
     */
 
 
@@ -56,41 +56,59 @@ contract RewardsManager is Governed {
      * @dev Reward Manager Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor);
+    constructor (address _governor) public Governed (_governor)
+    {
+        revert();
+    }
 
     /* Graph Protocol Functions */
     /**
      * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint256> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyGovernance returns (bool success);
+    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint256> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyGovernance returns (bool success);
+    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
      */
-    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success);
+    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Governance contract owns this contract and can mint tokens based on reward calculations
      * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract
-     * @req Calculate rewards based on local variables and call the mint function in GraphToken
+     * req Calculate rewards based on local variables and call the mint function in GraphToken
      * @param _account <address> - The account that will receive the created tokens.
      * @param _value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success);
+    function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
     
     /**
      * @dev Validators can claim rewards or add them to their stake
      * @param _validatorId <bytes32> - ID of the validator claiming rewards
      * @param _addToStake <bool> - Send the rewards back to the validator's stake
      */
-    function claimRewards (bytes32 _validatorId, bool _addToStake) public returns (uint256 rewaredAmount);
+    function claimRewards (bytes32 _validatorId, bool _addToStake) public returns (uint256 rewaredAmount)
+    {
+        revert();
+    }
 
 }

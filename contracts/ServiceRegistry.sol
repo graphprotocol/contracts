@@ -13,8 +13,8 @@ contract ServiceRegistry is Governed {
     * @notice Contract Specification:
     *
     * Requirements ("Service Registry" contract):
-    * @req 01 Maps Ethereum Addresses to URLs
-    * @req 02 No other contracts depend on this, rather is consumed by users of The Graph.
+    * req 01 Maps Ethereum Addresses to URLs
+    * req 02 No other contracts depend on this, rather is consumed by users of The Graph.
     * ...
     * @question - Who sets registeredUrls? Staking? (need interface)
     */
@@ -25,7 +25,10 @@ contract ServiceRegistry is Governed {
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed (_governor);
+    constructor (address _governor) public Governed (_governor)
+    {
+        revert();
+    }
 
     /* Graph Protocol Functions */
 
