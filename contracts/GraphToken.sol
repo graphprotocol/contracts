@@ -50,8 +50,8 @@ contract GraphToken is
     uint8 public decimals = 18;
 
     // ERC20 variables made public
-    mapping (address => uint256) public _balances;
-    uint256 public _totalSupply;
+    mapping (address => uint256) _balances;
+    uint256 _totalSupply;
 
     // Treasurers map to true
     mapping (address => bool) public treasurers;
