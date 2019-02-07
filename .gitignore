@@ -5,6 +5,7 @@
 
 # production
 /build
+/build_webpack
 
 # misc
 .DS_Store
