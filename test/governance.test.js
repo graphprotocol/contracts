@@ -1,8 +1,5 @@
 const MultiSigWallet = artifacts.require("./MultiSigWallet.sol")
 const UpgradableContract = artifacts.require("./UpgradableContract.sol")
-// const Web3 = require('web3')
-// const web3 = new Web3(Web3.givenProvider || "ws://localhost:8545")
-// const web3 = MultiSigWallet.web3
 
 contract('UpgradableContract', accounts => {  
 
@@ -48,10 +45,12 @@ contract('UpgradableContract', accounts => {
   })
 
   it("...should be able to transfer ownership of self to MultiSigWallet2", async () => {
+    const govOfUpgradable1_A = await governedInstances[0].governor.call()
 
     const txData = governedInstances[0].contract.methods.transferGovernance(
       multiSigInstances[1].address
     ).encodeABI()
+    console.log({txData})
     assert(txData.length, "Transaction data is constructed.")
 
     const transaction = await multiSigInstances[0].submitTransaction(
@@ -102,8 +101,11 @@ contract('UpgradableContract', accounts => {
     )
     assert(executedTransactionCount.toNumber() === 1, "Transaction has been executed.")
 
-    const govOfUpgradable1 = await governedInstances[0].governor.call()
-    assert.equal(govOfUpgradable1, multiSigInstances[1].address, 'Upgradable contract has new governor.')
+    assert.equal(
+      await governedInstances[0].governor.call(), // contract's new governor
+      multiSigInstances[1].address, // second multisig instance
+      'Upgradable contract has new governor.'
+    )
 
   })
   

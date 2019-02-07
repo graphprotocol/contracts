@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "devDependencies": {
     "ganache-cli": "^6.1.6",
-    "openzeppelin-solidity": "^1.10.0",
     "truffle": "^4.1.13",
     "truffle-hdwallet-provider": "^0.0.5"
   },
@@ -37,6 +36,7 @@
     "html-webpack-plugin": "2.29.0",
     "jest": "20.0.4",
     "object-assign": "4.1.1",
+    "openzeppelin-solidity": "2.1.1",
     "postcss-flexbugs-fixes": "3.2.0",
     "postcss-loader": "2.0.8",
     "promise": "8.0.1",
