@@ -21,7 +21,7 @@ contract ServiceRegistry is Governed {
 
     /* STATE VARIABLES */
     // Storage of Ethereum addresses mapped to Indexing Node URLs
-    mapping (address => bytes) internal registeredUrls;
+    mapping (address => bytes) public registeredUrls;
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -31,12 +31,6 @@ contract ServiceRegistry is Governed {
     }
 
     /* Graph Protocol Functions */
-    /*
-     * @notice Retrieve in bytes, the Url of the service provider using their address
-     *
-     * @param _serviceProvider <address> - Address of the Service Provider
-     */
-    function getUrl (address _serviceProvider) external returns (bytes)
 
     /*
      * @notice Set service provider url from their address
@@ -45,7 +39,6 @@ contract ServiceRegistry is Governed {
      * @param _serviceProvider <address> - Address of the service provider
      * @param _url <bytes> - URL of the service provider
      */
-    function setUrl (bytes _url) external
-    // WIP...
+    function setUrl (address _serviceProvider, bytes _url) external onlyGovernance;
 
 }
