@@ -9,7 +9,7 @@ contract GNS is Governed {
     *
     * @author Bryant Eisenbach
     * @author Reuven Etzion
-    *
+    * @author Ashoka Finley
     * @notice Contract Specification:
     *
     * Subgraph IDs : Subgraph definitions are immutable, even though the actual
@@ -44,11 +44,11 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event domainAdded(bytes32 indexed domainHash, bytes32 subgraphID, address indexed owner);
-    event domainUpdated(bytes32 indexed domainHash, bytes32 subgraphID, address indexed owner);
-    event subdomainAdded(bytes32 indexed domainHash, bytes32 indexed subdomainHash, bytes32 subdomainSubgraphIdID);
-    event subdomainUpdated(bytes32 indexed domainHash, bytes32 indexed subdomainHash, bytes32 subdomainSubgraphIdID);
-    event subdomainDeleted(bytes32 indexed domainHash, bytes32 subdomainHash);
+    event domainAdded(string indexed domainName, bytes32 indexed domainHash, bytes32 subgraphID, address indexed owner);
+    event domainUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
+    event subdomainAdded(bytes32 indexed domainHash, string subdomainName, bytes32 indexed subdomainHash, bytes32 indexed subdomainID);
+    event subdomainUpdated(bytes32 indexed domainHash, bytes32 indexed subdomainHash, bytes32 indexed subdomainSubgraphID);
+    event subdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
 
     /* Structs */
     struct Domain {
@@ -61,7 +61,6 @@ contract GNS is Governed {
     // Domains which are also hashed are attached to subGraphIDs
     /* STATE VARIABLES */
     // Storage of Domain Names mapped to subgraphId's
-    // @question - What are we mapping to here? The subgraphId's owner's address?
     mapping (bytes32 => Domain) internal gnsDomains;
 
     /* Contract Constructor */
@@ -78,11 +77,11 @@ contract GNS is Governed {
      * @notice Add a subgraphID and register owner
      * @dev Only registrar may do this
      *
-     * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
+     * @param _domainName <string> - Domain name
      * @param _owner <address> - Address of domain owner
+     * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
      */
-    function registerDomain (bytes32 _domainHash, bytes32 _subgraphID, address _owner) external onlyGovernance;
+    function registerDomain (string _domainName, address _owner, bytes32 _subgraphID)  external onlyGovernance;
 
     /*
      * @notice update a domain with a new subgraphId
@@ -95,50 +94,49 @@ contract GNS is Governed {
     function updateDomain (bytes32 _domainHash, bytes32 _subgraphID, address _owner) external onlyDomainOwner;
 
     /*
-     * @notice Get the subgraphID of an existing domain
+     * @notice Get the subgraphID and owner of an existing domain
      * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _subdomainHash <bytes32> - Name of the subdomain
+     * @return owner <address> - Owner of the domain
+     * @return subgraphID <bytes32> - ID of the subgraph
      */
-    function getDomainSubgraphId (bytes32 _domainHash) external returns (bytes32 subdomainID);
+    function getDomain (bytes32 _domainHash) external returns (address owner, bytes32 subgraphID);
 
     /*
      * @notice Add a subdomain to the provided subGraphId
      * @dev Only the domain owner may do this
      *
      * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _owner <address> - Address of domain owner
-     * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
-     * @param _subdomainID <bytes32> - SubgraphID of the subdomain
+     * @param _subdomainName <string> - Name of the Subdomain
+     * @param _subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function addSubdomain (bytes32 _domainHash, address _owner, bytes32 _subdomainHash, bytes32 _subdomainID ) external onlyDomainOwner;
+    function addSubdomain (bytes32 _domainHash, string _subdomainName, bytes32 _subdomainSubgraphID) external onlyDomainOwner;
 
     /*
      * @notice Update an existing subdomain with a new subgraphID
      * @dev Only the domain owner may do this
      *
      * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _owner <address> - Address of domain owner
      * @param _subdomainHash <bytes32> - Hash of the Name of the subdomain
-     * @param _subdomainID <bytes32> - SubgraphID of the subdomain
+     * @param _subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function updateSubdomain (bytes32 _domainHash, address _owner, bytes32 _subdomainHash, bytes32 _subdomainID) external onlyDomainOwner;
+    function updateSubdomain (bytes32 _domainHash, bytes32 _subdomainHash, bytes32 _subdomainSubgraphID) external onlyDomainOwner;
 
     /*
      * @notice Remove an existing subdomain from the provided subdomainName
      * @dev Only the domain owner may do this
      *
      * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _owner <address> - Address of domain owner
      * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
      */
-    function deleteSubdomain (bytes32 _domainHash, address _owner, bytes32 _subdomainHash) external onlyDomainOwner;
+    function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner;
 
     /*
      * @notice Get the subgraphID of an existing subdomain for a given domain
      * @param _domainHash <bytes32> - Hash of the domain name
      * @param _subdomainHash <bytes32> - Name of the subdomain
+     * @return subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function getSubdomainSubgraphId (bytes32 _domainHash, bytes32 _subdomainHash) external returns (bytes32 subdomainID);
+    function getSubdomainSubgraphId (bytes32 _domainHash, bytes32 _subdomainHash) external returns (bytes32 subdomainSubgraphID);
 
 
     /*
