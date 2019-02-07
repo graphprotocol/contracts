@@ -46,7 +46,7 @@ contract Governed {
      * @param _newGovernor <address> Address of new `governor`
      */
     function transferGovernance(address _newGovernor) public onlyGovernance returns (bool) {
-        governor == _newGovernor;
+        governor = _newGovernor;
         return true;
     }
 
