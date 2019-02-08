@@ -31,11 +31,11 @@ contract Staking is Governed {
     * else being equal, as this represents a greater economic security margin to the end user.
     * 
     * Requirements ("Staking" contract):
-    * @req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
-    * @req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
-    * @req 03 Curator can stake Graph Tokens for subgraphId
-    * @req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
-    * @req 05 Dispute Resolution can slash staked tokens
+    * req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
+    * req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
+    * req 03 Curator can stake Graph Tokens for subgraphId
+    * req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
+    * req 05 Dispute Resolution can slash staked tokens
     * ...
     */
 
@@ -74,29 +74,50 @@ contract Staking is Governed {
     // Subgraphs mapping
     mapping (bytes32 => Subgraph) subgraphs;
 
+    // The arbitrator is solely in control of arbitrating disputes
+    address public arbitrator;
+
+    // Only the designated arbitrator
+    modifier onlyArbitrator () {
+        require(msg.sender == arbitrator);
+        _;
+    }
+
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor);
+    constructor (address _governor) public Governed (_governor)
+    {
+        revert();
+    }
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
      * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
      * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success);
+    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success);
+    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success)
+    {
+        revert();
+    }
 
     /* Graph Protocol Functions */
     /**
@@ -108,11 +129,14 @@ contract Staking is Governed {
      */
     // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
-        bytes32 memory _subgraphId, 
-        address _staker, 
+        bytes32 _subgraphId,
+        address _staker,
         uint256 _value,
         bytes memory _indexingRecords
-    ) public returns (bool success);
+    ) public returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
@@ -122,10 +146,13 @@ contract Staking is Governed {
      */
     // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
-        bytes32 memory _subgraphId, 
-        address _staker, 
+        bytes32 _subgraphId,
+        address _staker,
         uint256 _value
-    ) public returns (bool success);
+    ) public returns (bool success)
+    {
+        revert();
+    }
 
     /**
      * @dev Receive approval to spend Graph Tokens of someone else
@@ -133,20 +160,26 @@ contract Staking is Governed {
      * @param _value <uint256> - Amount of Graph Tokens 
      * @param _token <address> - Graph Token address
      * @notice How does this actually work? Does it not need other functions?
-     * @ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing 
+     * ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing
      */
     function receiveApproval (
         address _from,
         uint256 _value,
         address _token,
         bytes memory _data
-    ) public;
+    ) public
+    {
+        revert();
+    }
 
     /**
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
      * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success);
+    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success)
+    {
+        revert();
+    }
 
     // WIP...
      

@@ -36,10 +36,10 @@ contract GNS is Governed {
     * See: https://github.com/graphprotocol/specs/tree/master/data-model for details.
     *
     * Requirements ("GNS" contract):
-    * @req 01 Maps owners to domains
-    * @req 02 Maps domain names to subgraphIds
-    * @req 03 Maps subdomain names to domains of subgraphIds
-    * @req 04 Event to emit human-readable names
+    * req 01 Maps owners to domains
+    * req 02 Maps domain names to subgraphIds
+    * req 03 Maps subdomain names to domains of subgraphIds
+    * req 04 Event to emit human-readable names
     * ...
     */
 
@@ -56,7 +56,10 @@ contract GNS is Governed {
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed (_governor);
+    constructor (address _governor) public Governed (_governor)
+    {
+        revert();
+    }
 
     /* Graph Protocol Functions */
 
