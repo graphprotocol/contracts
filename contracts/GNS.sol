@@ -147,5 +147,4 @@ contract GNS is Governed {
      * @param _newOwner <address> - New owner of the domain
      */
     function transferDomainOwnership (bytes32 _domainHash, address _newOwner) external onlyDomainOwner;
-
 }
