@@ -1,93 +1,56 @@
 pragma solidity ^0.5.2;
+/*
+ * @title GraphToken contract
+ *
+ * @author Bryant Eisenbach
+ * @author Reuven Etzion
+ *
+ * Requirements
+ * @req 01 The Graph Token shall implement the ERC20 Token Standard
+ * @req 02 The Graph Token shall allow tokens staked in the protocol to be burned
+ * @req 03 The Graph Token shall allow tokens to be minted to reward protocol participants
+ * @req 04 The Graph Token shall only allow designated accounts the authority to mint
+ *         Note: for example, the Payment Channel Hub and Rewards Manager contracts
+ * @req 05 The Graph Token shall allow the protocol Governance to modify the accounts that have
+ *         minting authority
+ * @req 06 The Graph Token shall allow the protocol Governance to mint new tokens
+ * @req 07 The Graph Token shall mint an inital distribution of tokens
+ *
+ */
 
 import "./Governed.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
-// ----------------------------------------------------------------------------
-// Burnable ERC20 Token, with the addition of symbol, name and decimals
-// ----------------------------------------------------------------------------
 contract GraphToken is
     Governed,
-    ERC20Burnable,
-    ERC20Mintable
+    ERC20Detailed, // @imp 01
+    ERC20Burnable, // @imp 01, 02
+    ERC20Mintable  // @imp 01, 03, 04
 {
-    
-    /* 
-    * @title GraphToken contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * Graph Tokens will have variable inflation to rewards specific activities
-    * in the network.
-    * 
-    * V1 Requirements ("GraphToken" contract):
-    * req 01 Implements ERC-20 Standards plus is Burnable (slashing) & Minting
-    *   Minting: see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/token/ERC20/ERC20Mintable.sol
-    *       (Ignore roles, Treasures are allowed to mint)
-    * req 02 Has a treasurers list of contracts with permission to mint the token (i.e. Payment Channel Hub and Rewards Manager).
-    * req 03 Has owner which can set treasurers, upgrade contract and set any parameters controlled via governance.
-    * req 04 Allowances be used to delegate token burning
-    * req 05 Constructor takes a param to set the initial supply of tokens
-    * ...
-    * V2 Requirements
-    * req 01 Majority of multiple treasurers can mint tokens.
-    *
-    * @question: To which address should the tokens be allocated? How will they be used? (crowd sale? init payment channel?)
-    */
-
-    /* Events */
-    event AddTreasurer (address treasurer);
-    event RemoveTreasurer (address treasurer);
-    
-    /* STATE VARIABLES */
-    // Token details
-    string public symbol = "GRT";
-    string public  name = "Graph Token";
-    uint8 public decimals = 18;
-
-    // Treasurers map to true
-    mapping (address => bool) public treasurers;
-
-    /* Modifiers */
-    // Only a treasurers address is allowed
-    modifier onlyTreasurer () {
-        require(treasurers[msg.sender]);
+    // @imp 05, 06 Override so Governor can set Minters or mint tokens
+    modifier onlyMinter() {
+        require(isMinter(msg.sender) || msg.sender == governor);
         _;
     }
     
-    /* Init Graph Token contract */
-    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
-    constructor (address _governor, uint256 _initialSupply) public Governed (_governor)
-    {
-        revert();
-    }
-    
-    /* Graph Protocol Functions */
     /* 
-     * @notice Add a Treasurer to the treasurers list
-     * @dev Only DAO owner may do this
-     *
-     * @param _newTreasurer <address> - Address of the Treasurer to be added
+     * @dev Init Graph Token contract
+     * @param _governor <address> Address of the multisig contract as Governor of this contract
+     * @param _initialSupply <uint256> Initial supply of Graph Tokens
      */
-    function addTreasurer (address _newTreasurer) public onlyGovernance
+    constructor (address _governor, uint256 _initialSupply) public
+        ERC20Detailed("GRT", "Graph Token", 18)
+        Governed(_governor)
     {
-        revert();
-    }
+        // @imp 06 Governor is initially the sole treasurer
+        _addMinter(_governor);
+        _removeMinter(msg.sender); // Zep automagically does this, so remove...
 
-    /* 
-     * @notice Remove a Treasurer from the treasurers mapping
-     * @dev Only DAO owner may do this
-     *
-     * @param _removedTreasurer <address> - Address of the Treasurer to be removed
-     */
-    function removeTreasurer (address _removedTreasurer) public onlyGovernance
-    {
-        revert();
+        // @imp 07 The Governer has the initial supply of tokens
+        _mint(_governor, _initialSupply); // Deployment address holds all tokens
+
     }
 
     // @dev Don't accept ETH
