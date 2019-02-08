@@ -87,10 +87,7 @@ contract Staking is Governed {
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor)
-    {
-        revert();
-    }
+    constructor (address _governor) public Governed (_governor) {}
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
