@@ -8,22 +8,20 @@ contract('UpgradableContract', accounts => {
 
   before(async () => {
 
-    // Deploy the multisig contract first in order to use its address in deploying the upgradable contracts
+    // Deploy a first multisig contract to be used as `governor` when deploying the upgradable contracts
     multiSigInstances[0] = await MultiSigWallet.new(
       [accounts[0], accounts[1], accounts[2]], // owners
       2 // required confirmations
     )
 
-    // Deploy a second multisig contract to transfer ownership to
+    // Deploy a second multisig contract to test transferring governance to a new governor
     multiSigInstances[1] = await MultiSigWallet.new(
       [accounts[3], accounts[4], accounts[5]], // owners
       2 // required confirmations
     )
 
-    // Save the first MultiSig's address to set the upgradable contracts' `governor`
-    const governor1 = multiSigInstances[0].address
-
     // Init 5 Governed contracts
+    const governor1 = multiSigInstances[0].address
     governedInstances[0] = await UpgradableContract.new(governor1)
     governedInstances[1] = await UpgradableContract.new(governor1)
     governedInstances[2] = await UpgradableContract.new(governor1)
@@ -32,7 +30,7 @@ contract('UpgradableContract', accounts => {
 
   })
 
-  it("...should be owned by MultiSigWallet", async () => {
+  it("...should be governed by MultiSigWallet #1", async () => {
     const governor = await governedInstances[0].governor.call()
     assert(
       governor == multiSigInstances[0].address,
@@ -40,60 +38,65 @@ contract('UpgradableContract', accounts => {
     )
   })
 
-  it("...should be able to transfer ownership of self to MultiSigWallet2", async () => {
+  it("...should be able to transfer governance of self to MultiSigWallet #2", async () => {
+    // Encode transaction data to be executed by the multisig upon confirmation
     const txData = governedInstances[0].contract.methods.transferGovernance(
       multiSigInstances[1].address
     ).encodeABI()
     assert(txData.length, "Transaction data is constructed.")
 
+    // Submit the transaction to the multisig for confirmation
     const transaction = await multiSigInstances[0].submitTransaction(
-      governedInstances[0].address, // destination
+      governedInstances[0].address, // destination contract
       0, // value
-      txData // byte data
+      txData // transaction data
     )
     assert.isObject(transaction, "Transaction saved.")
 
+    // Get the `transactionId` from the logs
     const transactionId = getParamFromTxEvent(
       transaction,
       'transactionId',
       null,
       'Submission'
     )
-    assert(!isNaN(transactionId.toNumber()), "Transaction ID returned.")
+    assert(!isNaN(transactionId.toNumber()), "Transaction ID found.")
 
+    // The transaction should be pending with only 1 confirmation
     let pendingTransactionCount = await multiSigInstances[0].getTransactionCount(
       true, // include pending
       false // include executed
     )
     assert(pendingTransactionCount.toNumber() === 1, "Transaction is pending.")
 
-    // confirm transaction from a second multisig owner account
+    // Confirm transaction from a second multisig owner account
     await multiSigInstances[0].contract.methods.confirmTransaction(
       transactionId.toNumber()
     ).send({from: accounts[1]})
 
-    // check pending status has changed
+    // Check status is no longer `pending`
     pendingTransactionCount = await multiSigInstances[0].getTransactionCount(
       true, // include pending
       false // include executed
     )
     assert(pendingTransactionCount.toNumber() === 0, "Transaction is not pending.")
 
-    // fetch confirmations
+    // Check that we now have 2 confirmations
     const confirmations = await multiSigInstances[0].getConfirmations(transactionId.toNumber())
     assert(confirmations.length === 2, "Transaction has 2 confirmations.")
 
-    // check confimation status
+    // Check that transaction status is `confirmed`
     const isConfirmed = await multiSigInstances[0].isConfirmed(transactionId.toNumber())
     assert(isConfirmed, "Transaction is confirmed.")
 
-    // check transaction for executed status
+    // Check that 1 transaction has been `executed` 
     const executedTransactionCount = await multiSigInstances[0].getTransactionCount(
       false, // include pending
       true // include executed
     )
     assert(executedTransactionCount.toNumber() === 1, "Transaction has been executed.")
 
+    // Governor of the upgradable contract should now be the second multisig contract
     assert.equal(
       await governedInstances[0].governor.call(), // contract's new governor
       multiSigInstances[1].address, // second multisig instance
