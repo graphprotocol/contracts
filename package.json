@@ -1,0 +1,8 @@
+{
+  "name": "graphtoken",
+  "version": "1.0.0",
+  "main": "truffle.js",
+  "dependencies": {
+    "openzeppelin-solidity": "2.1.1"
+  }
+}
