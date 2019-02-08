@@ -35,6 +35,15 @@ contract GraphToken is
         _;
     }
     
+<<<<<<< HEAD
+=======
+    /* Init Graph Token contract */
+    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
+    /* @param _initialSupply <uint256> - Initial supply of Graph Tokens */
+    constructor (address _governor, uint256 _initialSupply) public Governed (_governor) {}
+    
+    /* Graph Protocol Functions */
+>>>>>>> transferOwnership test
     /* 
      * @dev Init Graph Token contract
      * @param _governor <address> Address of the multisig contract as Governor of this contract
