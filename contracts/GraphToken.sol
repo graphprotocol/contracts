@@ -19,9 +19,9 @@ pragma solidity ^0.5.2;
  */
 
 import "./Governed.sol";
-import "openzeppelin/ERC20Burnable.sol";
-import "openzeppelin/ERC20Mintable.sol";
-import "openzeppelin/ERC20Detailed.sol";
+import "./openzeppelin/ERC20Burnable.sol";
+import "./openzeppelin/ERC20Mintable.sol";
+import "./openzeppelin/ERC20Detailed.sol";
 
 contract GraphToken is
     Governed,
