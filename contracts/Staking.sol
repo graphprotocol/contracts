@@ -1,45 +1,50 @@
 pragma solidity ^0.5.2;
 
+/*
+ * @title Staking contract
+ *
+ * @author Bryant Eisenbach
+ * @author Reuven Etzion
+ *
+ * Curator Requirements
+ * @req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.
+ * @req c02 The amount of tokens to stake required to become a Curator must be greater than or
+ *          equal to the minimum curation staking amount.
+ * @req c03 Only Governance can change the minimum curation staking amount.
+ * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
+ *          equal to the total amount of Curation stake for a given subgraphId if they
+ *          successfully stake on a given subgraphId.
+ *
+ * Indexer Requirements *
+ * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
+ * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
+ *          equal to the minimum indexing staking amount.
+ * @req i03 Only Governance can change the minimum indexing staking amount.
+ * @req i04 If the number of Indexers is greater than or equal to the maximum number of indexers,
+ *          the amount of tokens required to become an Indexer must be more than the lowest stake.
+ * @req i05 Only Governance can change the maximum number of indexers.
+ * @req i06 If an Indexer is no longer staking more than the lowest stake, and there are more than
+ *          the maximum number of indexers, they are allowed to withdraw their stake after a pre-
+ *          defined cooling period has completed.
+ * @req i07 Only Governance can change the duration of the cooling period.
+ *
+ * Slashing Requirements
+ * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
+ * @req s02 Only Governance can change the Dispte Manager contract address.
+ *
+ * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
+ *         many read requests they may process for that dataset. However, it may be assumed that
+ *         Indexing Nodes with higher deposits will receive more read requests and thus collect
+ *         more fees, all else being equal, as this represents a greater economic security margin
+ *         to the end user.
+ *
+ */
+
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "./DisputeManager.sol";
 
 contract Staking is Governed {
-    
-    /* 
-    * @title Staking contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * Indexing Nodes stake Graph Tokens to participate in the data retrieval market for a
-    * specific subgraph, as identified by subgraphId.
-    *
-    * Curators stake Graph Tokens to participate in a specific curation market,
-    * as identified by subgraphId
-    *
-    * For a stakingAmount to be considered valid, it must meet the following requirements:
-    * - stakingAmount >= minimumStakingAmount where minimumStakingAmount is set via governance.
-    * - The stakingAmount must be in the set of the top N staking amounts, where N is determined by
-    *   the maxIndexers parameter which is set via governance.
-    * - If a staker is no longer in the top N staking amounts, they are allowed to withdraw their
-    *   funds via a logout process.
-    * 
-    * Indexing Nodes who have staked for a dataset, are not limited by the protocol in how many
-    * read requests they may process for that dataset. However, it may be assumed that Indexing
-    * Nodes with higher deposits will receive more read requests and thus collect more fees, all
-    * else being equal, as this represents a greater economic security margin to the end user.
-    * 
-    * Requirements ("Staking" contract):
-    * req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
-    * req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
-    * req 03 Curator can stake Graph Tokens for subgraphId
-    * req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
-    * req 05 Dispute Resolution can slash staked tokens
-    * ...
-    */
 
     /* Structs */
     struct Curator {
