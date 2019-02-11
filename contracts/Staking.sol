@@ -15,7 +15,7 @@ pragma solidity ^0.5.2;
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
  *
- * Indexer Requirements *
+ * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
  * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
  *          equal to the minimum indexing staking amount.
