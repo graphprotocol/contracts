@@ -24,6 +24,8 @@ contract Staking is Governed {
     * - stakingAmount >= minimumStakingAmount where minimumStakingAmount is set via governance.
     * - The stakingAmount must be in the set of the top N staking amounts, where N is determined by
     *   the maxIndexers parameter which is set via governance.
+    * - If a staker is no longer in the top N staking amounts, they are allowed to withdraw their
+    *   funds via a logout process.
     * 
     * Indexing Nodes who have staked for a dataset, are not limited by the protocol in how many
     * read requests they may process for that dataset. However, it may be assumed that Indexing
@@ -93,27 +95,33 @@ contract Staking is Governed {
      * @dev Set the Minimum Staking Amount for Market Curators
      * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
      */
-    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success)
-    {
-        revert();
+    function setMinimumCurationStakingAmount (
+        uint256 _minimumCurationStakingAmount
+    ) external onlyGovernance returns (bool success) {
+        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // Tokens
+        return true;
     }
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
      * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success)
-    {
-        revert();
+    function setMinimumIndexingStakingAmount (
+        uint256 _minimumIndexingStakingAmount
+    ) external onlyGovernance returns (bool success) {
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // Tokens
+        return true;
     }
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success)
-    {
-        revert();
+    function setMaximumIndexers (
+        uint256 _maximumIndexers
+    ) external onlyGovernance returns (bool success) {
+        maximumIndexers = _maximumIndexers;
+        return true;
     }
 
     /* Graph Protocol Functions */
