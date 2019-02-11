@@ -66,7 +66,7 @@ contract Staking is Governed {
     uint256 public minimumIndexingStakingAmount;
 
     // Maximum number of Indexing Nodes staked higher than stake to consider 
-    uint256 public maxIndexers;
+    uint256 public maximumIndexers;
 
     // Mapping subgraphId to list of addresses to Curators
     // These mappings work together
@@ -84,6 +84,8 @@ contract Staking is Governed {
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
 
+    uint constant COOLING_PERIOD = 7 days;
+
     // Only the designated arbitrator
     modifier onlyArbitrator () {
         require(msg.sender == arbitrator);
@@ -94,7 +96,12 @@ contract Staking is Governed {
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor) {}
+    constructor (address _governor) public Governed (_governor) {
+        // Governance Parameter Defaults
+        maximumIndexers = 10;
+        minimumCurationStakingAmount = 100;  // Tokens
+        minimumIndexingStakingAmount = 100;  // Tokens
+    }
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
