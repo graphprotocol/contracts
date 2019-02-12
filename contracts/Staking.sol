@@ -26,7 +26,6 @@ pragma solidity ^0.5.2;
  * @req i06 If an Indexer is no longer staking more than the lowest stake, and there are more than
  *          the maximum number of indexers, they are allowed to withdraw their stake after a pre-
  *          defined cooling period has completed.
- * @req i07 Only Governance can change the duration of the cooling period.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
