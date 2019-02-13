@@ -36,6 +36,7 @@ contract GraphToken is
     }
     
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     /* Init Graph Token contract */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -44,6 +45,8 @@ contract GraphToken is
     
     /* Graph Protocol Functions */
 >>>>>>> transferOwnership test
+=======
+>>>>>>> remove extra line in grpah token contract
     /* 
      * @dev Init Graph Token contract
      * @param _governor <address> Address of the multisig contract as Governor of this contract
