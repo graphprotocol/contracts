@@ -1,5 +1,5 @@
 // helpers
-const GraphProtocol = require('./lib/graphProtocol.js')
+const GraphProtocol = require('../graphProtocol.js')
 
 // contracts
 const Staking = artifacts.require("./Staking.sol")
