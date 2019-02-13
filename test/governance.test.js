@@ -3,7 +3,7 @@ const UpgradableContract = artifacts.require("./GNS.sol")
 
 // helpers
 const helpers = require('./lib/testHelpers')
-const GraphProtocol = require('./lib/graphProtocol.js')
+const GraphProtocol = require('../graphProtocol.js')
 const gp = GraphProtocol() // initialize GraphProtocol library
 
 contract('UpgradableContract', accounts => {  
