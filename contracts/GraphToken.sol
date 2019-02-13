@@ -35,7 +35,6 @@ contract GraphToken is
         _;
     }
     
-
     /* 
      * @dev Init Graph Token contract
      * @param _governor <address> Address of the multisig contract as Governor of this contract
