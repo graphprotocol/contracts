@@ -12,10 +12,18 @@
  *
  */
 
-module.exports = (options) => {
+  /**
+   * @dev Contract ABIs are sent as properties in an `options` object
+   * 
+   * @param {Object} options JSON object containing contract ABIs
+   * @example `{ GNS: deployedGnsContract, Staking: deployedStakingContract }`
+   * @see line26 For the property names used in this module
+   * 
+   */
+  module.exports = (options) => {
 
   // Destructure the options properties for our contract ABIs
-  let {
+  const {
     DisputeManager,
     GNS,
     GraphToken,
