@@ -1,4 +1,4 @@
-/*
+/**
  * @title Graph Protocol JavaScript Library
  *
  * @dev This library can be used in tests, dapps or any JavaScript client to simplify upgrading contracts
@@ -14,7 +14,7 @@
 
 module.exports = (options) => {
 
-  // Destructure the options properties to vars
+  // Destructure the options properties for our contract ABIs
   let {
     DisputeManager,
     GNS,
@@ -26,7 +26,7 @@ module.exports = (options) => {
   } = options || {}
 
   /**
-   * @title Staking contract upgradable parameters 
+   * @title Governance of upgradable contract parameters 
    */
   class governance {
 
