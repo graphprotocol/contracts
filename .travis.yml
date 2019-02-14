@@ -3,7 +3,7 @@ language: node_js
 sudo: required
 
 node_js:
-  - "8.11.3"
+  - "stable"
 
 env:
   - CXX=g++-4.8
