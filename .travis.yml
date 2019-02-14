@@ -1,0 +1,29 @@
+language: node_js
+
+sudo: required
+
+node_js:
+  - "8.11.3"
+
+env:
+  - CXX=g++-4.8
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - build-essential
+      - g++-4.8
+
+before_install:
+  - export CXX="g++-4.8"
+  - npm install -g npm@latest
+  - npm install -g ganache-cli truffle
+
+install:
+  - npm install 
+
+script:
+  - ganache-cli &
+  - truffle test
