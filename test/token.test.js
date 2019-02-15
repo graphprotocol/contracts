@@ -1,3 +1,6 @@
+const truffleAssert = require('truffle-assertions')
+
+// contracts
 const GraphToken = artifacts.require("./GraphToken.sol")
 
 contract('GraphToken', (accounts) => {
@@ -38,6 +41,28 @@ contract('GraphToken', (accounts) => {
       it("...returns the total amount of tokens", async () => {
         const governorBalance = await deployedGraphToken.balanceOf(initialHolder)
         assert(governorBalance.toNumber() === initialSupply, "Get balanceOf initial holder.")
+      })
+    })
+  })
+
+  describe("transfer", () => {
+    describe("when the recipient is not the zero address", () => {
+      describe("when the sender does not have enough balance", () => {
+        it('should pass when function fails', async () => {
+          await truffleAssert.fails(Promise.reject());
+        })
+        it("...reverts", async () => {
+
+          // await truffleAssert.fails(
+          //   deployedGraphToken.contract.methods.transfer(
+          //     recipient, // to
+          //     initialSupply + 1 // value
+          //   ).call({ from: initialHolder }),
+          //   truffleAssert.ErrorType.REVERT,
+          //   "Reverts sending invalid amount."
+          // )
+
+        })
       })
     })
   })
