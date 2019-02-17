@@ -56,10 +56,7 @@ contract GNS is Governed {
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed (_governor)
-    {
-        revert();
-    }
+    constructor (address _governor) public Governed (_governor) {}
 
     /* Graph Protocol Functions */
 
