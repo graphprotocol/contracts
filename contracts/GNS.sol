@@ -109,7 +109,11 @@ contract GNS is Governed {
      * @param _subdomainName <string> - Name of the Subdomain
      * @param _subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function addSubdomain (bytes32 _domainHash, string _subdomainName, bytes32 _subdomainSubgraphID) external onlyDomainOwner;
+    function addSubdomain (
+        bytes32 _domainHash,
+        string _subdomainName,
+        bytes32 _subdomainSubgraphID
+    ) external onlyDomainOwner;
 
     /*
      * @notice Update an existing subdomain with a new subgraphID
