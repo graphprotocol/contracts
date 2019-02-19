@@ -132,7 +132,11 @@ contract GNS is Governed {
      * @param _subdomainHash <bytes32> - Hash of the Name of the subdomain
      * @param _subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function updateSubdomain (bytes32 _domainHash, bytes32 _subdomainHash, bytes32 _subdomainSubgraphID) external onlyDomainOwner;
+    function updateSubdomain (
+        bytes32 _domainHash,
+        bytes32 _subdomainHash,
+        bytes32 _subdomainSubgraphID
+    ) external onlyDomainOwner;
 
     /*
      * @notice Remove an existing subdomain from the provided subdomainName
