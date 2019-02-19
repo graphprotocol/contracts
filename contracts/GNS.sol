@@ -153,7 +153,10 @@ contract GNS is Governed {
      * @param _subdomainHash <bytes32> - Name of the subdomain
      * @return subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
      */
-    function getSubdomainSubgraphId (bytes32 _domainHash, bytes32 _subdomainHash) external returns (bytes32 subdomainSubgraphID);
+    function getSubdomainSubgraphId (
+        bytes32 _domainHash,
+        bytes32 _subdomainHash
+    ) external returns (bytes32 subdomainSubgraphID);
 
 
     /*
