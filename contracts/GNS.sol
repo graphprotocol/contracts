@@ -46,7 +46,12 @@ contract GNS is Governed {
     /* Events */
     event domainAdded(string indexed domainName, bytes32 indexed domainHash, bytes32 subgraphID, address indexed owner);
     event domainUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
-    event subdomainAdded(bytes32 indexed domainHash, string subdomainName, bytes32 indexed subdomainHash, bytes32 indexed subdomainID);
+    event subdomainAdded(
+        bytes32 indexed domainHash,
+        bytes32 indexed subdomainHash,
+        bytes32 indexed subdomainID,
+        string subdomainName
+    );
     event subdomainUpdated(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
