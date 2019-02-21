@@ -117,7 +117,7 @@ contract GNS is Governed {
      */
     function addSubdomain (
         bytes32 _domainHash,
-        string _subdomainName,
+        string calldata _subdomainName,
         bytes32 _subdomainSubgraphID
     ) external onlyDomainOwner;
 
