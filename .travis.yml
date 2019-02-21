@@ -27,3 +27,4 @@ install:
 script:
   - ganache-cli &
   - truffle test
+  
