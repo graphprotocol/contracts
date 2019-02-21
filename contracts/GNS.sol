@@ -87,7 +87,7 @@ contract GNS is Governed {
      * @param _owner <address> - Address of domain owner
      * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
      */
-    function registerDomain (string _domainName, address _owner, bytes32 _subgraphID)  external onlyGovernance;
+    function registerDomain (string calldata _domainName, address _owner, bytes32 _subgraphID)  external onlyGovernance {}
 
     /*
      * @notice update a domain with a new subgraphId
@@ -97,7 +97,7 @@ contract GNS is Governed {
      * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
      * @param _owner <address> - Address of domain owner
      */
-    function updateDomain (bytes32 _domainHash, bytes32 _subgraphID, address _owner) external onlyDomainOwner;
+    function updateDomain (bytes32 _domainHash, bytes32 _subgraphID, address _owner) external onlyDomainOwner {}
 
     /*
      * @notice Get the subgraphID and owner of an existing domain
@@ -119,7 +119,7 @@ contract GNS is Governed {
         bytes32 _domainHash,
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphID
-    ) external onlyDomainOwner;
+    ) external onlyDomainOwner {}
 
     /*
      * @notice Update an existing subdomain with a new subgraphID
@@ -133,7 +133,7 @@ contract GNS is Governed {
         bytes32 _domainHash,
         bytes32 _subdomainHash,
         bytes32 _subdomainSubgraphID
-    ) external onlyDomainOwner;
+    ) external onlyDomainOwner {}
 
     /*
      * @notice Remove an existing subdomain from the provided subdomainName
@@ -142,7 +142,7 @@ contract GNS is Governed {
      * @param _domainHash <bytes32> - Hash of the domain name
      * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
      */
-    function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner;
+    function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner {}
 
     /*
      * @notice Get the subgraphID of an existing subdomain for a given domain
@@ -163,5 +163,5 @@ contract GNS is Governed {
      * @param _domainHash <bytes32> - Hash of the domain name
      * @param _newOwner <address> - New owner of the domain
      */
-    function transferDomainOwnership (bytes32 _domainHash, address _newOwner) external onlyDomainOwner;
+    function transferDomainOwnership (bytes32 _domainHash, address _newOwner) external onlyDomainOwner {}
 }
