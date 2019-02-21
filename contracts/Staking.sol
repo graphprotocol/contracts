@@ -164,13 +164,12 @@ contract Staking is Governed, TokenReceiver
      * @dev Accept tokens and handle staking registration functions
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
-     * @param _token <address> - Graph Token address
      * @param _data <bytes> - Data to parse and handle registration functions
      */
     function receiveToken (
         address _from,
         uint256 _value,
-        bytes memory _data
+        bytes calldata _data
     )
         external
         returns (bool success)
