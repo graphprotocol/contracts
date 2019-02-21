@@ -28,7 +28,14 @@ import "./openzeppelin/ERC20Detailed.sol";
 // @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
 contract TokenReceiver
 {
-    function receiveToken(address _from, uint256 _amount, bytes memory _data) public returns (bool);
+    function receiveToken(
+        address _from,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        returns (bool)
+    ;
 }
 
 contract GraphToken is
