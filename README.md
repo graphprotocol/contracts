@@ -2,6 +2,7 @@
 
 ![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)
 ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)
+[![Build Status](https://travis-ci.com/graphprotocol/contracts.svg?token=wbxCaTb68vuvzoN4HDgt&branch=master)](https://travis-ci.com/graphprotocol/contracts)
 
 **Authors**:
  - [Bryant Eisenbach](github.com/fubuloubu)
