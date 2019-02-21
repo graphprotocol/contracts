@@ -15,6 +15,8 @@ pragma solidity ^0.5.2;
  *         minting authority
  * @req 06 The Graph Token shall allow the protocol Governance to mint new tokens
  * @req 07 The Graph Token shall mint an inital distribution of tokens
+ * @req 08 The Graph Token shall allow a token holder to stake in the protocol for indexing or
+ *         curation markets for a particular Subgraph
  *
  */
 
@@ -22,6 +24,12 @@ import "./Governed.sol";
 import "./openzeppelin/ERC20Burnable.sol";
 import "./openzeppelin/ERC20Mintable.sol";
 import "./openzeppelin/ERC20Detailed.sol";
+
+// @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
+contract TokenReceiver
+{
+    function receiveToken(address _from, uint256 _amount, bytes memory _data) public returns (bool);
+}
 
 contract GraphToken is
     Governed,
@@ -59,6 +67,24 @@ contract GraphToken is
      */
     function removeMinter(address _account) public onlyGovernance {
         _removeMinter(_account);
+    }
+
+    /*
+     * @dev Transfer Graph tokens to the Staking interface
+     * @notice Interacts with Staking contract
+     */
+    function transfer(
+        address _to,
+        uint256 _amount,
+        bytes memory _data
+    )
+        public
+        returns (bool success)
+    {
+        super.transfer(_to, _amount); // Handle basic transfer functionality
+        // @imp 08 Have staking contract receive the token and handle the data
+        assert(TokenReceiver(_to).receiveToken(msg.sender, _amount, _data));
+        success = true;
     }
 
     // @dev Don't accept ETH
