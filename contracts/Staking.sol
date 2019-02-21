@@ -166,15 +166,14 @@ contract Staking is Governed {
      * @param _token <address> - Graph Token address
      * @param _data <bytes> - Data to parse and handle registration functions
      */
-    // @todo: Require _value >= setMinimumIndexingStakingAmount
-    function stakeGraphTokensForIndexing (
-        bytes32 _subgraphId,
-        address _staker,
+    function receiveToken (
+        address _from,
         uint256 _value,
-        bytes memory _indexingRecords
-    ) public returns (bool success)
+        bytes memory _data
+    )
+        external
+        returns (bool success)
     {
-        revert();
     }
 
     /**
