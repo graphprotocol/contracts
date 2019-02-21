@@ -29,7 +29,7 @@ pragma solidity ^0.5.2;
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
- * @req s02 Only Governance can change the Dispte Manager contract address.
+ * @req s02 Only Governance can change the Dispute Manager contract address.
  *
  * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
  *         many read requests they may process for that dataset. However, it may be assumed that
