@@ -43,7 +43,8 @@ import "./GraphToken.sol";
 import "./Governed.sol";
 import "./DisputeManager.sol";
 
-contract Staking is Governed {
+contract Staking is Governed, TokenReceiver
+{
 
     /* Structs */
     struct Curator {
