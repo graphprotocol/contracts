@@ -86,7 +86,4 @@ contract GraphToken is
         assert(TokenReceiver(_to).receiveToken(msg.sender, _amount, _data));
         success = true;
     }
-
-    // @dev Don't accept ETH
-    function () external payable { revert(); }
 }
