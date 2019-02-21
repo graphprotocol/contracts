@@ -175,6 +175,7 @@ contract Staking is Governed, TokenReceiver
         external
         returns (bool success)
     {
+        success = true;
     }
 
     /**
