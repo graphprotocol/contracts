@@ -1,5 +1,5 @@
 const MultiSigWallet = artifacts.require("./MultiSigWallet.sol")
-const UpgradableContract = artifacts.require("./GNS.sol")
+const UpgradableContract = artifacts.require("./ServiceRegistry.sol")
 
 contract('UpgradableContract', accounts => {  
 
