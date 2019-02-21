@@ -39,9 +39,9 @@ contract('UpgradableContract', accounts => {
 
   it("...should be able to transfer governance of self to MultiSigWallet #2", async () => {
     const txData = gp.abiEncode(
-      governedInstances[0].contract.methods.transferGovernance,
+      governedContractInstance.contract.methods.transferGovernance,
       [
-        multiSigInstances[1].address
+        multiSigInstance2.address
       ]
     )
     assert(txData.length, "Transaction data is constructed.")
