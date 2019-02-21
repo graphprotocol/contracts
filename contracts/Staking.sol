@@ -104,22 +104,32 @@ contract Staking is Governed {
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
-     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
+     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked
+     * for Curation
      */
     function setMinimumCurationStakingAmount (
         uint256 _minimumCurationStakingAmount
-    ) external onlyGovernance returns (bool success) {
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
         minimumCurationStakingAmount = _minimumCurationStakingAmount;  // Tokens
         return true;
     }
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
-     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
+     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked
+     * for Indexing Nodes
      */
     function setMinimumIndexingStakingAmount (
         uint256 _minimumIndexingStakingAmount
-    ) external onlyGovernance returns (bool success) {
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
         minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // Tokens
         return true;
     }
@@ -165,38 +175,40 @@ contract Staking is Governed {
         bytes32 _subgraphId,
         address _staker,
         uint256 _value
-    ) public returns (bool success)
+    )
+        private
     {
-        revert();
     }
 
     /**
-     * @dev Receive approval to spend Graph Tokens of someone else
-     * @param _from <address> - Token holder's address
-     * @param _value <uint256> - Amount of Graph Tokens 
-     * @param _token <address> - Graph Token address
-     * @notice How does this actually work? Does it not need other functions?
-     * ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing
+     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
      */
-    function receiveApproval (
-        address _from,
+    // @todo: Require _value >= setMinimumIndexingStakingAmount
+    function stakeGraphTokensForIndexing (
+        bytes32 _subgraphId,
+        address _staker,
         uint256 _value,
-        address _token,
-        bytes memory _data
-    ) public
+        bytes memory _indexingRecords
+    )
+        private
     {
-        revert();
     }
 
     /**
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
      * @param _disputeId <bytes> Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success)
+    function slashStake (
+        bytes memory _disputeId
+    )
+        public
+        onlyArbitrator
+        returns (bool success)
     {
-        revert();
+        success = true;
     }
-
-    // WIP...
-     
 }
