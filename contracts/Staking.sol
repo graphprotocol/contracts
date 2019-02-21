@@ -83,6 +83,9 @@ contract Staking is Governed {
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
 
+    // Graph Token address
+    GraphToken public token;
+
     uint constant COOLING_PERIOD = 7 days;
 
     // Only the designated arbitrator
@@ -95,11 +98,18 @@ contract Staking is Governed {
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor) {
+    constructor (
+        address _governor,
+        address _token
+    )
+        public
+        Governed(_governor)
+    {
         // Governance Parameter Defaults
         maximumIndexers = 10;
         minimumCurationStakingAmount = 100;  // Tokens
         minimumIndexingStakingAmount = 100;  // Tokens
+        token = GraphToken(_token);
     }
 
     /**
