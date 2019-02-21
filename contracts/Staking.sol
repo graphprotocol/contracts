@@ -150,18 +150,21 @@ contract Staking is Governed {
      */
     function setMaximumIndexers (
         uint256 _maximumIndexers
-    ) external onlyGovernance returns (bool success) {
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
         maximumIndexers = _maximumIndexers;
         return true;
     }
 
-    /* Graph Protocol Functions */
     /**
-     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
-     * @param _staker <address> - Address of Staking party
-     * @param _value <uint256> - Amount of Graph Tokens to be staked
-     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
+     * @dev Accept tokens and handle staking registration functions
+     * @param _from <address> - Token holder's address
+     * @param _value <uint256> - Amount of Graph Tokens
+     * @param _token <address> - Graph Token address
+     * @param _data <bytes> - Data to parse and handle registration functions
      */
     // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
