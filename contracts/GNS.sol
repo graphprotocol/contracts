@@ -77,7 +77,7 @@ contract GNS is Governed {
     constructor (address _governor) public Governed (_governor) {}
 
     /* Graph Protocol Functions */
-    modifier onlyDomainOwner;
+    modifier onlyDomainOwner { _; }
 
     /*
      * @notice Add a subgraphID and register owner
