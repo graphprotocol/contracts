@@ -1,10 +1,11 @@
 pragma solidity ^0.5.2;
 
 import "./Governed.sol";
+import "./GraphToken.sol";
 
 contract RewardsManager is Governed {
-    
-    /* 
+
+    /*
     * @title Graph Protocol Reward Manager contract
     *
     * @author Bryant Eisenbach
@@ -12,20 +13,20 @@ contract RewardsManager is Governed {
     *
     * @notice Contract Specification:
     *
-    * The total monetary inflation rate of Graph Tokens, over a given inflation period 
+    * The total monetary inflation rate of Graph Tokens, over a given inflation period
     * (more on this later), is the sum of its two constituent components:
     * inflationRate = curatorRewardRate + participationRewardRate
     *
-    * As indicated in the formula above, inflation is used to reward curation of datasets 
+    * As indicated in the formula above, inflation is used to reward curation of datasets
     * and participation in the network.
     *
-    * Participation Adjusted Inflation - In order to encourage Graph Token holders to 
+    * Participation Adjusted Inflation - In order to encourage Graph Token holders to
     * participate in the network, the protocol implements a participation-adjusted inflation reward.
     *
-    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total 
-    * Graph Token supply, and is set via governance. As with the participation reward, it is paid 
+    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total
+    * Graph Token supply, and is set via governance. As with the participation reward, it is paid
     * via inflation.
-    * 
+    *
     * Requirements ("Reward Manager" contract):
     * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism
     *   design of technical specification.
@@ -35,8 +36,11 @@ contract RewardsManager is Governed {
     * req 05 a mapping that records the usage in queries of each index chain , which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
     */
 
-
+    using SafeMath for uint256;
     /* STATE VARIABLES */
+
+    // Address of the Graph Token
+    address public graphTokenAddress;
     // Percentage of the total Graph Token supply
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public curatorRewardRate;
@@ -56,7 +60,10 @@ contract RewardsManager is Governed {
      * @dev Reward Manager Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor) {}
+    constructor (address _governor, address _graphToken) public Governed (_governor)
+    {
+      graphTokenAddress = _graphToken;
+    }
 
     /* Graph Protocol Functions */
     /**
@@ -65,7 +72,8 @@ contract RewardsManager is Governed {
      */
     function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyGovernance returns (bool success)
     {
-        revert();
+        curationRewardRate = _newCuratorRewardRate;
+        return true;
     }
 
     /**
@@ -74,7 +82,8 @@ contract RewardsManager is Governed {
      */
     function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyGovernance returns (bool success)
     {
-        revert();
+        targetParticipationRate = _newTargetParticipationRate;
+        return true;
     }
 
     /**
@@ -83,7 +92,8 @@ contract RewardsManager is Governed {
      */
     function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success)
     {
-        revert();
+        yearlyInflationRate = _newYearlyInflationRate;
+        return true;
     }
 
     /**
@@ -95,9 +105,9 @@ contract RewardsManager is Governed {
      */
     function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success)
     {
-        revert();
+        GraphToken(graphTokenAddress).mint(_account, _value);
     }
-    
+
     /**
      * @dev Validators can claim rewards or add them to their stake
      * @param _validatorId <bytes32> - ID of the validator claiming rewards
@@ -105,7 +115,6 @@ contract RewardsManager is Governed {
      */
     function claimRewards (bytes32 _validatorId, bool _addToStake) public returns (uint256 rewaredAmount)
     {
-        revert();
     }
 
 }
