@@ -19,9 +19,8 @@ contract ServiceRegistry is Governed {
     * @question - Who sets registeredUrls? Staking? (need interface)
     */
 
-    /* STATE VARIABLES */
-    // Storage of Ethereum addresses mapped to Indexing Node URLs
-    mapping (address => bytes) public registeredUrls;
+    /* EVENTS */
+    event serviceUrlSet (address indexed serviceProvider, bytes indexed url);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
