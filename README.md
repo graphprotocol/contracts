@@ -5,9 +5,9 @@
 [![Build Status](https://travis-ci.com/graphprotocol/contracts.svg?token=wbxCaTb68vuvzoN4HDgt&branch=master)](https://travis-ci.com/graphprotocol/contracts)
 
 **Authors**:
- - [Bryant Eisenbach](github.com/fubuloubu)
- - [Reuven Etzion](github.com/retzion)
- - [Ashoka Finley](github.com/shkfnly)
+ - [Bryant Eisenbach](https://github.com/fubuloubu)
+ - [Reuven Etzion](https://github.com/retzion)
+ - [Ashoka Finley](https://github.com/shkfnly)
 
 ## Installation &amp; Deployment
 1. Install Node.js ^11.0.0
