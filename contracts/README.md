@@ -51,10 +51,10 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 ## (WIP...)
 
 ## Supporting Contracts &amp; Libraries
-### Ownable ([Ownable.sol](./Ownable.sol))
-- Owned contract from The Ethereum Wiki - ERC20 Token Standard
-- The `Governance` contract is "owned" by the MultiSigWallet
+### Open Zeppelin ERC20 Token Contracts ([openzeppelin](./openzeppelin))
+- Open source contracts and libraries imported from Open Zeppelin's Github repository ([/OpenZeppelin/openzeppelin-solidity](https://github.com/OpenZeppelin/openzeppelin-solidity))
+- Release `v2.1`
 
 ### Governed ([Governed.sol](./Governed.sol))
 - Reduced version of the Owned contract from The Ethereum Wiki - ERC20 Token Standard
-- All upgradable contracts are "governed" by the `Governance` contract
+- All upgradable contracts are "governed" by the `MultiSigWallet` contract
