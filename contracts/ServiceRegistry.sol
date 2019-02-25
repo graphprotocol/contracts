@@ -39,5 +39,4 @@ contract ServiceRegistry is Governed {
      * @param _url <bytes> - URL of the service provider
      */
     function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance;
-
 }
