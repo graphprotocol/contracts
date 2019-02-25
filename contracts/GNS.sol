@@ -44,12 +44,11 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event domainAdded(string indexed domainName, bytes32 indexed domainHash, bytes32 subgraphID, address indexed owner);
-    event domainUpdated(bytes32 indexed subgraphID, bytes32 indexed domainHash);
+    event domainAdded(string indexed domainName, bytes32 indexed domainHash, address indexed owner);
     event subdomainAdded(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
-        bytes32 indexed subdomainID,
+        bytes32 indexed subdomainSubgraphID,
         string subdomainName
     );
     event subdomainUpdated(
@@ -62,8 +61,6 @@ contract GNS is Governed {
     /* Structs */
     struct Domain {
         address owner;
-        bytes32 subgraphID;
-        mapping (bytes32 => bytes32) subdomainsToSubgraphIDs;
     }
 
     // The subgraph ID is the manifest which is hashed, these IDs are unique
@@ -90,30 +87,19 @@ contract GNS is Governed {
      * @param _owner <address> - Address of domain owner
      * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
      */
-    function registerDomain (string calldata _domainName, address _owner, bytes32 _subgraphID) external onlyGovernance {
-        gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner, subgraphID: _subgraphID});
-        emit domainAdded(_domainName, keccak256(abi.encodePacked(_domainName)), _subgraphID, _owner);
-    }
-    /*
-     * @notice update a domain with a new subgraphID
-     * @dev Only the domain owner may do this
-     *
-     * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _subgraphID <bytes32> - IPLD Hash of the subgraph manifest
-     */
-    function updateDomain (bytes32 _domainHash, bytes32 _subgraphID) external onlyDomainOwner(_domainHash) {
-        gnsDomains[_domainHash].subgraphID = _subgraphID;
-        emit domainUpdated(_domainHash, _subgraphID);
+    function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
+        gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
+        emit domainAdded(_domainName, keccak256(abi.encodePacked(_domainName)), _owner);
     }
 
     /*
-     * @notice Get the subgraphID and owner of an existing domain
+     * @notice Get the owner of an existing domain
      * @param _domainHash <bytes32> - Hash of the domain name
      * @return owner <address> - Owner of the domain
      * @return subgraphID <bytes32> - ID of the subgraph
      */
-    function getDomain (bytes32 _domainHash) external returns (address owner, bytes32 subgraphID) {
-        return (gnsDomains[_domainHash].owner, gnsDomains[_domainHash].subgraphID);
+    function getDomainOwner (bytes32 _domainHash) external returns (address owner) {
+        return gnsDomains[_domainHash].owner;
     }
 
     /*
@@ -129,7 +115,6 @@ contract GNS is Governed {
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphID
     ) external onlyDomainOwner(_domainHash) {
-        gnsDomains[_domainHash].subdomainsToSubgraphIDs[keccak256(abi.encodePacked(_subdomainName))] = _subdomainSubgraphID;
         emit subdomainAdded(_domainHash, _subdomainName, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphID);
     }
 
@@ -147,9 +132,7 @@ contract GNS is Governed {
         bytes32 _subdomainHash,
         bytes32 _subdomainSubgraphID
     ) external onlyDomainOwner(_domainHash) {
-        gnsDomains[_domainHash].subdomainsToSubgraphIDs[_subdomainHash] = _subdomainSubgraphID;
         emit subdomainUpdated(_domainHash, _subdomainHash, _subdomainSubgraphID);
-
     }
 
     /*
@@ -160,7 +143,6 @@ contract GNS is Governed {
      * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
      */
     function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner(_domainHash) {
-        gnsDomains[_domainHash].subdomainsToSubgraphIDs[_subdomainHash] = 0;
         emit subdomainDeleted(_domainHash, _subdomainHash);
     }
 
@@ -173,7 +155,7 @@ contract GNS is Governed {
      function getSubdomainSubgraphID (
         bytes32 _domainHash,
         bytes32 _subdomainHash
-     ) external returns (bytes32 subdomainSubgraphID);
+     ) external returns (bytes32 subdomainSubgraphID) {
         return gnsDomains[_domainHash].subdomainsToSubgraphIDs[_subdomainHash];
      }
 
@@ -188,5 +170,4 @@ contract GNS is Governed {
         gnsDomains[_domainHash].owner = _newOwner;
         emit domainTransferred(_domainHash, _newOwner);
     }
-
 }
