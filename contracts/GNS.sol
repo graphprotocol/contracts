@@ -116,9 +116,8 @@ contract GNS is Governed {
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphID
     ) external onlyDomainOwner(_domainHash) {
-        emit subdomainAdded(_domainHash, _subdomainName, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphID);
+        emit subdomainAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphID, _subdomainName);
     }
-
 
     /*
      * @notice Update an existing subdomain with a new subgraphID
@@ -146,19 +145,6 @@ contract GNS is Governed {
     function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner(_domainHash) {
         emit subdomainDeleted(_domainHash, _subdomainHash);
     }
-
-    /*
-     * @notice Get the subgraphID of an existing subdomain for a given domain
-     * @param _domainHash <bytes32> - Hash of the domain name
-     * @param _subdomainHash <bytes32> - Name of the subdomain
-     * @return subdomainSubgraphID <bytes32> - IPLD SubgraphID of the subdomain
-     */
-     function getSubdomainSubgraphID (
-        bytes32 _domainHash,
-        bytes32 _subdomainHash
-     ) external returns (bytes32 subdomainSubgraphID) {
-        return gnsDomains[_domainHash].subdomainsToSubgraphIDs[_subdomainHash];
-     }
 
     /*
      * @notice Transfer ownership of domain by existing domain owner
