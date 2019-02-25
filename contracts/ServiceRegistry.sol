@@ -26,7 +26,6 @@ contract ServiceRegistry is Governed {
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
     constructor (address _governor) public Governed (_governor)
     {
-        revert();
     }
 
     /* Graph Protocol Functions */
@@ -38,5 +37,7 @@ contract ServiceRegistry is Governed {
      * @param _serviceProvider <address> - Address of the service provider
      * @param _url <bytes> - URL of the service provider
      */
-    function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance;
+    function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance {
+      emit serviceUrlSet(_serviceProvider, _url);
+    }
 }
