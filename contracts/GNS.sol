@@ -45,6 +45,7 @@ contract GNS is Governed {
 
     /* Events */
     event domainAdded(string indexed domainName, bytes32 indexed domainHash, address indexed owner);
+    event domainTransferred(bytes32 indexed domainHash, address indexed newOwner);
     event subdomainAdded(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
