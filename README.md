@@ -10,7 +10,7 @@
  - [Ashoka Finley](https://github.com/shkfnly)
 
 ## Installation &amp; Deployment
-1. Install Node.js ^11.0.0
+1. Install Node.js `^11.0.0`
 1. Run `npm install` at project root directory
 1. Install and run `testrpc`, `genache-cli`, or similar blockchain emulator
     - Configure to run on port `8545`
