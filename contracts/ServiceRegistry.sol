@@ -3,8 +3,8 @@ pragma solidity ^0.5.2;
 import "./Governed.sol";
 
 contract ServiceRegistry is Governed {
-    
-    /* 
+
+    /*
     * @title Graph Protocol Service Registry contract
     *
     * @author Bryant Eisenbach
@@ -19,9 +19,8 @@ contract ServiceRegistry is Governed {
     * @question - Who sets registeredUrls? Staking? (need interface)
     */
 
-    /* STATE VARIABLES */
-    // Storage of Ethereum addresses mapped to Indexing Node URLs
-    mapping (address => bytes) internal registeredUrls;
+    /* EVENTS */
+    event serviceUrlSet (address indexed serviceProvider, bytes indexed url);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -29,6 +28,14 @@ contract ServiceRegistry is Governed {
 
     /* Graph Protocol Functions */
 
-    // WIP...
-     
+    /*
+     * @notice Set service provider url from their address
+     * @dev Only DAO owner may do this
+     *
+     * @param _serviceProvider <address> - Address of the service provider
+     * @param _url <bytes> - URL of the service provider
+     */
+    function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance {
+      emit serviceUrlSet(_serviceProvider, _url);
+    }
 }
