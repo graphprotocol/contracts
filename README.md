@@ -2,10 +2,25 @@
 
 ![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)
 ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)
+[![Build Status](https://travis-ci.com/graphprotocol/contracts.svg?token=wbxCaTb68vuvzoN4HDgt&branch=master)](https://travis-ci.com/graphprotocol/contracts)
 
 **Authors**:
- - [Bryant Eisenbach](github.com/fubuloubu)
- - [Reuven Etzion](github.com/retzion)
+ - [Bryant Eisenbach](https://github.com/fubuloubu)
+ - [Reuven Etzion](https://github.com/retzion)
+ - [Ashoka Finley](https://github.com/shkfnly)
+
+## Installation &amp; Deployment
+1. Install Node.js `^11.0.0`
+1. Run `npm install` at project root directory
+1. Install and run `testrpc`, `genache-cli`, or similar blockchain emulator
+    - Configure to run on port `8545`
+1. Install Truffle 5.0.0
+    - `npm install -g truffle`
+1. Truffle project commands
+    - `truffle install` (installs ethPM dependencies)
+    - `truffle compile` (compiles without deploying, local blockchain emulator not neccessary)
+    - `truffle migrate [--reset] [--compile-all]` (deploys contracts to your local emulator)
+    - `truffle test` (runs tests)
 
 ## Abstract
 This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
