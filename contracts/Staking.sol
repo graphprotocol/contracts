@@ -54,10 +54,12 @@ contract Staking is Governed, TokenReceiver
     }
     struct IndexingNode {
         uint256 amountStaked;
+        mapping (bytes32 => bool) indexerForSubgraph;
     }
     struct Subgraph {
         uint256 totalCurationStake;
         uint256 totalIndexingStake;
+        uint256 totalIndexers;
     }
 
     /* STATE VARIABLES */
@@ -229,22 +231,37 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
-        require(_value >= minimumIndexingStakingAmount);
+        require(_value >= minimumIndexingStakingAmount); // @imp i02
+        require(subgraphs[_subgraphId].totalIndexers < maximumIndexers);
         indexingNodes[_staker].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
+        indexingNodes[_staker].indexerForSubgraph[_subgraphId] = true;
+        subgraphs[_subgraphId].totalIndexers += 1;
     }
 
     /**
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
-     * @param _disputeId <bytes> Hash of readIndex data + disputer data
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     * @param _staker <address> - Address of Staking party that is being slashed
+     * @param _disputeId <bytes> - Hash of readIndex data + disputer data
      */
     function slashStake (
+        bytes32 _subgraphId,
+        address _staker,
         bytes memory _disputeId
     )
         public
         onlyArbitrator
         returns (bool success)
     {
+        require(indexingNodes[_staker].indexerForSubgraph[_subgraphId]);
+        uint256 _value = indexingNodes[_staker].amountStaked;
+        require(_value > 0);
+        indexingNodes[_staker].amountStaked = 0;
+        subgraphs[_subgraphId].totalIndexingStake -= _value;
+        indexingNodes[_staker].indexerForSubgraph[_subgraphId] = false;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+        token.burn(_value);
         success = true;
     }
 }
