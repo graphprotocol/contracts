@@ -42,9 +42,11 @@ pragma solidity ^0.5.2;
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "./DisputeManager.sol";
+import "bytes/BytesLib.sol";
 
 contract Staking is Governed, TokenReceiver
 {
+    using BytesLib for bytes;
 
     /* Structs */
     struct Curator {
@@ -174,6 +176,25 @@ contract Staking is Governed, TokenReceiver
         external
         returns (bool success)
     {
+        // Make sure the token is the caller of this function
+        require(msg.sender == address(token));
+
+        // Process _data to figure out the action to take (and which subgraph is involved)
+        require(_data.length >= 1+32); // Must be at least 33 bytes
+        bool _stakeForCuration = _data.slice(0, 1).toUint(0) == 1;
+        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
+
+        if (_stakeForCuration) {
+            // Handle internal call for Curation Staking
+            stakeGraphTokensForCuration(_subgraphId, _from, _value);
+        } else {
+            // Slice the rest of the data as indexing records
+            bytes memory _indexingRecords = _data.slice(33, _data.length-33);
+            // Ensure that the remaining data is parse-able for indexing records
+            require(_indexingRecords.length % 32 == 0);
+            // Handle internal call for Index Staking
+            stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+        }
         success = true;
     }
 
