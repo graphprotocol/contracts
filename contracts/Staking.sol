@@ -233,6 +233,7 @@ contract Staking is Governed, TokenReceiver
     {
         require(_value >= minimumIndexingStakingAmount); // @imp i02
         require(subgraphs[_subgraphId].totalIndexers < maximumIndexers);
+        require(!indexingNodes[_staker].indexerForSubgraph[_subgraphId]);
         indexingNodes[_staker].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
         indexingNodes[_staker].indexerForSubgraph[_subgraphId] = true;
