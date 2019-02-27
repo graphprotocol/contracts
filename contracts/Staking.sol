@@ -128,7 +128,7 @@ contract Staking is Governed, TokenReceiver
         onlyGovernance
         returns (bool success)
     {
-        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // Tokens
+        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
         return true;
     }
 
@@ -144,7 +144,7 @@ contract Staking is Governed, TokenReceiver
         onlyGovernance
         returns (bool success)
     {
-        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // Tokens
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
         return true;
     }
 
