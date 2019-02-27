@@ -202,7 +202,6 @@ contract Staking is Governed, TokenReceiver
      * @param _staker <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
-    // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
         bytes32 _subgraphId,
         address _staker,
@@ -210,6 +209,7 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        require(_value >= minimumCurationStakingAmount);
         curators[_staker].amountStaked += _value;
         subgraphs[_subgraphId].totalCurationStake += _value;
     }
@@ -221,7 +221,6 @@ contract Staking is Governed, TokenReceiver
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      * @param _indexingRecords <bytes> - Index Records of the indexes being stored
      */
-    // @todo: Require _value >= setMinimumIndexingStakingAmount
     function stakeGraphTokensForIndexing (
         bytes32 _subgraphId,
         address _staker,
@@ -230,6 +229,7 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        require(_value >= minimumIndexingStakingAmount);
         indexingNodes[_staker].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
     }
