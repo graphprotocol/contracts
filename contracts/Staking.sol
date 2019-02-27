@@ -73,12 +73,10 @@ contract Staking is Governed, TokenReceiver
     // Mapping subgraphId to list of addresses to Curators
     // These mappings work together
     mapping (address => Curator) public curators;
-    mapping (bytes32 => address[]) public subgraphCurators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
     // These mappings work together
     mapping (address => IndexingNode) public indexingNodes;
-    mapping (bytes32 => address[]) public subgraphIndexingNodes;
 
     // Subgraphs mapping
     mapping (bytes32 => Subgraph) subgraphs;
