@@ -164,6 +164,21 @@ contract Staking is Governed, TokenReceiver
     }
 
     /**
+     * @dev Set the arbitrator address
+     * @param _arbitrator <address> - The address of the arbitration contract or party
+     */
+    function setArbitrator (
+        address _arbitrator
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
+        arbitrator = _arbitrator;
+        return true;
+    }
+
+    /**
      * @dev Accept tokens and handle staking registration functions
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
