@@ -210,6 +210,8 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        curators[_staker].amountStaked += _value;
+        subgraphs[_subgraphId].totalCurationStake += _value;
     }
 
     /**
@@ -228,6 +230,8 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        indexingNodes[_staker].amountStaked += _value;
+        subgraphs[_subgraphId].totalIndexingStake += _value;
     }
 
     /**
