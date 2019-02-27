@@ -51,6 +51,7 @@ contract Staking is Governed, TokenReceiver
     /* Structs */
     struct Curator {
         uint256 amountStaked;
+        mapping (bytes32 => uint256) subgraphShares;
     }
     struct IndexingNode {
         uint256 amountStaked;
@@ -185,17 +186,35 @@ contract Staking is Governed, TokenReceiver
         bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
 
         if (_stakeForCuration) {
-            // Handle internal call for Curation Staking
+            // @imp c01 Handle internal call for Curation Staking
             stakeGraphTokensForCuration(_subgraphId, _from, _value);
         } else {
             // Slice the rest of the data as indexing records
             bytes memory _indexingRecords = _data.slice(33, _data.length-33);
             // Ensure that the remaining data is parse-able for indexing records
             require(_indexingRecords.length % 32 == 0);
-            // Handle internal call for Index Staking
+            // @imp i01 Handle internal call for Index Staking
             stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
         }
         success = true;
+    }
+
+   /**
+    * @dev Calculate number of shares that should be issued for the proportion
+    *      of addedStake to totalStake based on a bonding curve
+    * @param _addedStake <uint256> - Amount being added
+    * @param _totalStake <uint256> - Amount total after added is created
+    * @return issuedShares <uint256> - Amount of shares issued given the above
+    */
+    function stakeToShares (
+        uint256 _addedStake,
+        uint256 _totalStake
+    )
+        public
+        pure
+        returns (uint256 issuedShares)
+    {
+        issuedShares = _addedStake / _totalStake;
     }
 
     /**
@@ -211,9 +230,11 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
-        require(_value >= minimumCurationStakingAmount);
+        require(_value >= minimumCurationStakingAmount); // @imp c02
         curators[_staker].amountStaked += _value;
         subgraphs[_subgraphId].totalCurationStake += _value;
+        curators[_staker].subgraphShares[_subgraphId] +=
+            stakeToShares(_value, subgraphs[_subgraphId].totalCurationStake);
     }
 
     /**
