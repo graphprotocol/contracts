@@ -88,7 +88,7 @@ contract GraphToken is
         public
         returns (bool success)
     {
-        super.transfer(_to, _amount); // Handle basic transfer functionality
+        assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
         // @imp 08 Have staking contract receive the token and handle the data
         assert(TokenReceiver(_to).receiveToken(msg.sender, _amount, _data));
         success = true;
