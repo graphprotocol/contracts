@@ -41,7 +41,7 @@ contract GraphToken is
      * @param _initialSupply <uint256> Initial supply of Graph Tokens
      */
     constructor (address _governor, uint256 _initialSupply) public
-        ERC20Detailed("GRT", "Graph Token", 18)
+        ERC20Detailed("Graph Token", "GRT", 18)
         Governed(_governor)
     {
         // @imp 06 Governor is initially the sole treasurer
