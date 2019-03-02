@@ -1,14 +1,17 @@
 const { BN } = require('openzeppelin-test-helpers');
 
-const ERC20DetailedMock = artifacts.require('ERC20DetailedMock');
+const GraphToken = artifacts.require('GraphToken');
 
-contract('ERC20Detailed', function () {
-  const _name = 'My Detailed ERC20';
-  const _symbol = 'MDT';
+contract('ERC20Detailed', accounts => {
+  const _name = 'Graph Token';
+  const _symbol = 'GRT';
   const _decimals = new BN(18);
 
+  const initialSupply = new BN(100),
+    initialHolder = accounts[1]; // using accounts[0] for the deployer throws an error
+
   beforeEach(async function () {
-    this.detailedERC20 = await ERC20DetailedMock.new(_name, _symbol, _decimals);
+    this.detailedERC20 = await GraphToken.new(initialHolder, initialSupply.toNumber())
   });
 
   it('has a name', async function () {
