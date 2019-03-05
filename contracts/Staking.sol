@@ -282,6 +282,7 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
         require(
             indexingNodes[_staker][_subgraphId].amountStaked + _value
                     >= minimumIndexingStakingAmount
