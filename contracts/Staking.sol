@@ -51,11 +51,11 @@ contract Staking is Governed, TokenReceiver
     /* Structs */
     struct Curator {
         uint256 amountStaked;
-        mapping (bytes32 => uint256) subgraphShares;
+        uint256 subgraphShares;
     }
     struct IndexingNode {
         uint256 amountStaked;
-        mapping (bytes32 => bool) indexerForSubgraph;
+        uint256 logoutStarted;
     }
     struct Subgraph {
         uint256 totalCurationStake;
@@ -74,12 +74,10 @@ contract Staking is Governed, TokenReceiver
     uint256 public maximumIndexers;
 
     // Mapping subgraphId to list of addresses to Curators
-    // These mappings work together
-    mapping (address => Curator) public curators;
+    mapping (address => mapping (bytes32 => Curator)) public curators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
-    // These mappings work together
-    mapping (address => IndexingNode) public indexingNodes;
+    mapping (address => mapping (bytes32 => IndexingNode)) public indexingNodes;
 
     // Subgraphs mapping
     mapping (bytes32 => Subgraph) subgraphs;
@@ -246,9 +244,9 @@ contract Staking is Governed, TokenReceiver
         private
     {
         require(_value >= minimumCurationStakingAmount); // @imp c02
-        curators[_staker].amountStaked += _value;
+        curators[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalCurationStake += _value;
-        curators[_staker].subgraphShares[_subgraphId] +=
+        curators[_staker][_subgraphId].subgraphShares +=
             stakeToShares(_value, subgraphs[_subgraphId].totalCurationStake);
     }
 
@@ -269,10 +267,8 @@ contract Staking is Governed, TokenReceiver
     {
         require(_value >= minimumIndexingStakingAmount); // @imp i02
         require(subgraphs[_subgraphId].totalIndexers < maximumIndexers);
-        require(!indexingNodes[_staker].indexerForSubgraph[_subgraphId]);
-        indexingNodes[_staker].amountStaked += _value;
+        indexingNodes[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        indexingNodes[_staker].indexerForSubgraph[_subgraphId] = true;
         subgraphs[_subgraphId].totalIndexers += 1;
     }
 
@@ -291,12 +287,10 @@ contract Staking is Governed, TokenReceiver
         onlyArbitrator
         returns (bool success)
     {
-        require(indexingNodes[_staker].indexerForSubgraph[_subgraphId]);
-        uint256 _value = indexingNodes[_staker].amountStaked;
+        uint256 _value = indexingNodes[_staker][_subgraphId].amountStaked;
         require(_value > 0);
-        indexingNodes[_staker].amountStaked = 0;
+        delete indexingNodes[_staker][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
-        indexingNodes[_staker].indexerForSubgraph[_subgraphId] = false;
         subgraphs[_subgraphId].totalIndexers -= 1;
         token.burn(_value);
         success = true;
