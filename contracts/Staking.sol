@@ -20,12 +20,6 @@ pragma solidity ^0.5.2;
  * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
  *          equal to the minimum indexing staking amount.
  * @req i03 Only Governance can change the minimum indexing staking amount.
- * @req i04 If the number of Indexers is greater than or equal to the maximum number of indexers,
- *          the amount of tokens required to become an Indexer must be more than the lowest stake.
- * @req i05 Only Governance can change the maximum number of indexers.
- * @req i06 If an Indexer is no longer staking more than the lowest stake, and there are more than
- *          the maximum number of indexers, they are allowed to withdraw their stake after a pre-
- *          defined cooling period has completed.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
@@ -266,7 +260,6 @@ contract Staking is Governed, TokenReceiver
         private
     {
         require(_value >= minimumIndexingStakingAmount); // @imp i02
-        require(subgraphs[_subgraphId].totalIndexers < maximumIndexers);
         indexingNodes[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
         subgraphs[_subgraphId].totalIndexers += 1;
