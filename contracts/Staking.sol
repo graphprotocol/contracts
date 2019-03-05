@@ -46,6 +46,21 @@ contract Staking is Governed, TokenReceiver
 {
     using BytesLib for bytes;
 
+    /* Events */
+    event CurationNodeStaked (
+        address indexed staker,
+        uint256 amountStaked
+    );
+
+    event IndexingNodeStaked (
+        address indexed staker,
+        uint256 amountStaked
+    );
+
+    event IndexingNodeLogOut (
+        address indexed staker
+    );
+
     /* Structs */
     struct Curator {
         uint256 amountStaked;
@@ -249,6 +264,7 @@ contract Staking is Governed, TokenReceiver
         subgraphs[_subgraphId].totalCurationStake += _value;
         curators[_staker][_subgraphId].subgraphShares +=
             stakeToShares(_value, subgraphs[_subgraphId].totalCurationStake);
+        emit CurationNodeStaked(_staker, curators[_staker][_subgraphId].amountStaked);
     }
 
     /**
@@ -273,6 +289,7 @@ contract Staking is Governed, TokenReceiver
         indexingNodes[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
         subgraphs[_subgraphId].totalIndexers += 1;
+        emit IndexingNodeStaked(_staker, indexingNodes[_staker][_subgraphId].amountStaked);
     }
 
     /**
@@ -296,6 +313,7 @@ contract Staking is Governed, TokenReceiver
         subgraphs[_subgraphId].totalIndexingStake -= _value;
         subgraphs[_subgraphId].totalIndexers -= 1;
         token.burn(_value);
+        emit IndexingNodeLogOut(_staker);
         success = true;
     }
 
@@ -309,6 +327,7 @@ contract Staking is Governed, TokenReceiver
         require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
         indexingNodes[msg.sender][_subgraphId].logoutStarted = block.timestamp;
+        emit IndexingNodeLogOut(msg.sender);
     }
 
     /**
