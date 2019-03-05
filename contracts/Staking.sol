@@ -241,7 +241,10 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
-        require(_value >= minimumCurationStakingAmount); // @imp c02
+        require(
+            curators[_staker][_subgraphId].amountStaked + _value
+                    >= minimumCurationStakingAmount
+        ); // @imp c02
         curators[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalCurationStake += _value;
         curators[_staker][_subgraphId].subgraphShares +=
@@ -263,7 +266,10 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
-        require(_value >= minimumIndexingStakingAmount); // @imp i02
+        require(
+            indexingNodes[_staker][_subgraphId].amountStaked + _value
+                    >= minimumIndexingStakingAmount
+        ); // @imp i02
         indexingNodes[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
         subgraphs[_subgraphId].totalIndexers += 1;
