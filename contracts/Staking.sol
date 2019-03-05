@@ -20,6 +20,10 @@ pragma solidity ^0.5.2;
  * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
  *          equal to the minimum indexing staking amount.
  * @req i03 Only Governance can change the minimum indexing staking amount.
+ * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
+ *          any time.
+ * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
+ *          been started and a cooling period has elapsed.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
@@ -287,5 +291,34 @@ contract Staking is Governed, TokenReceiver
         subgraphs[_subgraphId].totalIndexers -= 1;
         token.burn(_value);
         success = true;
+    }
+
+    /**
+     * @dev Indexing node can start logout process
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     */
+    function beginLogout(bytes32 _subgraphId)
+        public
+    {
+        require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
+        indexingNodes[msg.sender][_subgraphId].logoutStarted = block.timestamp;
+    }
+
+    /**
+     * @dev Indexing node can finish the logout process after a cooling off period
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     */
+    function finalizeLogout(bytes32 _subgraphId)
+        public
+    {
+        require(
+            indexingNodes[msg.sender][_subgraphId].logoutStarted + COOLING_PERIOD >= block.timestamp
+        );
+        uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
+        delete indexingNodes[msg.sender][_subgraphId];
+        subgraphs[_subgraphId].totalIndexingStake -= _value;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+        assert(token.transfer(msg.sender, _value));
     }
 }
