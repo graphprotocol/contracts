@@ -23,6 +23,7 @@
     - `truffle test` (runs tests)
 1. (Optional) Install the ```truffle-security``` package by running `npm i -g truffle-security`
     - Run `truffle run verify` to run an audit
+    - Run `truffle run verify --style table` for a table format of the same audit
 
 ## Abstract
 This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
