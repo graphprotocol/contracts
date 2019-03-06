@@ -97,4 +97,9 @@ module.exports = {
       },
     },
   },
+
+  /**
+   * Truffle Security NPM package (`truffle-security`) is required to be installed globally
+   */
+  plugins: [ "truffle-security" ],
 };

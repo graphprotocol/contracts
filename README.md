@@ -14,13 +14,15 @@
 1. Run `npm install` at project root directory
 1. Install and run `testrpc`, `genache-cli`, or similar blockchain emulator
     - Configure to run on port `8545`
-1. Install Truffle 5.0.0
+1. Install Truffle `v5.0.0`
     - `npm install -g truffle`
 1. Truffle project commands
     - `truffle install` (installs ethPM dependencies)
     - `truffle compile` (compiles without deploying, local blockchain emulator not neccessary)
     - `truffle migrate [--reset] [--compile-all]` (deploys contracts to your local emulator)
     - `truffle test` (runs tests)
+1. (Optional) Install the ```truffle-security``` package by running `npm i -g truffle-security`
+    - Run `truffle run verify` to run an audit
 
 ## Abstract
 This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
