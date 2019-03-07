@@ -44,20 +44,20 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event domainAdded(string indexed domainName, bytes32 indexed domainHash, address indexed owner);
-    event domainTransferred(bytes32 indexed domainHash, address indexed newOwner);
-    event subdomainAdded(
+    event DomainAdded(string indexed domainHash, address indexed owner, string indexed domainName);
+    event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
+    event SubdomainAdded(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId,
         string subdomainName
     );
-    event subdomainUpdated(
+    event SubdomainUpdated(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId
     );
-    event subdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
+    event SubdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
 
     /* Structs */
     struct Domain {
@@ -90,7 +90,7 @@ contract GNS is Governed {
      */
     function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
         gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
-        emit domainAdded(_domainName, keccak256(abi.encodePacked(_domainName)), _owner);
+        emit DomainAdded(_domainName, _owner, _domainName);
     }
 
     /*
@@ -116,7 +116,7 @@ contract GNS is Governed {
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphId
     ) external onlyDomainOwner(_domainHash) {
-        emit subdomainAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphId, _subdomainName);
+        emit SubdomainAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphId, _subdomainName);
     }
 
     /*
@@ -132,7 +132,7 @@ contract GNS is Governed {
         bytes32 _subdomainHash,
         bytes32 _subdomainSubgraphId
     ) external onlyDomainOwner(_domainHash) {
-        emit subdomainUpdated(_domainHash, _subdomainHash, _subdomainSubgraphId);
+        emit SubdomainUpdated(_domainHash, _subdomainHash, _subdomainSubgraphId);
     }
 
     /*
@@ -143,7 +143,7 @@ contract GNS is Governed {
      * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
      */
     function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner(_domainHash) {
-        emit subdomainDeleted(_domainHash, _subdomainHash);
+        emit SubdomainDeleted(_domainHash, _subdomainHash);
     }
 
     /*
@@ -155,6 +155,6 @@ contract GNS is Governed {
      */
     function transferDomainOwnership (bytes32 _domainHash, address _newOwner) external onlyDomainOwner(_domainHash) {
         gnsDomains[_domainHash].owner = _newOwner;
-        emit domainTransferred(_domainHash, _newOwner);
+        emit DomainTransferred(_domainHash, _newOwner);
     }
 }
