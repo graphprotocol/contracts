@@ -1,23 +1,31 @@
-const { shouldFail, constants, expectEvent } = require('openzeppelin-test-helpers');
+const { BN, constants, expectEvent, shouldFail } = require('openzeppelin-test-helpers');
 const { ZERO_ADDRESS } = constants;
 
 const ERC20MintableMock = artifacts.require('ERC20MintableMock');
 
-contract('ERC20Mintable', function ([_, minter, otherMinter, ...otherAccounts]) {
+const GraphToken = artifacts.require('GraphToken');
+
+let deploymentAddress
+
+contract('ERC20Mintable', function ([deploymentAccount, governor, otherMinter, ...otherAccounts]) {
+  deploymentAddress = deploymentAccount
+
+  const initialBalance = new BN(1000);
+
   beforeEach(async function () {
-    this.token = await ERC20MintableMock.new({ from: minter });
+    this.token = await GraphToken.new(governor, initialBalance, { from: deploymentAddress });
   });
 
   describe('minter role', function () {
     beforeEach(async function () {
       this.contract = this.token;
-      await this.contract.addMinter(otherMinter, { from: minter });
+      await this.contract.addMinter(otherMinter, { from: governor });
     });
 
-    shouldBehaveLikePublicRole(minter, otherMinter, otherAccounts, 'minter');
+    shouldBehaveLikePublicRole(governor, otherMinter, otherAccounts, 'minter');
   });
 
-  shouldBehaveLikeERC20Mintable(minter, otherAccounts);
+  shouldBehaveLikeERC20Mintable(governor, otherAccounts);
 });
 
 function capitalize (str) {
@@ -50,9 +58,12 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
     });
 
     if (manager === undefined) { // Managed roles are only assigned by the manager, and none are set at construction
+      /**
+       * @dev The deployment address is the initial minter and then removed after the `governor` is added
+       */
       it('emits events during construction', async function () {
         await expectEvent.inConstruction(this.contract, `${rolename}Added`, {
-          account: authorized,
+          account: deploymentAddress,
         });
       });
     }
@@ -61,12 +72,17 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
       await shouldFail.reverting(this.contract[`is${rolename}`](ZERO_ADDRESS));
     });
 
+    /**
+     * @dev The `onlyMinter` modifier is not found
+     * @todo Solve this!
+     * @see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/mocks/MinterRoleMock.sol
+     */
     describe('access control', function () {
       context('from authorized account', function () {
         const from = authorized;
 
         it('allows access', async function () {
-          await this.contract[`only${rolename}Mock`]({ from });
+          await this.contract[`only${rolename}`]({ from });
         });
       });
 
@@ -74,7 +90,7 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
         const from = anyone;
 
         it('reverts', async function () {
-          await shouldFail.reverting(this.contract[`only${rolename}Mock`]({ from }));
+          await shouldFail.reverting(this.contract[`only${rolename}`]({ from }));
         });
       });
     });
@@ -103,28 +119,33 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
       });
     });
 
+    /**
+     * @dev The `_removeMinter` function is `internal` and is not accessable without a mock contract
+     * @see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/mocks/MinterRoleMock.sol
+     * @todo Expose the function or remove the test
+     */
     describe('remove', function () {
       // Non-managed roles have no restrictions on the mocked '_remove' function (exposed via 'remove').
       const from = manager || anyone;
 
       context(`from ${manager ? 'the manager' : 'any'} account`, function () {
         it('removes role from an already assigned account', async function () {
-          await this.contract[`remove${rolename}`](authorized, { from });
+          await this.contract[`_remove${rolename}`](authorized, { from });
           (await this.contract[`is${rolename}`](authorized)).should.equal(false);
           (await this.contract[`is${rolename}`](otherAuthorized)).should.equal(true);
         });
 
         it(`emits a ${rolename}Removed event`, async function () {
-          const { logs } = await this.contract[`remove${rolename}`](authorized, { from });
+          const { logs } = await this.contract[`_remove${rolename}`](authorized, { from });
           expectEvent.inLogs(logs, `${rolename}Removed`, { account: authorized });
         });
 
         it('reverts when removing from an unassigned account', async function () {
-          await shouldFail.reverting(this.contract[`remove${rolename}`](anyone), { from });
+          await shouldFail.reverting(this.contract[`_remove${rolename}`](anyone), { from });
         });
 
         it('reverts when removing role from the null account', async function () {
-          await shouldFail.reverting(this.contract[`remove${rolename}`](ZERO_ADDRESS), { from });
+          await shouldFail.reverting(this.contract[`_remove${rolename}`](ZERO_ADDRESS), { from });
         });
       });
     });
