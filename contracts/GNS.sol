@@ -44,20 +44,20 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event domainAdded(string indexed domainName, bytes32 indexed domainHash, address indexed owner);
-    event domainTransferred(bytes32 indexed domainHash, address indexed newOwner);
-    event subdomainAdded(
+    event DomainAdded(string indexed domainHash, address indexed owner, string indexed domainName);
+    event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
+    event SubdomainAdded(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId,
         string subdomainName
     );
-    event subdomainUpdated(
+    event SubdomainUpdated(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId
     );
-    event subdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
+    event SubdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
 
     /* Structs */
     struct Domain {
@@ -90,7 +90,7 @@ contract GNS is Governed {
      */
     function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
         gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
-        emit domainAdded(_domainName, keccak256(abi.encodePacked(_domainName)), _owner);
+        emit domainAdded(_domainName, _owner, _domainName);
     }
 
     /*

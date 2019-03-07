@@ -20,7 +20,7 @@ contract ServiceRegistry is Governed {
     */
 
     /* EVENTS */
-    event serviceUrlSet (address indexed serviceProvider, bytes indexed url);
+    event ServiceUrlSet (address indexed serviceProvider, bytes indexed url);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
