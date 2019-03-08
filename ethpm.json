@@ -15,5 +15,5 @@
     "dependencies": {
         "bytes": "0.0.7"
     },
-    "license": "TODO"
+    "license": "MIT"
 }
