@@ -197,7 +197,7 @@ contract Staking is Governed, TokenReceiver
      * @param _value <uint256> - Amount of Graph Tokens
      * @param _data <bytes> - Data to parse and handle registration functions
      */
-    function receiveToken (
+    function tokensReceived (
         address _from,
         uint256 _value,
         bytes calldata _data

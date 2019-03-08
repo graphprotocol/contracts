@@ -26,9 +26,10 @@ import "./openzeppelin/ERC20Mintable.sol";
 import "./openzeppelin/ERC20Detailed.sol";
 
 // @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
+// NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
 contract TokenReceiver
 {
-    function receiveToken(
+    function tokensReceived(
         address _from,
         uint256 _amount,
         bytes calldata _data
@@ -90,7 +91,7 @@ contract GraphToken is
     {
         assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
         // @imp 08 Have staking contract receive the token and handle the data
-        assert(TokenReceiver(_to).receiveToken(msg.sender, _amount, _data));
+        assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount, _data));
         success = true;
     }
 }
