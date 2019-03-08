@@ -113,6 +113,7 @@ contract Staking is Governed, TokenReceiver
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
+     * @param _token <address> - Address of the Graph Protocol token
      */
     constructor (
         address _governor,
