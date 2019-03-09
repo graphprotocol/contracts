@@ -75,23 +75,25 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
      * @todo Solve this!
      * @see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/mocks/MinterRoleMock.sol
      */
-    // describe('access control', function () {
-    //   context('from authorized account', function () {
-    //     const from = authorized;
+    describe('access control', function () {
+      context('from authorized account', function () {
+        const to = anyone
+        const from = authorized;
 
-    //     it('allows access', async function () {
-    //       await this.contract[`only${rolename}`]({ from });
-    //     });
-    //   });
+        it('allows access', async function () {
+          await this.contract.mint(to, 1, { from })
+        });
+      });
 
-    //   context('from unauthorized account', function () {
-    //     const from = anyone;
+      context('from unauthorized account', function () {
+        const to = authorized
+        const from = anyone;
 
-    //     it('reverts', async function () {
-    //       await shouldFail.reverting(this.contract[`only${rolename}`]({ from }));
-    //     });
-    //   });
-    // });
+        it('reverts', async function () {
+          await shouldFail.reverting(this.contract.mint(to, 1, { from }))
+        });
+      });
+    });
 
     describe('add', function () {
       const from = manager === undefined ? authorized : manager;
