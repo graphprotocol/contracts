@@ -54,10 +54,10 @@ contract GraphToken is
     }
 
     /**
-     * @dev Method to expose `removeToken` while using the `onlyMinter` modifier
+     * @dev Method to expose `removeToken` while using the `onlyGovernor` modifier
      * @param _account <address> Address of account to remove from `_minters`
      */
-    function removeMinter(address _account) public onlyMinter {
+    function removeMinter(address _account) public onlyGovernance {
         _removeMinter(_account);
     }
 
