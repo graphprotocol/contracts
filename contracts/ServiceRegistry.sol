@@ -20,7 +20,7 @@ contract ServiceRegistry is Governed {
     */
 
     /* EVENTS */
-    event serviceUrlSet (address indexed serviceProvider, bytes indexed url);
+    event ServiceUrlSet (address indexed serviceProvider, bytes indexed url);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -36,6 +36,6 @@ contract ServiceRegistry is Governed {
      * @param _url <bytes> - URL of the service provider
      */
     function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance {
-      emit serviceUrlSet(_serviceProvider, _url);
+      emit ServiceUrlSet(_serviceProvider, _url);
     }
 }
