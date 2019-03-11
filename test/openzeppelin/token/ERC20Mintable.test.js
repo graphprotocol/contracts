@@ -114,36 +114,31 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
       });
     });
 
-    /**
-     * @dev The `_removeMinter` function is `internal` and is not accessable without a mock contract
-     * @see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/mocks/MinterRoleMock.sol
-     * @todo Expose the function or remove the test
-     */
-    // describe('remove', function () {
-    //   // Non-managed roles have no restrictions on the mocked '_remove' function (exposed via 'remove').
-    //   const from = manager || anyone;
+    describe('remove', function () {
+      // Non-managed roles have no restrictions on the mocked '_remove' function (exposed via 'remove').
+      const from = manager || anyone;
 
-    //   context(`from ${manager ? 'the manager' : 'any'} account`, function () {
-    //     it('removes role from an already assigned account', async function () {
-    //       await this.contract[`_remove${rolename}`](authorized, { from });
-    //       (await this.contract[`is${rolename}`](authorized)).should.equal(false);
-    //       (await this.contract[`is${rolename}`](otherAuthorized)).should.equal(true);
-    //     });
+      context(`from ${manager ? 'the manager' : 'any'} account`, function () {
+        it('removes role from an already assigned account', async function () {
+          await this.contract[`remove${rolename}`](authorized, { from });
+          (await this.contract[`is${rolename}`](authorized)).should.equal(false);
+          (await this.contract[`is${rolename}`](otherAuthorized)).should.equal(true);
+        });
 
-    //     it(`emits a ${rolename}Removed event`, async function () {
-    //       const { logs } = await this.contract[`_remove${rolename}`](authorized, { from });
-    //       expectEvent.inLogs(logs, `${rolename}Removed`, { account: authorized });
-    //     });
+        it(`emits a ${rolename}Removed event`, async function () {
+          const { logs } = await this.contract[`remove${rolename}`](authorized, { from });
+          expectEvent.inLogs(logs, `${rolename}Removed`, { account: authorized });
+        });
 
-    //     it('reverts when removing from an unassigned account', async function () {
-    //       await shouldFail.reverting(this.contract[`_remove${rolename}`](anyone), { from });
-    //     });
+        it('reverts when removing from an unassigned account', async function () {
+          await shouldFail.reverting(this.contract[`remove${rolename}`](anyone), { from });
+        });
 
-    //     it('reverts when removing role from the null account', async function () {
-    //       await shouldFail.reverting(this.contract[`_remove${rolename}`](ZERO_ADDRESS), { from });
-    //     });
-    //   });
-    // });
+        it('reverts when removing role from the null account', async function () {
+          await shouldFail.reverting(this.contract[`remove${rolename}`](ZERO_ADDRESS), { from });
+        });
+      });
+    });
 
     describe('renouncing roles', function () {
       it('renounces an assigned role', async function () {
