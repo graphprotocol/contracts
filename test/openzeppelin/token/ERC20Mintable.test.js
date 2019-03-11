@@ -70,11 +70,6 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
       await shouldFail.reverting(this.contract[`is${rolename}`](ZERO_ADDRESS));
     });
 
-    /**
-     * @dev The `onlyMinter` modifier is not found
-     * @todo Solve this!
-     * @see https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/mocks/MinterRoleMock.sol
-     */
     describe('access control', function () {
       context('from authorized account', function () {
         const to = anyone
