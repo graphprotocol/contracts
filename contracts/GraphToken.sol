@@ -53,6 +53,14 @@ contract GraphToken is
 
     }
 
+    /**
+     * @dev Method to expose `removeToken` while using the `onlyMinter` modifier
+     * @param _account <address> Address of account to remove from `_minters`
+     */
+    function removeMinter(address _account) public onlyMinter {
+        _removeMinter(_account);
+    }
+
     // @dev Don't accept ETH
     function () external payable { revert(); }
 }
