@@ -116,13 +116,13 @@ function shouldBehaveLikePublicRole (authorized, otherAuthorized, [anyone], role
 
     describe('remove', function () {
       // Non-managed roles have no restrictions on the mocked '_remove' function (exposed via 'remove').
-      const from = manager || anyone;
+      const from = manager || authorized;
 
       context(`from ${manager ? 'the manager' : 'any'} account`, function () {
         it('removes role from an already assigned account', async function () {
-          await this.contract[`remove${rolename}`](authorized, { from });
-          (await this.contract[`is${rolename}`](authorized)).should.equal(false);
-          (await this.contract[`is${rolename}`](otherAuthorized)).should.equal(true);
+          await this.contract[`remove${rolename}`](otherAuthorized, { from });
+          (await this.contract[`is${rolename}`](otherAuthorized)).should.equal(false);
+          (await this.contract[`is${rolename}`](anyone)).should.equal(false);
         });
 
         it(`emits a ${rolename}Removed event`, async function () {
