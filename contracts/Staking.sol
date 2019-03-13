@@ -289,9 +289,10 @@ contract Staking is Governed, TokenReceiver
             indexingNodes[_staker][_subgraphId].amountStaked + _value
                     >= minimumIndexingStakingAmount
         ); // @imp i02
+        if (indexingNodes[_staker][_subgraphId].amountStaked == 0)
+            subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_staker][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        subgraphs[_subgraphId].totalIndexers += 1;
         emit IndexingNodeStaked(_staker, indexingNodes[_staker][_subgraphId].amountStaked);
     }
 
