@@ -22,7 +22,8 @@ contract('Staking (Upgradability)', accounts => {
 
     // deploy a contract we can encode a transaction for
     deployedStaking = await Staking.new(
-      deployedMultiSigWallet.address // governor
+      deployedMultiSigWallet.address, // governor
+      accounts[1] // token (mocked)
     )
     assert.isObject(deployedStaking, "Deploy Staking contract.")
 
