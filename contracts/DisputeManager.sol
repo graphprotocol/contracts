@@ -1,28 +1,25 @@
 pragma solidity ^0.5.2;
 
+/*
+ * @title Dispute Resolution Manager contract
+ *
+ * @author Bryant Eisenbach
+ * @author Reuven Etzion
+ *
+ * Requirements
+ * @req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes
+ *         to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
+ * @req 02 Governance can update slashingPercent
+ *
+ * @notice Dispute resolution is handled through an on-chain dispute resolution
+ *         process. In the v1 specification the outcome of a dispute will be decided
+ *         by a centralized arbitrator (the contract owner / multisig contract)
+ *         interacting with the on-chain dispute resolution process.
+ */
+
 import "./Governed.sol";
 
 contract DisputeManager is Governed {
-    
-    /* 
-    * @title Graph Protocol Dispute Resolution Manager contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * Dispute resolution is handled through an on-chain dispute resolution process.
-    * In the v1 specification the outcome of a dispute will be decided by a centralized 
-    * arbitrator (the contract owner / multisig contract) interacting with the on-chain 
-    * dispute resolution process.
-    * 
-    * Requirements ("Dispute Resolution Manager" contract):
-    * req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes
-    *   to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
-    * req 02 Governance can update slashingPercent
-    * ...
-    */
 
     /* Events */
     // Dispute was saved by Fisherman/disputor
