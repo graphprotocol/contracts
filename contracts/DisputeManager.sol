@@ -61,9 +61,9 @@ contract DisputeManager is Governed
     mapping (bytes32 => Dispute) private disputes;
 
     /* Modifiers */
-    // Only the designated arbitrator
+    // Only the designated arbitrator has access (Governance in v1 of Graph Protocol)
     modifier onlyArbitrator () {
-        require(msg.sender == arbitrator);
+        require(msg.sender == governor);
         _;
     }
 
