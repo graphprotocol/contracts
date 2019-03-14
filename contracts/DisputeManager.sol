@@ -19,20 +19,20 @@ pragma solidity ^0.5.2;
 
 import "./Governed.sol";
 
-contract DisputeManager is Governed {
-
+contract DisputeManager is Governed
+{
     /* Events */
-    // Dispute was saved by Fisherman/disputor
+    // @dev Dispute was saved by Fisherman/disputor
     event DisputeFiled (bytes _subgraphId, address _fisherman, bytes32 _disputeId);
 
     /* Structs */
-    // Store 34 byte IPFS hash as 32 bytes
+    // @dev Store 34 byte IPFS hash as 32 bytes
     struct IpfsHash {
         bytes32 ipfsHash;
         uint8 ipfsHashFunction;
     }
 
-    // Disputes contain info neccessary for the arbitrator to verify and resolve them
+    // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
         IpfsHash ipfsHash;
         bytes readRequest;
@@ -45,10 +45,10 @@ contract DisputeManager is Governed {
     }
 
     /* STATE VARIABLES */
-    // The arbitrator is solely in control of arbitrating disputes
+    // @dev The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
 
-    // Disputes created by the Fisherman or other authorized entites
+    // @dev Disputes created by the Fisherman or other authorized entites
     // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
     mapping (bytes32 => Dispute) private disputes;
 
@@ -59,39 +59,41 @@ contract DisputeManager is Governed {
         _;
     }
 
-    /* Contract Constructor */
-    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed(_governor) {}
-
-    /* Graph Protocol Functions */
     /**
-     * @dev Governance can set the Arbitrator
-     * @param _newArbitrator <address> Address of the new Arbitrator
+     * @param _governor <address> - Address of the multisig contract as Governor of
+     *                              this contract
      */
-    function setArbitrator (address _newArbitrator) public onlyGovernance returns (bool success)
-    {
-        revert();
-    }
+    constructor (address _governor) public Governed(_governor) {}
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
-     * @param _readRequest <bytes> JSON RPC data request sent to readIndex
-     * @param _readResponse <bytes> JSON RPC data response returned from readIndex
-     * @return disputeId <bytes32> ID for the newly created dispute (hash of readIndex data + disputer data)
+     * @param _readRequest <bytes> - JSON RPC data request sent to readIndex
+     * @param _readResponse <bytes> - JSON RPC data response returned from readIndex
+     * @return disputeId <bytes32> - ID for the newly created dispute
+     *                               (hash of readIndex data + disputer data)
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes32 disputeId)
+    function createDispute (
+        bytes memory _readRequest,
+        bytes memory _readResponse
+    )
+        public
+        returns (bytes32 disputeId)
     {
         revert();
     }
 
     /**
      * @dev The arbitrator can verify a dispute as being valid.
-     * @param _disputeId <bytes32> ID of the dispute to be verified
+     * @param _disputeId <bytes32> - ID of the dispute to be verified
      */
-    function verifyDispute (bytes32 _disputeId) public onlyArbitrator returns (bool success)
+    function verifyDispute (
+        bytes32 _disputeId
+    )
+        public
+        onlyArbitrator
+        returns (bool success)
     {
         revert();
     }
-
 }
