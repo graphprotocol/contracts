@@ -94,7 +94,7 @@ contract Staking is Governed, TokenReceiver
     mapping (address => mapping (bytes32 => IndexingNode)) public indexingNodes;
 
     // Subgraphs mapping
-    mapping (bytes32 => Subgraph) subgraphs;
+    mapping (bytes32 => Subgraph) public subgraphs;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
