@@ -6,10 +6,18 @@ pragma solidity ^0.5.2;
  * @author Bryant Eisenbach
  * @author Reuven Etzion
  *
- * Requirements
- * @req 01 Slash Stake: In successful dispute, slashingPercent of slashing amount goes
- *         to Fisherman, the rest goes to Graph DAO (where they are possibly burned).
- * @req 02 Governance can update slashingPercent
+ * Fisherman Requirements
+ * @req f01 A fisherman can provide a bond, a valid read request and an invalid read
+ *          response which has been signed by a current indexing node to create a
+ *          dispute.
+ * @req f02 If the dispute is validated by arbitration, the fisherman should receive a
+ *          reward proportional to the amount staked by the indexing node.
+ *
+ * Dispute Arbitrator Requirements
+ * @req a01 The arbitrator can rule to accept a proposed dispute, which will trigger a
+ *          slashing of the indexing node that the dispute concerns.
+ * @req a02 The arbitrator can rule to reject a proposed dispute, which will slash the
+ *          bond posted by the fisherman who proposed it.
  *
  * @notice Dispute resolution is handled through an on-chain dispute resolution
  *         process. In the v1 specification the outcome of a dispute will be decided
