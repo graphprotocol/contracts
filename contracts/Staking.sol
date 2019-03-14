@@ -338,7 +338,7 @@ contract Staking is Governed, TokenReceiver
         // Give the fisherman a reward equal to the slashingPercent of the staker's stake
         uint256 _reward = slashingPercent * _value / 1000000; // slashingPercent is in PPM
         assert(_reward <= _value); // sanity check on fixed-point math
-        token.transfer(governer, _value - _reward);
+        token.transfer(governor, _value - _reward);
         token.transfer(_fisherman, _reward);
         emit IndexingNodeLogOut(_staker);
         success = true;
