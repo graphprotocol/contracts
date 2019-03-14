@@ -80,8 +80,9 @@ contract GraphToken is
     /*
      * @dev Transfer Graph tokens to the Staking interface
      * @notice Interacts with Staking contract
+     * @notice Overriding `transfer` was not working with web3.js so we renamed to `transferWithData`
      */
-    function transfer(
+    function transferWithData(
         address _to,
         uint256 _amount,
         bytes memory _data
