@@ -55,10 +55,6 @@ contract DisputeManager is Governed {
     // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
     mapping (bytes32 => Dispute) private disputes;
 
-    // Percent of stake to slash in successful dispute
-    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public slashingPercent;
-
     /* Modifiers */
     // Only the designated arbitrator
     modifier onlyArbitrator () {
@@ -88,15 +84,6 @@ contract DisputeManager is Governed {
      * @notice Payable using Graph Tokens for deposit
      */
     function createDispute (bytes memory _readRequest, bytes memory _readResponse) public returns (bytes32 disputeId)
-    {
-        revert();
-    }
-
-    /**
-     * @dev Governance (owner / multisig) can update slashingPercent
-     * @param _slashingPercent <uint256> Slashing percent
-     */
-    function updateSlashingPercentage (uint256 _slashingPercent) public onlyGovernance returns (bool success)
     {
         revert();
     }

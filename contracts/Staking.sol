@@ -87,6 +87,10 @@ contract Staking is Governed, TokenReceiver
     // Maximum number of Indexing Nodes staked higher than stake to consider 
     uint256 public maximumIndexers;
 
+    // Percent of stake to slash in successful dispute
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public slashingPercent;
+
     // Mapping subgraphId to list of addresses to Curators
     mapping (address => mapping (bytes32 => Curator)) public curators;
 
@@ -173,6 +177,21 @@ contract Staking is Governed, TokenReceiver
         returns (bool success)
     {
         maximumIndexers = _maximumIndexers;
+        return true;
+    }
+
+    /**
+     * @dev Set the percent that the fisherman gets when slashing occurs
+     * @param _slashingPercent <uint256> - Slashing percent
+     */
+    function updateSlashingPercentage (
+        uint256 _slashingPercent
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
+        slashingPercent = _slashingPercent;
         return true;
     }
 
@@ -297,15 +316,15 @@ contract Staking is Governed, TokenReceiver
     }
 
     /**
-     * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
+     * @dev Arbitrator contract can slash staked Graph Tokens in dispute
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      * @param _staker <address> - Address of Staking party that is being slashed
-     * @param _disputeId <bytes> - Hash of readIndex data + disputer data
+     * @param _fisherman <address> - Address of Fisherman party to be rewarded
      */
     function slashStake (
         bytes32 _subgraphId,
         address _staker,
-        bytes memory _disputeId
+        address _fisherman
     )
         public
         onlyArbitrator
@@ -316,7 +335,11 @@ contract Staking is Governed, TokenReceiver
         delete indexingNodes[_staker][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        token.burn(_value);
+        // Give the fisherman a reward equal to the slashingPercent of the staker's stake
+        uint256 _reward = slashingPercent * _value / 1000000; // slashingPercent is in PPM
+        assert(_reward <= _value); // sanity check on fixed-point math
+        token.transfer(governor, _value - _reward);
+        token.transfer(_fisherman, _reward);
         emit IndexingNodeLogOut(_staker);
         success = true;
     }
