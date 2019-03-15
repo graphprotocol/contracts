@@ -185,6 +185,7 @@ contract Staking is Governed, TokenReceiver
     // Graph Token address
     GraphToken public token;
 
+    /* CONSTANTS */
     uint constant COOLING_PERIOD = 7 days;
 
     // Only the designated arbitrator
@@ -443,7 +444,7 @@ contract Staking is Governed, TokenReceiver
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
     function beginLogout(bytes32 _subgraphId)
-        public
+        external
     {
         require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
@@ -456,7 +457,7 @@ contract Staking is Governed, TokenReceiver
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
     function finalizeLogout(bytes32 _subgraphId)
-        public
+        external
     {
         require(
             indexingNodes[msg.sender][_subgraphId].logoutStarted + COOLING_PERIOD >= block.timestamp
@@ -539,18 +540,15 @@ contract Staking is Governed, TokenReceiver
     {
         // Input validation, read storage for later (when deleted)
         uint256 _amount = disputes[_disputeId].depositAmount;
-        require(_amount > 0);
         address _fisherman = disputes[_disputeId].fisherman;
-        require(_fisherman != address(0));
         address _indexingNode = disputes[_disputeId].indexingNode;
-        require(_indexingNode != address(0));
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_subgraphId != bytes32(0));
+        require(_amount > 0); // Check if this is a valid dispute
 
         // Have staking slash the index node and reward the fisherman
         slashStake(_subgraphId, _indexingNode, _fisherman);
 
-        // Give the fisherman their bond back
+        // Give the fisherman their bond back too
         delete disputes[_disputeId];
         token.transfer(_fisherman, _amount);
 
@@ -570,13 +568,11 @@ contract Staking is Governed, TokenReceiver
     {
         // Input validation, read storage for later (when deleted)
         uint256 _amount = disputes[_disputeId].depositAmount;
-        require(_amount > 0);
         address _fisherman = disputes[_disputeId].fisherman;
-        require(_fisherman != address(0));
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_subgraphId != bytes32(0));
+        require(_amount > 0); // Check if this is a valid dispute
 
-        // Slash the fisherman's bond
+        // Slash the fisherman's bond and send to the governer
         delete disputes[_disputeId];
         token.transfer(governor, _amount);
 
