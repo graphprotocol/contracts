@@ -55,8 +55,6 @@ contract DisputeManager is Governed
     }
 
     /* STATE VARIABLES */
-    // @dev The arbitrator is solely in control of arbitrating disputes
-    address public arbitrator;
     // @dev Staking contract address (set only at runtime)
     Staking staking;
 
