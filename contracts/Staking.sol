@@ -421,8 +421,7 @@ contract Staking is Governed, TokenReceiver
         address _staker,
         address _fisherman
     )
-        public
-        onlyArbitrator
+        private
         returns (bool success)
     {
         uint256 _value = indexingNodes[_staker][_subgraphId].amountStaked;
