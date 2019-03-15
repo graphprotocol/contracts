@@ -63,6 +63,18 @@ contract DisputeManager is Governed
         uint8 hashFunction;
     }
 
+    // @dev signed message sent from Indexing Node in response to a request
+    struct Attestation {
+        IpfsHash requestCID;
+        IpfsHash responseCID;
+        uint256 gasUsed;
+        uint256 responseNumBytes;
+        // ECDSA vrs signature (using secp256k1)
+        uint256 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
         IpfsHash ipfsHash;
