@@ -77,14 +77,10 @@ contract DisputeManager is Governed
 
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
-        IpfsHash ipfsHash;
-        bytes readRequest;
-        bytes readResponse;
-        // bytes indexingNode; // needed?
-        // bytes subgraphId; // included in readRequest
-        address disputer;
+        bytes32 subgraphId;
+        address indexingNode;
+        address fisherman;
         uint256 depositAmount;
-        bool stakeSlashed;
     }
 
     /* STATE VARIABLES */
