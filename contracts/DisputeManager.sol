@@ -26,6 +26,8 @@ pragma solidity ^0.5.2;
  */
 
 import "./Governed.sol";
+import "./Staking.sol";
+import "./GraphToken.sol";
 
 contract DisputeManager is Governed
 {
@@ -55,6 +57,11 @@ contract DisputeManager is Governed
     /* STATE VARIABLES */
     // @dev The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
+    // @dev Staking contract address (set only at runtime)
+    Staking staking;
+
+    // @dev Graph Token address
+    GraphToken token;
 
     // @dev Disputes created by the Fisherman or other authorized entites
     // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
@@ -68,10 +75,22 @@ contract DisputeManager is Governed
     }
 
     /**
+     * @param _staking <address> - Address of the staking contract
+     * @param _token <address> - Address of the Graph Token contract
      * @param _governor <address> - Address of the multisig contract as Governor of
      *                              this contract
      */
-    constructor (address _governor) public Governed(_governor) {}
+    constructor (
+        address _staking,
+        address _token,
+        address _governor
+    )
+        public
+        Governed(_governor)
+    {
+        staking = Staking(_staking);
+        token = GraphToken(_token);
+    }
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
