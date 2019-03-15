@@ -121,20 +121,61 @@ contract DisputeManager is Governed
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
-     * @param _readRequest <bytes> - JSON RPC data request sent to readIndex
-     * @param _readResponse <bytes> - JSON RPC data response returned from readIndex
-     * @return disputeId <bytes32> - ID for the newly created dispute
-     *                               (hash of readIndex data + disputer data)
+     * @param _attestation <Attestation> - Signed Attestation message
+     * @param _subgraphId <bytes32> - SubgraphId that Attestation message
+     *                                contains (in request raw object at CID)
+     * @param _fisherman <address> - Creator of dispute
+     * @param _amount <uint256> - Amount of tokens staked
      * @notice Payable using Graph Tokens for deposit
      */
     function createDispute (
-        bytes memory _readRequest,
-        bytes memory _readResponse
+        Attestation memory _attestation,
+        bytes32 _subgraphId,
+        address _fisherman,
+        uint256 _amount
     )
-        public
-        returns (bytes32 disputeId)
+        private
     {
-        revert();
+        // The signer of the attestation is the indexing node that served it
+        bytes memory _rawAttestation = abi.encode(
+                    _attestation.requestCID.hash,
+                    _attestation.requestCID.hashFunction,
+                    _attestation.responseCID.hash,
+                    _attestation.responseCID.hashFunction,
+                    _attestation.gasUsed,
+                    _attestation.responseNumBytes
+                );
+        address _indexingNode = ecrecover(
+                    keccak256(_rawAttestation), // Unsigned Message
+                    uint8(_attestation.v), _attestation.r, _attestation.s
+                );
+
+        // Get amount _indexingNode has staked (amountStaked is member 0)
+        (uint256 _stake, uint256 _logoutStarted) =
+                staking.indexingNodes(_indexingNode, _subgraphId);
+        require(_stake > 0); // This also validates that _indexingNode exists
+
+        // Ensure that fisherman has posted at least that amount
+        require(_amount >= staking.getRewardForValue(_stake));
+
+        // A fisherman can only open one dispute with a given indexing node
+        // per subgraphId at a time
+        bytes32 _disputeId =
+                keccak256(abi.encode(_fisherman, _indexingNode, _subgraphId));
+        require(disputes[_disputeId].fisherman == address(0)); // Must be empty
+
+        disputes[_disputeId] = Dispute(
+            _subgraphId,
+            _indexingNode,
+            _fisherman,
+            _amount
+        );
+        emit DisputeCreated(
+            _subgraphId,
+            _indexingNode,
+            _fisherman,
+            _disputeId
+        );
     }
 
     /**
