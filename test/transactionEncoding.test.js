@@ -13,7 +13,8 @@ contract('NPM Module', accounts => {
 
     // deploy a contract we can encode a transaction for
     deployedStaking = await Staking.new(
-      accounts[0] // governor
+      accounts[0], // governor
+      accounts[1] // token (mocked)
     )
     assert.isObject(deployedStaking, "Deploy Staking contract.")
 

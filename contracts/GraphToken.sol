@@ -15,6 +15,8 @@ pragma solidity ^0.5.2;
  *         minting authority
  * @req 06 The Graph Token shall allow the protocol Governance to mint new tokens
  * @req 07 The Graph Token shall mint an inital distribution of tokens
+ * @req 08 The Graph Token shall allow a token holder to stake in the protocol for indexing or
+ *         curation markets for a particular Subgraph
  *
  */
 
@@ -22,6 +24,20 @@ import "./Governed.sol";
 import "./openzeppelin/ERC20Burnable.sol";
 import "./openzeppelin/ERC20Mintable.sol";
 import "./openzeppelin/ERC20Detailed.sol";
+
+// @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
+// NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
+contract TokenReceiver
+{
+    function tokensReceived(
+        address _from,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        returns (bool)
+    ;
+}
 
 contract GraphToken is
     Governed,
@@ -61,6 +77,22 @@ contract GraphToken is
         _removeMinter(_account);
     }
 
-    // @dev Don't accept ETH
-    function () external payable { revert(); }
+    /*
+     * @dev Transfer Graph tokens to the Staking interface
+     * @notice Interacts with Staking contract
+     * @notice Overriding `transfer` was not working with web3.js so we renamed to `transferWithData`
+     */
+    function transferWithData(
+        address _to,
+        uint256 _amount,
+        bytes memory _data
+    )
+        public
+        returns (bool success)
+    {
+        assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
+        // @imp 08 Have staking contract receive the token and handle the data
+        assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount, _data));
+        success = true;
+    }
 }

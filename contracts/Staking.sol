@@ -1,54 +1,80 @@
 pragma solidity ^0.5.2;
 
+/*
+ * @title Staking contract
+ *
+ * @author Bryant Eisenbach
+ * @author Reuven Etzion
+ *
+ * Curator Requirements
+ * @req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.
+ * @req c02 The amount of tokens to stake required to become a Curator must be greater than or
+ *          equal to the minimum curation staking amount.
+ * @req c03 Only Governance can change the minimum curation staking amount.
+ * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
+ *          equal to the total amount of Curation stake for a given subgraphId if they
+ *          successfully stake on a given subgraphId.
+ *
+ * Indexer Requirements
+ * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
+ * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
+ *          equal to the minimum indexing staking amount.
+ * @req i03 Only Governance can change the minimum indexing staking amount.
+ * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
+ *          any time.
+ * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
+ *          been started and a cooling period has elapsed.
+ *
+ * Slashing Requirements
+ * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
+ * @req s02 Only Governance can change the Dispute Manager contract address.
+ *
+ * ----------------------------------- TODO This may change -------------------------------------
+ * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
+ *         many read requests they may process for that dataset. However, it may be assumed that
+ *         Indexing Nodes with higher deposits will receive more read requests and thus collect
+ *         more fees, all else being equal, as this represents a greater economic security margin
+ *         to the end user.
+ *
+ */
+
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "./DisputeManager.sol";
+import "bytes/BytesLib.sol";
 
-contract Staking is Governed {
-    
-    /* 
-    * @title Staking contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * Indexing Nodes stake Graph Tokens to participate in the data retrieval market for a
-    * specific subgraph, as identified by subgraphId.
-    *
-    * Curators stake Graph Tokens to participate in a specific curation market,
-    * as identified by subgraphId
-    *
-    * For a stakingAmount to be considered valid, it must meet the following requirements:
-    * - stakingAmount >= minimumStakingAmount where minimumStakingAmount is set via governance.
-    * - The stakingAmount must be in the set of the top N staking amounts, where N is determined by
-    *   the maxIndexers parameter which is set via governance.
-    * 
-    * Indexing Nodes who have staked for a dataset, are not limited by the protocol in how many
-    * read requests they may process for that dataset. However, it may be assumed that Indexing
-    * Nodes with higher deposits will receive more read requests and thus collect more fees, all
-    * else being equal, as this represents a greater economic security margin to the end user.
-    * 
-    * Requirements ("Staking" contract):
-    * req 01 State variables minimumCurationStakingAmount, minimumIndexingStakingAmount, & maxIndexers are editable by Governance
-    * req 02 Indexing Nodes can stake Graph Tokens for Data Retrieval for subgraphId
-    * req 03 Curator can stake Graph Tokens for subgraphId
-    * req 04 Staking amounts must meet criteria specified in technical spec, mechanism design section.
-    * req 05 Dispute Resolution can slash staked tokens
-    * ...
-    */
+contract Staking is Governed, TokenReceiver
+{
+    using BytesLib for bytes;
+
+    /* Events */
+    event CurationNodeStaked (
+        address indexed staker,
+        uint256 amountStaked
+    );
+
+    event IndexingNodeStaked (
+        address indexed staker,
+        uint256 amountStaked
+    );
+
+    event IndexingNodeLogOut (
+        address indexed staker
+    );
 
     /* Structs */
     struct Curator {
         uint256 amountStaked;
+        uint256 subgraphShares;
     }
     struct IndexingNode {
         uint256 amountStaked;
+        uint256 logoutStarted;
     }
     struct Subgraph {
         uint256 totalCurationStake;
         uint256 totalIndexingStake;
+        uint256 totalIndexers;
     }
 
     /* STATE VARIABLES */
@@ -59,23 +85,24 @@ contract Staking is Governed {
     uint256 public minimumIndexingStakingAmount;
 
     // Maximum number of Indexing Nodes staked higher than stake to consider 
-    uint256 public maxIndexers;
+    uint256 public maximumIndexers;
 
     // Mapping subgraphId to list of addresses to Curators
-    // These mappings work together
-    mapping (address => Curator) public curators;
-    mapping (bytes32 => address[]) public subgraphCurators;
+    mapping (address => mapping (bytes32 => Curator)) public curators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
-    // These mappings work together
-    mapping (address => IndexingNode) public indexingNodes;
-    mapping (bytes32 => address[]) public subgraphIndexingNodes;
+    mapping (address => mapping (bytes32 => IndexingNode)) public indexingNodes;
 
     // Subgraphs mapping
-    mapping (bytes32 => Subgraph) subgraphs;
+    mapping (bytes32 => Subgraph) public subgraphs;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
+
+    // Graph Token address
+    GraphToken public token;
+
+    uint constant COOLING_PERIOD = 7 days;
 
     // Only the designated arbitrator
     modifier onlyArbitrator () {
@@ -86,53 +113,136 @@ contract Staking is Governed {
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
+     * @param _token <address> - Address of the Graph Protocol token
      */
-    constructor (address _governor) public Governed (_governor) {}
+    constructor (
+        address _governor,
+        address _token
+    )
+        public
+        Governed(_governor)
+    {
+        // Governance Parameter Defaults
+        maximumIndexers = 10;
+        minimumCurationStakingAmount = 100;  // Tokens
+        minimumIndexingStakingAmount = 100;  // Tokens
+        token = GraphToken(_token);
+    }
 
     /**
      * @dev Set the Minimum Staking Amount for Market Curators
-     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked for Curation
+     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked
+     * for Curation
      */
-    function setMinimumCurationStakingAmount (uint256 _minimumCurationStakingAmount) public onlyGovernance returns (bool success)
+    function setMinimumCurationStakingAmount (
+        uint256 _minimumCurationStakingAmount
+    )
+        external
+        onlyGovernance
+        returns (bool success)
     {
-        revert();
+        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+        return true;
     }
 
     /**
      * @dev Set the Minimum Staking Amount for Indexing Nodes
-     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked for Indexing Nodes
+     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked
+     * for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (uint256 _minimumIndexingStakingAmount) public onlyGovernance returns (bool success)
+    function setMinimumIndexingStakingAmount (
+        uint256 _minimumIndexingStakingAmount
+    )
+        external
+        onlyGovernance
+        returns (bool success)
     {
-        revert();
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
+        return true;
     }
 
     /**
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (uint256 _maximumIndexers) public onlyGovernance returns (bool success)
+    function setMaximumIndexers (
+        uint256 _maximumIndexers
+    )
+        external
+        onlyGovernance
+        returns (bool success)
     {
-        revert();
+        maximumIndexers = _maximumIndexers;
+        return true;
     }
 
-    /* Graph Protocol Functions */
     /**
-     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
-     * @param _staker <address> - Address of Staking party
-     * @param _value <uint256> - Amount of Graph Tokens to be staked
-     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
+     * @dev Set the arbitrator address
+     * @param _arbitrator <address> - The address of the arbitration contract or party
      */
-    // @todo: Require _value >= setMinimumIndexingStakingAmount
-    function stakeGraphTokensForIndexing (
-        bytes32 _subgraphId,
-        address _staker,
-        uint256 _value,
-        bytes memory _indexingRecords
-    ) public returns (bool success)
+    function setArbitrator (
+        address _arbitrator
+    )
+        external
+        onlyGovernance
+        returns (bool success)
     {
-        revert();
+        arbitrator = _arbitrator;
+        return true;
+    }
+
+    /**
+     * @dev Accept tokens and handle staking registration functions
+     * @param _from <address> - Token holder's address
+     * @param _value <uint256> - Amount of Graph Tokens
+     * @param _data <bytes> - Data to parse and handle registration functions
+     */
+    function tokensReceived (
+        address _from,
+        uint256 _value,
+        bytes calldata _data
+    )
+        external
+        returns (bool success)
+    {
+        // Make sure the token is the caller of this function
+        require(msg.sender == address(token));
+
+        // Process _data to figure out the action to take (and which subgraph is involved)
+        require(_data.length >= 1+32); // Must be at least 33 bytes
+        bool _stakeForCuration = _data.slice(0, 1).toUint(0) == 1;
+        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
+
+        if (_stakeForCuration) {
+            // @imp c01 Handle internal call for Curation Staking
+            stakeGraphTokensForCuration(_subgraphId, _from, _value);
+        } else {
+            // Slice the rest of the data as indexing records
+            bytes memory _indexingRecords = _data.slice(33, _data.length-33);
+            // Ensure that the remaining data is parse-able for indexing records
+            require(_indexingRecords.length % 32 == 0);
+            // @imp i01 Handle internal call for Index Staking
+            stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+        }
+        success = true;
+    }
+
+   /**
+    * @dev Calculate number of shares that should be issued for the proportion
+    *      of addedStake to totalStake based on a bonding curve
+    * @param _addedStake <uint256> - Amount being added
+    * @param _totalStake <uint256> - Amount total after added is created
+    * @return issuedShares <uint256> - Amount of shares issued given the above
+    */
+    function stakeToShares (
+        uint256 _addedStake,
+        uint256 _totalStake
+    )
+        public
+        pure
+        returns (uint256 issuedShares)
+    {
+        issuedShares = _addedStake / _totalStake;
     }
 
     /**
@@ -141,43 +251,103 @@ contract Staking is Governed {
      * @param _staker <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
-    // @todo: Require _value >= minimumCurationStakingAmount
     function stakeGraphTokensForCuration (
         bytes32 _subgraphId,
         address _staker,
         uint256 _value
-    ) public returns (bool success)
+    )
+        private
     {
-        revert();
+        require(
+            curators[_staker][_subgraphId].amountStaked + _value
+                    >= minimumCurationStakingAmount
+        ); // @imp c02
+        curators[_staker][_subgraphId].amountStaked += _value;
+        subgraphs[_subgraphId].totalCurationStake += _value;
+        curators[_staker][_subgraphId].subgraphShares +=
+            stakeToShares(_value, subgraphs[_subgraphId].totalCurationStake);
+        emit CurationNodeStaked(_staker, curators[_staker][_subgraphId].amountStaked);
     }
 
     /**
-     * @dev Receive approval to spend Graph Tokens of someone else
-     * @param _from <address> - Token holder's address
-     * @param _value <uint256> - Amount of Graph Tokens 
-     * @param _token <address> - Graph Token address
-     * @notice How does this actually work? Does it not need other functions?
-     * ref https://ethereum.stackexchange.com/questions/12852/could-somebody-please-explain-in-detail-what-this-ethereum-contract-is-doing
+     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _staker <address> - Address of Staking party
+     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
      */
-    function receiveApproval (
-        address _from,
+    function stakeGraphTokensForIndexing (
+        bytes32 _subgraphId,
+        address _staker,
         uint256 _value,
-        address _token,
-        bytes memory _data
-    ) public
+        bytes memory _indexingRecords
+    )
+        private
     {
-        revert();
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
+        require(
+            indexingNodes[_staker][_subgraphId].amountStaked + _value
+                    >= minimumIndexingStakingAmount
+        ); // @imp i02
+        if (indexingNodes[_staker][_subgraphId].amountStaked == 0)
+            subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
+        indexingNodes[_staker][_subgraphId].amountStaked += _value;
+        subgraphs[_subgraphId].totalIndexingStake += _value;
+        emit IndexingNodeStaked(_staker, indexingNodes[_staker][_subgraphId].amountStaked);
     }
 
     /**
      * @dev Arbitrator (governance) can slash staked Graph Tokens in dispute
-     * @param _disputeId <bytes> Hash of readIndex data + disputer data
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     * @param _staker <address> - Address of Staking party that is being slashed
+     * @param _disputeId <bytes> - Hash of readIndex data + disputer data
      */
-    function slashStake (bytes memory _disputeId) public onlyArbitrator returns (bool success)
+    function slashStake (
+        bytes32 _subgraphId,
+        address _staker,
+        bytes memory _disputeId
+    )
+        public
+        onlyArbitrator
+        returns (bool success)
     {
-        revert();
+        uint256 _value = indexingNodes[_staker][_subgraphId].amountStaked;
+        require(_value > 0);
+        delete indexingNodes[_staker][_subgraphId];
+        subgraphs[_subgraphId].totalIndexingStake -= _value;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+        token.burn(_value);
+        emit IndexingNodeLogOut(_staker);
+        success = true;
     }
 
-    // WIP...
-     
+    /**
+     * @dev Indexing node can start logout process
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     */
+    function beginLogout(bytes32 _subgraphId)
+        public
+    {
+        require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
+        indexingNodes[msg.sender][_subgraphId].logoutStarted = block.timestamp;
+        emit IndexingNodeLogOut(msg.sender);
+    }
+
+    /**
+     * @dev Indexing node can finish the logout process after a cooling off period
+     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     */
+    function finalizeLogout(bytes32 _subgraphId)
+        public
+    {
+        require(
+            indexingNodes[msg.sender][_subgraphId].logoutStarted + COOLING_PERIOD >= block.timestamp
+        );
+        uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
+        delete indexingNodes[msg.sender][_subgraphId];
+        subgraphs[_subgraphId].totalIndexingStake -= _value;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+        assert(token.transfer(msg.sender, _value));
+    }
 }
