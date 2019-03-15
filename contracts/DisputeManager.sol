@@ -59,8 +59,8 @@ contract DisputeManager is Governed
     /* Structs */
     // @dev Store 34 byte IPFS hash as 32 bytes
     struct IpfsHash {
-        bytes32 ipfsHash;
-        uint8 ipfsHashFunction;
+        bytes hash;
+        uint8 hashFunction;
     }
 
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
