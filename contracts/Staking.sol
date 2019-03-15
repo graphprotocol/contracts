@@ -48,7 +48,6 @@ pragma solidity ^0.5.2;
 
 import "./GraphToken.sol";
 import "./Governed.sol";
-import "./DisputeManager.sol";
 import "bytes/BytesLib.sol";
 
 contract Staking is Governed, TokenReceiver
