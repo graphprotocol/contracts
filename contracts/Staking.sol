@@ -188,12 +188,6 @@ contract Staking is Governed, TokenReceiver
     /* CONSTANTS */
     uint constant COOLING_PERIOD = 7 days;
 
-    // Only the designated arbitrator
-    modifier onlyArbitrator () {
-        require(msg.sender == arbitrator);
-        _;
-    }
-
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
@@ -535,7 +529,7 @@ contract Staking is Governed, TokenReceiver
         bytes32 _disputeId
     )
         external
-        onlyArbitrator
+        onlyGovernance
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
@@ -563,7 +557,7 @@ contract Staking is Governed, TokenReceiver
         bytes32 _disputeId
     )
         external
-        onlyArbitrator
+        onlyGovernance
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
