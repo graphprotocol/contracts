@@ -316,6 +316,21 @@ contract Staking is Governed, TokenReceiver
             require(_indexingRecords.length % 32 == 0);
             // @imp i01 Handle internal call for Index Staking
             stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+        } else if (option == 2) {
+            require(_data.length == 33 + 269); // Attestation is 269 bytes
+            // Convert to the Attestation struct (manually)
+            Attestation memory _attestation;
+            _attestation.requestCID.hash = _data.slice(33, 32);
+            _attestation.requestCID.hashFunction = _data.slice(65, 1).toUint8(0);
+            _attestation.responseCID.hash = _data.slice(66, 32);
+            _attestation.responseCID.hashFunction = _data.slice(98, 1).toUint8(0);
+            _attestation.gasUsed = _data.slice(99, 32).toUint(0);
+            _attestation.responseNumBytes = _data.slice(131, 32).toUint(0);
+            _attestation.v = _data.slice(163, 32).toUint(0);
+            _attestation.r = _data.slice(195, 32).toBytes32(0);
+            _attestation.s = _data.slice(237, 32).toBytes32(0);
+            // Inner call to createDispute
+            createDispute(_attestation, _subgraphId, _from, _value);
         } else {
             revert();
         }
