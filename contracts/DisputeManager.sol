@@ -185,10 +185,53 @@ contract DisputeManager is Governed
     function verifyDispute (
         bytes32 _disputeId
     )
-        public
+        external
         onlyArbitrator
         returns (bool success)
     {
-        revert();
+        // Input validation, read storage for later (when deleted)
+        uint256 _amount = disputes[_disputeId].depositAmount;
+        require(_amount > 0);
+        address _fisherman = disputes[_disputeId].fisherman;
+        require(_fisherman != address(0));
+        address _indexingNode = disputes[_disputeId].indexingNode;
+        require(_indexingNode != address(0));
+        bytes32 _subgraphId = disputes[_disputeId].subgraphId;
+        require(_subgraphId != bytes32(0));
+
+        // Have staking slash the index node and reward the fisherman
+        staking.slashStake(_subgraphId, _indexingNode, _fisherman);
+
+        // Give the fisherman their bond back
+        delete disputes[_disputeId];
+        token.transfer(_fisherman, _amount);
+
+        emit DisputeAccepted(_disputeId, _subgraphId, _indexingNode, _amount);
+    }
+
+    /**
+     * @dev The arbitrator can reject a dispute as being invalid.
+     * @param _disputeId <bytes32> - ID of the dispute to be rejected
+     */
+    function rejectDispute (
+        bytes32 _disputeId
+    )
+        external
+        onlyArbitrator
+        returns (bool success)
+    {
+        // Input validation, read storage for later (when deleted)
+        uint256 _amount = disputes[_disputeId].depositAmount;
+        require(_amount > 0);
+        address _fisherman = disputes[_disputeId].fisherman;
+        require(_fisherman != address(0));
+        bytes32 _subgraphId = disputes[_disputeId].subgraphId;
+        require(_subgraphId != bytes32(0));
+
+        // Slash the fisherman's bond
+        delete disputes[_disputeId];
+        token.transfer(governor, _amount);
+
+        emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _amount);
     }
 }
