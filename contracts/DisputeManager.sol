@@ -32,8 +32,29 @@ import "./GraphToken.sol";
 contract DisputeManager is Governed
 {
     /* Events */
-    // @dev Dispute was saved by Fisherman/disputor
-    event DisputeFiled (bytes _subgraphId, address _fisherman, bytes32 _disputeId);
+    // @dev Dispute was created by fisherman
+    event DisputeCreated (
+        bytes32 indexed _subgraphId,
+        address indexed _indexingNode,
+        address indexed _fisherman,
+        bytes32 _disputeId
+    );
+
+    // @dev Dispute was accepted, indexing node lost their stake
+    event DisputeAccepted (
+        bytes32 indexed _disputeId,
+        bytes32 indexed _subgraphId,
+        address indexed _indexingNode,
+        uint256 _amount
+    );
+
+    // @dev Dispute was rejected, fisherman lost the given bond amount
+    event DisputeRejected (
+        bytes32 indexed _disputeId,
+        bytes32 indexed _subgraphId,
+        address indexed _fisherman,
+        uint256 _amount
+    );
 
     /* Structs */
     // @dev Store 34 byte IPFS hash as 32 bytes
