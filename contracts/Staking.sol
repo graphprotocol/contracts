@@ -229,7 +229,7 @@ contract Staking is Governed, TokenReceiver
 
         // Process _data to figure out the action to take (and which subgraph is involved)
         require(_data.length >= 1+32); // Must be at least 33 bytes
-        bool _stakeForCuration = _data.slice(0, 1).toUint(0) == 1;
+        bool _stakeForCuration = _data.slice(0, 1).toUint8(0) == 1;
         bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
 
         if (_stakeForCuration) {
