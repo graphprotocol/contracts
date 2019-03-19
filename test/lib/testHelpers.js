@@ -1,7 +1,9 @@
-// @todo Use a better method to parse event logs. This is limited
-// @dev See possible replacment: https://github.com/rkalis/truffle-assertions
 module.exports = {
 
+    randomSubgraphIdHex: () => web3.utils.randomHex(32).substring(2),
+    randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes('0x' + hex),
+
+    // deprecated
     getParamFromTxEvent: (
         transaction,
         paramName,
