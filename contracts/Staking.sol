@@ -434,7 +434,6 @@ contract Staking is Governed, TokenReceiver
         address _fisherman
     )
         private
-        returns (bool success)
     {
         uint256 _value = indexingNodes[_staker][_subgraphId].amountStaked;
         require(_value > 0);
