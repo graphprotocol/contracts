@@ -519,8 +519,7 @@ contract Staking is Governed, TokenReceiver
 
         // A fisherman can only open one dispute with a given indexing node
         // per subgraphId at a time
-        bytes32 _disputeId =
-                keccak256(abi.encode(_rawAttestation, _subgraphId));
+        bytes32 _disputeId = keccak256(abi.encode(_rawAttestation, _subgraphId));
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
         disputes[_disputeId] = Dispute(
