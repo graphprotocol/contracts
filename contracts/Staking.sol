@@ -446,7 +446,6 @@ contract Staking is Governed, TokenReceiver
         token.transfer(governor, _value - _reward);
         token.transfer(_fisherman, _reward);
         emit IndexingNodeLogOut(_staker);
-        success = true;
     }
 
     /**
