@@ -358,37 +358,37 @@ contract Staking is Governed, TokenReceiver
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
-     * @param _staker <address> - Address of Staking party
-     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     * @param _curator <address> - Address of Staking party
+     * @param _amount <uint256> - Amount of Graph Tokens to be staked
      */
     function stakeGraphTokensForCuration (
         bytes32 _subgraphId,
-        address _staker,
-        uint256 _value
+        address _curator,
+        uint256 _amount
     )
         private
     {
         require(
-            curators[_staker][_subgraphId].amountStaked + _value
+            curators[_curator][_subgraphId].amountStaked + _amount
                     >= minimumCurationStakingAmount
         ); // @imp c02
-        curators[_staker][_subgraphId].amountStaked += _value;
-        subgraphs[_subgraphId].totalCurationStake += _value;
-        curators[_staker][_subgraphId].subgraphShares +=
-            stakeToShares(_value, subgraphs[_subgraphId].totalCurationStake);
-        emit CurationNodeStaked(_staker, curators[_staker][_subgraphId].amountStaked);
+        curators[_curator][_subgraphId].amountStaked += _amount;
+        subgraphs[_subgraphId].totalCurationStake += _amount;
+        curators[_curator][_subgraphId].subgraphShares +=
+            stakeToShares(_amount, subgraphs[_subgraphId].totalCurationStake);
+        emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
     }
 
     /**
      * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
-     * @param _staker <address> - Address of Staking party
+     * @param _indexer <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      * @param _indexingRecords <bytes> - Index Records of the indexes being stored
      */
     function stakeGraphTokensForIndexing (
         bytes32 _subgraphId,
-        address _staker,
+        address _indexer,
         uint256 _value,
         bytes memory _indexingRecords
     )
@@ -396,14 +396,14 @@ contract Staking is Governed, TokenReceiver
     {
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
         require(
-            indexingNodes[_staker][_subgraphId].amountStaked + _value
+            indexingNodes[_indexer][_subgraphId].amountStaked + _value
                     >= minimumIndexingStakingAmount
         ); // @imp i02
-        if (indexingNodes[_staker][_subgraphId].amountStaked == 0)
+        if (indexingNodes[_indexer][_subgraphId].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-        indexingNodes[_staker][_subgraphId].amountStaked += _value;
+        indexingNodes[_indexer][_subgraphId].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_staker, indexingNodes[_staker][_subgraphId].amountStaked);
+        emit IndexingNodeStaked(_indexer, indexingNodes[_indexer][_subgraphId].amountStaked);
     }
 
     /**
@@ -425,27 +425,27 @@ contract Staking is Governed, TokenReceiver
     /**
      * @dev Arbitrator contract can slash staked Graph Tokens in dispute
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
-     * @param _staker <address> - Address of Staking party that is being slashed
+     * @param _indexer <address> - Address of Staking party that is being slashed
      * @param _fisherman <address> - Address of Fisherman party to be rewarded
      */
     function slashStake (
         bytes32 _subgraphId,
-        address _staker,
+        address _indexer,
         address _fisherman
     )
         private
     {
-        uint256 _value = indexingNodes[_staker][_subgraphId].amountStaked;
+        uint256 _value = indexingNodes[_indexer][_subgraphId].amountStaked;
         require(_value > 0);
-        delete indexingNodes[_staker][_subgraphId];
+        delete indexingNodes[_indexer][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        // Give the fisherman a reward equal to the slashingPercent of the staker's stake
+        // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
         uint256 _reward = getRewardForValue(_value);
         assert(_reward <= _value); // sanity check on fixed-point math
         token.transfer(governor, _value - _reward);
         token.transfer(_fisherman, _reward);
-        emit IndexingNodeLogOut(_staker);
+        emit IndexingNodeLogOut(_indexer);
     }
 
     /**
