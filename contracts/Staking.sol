@@ -14,6 +14,11 @@ pragma solidity ^0.5.2;
  * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
+ * @req c05 A Curator can add any amount of stake for a given subgraphId at any time, as long 
+ *          as their total amount remains more than minimumCurationStakingAmount.
+ * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
+ *          as long as their total amount remains more than minimumCurationStakingAmount.
+ * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -24,10 +29,13 @@ pragma solidity ^0.5.2;
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
  *          been started and a cooling period has elapsed.
+ * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
+ *          as their total amount remains more than minimumIndexingStakingAmount.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
  * @req s02 Only Governance can change the Dispute Manager contract address.
+ * @reg s03 Only Governance can update slashingPercent.
  *
  * ----------------------------------- TODO This may change -------------------------------------
  * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
