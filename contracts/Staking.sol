@@ -9,26 +9,30 @@ pragma solidity ^0.5.2;
  * Curator Requirements
  * @req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.
  * @req c02 The amount of tokens to stake required to become a Curator must be greater than or
- *          equal to the minimum curation staking amount (less the previous amountStaked by the
- *          Curator on the given subgraphId).
+ *          equal to the minimum curation staking amount.
  * @req c03 Only Governance can change the minimum curation staking amount.
  * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
- * @req c05 A Curator can update stake for a given subgraphId
+ * @req c05 A Curator can update Stake for a given subgraphId. The minimum curation staking
+ *          amount will be adjusted for the amountStaked previously by the Curator on the given
+ *          subgraphId in order to allow staker to stake less than the minimumCurationStakingAmount
+ *          if the new total amountStaked is greater than the minimumCurationStakingAmount.
  * @req c06 A Curator can withdraw staked tokens for a given subgraphId
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
  * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
- *          equal to the minimum indexing staking amount (less the previous amountStaked by the
- *          Indexer on the given subgraphId).
+ *          equal to the minimum indexing staking amount.
  * @req i03 Only Governance can change the minimum indexing staking amount.
  * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
  *          been started and a cooling period has elapsed.
- * @req i06 Indexing Node can update Staking for Indexing
+ * @req i06 An Indexer can update Stake for a given subgraphId. The minimum indexing staking
+ *          amount will be adjusted for the amountStaked previously by the Indexer on the given
+ *          subgraphId in order to allow staker to stake less than the minimumIndexingStakingAmount
+ *          if the new total amountStaked is greater than the minimumIndexingStakingAmount.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
