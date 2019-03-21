@@ -1,4 +1,4 @@
-const { constants } = require('openzeppelin-test-helpers')
+const { constants, shouldFail } = require('openzeppelin-test-helpers')
 const { ZERO_ADDRESS } = constants
 
 // contracts
@@ -94,11 +94,32 @@ contract('Staking (General)', ([
   })
 
   describe('public functions', () => {
-    it('...should return `issuedShares` from `stakeToShares`', async () => {
-      (await gp.staking.stakeToShares(
-        1000, // added stake
-        1000 // total stake
-      )).should.be.bignumber.equal('1')
+    describe('stakeToShares', () => {
+      it('...should fail when dividing by 0 in `stakeToShares`', async () => {
+        await shouldFail(gp.staking.stakeToShares(
+          1, // added stake
+          0 // total stake
+        ))
+      })  
+      it('...should return `issuedShares` from `stakeToShares`', async () => {
+        let stakeToAdd = 1
+        let totalStake = 0
+        const iterations = 1 /** @dev higher integers fail */
+
+        for (let i = 0; i < iterations; i++) {
+          stakeToAdd = stakeToAdd * 2
+          totalStake += stakeToAdd
+          await testBondingCurve(stakeToAdd, totalStake, stakeToAdd/totalStake)
+        }
+        
+        async function testBondingCurve(addedStake, totalStake, expected) {
+          const shares = await gp.staking.stakeToShares(
+            addedStake, // added stake
+            totalStake // total stake
+          )
+          shares.should.be.bignumber.equal(String(expected))
+        }
+      })  
     })
   })
 })
