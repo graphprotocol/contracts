@@ -18,7 +18,7 @@ pragma solidity ^0.5.2;
  *          amount will be adjusted for the amountStaked previously by the Curator on the given
  *          subgraphId in order to allow staker to stake less than the minimumCurationStakingAmount
  *          if the new total amountStaked is greater than the minimumCurationStakingAmount.
- * @req c06 A Curator can withdraw staked tokens for a given subgraphId
+ * @req c06 A Curator can withdraw staked tokens for a given subgraphId.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -37,6 +37,7 @@ pragma solidity ^0.5.2;
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
  * @req s02 Only Governance can change the Dispute Manager contract address.
+ * @reg s03 Only Governance can update slashingPercent.
  *
  * ----------------------------------- TODO This may change -------------------------------------
  * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
