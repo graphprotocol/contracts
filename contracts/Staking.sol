@@ -21,12 +21,14 @@ pragma solidity ^0.5.2;
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
  * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
- *          equal to the minimum indexing staking amount.
+ *          equal to the minimum indexing staking amount (less the previous amountStaked by the
+ *          Indexer on the given subgraphId).
  * @req i03 Only Governance can change the minimum indexing staking amount.
  * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
  *          been started and a cooling period has elapsed.
+ * @req i06 Indexing Node can update Staking for Indexing
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
