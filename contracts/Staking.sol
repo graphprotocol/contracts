@@ -363,6 +363,28 @@ contract Staking is Governed, TokenReceiver
     }
 
     /**
+     * @dev Calculate number of tokens that should be returned for the proportion
+     *      of _returnedShares to _currentShares, along the given bonding curve
+     * @param _returnedShares <uint256> - Amount of shares being returned
+     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
+     * @param _currentShares <uint256> - Total amount of current shares issued
+     * @return refundTokens <uint256> - Amount of tokens to return given the above
+     */
+    function sharesToStake (
+        uint256 _returnedShares,
+        uint256 _currentTokens,
+        uint256 _currentShares
+    )
+        public
+        pure
+        returns (uint256 refundTokens)
+    {
+        refundTokens =
+                _returnedShares; // Linear with the amount of shares returned
+                // _currentTokens * (1 - (1 - _returnedShares / _currentShares) ** (1 / RESERVE_RATIO));
+    }
+
+    /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
      * @param _curator <address> - Address of Staking party
@@ -393,6 +415,35 @@ contract Staking is Governed, TokenReceiver
         curators[_curator][_subgraphId].subgraphShares += _newShares;
         subgraphs[_subgraphId].totalCurationShares += _newShares;
         emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
+    }
+
+    /**
+     * @dev Return any amount of shares to get tokens back (above the minimum)
+     * @param _subgraphId <bytes32> - Subgraph ID the Curator is returning shares for
+     * @param _amount <uint256> - Amount of shares to return
+     */
+    function curatorLogout (
+        bytes32 _subgraphId,
+        uint256 _amount
+    )
+        external
+    {
+        require( (curators[msg.sender][_subgraphId].amountStaked - _amount
+                  >= minimumCurationStakingAmount)
+                || (curators[msg.sender][_subgraphId].amountStaked == _amount));
+        uint256 _tokenRefund = sharesToStake(_amount,
+                                             subgraphs[_subgraphId].totalCurationStake,
+                                             subgraphs[_subgraphId].totalCurationShares);
+        // Update the amount of tokens Curator has, and overall amount staked
+        curators[msg.sender][_subgraphId].amountStaked -= _amount;
+        subgraphs[_subgraphId].totalCurationStake -= _amount;
+        // Underflow protection
+        assert(subgraphs[_subgraphId].totalCurationStake - _amount
+               < subgraphs[_subgraphId].totalCurationStake);
+        // Update the amount of shares issued to Curator, and total amount issued
+        curators[msg.sender][_subgraphId].subgraphShares -= _tokenRefund;
+        subgraphs[_subgraphId].totalCurationShares -= _tokenRefund;
+        emit CurationNodeStaked(msg.sender, curators[msg.sender][_subgraphId].amountStaked);
     }
 
     /**
