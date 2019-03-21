@@ -122,6 +122,7 @@ contract Staking is Governed, TokenReceiver
     }
     struct Subgraph {
         uint256 totalCurationStake;
+        uint256 totalCurationShares;
         uint256 totalIndexingStake;
         uint256 totalIndexers;
     }
@@ -186,7 +187,7 @@ contract Staking is Governed, TokenReceiver
     GraphToken public token;
 
     /* CONSTANTS */
-    uint constant COOLING_PERIOD = 7 days;
+    uint constant COOLING_PERIOD = 7 days; // TODO Governance parameter?
 
     /**
      * @dev Staking Contract Constructor
@@ -337,22 +338,28 @@ contract Staking is Governed, TokenReceiver
         success = true;
     }
 
-   /**
-    * @dev Calculate number of shares that should be issued for the proportion
-    *      of addedStake to totalStake based on a bonding curve
-    * @param _addedStake <uint256> - Amount being added
-    * @param _totalStake <uint256> - Amount total after added is created
-    * @return issuedShares <uint256> - Amount of shares issued given the above
-    */
+    uint constant RESERVE_RATIO = 10; // [percent] TODO governance parameter?
+
+    /**
+     * @dev Calculate number of shares that should be issued in return for
+     *      staking of _purchaseAmount of tokens, along the given bonding curve
+     * @param _purchaseTokens <uint256> - Amount of tokens being staked (purchase amount)
+     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
+     * @param _currentShares <uint256> - Total amount of current shares issued
+     * @return issuedShares <uint256> - Amount of additional shares issued given the above
+     */
     function stakeToShares (
-        uint256 _addedStake,
-        uint256 _totalStake
+        uint256 _purchaseTokens,
+        uint256 _currentTokens,
+        uint256 _currentShares
     )
         public
         pure
         returns (uint256 issuedShares)
     {
-        issuedShares = _addedStake / _totalStake;
+        issuedShares =
+                _purchaseTokens; // Linear with the amount of tokens purchased
+                //_currentShares * ((1 + _purchaseTokens / _currentTokens) ** RESERVE_RATIO - 1);
     }
 
     /**
@@ -368,14 +375,23 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
-        require(
-            curators[_curator][_subgraphId].amountStaked + _amount
-                    >= minimumCurationStakingAmount
-        ); // @imp c02
+        require(curators[_curator][_subgraphId].amountStaked + _amount
+                >= minimumCurationStakingAmount); // @imp c02
+        // Overflow protection
+        require(subgraphs[_subgraphId].totalCurationStake + _amount
+                > subgraphs[_subgraphId].totalCurationStake);
+        uint256 _newShares = stakeToShares(_amount,
+                                           subgraphs[_subgraphId].totalCurationStake,
+                                           subgraphs[_subgraphId].totalCurationShares);
+        // Update the amount of tokens _curator has, and overall amount staked
         curators[_curator][_subgraphId].amountStaked += _amount;
         subgraphs[_subgraphId].totalCurationStake += _amount;
-        curators[_curator][_subgraphId].subgraphShares +=
-            stakeToShares(_amount, subgraphs[_subgraphId].totalCurationStake);
+        // Overflow protection
+        assert(subgraphs[_subgraphId].totalCurationStake + _amount
+               > subgraphs[_subgraphId].totalCurationStake);
+        // Update the amount of shares issued to _curator, and total amount issued
+        curators[_curator][_subgraphId].subgraphShares += _newShares;
+        subgraphs[_subgraphId].totalCurationShares += _newShares;
         emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
     }
 
