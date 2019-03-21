@@ -9,11 +9,14 @@ pragma solidity ^0.5.2;
  * Curator Requirements
  * @req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.
  * @req c02 The amount of tokens to stake required to become a Curator must be greater than or
- *          equal to the minimum curation staking amount.
+ *          equal to the minimum curation staking amount (less the previous amountStaked by the
+ *          Curator on the given subgraphId).
  * @req c03 Only Governance can change the minimum curation staking amount.
  * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
+ * @req c05 A Curator can update stake for a given subgraphId
+ * @req c06 A Curator can withdraw staked tokens for a given subgraphId
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
