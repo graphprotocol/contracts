@@ -14,11 +14,11 @@ pragma solidity ^0.5.2;
  * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
- * @req c05 A Curator can update Stake for a given subgraphId. The minimum curation staking
- *          amount will be adjusted for the amountStaked previously by the Curator on the given
- *          subgraphId in order to allow staker to stake less than the minimumCurationStakingAmount
- *          if the new total amountStaked is greater than the minimumCurationStakingAmount.
- * @req c06 A Curator can withdraw staked tokens for a given subgraphId.
+ * @req c05 A Curator can add any amount of stake for a given subgraphId at any time, as long 
+ *          as their total amount remains more than minimumCurationStakingAmount.
+ * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
+ *          as long as their total amount remains more than minimumCurationStakingAmount.
+ * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -29,10 +29,8 @@ pragma solidity ^0.5.2;
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
  *          been started and a cooling period has elapsed.
- * @req i06 An Indexer can update Stake for a given subgraphId. The minimum indexing staking
- *          amount will be adjusted for the amountStaked previously by the Indexer on the given
- *          subgraphId in order to allow staker to stake less than the minimumIndexingStakingAmount
- *          if the new total amountStaked is greater than the minimumIndexingStakingAmount.
+ * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
+ *          as their total amount remains more than minimumIndexingStakingAmount.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
