@@ -136,11 +136,16 @@ contract Staking is Governed, TokenReceiver
 
     // @dev signed message sent from Indexing Node in response to a request
     struct Attestation {
+        // Application-specific domain separator
+        // (ensure msgs for different subgraphs cannot be reused)
+        bytes32 subgraphId;
         // Content Identifier for request message sent from user to indexing node
         IpfsHash requestCID; // Note: Message is located at the given IPFS content addr
         // Content Identifier for signed response message from indexing node
         IpfsHash responseCID; // Note: Message is located at the given IPFS content addr
+        // Amount of computational account units (gas) used to process query
         uint256 gasUsed;
+        // Amount of data sent in the response
         uint256 responseNumBytes;
         // ECDSA vrs signature (using secp256k1)
         uint8 v;
