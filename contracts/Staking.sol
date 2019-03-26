@@ -544,33 +544,6 @@ contract Staking is Governed, TokenReceiver
         emit IndexingNodeStaked(_indexer, indexingNodes[_indexer][_subgraphId].amountStaked);
     }
 
-
-    /**
-     * @dev Arbitrator contract can slash staked Graph Tokens in dispute
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
-     * @param _indexer <address> - Address of Staking party that is being slashed
-     * @param _fisherman <address> - Address of Fisherman party to be rewarded
-     */
-    function slashStake (
-        bytes32 _subgraphId,
-        address _indexer,
-        address _fisherman
-    )
-        private
-    {
-        uint256 _value = indexingNodes[_indexer][_subgraphId].amountStaked;
-        require(_value > 0);
-        delete indexingNodes[_indexer][_subgraphId];
-        subgraphs[_subgraphId].totalIndexingStake -= _value;
-        subgraphs[_subgraphId].totalIndexers -= 1;
-        // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _reward = getRewardForValue(_value);
-        assert(_reward <= _value); // sanity check on fixed-point math
-        token.transfer(governor, _value - _reward);
-        token.transfer(_fisherman, _reward);
-        emit IndexingNodeLogout(_indexer);
-    }
-
     /**
      * @dev Indexing node can start logout process
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
@@ -701,21 +674,33 @@ contract Staking is Governed, TokenReceiver
     {
         // Input validation, read storage for later (when deleted)
         uint256 _bond = disputes[_disputeId].depositAmount;
+        require(_bond > 0); // Ensure this is a valid dispute
         address _fisherman = disputes[_disputeId].fisherman;
-        address _indexingNode = disputes[_disputeId].indexingNode;
+        address _indexer = disputes[_disputeId].indexingNode;
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_bond > 0); // Check if this is a valid dispute
+        delete disputes[_disputeId]; // Re-entrancy protection
 
         // Have staking slash the index node and reward the fisherman
-        slashStake(_subgraphId, _indexingNode, _fisherman);
+        // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
+        uint256 _stake = indexingNodes[_indexer][_subgraphId].amountStaked;
+        assert(_stake > 0); // Ensure this is a valid staker (should always be true)
+        uint256 _reward = getRewardForValue(_stake);
+        assert(_reward <= _stake); // sanity check on fixed-point math
+        delete indexingNodes[_indexer][_subgraphId]; // Re-entrancy protection
 
-        // Give the fisherman their bond back too
-        delete disputes[_disputeId];
-        token.transfer(_fisherman, _bond);
+        // Remove Indexing Node from Subgraph's stakers
+        subgraphs[_subgraphId].totalIndexingStake -= _stake;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+        emit IndexingNodeLogout(_indexer);
+
+        // Give governance the difference between the fisherman's reward and the total stake
+        token.transfer(governor, _stake - _reward); // TODO Burn or give to governance?
+
+        // Give the fisherman their reward and bond back
+        token.transfer(_fisherman, _reward + _bond);
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
-        // TODO bond >= reward
-        emit DisputeAccepted(_disputeId, _subgraphId, _indexingNode, _bond);
+        emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);
     }
 
     /**
@@ -731,13 +716,13 @@ contract Staking is Governed, TokenReceiver
     {
         // Input validation, read storage for later (when deleted)
         uint256 _bond = disputes[_disputeId].depositAmount;
+        require(_bond > 0); // Ensure this is a valid dispute
         address _fisherman = disputes[_disputeId].fisherman;
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_bond > 0); // Check if this is a valid dispute
+        delete disputes[_disputeId]; // Re-entrancy protection
 
         // Slash the fisherman's bond and send to the governor
-        delete disputes[_disputeId];
-        token.transfer(governor, _bond);
+        token.transfer(governor, _bond); // TODO Burn or give to governance?
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
