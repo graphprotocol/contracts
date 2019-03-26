@@ -78,6 +78,10 @@ contract Staking is Governed, TokenReceiver
         uint256 amountStaked
     );
 
+    event CurationNodeLogout (
+        address indexed staker
+    );
+
     event IndexingNodeStaked (
         address indexed staker,
         uint256 amountStaked
@@ -430,62 +434,87 @@ contract Staking is Governed, TokenReceiver
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
      * @param _curator <address> - Address of Staking party
-     * @param _amount <uint256> - Amount of Graph Tokens to be staked
+     * @param _tokenAmount <uint256> - Amount of Graph Tokens to be staked
      */
     function stakeGraphTokensForCuration (
         bytes32 _subgraphId,
         address _curator,
-        uint256 _amount
+        uint256 _tokenAmount
     )
         private
     {
-        require(curators[_curator][_subgraphId].amountStaked + _amount
-                >= minimumCurationStakingAmount); // @imp c02
         // Overflow protection
-        require(subgraphs[_subgraphId].totalCurationStake + _amount
+        require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount
                 > subgraphs[_subgraphId].totalCurationStake);
-        uint256 _newShares = stakeToShares(_amount,
+
+        // Obtain the amount of shares to buy with the amount of tokens to sell
+        // according to the bonding curve
+        uint256 _newShares = stakeToShares(_tokenAmount,
                                            subgraphs[_subgraphId].totalCurationStake,
                                            subgraphs[_subgraphId].totalCurationShares);
+
         // Update the amount of tokens _curator has, and overall amount staked
-        curators[_curator][_subgraphId].amountStaked += _amount;
-        subgraphs[_subgraphId].totalCurationStake += _amount;
-        // Overflow protection
-        assert(subgraphs[_subgraphId].totalCurationStake + _amount
-               > subgraphs[_subgraphId].totalCurationStake);
+        curators[_curator][_subgraphId].amountStaked += _tokenAmount;
+        subgraphs[_subgraphId].totalCurationStake += _tokenAmount;
+
+        // @imp c02 Ensure the minimum amount is staked
+        // TODO Validate the need for this requirement
+        require(curators[_curator][_subgraphId].amountStaked >= minimumCurationStakingAmount);
+
         // Update the amount of shares issued to _curator, and total amount issued
         curators[_curator][_subgraphId].subgraphShares += _newShares;
         subgraphs[_subgraphId].totalCurationShares += _newShares;
+
+        // Emit the CurationNodeStaked event (updating the running tally)
         emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
     }
 
     /**
      * @dev Return any amount of shares to get tokens back (above the minimum)
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is returning shares for
-     * @param _amount <uint256> - Amount of shares to return
+     * @param _numShares <uint256> - Amount of shares to return
      */
     function curatorLogout (
         bytes32 _subgraphId,
-        uint256 _amount
+        uint256 _numShares
     )
         external
     {
-        require( (curators[msg.sender][_subgraphId].amountStaked - _amount
-                  >= minimumCurationStakingAmount)
-                || (curators[msg.sender][_subgraphId].amountStaked == _amount));
-        uint256 _tokenRefund = sharesToStake(_amount,
+        // Underflow protection
+        require(curators[msg.sender][_subgraphId].subgraphShares >= _numShares);
+
+        // Obtain the amount of tokens to refunded with the amount of shares returned
+        // according to the bonding curve
+        uint256 _tokenRefund = sharesToStake(_numShares,
                                              subgraphs[_subgraphId].totalCurationStake,
                                              subgraphs[_subgraphId].totalCurationShares);
-        // Update the amount of tokens Curator has, and overall amount staked
-        curators[msg.sender][_subgraphId].amountStaked -= _amount;
-        subgraphs[_subgraphId].totalCurationStake -= _amount;
+
         // Underflow protection
-        assert(subgraphs[_subgraphId].totalCurationStake - _amount
-               < subgraphs[_subgraphId].totalCurationStake);
-        // Update the amount of shares issued to Curator, and total amount issued
-        curators[msg.sender][_subgraphId].subgraphShares -= _tokenRefund;
-        subgraphs[_subgraphId].totalCurationShares -= _tokenRefund;
-        emit CurationNodeStaked(msg.sender, curators[msg.sender][_subgraphId].amountStaked);
+        require(curators[msg.sender][_subgraphId].amountStaked >= _tokenRefund);
+
+        // Keep track of whether this is a full logout
+        bool fullLogout = (curators[msg.sender][_subgraphId].amountStaked == _tokenRefund);
+
+        // Update the amount of tokens Curator has, and overall amount staked
+        curators[msg.sender][_subgraphId].amountStaked -= _tokenRefund;
+        subgraphs[_subgraphId].totalCurationStake -= _tokenRefund;
+
+        // Update the amount of shares Curator has, and overall amount of shares
+        curators[msg.sender][_subgraphId].subgraphShares -= _numShares;
+        subgraphs[_subgraphId].totalCurationShares -= _numShares;
+
+        if (fullLogout) {
+            // Emit the CurationNodeLogout event
+            emit CurationNodeLogout(msg.sender);
+        } else {
+            // Require that if not fully logging out, at least the minimum is kept staked
+            // TODO Validate the need for this requirement
+            require(curators[msg.sender][_subgraphId].amountStaked
+                        >= minimumCurationStakingAmount);
+
+            // Emit the CurationNodeStaked event (updating the running tally)
+            emit CurationNodeStaked(msg.sender, curators[msg.sender][_subgraphId].amountStaked);
+        }
     }
 
     /**
