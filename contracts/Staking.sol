@@ -177,6 +177,10 @@ contract Staking is Governed, TokenReceiver
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercent;
 
+    // Amount of seconds to wait until indexer can finalize stake logout
+    // @dev Cooling Period allows disputes to be processed during logout
+    uint256 public coolingPeriod;
+
     // Mapping subgraphId to list of addresses to Curators
     mapping (address => mapping (bytes32 => Curator)) public curators;
 
@@ -196,8 +200,6 @@ contract Staking is Governed, TokenReceiver
     // Graph Token address
     GraphToken public token;
 
-    /* CONSTANTS */
-    uint constant COOLING_PERIOD = 7 days; // TODO Governance parameter?
 
     /**
      * @dev Staking Contract Constructor
@@ -206,6 +208,7 @@ contract Staking is Governed, TokenReceiver
      */
     constructor (
         address _governor,
+        uint256 _coolingPeriod,
         address _token
     )
         public
@@ -215,6 +218,7 @@ contract Staking is Governed, TokenReceiver
         maximumIndexers = 10;
         minimumCurationStakingAmount = 100;  // Tokens
         minimumIndexingStakingAmount = 100;  // Tokens
+        coolingPeriod = _coolingPeriod;
         token = GraphToken(_token);
     }
 
@@ -277,6 +281,21 @@ contract Staking is Governed, TokenReceiver
         returns (bool success)
     {
         slashingPercent = _slashingPercent;
+        return true;
+    }
+
+    /**
+     * @dev Set the cooling period for indexer logout
+     * @param _coolingPeriod <uint256> - Number of seconds for cooling period
+     */
+    function updateCoolingPeriod (
+        uint256 _coolingPeriod
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
+        coolingPeriod = _coolingPeriod;
         return true;
     }
 
@@ -547,7 +566,7 @@ contract Staking is Governed, TokenReceiver
         external
     {
         require(
-            indexingNodes[msg.sender][_subgraphId].logoutStarted + COOLING_PERIOD >= block.timestamp
+            indexingNodes[msg.sender][_subgraphId].logoutStarted + coolingPeriod >= block.timestamp
         );
         uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
         delete indexingNodes[msg.sender][_subgraphId];
