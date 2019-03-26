@@ -83,7 +83,7 @@ contract Staking is Governed, TokenReceiver
         uint256 amountStaked
     );
 
-    event IndexingNodeLogOut (
+    event IndexingNodeLogout (
         address indexed staker
     );
 
@@ -554,7 +554,7 @@ contract Staking is Governed, TokenReceiver
         assert(_reward <= _value); // sanity check on fixed-point math
         token.transfer(governor, _value - _reward);
         token.transfer(_fisherman, _reward);
-        emit IndexingNodeLogOut(_indexer);
+        emit IndexingNodeLogout(_indexer);
     }
 
     /**
@@ -567,7 +567,7 @@ contract Staking is Governed, TokenReceiver
         require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
         indexingNodes[msg.sender][_subgraphId].logoutStarted = block.timestamp;
-        emit IndexingNodeLogOut(msg.sender);
+        emit IndexingNodeLogout(msg.sender);
     }
 
     /**
