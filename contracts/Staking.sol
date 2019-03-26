@@ -482,6 +482,10 @@ contract Staking is Governed, TokenReceiver
         require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount
                 > subgraphs[_subgraphId].totalCurationStake);
 
+        // If this subgraph hasn't been curated before, set the default reserve ratio
+        if (subgraphs[_subgraphId].totalCurationStake == 0)
+            subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
+
         // Obtain the amount of shares to buy with the amount of tokens to sell
         // according to the bonding curve
         uint256 _newShares = stakeToShares(_tokenAmount,
