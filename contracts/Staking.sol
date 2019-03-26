@@ -277,6 +277,9 @@ contract Staking is Governed, TokenReceiver
         onlyGovernance
         returns (bool success)
     {
+        // Reserve Ratio must be within 0% to 100% (exclusive)
+        require(_defaultReserveRatio > 0);
+        require(_defaultReserveRatio < 1000000);
         defaultReserveRatio = _defaultReserveRatio;
         return true;
     }
@@ -323,6 +326,9 @@ contract Staking is Governed, TokenReceiver
         onlyGovernance
         returns (bool success)
     {
+        // Slashing Percent must be within 0% to 100% (inclusive)
+        require(_slashingPercent >= 0);
+        require(_slashingPercent <= 1000000);
         slashingPercent = _slashingPercent;
         return true;
     }
