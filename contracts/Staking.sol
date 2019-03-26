@@ -131,6 +131,9 @@ contract Staking is Governed, TokenReceiver
         uint256 totalIndexers;
     }
 
+    /* ENUMS */
+    enum TokenReceiptAction { Staking, Curation, Dispute }
+
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
         bytes32 hash; // Note: Not future proof against IPFS planned updates to
@@ -349,20 +352,22 @@ contract Staking is Governed, TokenReceiver
 
         // Process _data to figure out the action to take (and which subgraph is involved)
         require(_data.length >= 1+32); // Must be at least 33 bytes
-        uint8 option = _data.slice(0, 1).toUint8(0);
+        TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
         bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
 
-        if (option == 1) {
-            // @imp c01 Handle internal call for Curation Staking
-            stakeGraphTokensForCuration(_subgraphId, _from, _value);
-        } else if (option == 0) {
+        if (option == TokenReceiptAction.Staking) {
             // Slice the rest of the data as indexing records
             bytes memory _indexingRecords = _data.slice(33, _data.length-33);
             // Ensure that the remaining data is parse-able for indexing records
             require(_indexingRecords.length % 32 == 0);
             // @imp i01 Handle internal call for Index Staking
             stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
-        } else if (option == 2) {
+        } else
+        if (option == TokenReceiptAction.Curation) {
+            // @imp c01 Handle internal call for Curation Staking
+            stakeGraphTokensForCuration(_subgraphId, _from, _value);
+        } else
+        if (option == TokenReceiptAction.Dispute) {
             require(_data.length == 33 + 229); // Attestation is 229 bytes
             // Convert to the Attestation struct (manually)
             Attestation memory _attestation;
