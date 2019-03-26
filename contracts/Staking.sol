@@ -208,6 +208,10 @@ contract Staking is Governed, TokenReceiver
      */
     constructor (
         address _governor,
+        uint256 _minimumCurationStakingAmount,
+        uint256 _minimumIndexingStakingAmount,
+        uint256 _maximumIndexers,
+        uint256 _slashingPercent,
         uint256 _coolingPeriod,
         address _token
     )
@@ -215,10 +219,12 @@ contract Staking is Governed, TokenReceiver
         Governed(_governor)
     {
         // Governance Parameter Defaults
-        maximumIndexers = 10;
-        minimumCurationStakingAmount = 100;  // Tokens
-        minimumIndexingStakingAmount = 100;  // Tokens
+        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
+        maximumIndexers = _maximumIndexers;
+        slashingPercent = _slashingPercent;
         coolingPeriod = _coolingPeriod;
+        arbitrator = governor;
         token = GraphToken(_token);
     }
 
