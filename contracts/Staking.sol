@@ -544,21 +544,6 @@ contract Staking is Governed, TokenReceiver
         emit IndexingNodeStaked(_indexer, indexingNodes[_indexer][_subgraphId].amountStaked);
     }
 
-    /**
-     * @dev Get the amount of fisherman reward for a given amount of stake
-     * @param _value <uint256> - Amount of validator's stake
-     * @return <uint256> - Percentage of validator's stake to be considered a reward
-     */
-    function getRewardForValue(
-        uint256 _value
-    )
-        public
-        view
-        returns (uint256)
-    {
-        return slashingPercent * _value / 1000000; // slashingPercent is in PPM
-    }
-
 
     /**
      * @dev Arbitrator contract can slash staked Graph Tokens in dispute
@@ -614,6 +599,21 @@ contract Staking is Governed, TokenReceiver
         subgraphs[_subgraphId].totalIndexingStake -= _value;
         subgraphs[_subgraphId].totalIndexers -= 1;
         assert(token.transfer(msg.sender, _value));
+    }
+
+    /**
+     * @dev Get the amount of fisherman reward for a given amount of stake
+     * @param _value <uint256> - Amount of validator's stake
+     * @return <uint256> - Percentage of validator's stake to be considered a reward
+     */
+    function getRewardForValue(
+        uint256 _value
+    )
+        public
+        view
+        returns (uint256)
+    {
+        return slashingPercent * _value / 1000000; // slashingPercent is in PPM
     }
 
     /**
