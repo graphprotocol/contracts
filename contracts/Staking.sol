@@ -332,9 +332,9 @@ contract Staking is Governed, TokenReceiver
             // Convert to the Attestation struct (manually)
             Attestation memory _attestation;
             _attestation.subgraphId = _data.slice(33+0, 32).toBytes32(0);
-            _attestation.requestCID.hash = _data.slice(33+32, 32);
+            _attestation.requestCID.hash = _data.slice(33+32, 32).toBytes32(0);
             _attestation.requestCID.hashFunction = _data.slice(33+64, 2).toUint16(0);
-            _attestation.responseCID.hash = _data.slice(33+66, 32);
+            _attestation.responseCID.hash = _data.slice(33+66, 32).toBytes32(0);
             _attestation.responseCID.hashFunction = _data.slice(33+98, 2).toUint16(0);
             _attestation.gasUsed = _data.slice(33+100, 32).toUint(0);
             _attestation.responseNumBytes = _data.slice(33+132, 32).toUint(0);
