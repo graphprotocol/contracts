@@ -653,6 +653,26 @@ contract Staking is Governed, TokenReceiver
 
         // Ensure that fisherman has posted at least that amount
         require(_amount >= getRewardForValue(_stake));
+        // NOTE: There is a potential for a front-running attack against a fisherman
+        //       by the indexing node if this were strictly equal to the amount of
+        //       reward that the fisherman were to expect. As a partial mitigation for
+        //       this, the fisherman can over-stake their bond. For every X amount that
+        //       the fisherman overstakes by, the staker would have to also up their
+        //       stake by the same proportion, and due to the reward being slasingPercent
+        //       of the total stake already, the amount the indexing node would have to
+        //       up their stake by would be a significant multiple of this increase.
+        //
+        //       As an example, if slashingPercent were 10%, and the indexer had staked
+        //       100 tokens, the minimum the fisherman would be required to stake is 10
+        //       tokens. If the fisherman staked 20 tokens instead on their dispute, the
+        //       indexing node would have to stake more than 100 tokens extra to front-
+        //       run their dispute and cancel it before it is created. This is a safety
+        //       factor of 10x for the fisherman. The smaller slashingPercent is, the
+        //       larger the multiple would be.
+        //
+        //       Due to this mechanic, this partial mitigation may be enough to defend
+        //       against this in practice until a better design is contructed that takes
+        //       this into account.
 
         // A fisherman can only open one dispute with a given indexing node
         // per subgraphId at a time
