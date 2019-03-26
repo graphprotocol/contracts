@@ -143,7 +143,7 @@ contract Staking is Governed, TokenReceiver
         uint256 gasUsed;
         uint256 responseNumBytes;
         // ECDSA vrs signature (using secp256k1)
-        uint256 v;
+        uint8 v;
         bytes32 r;
         bytes32 s;
     }
