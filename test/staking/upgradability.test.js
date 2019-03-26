@@ -3,32 +3,62 @@ const helpers = require('../lib/testHelpers')
 const GraphProtocol = require('../../graphProtocol.js')
 
 // contracts
+const GraphToken = artifacts.require("./GraphToken.sol")
 const Staking = artifacts.require("./Staking.sol")
 const MultiSigWallet = artifacts.require("./MultiSigWallet.sol")
 
-// test scope variables
-let deployedMultiSigWallet, deployedStaking, gp
+/** 
+ * testing constants
+ */
+const initialSupply = 1000000,
+  minimumCurationStakingAmount = 100,
+  defaultReserveRatio = 10,
+  minimumIndexingStakingAmount = 100,
+  maximumIndexers = 10,
+  slashingPercent = 10,
+  coolingPeriod = 7;
 
-contract('Staking (Upgradability)', accounts => {
+let deployedGraphToken, deployedMultiSigWallet, deployedStaking, gp
+
+contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
   
   before(async () => {
 
     // deploy the multisig contract
     deployedMultiSigWallet = await MultiSigWallet.new(
       accounts, // owners
-      1 // required confirmations
+      1, // required confirmations
+      { from: deployment }
     )
     assert.isObject(deployedMultiSigWallet, "Deploy MultiSigWallet contract.")
+    assert(web3.utils.isAddress(deployedMultiSigWallet.address), "MultiSigWallet address is address.")
+
+    // deploy GraphToken with multisig as governor
+    deployedGraphToken = await GraphToken.new(
+      deployedMultiSigWallet.address, // <address> governor
+      initialSupply, // <uint256> initialSupply
+      { from: deployment }
+    )
+    assert.isObject(deployedGraphToken, "Deploy GraphToken contract.")
+    assert(web3.utils.isAddress(deployedGraphToken.address), "GraphToken address is address.")
 
     // deploy a contract we can encode a transaction for
     deployedStaking = await Staking.new(
-      deployedMultiSigWallet.address, // governor
-      accounts[1] // token (mocked)
+      deployedMultiSigWallet.address, // <address> governor
+      web3.utils.asciiToHex(minimumCurationStakingAmount), // <uint256> minimumCurationStakingAmount
+      web3.utils.asciiToHex(defaultReserveRatio), // <uint256> defaultReserveRatio
+      web3.utils.asciiToHex(minimumIndexingStakingAmount), // <uint256> minimumIndexingStakingAmount
+      web3.utils.asciiToHex(maximumIndexers), // <uint256> maximumIndexers
+      web3.utils.asciiToHex(slashingPercent), // <uint256> slashingPercent
+      web3.utils.asciiToHex(coolingPeriod), // <uint256> coolingPeriod
+      deployedGraphToken.address, // <address> token
+      { from: deployment }
     )
     assert.isObject(deployedStaking, "Deploy Staking contract.")
 
     // init Graph Protocol JS library with deployed staking contract
     gp = GraphProtocol({
+      GraphToken: deployedGraphToken,
       Staking: deployedStaking,
       MultiSigWallet: deployedMultiSigWallet
     })
@@ -41,6 +71,7 @@ contract('Staking (Upgradability)', accounts => {
     // Submit a transaction to the mulitsig via graphProtocol.js
     const setMinimumCurationStakingAmount = await gp.governance.setMinimumCurationStakingAmount(
       100, // amount
+      accounts[0] // any multisigwallet owner can submit proposed transaction
     )
     assert.isObject(
       setMinimumCurationStakingAmount, 

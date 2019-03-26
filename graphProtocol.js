@@ -42,7 +42,7 @@
        * @dev Set the Minimum Staking Amount for Market Curators
        * @param {Number} minimumCurationStakingAmount Minimum amount allowed to be staked for Curation
        */
-      static setMinimumCurationStakingAmount(minimumCurationStakingAmount) {
+      static setMinimumCurationStakingAmount(minimumCurationStakingAmount, from) {
         // encode the transaction data to be sent to the multisig
         const txData = abiEncode(
           Staking.contract.methods.setMinimumCurationStakingAmount,
@@ -50,7 +50,7 @@
         )
         
         // submit the transaction to the multisig (where it is confirmed and executed)
-        return MultiSigWallet.submitTransaction(Staking.address, 0, txData)
+        return MultiSigWallet.submitTransaction(Staking.address, 0, txData, { from })
       }
   
     }
