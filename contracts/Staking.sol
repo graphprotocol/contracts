@@ -200,6 +200,12 @@ contract Staking is Governed, TokenReceiver
     // Graph Token address
     GraphToken public token;
 
+    /* MODIFIERS */
+    // Disputes management only can be settled by arbitrator
+    modifier onlyArbitrator {
+        require(msg.sender == arbitrator);
+        _;
+    }
 
     /**
      * @dev Staking Contract Constructor
@@ -646,7 +652,7 @@ contract Staking is Governed, TokenReceiver
         bytes32 _disputeId
     )
         external
-        onlyGovernance
+        onlyArbitrator
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
@@ -674,7 +680,7 @@ contract Staking is Governed, TokenReceiver
         bytes32 _disputeId
     )
         external
-        onlyGovernance
+        onlyArbitrator
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
