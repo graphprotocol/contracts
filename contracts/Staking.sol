@@ -635,6 +635,7 @@ contract Staking is Governed, TokenReceiver
     {
         // The signer of the attestation is the indexing node that served it
         bytes memory _rawAttestation = abi.encode(
+                    _attestation.subgraphId,
                     _attestation.requestCID.hash,
                     _attestation.requestCID.hashFunction,
                     _attestation.responseCID.hash,
