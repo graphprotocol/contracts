@@ -670,6 +670,7 @@ contract Staking is Governed, TokenReceiver
         token.transfer(_fisherman, _bond);
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
+        // TODO bond >= reward
         emit DisputeAccepted(_disputeId, _subgraphId, _indexingNode, _bond);
     }
 
@@ -688,7 +689,7 @@ contract Staking is Governed, TokenReceiver
         uint256 _bond = disputes[_disputeId].depositAmount;
         address _fisherman = disputes[_disputeId].fisherman;
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_amount > 0); // Check if this is a valid dispute
+        require(_bond > 0); // Check if this is a valid dispute
 
         // Slash the fisherman's bond and send to the governor
         delete disputes[_disputeId];
