@@ -127,10 +127,11 @@ contract Staking is Governed, TokenReceiver
         uint256 totalIndexers;
     }
 
-    // @dev Store 34 byte IPFS hash as 32 bytes
+    // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
-        bytes hash;
-        uint8 hashFunction;
+        bytes32 hash; // Note: Not future proof against IPFS planned updates to
+                      //       support multihash, which would require a len field
+        uint16 hashFunction; // 0x1220 is 'Qm', or SHA256 with 32 byte length
     }
 
     // @dev signed message sent from Indexing Node in response to a request
