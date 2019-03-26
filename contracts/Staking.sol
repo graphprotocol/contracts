@@ -570,10 +570,8 @@ contract Staking is Governed, TokenReceiver
         private
     {
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
-        require(
-            indexingNodes[_indexer][_subgraphId].amountStaked + _value
-                    >= minimumIndexingStakingAmount
-        ); // @imp i02
+        require(indexingNodes[_indexer][_subgraphId].amountStaked + _value
+                    >= minimumIndexingStakingAmount); // @imp i02
         if (indexingNodes[_indexer][_subgraphId].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_indexer][_subgraphId].amountStaked += _value;
@@ -601,9 +599,8 @@ contract Staking is Governed, TokenReceiver
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
-        require(
-            indexingNodes[msg.sender][_subgraphId].logoutStarted + coolingPeriod >= block.timestamp
-        );
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted + coolingPeriod
+                    >= block.timestamp);
         uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
         delete indexingNodes[msg.sender][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
