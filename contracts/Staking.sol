@@ -328,18 +328,19 @@ contract Staking is Governed, TokenReceiver
             // @imp i01 Handle internal call for Index Staking
             stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
         } else if (option == 2) {
-            require(_data.length == 33 + 269); // Attestation is 269 bytes
+            require(_data.length == 33 + 229); // Attestation is 229 bytes
             // Convert to the Attestation struct (manually)
             Attestation memory _attestation;
-            _attestation.requestCID.hash = _data.slice(33, 32);
-            _attestation.requestCID.hashFunction = _data.slice(65, 1).toUint8(0);
-            _attestation.responseCID.hash = _data.slice(66, 32);
-            _attestation.responseCID.hashFunction = _data.slice(98, 1).toUint8(0);
-            _attestation.gasUsed = _data.slice(99, 32).toUint(0);
-            _attestation.responseNumBytes = _data.slice(131, 32).toUint(0);
-            _attestation.v = _data.slice(163, 32).toUint(0);
-            _attestation.r = _data.slice(195, 32).toBytes32(0);
-            _attestation.s = _data.slice(237, 32).toBytes32(0);
+            _attestation.subgraphId = _data.slice(33+0, 32).toBytes32(0);
+            _attestation.requestCID.hash = _data.slice(33+32, 32);
+            _attestation.requestCID.hashFunction = _data.slice(33+64, 2).toUint16(0);
+            _attestation.responseCID.hash = _data.slice(33+66, 32);
+            _attestation.responseCID.hashFunction = _data.slice(33+98, 2).toUint16(0);
+            _attestation.gasUsed = _data.slice(33+100, 32).toUint(0);
+            _attestation.responseNumBytes = _data.slice(33+132, 32).toUint(0);
+            _attestation.v = _data.slice(33+164, 1).toUint8(0);
+            _attestation.r = _data.slice(33+165, 32).toBytes32(0);
+            _attestation.s = _data.slice(33+197, 32).toBytes32(0);
             // Inner call to createDispute
             createDispute(_attestation, _subgraphId, _from, _value);
         } else {
