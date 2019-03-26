@@ -656,20 +656,21 @@ contract Staking is Governed, TokenReceiver
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
-        uint256 _amount = disputes[_disputeId].depositAmount;
+        uint256 _bond = disputes[_disputeId].depositAmount;
         address _fisherman = disputes[_disputeId].fisherman;
         address _indexingNode = disputes[_disputeId].indexingNode;
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        require(_amount > 0); // Check if this is a valid dispute
+        require(_bond > 0); // Check if this is a valid dispute
 
         // Have staking slash the index node and reward the fisherman
         slashStake(_subgraphId, _indexingNode, _fisherman);
 
         // Give the fisherman their bond back too
         delete disputes[_disputeId];
-        token.transfer(_fisherman, _amount);
+        token.transfer(_fisherman, _bond);
 
-        emit DisputeAccepted(_disputeId, _subgraphId, _indexingNode, _amount);
+        // Log event that we awarded _fisherman _reward in resolving _disputeId
+        emit DisputeAccepted(_disputeId, _subgraphId, _indexingNode, _bond);
     }
 
     /**
@@ -684,15 +685,16 @@ contract Staking is Governed, TokenReceiver
         returns (bool success)
     {
         // Input validation, read storage for later (when deleted)
-        uint256 _amount = disputes[_disputeId].depositAmount;
+        uint256 _bond = disputes[_disputeId].depositAmount;
         address _fisherman = disputes[_disputeId].fisherman;
         bytes32 _subgraphId = disputes[_disputeId].subgraphId;
         require(_amount > 0); // Check if this is a valid dispute
 
-        // Slash the fisherman's bond and send to the governer
+        // Slash the fisherman's bond and send to the governor
         delete disputes[_disputeId];
-        token.transfer(governor, _amount);
+        token.transfer(governor, _bond);
 
-        emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _amount);
+        // Log event that we slashed _fisherman for _bond in resolving _disputeId
+        emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
     }
 }
