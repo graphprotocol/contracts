@@ -136,6 +136,8 @@ contract Staking is Governed, TokenReceiver
 
     // @dev signed message sent from Indexing Node in response to a request
     struct Attestation {
+        // TODO EIP-712 domain separator(s)
+
         // Application-specific domain separator
         // (ensure msgs for different subgraphs cannot be reused)
         bytes32 subgraphId;
