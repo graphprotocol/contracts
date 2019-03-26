@@ -680,18 +680,12 @@ contract Staking is Governed, TokenReceiver
         bytes32 _disputeId = keccak256(abi.encode(_rawAttestation, _subgraphId));
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
-        disputes[_disputeId] = Dispute(
-            _subgraphId,
-            _indexingNode,
-            _fisherman,
-            _amount
-        );
-        emit DisputeCreated(
-            _subgraphId,
-            _indexingNode,
-            _fisherman,
-            _disputeId
-        );
+        // Store dispute
+        disputes[_disputeId] =
+                Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
+
+        // Log event that new dispute was created against _indexingNode
+        emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId);
     }
 
     /**
