@@ -125,6 +125,7 @@ contract Staking is Governed, TokenReceiver
         uint256 logoutStarted;
     }
     struct Subgraph {
+        uint256 reserveRatio;
         uint256 totalCurationStake;
         uint256 totalCurationShares;
         uint256 totalIndexingStake;
@@ -174,6 +175,12 @@ contract Staking is Governed, TokenReceiver
     // Minimum amount allowed to be staked by Market Curators
     uint256 public minimumCurationStakingAmount;
 
+    // Default reserve ratio (for new subgraphs)
+    // Note: A subgraph that hasn't been curated yet sets it's reserve ratio to
+    //       this amount, which prevents changes from breaking the invariant
+    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public defaultReserveRatio;
+
     // Minimum amount allowed to be staked by Indexing Nodes
     uint256 public minimumIndexingStakingAmount;
 
@@ -222,6 +229,7 @@ contract Staking is Governed, TokenReceiver
     constructor (
         address _governor,
         uint256 _minimumCurationStakingAmount,
+        uint256 _defaultReserveRatio,
         uint256 _minimumIndexingStakingAmount,
         uint256 _maximumIndexers,
         uint256 _slashingPercent,
@@ -233,6 +241,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Governance Parameter Defaults
         minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+        defaultReserveRatio = _defaultReserveRatio;
         minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
         maximumIndexers = _maximumIndexers;
         slashingPercent = _slashingPercent;
@@ -254,6 +263,21 @@ contract Staking is Governed, TokenReceiver
         returns (bool success)
     {
         minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+        return true;
+    }
+
+    /**
+     * @dev Set the percent that the default reserve ratio is for new subgraphs
+     * @param _defaultReserveRatio <uint256> - Reserve ratio (in percent)
+     */
+    function updateDefaultReserveRatio (
+        uint256 _defaultReserveRatio
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
+        defaultReserveRatio = _defaultReserveRatio;
         return true;
     }
 
@@ -389,8 +413,6 @@ contract Staking is Governed, TokenReceiver
         success = true;
     }
 
-    uint constant RESERVE_RATIO = 10; // [percent] TODO governance parameter?
-
     /**
      * @dev Calculate number of shares that should be issued in return for
      *      staking of _purchaseAmount of tokens, along the given bonding curve
@@ -402,7 +424,8 @@ contract Staking is Governed, TokenReceiver
     function stakeToShares (
         uint256 _purchaseTokens,
         uint256 _currentTokens,
-        uint256 _currentShares
+        uint256 _currentShares,
+        uint256 _reserveRatio
     )
         public
         pure
@@ -410,7 +433,7 @@ contract Staking is Governed, TokenReceiver
     {
         issuedShares =
                 _purchaseTokens; // Linear with the amount of tokens purchased
-                //_currentShares * ((1 + _purchaseTokens / _currentTokens) ** RESERVE_RATIO - 1);
+                //_currentShares * ((1 + _purchaseTokens / _currentTokens) ** _reserveRatio - 1);
     }
 
     /**
@@ -424,7 +447,8 @@ contract Staking is Governed, TokenReceiver
     function sharesToStake (
         uint256 _returnedShares,
         uint256 _currentTokens,
-        uint256 _currentShares
+        uint256 _currentShares,
+        uint256 _reserveRatio
     )
         public
         pure
@@ -432,7 +456,7 @@ contract Staking is Governed, TokenReceiver
     {
         refundTokens =
                 _returnedShares; // Linear with the amount of shares returned
-                // _currentTokens * (1 - (1 - _returnedShares / _currentShares) ** (1 / RESERVE_RATIO));
+                // _currentTokens * (1 - (1 - _returnedShares / _currentShares) ** (1 / _reserveRatio));
     }
 
     /**
@@ -456,7 +480,8 @@ contract Staking is Governed, TokenReceiver
         // according to the bonding curve
         uint256 _newShares = stakeToShares(_tokenAmount,
                                            subgraphs[_subgraphId].totalCurationStake,
-                                           subgraphs[_subgraphId].totalCurationShares);
+                                           subgraphs[_subgraphId].totalCurationShares,
+                                           subgraphs[_subgraphId].reserveRatio);
 
         // Update the amount of tokens _curator has, and overall amount staked
         curators[_curator][_subgraphId].amountStaked += _tokenAmount;
@@ -492,7 +517,8 @@ contract Staking is Governed, TokenReceiver
         // according to the bonding curve
         uint256 _tokenRefund = sharesToStake(_numShares,
                                              subgraphs[_subgraphId].totalCurationStake,
-                                             subgraphs[_subgraphId].totalCurationShares);
+                                             subgraphs[_subgraphId].totalCurationShares,
+                                             subgraphs[_subgraphId].reserveRatio);
 
         // Underflow protection
         require(curators[msg.sender][_subgraphId].amountStaked >= _tokenRefund);
