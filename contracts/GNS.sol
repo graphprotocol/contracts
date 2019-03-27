@@ -47,7 +47,7 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event DomainAdded(string indexed domainHash, address indexed owner, string domainName);
+    event DomainAdded(bytes32 indexed domainHash, address indexed owner, string domainName);
     event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
     event SubgraphIdAdded(
         bytes32 indexed domainHash,
@@ -63,13 +63,13 @@ contract GNS is Governed {
     event SubgraphIdDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
 
     /* Structs */
-    struct DomainOwner {
+    struct Domain {
         address owner;
     }
 
     /* STATE VARIABLES */
-    // Storage of Hashed Domain Names mapped to their owners
-    mapping (bytes32 => DomainOwner) internal gnsDomains;
+    // Storage of a Hashed Domain Name mapped to its owner
+    mapping (bytes32 => Domain) internal gnsDomains;
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -90,7 +90,7 @@ contract GNS is Governed {
      */
     function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
         gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
-        emit DomainAdded(_domainName, _owner, _domainName);  // 3rd field will automatically be hashed by EVM
+        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), _owner, _domainName);  // 3rd field will automatically be hashed by EVM
     }
 
     /*
@@ -115,7 +115,7 @@ contract GNS is Governed {
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphId
     ) external onlyDomainOwner(_domainHash) {
-        emit SubgraphIdAdded(_domainHash, _subdomainName, _subdomainSubgraphId, _subdomainName); // 2nd field will automatically be hashed by EVM
+        emit SubgraphIdAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphId, _subdomainName); // 2nd field will automatically be hashed by EVM
     }
 
     /*
