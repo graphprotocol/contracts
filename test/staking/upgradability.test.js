@@ -55,6 +55,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
       { from: deployment }
     )
     assert.isObject(deployedStaking, "Deploy Staking contract.")
+    assert(web3.utils.isAddress(deployedStaking.address), "Staking address is address.")
 
     // init Graph Protocol JS library with deployed staking contract
     gp = GraphProtocol({

@@ -131,12 +131,24 @@
       /**
        * @dev Calculate number of shares that should be issued for the proportion
        *  of addedStake to totalStake based on a bonding curve 
-       * @param addedStake <uint256> - Amount being added
-       * @param totalStake <uint256> - Amount total after added is created
-       * @return issuedShares <uint256> - Amount of shares issued given the above input
+       * @param {uint256} purchaseTokens Amount of tokens being staked (purchase amount)
+       * @param {uint256} currentTokens Total amount of tokens currently in reserves
+       * @param {uint256} currentShares Total amount of current shares issued
+       * @param {uint256} reserveRatio Reserve ratio
+       * @returns {uint256} issuedShares Amount of shares issued given the above input
        */
-      static stakeToShares(addedStake, totalStake) {
-        return Staking.stakeToShares(addedStake, totalStake)
+      static stakeToShares(
+        purchaseTokens,
+        currentTokens,
+        currentShares,
+        reserveRatio
+      ) {
+        return Staking.stakeToShares(
+          purchaseTokens,
+          currentTokens,
+          currentShares,
+          reserveRatio
+        )
       }
 
       /**
