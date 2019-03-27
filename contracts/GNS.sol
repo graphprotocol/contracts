@@ -35,39 +35,40 @@ contract GNS is Governed {
     *
     * See: https://github.com/graphprotocol/specs/tree/master/data-model for details.
     *
+    * The SubgraphIds are emitted in events. Only the owners can emit this events
+    * This means SubgraphIds are not stored in this contract anywhere
+    * Therefore, subgraphIds are mapped to domain names only through events (see requirements below)
+    *
     * Requirements ("GNS" contract):
-    * req 01 Maps owners to domains
-    * req 02 Maps domain names to subgraphIds
-    * req 03 Maps subdomain names to domains of subgraphIds
-    * req 04 Event to emit human-readable names
+    * req 01 Maps domains to owners
+    * req 02 Emit events that connect domain names to subgraphIds
+    * req 03 Emit events that connect subdomain names to subgraphId
     * ...
     */
 
     /* Events */
-    event DomainAdded(string indexed domainHash, address indexed owner, string indexed domainName);
+    event DomainAdded(bytes32 indexed domainHash, address indexed owner, string domainName);
     event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
-    event SubdomainAdded(
+    event SubgraphIdAdded(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId,
         string subdomainName
     );
-    event SubdomainUpdated(
+    event SubgraphIdChanged(
         bytes32 indexed domainHash,
         bytes32 indexed subdomainHash,
         bytes32 indexed subdomainSubgraphId
     );
-    event SubdomainDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
+    event SubgraphIdDeleted(bytes32 indexed domainHash, bytes32 indexed subdomainHash);
 
     /* Structs */
     struct Domain {
         address owner;
     }
 
-    // The subgraph Id is the manifest which is hashed, these Ids are unique
-    // Domains which are also hashed are attached to subgraphIds
     /* STATE VARIABLES */
-    // Storage of Domain Names mapped to subgraphId's
+    // Storage of a Hashed Domain Name mapped to its owner
     mapping (bytes32 => Domain) internal gnsDomains;
 
     /* Contract Constructor */
@@ -81,58 +82,56 @@ contract GNS is Governed {
         _;
     }
     /*
-     * @notice Add a subgraphId and register owner
+     * @notice Register a Domain to an owner
      * @dev Only registrar may do this
      *
      * @param _domainName <string> - Domain name
      * @param _owner <address> - Address of domain owner
-     * @param _subgraphId <bytes32> - IPLD Hash of the subgraph manifest
      */
     function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
         gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
-        emit DomainAdded(_domainName, _owner, _domainName);
+        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), _owner, _domainName);  // 3rd field will automatically be hashed by EVM
     }
 
     /*
      * @notice Get the owner of an existing domain
      * @param _domainHash <bytes32> - Hash of the domain name
-     * @return owner <address> - Owner of the domain
-     * @return subgraphId <bytes32> - Id of the subgraph
      */
     function getDomainOwner (bytes32 _domainHash) external returns (address owner) {
         return gnsDomains[_domainHash].owner;
     }
 
     /*
-     * @notice Add a subdomain to the provided subgraphId
+     * @notice Register a subgraphId to a subdomain
+     * @notice To only register to the top level domain, pass _subdomainName as a blank string
      * @dev Only the domain owner may do this
      *
      * @param _domainHash <bytes32> - Hash of the domain name
      * @param _subdomainName <string> - Name of the Subdomain
      * @param _subdomainSubgraphId <bytes32> - IPLD SubgraphId of the subdomain
      */
-    function addSubdomain (
+    function addSubgraphToNewSubdomain (
         bytes32 _domainHash,
         string calldata _subdomainName,
         bytes32 _subdomainSubgraphId
     ) external onlyDomainOwner(_domainHash) {
-        emit SubdomainAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphId, _subdomainName);
+        emit SubgraphIdAdded(_domainHash, keccak256(abi.encodePacked(_subdomainName)), _subdomainSubgraphId, _subdomainName); // 2nd field will automatically be hashed by EVM
     }
 
     /*
-     * @notice Update an existing subdomain with a new subgraphId
+     * @notice Update an existing subdomain with a different subgraphId
      * @dev Only the domain owner may do this
      *
      * @param _domainHash <bytes32> - Hash of the domain name
      * @param _subdomainHash <bytes32> - Hash of the Name of the subdomain
      * @param _subdomainSubgraphId <bytes32> - IPLD SubgraphId of the subdomain
      */
-    function updateSubdomain (
+    function changeSubdomainSubgraphId (
         bytes32 _domainHash,
         bytes32 _subdomainHash,
         bytes32 _subdomainSubgraphId
     ) external onlyDomainOwner(_domainHash) {
-        emit SubdomainUpdated(_domainHash, _subdomainHash, _subdomainSubgraphId);
+        emit SubgraphIdChanged(_domainHash, _subdomainHash, _subdomainSubgraphId);
     }
 
     /*
@@ -143,7 +142,7 @@ contract GNS is Governed {
      * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
      */
     function deleteSubdomain (bytes32 _domainHash, bytes32 _subdomainHash) external onlyDomainOwner(_domainHash) {
-        emit SubdomainDeleted(_domainHash, _subdomainHash);
+        emit SubgraphIdDeleted(_domainHash, _subdomainHash);
     }
 
     /*
