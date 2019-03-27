@@ -45,12 +45,12 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     // deploy a contract we can encode a transaction for
     deployedStaking = await Staking.new(
       deployedMultiSigWallet.address, // <address> governor
-      web3.utils.asciiToHex(minimumCurationStakingAmount), // <uint256> minimumCurationStakingAmount
-      web3.utils.asciiToHex(defaultReserveRatio), // <uint256> defaultReserveRatio
-      web3.utils.asciiToHex(minimumIndexingStakingAmount), // <uint256> minimumIndexingStakingAmount
-      web3.utils.asciiToHex(maximumIndexers), // <uint256> maximumIndexers
-      web3.utils.asciiToHex(slashingPercent), // <uint256> slashingPercent
-      web3.utils.asciiToHex(coolingPeriod), // <uint256> coolingPeriod
+      minimumCurationStakingAmount, // <uint256> minimumCurationStakingAmount
+      defaultReserveRatio, // <uint256> defaultReserveRatio
+      minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
+      maximumIndexers, // <uint256> maximumIndexers
+      slashingPercent, // <uint256> slashingPercent
+      coolingPeriod, // <uint256> coolingPeriod
       deployedGraphToken.address, // <address> token
       { from: deployment }
     )
