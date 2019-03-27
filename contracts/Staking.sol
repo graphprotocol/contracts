@@ -425,6 +425,7 @@ contract Staking is Governed, TokenReceiver
      * @param _purchaseTokens <uint256> - Amount of tokens being staked (purchase amount)
      * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
      * @param _currentShares <uint256> - Total amount of current shares issued
+     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return issuedShares <uint256> - Amount of additional shares issued given the above
      */
     function stakeToShares (
@@ -448,6 +449,7 @@ contract Staking is Governed, TokenReceiver
      * @param _returnedShares <uint256> - Amount of shares being returned
      * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
      * @param _currentShares <uint256> - Total amount of current shares issued
+     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return refundTokens <uint256> - Amount of tokens to return given the above
      */
     function sharesToStake (
@@ -604,7 +606,7 @@ contract Staking is Governed, TokenReceiver
         external
     {
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted + coolingPeriod
-                    >= block.timestamp);
+                    <= block.timestamp);
         uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
         delete indexingNodes[msg.sender][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
