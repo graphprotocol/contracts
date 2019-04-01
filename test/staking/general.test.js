@@ -25,7 +25,7 @@ contract('Staking (General)', ([
     minimumIndexingStakingAmount = 100,
     maximumIndexers = 10,
     slashingPercent = 10,
-    coolingPeriod = 7,
+    thawingPeriod = 7,
     stakingAmount = 100
   let deployedStaking,
     deployedGraphToken,
@@ -48,7 +48,7 @@ contract('Staking (General)', ([
       minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
       maximumIndexers, // <uint256> maximumIndexers
       slashingPercent, // <uint256> slashingPercent
-      coolingPeriod, // <uint256> coolingPeriod
+      thawingPeriod, // <uint256> thawingPeriod
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )

@@ -16,7 +16,7 @@ const initialSupply = 1000000,
   minimumIndexingStakingAmount = 100,
   maximumIndexers = 10,
   slashingPercent = 10,
-  coolingPeriod = 7;
+  thawingPeriod = 7;
 
 let deployedGraphToken, deployedMultiSigWallet, deployedStaking, gp
 
@@ -50,7 +50,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
       minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
       maximumIndexers, // <uint256> maximumIndexers
       slashingPercent, // <uint256> slashingPercent
-      coolingPeriod, // <uint256> coolingPeriod
+      thawingPeriod, // <uint256> thawingPeriod
       deployedGraphToken.address, // <address> token
       { from: deployment }
     )

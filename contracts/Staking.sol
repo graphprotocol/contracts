@@ -28,7 +28,7 @@ pragma solidity ^0.5.2;
  * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
- *          been started and a cooling period has elapsed.
+ *          been started and a thawing period has elapsed.
  * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
  *          as their total amount remains more than minimumIndexingStakingAmount.
  *
@@ -191,9 +191,9 @@ contract Staking is Governed, TokenReceiver
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercent;
 
-    // Amount of seconds to wait until indexer can finalize stake logout
-    // @dev Cooling Period allows disputes to be processed during logout
-    uint256 public coolingPeriod;
+    // Amount of seconds to wait until indexer can finish stake logout
+    // @dev Thawing Period allows disputes to be processed during logout
+    uint256 public thawingPeriod;
 
     // Mapping subgraphId to list of addresses to Curators
     mapping (address => mapping (bytes32 => Curator)) public curators;
@@ -233,7 +233,7 @@ contract Staking is Governed, TokenReceiver
         uint256 _minimumIndexingStakingAmount,
         uint256 _maximumIndexers,
         uint256 _slashingPercent,
-        uint256 _coolingPeriod,
+        uint256 _thawingPeriod,
         address _token
     )
         public
@@ -245,7 +245,7 @@ contract Staking is Governed, TokenReceiver
         minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
         maximumIndexers = _maximumIndexers;
         slashingPercent = _slashingPercent;
-        coolingPeriod = _coolingPeriod;
+        thawingPeriod = _thawingPeriod;
         arbitrator = governor;
         token = GraphToken(_token);
     }
@@ -334,17 +334,17 @@ contract Staking is Governed, TokenReceiver
     }
 
     /**
-     * @dev Set the cooling period for indexer logout
-     * @param _coolingPeriod <uint256> - Number of seconds for cooling period
+     * @dev Set the thawing period for indexer logout
+     * @param _thawingPeriod <uint256> - Number of seconds for thawing period
      */
-    function updateCoolingPeriod (
-        uint256 _coolingPeriod
+    function updateThawingPeriod (
+        uint256 _thawingPeriod
     )
         external
         onlyGovernance
         returns (bool success)
     {
-        coolingPeriod = _coolingPeriod;
+        thawingPeriod = _thawingPeriod;
         return true;
     }
 
@@ -599,13 +599,13 @@ contract Staking is Governed, TokenReceiver
     }
 
     /**
-     * @dev Indexing node can finish the logout process after a cooling off period
+     * @dev Indexing node can finish the logout process after a thawing off period
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
-        require(indexingNodes[msg.sender][_subgraphId].logoutStarted + coolingPeriod
+        require(indexingNodes[msg.sender][_subgraphId].logoutStarted + thawingPeriod
                     <= block.timestamp);
         uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
         delete indexingNodes[msg.sender][_subgraphId];
