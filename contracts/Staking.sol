@@ -177,7 +177,14 @@ contract Staking is Governed, TokenReceiver
 
     // Default reserve ratio (for new subgraphs)
     // Note: A subgraph that hasn't been curated yet sets it's reserve ratio to
-    //       this amount, which prevents changes from breaking the invariant
+    //       this amount, which prevents changes from breaking the invariant. This
+    //       means that we cannot control active curation markets, only new ones.
+    // Note: In order to reset the reserveRatio of a subgraph to whatever this
+    //       number is updated to, the market must sell and buy-back all of it's
+    //       shares (taking advantage of the more attractive pricing). The trick
+    //       is to set this number conservatively at first, and narrow in on the
+    //       most optimal value, so that Curators are incentivized to perform this
+    //       "upgrade" against their shares.
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public defaultReserveRatio;
 
