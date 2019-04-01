@@ -162,6 +162,19 @@ contract Staking is Governed, TokenReceiver
         bytes32 r;
         bytes32 s;
     }
+    uint256 private constant ATTESTATION_SIZE_BYTES = 229;
+
+    // EIP-712 constants
+    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
+            "Attestation(bytes32 subgraphId,IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
+        );
+    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
+    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
+
+    // TODO: EIP-1344 adds support for the Chain ID opcode
+    //       Use that instead
+    uint256 private constant CHAIN_ID = 1; // Mainnet
 
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
@@ -405,19 +418,8 @@ contract Staking is Governed, TokenReceiver
             stakeGraphTokensForCuration(_subgraphId, _from, _value);
         } else
         if (option == TokenReceiptAction.Dispute) {
-            require(_data.length == 33 + 229); // Attestation is 229 bytes
-            // Convert to the Attestation struct (manually)
-            Attestation memory _attestation;
-            _attestation.subgraphId = _data.slice(33+0, 32).toBytes32(0);
-            _attestation.requestCID.hash = _data.slice(33+32, 32).toBytes32(0);
-            _attestation.requestCID.hashFunction = _data.slice(33+64, 2).toUint16(0);
-            _attestation.responseCID.hash = _data.slice(33+66, 32).toBytes32(0);
-            _attestation.responseCID.hashFunction = _data.slice(33+98, 2).toUint16(0);
-            _attestation.gasUsed = _data.slice(33+100, 32).toUint(0);
-            _attestation.responseNumBytes = _data.slice(33+132, 32).toUint(0);
-            _attestation.v = _data.slice(33+164, 1).toUint8(0);
-            _attestation.r = _data.slice(33+165, 32).toBytes32(0);
-            _attestation.s = _data.slice(33+197, 32).toBytes32(0);
+            require(_data.length == 33 + ATTESTATION_SIZE_BYTES);
+            bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
             // Inner call to createDispute
             createDispute(_attestation, _subgraphId, _from, _value);
         } else {
@@ -646,27 +648,42 @@ contract Staking is Governed, TokenReceiver
      * @notice Payable using Graph Tokens for deposit
      */
     function createDispute (
-        Attestation memory _attestation,
+        bytes memory _attestation,
         bytes32 _subgraphId,
         address _fisherman,
         uint256 _amount
     )
         private
     {
-        // The signer of the attestation is the indexing node that served it
-        bytes memory _rawAttestation = abi.encode(
-                    _attestation.subgraphId,
-                    _attestation.requestCID.hash,
-                    _attestation.requestCID.hashFunction,
-                    _attestation.responseCID.hash,
-                    _attestation.responseCID.hashFunction,
-                    _attestation.gasUsed,
-                    _attestation.responseNumBytes
-                );
-        address _indexingNode = ecrecover(
-                    keccak256(_rawAttestation), // Unsigned Message
-                    uint8(_attestation.v), _attestation.r, _attestation.s
-                );
+        // Double-check that subgraphId fisherman gave us matches the attestation
+        require(_subgraphId == _attestation.slice(0, 32).toBytes32(0));
+
+        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
+        bytes32 _disputeId = keccak256(abi.encode(
+                "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                keccak256(abi.encode( // EIP 712 domain separator
+                        DOMAIN_TYPE_HASH,
+                        DOMAIN_NAME_HASH,
+                        DOMAIN_VERSION_HASH,
+                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support, see above)
+                        this, // contract address
+                        bytes32(0) // Domain Salt (unused)
+                    )),
+                keccak256(abi.encode( // EIP 712-encoded message hash
+                        ATTESTATION_TYPE_HASH,
+                        _attestation.slice(0, ATTESTATION_SIZE_BYTES-65) // Everything except the signature
+                    ))
+            ));
+
+        // Decode the signature
+        (uint8 v, bytes32 r, bytes32 s) = abi.decode( // VRS signature components
+                _attestation.slice(ATTESTATION_SIZE_BYTES-65, 65), // just the signature
+                (uint8, bytes32, bytes32) // V, R, and S
+            );
+
+        // Obtain the signer of the fully-encoded EIP-712 message hash
+        // Note: The signer of the attestation is the indexing node that served it
+        address _indexingNode = ecrecover(_disputeId, v, r, s);
 
         // Get amount _indexingNode has staked (amountStaked is member 0)
         uint256 _stake = indexingNodes[_indexingNode][_subgraphId].amountStaked;
@@ -697,7 +714,6 @@ contract Staking is Governed, TokenReceiver
 
         // A fisherman can only open one dispute with a given indexing node
         // per subgraphId at a time
-        bytes32 _disputeId = keccak256(abi.encode(_rawAttestation, _subgraphId));
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
         // Store dispute
