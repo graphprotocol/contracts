@@ -41,7 +41,7 @@ pragma solidity ^0.5.2;
  * @req f01 A fisherman can provide a bond, a valid read request and an invalid read
  *          response which has been signed by a current indexing node to create a
  *          dispute.
- * @req f02 If the dispute is validated by arbitration, the fisherman should receive a
+ * @req f02 If the dispute is accepted by arbitration, the fisherman should receive a
  *          reward proportional to the amount staked by the indexing node.
  *
  * Dispute Arbitrator Requirements
