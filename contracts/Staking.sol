@@ -96,7 +96,8 @@ contract Staking is Governed, TokenReceiver
         bytes32 indexed _subgraphId,
         address indexed _indexingNode,
         address indexed _fisherman,
-        bytes32 _disputeId
+        bytes32 _disputeId,
+        bytes _attestation
     );
 
     // @dev Dispute was accepted, indexing node lost their stake
@@ -721,7 +722,7 @@ contract Staking is Governed, TokenReceiver
                 Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
 
         // Log event that new dispute was created against _indexingNode
-        emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId);
+        emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
     }
 
     /**
