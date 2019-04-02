@@ -450,9 +450,20 @@ contract Staking is Governed, TokenReceiver
         pure
         returns (uint256 issuedShares)
     {
-        issuedShares =
-                _purchaseTokens; // Linear with the amount of tokens purchased
-                //_currentShares * ((1 + _purchaseTokens / _currentTokens) ** _reserveRatio - 1);
+        assert(_purchaseTokens > 0); // Should always be true internal to this contract
+        assert(_currentTokens > 0); // Should always be true internal to this contract
+        assert(_currentShares > 0); // Should always be true internal to this contract
+        assert(_reserveRatio > 0); // Should always be true internal to this contract
+
+        // issuedShares = _currentShares *
+        //         ((1 + _purchaseTokens / _currentTokens) ** _reserveRatio - 1);
+
+        // Special case if reserveRatio is 100%
+        if (_reserveRatio == MAX_PPM) {
+            issuedShares = _currentShares * _purchaseTokens; // shares * tokens
+            assert(issuedShares / _currentShares == _purchaseTokens); // from SafeMath.mul()
+            return issuedShares / _currentTokens; // shares * tokens / supply
+        }
     }
 
     /**
@@ -474,9 +485,21 @@ contract Staking is Governed, TokenReceiver
         pure
         returns (uint256 refundTokens)
     {
-        refundTokens =
-                _returnedShares; // Linear with the amount of shares returned
-                // _currentTokens * (1 - (1 - _returnedShares / _currentShares) ** (1 / _reserveRatio));
+        assert(_currentTokens > 0); // Should always be true internal to this contract
+        assert(_returnedShares > 0); // Should always be true internal to this contract
+        assert(_currentShares > 0); // Should always be true internal to this contract
+        assert(_reserveRatio > 0); // Should always be true internal to this contract
+        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
+
+        // refundTokens = _currentTokens *
+        //         (1 - (1 - _returnedShares / _currentShares) ** (1 / _reserveRatio));
+
+        // Special case if reserveRatio is 100%
+        if (_reserveRatio == MAX_PPM) {
+            refundTokens = _currentTokens * _returnedShares; // supply * shares
+            assert(refundTokens / _currentTokens == _returnedShares); // from SafeMath.mul()
+            return refundTokens / _currentShares; // supply * shares / reserve
+        }
     }
 
     /**
