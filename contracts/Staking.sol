@@ -668,7 +668,7 @@ contract Staking is Governed, TokenReceiver
                         DOMAIN_VERSION_HASH,
                         CHAIN_ID, // (Change to block.chain_id after EIP-1344 support, see above)
                         this, // contract address
-                        bytes32(0) // Domain Salt (unused)
+                        _subgraphId // Domain Salt
                     )),
                 keccak256(abi.encode( // EIP 712-encoded message hash
                         ATTESTATION_TYPE_HASH,
