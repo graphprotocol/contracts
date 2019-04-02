@@ -19,6 +19,8 @@ pragma solidity ^0.5.2;
  * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
  *          as long as their total amount remains more than minimumCurationStakingAmount.
  * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
+ * @req c08 A Curator earns a proportion of any fees an Indexing Node would earn when a channel
+ *          settlement occurs for a given subgraphId.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -31,6 +33,8 @@ pragma solidity ^0.5.2;
  *          been started and a thawing period has elapsed.
  * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
  *          as their total amount remains more than minimumIndexingStakingAmount.
+ * @req i07 An Indexer earns a portion of all fees from the settlement a channel they were
+ *          involved in.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
@@ -121,8 +125,10 @@ contract Staking is Governed, TokenReceiver
         uint256 amountStaked;
         uint256 subgraphShares;
     }
+
     struct IndexingNode {
         uint256 amountStaked;
+        uint256 feesAccrued;
         uint256 logoutStarted;
     }
     struct Subgraph {
@@ -132,9 +138,6 @@ contract Staking is Governed, TokenReceiver
         uint256 totalIndexingStake;
         uint256 totalIndexers;
     }
-
-    /* ENUMS */
-    enum TokenReceiptAction { Staking, Curation, Dispute }
 
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
@@ -182,6 +185,9 @@ contract Staking is Governed, TokenReceiver
         address fisherman;
         uint256 depositAmount;
     }
+
+    /* ENUMS */
+    enum TokenReceiptAction { Staking, Curation, Dispute, Settlement }
 
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
@@ -425,6 +431,11 @@ contract Staking is Governed, TokenReceiver
             bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
             // Inner call to createDispute
             createDispute(_attestation, _subgraphId, _from, _value);
+        } else
+        if (option == TokenReceiptAction.Settlement) {
+            require(_data.length >= 33 + 20); // Header + _indexingNode
+            address _indexingNode = _data.slice(65, 20).toAddress(0);
+            distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
             revert();
         }
@@ -620,6 +631,7 @@ contract Staking is Governed, TokenReceiver
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted + thawingPeriod
                     <= block.timestamp);
         uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
+        _value += indexingNodes[msg.sender][_subgraphId].feesAccrued;
         delete indexingNodes[msg.sender][_subgraphId];
         subgraphs[_subgraphId].totalIndexingStake -= _value;
         subgraphs[_subgraphId].totalIndexers -= 1;
@@ -748,6 +760,7 @@ contract Staking is Governed, TokenReceiver
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
         uint256 _stake = indexingNodes[_indexer][_subgraphId].amountStaked;
+        uint256 _fees = indexingNodes[_indexer][_subgraphId].feesAccrued;
         assert(_stake > 0); // Ensure this is a valid staker (should always be true)
         uint256 _reward = getRewardForValue(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
@@ -759,7 +772,8 @@ contract Staking is Governed, TokenReceiver
         emit IndexingNodeLogout(_indexer);
 
         // Give governance the difference between the fisherman's reward and the total stake
-        token.transfer(governor, _stake - _reward); // TODO Burn or give to governance?
+        // plus the Indexing Node's accrued fees
+        token.transfer(governor, (_stake - _reward) + _fees); // TODO Burn or give to governance?
 
         // Give the fisherman their reward and bond back
         token.transfer(_fisherman, _reward + _bond);
@@ -791,5 +805,42 @@ contract Staking is Governed, TokenReceiver
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
+    }
+
+    /**
+     * @dev Distribute the channel fees to the given Indexing Node and all the Curators
+     *      for that subgraph. Curator fees are applied through bonding curve reserve ratio
+     *      adjustment (so that withdrawal of Curation stake includes the reward).
+     * @param _subgraphId <bytes32> - Subgraph that the fees were accrued for.
+     * @param _indexingNode <address> - Indexing Node that earned the fees.
+     * @param _feesEarned <uint256> - Total amount of fees earned.
+     */
+    function distributeChannelFees (
+        bytes32 _subgraphId,
+        address _indexingNode,
+        uint256 _feesEarned
+    )
+        private
+    {
+        // Give the indexing node their part of the fees
+        uint256 _curatorPortion = 0; // TODO: (curatorRewardPercent * _feesEarned) / MAX_PPM;
+        indexingNodes[msg.sender][_subgraphId].feesAccrued += _feesEarned - _curatorPortion;
+        // TODO: Update reserveRatio for subgraph to account for the _curatorPortion
+    }
+
+    /**
+     * @dev The Indexing Node can get all of their accrued fees for a subgraph at once.
+     *      Indexing Node would be able to log out all the fees they earned during a dispute.
+     * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
+     */
+    function withdrawFees (
+        bytes32 _subgraphId
+    )
+        external
+    {
+        uint256 _feesAccrued = indexingNodes[msg.sender][_subgraphId].feesAccrued;
+        require(_feesAccrued > 0);
+        indexingNodes[msg.sender][_subgraphId].feesAccrued = 0; // Re-entrancy protection
+        token.transfer(msg.sender, _feesAccrued);
     }
 }
