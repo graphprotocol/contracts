@@ -42,7 +42,7 @@
        * @dev Set the Minimum Staking Amount for Market Curators
        * @param {Number} minimumCurationStakingAmount Minimum amount allowed to be staked for Curation
        */
-      static setMinimumCurationStakingAmount(minimumCurationStakingAmount) {
+      static setMinimumCurationStakingAmount(minimumCurationStakingAmount, from) {
         // encode the transaction data to be sent to the multisig
         const txData = abiEncode(
           Staking.contract.methods.setMinimumCurationStakingAmount,
@@ -50,7 +50,7 @@
         )
         
         // submit the transaction to the multisig (where it is confirmed and executed)
-        return MultiSigWallet.submitTransaction(Staking.address, 0, txData)
+        return MultiSigWallet.submitTransaction(Staking.address, 0, txData, { from })
       }
   
     }
@@ -131,12 +131,24 @@
       /**
        * @dev Calculate number of shares that should be issued for the proportion
        *  of addedStake to totalStake based on a bonding curve 
-       * @param addedStake <uint256> - Amount being added
-       * @param totalStake <uint256> - Amount total after added is created
-       * @return issuedShares <uint256> - Amount of shares issued given the above input
+       * @param {uint256} purchaseTokens Amount of tokens being staked (purchase amount)
+       * @param {uint256} currentTokens Total amount of tokens currently in reserves
+       * @param {uint256} currentShares Total amount of current shares issued
+       * @param {uint256} reserveRatio Reserve ratio
+       * @returns {uint256} issuedShares Amount of shares issued given the above input
        */
-      static stakeToShares(addedStake, totalStake) {
-        return Staking.stakeToShares(addedStake, totalStake)
+      static stakeToShares(
+        purchaseTokens,
+        currentTokens,
+        currentShares,
+        reserveRatio
+      ) {
+        return Staking.stakeToShares(
+          purchaseTokens,
+          currentTokens,
+          currentShares,
+          reserveRatio
+        )
       }
 
       /**
