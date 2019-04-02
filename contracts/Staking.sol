@@ -123,7 +123,7 @@ contract Staking is Governed, TokenReceiver
     /* Structs */
     struct Curator {
         uint256 amountStaked;
-        uint256 subgraphShares;
+        uint256 subgraphShares; // In subgraph factory pattern, Subgraph Token Balance
     }
 
     struct IndexingNode {
@@ -131,10 +131,11 @@ contract Staking is Governed, TokenReceiver
         uint256 feesAccrued;
         uint256 logoutStarted;
     }
-    struct Subgraph {
+
+    struct Subgraph { // In subgraph factory pattern, these are just globals
         uint256 reserveRatio;
-        uint256 totalCurationStake;
-        uint256 totalCurationShares;
+        uint256 totalCurationStake; // Reserve token
+        uint256 totalCurationShares; // In subgraph factory pattern, Subgraph Token total supply
         uint256 totalIndexingStake;
         uint256 totalIndexers;
     }
@@ -410,9 +411,9 @@ contract Staking is Governed, TokenReceiver
         require(msg.sender == address(token));
 
         // Process _data to figure out the action to take (and which subgraph is involved)
-        require(_data.length >= 1+32); // Must be at least 33 bytes
+        require(_data.length >= 1+32); // Must be at least 33 bytes (Header)
         TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
-        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
+        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0); // In subgraph factory, not necessary
 
         if (option == TokenReceiptAction.Staking) {
             // Slice the rest of the data as indexing records
