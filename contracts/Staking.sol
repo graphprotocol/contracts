@@ -455,6 +455,7 @@ contract Staking is Governed, TokenReceiver
         assert(_currentShares > 0); // Should always be true internal to this contract
         assert(_reserveRatio > 0); // Should always be true internal to this contract
 
+        // Formula:
         // issuedShares = _currentShares *
         //         ((1 + _purchaseTokens / _currentTokens) ** _reserveRatio - 1);
 
@@ -464,6 +465,9 @@ contract Staking is Governed, TokenReceiver
             assert(issuedShares / _currentShares == _purchaseTokens); // from SafeMath.mul()
             return issuedShares / _currentTokens; // shares * tokens / supply
         }
+
+        // Ensure reserveRatio is in bounds
+        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
     }
 
     /**
@@ -489,8 +493,8 @@ contract Staking is Governed, TokenReceiver
         assert(_returnedShares > 0); // Should always be true internal to this contract
         assert(_currentShares > 0); // Should always be true internal to this contract
         assert(_reserveRatio > 0); // Should always be true internal to this contract
-        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
 
+        // Formula:
         // refundTokens = _currentTokens *
         //         (1 - (1 - _returnedShares / _currentShares) ** (1 / _reserveRatio));
 
@@ -500,6 +504,9 @@ contract Staking is Governed, TokenReceiver
             assert(refundTokens / _currentTokens == _returnedShares); // from SafeMath.mul()
             return refundTokens / _currentShares; // supply * shares / reserve
         }
+
+        // Ensure reserveRatio is in bounds
+        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
     }
 
     /**
