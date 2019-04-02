@@ -302,7 +302,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Reserve Ratio must be within 0% to 100% (exclusive)
         require(_defaultReserveRatio > 0);
-        require(_defaultReserveRatio < MAX_PPM);
+        require(_defaultReserveRatio <= MAX_PPM);
         defaultReserveRatio = _defaultReserveRatio;
         return true;
     }
