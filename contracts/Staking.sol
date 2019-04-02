@@ -240,6 +240,10 @@ contract Staking is Governed, TokenReceiver
         _;
     }
 
+    /* CONSTANTS */
+    // @dev 100% in parts per million.
+    uint256 private constant MAX_PPM = 1000000;
+
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
@@ -298,7 +302,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Reserve Ratio must be within 0% to 100% (exclusive)
         require(_defaultReserveRatio > 0);
-        require(_defaultReserveRatio < 1000000);
+        require(_defaultReserveRatio < MAX_PPM);
         defaultReserveRatio = _defaultReserveRatio;
         return true;
     }
@@ -347,7 +351,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Slashing Percent must be within 0% to 100% (inclusive)
         require(_slashingPercent >= 0);
-        require(_slashingPercent <= 1000000);
+        require(_slashingPercent <= MAX_PPM);
         slashingPercent = _slashingPercent;
         return true;
     }
@@ -634,7 +638,7 @@ contract Staking is Governed, TokenReceiver
         view
         returns (uint256)
     {
-        return slashingPercent * _value / 1000000; // slashingPercent is in PPM
+        return slashingPercent * _value / MAX_PPM; // slashingPercent is in PPM
     }
 
     /**
