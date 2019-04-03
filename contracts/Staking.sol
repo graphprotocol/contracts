@@ -764,10 +764,11 @@ contract Staking is Governed, TokenReceiver
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
         uint256 _stake = indexingNodes[_indexer][_subgraphId].amountStaked;
-        uint256 _fees = indexingNodes[_indexer][_subgraphId].feesAccrued;
         assert(_stake > 0); // Ensure this is a valid staker (should always be true)
         uint256 _reward = getRewardForValue(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
+        // Capture the fees that the indexer would've earned
+        uint256 _fees = indexingNodes[_indexer][_subgraphId].feesAccrued;
         delete indexingNodes[_indexer][_subgraphId]; // Re-entrancy protection
 
         // Remove Indexing Node from Subgraph's stakers
