@@ -818,8 +818,9 @@ contract Staking is Governed, TokenReceiver
 
     /**
      * @dev Distribute the channel fees to the given Indexing Node and all the Curators
-     *      for that subgraph. Curator fees are applied through bonding curve reserve ratio
-     *      adjustment (so that withdrawal of Curation stake includes the reward).
+     *      for that subgraph. Curator fees are applied through reserve balance increase
+     *      so every Curator logout will earn back more coins back per share, and shares
+     *      cost more to buy.
      * @param _subgraphId <bytes32> - Subgraph that the fees were accrued for.
      * @param _indexingNode <address> - Indexing Node that earned the fees.
      * @param _feesEarned <uint256> - Total amount of fees earned.
