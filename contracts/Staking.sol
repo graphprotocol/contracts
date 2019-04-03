@@ -19,8 +19,8 @@ pragma solidity ^0.5.2;
  * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
  *          as long as their total amount remains more than minimumCurationStakingAmount.
  * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
- * @req c08 A Curator earns a proportion of any fees an Indexing Node would earn when a channel
- *          settlement occurs for a given subgraphId.
+ * @req c08 Curation shares accrue 1 basis point per share of any fees an Indexing Node would
+ *          earn when a channel settlement occurs for a given subgraphId.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -833,7 +833,8 @@ contract Staking is Governed, TokenReceiver
         uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
         // Give the indexing node their part of the fees
         indexingNodes[msg.sender][_subgraphId].feesAccrued += (_feesEarned - _curatorPortion);
-        // TODO: Update reserveRatio for subgraph to account for the _curatorPortion
+        // Increase the token balance for the subgraph (each share gets more tokens when sold)
+        subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
     }
 
     /**
