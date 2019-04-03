@@ -635,15 +635,15 @@ contract Staking is Governed, TokenReceiver
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted + thawingPeriod
                     <= block.timestamp);
         // Return the amount the Indexing Node has staked
-        uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
-        // Decrement the total amount staked by the amount being returned
-        subgraphs[_subgraphId].totalIndexingStake -= _value;
-        subgraphs[_subgraphId].totalIndexers -= 1;
+        uint256 _stake = indexingNodes[msg.sender][_subgraphId].amountStaked;
         // Return any outstanding fees accrued the Indexing Node does not have yet
-        _value += indexingNodes[msg.sender][_subgraphId].feesAccrued;
+        uint256 _fees = indexingNodes[msg.sender][_subgraphId].feesAccrued;
         delete indexingNodes[msg.sender][_subgraphId]; // Re-entrancy protection
+        // Decrement the total amount staked by the amount being returned
+        subgraphs[_subgraphId].totalIndexingStake -= _stake;
+        subgraphs[_subgraphId].totalIndexers -= 1;
         // Send them all their funds back
-        assert(token.transfer(msg.sender, _value));
+        assert(token.transfer(msg.sender, _stake + _fees));
     }
 
     /**
