@@ -251,6 +251,9 @@ contract Staking is Governed, TokenReceiver
     // @dev 100% in parts per million.
     uint256 private constant MAX_PPM = 1000000;
 
+    // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
+    uint256 private constant BASIS_PT = 100;
+
     /**
      * @dev Staking Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
@@ -823,9 +826,13 @@ contract Staking is Governed, TokenReceiver
     )
         private
     {
+        // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
+        uint256 _curatorRewardBasisPts =
+                subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
+        assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
+        uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
         // Give the indexing node their part of the fees
-        uint256 _curatorPortion = 0; // TODO: (curatorRewardPercent * _feesEarned) / MAX_PPM;
-        indexingNodes[msg.sender][_subgraphId].feesAccrued += _feesEarned - _curatorPortion;
+        indexingNodes[msg.sender][_subgraphId].feesAccrued += (_feesEarned - _curatorPortion);
         // TODO: Update reserveRatio for subgraph to account for the _curatorPortion
     }
 
