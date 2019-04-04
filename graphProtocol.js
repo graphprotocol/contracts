@@ -197,7 +197,7 @@
        */
       static beginLogout(subgraphId, from) {
         return Staking.beginLogout(
-          web3.utils.hexToBytes('0x' + subgraphId), 
+          subgraphId,
           { from }
         )
       }
@@ -209,7 +209,7 @@
        */
       static finalizeLogout(subgraphId, from) {
         return Staking.finalizeLogout(
-          web3.utils.hexToBytes('0x' + subgraphId), 
+          subgraphId, 
           { from }
         )
       }
