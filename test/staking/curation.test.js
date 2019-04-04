@@ -1,3 +1,5 @@
+const { expectEvent } = require('openzeppelin-test-helpers');
+
 // contracts
 const GraphToken = artifacts.require("./GraphToken.sol")
 const Staking = artifacts.require("./Staking.sol")
@@ -107,6 +109,23 @@ contract('Staking (Curation)', ([
   })
 
   it('...should allow staking through JS module', async () => {
+    await stakeForCuration()
+  })
+
+  it('...should allow Curator to log out', async () => {
+    await stakeForCuration()
+
+    /** @dev Log out Curator */
+    const logOut = await gp.staking.curatorLogout(
+      subgraphIdBytes, // Subgraph ID the Curator is returning shares for
+      stakingAmount, // Amount of shares to return
+      curationStaker
+    )
+    expectEvent.inLogs(logOut.logs, 'CurationNodeLogout', { staker: curationStaker })
+  })
+
+  async function stakeForCuration() {
+    /** @dev Verify that balances are what we expect */
     let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
     let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
     assert(
@@ -114,14 +133,16 @@ contract('Staking (Curation)', ([
       totalBalance.toNumber() === 0,
       "Balances before transfer are correct."
     )
-
+  
+    /** @dev Stake some tokens for curation */
     const curationsStake = await gp.staking.stakeForCuration(
       subgraphIdHex, // subgraphId
       curationStaker, // from
       stakingAmount // value
     )
     assert(curationsStake, "Stake Graph Tokens for curation through module.")
-
+  
+    /** @dev Verify that balances are what we expect */
     const { amountStaked, subgraphShares } = await gp.staking.curators(
       curationStaker,
       subgraphIdBytes
@@ -131,7 +152,6 @@ contract('Staking (Curation)', ([
       subgraphShares.toNumber() > 0,
       "Staked curation amount confirmed."
     )
-
     totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
     curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
     assert(
@@ -139,9 +159,5 @@ contract('Staking (Curation)', ([
       totalBalance.toNumber() === stakingAmount,
       "Balances after transfer are correct."
     )
-  })
-
-  /**
-   * @todo Add tests for loggin out curators
-   */
+  }
 })
