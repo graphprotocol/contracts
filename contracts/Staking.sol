@@ -526,28 +526,49 @@ contract Staking is Governed, TokenReceiver
         require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount
                 > subgraphs[_subgraphId].totalCurationStake);
 
-        // If this subgraph hasn't been curated before, set the default reserve ratio
-        if (subgraphs[_subgraphId].totalCurationStake == 0)
+        // If this subgraph hasn't been curated before...
+        // NOTE: We have to do this to initialize the curve or else it has
+        //       a discontinuity and cannot be computed. This method ensures
+        //       that this doesn't occur, and also sets the initial slope for
+        //       the curve (controlled by minimumCurationStake)
+        if (subgraphs[_subgraphId].totalCurationStake == 0) {
+
+            // Additional pre-condition check
+            require(_tokenAmount >= minimumCurationStakingAmount);
+
+            // (Re)set the default reserve ratio to whatever governance has set
             subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
 
-        // Obtain the amount of shares to buy with the amount of tokens to sell
-        // according to the bonding curve
-        uint256 _newShares = stakeToShares(_tokenAmount,
-                                           subgraphs[_subgraphId].totalCurationStake,
-                                           subgraphs[_subgraphId].totalCurationShares,
-                                           subgraphs[_subgraphId].reserveRatio);
+            // The first share costs minimumCurationStake amount of tokens
+            curators[_curator][_subgraphId].subgraphShares = 1;
+            subgraphs[_subgraphId].totalCurationShares = 1;
+            curators[_curator][_subgraphId].amountStaked = minimumCurationStakingAmount;
+            subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
+            _tokenAmount -= minimumCurationStakingAmount;
+        }
 
-        // Update the amount of tokens _curator has, and overall amount staked
-        curators[_curator][_subgraphId].amountStaked += _tokenAmount;
-        subgraphs[_subgraphId].totalCurationStake += _tokenAmount;
+        if (_tokenAmount > 0) { // Corner case if only minimum is staked on first stake
+            // Obtain the amount of shares to buy with the amount of tokens to sell
+            // according to the bonding curve
+            uint256 _newShares =
+                    stakeToShares(_tokenAmount,
+                                  subgraphs[_subgraphId].totalCurationStake,
+                                  subgraphs[_subgraphId].totalCurationShares,
+                                  subgraphs[_subgraphId].reserveRatio);
 
-        // @imp c02 Ensure the minimum amount is staked
-        // TODO Validate the need for this requirement
-        require(curators[_curator][_subgraphId].amountStaked >= minimumCurationStakingAmount);
+            // Update the amount of tokens _curator has, and overall amount staked
+            curators[_curator][_subgraphId].amountStaked += _tokenAmount;
+            subgraphs[_subgraphId].totalCurationStake += _tokenAmount;
 
-        // Update the amount of shares issued to _curator, and total amount issued
-        curators[_curator][_subgraphId].subgraphShares += _newShares;
-        subgraphs[_subgraphId].totalCurationShares += _newShares;
+            // @imp c02 Ensure the minimum amount is staked
+            // TODO Validate the need for this requirement
+            require(curators[_curator][_subgraphId].amountStaked
+                    >= minimumCurationStakingAmount);
+
+            // Update the amount of shares issued to _curator, and total amount issued
+            curators[_curator][_subgraphId].subgraphShares += _newShares;
+            subgraphs[_subgraphId].totalCurationShares += _newShares;
+        }
 
         // Emit the CurationNodeStaked event (updating the running tally)
         emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
