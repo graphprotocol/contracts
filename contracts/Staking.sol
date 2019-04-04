@@ -67,8 +67,9 @@ pragma solidity ^0.5.2;
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "bytes/BytesLib.sol";
+import "./bancor/BancorFormula.sol";
 
-contract Staking is Governed, TokenReceiver
+contract Staking is Governed, TokenReceiver, BancorFormula
 {
     using BytesLib for bytes;
 
@@ -447,27 +448,13 @@ contract Staking is Governed, TokenReceiver
         uint256 _reserveRatio
     )
         public
-        pure
+        view
         returns (uint256 issuedShares)
     {
-        assert(_purchaseTokens > 0); // Should always be true internal to this contract
-        assert(_currentTokens > 0); // Should always be true internal to this contract
-        assert(_currentShares > 0); // Should always be true internal to this contract
-        assert(_reserveRatio > 0); // Should always be true internal to this contract
-
-        // Formula:
-        // issuedShares = _currentShares *
-        //         ((1 + _purchaseTokens / _currentTokens) ** _reserveRatio - 1);
-
-        // Special case if reserveRatio is 100%
-        if (_reserveRatio == MAX_PPM) {
-            issuedShares = _currentShares * _purchaseTokens; // shares * tokens
-            assert(issuedShares / _currentShares == _purchaseTokens); // from SafeMath.mul()
-            return issuedShares / _currentTokens; // shares * tokens / supply
-        }
-
-        // Ensure reserveRatio is in bounds
-        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
+        issuedShares = calculatePurchaseReturn(_currentShares,
+                                               _currentTokens,
+                                               uint32(_reserveRatio),
+                                               _purchaseTokens);
     }
 
     /**
@@ -486,27 +473,13 @@ contract Staking is Governed, TokenReceiver
         uint256 _reserveRatio
     )
         public
-        pure
+        view
         returns (uint256 refundTokens)
     {
-        assert(_currentTokens > 0); // Should always be true internal to this contract
-        assert(_returnedShares > 0); // Should always be true internal to this contract
-        assert(_currentShares > 0); // Should always be true internal to this contract
-        assert(_reserveRatio > 0); // Should always be true internal to this contract
-
-        // Formula:
-        // refundTokens = _currentTokens *
-        //         (1 - (1 - _returnedShares / _currentShares) ** (1 / _reserveRatio));
-
-        // Special case if reserveRatio is 100%
-        if (_reserveRatio == MAX_PPM) {
-            refundTokens = _currentTokens * _returnedShares; // supply * shares
-            assert(refundTokens / _currentTokens == _returnedShares); // from SafeMath.mul()
-            return refundTokens / _currentShares; // supply * shares / reserve
-        }
-
-        // Ensure reserveRatio is in bounds
-        assert(_reserveRatio < MAX_PPM); // Should always be true internal to this contract
+        refundTokens = calculateSaleReturn(_currentShares,
+                                           _currentTokens,
+                                           uint32(_reserveRatio),
+                                           _returnedShares);
     }
 
     /**
