@@ -145,11 +145,9 @@ contract Staking is Governed, TokenReceiver
 
     // @dev signed message sent from Indexing Node in response to a request
     struct Attestation {
-        // TODO EIP-712 domain separator(s)
-
         // Application-specific domain separator
         // (ensure msgs for different subgraphs cannot be reused)
-        bytes32 subgraphId;
+        bytes32 subgraphId; // Not necessary when subgraphs are factory pattern
         // Content Identifier for request message sent from user to indexing node
         IpfsHash requestCID; // Note: Message is located at the given IPFS content addr
         // Content Identifier for signed response message from indexing node
@@ -166,7 +164,7 @@ contract Staking is Governed, TokenReceiver
     uint256 private constant ATTESTATION_SIZE_BYTES = 229;
 
     // EIP-712 constants
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
             "Attestation(bytes32 subgraphId,IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
         );
@@ -667,8 +665,7 @@ contract Staking is Governed, TokenReceiver
                         DOMAIN_NAME_HASH,
                         DOMAIN_VERSION_HASH,
                         CHAIN_ID, // (Change to block.chain_id after EIP-1344 support, see above)
-                        this, // contract address
-                        _subgraphId // Domain Salt
+                        this // contract address
                     )),
                 keccak256(abi.encode( // EIP 712-encoded message hash
                         ATTESTATION_TYPE_HASH,
