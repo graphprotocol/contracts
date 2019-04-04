@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 import './interfaces/IBancorFormula.sol';
 import '../utility/SafeMath.sol';
 import '../utility/Utils.sol';
