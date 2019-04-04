@@ -1,11 +1,28 @@
 pragma solidity ^0.5.2;
-import './interfaces/IBancorFormula.sol';
 import '../utility/SafeMath.sol';
-import '../utility/Utils.sol';
 
-contract BancorFormula is IBancorFormula, Utils {
+contract BancorFormula {
     using SafeMath for uint256;
 
+	/** Added from 'bancor-contracts/utility/Utils.sol' **/
+    // verifies that an amount is greater than zero
+    modifier greaterThanZero(uint256 _amount) {
+        require(_amount > 0);
+        _;
+    }
+
+    // validates an address - currently only checks that it isn't null
+    modifier validAddress(address _address) {
+        require(_address != address(0));
+        _;
+    }
+
+    // verifies that the address is different than this contract address
+    modifier notThis(address _address) {
+        require(_address != address(this));
+        _;
+	}
+	/** Added from 'bancor-contracts/utility/Utils.sol' **/
 
     string public version = '0.3';
 
