@@ -108,30 +108,4 @@ contract('Staking (General)', ([
       assert(await gp.staking.arbitrator() === daoContract, "Arbitrator is set to governor.")
     })
   })
-
-  describe('public functions', () => {
-    describe('stakeToShares', () => {
-      it('...should return `issuedShares` from `stakeToShares`', async () => {
-        let stakeToAdd = 1
-        let totalStake = 0
-        const iterations = 9
-
-        for (let i = 0; i < iterations; i++) {
-          stakeToAdd = stakeToAdd * 2
-          totalStake += stakeToAdd
-          await testBondingCurve(stakeToAdd, totalStake, stakeToAdd)
-        }
-        
-        async function testBondingCurve(addedStake, totalStake, expected) {
-          const shares = await gp.staking.stakeToShares(
-            addedStake, // purchaseTokens,
-            totalStake, // currentTokens,
-            0, // currentShares,
-            expected, // reserveRatio
-          )
-          shares.should.be.bignumber.equal(String(expected))
-        }
-      })  
-    })
-  })
 })
