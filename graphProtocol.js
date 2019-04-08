@@ -213,6 +213,20 @@
           { from }
         )
       }
+
+      /**
+       * @dev Log out a staked Curator
+       * @param subgraphId <bytes32> - Subgraph ID the Curator is returning shares for
+       * @param numShares <uint256> - Amount of shares to return
+       * @param from <address> - Address of staking Curator
+       */
+      static curatorLogout (subgraphId, numShares, from) {
+        return Staking.curatorLogout(
+          subgraphId,
+          numShares,
+          { from }
+        )
+      }
     }
   
     /**
