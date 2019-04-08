@@ -19,6 +19,8 @@ pragma solidity ^0.5.2;
  * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
  *          as long as their total amount remains more than minimumCurationStakingAmount.
  * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
+ * @req c08 Curation shares accrue 1 basis point per share of any fees an Indexing Node would
+ *          earn when a channel settlement occurs for a given subgraphId.
  *
  * Indexer Requirements
  * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
@@ -31,6 +33,8 @@ pragma solidity ^0.5.2;
  *          been started and a thawing period has elapsed.
  * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
  *          as their total amount remains more than minimumIndexingStakingAmount.
+ * @req i07 An Indexer earns a portion of all fees from the settlement a channel they were
+ *          involved in.
  *
  * Slashing Requirements
  * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
@@ -119,22 +123,22 @@ contract Staking is Governed, TokenReceiver
     /* Structs */
     struct Curator {
         uint256 amountStaked;
-        uint256 subgraphShares;
+        uint256 subgraphShares; // In subgraph factory pattern, Subgraph Token Balance
     }
+
     struct IndexingNode {
         uint256 amountStaked;
+        uint256 feesAccrued;
         uint256 logoutStarted;
     }
-    struct Subgraph {
+
+    struct Subgraph { // In subgraph factory pattern, these are just globals
         uint256 reserveRatio;
-        uint256 totalCurationStake;
-        uint256 totalCurationShares;
+        uint256 totalCurationStake; // Reserve token
+        uint256 totalCurationShares; // In subgraph factory pattern, Subgraph Token total supply
         uint256 totalIndexingStake;
         uint256 totalIndexers;
     }
-
-    /* ENUMS */
-    enum TokenReceiptAction { Staking, Curation, Dispute }
 
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
@@ -182,6 +186,9 @@ contract Staking is Governed, TokenReceiver
         address fisherman;
         uint256 depositAmount;
     }
+
+    /* ENUMS */
+    enum TokenReceiptAction { Staking, Curation, Dispute, Settlement }
 
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
@@ -239,6 +246,13 @@ contract Staking is Governed, TokenReceiver
         require(msg.sender == arbitrator);
         _;
     }
+
+    /* CONSTANTS */
+    // @dev 100% in parts per million.
+    uint256 private constant MAX_PPM = 1000000;
+
+    // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
+    uint256 private constant BASIS_PT = 100;
 
     /**
      * @dev Staking Contract Constructor
@@ -298,7 +312,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Reserve Ratio must be within 0% to 100% (exclusive)
         require(_defaultReserveRatio > 0);
-        require(_defaultReserveRatio < 1000000);
+        require(_defaultReserveRatio <= MAX_PPM);
         defaultReserveRatio = _defaultReserveRatio;
         return true;
     }
@@ -347,7 +361,7 @@ contract Staking is Governed, TokenReceiver
     {
         // Slashing Percent must be within 0% to 100% (inclusive)
         require(_slashingPercent >= 0);
-        require(_slashingPercent <= 1000000);
+        require(_slashingPercent <= MAX_PPM);
         slashingPercent = _slashingPercent;
         return true;
     }
@@ -400,9 +414,9 @@ contract Staking is Governed, TokenReceiver
         require(msg.sender == address(token));
 
         // Process _data to figure out the action to take (and which subgraph is involved)
-        require(_data.length >= 1+32); // Must be at least 33 bytes
+        require(_data.length >= 1+32); // Must be at least 33 bytes (Header)
         TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
-        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
+        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0); // In subgraph factory, not necessary
 
         if (option == TokenReceiptAction.Staking) {
             // Slice the rest of the data as indexing records
@@ -421,6 +435,11 @@ contract Staking is Governed, TokenReceiver
             bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
             // Inner call to createDispute
             createDispute(_attestation, _subgraphId, _from, _value);
+        } else
+        if (option == TokenReceiptAction.Settlement) {
+            require(_data.length >= 33 + 20); // Header + _indexingNode
+            address _indexingNode = _data.slice(65, 20).toAddress(0);
+            distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
             revert();
         }
@@ -615,11 +634,16 @@ contract Staking is Governed, TokenReceiver
     {
         require(indexingNodes[msg.sender][_subgraphId].logoutStarted + thawingPeriod
                     <= block.timestamp);
-        uint256 _value = indexingNodes[msg.sender][_subgraphId].amountStaked;
-        delete indexingNodes[msg.sender][_subgraphId];
-        subgraphs[_subgraphId].totalIndexingStake -= _value;
+        // Return the amount the Indexing Node has staked
+        uint256 _stake = indexingNodes[msg.sender][_subgraphId].amountStaked;
+        // Return any outstanding fees accrued the Indexing Node does not have yet
+        uint256 _fees = indexingNodes[msg.sender][_subgraphId].feesAccrued;
+        delete indexingNodes[msg.sender][_subgraphId]; // Re-entrancy protection
+        // Decrement the total amount staked by the amount being returned
+        subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        assert(token.transfer(msg.sender, _value));
+        // Send them all their funds back
+        assert(token.transfer(msg.sender, _stake + _fees));
     }
 
     /**
@@ -634,7 +658,7 @@ contract Staking is Governed, TokenReceiver
         view
         returns (uint256)
     {
-        return slashingPercent * _value / 1000000; // slashingPercent is in PPM
+        return slashingPercent * _value / MAX_PPM; // slashingPercent is in PPM
     }
 
     /**
@@ -747,6 +771,8 @@ contract Staking is Governed, TokenReceiver
         assert(_stake > 0); // Ensure this is a valid staker (should always be true)
         uint256 _reward = getRewardForValue(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
+        // Capture the fees that the indexer would've earned
+        uint256 _fees = indexingNodes[_indexer][_subgraphId].feesAccrued;
         delete indexingNodes[_indexer][_subgraphId]; // Re-entrancy protection
 
         // Remove Indexing Node from Subgraph's stakers
@@ -755,7 +781,8 @@ contract Staking is Governed, TokenReceiver
         emit IndexingNodeLogout(_indexer);
 
         // Give governance the difference between the fisherman's reward and the total stake
-        token.transfer(governor, _stake - _reward); // TODO Burn or give to governance?
+        // plus the Indexing Node's accrued fees
+        token.transfer(governor, (_stake - _reward) + _fees); // TODO Burn or give to governance?
 
         // Give the fisherman their reward and bond back
         token.transfer(_fisherman, _reward + _bond);
@@ -787,5 +814,48 @@ contract Staking is Governed, TokenReceiver
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
+    }
+
+    /**
+     * @dev Distribute the channel fees to the given Indexing Node and all the Curators
+     *      for that subgraph. Curator fees are applied through reserve balance increase
+     *      so every Curator logout will earn back more coins back per share, and shares
+     *      cost more to buy.
+     * @param _subgraphId <bytes32> - Subgraph that the fees were accrued for.
+     * @param _indexingNode <address> - Indexing Node that earned the fees.
+     * @param _feesEarned <uint256> - Total amount of fees earned.
+     */
+    function distributeChannelFees (
+        bytes32 _subgraphId,
+        address _indexingNode,
+        uint256 _feesEarned
+    )
+        private
+    {
+        // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
+        uint256 _curatorRewardBasisPts =
+                subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
+        assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
+        uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
+        // Give the indexing node their part of the fees
+        indexingNodes[msg.sender][_subgraphId].feesAccrued += (_feesEarned - _curatorPortion);
+        // Increase the token balance for the subgraph (each share gets more tokens when sold)
+        subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
+    }
+
+    /**
+     * @dev The Indexing Node can get all of their accrued fees for a subgraph at once.
+     *      Indexing Node would be able to log out all the fees they earned during a dispute.
+     * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
+     */
+    function withdrawFees (
+        bytes32 _subgraphId
+    )
+        external
+    {
+        uint256 _feesAccrued = indexingNodes[msg.sender][_subgraphId].feesAccrued;
+        require(_feesAccrued > 0);
+        indexingNodes[msg.sender][_subgraphId].feesAccrued = 0; // Re-entrancy protection
+        token.transfer(msg.sender, _feesAccrued);
     }
 }
