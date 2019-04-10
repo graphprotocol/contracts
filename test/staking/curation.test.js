@@ -18,7 +18,7 @@ contract('Staking (Curation)', ([
    * testing constants & variables
    */
   const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 10,
+    defaultReserveRatio = 500000,
     minimumIndexingStakingAmount = 100,
     maximumIndexers = 10,
     slashingPercent = 10,
