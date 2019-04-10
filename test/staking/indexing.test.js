@@ -93,7 +93,7 @@ contract('Staking (Indexing)', ([
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         indexingStaker,
-        web3.utils.hexToBytes('0x' + subgraphIdHex)
+        subgraphIdBytes
       )
       assert(
         amountStaked.toNumber() === stakingAmount &&
@@ -128,7 +128,7 @@ contract('Staking (Indexing)', ([
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         indexingStaker,
-        web3.utils.hexToBytes('0x' + subgraphIdHex)
+        subgraphIdBytes
       )
       assert(
         amountStaked.toNumber() === stakingAmount &&
