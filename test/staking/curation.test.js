@@ -18,7 +18,7 @@ contract('Staking (Curation)', ([
    * testing constants & variables
    */
   const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 10,
+    defaultReserveRatio = 500000,
     minimumIndexingStakingAmount = 100,
     maximumIndexers = 10,
     slashingPercent = 10,
@@ -108,20 +108,18 @@ contract('Staking (Curation)', ([
     )
   })
 
-  it('...should allow staking through JS module', async () => {
-    await stakeForCuration()
-  })
-
   it('...should allow Curator to log out', async () => {
-    await stakeForCuration()
+    const subgraphShares = await stakeForCuration()
 
     /** @dev Log out Curator */
-    const logOut = await gp.staking.curatorLogout(
+    const logOut = await deployedStaking.curatorLogout(
       subgraphIdBytes, // Subgraph ID the Curator is returning shares for
-      stakingAmount, // Amount of shares to return
-      curationStaker
+      subgraphShares, // Amount of shares to return
+      { from: curationStaker }
     )
-    expectEvent.inLogs(logOut.logs, 'CurationNodeLogout', { staker: curationStaker })
+    expectEvent.inLogs(logOut.logs, 'CurationNodeLogout', 
+      { staker: curationStaker }
+    )
   })
 
   async function stakeForCuration() {
@@ -159,5 +157,7 @@ contract('Staking (Curation)', ([
       totalBalance.toNumber() === stakingAmount,
       "Balances after transfer are correct."
     )
+
+    return subgraphShares.toNumber()
   }
 })
