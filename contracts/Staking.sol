@@ -556,6 +556,11 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             // Update the amount of shares issued to _curator, and total amount issued
             curators[_curator][_subgraphId].subgraphShares += _newShares;
             subgraphs[_subgraphId].totalCurationShares += _newShares;
+
+            // Ensure curators cannot stake more than 100% in basis points
+            // Note: ensures that distributeChannelFees() does not revert
+            require(subgraphs[_subgraphId].totalCurationShares
+                    <= (MAX_PPM / BASIS_PT));
         }
 
         // Emit the CurationNodeStaked event (updating the running tally)
