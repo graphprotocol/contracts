@@ -21,7 +21,7 @@
     - `truffle compile` (compiles without deploying, local blockchain emulator not neccessary)
     - `truffle migrate [--reset] [--compile-all]` (deploys contracts to your local emulator or specified blockchain)
     - `truffle test` (runs tests)
-
+1. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
 ## Abstract
 This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
 (see: [PRD on Notion](https://www.notion.so/Hybrid-POC-Smart-Contracts-18646757d3644f73bf9fdfb2e98b93eb))
