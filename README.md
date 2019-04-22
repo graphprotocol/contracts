@@ -29,15 +29,18 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 ![Imgur](https://i.imgur.com/9uwiie1.png)
 
 
-## Primary Solidity Contracts
-1. [Graph DAO](./contracts/Governance.sol)
-1. [Graph Token](./contracts/GraphToken.sol)
-1. [Staking Contract](./contracts/Staking.sol)
-1. Payment Channel (not a contract)
-1. Minting Channel (not a contract)
-1. [Graph Name Service (GNS) Registry](./contracts/GNS.sol)
-1. [Dispute Resolution Contract](./contracts/DisputeManager.sol)
+## Graph Protocol Solidity Contracts
+1. [Graph Token Contract](./contracts/GraphToken.sol)
+1. [Staking / Dispute Resolution Contract](./contracts/Staking.sol)
+1. [Graph Name Service (GNS) Registry Contract](./contracts/GNS.sol)
 1. [Rewards Manager Contract](./contracts/RewardsManager.sol)
-1. [Service Registry](./contracts/ServiceRegistry.sol)
+1. [Service Registry Contract](./contracts/ServiceRegistry.sol)
+1. [Governance Contract](./contracts/Governed.sol)
+
+### Supporting Contracts
+1. [MultiSig Contract](./contracts/MultiSigWallet.sol) (by Gnosis)
+1. [Detailed, Mintable, Burnable ERC20 Token](./contracts/openzeppelin/) (by Open Zeppelin)
+1. [Bonding Curve Formulas](./contracts/bancor/) (by Bancor)
+1. [Solidity-Bytes-Utils Library](./installed_contracts/bytes/) (by ConsenSys)
 
 *[See ./contracts/README.md for full list of contracts](./contracts/)*
