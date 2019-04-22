@@ -5,6 +5,9 @@ const RewardsManager = artifacts.require("RewardsManager")
 const ServiceRegistry = artifacts.require("ServiceRegistry")
 const Staking = artifacts.require("Staking")
 
+/**
+ * @dev Parameters used in deploying the contracts.
+ */
 const initialSupply = 1000000, // total supply of Graph Tokens at time of deployment
   minimumCurationStakingAmount = 100, // minimum amount allowed to be staked by Market Curators
   defaultReserveRatio = 500000, // reserve ratio (percent as PPM)
