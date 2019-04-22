@@ -1,7 +1,7 @@
 # Graph Protocol Solidity Smart Contracts
 
-![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)
-![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)
+![Version Badge](https://img.shields.io/badge/version-1.0.0-lightgrey.svg)
+![WIP Badge](https://img.shields.io/badge/status-POC-blue.svg)
 [![Build Status](https://travis-ci.com/graphprotocol/contracts.svg?token=wbxCaTb68vuvzoN4HDgt&branch=master)](https://travis-ci.com/graphprotocol/contracts)
 
 **Authors**:
