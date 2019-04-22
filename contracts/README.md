@@ -8,8 +8,7 @@
 ### Graph Governance Contract ([Governed.sol](./Governed.sol))
 For now, the Governance contract, owned by the multisig, will serve as the DAO. Later we will have a DAO contract that manages voting and consensus on governance matters.
 - A multi-sig contract "governs" (owns) all upgradable contracts by inheriting the Governance contract and setting the `governor` in the upgradable contract's constructor.
-- Upgrades all upgradable Graph smart contracts
-- Sets all parameters which are allowed to be set via governance
+- The MultiSig contract, as`governor`, is able to set all parameters which are allowed to be changed via governance in all upgradable Graph smart contracts by encoding a proposed transaction and submitting it to the MultiSig to be confirmed. If the proposal is confirmed in the MultiSig contract, the transaction will be executed
 - Can be irreversibly replaced or upgraded on its own authority (i.e. can replace itself).
 
 ### Graph Token Contract ([GraphToken.sol](./GraphToken.sol))
