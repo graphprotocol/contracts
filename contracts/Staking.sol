@@ -707,7 +707,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         bytes32 _disputeId = keccak256(abi.encode(
-                "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                // HACK: Remove this line until eth_signTypedData is in common use
+                //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                "\x19Ethereum Signed Message:\n", 64, // 64 bytes (2 hashes)
+                // END HACK
                 keccak256(abi.encode( // EIP 712 domain separator
                         DOMAIN_TYPE_HASH,
                         DOMAIN_NAME_HASH,
