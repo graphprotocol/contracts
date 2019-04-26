@@ -150,9 +150,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     // @dev signed message sent from Indexing Node in response to a request
     struct Attestation {
-        // Application-specific domain separator
-        // (ensure msgs for different subgraphs cannot be reused)
-        bytes32 subgraphId; // Not necessary when subgraphs are factory pattern
         // Content Identifier for request message sent from user to indexing node
         IpfsHash requestCID; // Note: Message is located at the given IPFS content addr
         // Content Identifier for signed response message from indexing node
@@ -166,10 +163,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         bytes32 r;
         bytes32 s;
     }
-    uint256 private constant ATTESTATION_SIZE_BYTES = 229;
+    uint256 private constant ATTESTATION_SIZE_BYTES = 197;
 
     // EIP-712 constants
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
             "Attestation(bytes32 subgraphId,IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
         );
@@ -556,6 +553,11 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             // Update the amount of shares issued to _curator, and total amount issued
             curators[_curator][_subgraphId].subgraphShares += _newShares;
             subgraphs[_subgraphId].totalCurationShares += _newShares;
+
+            // Ensure curators cannot stake more than 100% in basis points
+            // Note: ensures that distributeChannelFees() does not revert
+            require(subgraphs[_subgraphId].totalCurationShares
+                    <= (MAX_PPM / BASIS_PT));
         }
 
         // Emit the CurationNodeStaked event (updating the running tally)
@@ -702,18 +704,22 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     )
         private
     {
-        // Double-check that subgraphId fisherman gave us matches the attestation
-        require(_subgraphId == _attestation.slice(0, 32).toBytes32(0));
-
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         bytes32 _disputeId = keccak256(abi.encode(
-                "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                // HACK: Remove this line until eth_signTypedData is in common use
+                //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                "\x19Ethereum Signed Message:\n", 64, // 64 bytes (2 hashes)
+                // END HACK
                 keccak256(abi.encode( // EIP 712 domain separator
                         DOMAIN_TYPE_HASH,
                         DOMAIN_NAME_HASH,
                         DOMAIN_VERSION_HASH,
-                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support, see above)
-                        this // contract address
+                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
+                        this, // contract address
+                        // Application-specific domain separator
+                        // Ensures msgs for different subgraphs cannot be reused
+                        // Note: Not necessary when subgraphs are factory pattern because of contract address
+                        _subgraphId // EIP-712 Salt
                     )),
                 keccak256(abi.encode( // EIP 712-encoded message hash
                         ATTESTATION_TYPE_HASH,
