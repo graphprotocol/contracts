@@ -22,7 +22,7 @@ contract('Staking (Indexing)', ([
     minimumIndexingStakingAmount = 100,
     maximumIndexers = 10,
     slashingPercent = 10,
-    coolingPeriod = 7
+    coolingPeriod = 60 * 60 * 24 * 7 // seconds
   let deployedStaking,
     deployedGraphToken,
     initialTokenSupply = 1000000,
