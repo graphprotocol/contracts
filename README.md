@@ -22,6 +22,7 @@
     - `truffle migrate [--reset] [--compile-all]` (deploys contracts to your local emulator or specified blockchain)
     - `truffle test` (runs tests)
 1. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
+
 ## Abstract
 This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
 (see: [PRD on Notion](https://www.notion.so/Hybrid-POC-Smart-Contracts-18646757d3644f73bf9fdfb2e98b93eb))
@@ -44,3 +45,13 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 1. [Solidity-Bytes-Utils Library](./installed_contracts/bytes/) (by ConsenSys)
 
 *[See ./contracts/README.md for full list of contracts](./contracts/)*
+
+## Requirement and Implementation Annotations
+Each contract includes docstring-like comments with requirements listed at the top of the file. 
+
+Example: `@req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.`
+
+Explanation: The `c01` denotes a section and number for the requirement. `c` in this case stands for `curation` and later in the contract we see `@req s01` used for a `staking` requirement.
+
+Farther down in the code you should see annotations for the implementation of each requirement written as `@imp c01` (and so on). This is meant to be a simple way of defining and matching requirements and their implementations.
+
