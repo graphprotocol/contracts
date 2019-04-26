@@ -18,7 +18,7 @@ contract('Rewards protection', ([
    * testing constants & variables
    */
   const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 500000,
+    defaultReserveRatio = 1000000, // 100%
     minimumIndexingStakingAmount = 100,
     maximumIndexers = 10,
     slashingPercent = 10,
@@ -26,13 +26,12 @@ contract('Rewards protection', ([
   let deployedStaking,
     deployedGraphToken,
     initialTokenSupply = 1000000,
-    stakingAmount = 10001, // 1 over the max staking amt
-    tokensMintedForStaker = stakingAmount * 10,
+    tokensMintedForStaker = 10001 * minimumCurationStakingAmount,
     subgraphIdHex = helpers.randomSubgraphIdHex(),
     subgraphIdBytes = helpers.randomSubgraphIdBytes(subgraphIdHex),
     gp
 
-  beforeEach(async () => {
+  before(async () => {
     // deploy GraphToken contract
     deployedGraphToken = await GraphToken.new(
       daoContract, // governor
@@ -71,7 +70,7 @@ contract('Rewards protection', ([
     assert.isObject(gp, "Initialize the Graph Protocol library.")
   })
 
-  it('...should not allow staking of more than 10,000 shares', async () => {
+  it('...should allow staking of 10,000 shares', async () => {
     let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
     let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
     assert(
@@ -80,10 +79,32 @@ contract('Rewards protection', ([
       "Balances before transfer are correct."
     )
 
+    // stake 10,000 shares
+    const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
+    const curationStake = await deployedGraphToken.transferWithData(
+      deployedStaking.address, // to
+      10000 * minimumCurationStakingAmount, // value
+      data, // data
+      { from: curationStaker }
+    )
+    assert(curationStake, "Stake Graph Tokens for curation.")
+    
+    // check balances
+    totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+    curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
+    assert(
+      curatorBalance.toNumber() === 100 && 
+      totalBalance.toNumber() === tokensMintedForStaker - curatorBalance.toNumber(),
+      "Balances after transfer are correct."
+    )
+  })
+
+  it('...should not allow staking 1 more than the existing 10,000 shares', async () => {
+    // stake 1 more share
     const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
     const curationStake = deployedGraphToken.transferWithData(
       deployedStaking.address, // to
-      stakingAmount, // value
+      1 * minimumCurationStakingAmount, // value
       data, // data
       { from: curationStaker }
     )
