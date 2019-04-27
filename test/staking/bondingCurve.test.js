@@ -62,8 +62,8 @@ const defaultParams = {
   reserveRatios: [ // PPM
     // 1000000, 
     // 900000, 
-    500000, 
-    // 100000,
+    // 500000, 
+    100000,
   ],
   purchaseCount: 1,
   purchaseAmount: minimumCurationStakingAmount,

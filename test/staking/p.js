@@ -20,31 +20,56 @@ function purchaseReturn(
   )
 }
 
-let a = 100 // payment amount
-let s = 1 // total shares
-let t = 100 // total tokens
-let r = 0.5 // ratio
-let p, n
+const _defaults = {
+  a: 100, // payment amount
+  s: 1, // total shares (start with 1 so we bypass first share scenario)
+  t: 100, // total tokens (from the first share)
+  r: 1000000, // ratio (in PPM)
+}
 
-p = [s, a, t, r]
-n = purchaseReturn(...p) // calc shares
-s += n // increase total shares
-t += a // increase total tokens
-a = a*2 // increase purchase amount
-console.log(p, n, s)
+let a, s, t, r // variables can be reset to _default values with `resetVars`
+let p // reusable/updatable array of `purchaseReturn` parameters as properties
+let n // shares returned from `purchaseReturn` function
 
-p = [s, a, t, r]
-n = purchaseReturn(...p) // calc shares
-s += n // increase total shares
-t += a // increase total tokens
-a = a*2 // increase purchase amount
-console.log(p, n, s)
+const resetVars = () => {
+  a = _defaults.a
+  s = _defaults.s
+  t = a
+  r = _defaults.r
+  p = null
+  n = null
+}
 
-p = [s, a, t, r]
-n = purchaseReturn(...p) // calc shares
-s += n // increase total shares
-t += a // increase total tokens
-a = a*2 // increase purchase amount
-console.log(p, n, s)
+const log = () => {
+  console.log(`Staking ${p[1]} tokens (against ${p[2]} existing tokens) returns ${n} shares (plus ${p[0]} previous total shares) for ${n + p[0]} total issued shares.`)
+}
+
+const purchaseShares = (iterations = 1) => {
+  for(let i = 0; i < iterations; i++ ) {
+    p = [s, a, t, r]
+    n = purchaseReturn(...p) // calc shares
+    s += n // increase total shares
+    t += a // increase total tokens
+    log()
+  }
+}
 
 
+/** runs some tests and log some staking... */
+
+resetVars()
+console.log(`First share purchased for ${a} tokens at ${parseInt((r/1000000) * 100)}% ratio`)
+
+a = a *10
+console.log(`\nTEST${s}: spend 10x "amount" in one purchase...`)
+purchaseShares()
+const onePurchase = s
+console.log(`RESULT: ${s} total shares received.`)
+
+resetVars()
+console.log(`\nTEST${s}: spend "amount" in 10x purchases...`)
+purchaseShares(10)
+const tenPurchases = s
+console.log(`RESULT: ${s} total shares received.`)
+
+console.log(`\n----\nRESULTS MATCH: ${onePurchase} === ${tenPurchases} : ${(onePurchase === tenPurchases)}`)
