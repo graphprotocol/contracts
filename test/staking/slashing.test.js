@@ -28,7 +28,7 @@ contract('Staking (Slashing)', ([
     domainTypeHash = web3.utils.sha3("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"),
     domainNameHash = web3.utils.sha3("Graph Protocol"),
     domainVersionHash = web3.utils.sha3("0.1"),
-    attestationTypeHash = web3.utils.sha3("Attestation(bytes32 subgraphId,IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"),
+    attestationTypeHash = web3.utils.sha3("Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"),
     attestationByteSize = 197
   let deployedStaking,
     deployedGraphToken,
