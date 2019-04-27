@@ -1,6 +1,7 @@
 module.exports = {
 
-    randomSubgraphIdHex: () => web3.utils.randomHex(32).substring(2),
+    randomSubgraphIdHex0x: () => web3.utils.randomHex(32),
+    randomSubgraphIdHex: (hex = web3.utils.randomHex(32)) => hex.substring(2),
     randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes('0x' + hex),
 
     // deprecated
