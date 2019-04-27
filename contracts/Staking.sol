@@ -168,7 +168,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     // EIP-712 constants
     bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-            "Attestation(bytes32 subgraphId,IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
+            "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
         );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
