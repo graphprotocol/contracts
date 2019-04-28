@@ -265,6 +265,7 @@ async function testBondingCurve(
 ) {
   let rtn = 0
   for (let r = 0; r < reserveRatios.length; r++) {
+    console.log(`\tCalculating at ${reserveRatios[r]/1000000} reserve ratio`)
     // reset vars for this ratio
     totalShares = _totalShares
     continuousShares = _continuousShares
@@ -296,6 +297,7 @@ async function iterateStakeToShares(
 ) {
   let rtn, lastReturn = 1
   for (let r = 0; r < reserveRatios.length; r++) {
+    console.log(`\tStaking at ${reserveRatios[r]/1000000} reserve ratio`)
     // reset vars for this ratio
     totalShares = _totalShares
     continuousShares = _continuousShares
@@ -308,6 +310,7 @@ async function iterateStakeToShares(
         console.error(new Error(`Price of shares has behaved unexpectedly.`))
         return false
       }
+      lastReturn = rtn
     }
   }
   return rtn
@@ -337,7 +340,7 @@ async function computeStakeToShares(_purchaseAmount, _reserveRatio, _stakingMeth
         continuousShares, // Total amount of current shares issued
         _reserveRatio // Reserve ratio
       ))
-      // console.log(`Staking ${_purchaseAmount} tokens (against ${reserveTokenBalance} existing tokens) returns ${shares} shares (plus ${continuousShares} previous total shares) for ${shares + continuousShares} total issued shares. (using ${_stakingMethod === gp.staking.stakeToShares ? 'SOL' : 'JS'})`)
+      // console.log(`\t  Staking ${_purchaseAmount} tokens (against ${reserveTokenBalance} existing tokens) returns ${shares} shares (plus ${continuousShares} previous total shares) for ${shares + continuousShares} total issued shares. (using ${_stakingMethod === gp.staking.stakeToShares ? 'SOL' : 'JS'})`)
       continuousShares += shares
       reserveTokenBalance += _purchaseAmount
       totalShares += shares
