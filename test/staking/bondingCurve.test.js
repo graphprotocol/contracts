@@ -60,10 +60,10 @@ const defaultParams = {
   continuousShares: 1, 
   reserveTokenBalance: minimumIndexingStakingAmount, 
   reserveRatios: [ // PPM
-    // 1000000, 
-    // 900000, 
-    // 500000, 
-    100000,
+    1000000, // 100%
+    900000, // 90%
+    500000, // 50%
+    100000, // 10%
   ],
   purchaseCount: 1,
   purchaseAmount: minimumCurationStakingAmount,
@@ -119,58 +119,9 @@ contract('Staking (Bonding Curve)', ([
   })
 
   describe('purchaseReturn formula', () => {
-    it('...should calculate shares expected from `stakeToShares`', async () => {
-      const testingFactor = 10
+    it('...should calculate shares expected from `purchaseReturn` formula', async () => {
 
-      /**
-       * stake X * `testingFactor` tokens in 1 transaction
-       */
-      // set vars
-      resetBondingParams()
-      purchaseAmount = minimumCurationStakingAmount*testingFactor
-      // run test
-      const oneTransaction = await testBondingCurve(
-        totalShares,
-        continuousShares, 
-        reserveTokenBalance, 
-        purchaseCount,
-        purchaseAmount
-      )
-
-      /**
-       * stake X tokens in `testingFactor` transactions
-       */
-      // set vars
-      resetBondingParams()
-      purchaseCount = testingFactor
-      // run test
-      const multipleTransactions = await testBondingCurve(
-        totalShares,
-        continuousShares, 
-        reserveTokenBalance, 
-        purchaseCount,
-        purchaseAmount
-      )
-
-      console.log({ oneTransaction, multipleTransactions, pass: oneTransaction == multipleTransactions })
-      // Assert totalShares ≈ totalSharesReceived (1X1000 ≈ (testingFactorx100 +/- variance))
-      assert.closeTo(
-        oneTransaction,
-        multipleTransactions,
-        ((oneTransaction + multipleTransactions) /2) * variancePercentage
-      )
-    })
-
-    it('...should return expected amount of shares from `stakeToShares', async () => {
-      /**
-       * @notice We are testing multiple staking transactions to test the variable parameters
-       *  of the bonding curve as they influence the calculated results. (purchaseCount = 10)
-       */
-
-      // Reset / set bonding params
-      resetBondingParams()
-      purchaseCount = 2
-      // Calculate expected value of shares
+      // calculate expected shares using `purchseReturn` formula
       const expectedShares = await testBondingCurve(
         totalShares,
         continuousShares, 
@@ -179,11 +130,93 @@ contract('Staking (Bonding Curve)', ([
         purchaseAmount
       )
       assert(typeof expectedShares === 'number', "Purchase Return is a number.")
+    })
 
+    // it('...should calculate shares expected from `stakeToShares`', async () => {
+    //   const testingFactor = 10
+
+    //   /**
+    //    * stake X * `testingFactor` tokens in 1 transaction
+    //    */
+    //   // set vars
+    //   resetBondingParams()
+    //   purchaseAmount = minimumCurationStakingAmount*testingFactor
+    //   // run test
+    //   const oneTransaction = await testBondingCurve(
+    //     totalShares,
+    //     continuousShares, 
+    //     reserveTokenBalance, 
+    //     purchaseCount,
+    //     purchaseAmount
+    //   )
+
+    //   /**
+    //    * stake X tokens in `testingFactor` transactions
+    //    */
+    //   // set vars
+    //   resetBondingParams()
+    //   purchaseCount = testingFactor
+    //   // run test
+    //   const multipleTransactions = await testBondingCurve(
+    //     totalShares,
+    //     continuousShares, 
+    //     reserveTokenBalance, 
+    //     purchaseCount,
+    //     purchaseAmount
+    //   )
+
+    //   console.log({ oneTransaction, multipleTransactions, pass: oneTransaction == multipleTransactions })
+    //   // Assert totalShares ≈ totalSharesReceived (1X1000 ≈ (testingFactorx100 +/- variance))
+    //   assert.closeTo(
+    //     oneTransaction,
+    //     multipleTransactions,
+    //     ((oneTransaction + multipleTransactions) /2) * variancePercentage
+    //   )
+    // })
+
+    // it('...should return expected amount of shares from `stakeToShares`', async () => {
+    //   /**
+    //    * @notice We are testing multiple staking transactions to test the variable parameters
+    //    *  of the bonding curve as they influence the calculated results. (purchaseCount = 10)
+    //    */
+
+    //   // Reset / set bonding params
+    //   resetBondingParams()
+    //   purchaseCount = 2
+    //   // Calculate expected value of shares
+    //   const expectedShares = await testBondingCurve(
+    //     totalShares,
+    //     continuousShares, 
+    //     reserveTokenBalance, 
+    //     purchaseCount,
+    //     purchaseAmount
+    //   )
+    //   assert(typeof expectedShares === 'number', "Purchase Return is a number.")
+
+    //   // Reset / set bonding params
+    //   resetBondingParams()
+    //   purchaseCount = 2
+    //   // Call contract for returned value of shares
+    //   let stakeToShares = await iterateStakeToShares(
+    //     totalShares,
+    //     continuousShares, 
+    //     reserveTokenBalance, 
+    //     purchaseCount,
+    //     purchaseAmount
+    //   )
+    //   assert(typeof stakeToShares === 'number', "Stake to Shares is a number.")
+    //   assert.closeTo(
+    //     stakeToShares,
+    //     expectedShares,
+    //     ((stakeToShares + expectedShares) /2) * variancePercentage
+    //   )
+    //   console.log({ stakeToShares, expectedShares, pass: stakeToShares == expectedShares })
+    // }) 
+
+    it('...should return number of shares from `stakeToShares`', async () => {
       // Reset / set bonding params
       resetBondingParams()
-      purchaseCount = 2
-      // Call contract for returned value of shares
+      // Call contract for returned number of shares
       let stakeToShares = await iterateStakeToShares(
         totalShares,
         continuousShares, 
@@ -192,13 +225,26 @@ contract('Staking (Bonding Curve)', ([
         purchaseAmount
       )
       assert(typeof stakeToShares === 'number', "Stake to Shares is a number.")
-      assert.closeTo(
-        stakeToShares,
-        expectedShares,
-        ((stakeToShares + expectedShares) /2) * variancePercentage
+    })
+
+    it('...should return diminishing number shares from `stakeToShares` in 10 transactions', async () => {
+      // Reset / set bonding params
+      resetBondingParams()
+      // Call contract for returned number of shares
+      let stakeToShares = await iterateStakeToShares(
+        totalShares,
+        continuousShares, 
+        reserveTokenBalance, 
+        10,
+        purchaseAmount,
+        true // test diminishing return
       )
-      console.log({ stakeToShares, expectedShares, pass: stakeToShares == expectedShares })
-    }) 
+      assert(typeof stakeToShares === 'number', "Stake to Shares is a number.")
+    })
+
+    // it("...should print some purchaseFormula logging", () => {
+    //   require('./bondingCurveFormula.js')
+    // })
   })
 })
 
@@ -217,57 +263,19 @@ async function testBondingCurve(
   _purchaseCount,
   _purchaseAmount
 ) {
-  // console.log('testBondingCurve', {
-  //   _totalShares,
-  //   _continuousShares, 
-  //   _reserveTokenBalance, 
-  //   _purchaseCount,
-  //   _purchaseAmount
-  // })
   let rtn = 0
   for (let r = 0; r < reserveRatios.length; r++) {
     // reset vars for this ratio
     totalShares = _totalShares
     continuousShares = _continuousShares
     reserveTokenBalance = _reserveTokenBalance
-    
     // make purchases for this ratio
     for (let p = 0; p < _purchaseCount; p++) {
       const shares = await computeStakeToShares(_purchaseAmount, reserveRatios[r], purchaseReturn)
       rtn += shares
-      console.log({ shares, rtn, continuousShares })
     }
   }
   return rtn
-}
-
-/**
- * @dev Mock a purchase of Shares
- * @param {uint256} _purchaseAmount 
- * @param {uint256} _reserveRatio 
- */
-function mockSharesPurchase(_purchaseAmount, _reserveRatio) {
-  let sharesReturned = 0
-  const firstStake = !continuousShares
-  if (firstStake) {
-    continuousShares = 1
-    reserveTokenBalance = minimumCurationStakingAmount
-    _purchaseAmount -= minimumCurationStakingAmount
-    sharesReturned = totalShares = 1
-  }
-  if (_purchaseAmount > 0) {
-    const shares = parseInt(purchaseReturn(
-      continuousShares, 
-      _purchaseAmount, 
-      reserveTokenBalance, 
-      _reserveRatio
-    ))
-    continuousShares += shares
-    reserveTokenBalance += _purchaseAmount
-    totalShares += shares
-    sharesReturned += shares
-  }
-  return sharesReturned
 }
 
 /**
@@ -283,9 +291,10 @@ async function iterateStakeToShares(
   _continuousShares, 
   _reserveTokenBalance, 
   _purchaseCount,
-  _purchaseAmount
+  _purchaseAmount,
+  _affirmTokenPriceIncrease
 ) {
-  let rtn
+  let rtn, lastReturn = 1
   for (let r = 0; r < reserveRatios.length; r++) {
     // reset vars for this ratio
     totalShares = _totalShares
@@ -295,38 +304,13 @@ async function iterateStakeToShares(
     // make purchases for this ratio
     for (let p = 0; p < _purchaseCount; p++) {
       rtn = await computeStakeToShares(_purchaseAmount, reserveRatios[r])
+      if (_affirmTokenPriceIncrease && rtn > lastReturn) {
+        console.error(new Error(`Price of shares has behaved unexpectedly.`))
+        return false
+      }
     }
   }
   return rtn
-}
-
-/**
- * @dev Calculate stakeToshares
- * @param {uint256} _purchaseAmount 
- * @param {uint256} _reserveRatio 
- */
-async function getStakeToShares(_purchaseAmount, _reserveRatio) {
-  let sharesReturned = 0
-  const firstStake = !continuousShares
-  if (firstStake) {
-    continuousShares = 1
-    reserveTokenBalance = minimumCurationStakingAmount
-    _purchaseAmount -= minimumCurationStakingAmount
-    sharesReturned = totalShares = 1
-  }
-  if (_purchaseAmount > 0) {
-    const shares = parseInt(await gp.staking.stakeToShares(
-      _purchaseAmount, // Amount of tokens being staked (purchase amount)
-      reserveTokenBalance, // Total amount of tokens currently in reserves
-      continuousShares, // Total amount of current shares issued
-      _reserveRatio // Reserve ratio
-    ))
-    continuousShares += shares
-    reserveTokenBalance += _purchaseAmount
-    totalShares += shares
-    sharesReturned += shares
-  }
-  return sharesReturned
 }
 
 /**
@@ -337,13 +321,6 @@ async function getStakeToShares(_purchaseAmount, _reserveRatio) {
  */
 async function computeStakeToShares(_purchaseAmount, _reserveRatio, _stakingMethod ) {
   try {
-    // console.log('computeStakeToShares IN', {
-    //   totalShares,
-    //   continuousShares, 
-    //   reserveTokenBalance, 
-    //   _purchaseAmount,
-    //   useContract: _stakingMethod === purchaseReturn
-    // })
     if (!_stakingMethod) _stakingMethod = gp.staking.stakeToShares
     let sharesReturned = 0
     const firstStake = !continuousShares
@@ -360,45 +337,37 @@ async function computeStakeToShares(_purchaseAmount, _reserveRatio, _stakingMeth
         continuousShares, // Total amount of current shares issued
         _reserveRatio // Reserve ratio
       ))
-      // console.log({
-      //   firstStake,
-      //   shares,
-      //   continuousShares,
-      //   newContinuousShares: continuousShares + shares,
-      //   reserveTokenBalance,
-      //   newReserveTokenBalance: reserveTokenBalance + _purchaseAmount,
-      //   sharesReturned,
-      //   newSharesReturned: sharesReturned + shares
-      // })
+      // console.log(`Staking ${_purchaseAmount} tokens (against ${reserveTokenBalance} existing tokens) returns ${shares} shares (plus ${continuousShares} previous total shares) for ${shares + continuousShares} total issued shares. (using ${_stakingMethod === gp.staking.stakeToShares ? 'SOL' : 'JS'})`)
       continuousShares += shares
       reserveTokenBalance += _purchaseAmount
       totalShares += shares
       sharesReturned += shares
     }
     return sharesReturned
-    // return new Promise(r => sharesReturned)  
-    // return new Promise((r,R) => {r(sharesReturned)})  
   }
   catch (err) { console.error(err) }
 }
 
 /**
  * @title Stake To Shares formula
- * @param {uint256} _continuousShares Total amount of current shares issued
+ * @dev Calculate number of shares that should be issued in return for
+ *      staking of _purchaseAmount of tokens, along the given bonding curve
  * @param {uint256} _reserveTokensReceived Amount of tokens being staked (purchase amount)
  * @param {uint256} _reserveTokenBalance Total amount of tokens currently in reserves
+ * @param {uint256} _continuousShares Total amount of current shares issued
  * @param {uint256} _reserveRatio Desired reserve ratio to maintain (in PPM)
  */
 function purchaseReturn(
-  _continuousShares, 
   _reserveTokensReceived, 
   _reserveTokenBalance, 
+  _continuousShares, 
   _reserveRatio
 ) {
+  _reserveRatio = parseFloat(_reserveRatio)
   // convert PPM ratios
   if (_reserveRatio > 1) _reserveRatio = _reserveRatio / 1000000
   return _continuousShares * (
-    (1 + _reserveTokensReceived / _reserveTokenBalance) ^ (_reserveRatio) 
+    (1 + _reserveTokensReceived / _reserveTokenBalance) ^ _reserveRatio 
     - 1
   )
 }
