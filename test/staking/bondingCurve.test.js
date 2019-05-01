@@ -66,7 +66,7 @@ const defaultParams = {
     100000, // 10%
   ],
   purchaseCount: 1,
-  purchaseAmount: minimumCurationStakingAmount,
+  purchaseAmount: minimumIndexingStakingAmount,
   variancePercentage: 0.001
 }
 function resetBondingParams() {
@@ -132,6 +132,14 @@ contract('Staking (Bonding Curve)', ([
       assert(typeof expectedShares === 'number', "Purchase Return is a number.")
     })
 
+    /**
+     * @dev The following test checks that staking 100 tokens in 10 separate purchases
+     *    returns the same amount of shares as staking 1000 tokens all in one purchase
+     * @notice The test must start with `continuousShares` being `>= 1` to bypass the
+     *    initial share being staked at the `minimumIndexingStakingAmount`.
+     * @todo Get this test working or understand why the test no longer makes sense and 
+     *    delete it. (It worked before we introduced the initial share operation.)
+     */
     // it('...should calculate shares expected from `stakeToShares`', async () => {
     //   const testingFactor = 10
 
@@ -174,6 +182,9 @@ contract('Staking (Bonding Curve)', ([
     //   )
     // })
 
+    /**
+     * @notice The following test is failing, possibly due to Issue #102 in GitHub
+     */
     // it('...should return expected amount of shares from `stakeToShares`', async () => {
     //   /**
     //    * @notice We are testing multiple staking transactions to test the variable parameters
@@ -242,6 +253,10 @@ contract('Staking (Bonding Curve)', ([
       assert(typeof stakeToShares === 'number', "Stake to Shares is a number.")
     })
 
+    /**
+     * @dev The logging done in bondingCurveFormula.js is helpful for viewing some results.
+     * @dev This "test" and the `bondingCurveFormula.js` file can be deleted.
+     */
     // it("...should print some purchaseFormula logging", () => {
     //   require('./bondingCurveFormula.js')
     // })
@@ -297,7 +312,7 @@ async function iterateStakeToShares(
 ) {
   let rtn, lastReturn = 1
   for (let r = 0; r < reserveRatios.length; r++) {
-    console.log(`\tStaking at ${reserveRatios[r]/1000000} reserve ratio`)
+    // console.log(`\tStaking at ${reserveRatios[r]/1000000} reserve ratio`)
     // reset vars for this ratio
     totalShares = _totalShares
     continuousShares = _continuousShares
