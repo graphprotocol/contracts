@@ -58,7 +58,7 @@ let totalShares, // total of staker's staked shares
 const defaultParams = {
   totalShares: 1,
   continuousShares: 1, 
-  reserveTokenBalance: minimumIndexingStakingAmount, 
+  reserveTokenBalance: minimumCurationStakingAmount, 
   reserveRatios: [ // PPM
     1000000, // 100%
     900000, // 90%
@@ -66,7 +66,7 @@ const defaultParams = {
     100000, // 10%
   ],
   purchaseCount: 1,
-  purchaseAmount: minimumIndexingStakingAmount,
+  purchaseAmount: minimumCurationStakingAmount,
   variancePercentage: 0.001
 }
 function resetBondingParams() {
