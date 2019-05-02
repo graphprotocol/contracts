@@ -136,7 +136,7 @@ contract('Staking (Bonding Curve)', ([
      * @dev The following test checks that staking 100 tokens in 10 separate purchases
      *    returns the same amount of shares as staking 1000 tokens all in one purchase
      * @notice The test must start with `continuousShares` being `>= 1` to bypass the
-     *    initial share being staked at the `minimumIndexingStakingAmount`.
+     *    initial share being staked at the `minimumCurationStakingAmount`.
      * @todo Get this test working or understand why the test no longer makes sense and 
      *    delete it. (It worked before we introduced the initial share operation.)
      */
