@@ -68,6 +68,11 @@ pragma solidity ^0.5.2;
  *
  */
 
+/*
+* Todo new - Emit curationShares in the events, so we dont have to direct call
+* todo new - figure out why there are no indexing node shares
+*/
+
 import "./GraphToken.sol";
 import "./Governed.sol";
 import "bytes/BytesLib.sol";
@@ -220,10 +225,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     uint256 public thawingPeriod;
 
     // Mapping subgraphId to list of addresses to Curators
-    mapping (address => mapping (bytes32 => Curator)) public curators;
+    mapping (bytes32 => mapping (address => Curator)) public curators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
-    mapping (address => mapping (bytes32 => IndexingNode)) public indexingNodes;
+    mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
 
     // Subgraphs mapping
     mapping (bytes32 => Subgraph) public subgraphs;
@@ -525,9 +530,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
 
             // The first share costs minimumCurationStake amount of tokens
-            curators[_curator][_subgraphId].subgraphShares = 1;
+            curators[_subgraphId][_curator].subgraphShares = 1;
             subgraphs[_subgraphId].totalCurationShares = 1;
-            curators[_curator][_subgraphId].amountStaked = minimumCurationStakingAmount;
+            curators[_subgraphId][_curator].amountStaked = minimumCurationStakingAmount;
             subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
             _tokenAmount -= minimumCurationStakingAmount;
         }
@@ -542,16 +547,16 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                                   subgraphs[_subgraphId].reserveRatio);
 
             // Update the amount of tokens _curator has, and overall amount staked
-            curators[_curator][_subgraphId].amountStaked += _tokenAmount;
+            curators[_subgraphId][_curator].amountStaked += _tokenAmount;
             subgraphs[_subgraphId].totalCurationStake += _tokenAmount;
 
             // @imp c02 Ensure the minimum amount is staked
             // TODO Validate the need for this requirement
-            require(curators[_curator][_subgraphId].amountStaked
+            require(curators[_subgraphId][_curator].amountStaked
                     >= minimumCurationStakingAmount);
 
             // Update the amount of shares issued to _curator, and total amount issued
-            curators[_curator][_subgraphId].subgraphShares += _newShares;
+            curators[_subgraphId][_curator].subgraphShares += _newShares;
             subgraphs[_subgraphId].totalCurationShares += _newShares;
 
             // Ensure curators cannot stake more than 100% in basis points
@@ -561,7 +566,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         }
 
         // Emit the CurationNodeStaked event (updating the running tally)
-        emit CurationNodeStaked(_curator, curators[_curator][_subgraphId].amountStaked);
+        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked);
     }
 
     /**
@@ -576,7 +581,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         external
     {
         // Underflow protection
-        require(curators[msg.sender][_subgraphId].subgraphShares >= _numShares);
+        require(curators[_subgraphId][msg.sender].subgraphShares >= _numShares);
 
         // Obtain the amount of tokens to refunded with the amount of shares returned
         // according to the bonding curve
@@ -586,17 +591,17 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                                              subgraphs[_subgraphId].reserveRatio);
 
         // Underflow protection
-        require(curators[msg.sender][_subgraphId].amountStaked >= _tokenRefund);
+        require(curators[_subgraphId][msg.sender].amountStaked >= _tokenRefund);
 
         // Keep track of whether this is a full logout
-        bool fullLogout = (curators[msg.sender][_subgraphId].amountStaked == _tokenRefund);
+        bool fullLogout = (curators[_subgraphId][msg.sender].amountStaked == _tokenRefund);
 
         // Update the amount of tokens Curator has, and overall amount staked
-        curators[msg.sender][_subgraphId].amountStaked -= _tokenRefund;
+        curators[_subgraphId][msg.sender].amountStaked -= _tokenRefund;
         subgraphs[_subgraphId].totalCurationStake -= _tokenRefund;
 
         // Update the amount of shares Curator has, and overall amount of shares
-        curators[msg.sender][_subgraphId].subgraphShares -= _numShares;
+        curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
         if (fullLogout) {
@@ -605,11 +610,11 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
-            require(curators[msg.sender][_subgraphId].amountStaked
+            require(curators[_subgraphId][msg.sender].amountStaked
                         >= minimumCurationStakingAmount);
 
             // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[msg.sender][_subgraphId].amountStaked);
+            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked);
         }
     }
 
@@ -628,43 +633,45 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     )
         private
     {
-        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
-        require(indexingNodes[_indexer][_subgraphId].amountStaked + _value
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value
                     >= minimumIndexingStakingAmount); // @imp i02
-        if (indexingNodes[_indexer][_subgraphId].amountStaked == 0)
+        if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-        indexingNodes[_indexer][_subgraphId].amountStaked += _value;
+        indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_indexer, indexingNodes[_indexer][_subgraphId].amountStaked);
+        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked);
     }
 
     /**
      * @dev Indexing node can start logout process
+      TODO NEW - probably have to emit the subgraphID too here, so we know WHICH SUBGRAPH the indexing node is changing
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
     function beginLogout(bytes32 _subgraphId)
         external
     {
-        require(indexingNodes[msg.sender][_subgraphId].amountStaked > 0);
-        require(indexingNodes[msg.sender][_subgraphId].logoutStarted == 0);
-        indexingNodes[msg.sender][_subgraphId].logoutStarted = block.timestamp;
+        require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+        indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
         emit IndexingNodeLogout(msg.sender);
     }
 
     /**
      * @dev Indexing node can finish the logout process after a thawing off period
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     * TODO NEW - totally need an event here
      */
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
-        require(indexingNodes[msg.sender][_subgraphId].logoutStarted + thawingPeriod
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod
                     <= block.timestamp);
         // Return the amount the Indexing Node has staked
-        uint256 _stake = indexingNodes[msg.sender][_subgraphId].amountStaked;
+        uint256 _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
         // Return any outstanding fees accrued the Indexing Node does not have yet
-        uint256 _fees = indexingNodes[msg.sender][_subgraphId].feesAccrued;
-        delete indexingNodes[msg.sender][_subgraphId]; // Re-entrancy protection
+        uint256 _fees = indexingNodes[_subgraphId][msg.sender].feesAccrued;
+        delete indexingNodes[_subgraphId][msg.sender]; // Re-entrancy protection
         // Decrement the total amount staked by the amount being returned
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
@@ -738,7 +745,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         address _indexingNode = ecrecover(_disputeId, v, r, s);
 
         // Get amount _indexingNode has staked (amountStaked is member 0)
-        uint256 _stake = indexingNodes[_indexingNode][_subgraphId].amountStaked;
+        uint256 _stake = indexingNodes[_subgraphId][_indexingNode].amountStaked;
         require(_stake > 0); // This also validates that _indexingNode exists
 
         // Ensure that fisherman has posted at least that amount
@@ -797,13 +804,13 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = indexingNodes[_indexer][_subgraphId].amountStaked;
+        uint256 _stake = indexingNodes[_subgraphId][_indexer].amountStaked;
         assert(_stake > 0); // Ensure this is a valid staker (should always be true)
         uint256 _reward = getRewardForValue(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
         // Capture the fees that the indexer would've earned
-        uint256 _fees = indexingNodes[_indexer][_subgraphId].feesAccrued;
-        delete indexingNodes[_indexer][_subgraphId]; // Re-entrancy protection
+        uint256 _fees = indexingNodes[_subgraphId][_indexer].feesAccrued;
+        delete indexingNodes[_subgraphId][_indexer]; // Re-entrancy protection
 
         // Remove Indexing Node from Subgraph's stakers
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
@@ -868,7 +875,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
         uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
         // Give the indexing node their part of the fees
-        indexingNodes[msg.sender][_subgraphId].feesAccrued += (_feesEarned - _curatorPortion);
+        indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned - _curatorPortion);
         // Increase the token balance for the subgraph (each share gets more tokens when sold)
         subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
     }
@@ -883,9 +890,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     )
         external
     {
-        uint256 _feesAccrued = indexingNodes[msg.sender][_subgraphId].feesAccrued;
+        uint256 _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
         require(_feesAccrued > 0);
-        indexingNodes[msg.sender][_subgraphId].feesAccrued = 0; // Re-entrancy protection
+        indexingNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
         token.transfer(msg.sender, _feesAccrued);
     }
 }
