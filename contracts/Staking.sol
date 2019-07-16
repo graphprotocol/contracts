@@ -86,20 +86,22 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         uint256 amountStaked,
         bytes32 subgraphID,
         uint256 curatorShares,
-        uint256 subgraphShares
+        uint256 subgraphShares,
+        uint256 subgraphStake
     );
 
     event CurationNodeLogout (
         address indexed staker,
         bytes32 subgraphID,
-        uint256 curatorShares,
-        uint256 subgraphShares
+        uint256 subgraphShares,
+        uint256 subgraphStake
     );
 
     event IndexingNodeStaked (
         address indexed staker,
         uint256 amountStaked,
-        bytes32 subgraphID
+        bytes32 subgraphID,
+        uint256 totalSubgraphStake
     );
 
     event IndexingNodeBeginLogout (
@@ -109,7 +111,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     event IndexingNodeFinalizeLogout (
         address indexed staker,
-        bytes32 subgraphID
+        bytes32 subgraphID,
+        uint256 totalSubgraphStake
     );
 
 
@@ -578,7 +581,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         }
 
         // Emit the CurationNodeStaked event (updating the running tally)
-        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
     }
 
     /**
@@ -618,7 +621,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         if (fullLogout) {
             // Emit the CurationNodeLogout event
-        emit CurationNodeLogout(msg.sender, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+        emit CurationNodeLogout(msg.sender, _subgraphId,  subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
@@ -626,7 +629,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                         >= minimumCurationStakingAmount);
 
             // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         }
     }
 
@@ -652,7 +655,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId);
+        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
     }
 
     /**
@@ -687,7 +690,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalIndexers -= 1;
         // Send them all their funds back
         assert(token.transfer(msg.sender, _stake + _fees));
-        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId);
+        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
     }
 
     /**
