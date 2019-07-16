@@ -626,7 +626,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                         >= minimumCurationStakingAmount);
 
             // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
         }
     }
 
@@ -826,7 +826,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Remove Indexing Node from Subgraph's stakers
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        emit IndexingNodeLogout(_indexer, _subgraphId);
+        emit IndexingNodeBeginLogout(_indexer, _subgraphId);
 
         // Give governance the difference between the fisherman's reward and the total stake
         // plus the Indexing Node's accrued fees
