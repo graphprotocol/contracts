@@ -24,18 +24,24 @@ contract ServiceRegistry is Governed {
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed (_governor) {}
+    constructor (address _governor) public Governed(_governor) {}
+
+    /* STATE VARIABLES */
+    // Storage of a Hashed Top Level Domain to owners
+    mapping(address => bytes) public urls;
 
     /* Graph Protocol Functions */
 
     /*
      * @notice Set service provider url from their address
-     * @dev Only DAO owner may do this
+     * @dev Only msg.sender owner may do this
      *
      * @param _serviceProvider <address> - Address of the service provider
      * @param _url <bytes> - URL of the service provider
      */
-    function setUrl (address _serviceProvider, bytes calldata _url) external onlyGovernance {
-      emit ServiceUrlSet(_serviceProvider, _url);
+    function setUrl(address _serviceProvider, bytes calldata _url) external {
+        require(msg.sender == _serviceProvider);
+        urls[msg.sender] = _url;
+        emit ServiceUrlSet(_serviceProvider, _url);
     }
 }
