@@ -56,24 +56,25 @@ contract GNS is Governed {
         string subdomainName,
         bytes32 ipfsHash
     );
-    event SubgraphIdChanged(
-        bytes32 indexed topLevelDomainHash,
-        bytes32 indexed subdomainHash,
-        bytes32 indexed subgraphId
-    );
-    event SubgraphIdDeleted(bytes32 indexed topLevelDomainHash, bytes32 indexed subdomainHash);
+//    event SubgraphIdChanged(
+//        bytes32 indexed topLevelDomainHash,
+//        bytes32 indexed subdomainHash,
+//        bytes32 indexed subgraphId
+//    );
+//    event SubgraphIdDeleted(bytes32 indexed topLevelDomainHash, bytes32 indexed subdomainHash);
 
     event AccountMetadataChanged(address indexed account, bytes32 indexed ipfsHash);
     event SubgraphMetadataChanged(bytes32 indexed topLevelDomainHash, bytes32 indexed subdomainHash, bytes32 indexed ipfsHash);
 
-    /* Structs */
-    struct Domain {
-        address owner;
-    }
-
     /* STATE VARIABLES */
-    // Storage of a Hashed Domain Name mapped to its owner
-    mapping (bytes32 => Domain) internal gnsDomains;
+    // Storage of a Hashed Top Level Domain to owners
+    mapping (bytes32 => address) public domainOwners;
+
+    // Storage of a Hashed Top Level Domain mapped  to an array of subdomains
+    mapping (bytes32 => bytes32[]) public subDomains;
+
+    // Top Level Domain or Subdomain Hash to SubgraphID
+    mapping (bytes32 => bytes32) public domainsToSubgraphIDs;
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -82,7 +83,7 @@ contract GNS is Governed {
     /* Graph Protocol Functions */
 
     modifier onlyDomainOwner (bytes32 _topLevelDomainHash) {
-        require(msg.sender == gnsDomains[_topLevelDomainHash].owner);
+        require(msg.sender == domainOwners[_topLevelDomainHash]);
         _;
     }
 
@@ -90,29 +91,24 @@ contract GNS is Governed {
      * @notice Register a Domain to an owner
      * @dev Only registrar may do this
      *
-     * @param _domainName <string> - Domain name
+     * @param _domainName <string> - Domain name. In The Explorer, it is treated as username
      * @param _owner <address> - Address of domain owner
      */
-    function registerDomain (string calldata _domainName, address _owner) external onlyGovernance {
-        gnsDomains[keccak256(abi.encodePacked(_domainName))] = Domain({owner: _owner});
-        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), _owner, _domainName);  // 3rd field will automatically be hashed by EVM
-    }
+    function registerDomain (string calldata _domainName, address _owner) external {
+        // require this domain is not yet owned
+        require(domainOwners[keccak256(abi.encodePacked(_domainName))] == address(0));
 
-    /*
-     * @notice Get the owner of an existing domain
-     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
-     */
-    function getDomainOwner (bytes32 _topLevelDomainHash) external view returns (address owner) {
-        return gnsDomains[_topLevelDomainHash].owner;
+        domainOwners[keccak256(abi.encodePacked(_domainName))] =  _owner;
+        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), _owner, _domainName);
     }
 
     /*
      * @notice Register a subgraphId to a subdomain
-     * @notice To only register to the top level domain, pass _subdomainName as a blank string (which is c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470 when hashed)
+     * @notice To only register to the top level domain, pass _subdomainName as the top level domain.
      * @dev Only the domain owner may do this
      *
      * @param _topLevelDomainHash <bytes32> - Hash of the domain name
-     * @param _subdomainName <string> - Name of the Subdomain
+     * @param _subdomainName <string> - Name of the Subdomain - the full name, such as "david.thegraph.com"
      * @param _subgraphId <bytes32> - IPLD SubgraphId of the subdomain
      */
     function addSubgraphToDomain (
@@ -121,47 +117,57 @@ contract GNS is Governed {
         bytes32 _subgraphId,
         bytes32 _ipfsHash
     ) external onlyDomainOwner(_topLevelDomainHash) {
-        emit SubgraphIdAdded(_topLevelDomainHash, keccak256(abi.encodePacked(_subdomainName)), _subgraphId, _subdomainName, _ipfsHash);
+
+        bytes32 domainHash = keccak256(abi.encodePacked(_subdomainName));
+        uint256 subdomainLength = subDomains[_topLevelDomainHash].length;
+
+        // Domain has never been registered, we need to add it to the dynamic array
+        if (domainsToSubgraphIDs[domainHash] == bytes32(0)) {
+            subDomains[_topLevelDomainHash][subdomainLength + 1] = domainHash;
+        }
+
+        // SubdomainName and IpfsHash are only emitted through the event
+        emit SubgraphIdAdded(_topLevelDomainHash, domainHash, _subgraphId, _subdomainName, _ipfsHash);
     }
 
-    /*
-     * @notice Update an existing subdomain with a different subgraphId
-     * @dev Only the domain owner may do this
-     *
-     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
-     * @param _subdomainHash <bytes32> - Hash of the Name of the subdomain
-     * @param _subgraphId <bytes32> - IPLD SubgraphId of the subdomain
-     */
-    function changeDomainSubgraphId (
-        bytes32 _topLevelDomainHash,
-        bytes32 _subdomainHash,
-        bytes32 _subgraphId
-    ) external onlyDomainOwner(_topLevelDomainHash) {
-        emit SubgraphIdChanged(_topLevelDomainHash, _subdomainHash, _subgraphId);
-    }
-
-    /*
-     * @notice Remove an existing subdomain from the provided subdomainName
-     * @dev Only the domain owner may do this
-     *
-     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
-     * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
-     */
-    function deleteSubdomain (bytes32 _topLevelDomainHash, bytes32 _subdomainHash) external onlyDomainOwner(_topLevelDomainHash) {
-        emit SubgraphIdDeleted(_topLevelDomainHash, _subdomainHash);
-    }
-
-    /*
-     * @notice Transfer ownership of domain by existing domain owner
-     * @dev Only the domain owner may do this
-     *
-     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
-     * @param _newOwner <address> - New owner of the domain
-     */
-    function transferDomainOwnership (bytes32 _topLevelDomainHash, address _newOwner) external onlyDomainOwner(_topLevelDomainHash) {
-        gnsDomains[_topLevelDomainHash].owner = _newOwner;
-        emit DomainTransferred(_topLevelDomainHash, _newOwner);
-    }
+//    /*
+//     * @notice Update an existing subdomain with a different subgraphId
+//     * @dev Only the domain owner may do this
+//     *
+//     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
+//     * @param _subdomainHash <bytes32> - Hash of the Name of the subdomain
+//     * @param _subgraphId <bytes32> - IPLD SubgraphId of the subdomain
+//     */
+//    function changeDomainSubgraphId (
+//        bytes32 _topLevelDomainHash,
+//        bytes32 _subdomainHash,
+//        bytes32 _subgraphId
+//    ) external onlyDomainOwner(_topLevelDomainHash) {
+//        emit SubgraphIdChanged(_topLevelDomainHash, _subdomainHash, _subgraphId);
+//    }
+//
+//    /*
+//     * @notice Remove an existing subdomain from the provided subdomainName
+//     * @dev Only the domain owner may do this
+//     *
+//     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
+//     * @param _subdomainHash <bytes32> - Hash of the name of the subdomain
+//     */
+//    function deleteSubdomain (bytes32 _topLevelDomainHash, bytes32 _subdomainHash) external onlyDomainOwner(_topLevelDomainHash) {
+//        emit SubgraphIdDeleted(_topLevelDomainHash, _subdomainHash);
+//    }
+//
+//    /*
+//     * @notice Transfer ownership of domain by existing domain owner
+//     * @dev Only the domain owner may do this
+//     *
+//     * @param _topLevelDomainHash <bytes32> - Hash of the domain name
+//     * @param _newOwner <address> - New owner of the domain
+//     */
+//    function transferDomainOwnership (bytes32 _topLevelDomainHash, address _newOwner) external onlyDomainOwner(_topLevelDomainHash) {
+//        gnsDomains[_topLevelDomainHash].owner = _newOwner;
+//        emit DomainTransferred(_topLevelDomainHash, _newOwner);
+//    }
 
     /*
      * @notice Change or initalize the Account Metadata, which is stored in a schema on IPFS
