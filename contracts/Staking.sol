@@ -69,8 +69,6 @@ pragma solidity ^0.5.2;
  */
 
 /*
-* Todo new - Emit curationShares in the events, so we dont have to direct call
-* todo new - figure out why there are no indexing node shares
 */
 
 import "./GraphToken.sol";
@@ -85,21 +83,35 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     /* Events */
     event CurationNodeStaked (
         address indexed staker,
-        uint256 amountStaked
+        uint256 amountStaked,
+        bytes32 subgraphID,
+        uint256 curatorShares,
+        uint256 subgraphShares
     );
 
     event CurationNodeLogout (
-        address indexed staker
+        address indexed staker,
+        bytes32 subgraphID,
+        uint256 curatorShares,
+        uint256 subgraphShares
     );
 
     event IndexingNodeStaked (
         address indexed staker,
-        uint256 amountStaked
+        uint256 amountStaked,
+        bytes32 subgraphID
     );
 
-    event IndexingNodeLogout (
-        address indexed staker
+    event IndexingNodeBeginLogout (
+        address indexed staker,
+        bytes32 subgraphID
     );
+
+    event IndexingNodeFinalizeLogout (
+        address indexed staker,
+        bytes32 subgraphID
+    );
+
 
     // @dev Dispute was created by fisherman
     event DisputeCreated (
@@ -566,7 +578,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         }
 
         // Emit the CurationNodeStaked event (updating the running tally)
-        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked);
+        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
     }
 
     /**
@@ -606,7 +618,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         if (fullLogout) {
             // Emit the CurationNodeLogout event
-            emit CurationNodeLogout(msg.sender);
+        emit CurationNodeLogout(msg.sender, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
@@ -614,7 +626,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                         >= minimumCurationStakingAmount);
 
             // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked);
+            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
         }
     }
 
@@ -640,12 +652,11 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked);
+        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId);
     }
 
     /**
      * @dev Indexing node can start logout process
-      TODO NEW - probably have to emit the subgraphID too here, so we know WHICH SUBGRAPH the indexing node is changing
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
     function beginLogout(bytes32 _subgraphId)
@@ -654,13 +665,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
         indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
-        emit IndexingNodeLogout(msg.sender);
+        emit IndexingNodeBeginLogout(msg.sender, _subgraphId);
     }
 
     /**
      * @dev Indexing node can finish the logout process after a thawing off period
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
-     * TODO NEW - totally need an event here
      */
     function finalizeLogout(bytes32 _subgraphId)
         external
@@ -677,6 +687,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalIndexers -= 1;
         // Send them all their funds back
         assert(token.transfer(msg.sender, _stake + _fees));
+        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId);
     }
 
     /**
@@ -815,7 +826,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Remove Indexing Node from Subgraph's stakers
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        emit IndexingNodeLogout(_indexer);
+        emit IndexingNodeLogout(_indexer, _subgraphId);
 
         // Give governance the difference between the fisherman's reward and the total stake
         // plus the Indexing Node's accrued fees
