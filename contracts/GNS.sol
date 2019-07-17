@@ -92,14 +92,13 @@ contract GNS is Governed {
      * @dev Only registrar may do this
      *
      * @param _domainName <string> - Domain name. In The Explorer, it is treated as username
-     * @param _owner <address> - Address of domain owner
      */
-    function registerDomain(string calldata _domainName, address _owner) external {
+    function registerDomain(string calldata _domainName) external {
         // require this domain is not yet owned
-        require(domainOwners[keccak256(abi.encodePacked(_domainName))] == address(0));
+        require(domainOwners[keccak256(abi.encodePacked(_domainName))] == address(0), 'This address must already be owned.');
 
-        domainOwners[keccak256(abi.encodePacked(_domainName))] = _owner;
-        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), _owner, _domainName);
+        domainOwners[keccak256(abi.encodePacked(_domainName))] = msg.sender;
+        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), msg.sender, _domainName);
     }
 
     /*
@@ -119,7 +118,7 @@ contract GNS is Governed {
     ) external onlyDomainOwner(_topLevelDomainHash) {
 
         bytes32 domainHash = keccak256(abi.encodePacked(_subdomainName));
-        require(domainsToSubgraphIDs[domainHash] == bytes32(0));
+        require(domainsToSubgraphIDs[domainHash] == bytes32(0), 'The subgraphID must not be set yet in order to call this function. ');
 
         // Domain has never been registered, we need to add it to the dynamic array
         subDomains[_topLevelDomainHash][domainHash] = true;
@@ -145,7 +144,7 @@ contract GNS is Governed {
         bytes32 _subgraphId
     ) external onlyDomainOwner(_topLevelDomainHash) {
 
-        require(domainsToSubgraphIDs[_subdomainHash] != bytes32(0));
+        require(domainsToSubgraphIDs[_subdomainHash] != bytes32(0), 'The subdomain must already be registered in order to change the ID');
         domainsToSubgraphIDs[_subdomainHash] = _subgraphId;
 
         emit SubgraphIdChanged(_topLevelDomainHash, _subdomainHash, _subgraphId);
