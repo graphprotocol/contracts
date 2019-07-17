@@ -81,7 +81,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     using BytesLib for bytes;
 
     /* Events */
-    event CurationNodeStaked (
+    event CuratorStaked (
         address indexed staker,
         uint256 amountStaked,
         bytes32 subgraphID,
@@ -90,7 +90,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         uint256 subgraphStake
     );
 
-    event CurationNodeLogout (
+    event CuratorLogout (
         address indexed staker,
         bytes32 subgraphID,
         uint256 subgraphShares,
@@ -580,8 +580,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                     <= (MAX_PPM / BASIS_PT));
         }
 
-        // Emit the CurationNodeStaked event (updating the running tally)
-        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+        // Emit the CuratorStaked event (updating the running tally)
+        emit CuratorStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
     }
 
     /**
@@ -620,16 +620,16 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
         if (fullLogout) {
-            // Emit the CurationNodeLogout event
-        emit CurationNodeLogout(msg.sender, _subgraphId,  subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+            // Emit the CuratorLogout event
+        emit CuratorLogout(msg.sender, _subgraphId,  subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
             require(curators[_subgraphId][msg.sender].amountStaked
                         >= minimumCurationStakingAmount);
 
-            // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+            // Emit the CuratorStaked event (updating the running tally)
+            emit CuratorStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         }
     }
 
