@@ -6,9 +6,11 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "web3": "1.0.0-beta.55"
+  },
   "devDependencies": {
-    "openzeppelin-test-helpers": "0.1.2",
+    "openzeppelin-test-helpers": "0.4.0",
     "truffle-assertions": "0.8.0"
   },
   "scripts": {

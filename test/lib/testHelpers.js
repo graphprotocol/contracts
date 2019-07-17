@@ -1,7 +1,7 @@
 module.exports = {
 
     randomSubgraphIdHex: () => web3.utils.randomHex(32).substring(2),
-    randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes('0x' + hex),
+    randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes(hex),
 
     // deprecated
     getParamFromTxEvent: (

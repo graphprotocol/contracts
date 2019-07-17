@@ -40,7 +40,7 @@ contract ServiceRegistry is Governed {
      * @param _url <bytes> - URL of the service provider
      */
     function setUrl(address _serviceProvider, bytes calldata _url) external {
-        require(msg.sender == _serviceProvider);
+        require(msg.sender == _serviceProvider, "msg.sender must call");
         urls[msg.sender] = _url;
         emit ServiceUrlSet(_serviceProvider, _url);
     }
