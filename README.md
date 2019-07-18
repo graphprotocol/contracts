@@ -12,7 +12,7 @@
 ## Installation &amp; Deployment
 1. Install Node.js `^11.0.0`
 1. Run `npm install` at project root directory
-1. Install and run `testrpc`, `genache-cli`, or similar blockchain emulator
+1. Install and run `testrpc`, `ganache-cli`, or similar blockchain emulator
     - Configure to run on port `8545` or edit `truffle.js` to change the port used by Truffle
 1. Install Truffle 5.0.0
     - `npm install -g truffle`

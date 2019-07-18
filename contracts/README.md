@@ -30,7 +30,7 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 
 ### Rewards Manager ([RewardsManager.sol](./RewardsManager.sol))
 - Has the ability to mint tokens according to the reward rules specified in mechanism design of technical specification.
-- The ability to grant rewards may need to be splittable across multiple transactions and transaction originators for gas reasons.
+- The ability to grant rewards may need to be split across multiple transactions and transaction originators for gas reasons.
 - (Maybe) can mint tokens to reward whichever user assumes the cost of paying transaction fees for minting the rewards.
 
 ### Graph Name Service (GNS) Registry ([GNS.sol](./GNS.sol))
@@ -47,6 +47,7 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 
 ## Supporting Contracts &amp; Libraries
 1. ### Gnosis MultiSigWallet Contract ([./MultiSigWallet.sol](./MultiSigWallet.sol))
+    - https://github.com/gnosis/MultiSigWallet
 
 1. ### Open Zeppelin ERC20 Token Contracts ([./openzeppelin](./openzeppelin))
     - Open source contracts and libraries imported from Open Zeppelin's Github repository ([/OpenZeppelin/openzeppelin-solidity](https://github.com/OpenZeppelin/openzeppelin-solidity))
@@ -56,6 +57,8 @@ For now, the Governance contract, owned by the multisig, will serve as the DAO. 
 
 1. ### Bancor Bonding Curve Formulas ([./bancor](./contracts/bancor/))
     - Contains formulas used in calculating Stake <> Shares conversions based on a reserve ratio.
+    - https://github.com/bancorprotocol/contracts/blob/master/solidity/contracts/converter/BancorFormula.sol
 
 1. ### ConsenSys Solidity Bytes Utils Library ([../installed_contracts/bytes/](../installed_contracts/bytes/))
     - Utility Solidity library composed of basic operations for tightly packed bytes arrays
+    - https://github.com/GNSPS/solidity-bytes-utils/tree/master/contracts
