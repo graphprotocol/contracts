@@ -8,8 +8,8 @@ const helpers = require('./lib/testHelpers')
 contract('Service Registry', accounts => {
   let deployedServiceRegistry
 
-  beforeEach(async () => {
-    // deploy GraphToken contract
+  before(async () => {
+    // deploy ServiceRegistry contract
     deployedServiceRegistry = await ServiceRegisty.new(
       accounts[0], // governor
       { from: accounts[0] }

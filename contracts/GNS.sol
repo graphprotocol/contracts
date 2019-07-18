@@ -83,7 +83,7 @@ contract GNS is Governed {
     /* Graph Protocol Functions */
 
     modifier onlyDomainOwner (bytes32 _topLevelDomainHash) {
-        require(msg.sender == domainOwners[_topLevelDomainHash]);
+        require(msg.sender == domainOwners[_topLevelDomainHash], "Only Domain owner can call");
         _;
     }
 
@@ -118,7 +118,7 @@ contract GNS is Governed {
     ) external onlyDomainOwner(_topLevelDomainHash) {
 
         bytes32 domainHash = keccak256(abi.encodePacked(_subdomainName));
-        require(domainsToSubgraphIDs[domainHash] == bytes32(0), 'The subgraphID must not be set yet in order to call this function. ');
+        require(domainsToSubgraphIDs[domainHash] == bytes32(0), 'The subgraphID must not be set yet in order to call this function.');
 
         // Domain has never been registered, we need to add it to the dynamic array
         subDomains[_topLevelDomainHash][domainHash] = true;
