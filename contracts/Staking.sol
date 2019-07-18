@@ -81,25 +81,27 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     using BytesLib for bytes;
 
     /* Events */
-    event CurationNodeStaked (
+    event CuratorStaked (
         address indexed staker,
         uint256 amountStaked,
         bytes32 subgraphID,
         uint256 curatorShares,
-        uint256 subgraphShares
+        uint256 subgraphTotalCurationShares,
+        uint256 subgraphTotalCurationStake
     );
 
-    event CurationNodeLogout (
+    event CuratorLogout (
         address indexed staker,
         bytes32 subgraphID,
-        uint256 curatorShares,
-        uint256 subgraphShares
+        uint256 subgraphTotalCurationShares,
+        uint256 subgraphTotalCurationStake
     );
 
     event IndexingNodeStaked (
         address indexed staker,
         uint256 amountStaked,
-        bytes32 subgraphID
+        bytes32 subgraphID,
+        uint256 subgraphTotalIndexingStake
     );
 
     event IndexingNodeBeginLogout (
@@ -109,7 +111,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     event IndexingNodeFinalizeLogout (
         address indexed staker,
-        bytes32 subgraphID
+        bytes32 subgraphID,
+        uint256 subgraphTotalIndexingStake
     );
 
 
@@ -577,8 +580,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                     <= (MAX_PPM / BASIS_PT));
         }
 
-        // Emit the CurationNodeStaked event (updating the running tally)
-        emit CurationNodeStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+        // Emit the CuratorStaked event (updating the running tally)
+        emit CuratorStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
     }
 
     /**
@@ -617,16 +620,16 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
         if (fullLogout) {
-            // Emit the CurationNodeLogout event
-        emit CurationNodeLogout(msg.sender, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+            // Emit the CuratorLogout event
+        emit CuratorLogout(msg.sender, _subgraphId,  subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
             require(curators[_subgraphId][msg.sender].amountStaked
                         >= minimumCurationStakingAmount);
 
-            // Emit the CurationNodeStaked event (updating the running tally)
-            emit CurationNodeStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares);
+            // Emit the CuratorStaked event (updating the running tally)
+            emit CuratorStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
         }
     }
 
@@ -652,7 +655,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId);
+        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
     }
 
     /**
@@ -687,7 +690,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalIndexers -= 1;
         // Send them all their funds back
         assert(token.transfer(msg.sender, _stake + _fees));
-        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId);
+        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
     }
 
     /**
