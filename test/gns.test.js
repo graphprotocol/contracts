@@ -4,21 +4,14 @@ const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
 const GNS = artifacts.require('./GNS.sol')
 const helpers = require('./lib/testHelpers')
 
-/*
-What to test
-- all events ( within each test)
-- all data is publically callable (should see when verifying in each test
-- a user can register a domain (and others cannot do this)
-  - that user can now begin adding subdomains, subgraphs, and metadata (addSubgraphToDomain)
-  - the domain can be transferred
-  - subgraph metadata can be updated
-  - subdomain can be deleted
-  - subgraph ID can be changed
-- account metadata can be updated by msg.sender only
- */
-
 contract('GNS', accounts => {
   let deployedGNS
+  const topLevelDomainName = 'thegraph.com'
+  const topLevelDomainHash = web3.utils.keccak256(topLevelDomainName)
+  const subdomainName = 'david.thegraph.com'
+  const hashedSubdomain = web3.utils.keccak256(subdomainName)
+  const subgraphID = helpers.randomSubgraphIdBytes()
+  const ipfsHash = helpers.randomSubgraphIdBytes()
 
   before(async () => {
     // deploy GNS contract
@@ -30,33 +23,22 @@ contract('GNS', accounts => {
   })
 
   it('...should allow a user to register a domain. And then prevent another user from being able to', async () => {
-    const domainName = 'thegraph.com'
-    const hashedName = web3.utils.keccak256(domainName)
+    const { logs } = await deployedGNS.registerDomain(topLevelDomainName, { from: accounts[1] })
 
-    const { logs } = await deployedGNS.registerDomain(domainName, { from: accounts[1] })
-
-    assert(await deployedGNS.domainOwners(hashedName) === accounts[1], 'Name was not registered properly.')
+    assert(await deployedGNS.domainOwners(topLevelDomainHash) === accounts[1], 'Name was not registered properly.')
 
     expectEvent.inLogs(logs, 'DomainAdded', {
-      topLevelDomainHash: hashedName,
+      topLevelDomainHash: topLevelDomainHash,
       owner: accounts[1],
-      domainName: domainName
+      domainName: topLevelDomainName
     })
 
     // Confirm another user cannot register this name
-
-    await expectRevert(deployedGNS.registerDomain(domainName, { from: accounts[1] }), 'This address must already be owned.')
+    await expectRevert(deployedGNS.registerDomain(topLevelDomainName, { from: accounts[1] }), 'This address must already be owned.')
 
   })
 
   it('...should allow a user to register a subgraph to a subdomain only once, and not allow a different user to do so. ', async () => {
-    const topLevelDomainName = 'thegraph.com'
-    const topLevelDomainHash = web3.utils.keccak256(topLevelDomainName)
-    const subdomainName = 'david.thegraph.com'
-    const hashedSubdomain = web3.utils.keccak256(subdomainName)
-    const subgraphID = helpers.randomSubgraphIdBytes()
-    const ipfsHash = helpers.randomSubgraphIdBytes()
-
     const { logs } = await deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[1] })
 
     assert(await deployedGNS.subDomains(topLevelDomainHash, hashedSubdomain) === true, 'Subdomain was not registered properly.')
@@ -77,12 +59,6 @@ contract('GNS', accounts => {
   })
 
   it('...should allow subgraph metadata to be updated', async () => {
-    const topLevelDomainName = 'thegraph.com'
-    const topLevelDomainHash = web3.utils.keccak256(topLevelDomainName)
-    const subdomainName = 'david.thegraph.com'
-    const hashedSubdomain = web3.utils.keccak256(subdomainName)
-    const ipfsHash = helpers.randomSubgraphIdBytes()
-
     const { logs } = await deployedGNS.changeSubgraphMetadata(ipfsHash, topLevelDomainHash, hashedSubdomain, { from: accounts[1] })
 
     expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
@@ -96,12 +72,6 @@ contract('GNS', accounts => {
   })
 
   it('...should allow a user to transfer a domain', async () => {
-    const topLevelDomainName = 'thegraph.com'
-    const topLevelDomainHash = web3.utils.keccak256(topLevelDomainName)
-    const subdomainName = 'david.thegraph.com'
-    const hashedSubdomain = web3.utils.keccak256(subdomainName)
-    const ipfsHash = helpers.randomSubgraphIdBytes()
-
     const { logs } = await deployedGNS.changeSubgraphMetadata(ipfsHash, topLevelDomainHash, hashedSubdomain, { from: accounts[1] })
 
     expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
@@ -114,12 +84,30 @@ contract('GNS', accounts => {
     await expectRevert(deployedGNS.changeSubgraphMetadata(ipfsHash, topLevelDomainHash, hashedSubdomain, { from: accounts[3] }), 'Only Domain owner can call')
   })
 
-  it('...should allow a subdomain and subgraphID to be deleted', async () => {
-    const topLevelDomainName = 'thegraph.com'
-    const topLevelDomainHash = web3.utils.keccak256(topLevelDomainName)
-    const subdomainName = 'david.thegraph.com'
-    const hashedSubdomain = web3.utils.keccak256(subdomainName)
+  it('...should allow subgraphID to be changed on a subdomain ', async () => {
+    const changedSubgraphID = helpers.randomSubgraphIdBytes()
+    const unregisteredDomain = helpers.randomSubgraphIdBytes()
 
+    // Expect changing a domain subgraphID on a non-registered domain to fail
+    await expectRevert(deployedGNS.changeDomainSubgraphId(topLevelDomainHash, unregisteredDomain, changedSubgraphID, { from: accounts[1] }), 'The subdomain must already be registered in order to change the ID')
+
+    // Expect call from non-owner to fail
+    await expectRevert(deployedGNS.changeDomainSubgraphId(topLevelDomainHash, hashedSubdomain, changedSubgraphID, { from: accounts[3] }), 'Only Domain owner can call')
+
+    const { logs } = await deployedGNS.changeDomainSubgraphId(topLevelDomainHash, hashedSubdomain, changedSubgraphID, { from: accounts[1] })
+
+    expectEvent.inLogs(logs, 'SubgraphIdChanged', {
+      topLevelDomainHash: topLevelDomainHash,
+      subdomainHash: hashedSubdomain,
+      subgraphId: web3.utils.bytesToHex(changedSubgraphID)
+    })
+
+    const newID = await deployedGNS.domainsToSubgraphIDs(hashedSubdomain)
+    assert(newID === web3.utils.bytesToHex(changedSubgraphID), 'SubgraphID was not changed')
+
+  })
+
+  it('...should allow a subdomain and subgraphID to be deleted', async () => {
     await expectRevert(deployedGNS.deleteSubdomain(topLevelDomainHash, hashedSubdomain, { from: accounts[3] }), 'Only Domain owner can call')
 
     const { logs } = await deployedGNS.deleteSubdomain(topLevelDomainHash, hashedSubdomain, { from: accounts[1] })
@@ -129,22 +117,22 @@ contract('GNS', accounts => {
       subdomainHash: hashedSubdomain,
     })
 
-    // should be bytes(0)
-    let deletedID = await deployedGNS.domainsToSubgraphIDs(hashedSubdomain)
-    // should be false
-    let deletedSubdomain = await deployedGNS.subDomains(topLevelDomainHash, hashedSubdomain)
+    const deletedID = await deployedGNS.domainsToSubgraphIDs(hashedSubdomain)
+    const deletedSubdomain = await deployedGNS.subDomains(topLevelDomainHash, hashedSubdomain)
+    assert(deletedID === helpers.zeroHex(), 'SubgraphID was not deleted')
+    assert(deletedSubdomain === false, 'Subdomain was not deleted')
 
   })
 
-  it('...should allow subgraphID to be changed on a subdomain ', async () => {
+  it('...should allow account metadata event to be emitted  ', async () => {
+    const accountIPFSHash = helpers.randomSubgraphIdBytes()
+    
+    const { logs } = await deployedGNS.changeAccountMetadata(accountIPFSHash, { from: accounts[1] })
 
+    expectEvent.inLogs(logs, 'AccountMetadataChanged', {
+      account: accounts[1],
+      ipfsHash: web3.utils.bytesToHex(accountIPFSHash),
+    })
   })
 
-  it('...should allow account metadata to be updated by msg.sender only  ', async () => {
-
-  })
-
-  it('...should ', async () => {
-
-  })
 })
