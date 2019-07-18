@@ -86,22 +86,22 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         uint256 amountStaked,
         bytes32 subgraphID,
         uint256 curatorShares,
-        uint256 subgraphShares,
-        uint256 subgraphStake
+        uint256 subgraphTotalCurationShares,
+        uint256 subgraphTotalCurationStake
     );
 
     event CuratorLogout (
         address indexed staker,
         bytes32 subgraphID,
-        uint256 subgraphShares,
-        uint256 subgraphStake
+        uint256 subgraphTotalCurationShares,
+        uint256 subgraphTotalCurationStake
     );
 
     event IndexingNodeStaked (
         address indexed staker,
         uint256 amountStaked,
         bytes32 subgraphID,
-        uint256 totalSubgraphStake
+        uint256 subgraphTotalIndexingStake
     );
 
     event IndexingNodeBeginLogout (
@@ -112,7 +112,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     event IndexingNodeFinalizeLogout (
         address indexed staker,
         bytes32 subgraphID,
-        uint256 totalSubgraphStake
+        uint256 subgraphTotalIndexingStake
     );
 
 
