@@ -13,6 +13,9 @@
 ### Kovan
 - GNS.sol - 0x32E7a5bECC129b607D6Cf24CDa2B6F7a202461D8
 
+### Ropsten
+- GNS.sol - 0x41bcbb61c3fb0e9ea86330f23b564a8171d9c9d9
+
 ## Installation &amp; Deployment
 1. Install Node.js `^11.0.0`
 1. Run `npm install` at project root directory

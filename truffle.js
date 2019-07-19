@@ -13,9 +13,17 @@ module.exports = {
 
     kovan: {
       provider: () => new HDWalletProvider(mnemonic, `https://kovan.infura.io/v3/${infuraKey}`),
-      network_id: 42,      // Ropsten's id
-      gas: 7900000,        // Ropsten has a lower block limit than mainnet
+      network_id: 42,      // kovan's id
+      gas: 6000000,
       skipDryRun: true,
+      from: "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
+    },
+    ropsten: {
+      provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/${infuraKey}`),
+      network_id: 3,      // Ropsten's id
+      gas: 6000000,
+      skipDryRun: true,
+      from: "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
     },
   },
 
