@@ -8,6 +8,10 @@
  - [Bryant Eisenbach](https://github.com/fubuloubu)
  - [Reuven Etzion](https://github.com/retzion)
  - [Ashoka Finley](https://github.com/shkfnly)
+ 
+## Current Contract Addresses
+### Kovan
+- GNS.sol - 0x32E7a5bECC129b607D6Cf24CDa2B6F7a202461D8
 
 ## Installation &amp; Deployment
 1. Install Node.js `^11.0.0`
