@@ -27,14 +27,14 @@ contract ServiceRegistry is Governed {
     constructor (address _governor) public Governed(_governor) {}
 
     /* STATE VARIABLES */
-    // Storage of a Hashed Top Level Domain to owners
+    // Storage of a hashed top level domain to owners
     mapping(address => bytes) public urls;
 
     /* Graph Protocol Functions */
 
     /*
      * @notice Set service provider url from their address
-     * @dev Only msg.sender owner may do this
+     * @dev Only msg.sender may do this
      *
      * @param _serviceProvider <address> - Address of the service provider
      * @param _url <bytes> - URL of the service provider

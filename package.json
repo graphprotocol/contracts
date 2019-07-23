@@ -1,7 +1,7 @@
 {
   "name": "graph-protocol",
   "version": "1.0.0",
-  "description": "![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg) ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)",
+  "descrnpmiption": "![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg) ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)",
   "main": "graphProtocol.js",
   "directories": {
     "test": "test"
@@ -9,6 +9,8 @@
   "dependencies": {
     "ethers": "^4.0.33",
     "truffle-hdwallet-provider": "^1.0.14",
+    "openzeppelin-test-helpers": "0.4.0",
+    "chai": "^4.2.0",
     "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
