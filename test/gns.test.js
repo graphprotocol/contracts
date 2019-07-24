@@ -55,7 +55,7 @@ contract('GNS', accounts => {
     await expectRevert(deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[3] }), 'Only domain owner can call')
 
     // Check that the owner can't call addSubgraphToDomain() twice
-    await expectRevert(deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[1] }), 'The domain must already be registered in order to add a subgraph ID.')
+    await expectRevert(deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[1] }), 'The subgraph ID for this domain has already been set. You must call changeDomainSubgraphID it you wish to change it.')
   })
 
   it('...should allow subgraph metadata to be updated', async () => {
@@ -89,7 +89,7 @@ contract('GNS', accounts => {
     const unregisteredDomain = helpers.randomSubgraphIdBytes()
 
     // Expect changing a domain subgraphID on a non-registered domain to fail
-    await expectRevert(deployedGNS.changeDomainSubgraphID(topLevelDomainHash, unregisteredDomain, changedSubgraphID, { from: accounts[1] }), 'The domain must already be registered in order to change its subgraph ID.')
+    await expectRevert(deployedGNS.changeDomainSubgraphID(topLevelDomainHash, unregisteredDomain, changedSubgraphID, { from: accounts[1] }), 'The subgraph ID must have been set at least once in order to change it.')
 
     // Expect call from non-owner to fail
     await expectRevert(deployedGNS.changeDomainSubgraphID(topLevelDomainHash, hashedSubdomain, changedSubgraphID, { from: accounts[3] }), 'Only domain owner can call')

@@ -117,7 +117,7 @@ contract GNS is Governed{
         bytes32 _ipfsHash
     ) external onlyDomainOwner(_topLevelDomainHash) {
         bytes32 domainHash = keccak256(abi.encodePacked(_subdomainName));
-        require(domainsToSubgraphIDs[domainHash] == bytes32(0), 'The domain must already be registered in order to add a subgraph ID.');
+        require(domainsToSubgraphIDs[domainHash] == bytes32(0), 'The subgraph ID for this domain has already been set. You must call changeDomainSubgraphID it you wish to change it.');
 
         // Domain has never been registered, we need to add it to the mapping.
         subdomains[_topLevelDomainHash][domainHash] = true;
@@ -143,7 +143,7 @@ contract GNS is Governed{
         bytes32 _subgraphID
     ) external onlyDomainOwner(_topLevelDomainHash) {
 
-        require(domainsToSubgraphIDs[_subdomainHash] != bytes32(0), 'The domain must already be registered in order to change its subgraph ID.');
+        require(domainsToSubgraphIDs[_subdomainHash] != bytes32(0), 'The subgraph ID must have been set at least once in order to change it.');
         domainsToSubgraphIDs[_subdomainHash] = _subgraphID;
 
         emit SubgraphIDChanged(_topLevelDomainHash, _subdomainHash, _subgraphID);
