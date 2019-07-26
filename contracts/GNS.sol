@@ -41,9 +41,17 @@ contract GNS is Governed {
     */
 
     /* Events */
-    event DomainAdded(bytes32 indexed topLevelDomainHash, address indexed owner, string domainName);
+    event DomainAdded(
+        bytes32 indexed topLevelDomainHash,
+        address indexed owner,
+        string domainName
+    );
     event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
-    event SubgraphCreated(bytes32 indexed topLevelDomainHash, bytes32 indexed registeredHash, string subdomainName);
+    event SubgraphCreated(
+        bytes32 indexed topLevelDomainHash,
+        bytes32 indexed registeredHash,
+        string subdomainName
+    );
     event SubgraphDeployed(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event SubgraphIDUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event DomainDeleted(bytes32 indexed domainHash);
@@ -61,7 +69,7 @@ contract GNS is Governed {
     mapping(bytes32 => Domain) public domains;
 
     /* Contract Constructor */
-    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
+    /* @param _governor <address> - Address of the multisig contract as Governor */
     constructor (address _governor) public Governed(_governor) {}
 
     /* Graph Protocol Functions */
@@ -76,19 +84,22 @@ contract GNS is Governed {
      * @param _domainName <string> - Domain name, which is treated as a username.
      */
     function registerDomain(string calldata _domainName) external {
+        bytes32 hashedName = keccak256(abi.encodePacked(_domainName));
         // Require that this domain is not yet owned by anyone.
-        require(domains[keccak256(abi.encodePacked(_domainName))].owner == address(0), 'Domain is already owned.');
-        domains[keccak256(abi.encodePacked(_domainName))].owner = msg.sender;
-        emit DomainAdded(keccak256(abi.encodePacked(_domainName)), msg.sender, _domainName);
+        require(domains[hashedName].owner == address(0), "Domain is already owned.");
+        domains[hashedName].owner = msg.sender;
+        emit DomainAdded(hashedName, msg.sender, _domainName);
     }
 
     /*
-     * @notice Create a subgraph by registering a subdomain, or registering the top level domain as a subgraph.
-     * @notice To only register to the top level domain, pass _subdomainName as a blank string.
+     * @notice Create a subgraph by registering a subdomain, or registering the top level
+     * domain as a subgraph.
+     * @notice To register to the top level domain, pass _subdomainName as a blank string.
      * @dev Only the domain owner may do this.
      *
      * @param _topLevelDomainHash <bytes32> - Hash of the top level domain name.
-     * @param _subdomainName <string> - Name of the Subdomain. If you were registering 'david.thegraph', _subdomainName would be just 'david'.
+     * @param _subdomainName <string> - Name of the Subdomain. If you were
+     * registering 'david.thegraph', _subdomainName would be just 'david'.
      * @param _ipfsHash <bytes32> - Hash of the subgraph metadata, such as description.
     */
     function createSubgraph(
@@ -104,14 +115,18 @@ contract GNS is Governed {
             // The domain hash ends up being the top level domain hash.
             domainHash = _topLevelDomainHash;
         } else {
-            // The domain hash becomes the hash the subdomain concatenated with the top level domain hash.
+            // The domain hash becomes the subdomain concatenated with the top level domain hash.
             domainHash = keccak256(abi.encodePacked(subdomainHash, _topLevelDomainHash));
-            require(domains[domainHash].owner == address(0), 'Someone already owns this subdomain.');
+            require(
+                domains[domainHash].owner == address(0),
+                "Someone already owns this subdomain."
+            );
             domains[domainHash].owner = msg.sender;
         }
 
         // Note - subdomain name and IPFS hash are only emitted through the events.
-        // Note - if the subdomain is blank, the domain hash ends up being the top level domain hash, not the hash of a blank string.
+        // Note - if the subdomain is blank, the domain hash ends up being the top level
+        // domain hash, not the hash of a blank string.
         emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName);
         emit SubgraphMetadataChanged(domainHash, _ipfsHash);
     }
@@ -127,7 +142,10 @@ contract GNS is Governed {
         bytes32 _domainHash,
         bytes32 _subgraphID
     ) external onlyDomainOwner(_domainHash) {
-        require(_subgraphID != bytes32(0), 'If you want to reset the subgraphID, call deleteSubdomain.');
+        require(
+            _subgraphID != bytes32(0),
+            "If you want to reset the subgraphID, call deleteSubdomain."
+        );
         domains[_domainHash].subgraphID = _subgraphID;
         emit SubgraphIDUpdated(_domainHash, _subgraphID);
     }
@@ -150,8 +168,11 @@ contract GNS is Governed {
      * @param _domainHash <bytes32> - Hash of the domain name.
      * @param _newOwner <address> - New owner of the domain.
      */
-    function transferDomainOwnership(bytes32 _domainHash, address _newOwner) external onlyDomainOwner(_domainHash) {
-        require(_newOwner != address(0), 'If you want to reset the owner, call deleteSubdomain.');
+    function transferDomainOwnership(
+        bytes32 _domainHash,
+        address _newOwner
+    ) external onlyDomainOwner(_domainHash) {
+        require(_newOwner != address(0), "If you want to reset the owner, call deleteSubdomain.");
         domains[_domainHash].owner = _newOwner;
         emit DomainTransferred(_domainHash, _newOwner);
     }
@@ -174,7 +195,10 @@ contract GNS is Governed {
     * @param _ipfsHash <bytes32> - Hash of the IPFS file that stores the subgraph metadata.
     * @param _domainHash <bytes32> - Hash of the domain name.
     */
-    function changeSubgraphMetadata(bytes32 _domainHash, bytes32 _ipfsHash) public onlyDomainOwner(_domainHash) {
+    function changeSubgraphMetadata(
+        bytes32 _domainHash,
+        bytes32 _ipfsHash
+    ) public onlyDomainOwner(_domainHash) {
         emit SubgraphMetadataChanged(_domainHash, _ipfsHash);
     }
 

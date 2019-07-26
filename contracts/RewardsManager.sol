@@ -3,8 +3,8 @@ pragma solidity ^0.5.2;
 import "./Governed.sol";
 
 contract RewardsManager is Governed {
-    
-    /* 
+
+    /*
     * @title Graph Protocol Reward Manager contract
     *
     * @author Bryant Eisenbach
@@ -12,27 +12,28 @@ contract RewardsManager is Governed {
     *
     * @notice Contract Specification:
     *
-    * The total monetary inflation rate of Graph Tokens, over a given inflation period 
+    * The total monetary inflation rate of Graph Tokens, over a given inflation period
     * (more on this later), is the sum of its two constituent components:
     * inflationRate = curatorRewardRate + participationRewardRate
     *
-    * As indicated in the formula above, inflation is used to reward curation of datasets 
+    * As indicated in the formula above, inflation is used to reward curation of datasets
     * and participation in the network.
     *
-    * Participation Adjusted Inflation - In order to encourage Graph Token holders to 
+    * Participation Adjusted Inflation - In order to encourage Graph Token holders to
     * participate in the network, the protocol implements a participation-adjusted inflation reward.
     *
-    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total 
-    * Graph Token supply, and is set via governance. As with the participation reward, it is paid 
+    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total
+    * Graph Token supply, and is set via governance. As with the participation reward, it is paid
     * via inflation.
-    * 
+    *
     * Requirements ("Reward Manager" contract):
     * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism
     *   design of technical specification.
     * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
     * req 03 claimRewards function
     * req 04 uint256 for yearly inflation rate
-    * req 05 a mapping that records the usage in queries of each index chain , which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
+    * req 05 a mapping that records the usage in queries of each index chain ,
+    * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
     */
 
 
@@ -63,7 +64,9 @@ contract RewardsManager is Governed {
      * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint256> - New curation reward rate
      */
-    function updateCuratorRewardRate (uint256 _newCuratorRewardRate) public onlyGovernance returns (bool success)
+    function updateCuratorRewardRate (
+        uint256 _newCuratorRewardRate
+    ) public onlyGovernance returns (bool success)
     {
         revert();
     }
@@ -72,7 +75,9 @@ contract RewardsManager is Governed {
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint256> - New curation reward rate
      */
-    function updateTargetParticipationRate (uint256 _newTargetParticipationRate) public onlyGovernance returns (bool success)
+    function updateTargetParticipationRate (
+        uint256 _newTargetParticipationRate
+    ) public onlyGovernance returns (bool success)
     {
         revert();
     }
@@ -81,7 +86,9 @@ contract RewardsManager is Governed {
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
      */
-    function updateYearlyInflationRate (uint256 _newYearlyInflationRate) public onlyGovernance returns (bool success)
+    function updateYearlyInflationRate (
+        uint256 _newYearlyInflationRate
+    ) public onlyGovernance returns (bool success)
     {
         revert();
     }
@@ -93,17 +100,23 @@ contract RewardsManager is Governed {
      * @param _account <address> - The account that will receive the created tokens.
      * @param _value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (address _account, uint256 _value) public onlyGovernance returns (bool success)
+    function mintRewardTokens (
+        address _account,
+        uint256 _value
+    ) public onlyGovernance returns (bool success)
     {
         revert();
     }
-    
+
     /**
      * @dev Validators can claim rewards or add them to their stake
      * @param _validatorId <bytes32> - ID of the validator claiming rewards
      * @param _addToStake <bool> - Send the rewards back to the validator's stake
      */
-    function claimRewards (bytes32 _validatorId, bool _addToStake) public returns (uint256 rewaredAmount)
+    function claimRewards (
+        bytes32 _validatorId,
+        bool _addToStake
+    ) public returns (uint256 rewaredAmount)
     {
         revert();
     }

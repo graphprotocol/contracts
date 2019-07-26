@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 contract Governed {
 
-    /* 
+    /*
     * @title Graph Contract Governance contract
     *
     * @author Bryant Eisenbach
@@ -13,7 +13,7 @@ contract Governed {
     * There are several parameters throughout this mechanism design which are set via a
     * governance process. In the v1 specification, governance will consist of a small committee
     * which enacts changes to the protocol via a multi-sig contract.
-    * 
+    *
     * Requirements ("Governed" contract):
     * req 01 Multisig contract will own this contract
     * req 02 Verify the Governed contracts can upgrade themselves to a new `governor`
@@ -37,7 +37,7 @@ contract Governed {
     }
 
     modifier onlyGovernance {
-        require(msg.sender == governor);
+        require(msg.sender == governor, "Only Governor can call.");
         _;
     }
 
