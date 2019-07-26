@@ -117,8 +117,8 @@ contract('GNS', accounts => {
 
   it('...should allow subgraph metadata to be updated', async () => {
     const { logs } = await deployedGNS.changeSubgraphMetadata(
-      ipfsHash,
       hashedSubdomain,
+      ipfsHash,
       { from: accounts[1] },
     )
 
@@ -132,7 +132,7 @@ contract('GNS', accounts => {
       deployedGNS.changeSubgraphMetadata(ipfsHash, hashedSubdomain, {
         from: accounts[3],
       }),
-      'Only domain owner can call',
+      'Only domain owner can call.',
     )
   })
 
@@ -153,14 +153,14 @@ contract('GNS', accounts => {
       deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[4], {
         from: accounts[3],
       }),
-      'Only domain owner can call',
+      'Only domain owner can call.',
     )
   })
 
   it('...should allow a domain and subgraphID to be deleted', async () => {
     await expectRevert(
       deployedGNS.deleteSubdomain(hashedSubdomain, { from: accounts[3] }),
-      'Only domain owner can call',
+      'Only domain owner can call.',
     )
 
     const { logs } = await deployedGNS.deleteSubdomain(hashedSubdomain, {
