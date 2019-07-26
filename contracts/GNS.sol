@@ -74,7 +74,7 @@ contract GNS is Governed {
             domains[domainHash].owner = msg.sender;
         }
 
-        // Note - subdomain name and ipfs hash are only emitted through the events.
+        // Note - subdomain name and IPFS hash are only emitted through the events.
         // Note - if the subdomain is blank, the domain hash ends up being the top level domain hash, not the hash of a blank string.
         emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName);
         emit SubgraphMetadataChanged(domainHash, _ipfsHash);
@@ -138,7 +138,7 @@ contract GNS is Governed {
     * @param _ipfsHash <bytes32> - Hash of the IPFS file that stores the subgraph metadata.
     * @param _domainHash <bytes32> - Hash of the domain name.
     */
-    function changeSubgraphMetadata(bytes32 _ipfsHash, bytes32 _domainHash) public onlyDomainOwner(_domainHash) {
+    function changeSubgraphMetadata(bytes32 _domainHash, bytes32 _ipfsHash) public onlyDomainOwner(_domainHash) {
         emit SubgraphMetadataChanged(_domainHash, _ipfsHash);
     }
 
