@@ -8,17 +8,17 @@
  * @param {uint256} _reserveRatio Desired reserve ratio to maintain (in PPM)
  */
 function purchaseReturn(
-  _reserveTokensReceived, 
-  _reserveTokenBalance, 
-  _continuousShares, 
-  _reserveRatio
+  _reserveTokensReceived,
+  _reserveTokenBalance,
+  _continuousShares,
+  _reserveRatio,
 ) {
   _reserveRatio = parseFloat(_reserveRatio)
   // convert PPM ratios
   if (_reserveRatio > 1) _reserveRatio = _reserveRatio / 1000000
-  return _continuousShares * (
-    (1 + _reserveTokensReceived / _reserveTokenBalance) ^ _reserveRatio 
-    - 1
+  return (
+    _continuousShares *
+    ((1 + _reserveTokensReceived / _reserveTokenBalance) ^ (_reserveRatio - 1))
   )
 }
 
@@ -43,11 +43,17 @@ const resetVars = () => {
 }
 
 const log = () => {
-  console.log(`Staking ${p[0]} tokens (against ${p[1]} existing tokens) returns ${n} shares (plus ${p[2]} previous total shares) for ${n + p[2]} total issued shares.`)
+  console.log(
+    `Staking ${p[0]} tokens (against ${
+      p[1]
+    } existing tokens) returns ${n} shares (plus ${
+      p[2]
+    } previous total shares) for ${n + p[2]} total issued shares.`,
+  )
 }
 
 const purchaseShares = (iterations = 1) => {
-  for(let i = 0; i < iterations; i++ ) {
+  for (let i = 0; i < iterations; i++) {
     p = [a, t, s, r]
     n = purchaseReturn(...p) // calc shares
     s += n // increase total shares
@@ -56,13 +62,16 @@ const purchaseShares = (iterations = 1) => {
   }
 }
 
-
 /** runs some tests and log some staking... */
 
 resetVars()
-console.log(`First share purchased for ${a} tokens at ${parseInt((r/1000000) * 100)}% ratio`)
+console.log(
+  `First share purchased for ${a} tokens at ${parseInt(
+    (r / 1000000) * 100,
+  )}% ratio`,
+)
 
-a = a *10
+a = a * 10
 console.log(`\nTEST${s}: spend 10x "amount" in one purchase...`)
 purchaseShares()
 const onePurchase = s
@@ -74,4 +83,7 @@ purchaseShares(10)
 const tenPurchases = s
 console.log(`RESULT: ${s} total shares received.`)
 
-console.log(`\n----\nRESULTS MATCH: ${onePurchase} === ${tenPurchases} : ${(onePurchase === tenPurchases)}`)
+console.log(
+  `\n----\nRESULTS MATCH: ${onePurchase} === ${tenPurchases} : ${onePurchase ===
+    tenPurchases}`,
+)
