@@ -4,6 +4,7 @@ module.exports = {
   randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes(hex),
   zerobytes: () => web3.utils.hexToBytes('0x0000000000000000000000000000000000000000000000000000000000000000'),
   zeroHex: () => '0x0000000000000000000000000000000000000000000000000000000000000000',
+  zeroAddress: () => '0x0000000000000000000000000000000000000000',
 
   // deprecated
   getParamFromTxEvent: (
