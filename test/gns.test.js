@@ -38,25 +38,46 @@ contract('GNS', accounts => {
 
   })
 
-  it('...should allow a user to register a subgraph to a subdomain only once, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[1] })
+  it('...should allow a user to create a subgraph only once, and not allow a different user to do so. ', async () => {
+    const { logs } = await deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, { from: accounts[1] })
     const domain = await deployedGNS.domains(hashedSubdomain)
-    assert(await domain.subgraphID === web3.utils.bytesToHex(subgraphID), 'Subdomain was not registered properly.')
+    assert(await domain.owner === accounts[1], 'Subdomain was not created properly.')
 
-    expectEvent.inLogs(logs, 'SubgraphIDAdded', {
+    expectEvent.inLogs(logs, 'SubgraphCreated', {
       topLevelDomainHash: topLevelDomainHash,
       registeredHash: hashedSubdomain,
-      subgraphID: web3.utils.bytesToHex(subgraphID),
       subdomainName: subdomainName,
+    })
+
+    expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
+      domainHash: hashedSubdomain,
       ipfsHash: web3.utils.bytesToHex(ipfsHash)
     })
 
-    // Check that another user can't register
-    await expectRevert(deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[3] }), 'Only domain owner can call.')
+    // Check that another user can't create
+    await expectRevert(deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, { from: accounts[3] }), 'Only domain owner can call.')
 
-    // Check that the owner can't call addSubgraphToDomain() twice
-    await expectRevert(deployedGNS.addSubgraphToDomain(topLevelDomainHash, subdomainName, subgraphID, ipfsHash, { from: accounts[1] }), 'Someone already owns this subdomain.')
+    // Check that the owner can't call createSubgraph() twice
+    await expectRevert(deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, { from: accounts[1] }), 'Someone already owns this subdomain.')
   })
+
+  it('...should allow a user to register a subgraph to a subdomain only once, and not allow a different user to do so. ', async () => {
+    const { logs } = await deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[1] })
+    const domain = await deployedGNS.domains(hashedSubdomain)
+    assert(await domain.subgraphID === web3.utils.bytesToHex(subgraphID), 'Subdomain was not registered properly.')
+
+    expectEvent.inLogs(logs, 'SubgraphDeployed', {
+      domainHash: hashedSubdomain,
+      subgraphID: web3.utils.bytesToHex(subgraphID),
+    })
+
+    // Check that another user can't register
+    await expectRevert(deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[3] }), 'Only domain owner can call.')
+
+    // Check that the owner can't call deploySubgraph() twice
+    await expectRevert(deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[1] }), 'The subgraph ID for this domain has already been set. You must call changeDomainSubgraphID it you wish to change it.')
+  })
+
 
   it('...should allow subgraph metadata to be updated', async () => {
     const { logs } = await deployedGNS.changeSubgraphMetadata(ipfsHash, hashedSubdomain, { from: accounts[1] })

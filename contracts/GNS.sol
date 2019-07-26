@@ -74,10 +74,10 @@ contract GNS is Governed {
             domains[domainHash].owner = msg.sender;
         }
 
-        // Note - subdomainName is only emitted through the event.
+        // Note - subdomain name and ipfs hash are only emitted through the events.
         // Note - if the subdomain is blank, the domain hash ends up being the top level domain hash, not the hash of a blank string.
         emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName);
-        changeSubgraphMetadata(domainHash, _ipfsHash);
+        emit SubgraphMetadataChanged(domainHash, _ipfsHash);
     }
 
     /*
