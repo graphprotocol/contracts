@@ -9,7 +9,7 @@ contract GNS is Governed {
     event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
     event SubgraphCreated(bytes32 indexed topLevelDomainHash, bytes32 indexed registeredHash, string subdomainName);
     event SubgraphDeployed(bytes32 indexed domainHash, bytes32 indexed subgraphID);
-    event SubgraphIDChanged(bytes32 indexed domainHash, bytes32 indexed subgraphID);
+    event SubgraphIDUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event DomainDeleted(bytes32 indexed domainHash);
     event AccountMetadataChanged(address indexed account, bytes32 indexed ipfsHash);
     event SubgraphMetadataChanged(bytes32 indexed domainHash, bytes32 indexed ipfsHash);
@@ -81,36 +81,19 @@ contract GNS is Governed {
     }
 
     /*
-     * @notice Deploy a subgraph by registering a subgraph ID to a domain. Only works when the subgraph has not been registered yet. After this, updates can be made via changeDomainSubgraphID
-     * @dev Only the domain owner may do this.
-     *
-     * @param _domainHash <bytes32> - Hash of the domain name.
-     * @param _subgraphID <bytes32> - IPLD subgraph ID of the subdomain.
-     */
-    function deploySubgraph(
-        bytes32 _domainHash,
-        bytes32 _subgraphID
-    ) external onlyDomainOwner(_domainHash) {
-        require(domains[_domainHash].subgraphID == bytes32(0), 'The subgraph ID for this domain has already been set. You must call changeDomainSubgraphID it you wish to change it.');
-        domains[_domainHash].subgraphID = _subgraphID;
-        emit SubgraphDeployed(_domainHash, _subgraphID);
-    }
-
-    /*
-     * @notice Update an existing subdomain with a different subgraph ID.
+     * @notice Update an existing subdomain with a subgraph ID.
      * @dev Only the domain owner may do this.
      *
      * @param _domainHash <bytes32> - Hash of the domain name.
      * @param _subgraphID <bytes32> - IPLD subgraph ID of the domain.
      */
-    function changeDomainSubgraphID(
+    function updateDomainSubgraphID(
         bytes32 _domainHash,
         bytes32 _subgraphID
     ) external onlyDomainOwner(_domainHash) {
-        require(domains[_domainHash].subgraphID != bytes32(0), 'The subgraph ID must have been set at least once in order to change it.');
         require(_subgraphID != bytes32(0), 'If you want to reset the subgraphID, call deleteSubdomain.');
         domains[_domainHash].subgraphID = _subgraphID;
-        emit SubgraphIDChanged(_domainHash, _subgraphID);
+        emit SubgraphIDUpdated(_domainHash, _subgraphID);
     }
 
     /*

@@ -61,21 +61,18 @@ contract('GNS', accounts => {
     await expectRevert(deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, { from: accounts[1] }), 'Someone already owns this subdomain.')
   })
 
-  it('...should allow a user to register a subgraph to a subdomain only once, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[1] })
+  it('...should allow a user to register a subgraph to a subdomain, and not allow a different user to do so. ', async () => {
+    const { logs } = await deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, { from: accounts[1] })
     const domain = await deployedGNS.domains(hashedSubdomain)
     assert(await domain.subgraphID === web3.utils.bytesToHex(subgraphID), 'Subdomain was not registered properly.')
 
-    expectEvent.inLogs(logs, 'SubgraphDeployed', {
+    expectEvent.inLogs(logs, 'SubgraphIDUpdated', {
       domainHash: hashedSubdomain,
       subgraphID: web3.utils.bytesToHex(subgraphID),
     })
 
     // Check that another user can't register
-    await expectRevert(deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[3] }), 'Only domain owner can call.')
-
-    // Check that the owner can't call deploySubgraph() twice
-    await expectRevert(deployedGNS.deploySubgraph(hashedSubdomain, subgraphID, { from: accounts[1] }), 'The subgraph ID for this domain has already been set. You must call changeDomainSubgraphID it you wish to change it.')
+    await expectRevert(deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, { from: accounts[3] }), 'Only domain owner can call.')
   })
 
 
@@ -101,24 +98,6 @@ contract('GNS', accounts => {
 
     // Check that a different owner can't call
     await expectRevert(deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[4], { from: accounts[3] }), 'Only domain owner can call')
-  })
-
-  it('...should allow subgraphID to be changed on a subdomain ', async () => {
-    const changedSubgraphID = helpers.randomSubgraphIdBytes()
-    const unregisteredDomain = helpers.randomSubgraphIdBytes()
-
-    // Expect call from non-owner to fail
-    await expectRevert(deployedGNS.changeDomainSubgraphID(hashedSubdomain, changedSubgraphID, { from: accounts[3] }), 'Only domain owner can call')
-
-    const { logs } = await deployedGNS.changeDomainSubgraphID(hashedSubdomain, changedSubgraphID, { from: accounts[2] })
-
-    expectEvent.inLogs(logs, 'SubgraphIDChanged', {
-      domainHash: hashedSubdomain,
-      subgraphID: web3.utils.bytesToHex(changedSubgraphID)
-    })
-
-    const updatedDomain = await deployedGNS.domains(hashedSubdomain)
-    assert(updatedDomain.subgraphID === web3.utils.bytesToHex(changedSubgraphID), 'SubgraphID was not changed')
   })
 
   it('...should allow a domain and subgraphID to be deleted', async () => {
