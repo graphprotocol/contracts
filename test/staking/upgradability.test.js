@@ -85,12 +85,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     )
 
     // Get the `transactionId` from the logs
-    const transactionId = helpers.getParamFromTxEvent(
-      setMinimumCurationStakingAmount,
-      'transactionId',
-      null,
-      'Submission',
-    )
-    assert(!isNaN(transactionId.toNumber()), 'Transaction ID found.')
+    const transactionId = setMinimumCurationStakingAmount.tx
+    assert(typeof transactionId === "string", "Transaction ID found.")
   })
 })

@@ -1,4 +1,4 @@
-const { shouldFail } = require('openzeppelin-test-helpers')
+const { expectRevert } = require('openzeppelin-test-helpers');
 
 // contracts
 const GraphToken = artifacts.require('./GraphToken.sol')
@@ -9,7 +9,7 @@ const GraphProtocol = require('../graphProtocol.js')
 const helpers = require('./lib/testHelpers')
 
 contract(
-  'Rewards protection',
+  'Rewards Manager',
   ([deploymentAddress, daoContract, curationStaker, ...accounts]) => {
     /**
      * testing constants & variables
@@ -25,7 +25,7 @@ contract(
       initialTokenSupply = 1000000,
       tokensMintedForStaker = 10001 * minimumCurationStakingAmount,
       subgraphIdHex = helpers.randomSubgraphIdHex(),
-      subgraphIdBytes = helpers.randomSubgraphIdBytes(subgraphIdHex),
+      // subgraphIdBytes = helpers.randomSubgraphIdBytes(subgraphIdHex),
       gp
 
     before(async () => {
@@ -110,7 +110,7 @@ contract(
       )
 
       // assert a failure due to `stakingAmount` being too high
-      await shouldFail.reverting(curationStake)
+      await expectRevert.unspecified( curationStake )
     })
   },
 )
