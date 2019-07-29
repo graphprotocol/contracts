@@ -35,7 +35,7 @@ contract(
         initialTokenSupply, // initial supply
         { from: deploymentAddress },
       )
-      assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
+      assert.isObject(deployedGraphToken, 'Deploying GraphToken did not work.')
 
       // send some tokens to the staking account
       const tokensForCurator = await deployedGraphToken.mint(
@@ -43,7 +43,7 @@ contract(
         tokensMintedForStaker, // value
         { from: daoContract },
       )
-      assert(tokensForCurator, 'Mints Graph Tokens for Curator.')
+      assert(tokensForCurator, 'Graph Tokens were not minted for Curator.')
 
       // deploy Staking contract
       deployedStaking = await Staking.new(
@@ -57,14 +57,14 @@ contract(
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
-      assert.isObject(deployedStaking, 'Deploy Staking contract.')
+      assert.isObject(deployedStaking, 'Deploying Staking contract did not work.')
 
       // init Graph Protocol JS library with deployed staking contract
       gp = GraphProtocol({
         Staking: deployedStaking,
         GraphToken: deployedGraphToken,
       })
-      assert.isObject(gp, 'Initialize the Graph Protocol library.')
+      assert.isObject(gp, 'Initializing the Graph Protocol library did not work.')
     })
 
     it('...should allow staking of 10,000 shares', async () => {
@@ -75,7 +75,7 @@ contract(
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker &&
           totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.',
+        'Balances before transfer are not correct.',
       )
 
       // stake 10,000 shares
@@ -86,7 +86,7 @@ contract(
         data, // data
         { from: curationStaker },
       )
-      assert(curationStake, 'Stake Graph Tokens for curation.')
+      assert(curationStake, 'Staking Graph Tokens for curation did not work.')
 
       // check balances
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -95,7 +95,7 @@ contract(
         curatorBalance.toNumber() === 100 &&
           totalBalance.toNumber() ===
             tokensMintedForStaker - curatorBalance.toNumber(),
-        'Balances after transfer are correct.',
+        'Balances after transfer are incorrect.',
       )
     })
 

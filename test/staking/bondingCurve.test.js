@@ -239,7 +239,7 @@ contract(
         )
         assert(
           typeof stakeToShares === 'number',
-          'Stake to Shares is a number.',
+          'Stake to Shares should be a number.',
         )
       })
 
@@ -257,7 +257,7 @@ contract(
         )
         assert(
           typeof stakeToShares === 'number',
-          'Stake to Shares is a number.',
+          'Stake to Shares should be a number.',
         )
       })
 

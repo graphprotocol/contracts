@@ -31,7 +31,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     assert.isObject(deployedMultiSigWallet, 'Deploy MultiSigWallet contract.')
     assert(
       web3.utils.isAddress(deployedMultiSigWallet.address),
-      'MultiSigWallet address is address.',
+      'MultiSigWallet address is of type address.',
     )
 
     // deploy GraphToken with multisig as governor
@@ -43,7 +43,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
     assert(
       web3.utils.isAddress(deployedGraphToken.address),
-      'GraphToken address is address.',
+      'GraphToken address is of type address.',
     )
 
     // deploy a contract we can encode a transaction for
@@ -61,7 +61,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     assert.isObject(deployedStaking, 'Deploy Staking contract.')
     assert(
       web3.utils.isAddress(deployedStaking.address),
-      'Staking address is address.',
+      'Staking address is of type address.',
     )
 
     // init Graph Protocol JS library with deployed staking contract

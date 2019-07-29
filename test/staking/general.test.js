@@ -126,7 +126,7 @@ contract(
       it('...should return `arbitrator` address', async () => {
         assert(
           (await gp.staking.arbitrator()) === daoContract,
-          'Arbitrator is set to governor.',
+          'Arbitrator set to governor.',
         )
       })
     })

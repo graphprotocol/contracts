@@ -76,7 +76,7 @@ contract(
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker &&
           totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.',
+        'Balances before transfer are incorrect.',
       )
 
       const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
@@ -95,7 +95,7 @@ contract(
       assert(
         amountStaked.toNumber() === stakingAmount &&
           subgraphShares.toNumber() > 0,
-        'Staked curation amount confirmed.',
+        'Staked curation amount is not correect.',
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -103,7 +103,7 @@ contract(
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
           totalBalance.toNumber() === stakingAmount,
-        'Balances after transfer are correct.',
+        'Balances after transfer is incorrect.',
       )
     })
 
@@ -131,7 +131,7 @@ contract(
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker &&
           totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.',
+        'Balances before transfer are incorrect.',
       )
 
       /** @dev Stake some tokens for curation */
@@ -150,14 +150,14 @@ contract(
       assert(
         amountStaked.toNumber() === stakingAmount &&
           subgraphShares.toNumber() > 0,
-        'Staked curation amount confirmed.',
+        'Staked curation amount is not confirmed.',
       )
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
           totalBalance.toNumber() === stakingAmount,
-        'Balances after transfer are correct.',
+        'Balances after transfer is incorrect.',
       )
 
       return subgraphShares.toNumber()
