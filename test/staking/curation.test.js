@@ -19,7 +19,7 @@ contract(
       minimumIndexingStakingAmount = 100,
       maximumIndexers = 10,
       slashingPercent = 10,
-      thawingPeriod = 7
+      thawingPeriod = 60 * 60 * 24 * 7 // seconds
     let deployedStaking,
       deployedGraphToken,
       initialTokenSupply = 1000000,
