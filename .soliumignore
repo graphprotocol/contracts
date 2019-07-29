@@ -1,0 +1,5 @@
+node_modules
+contracts/Migrations.sol
+contracts/bancor
+contracts/openzeppelin
+contracts/MultiSigWallet.sol

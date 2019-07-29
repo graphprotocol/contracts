@@ -14,9 +14,9 @@ pragma solidity ^0.5.2;
  * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
  *          equal to the total amount of Curation stake for a given subgraphId if they
  *          successfully stake on a given subgraphId.
- * @req c05 A Curator can add any amount of stake for a given subgraphId at any time, as long 
+ * @req c05 A Curator can add any amount of stake for a given subgraphId at any time, as long
  *          as their total amount remains more than minimumCurationStakingAmount.
- * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time, 
+ * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time,
  *          as long as their total amount remains more than minimumCurationStakingAmount.
  * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
  * @req c08 Curation shares accrue 1 basis point per share of any fees an Indexing Node would
@@ -31,7 +31,7 @@ pragma solidity ^0.5.2;
  *          any time.
  * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
  *          been started and a thawing period has elapsed.
- * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long 
+ * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long
  *          as their total amount remains more than minimumIndexingStakingAmount.
  * @req i07 An Indexer earns a portion of all fees from the settlement a channel they were
  *          involved in.
@@ -186,10 +186,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     uint256 private constant ATTESTATION_SIZE_BYTES = 197;
 
     // EIP-712 constants
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+    );
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-            "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
-        );
+        "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
+    );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
 
@@ -228,7 +230,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     // Minimum amount allowed to be staked by Indexing Nodes
     uint256 public minimumIndexingStakingAmount;
 
-    // Maximum number of Indexing Nodes staked higher than stake to consider 
+    // Maximum number of Indexing Nodes staked higher than stake to consider
     uint256 public maximumIndexers;
 
     // Percent of stake to slash in successful dispute
@@ -483,10 +485,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         view
         returns (uint256 issuedShares)
     {
-        issuedShares = calculatePurchaseReturn(_currentShares,
-                                               _currentTokens,
-                                               uint32(_reserveRatio),
-                                               _purchaseTokens);
+        issuedShares = calculatePurchaseReturn(
+            _currentShares,
+            _currentTokens,
+            uint32(_reserveRatio),
+            _purchaseTokens
+        );
     }
 
     /**
@@ -508,10 +512,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         view
         returns (uint256 refundTokens)
     {
-        refundTokens = calculateSaleReturn(_currentShares,
-                                           _currentTokens,
-                                           uint32(_reserveRatio),
-                                           _returnedShares);
+        refundTokens = calculateSaleReturn(
+            _currentShares,
+            _currentTokens,
+            uint32(_reserveRatio),
+            _returnedShares
+        );
     }
 
     /**
@@ -528,8 +534,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         private
     {
         // Overflow protection
-        require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount
-                > subgraphs[_subgraphId].totalCurationStake);
+        require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount > subgraphs[_subgraphId].totalCurationStake);
 
         // If this subgraph hasn't been curated before...
         // NOTE: We have to do this to initialize the curve or else it has
@@ -555,11 +560,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         if (_tokenAmount > 0) { // Corner case if only minimum is staked on first stake
             // Obtain the amount of shares to buy with the amount of tokens to sell
             // according to the bonding curve
-            uint256 _newShares =
-                    stakeToShares(_tokenAmount,
-                                  subgraphs[_subgraphId].totalCurationStake,
-                                  subgraphs[_subgraphId].totalCurationShares,
-                                  subgraphs[_subgraphId].reserveRatio);
+            uint256 _newShares = stakeToShares(
+                _tokenAmount,
+                subgraphs[_subgraphId].totalCurationStake,
+                subgraphs[_subgraphId].totalCurationShares,
+                subgraphs[_subgraphId].reserveRatio
+            );
 
             // Update the amount of tokens _curator has, and overall amount staked
             curators[_subgraphId][_curator].amountStaked += _tokenAmount;
@@ -567,8 +573,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
             // @imp c02 Ensure the minimum amount is staked
             // TODO Validate the need for this requirement
-            require(curators[_subgraphId][_curator].amountStaked
-                    >= minimumCurationStakingAmount);
+            require(curators[_subgraphId][_curator].amountStaked >= minimumCurationStakingAmount);
 
             // Update the amount of shares issued to _curator, and total amount issued
             curators[_subgraphId][_curator].subgraphShares += _newShares;
@@ -576,12 +581,18 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
             // Ensure curators cannot stake more than 100% in basis points
             // Note: ensures that distributeChannelFees() does not revert
-            require(subgraphs[_subgraphId].totalCurationShares
-                    <= (MAX_PPM / BASIS_PT));
+            require(subgraphs[_subgraphId].totalCurationShares <= (MAX_PPM / BASIS_PT));
         }
 
         // Emit the CuratorStaked event (updating the running tally)
-        emit CuratorStaked(_curator, curators[_subgraphId][_curator].amountStaked, _subgraphId, curators[_subgraphId][_curator].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+        emit CuratorStaked(
+            _curator,
+            curators[_subgraphId][_curator].amountStaked,
+            _subgraphId,
+            curators[_subgraphId][_curator].subgraphShares,
+            subgraphs[_subgraphId].totalCurationShares,
+            subgraphs[_subgraphId].totalCurationStake)
+        ;
     }
 
     /**
@@ -600,10 +611,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Obtain the amount of tokens to refunded with the amount of shares returned
         // according to the bonding curve
-        uint256 _tokenRefund = sharesToStake(_numShares,
-                                             subgraphs[_subgraphId].totalCurationStake,
-                                             subgraphs[_subgraphId].totalCurationShares,
-                                             subgraphs[_subgraphId].reserveRatio);
+        uint256 _tokenRefund = sharesToStake(
+            _numShares,
+            subgraphs[_subgraphId].totalCurationStake,
+            subgraphs[_subgraphId].totalCurationShares,
+            subgraphs[_subgraphId].reserveRatio
+        );
 
         // Underflow protection
         require(curators[_subgraphId][msg.sender].amountStaked >= _tokenRefund);
@@ -620,16 +633,27 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
         if (fullLogout) {
-            // Emit the CuratorLogout event
-        emit CuratorLogout(msg.sender, _subgraphId,  subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+        // Emit the CuratorLogout event
+            emit CuratorLogout(
+                msg.sender,
+                _subgraphId,
+                subgraphs[_subgraphId].totalCurationShares,
+                subgraphs[_subgraphId].totalCurationStake
+            );
         } else {
             // Require that if not fully logging out, at least the minimum is kept staked
             // TODO Validate the need for this requirement
-            require(curators[_subgraphId][msg.sender].amountStaked
-                        >= minimumCurationStakingAmount);
+            require(curators[_subgraphId][msg.sender].amountStaked >= minimumCurationStakingAmount);
 
             // Emit the CuratorStaked event (updating the running tally)
-            emit CuratorStaked(msg.sender, curators[_subgraphId][msg.sender].amountStaked, _subgraphId, curators[_subgraphId][msg.sender].subgraphShares, subgraphs[_subgraphId].totalCurationShares, subgraphs[_subgraphId].totalCurationStake);
+            emit CuratorStaked(
+                msg.sender,
+                curators[_subgraphId][msg.sender].amountStaked,
+                _subgraphId,
+                curators[_subgraphId][msg.sender].subgraphShares,
+                subgraphs[_subgraphId].totalCurationShares,
+                subgraphs[_subgraphId].totalCurationStake
+            );
         }
     }
 
@@ -649,13 +673,17 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         private
     {
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value
-                    >= minimumIndexingStakingAmount); // @imp i02
+        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
         if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(_indexer, indexingNodes[_subgraphId][_indexer].amountStaked, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
+        emit IndexingNodeStaked(
+            _indexer,
+            indexingNodes[_subgraphId][_indexer].amountStaked,
+            _subgraphId,
+            subgraphs[_subgraphId].totalIndexingStake
+        );
     }
 
     /**
@@ -678,8 +706,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
-        require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod
-                    <= block.timestamp);
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
         // Return the amount the Indexing Node has staked
         uint256 _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
         // Return any outstanding fees accrued the Indexing Node does not have yet
@@ -690,7 +717,11 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalIndexers -= 1;
         // Send them all their funds back
         assert(token.transfer(msg.sender, _stake + _fees));
-        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId, subgraphs[_subgraphId].totalIndexingStake);
+        emit IndexingNodeFinalizeLogout(
+            msg.sender,
+            _subgraphId,
+            subgraphs[_subgraphId].totalIndexingStake)
+        ;
     }
 
     /**
@@ -727,26 +758,26 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         bytes32 _disputeId = keccak256(abi.encode(
-                // HACK: Remove this line until eth_signTypedData is in common use
-                //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                "\x19Ethereum Signed Message:\n", 64, // 64 bytes (2 hashes)
-                // END HACK
-                keccak256(abi.encode( // EIP 712 domain separator
-                        DOMAIN_TYPE_HASH,
-                        DOMAIN_NAME_HASH,
-                        DOMAIN_VERSION_HASH,
-                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
-                        this, // contract address
-                        // Application-specific domain separator
-                        // Ensures msgs for different subgraphs cannot be reused
-                        // Note: Not necessary when subgraphs are factory pattern because of contract address
-                        _subgraphId // EIP-712 Salt
-                    )),
-                keccak256(abi.encode( // EIP 712-encoded message hash
-                        ATTESTATION_TYPE_HASH,
-                        _attestation.slice(0, ATTESTATION_SIZE_BYTES-65) // Everything except the signature
-                    ))
-            ));
+            // HACK: Remove this line until eth_signTypedData is in common use
+            //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+            "\x19Ethereum Signed Message:\n", 64, // 64 bytes (2 hashes)
+            // END HACK
+            keccak256(abi.encode( // EIP 712 domain separator
+                    DOMAIN_TYPE_HASH,
+                    DOMAIN_NAME_HASH,
+                    DOMAIN_VERSION_HASH,
+                    CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
+                    this, // contract address
+                    // Application-specific domain separator
+                    // Ensures msgs for different subgraphs cannot be reused
+                    // Note: Not necessary when subgraphs are factory pattern because of contract address
+                    _subgraphId // EIP-712 Salt
+            )),
+            keccak256(abi.encode( // EIP 712-encoded message hash
+                    ATTESTATION_TYPE_HASH,
+                    _attestation.slice(0, ATTESTATION_SIZE_BYTES-65) // Everything except the signature
+            ))
+        ));
 
         // Decode the signature
         (uint8 v, bytes32 r, bytes32 s) = abi.decode( // VRS signature components
@@ -790,8 +821,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
         // Store dispute
-        disputes[_disputeId] =
-                Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
+        disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
 
         // Log event that new dispute was created against _indexingNode
         emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
@@ -884,8 +914,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         private
     {
         // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
-        uint256 _curatorRewardBasisPts =
-                subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
+        uint256 _curatorRewardBasisPts = subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
         assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
         uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
         // Give the indexing node their part of the fees
