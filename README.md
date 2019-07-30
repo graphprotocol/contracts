@@ -10,11 +10,11 @@
  - [Ashoka Finley](https://github.com/shkfnly)
  
 ## Current Contract Addresses
-### Kovan
-- GNS - 0x32E7a5bECC129b607D6Cf24CDa2B6F7a202461D8
-
 ### Ropsten
-- GNS - 0x41bcbb61c3fb0e9ea86330f23b564a8171d9c9d9
+- Graph Token - 0xf18cCaB7900B2AbE6B438a7D7a7bB9d5ec5fe074
+- Staking - 0xeEff25515DeE946F62DdCE1F00F78C2Ad0aBAb3f
+- Serivce Registry - 0xC0F3ddB5732Dec002eBB92cBc04B24ac274dE71F
+- GNS - 0x77E8997a50aeD85b5d087a6B291878a172f68fA3
 
 ## Installation &amp; Deployment
 1. Install Node.js `^11.0.0`
