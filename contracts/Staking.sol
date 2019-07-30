@@ -694,13 +694,12 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
      * @param _indexer <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
-     * @param _indexingRecords <bytes> - Index Records of the indexes being stored
      */
     function stakeGraphTokensForIndexing (
         bytes32 _subgraphId,
         address _indexer,
         uint256 _value,
-        bytes memory _indexingRecords
+        bytes memory _indexingRecords // TODO DK - what is this? Why isn't it used?
     )
         private
     {
@@ -934,6 +933,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
         emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);
+        success = true;
     }
 
     /**
@@ -959,6 +959,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
+        success = true;
     }
 
     /**
@@ -972,7 +973,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      */
     function distributeChannelFees (
         bytes32 _subgraphId,
-        address _indexingNode,
+        address _indexingNode, // TODO DK - Why is this here? does msg.sender replace this?
         uint256 _feesEarned
     )
         private
