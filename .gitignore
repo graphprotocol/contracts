@@ -2,7 +2,6 @@
 node_modules/
 
 # Ignore truffle stuff
-build/
 
 .privkey.txt
 .infurakey.txt

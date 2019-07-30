@@ -1,0 +1,1108 @@
+{
+  "contractName": "ERC20Burnable",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "approve",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "totalSupply",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferFrom",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "name": "addedValue",
+          "type": "uint256"
+        }
+      ],
+      "name": "increaseAllowance",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "name": "subtractedValue",
+          "type": "uint256"
+        }
+      ],
+      "name": "decreaseAllowance",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "transfer",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "spender",
+          "type": "address"
+        }
+      ],
+      "name": "allowance",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Transfer",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Approval",
+      "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "burn",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "burnFrom",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.2+commit.1df8f40c\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"from\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"from\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"owner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"}],\"devdoc\":{\"details\":\"Token that can be irreversibly burned (destroyed).\",\"methods\":{\"allowance(address,address)\":{\"details\":\"Function to check the amount of tokens that an owner allowed to a spender.\",\"params\":{\"owner\":\"address The address which owns the funds.\",\"spender\":\"address The address which will spend the funds.\"},\"return\":\"A uint256 specifying the amount of tokens still available for the spender.\"},\"approve(address,uint256)\":{\"details\":\"Approve the passed address to spend the specified amount of tokens on behalf of msg.sender. Beware that changing an allowance with this method brings the risk that someone may use both the old and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\",\"params\":{\"spender\":\"The address which will spend the funds.\",\"value\":\"The amount of tokens to be spent.\"}},\"balanceOf(address)\":{\"details\":\"Gets the balance of the specified address.\",\"params\":{\"owner\":\"The address to query the balance of.\"},\"return\":\"An uint256 representing the amount owned by the passed address.\"},\"burn(uint256)\":{\"details\":\"Burns a specific amount of tokens.\",\"params\":{\"value\":\"The amount of token to be burned.\"}},\"burnFrom(address,uint256)\":{\"details\":\"Burns a specific amount of tokens from the target address and decrements allowance\",\"params\":{\"from\":\"address The address which you want to send tokens from\",\"value\":\"uint256 The amount of token to be burned\"}},\"decreaseAllowance(address,uint256)\":{\"details\":\"Decrease the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To decrement allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.\",\"params\":{\"spender\":\"The address which will spend the funds.\",\"subtractedValue\":\"The amount of tokens to decrease the allowance by.\"}},\"increaseAllowance(address,uint256)\":{\"details\":\"Increase the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To increment allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.\",\"params\":{\"addedValue\":\"The amount of tokens to increase the allowance by.\",\"spender\":\"The address which will spend the funds.\"}},\"totalSupply()\":{\"details\":\"Total number of tokens in existence\"},\"transfer(address,uint256)\":{\"details\":\"Transfer token for a specified address\",\"params\":{\"to\":\"The address to transfer to.\",\"value\":\"The amount to be transferred.\"}},\"transferFrom(address,address,uint256)\":{\"details\":\"Transfer tokens from one address to another. Note that while this function emits an Approval event, this is not required as per the specification, and other compliant implementations may not emit the event.\",\"params\":{\"from\":\"address The address which you want to send tokens from\",\"to\":\"address The address which you want to transfer to\",\"value\":\"uint256 the amount of tokens to be transferred\"}}},\"title\":\"Burnable Token\"},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20Burnable.sol\":\"ERC20Burnable\"},\"evmVersion\":\"byzantium\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":500},\"remappings\":[]},\"sources\":{\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20.sol\":{\"keccak256\":\"0xa67c3a7d4074f354863fe76695349b554fc693f48008ef2a49fcd982a66e5e6c\",\"urls\":[\"bzzr://61a17e19985022da9a538a50b92c23ecffd3c303498dd97ecf01e4a943ea2e5a\"]},\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20Burnable.sol\":{\"keccak256\":\"0xa3e68fd7f987c8fbdaf4867d428a69a15f3cf2f69709a5b0a0fbef750b0e6fbc\",\"urls\":[\"bzzr://f4ebb7c5b9e429b98b07e2caca6156c13c3724e9b1191cca8423ab8427bc6265\"]},\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/IERC20.sol\":{\"keccak256\":\"0x079c4e23ee448f529e43bfa3c4e8fb4be52cd0318ee923a276835bedf45b93d8\",\"urls\":[\"bzzr://48248e86f64407a95f241d6c5c8cfea6b4d4ebf4ebb467e5c98c8af3868fafe4\"]},\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/SafeMath.sol\":{\"keccak256\":\"0x965012d27b4262d7a41f5028cbb30c51ebd9ecd4be8fb30380aaa7a3c64fbc8b\",\"urls\":[\"bzzr://41ca38f6b0fa4b77b0feec43e422cfbec48b7eb38a41edf0b85c77e8d9a296b1\"]}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b506107c4806100206000396000f3fe608060405234801561001057600080fd5b50600436106100bb576000357c01000000000000000000000000000000000000000000000000000000009004806370a082311161008357806370a082311461019b57806379cc6790146101c1578063a457c2d7146101ed578063a9059cbb14610219578063dd62ed3e14610245576100bb565b8063095ea7b3146100c057806318160ddd1461010057806323b872dd1461011a578063395093511461015057806342966c681461017c575b600080fd5b6100ec600480360360408110156100d657600080fd5b50600160a060020a038135169060200135610273565b604080519115158252519081900360200190f35b6101086102f1565b60408051918252519081900360200190f35b6100ec6004803603606081101561013057600080fd5b50600160a060020a038135811691602081013590911690604001356102f7565b6100ec6004803603604081101561016657600080fd5b50600160a060020a0381351690602001356103c0565b6101996004803603602081101561019257600080fd5b5035610470565b005b610108600480360360208110156101b157600080fd5b5035600160a060020a031661047d565b610199600480360360408110156101d757600080fd5b50600160a060020a038135169060200135610498565b6100ec6004803603604081101561020357600080fd5b50600160a060020a0381351690602001356104a6565b6100ec6004803603604081101561022f57600080fd5b50600160a060020a0381351690602001356104f1565b6101086004803603604081101561025b57600080fd5b50600160a060020a0381358116916020013516610507565b6000600160a060020a038316151561028a57600080fd5b336000818152600160209081526040808320600160a060020a03881680855290835292819020869055805186815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a350600192915050565b60025490565b600160a060020a038316600090815260016020908152604080832033845290915281205461032b908363ffffffff61053216565b600160a060020a038516600090815260016020908152604080832033845290915290205561035a848484610547565b600160a060020a0384166000818152600160209081526040808320338085529083529281902054815190815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a35060019392505050565b6000600160a060020a03831615156103d757600080fd5b336000908152600160209081526040808320600160a060020a038716845290915290205461040b908363ffffffff61061416565b336000818152600160209081526040808320600160a060020a0389168085529083529281902085905580519485525191937f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929081900390910190a350600192915050565b61047a338261062d565b50565b600160a060020a031660009081526020819052604090205490565b6104a282826106d6565b5050565b6000600160a060020a03831615156104bd57600080fd5b336000908152600160209081526040808320600160a060020a038716845290915290205461040b908363ffffffff61053216565b60006104fe338484610547565b50600192915050565b600160a060020a03918216600090815260016020908152604080832093909416825291909152205490565b60008282111561054157600080fd5b50900390565b600160a060020a038216151561055c57600080fd5b600160a060020a038316600090815260208190526040902054610585908263ffffffff61053216565b600160a060020a0380851660009081526020819052604080822093909355908416815220546105ba908263ffffffff61061416565b600160a060020a038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b60008282018381101561062657600080fd5b9392505050565b600160a060020a038216151561064257600080fd5b600254610655908263ffffffff61053216565b600255600160a060020a038216600090815260208190526040902054610681908263ffffffff61053216565b600160a060020a038316600081815260208181526040808320949094558351858152935191937fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef929081900390910190a35050565b600160a060020a038216600090815260016020908152604080832033845290915290205461070a908263ffffffff61053216565b600160a060020a0383166000908152600160209081526040808320338452909152902055610738828261062d565b600160a060020a0382166000818152600160209081526040808320338085529083529281902054815190815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a3505056fea165627a7a723058207665424955bba32b6613bc9bb45b28a8c319302ac0b08a05e7b7bd2c2ae7644a0029",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100bb576000357c01000000000000000000000000000000000000000000000000000000009004806370a082311161008357806370a082311461019b57806379cc6790146101c1578063a457c2d7146101ed578063a9059cbb14610219578063dd62ed3e14610245576100bb565b8063095ea7b3146100c057806318160ddd1461010057806323b872dd1461011a578063395093511461015057806342966c681461017c575b600080fd5b6100ec600480360360408110156100d657600080fd5b50600160a060020a038135169060200135610273565b604080519115158252519081900360200190f35b6101086102f1565b60408051918252519081900360200190f35b6100ec6004803603606081101561013057600080fd5b50600160a060020a038135811691602081013590911690604001356102f7565b6100ec6004803603604081101561016657600080fd5b50600160a060020a0381351690602001356103c0565b6101996004803603602081101561019257600080fd5b5035610470565b005b610108600480360360208110156101b157600080fd5b5035600160a060020a031661047d565b610199600480360360408110156101d757600080fd5b50600160a060020a038135169060200135610498565b6100ec6004803603604081101561020357600080fd5b50600160a060020a0381351690602001356104a6565b6100ec6004803603604081101561022f57600080fd5b50600160a060020a0381351690602001356104f1565b6101086004803603604081101561025b57600080fd5b50600160a060020a0381358116916020013516610507565b6000600160a060020a038316151561028a57600080fd5b336000818152600160209081526040808320600160a060020a03881680855290835292819020869055805186815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a350600192915050565b60025490565b600160a060020a038316600090815260016020908152604080832033845290915281205461032b908363ffffffff61053216565b600160a060020a038516600090815260016020908152604080832033845290915290205561035a848484610547565b600160a060020a0384166000818152600160209081526040808320338085529083529281902054815190815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a35060019392505050565b6000600160a060020a03831615156103d757600080fd5b336000908152600160209081526040808320600160a060020a038716845290915290205461040b908363ffffffff61061416565b336000818152600160209081526040808320600160a060020a0389168085529083529281902085905580519485525191937f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929081900390910190a350600192915050565b61047a338261062d565b50565b600160a060020a031660009081526020819052604090205490565b6104a282826106d6565b5050565b6000600160a060020a03831615156104bd57600080fd5b336000908152600160209081526040808320600160a060020a038716845290915290205461040b908363ffffffff61053216565b60006104fe338484610547565b50600192915050565b600160a060020a03918216600090815260016020908152604080832093909416825291909152205490565b60008282111561054157600080fd5b50900390565b600160a060020a038216151561055c57600080fd5b600160a060020a038316600090815260208190526040902054610585908263ffffffff61053216565b600160a060020a0380851660009081526020819052604080822093909355908416815220546105ba908263ffffffff61061416565b600160a060020a038084166000818152602081815260409182902094909455805185815290519193928716927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef92918290030190a3505050565b60008282018381101561062657600080fd5b9392505050565b600160a060020a038216151561064257600080fd5b600254610655908263ffffffff61053216565b600255600160a060020a038216600090815260208190526040902054610681908263ffffffff61053216565b600160a060020a038316600081815260208181526040808320949094558351858152935191937fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef929081900390910190a35050565b600160a060020a038216600090815260016020908152604080832033845290915290205461070a908263ffffffff61053216565b600160a060020a0383166000908152600160209081526040808320338452909152902055610738828261062d565b600160a060020a0382166000818152600160209081526040808320338085529083529281902054815190815290519293927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925929181900390910190a3505056fea165627a7a723058207665424955bba32b6613bc9bb45b28a8c319302ac0b08a05e7b7bd2c2ae7644a0029",
+  "sourceMap": "140:579:10:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;140:579:10;;;;;;;",
+  "deployedSourceMap": "140:579:10:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;140:579:10;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2726:238:9;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;2726:238:9;;;;;;;;:::i;:::-;;;;;;;;;;;;;;;;;;927:89;;;:::i;:::-;;;;;;;;;;;;;;;;3427:294;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;3427:294:9;;;;;;;;;;;;;;;;;:::i;4224:317::-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;4224:317:9;;;;;;;;:::i;295:77:10:-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;295:77:10;;:::i;:::-;;1225:104:9;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1225:104:9;-1:-1:-1;;;;;1225:104:9;;:::i;624:93:10:-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;624:93:10;;;;;;;;:::i;5049:327:9:-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;5049:327:9;;;;;;;;:::i;1953:137::-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;1953:137:9;;;;;;;;:::i;1660:129::-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;;;;;;1660:129:9;;;;;;;;;;:::i;2726:238::-;2791:4;-1:-1:-1;;;;;2815:21:9;;;;2807:30;;;;;;2857:10;2848:20;;;;:8;:20;;;;;;;;-1:-1:-1;;;;;2848:29:9;;;;;;;;;;;;:37;;;2900:36;;;;;;;2848:29;;2857:10;2900:36;;;;;;;;;;;-1:-1:-1;2953:4:9;2726:238;;;;:::o;927:89::-;997:12;;927:89;:::o;3427:294::-;-1:-1:-1;;;;;3551:14:9;;3506:4;3551:14;;;:8;:14;;;;;;;;3566:10;3551:26;;;;;;;;:37;;3582:5;3551:37;:30;:37;:::i;:::-;-1:-1:-1;;;;;3522:14:9;;;;;;:8;:14;;;;;;;;3537:10;3522:26;;;;;;;:66;3598:26;3531:4;3614:2;3618:5;3598:9;:26::i;:::-;-1:-1:-1;;;;;3639:54:9;;3666:14;;;;:8;:14;;;;;;;;3654:10;3666:26;;;;;;;;;;;3639:54;;;;;;;3654:10;;3639:54;;;;;;;;;;;;-1:-1:-1;3710:4:9;3427:294;;;;;:::o;4224:317::-;4304:4;-1:-1:-1;;;;;4328:21:9;;;;4320:30;;;;;;4402:10;4393:20;;;;:8;:20;;;;;;;;-1:-1:-1;;;;;4393:29:9;;;;;;;;;;:45;;4427:10;4393:45;:33;:45;:::i;:::-;4370:10;4361:20;;;;:8;:20;;;;;;;;-1:-1:-1;;;;;4361:29:9;;;;;;;;;;;;:77;;;4453:60;;;;;;4361:29;;4453:60;;;;;;;;;;;-1:-1:-1;4530:4:9;4224:317;;;;:::o;295:77:10:-;341:24;347:10;359:5;341;:24::i;:::-;295:77;:::o;1225:104:9:-;-1:-1:-1;;;;;1306:16:9;1280:7;1306:16;;;;;;;;;;;;1225:104::o;624:93:10:-;688:22;698:4;704:5;688:9;:22::i;:::-;624:93;;:::o;5049:327:9:-;5134:4;-1:-1:-1;;;;;5158:21:9;;;;5150:30;;;;;;5232:10;5223:20;;;;:8;:20;;;;;;;;-1:-1:-1;;;;;5223:29:9;;;;;;;;;;:50;;5257:15;5223:50;:33;:50;:::i;1953:137::-;2014:4;2030:32;2040:10;2052:2;2056:5;2030:9;:32::i;:::-;-1:-1:-1;2079:4:9;1953:137;;;;:::o;1660:129::-;-1:-1:-1;;;;;1758:15:9;;;1732:7;1758:15;;;:8;:15;;;;;;;;:24;;;;;;;;;;;;;1660:129::o;1205:145:16:-;1263:7;1290:6;;;;1282:15;;;;;;-1:-1:-1;1319:5:16;;;1205:145::o;5590:256:9:-;-1:-1:-1;;;;;5677:16:9;;;;5669:25;;;;;;-1:-1:-1;;;;;5723:15:9;;:9;:15;;;;;;;;;;;:26;;5743:5;5723:26;:19;:26;:::i;:::-;-1:-1:-1;;;;;5705:15:9;;;:9;:15;;;;;;;;;;;:44;;;;5775:13;;;;;;;:24;;5793:5;5775:24;:17;:24;:::i;:::-;-1:-1:-1;;;;;5759:13:9;;;:9;:13;;;;;;;;;;;;:40;;;;5814:25;;;;;;;5759:13;;5814:25;;;;;;;;;;;;;5590:256;;;:::o;1431:145:16:-;1489:7;1520:5;;;1543:6;;;;1535:15;;;;;;1568:1;1431:145;-1:-1:-1;;;1431:145:16:o;6678:263:9:-;-1:-1:-1;;;;;6752:21:9;;;;6744:30;;;;;;6800:12;;:23;;6817:5;6800:23;:16;:23;:::i;:::-;6785:12;:38;-1:-1:-1;;;;;6854:18:9;;:9;:18;;;;;;;;;;;:29;;6877:5;6854:29;:22;:29;:::i;:::-;-1:-1:-1;;;;;6833:18:9;;:9;:18;;;;;;;;;;;:50;;;;6898:36;;;;;;;6833:9;;6898:36;;;;;;;;;;;6678:263;;:::o;7330:255::-;-1:-1:-1;;;;;7432:17:9;;;;;;:8;:17;;;;;;;;7450:10;7432:29;;;;;;;;:40;;7466:5;7432:40;:33;:40;:::i;:::-;-1:-1:-1;;;;;7400:17:9;;;;;;:8;:17;;;;;;;;7418:10;7400:29;;;;;;;:72;7482:21;7409:7;7497:5;7482;:21::i;:::-;-1:-1:-1;;;;;7518:60:9;;7548:17;;;;:8;:17;;;;;;;;7536:10;7548:29;;;;;;;;;;;7518:60;;;;;;;7536:10;;7518:60;;;;;;;;;;;;7330:255;;:::o",
+  "source": "pragma solidity ^0.5.0;\n\nimport \"./ERC20.sol\";\n\n/**\n * @title Burnable Token\n * @dev Token that can be irreversibly burned (destroyed).\n */\ncontract ERC20Burnable is ERC20 {\n    /**\n     * @dev Burns a specific amount of tokens.\n     * @param value The amount of token to be burned.\n     */\n    function burn(uint256 value) public {\n        _burn(msg.sender, value);\n    }\n\n    /**\n     * @dev Burns a specific amount of tokens from the target address and decrements allowance\n     * @param from address The address which you want to send tokens from\n     * @param value uint256 The amount of token to be burned\n     */\n    function burnFrom(address from, uint256 value) public {\n        _burnFrom(from, value);\n    }\n}\n",
+  "sourcePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20Burnable.sol",
+  "ast": {
+    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20Burnable.sol",
+    "exportedSymbols": {
+      "ERC20Burnable": [
+        6091
+      ]
+    },
+    "id": 6092,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 6062,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:10"
+      },
+      {
+        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20.sol",
+        "file": "./ERC20.sol",
+        "id": 6063,
+        "nodeType": "ImportDirective",
+        "scope": 6092,
+        "sourceUnit": 6061,
+        "src": "25:21:10",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6064,
+              "name": "ERC20",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 6060,
+              "src": "166:5:10",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ERC20_$6060",
+                "typeString": "contract ERC20"
+              }
+            },
+            "id": 6065,
+            "nodeType": "InheritanceSpecifier",
+            "src": "166:5:10"
+          }
+        ],
+        "contractDependencies": [
+          6060,
+          6246
+        ],
+        "contractKind": "contract",
+        "documentation": "@title Burnable Token\n@dev Token that can be irreversibly burned (destroyed).",
+        "fullyImplemented": true,
+        "id": 6091,
+        "linearizedBaseContracts": [
+          6091,
+          6060,
+          6246
+        ],
+        "name": "ERC20Burnable",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 6076,
+              "nodeType": "Block",
+              "src": "331:41:10",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 6071,
+                          "name": "msg",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 6832,
+                          "src": "347:3:10",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_magic_message",
+                            "typeString": "msg"
+                          }
+                        },
+                        "id": 6072,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sender",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "347:10:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 6073,
+                        "name": "value",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6067,
+                        "src": "359:5:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "id": 6070,
+                      "name": "_burn",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 6017,
+                      "src": "341:5:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$returns$__$",
+                        "typeString": "function (address,uint256)"
+                      }
+                    },
+                    "id": 6074,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "341:24:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 6075,
+                  "nodeType": "ExpressionStatement",
+                  "src": "341:24:10"
+                }
+              ]
+            },
+            "documentation": "@dev Burns a specific amount of tokens.\n@param value The amount of token to be burned.",
+            "id": 6077,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burn",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6068,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6067,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6077,
+                  "src": "309:13:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6066,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "309:7:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "308:15:10"
+            },
+            "returnParameters": {
+              "id": 6069,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "331:0:10"
+            },
+            "scope": 6091,
+            "src": "295:77:10",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 6089,
+              "nodeType": "Block",
+              "src": "678:39:10",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "id": 6085,
+                        "name": "from",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6079,
+                        "src": "698:4:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 6086,
+                        "name": "value",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6081,
+                        "src": "704:5:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "id": 6084,
+                      "name": "_burnFrom",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 6059,
+                      "src": "688:9:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$returns$__$",
+                        "typeString": "function (address,uint256)"
+                      }
+                    },
+                    "id": 6087,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "688:22:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 6088,
+                  "nodeType": "ExpressionStatement",
+                  "src": "688:22:10"
+                }
+              ]
+            },
+            "documentation": "@dev Burns a specific amount of tokens from the target address and decrements allowance\n@param from address The address which you want to send tokens from\n@param value uint256 The amount of token to be burned",
+            "id": 6090,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burnFrom",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6082,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6079,
+                  "name": "from",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6090,
+                  "src": "642:12:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6078,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "642:7:10",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6081,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6090,
+                  "src": "656:13:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6080,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "656:7:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "641:29:10"
+            },
+            "returnParameters": {
+              "id": 6083,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "678:0:10"
+            },
+            "scope": 6091,
+            "src": "624:93:10",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 6092,
+        "src": "140:579:10"
+      }
+    ],
+    "src": "0:720:10"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20Burnable.sol",
+    "exportedSymbols": {
+      "ERC20Burnable": [
+        6091
+      ]
+    },
+    "id": 6092,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 6062,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:10"
+      },
+      {
+        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/openzeppelin/ERC20.sol",
+        "file": "./ERC20.sol",
+        "id": 6063,
+        "nodeType": "ImportDirective",
+        "scope": 6092,
+        "sourceUnit": 6061,
+        "src": "25:21:10",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6064,
+              "name": "ERC20",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 6060,
+              "src": "166:5:10",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ERC20_$6060",
+                "typeString": "contract ERC20"
+              }
+            },
+            "id": 6065,
+            "nodeType": "InheritanceSpecifier",
+            "src": "166:5:10"
+          }
+        ],
+        "contractDependencies": [
+          6060,
+          6246
+        ],
+        "contractKind": "contract",
+        "documentation": "@title Burnable Token\n@dev Token that can be irreversibly burned (destroyed).",
+        "fullyImplemented": true,
+        "id": 6091,
+        "linearizedBaseContracts": [
+          6091,
+          6060,
+          6246
+        ],
+        "name": "ERC20Burnable",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 6076,
+              "nodeType": "Block",
+              "src": "331:41:10",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 6071,
+                          "name": "msg",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 6832,
+                          "src": "347:3:10",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_magic_message",
+                            "typeString": "msg"
+                          }
+                        },
+                        "id": 6072,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sender",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "347:10:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 6073,
+                        "name": "value",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6067,
+                        "src": "359:5:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "id": 6070,
+                      "name": "_burn",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 6017,
+                      "src": "341:5:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$returns$__$",
+                        "typeString": "function (address,uint256)"
+                      }
+                    },
+                    "id": 6074,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "341:24:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 6075,
+                  "nodeType": "ExpressionStatement",
+                  "src": "341:24:10"
+                }
+              ]
+            },
+            "documentation": "@dev Burns a specific amount of tokens.\n@param value The amount of token to be burned.",
+            "id": 6077,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burn",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6068,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6067,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6077,
+                  "src": "309:13:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6066,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "309:7:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "308:15:10"
+            },
+            "returnParameters": {
+              "id": 6069,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "331:0:10"
+            },
+            "scope": 6091,
+            "src": "295:77:10",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 6089,
+              "nodeType": "Block",
+              "src": "678:39:10",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "id": 6085,
+                        "name": "from",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6079,
+                        "src": "698:4:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 6086,
+                        "name": "value",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 6081,
+                        "src": "704:5:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "id": 6084,
+                      "name": "_burnFrom",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 6059,
+                      "src": "688:9:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$returns$__$",
+                        "typeString": "function (address,uint256)"
+                      }
+                    },
+                    "id": 6087,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "688:22:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 6088,
+                  "nodeType": "ExpressionStatement",
+                  "src": "688:22:10"
+                }
+              ]
+            },
+            "documentation": "@dev Burns a specific amount of tokens from the target address and decrements allowance\n@param from address The address which you want to send tokens from\n@param value uint256 The amount of token to be burned",
+            "id": 6090,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burnFrom",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6082,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6079,
+                  "name": "from",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6090,
+                  "src": "642:12:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6078,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "642:7:10",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6081,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6090,
+                  "src": "656:13:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6080,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "656:7:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "641:29:10"
+            },
+            "returnParameters": {
+              "id": 6083,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "678:0:10"
+            },
+            "scope": 6091,
+            "src": "624:93:10",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 6092,
+        "src": "140:579:10"
+      }
+    ],
+    "src": "0:720:10"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.2+commit.1df8f40c.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.10",
+  "updatedAt": "2019-07-16T14:31:00.775Z",
+  "devdoc": {
+    "details": "Token that can be irreversibly burned (destroyed).",
+    "methods": {
+      "allowance(address,address)": {
+        "details": "Function to check the amount of tokens that an owner allowed to a spender.",
+        "params": {
+          "owner": "address The address which owns the funds.",
+          "spender": "address The address which will spend the funds."
+        },
+        "return": "A uint256 specifying the amount of tokens still available for the spender."
+      },
+      "approve(address,uint256)": {
+        "details": "Approve the passed address to spend the specified amount of tokens on behalf of msg.sender. Beware that changing an allowance with this method brings the risk that someone may use both the old and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729",
+        "params": {
+          "spender": "The address which will spend the funds.",
+          "value": "The amount of tokens to be spent."
+        }
+      },
+      "balanceOf(address)": {
+        "details": "Gets the balance of the specified address.",
+        "params": {
+          "owner": "The address to query the balance of."
+        },
+        "return": "An uint256 representing the amount owned by the passed address."
+      },
+      "burn(uint256)": {
+        "details": "Burns a specific amount of tokens.",
+        "params": {
+          "value": "The amount of token to be burned."
+        }
+      },
+      "burnFrom(address,uint256)": {
+        "details": "Burns a specific amount of tokens from the target address and decrements allowance",
+        "params": {
+          "from": "address The address which you want to send tokens from",
+          "value": "uint256 The amount of token to be burned"
+        }
+      },
+      "decreaseAllowance(address,uint256)": {
+        "details": "Decrease the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To decrement allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.",
+        "params": {
+          "spender": "The address which will spend the funds.",
+          "subtractedValue": "The amount of tokens to decrease the allowance by."
+        }
+      },
+      "increaseAllowance(address,uint256)": {
+        "details": "Increase the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To increment allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.",
+        "params": {
+          "addedValue": "The amount of tokens to increase the allowance by.",
+          "spender": "The address which will spend the funds."
+        }
+      },
+      "totalSupply()": {
+        "details": "Total number of tokens in existence"
+      },
+      "transfer(address,uint256)": {
+        "details": "Transfer token for a specified address",
+        "params": {
+          "to": "The address to transfer to.",
+          "value": "The amount to be transferred."
+        }
+      },
+      "transferFrom(address,address,uint256)": {
+        "details": "Transfer tokens from one address to another. Note that while this function emits an Approval event, this is not required as per the specification, and other compliant implementations may not emit the event.",
+        "params": {
+          "from": "address The address which you want to send tokens from",
+          "to": "address The address which you want to transfer to",
+          "value": "uint256 the amount of tokens to be transferred"
+        }
+      }
+    },
+    "title": "Burnable Token"
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}
