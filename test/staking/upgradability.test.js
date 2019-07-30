@@ -89,3 +89,9 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     assert(typeof transactionId === "string", "Transaction ID found.")
   })
 })
+
+
+/* TODO - DK July 29 2019
+  This test needs to be better completed, or removed. It just tests multisig, which is already
+  working in governance.test.
+ */
