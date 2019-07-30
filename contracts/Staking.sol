@@ -148,6 +148,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
     struct IndexingNode {
+        address indexer;
         uint256 amountStaked;
         uint256 feesAccrued;
         uint256 logoutStarted;
@@ -246,6 +247,22 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
+
+    // A single set of index nodes that bootstrap the graph subgraph
+    // Note: The graph subgraph bootstraps the network. It has no way to retrieve
+    //       the list of all indexers at the start of indexing. The indexingNodes
+    //       mapping can be retrieved for all other subgraphs, since they can
+    //       depend on the existing graph subgraph. Therefore, a single dynamic
+    //       array exists as its own variable graphIndexingNodes, along with the
+    //       graphSubgraphID public variable. This was done because using dynamic
+    //       arrays means we need O(n) to delete and update indexing nodes. So
+    //       so restrict it to only one set. All other subgraphs can use the double
+    //       mapping, and update and delete with O(1).
+    // TODO - potentially implement a upper limit, say 100 indexers, for simplification
+    IndexingNode[] public graphIndexingNodes;
+
+    // The graph subgraph ID
+    bytes32 public graphSubgraphID;
 
     // Subgraphs mapping
     mapping (bytes32 => Subgraph) public subgraphs;
@@ -413,6 +430,21 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         returns (bool success)
     {
         arbitrator = _arbitrator;
+        return true;
+    }
+
+    /**
+     * @dev Set the graph subgraph ID
+     * @param _subgraphID <bytes32> - The subgraph ID of the bootstrapping subgraph ID
+     */
+    function setGraphSubgraphID (
+        bytes32 _subgraphID
+    )
+        external
+        onlyGovernance
+        returns (bool success)
+    {
+        graphSubgraphID = _subgraphID;
         return true;
     }
 
@@ -672,18 +704,50 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     )
         private
     {
-        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
-        if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
-            subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-        indexingNodes[_subgraphId][_indexer].amountStaked += _value;
-        subgraphs[_subgraphId].totalIndexingStake += _value;
-        emit IndexingNodeStaked(
-            _indexer,
-            indexingNodes[_subgraphId][_indexer].amountStaked,
-            _subgraphId,
-            subgraphs[_subgraphId].totalIndexingStake
-        );
+
+        // If we are dealing with the graph subgraph bootstrap index nodes
+        if (_subgraphId == graphSubgraphID) {
+            uint256 userIndex;
+            // We must find the indexers location in the array first
+            for (uint256 i; i < graphIndexingNodes.length; i++){
+                if (graphIndexingNodes[i].indexer == _indexer){
+                    userIndex = i;
+                    break;
+                }
+            }
+            // If the user was never found, we must push them into the array
+            if (userIndex == 0){
+                userIndex = graphIndexingNodes.length + 1;
+                IndexingNode memory newIndexer = IndexingNode({indexer: msg.sender, amountStaked: 0, feesAccrued: 0, logoutStarted: 0});
+                graphIndexingNodes.push(newIndexer);
+                // TODO - ensure there is no way to go around this. i.e. if a user has 0 stake, it must be deleted from the dynamic array
+                subgraphs[_subgraphId].totalIndexers += 1;
+            }
+            require(graphIndexingNodes[userIndex].logoutStarted == 0);
+            require(graphIndexingNodes[userIndex].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
+            graphIndexingNodes[userIndex].amountStaked += _value;
+            subgraphs[_subgraphId].totalIndexingStake += _value;
+            emit IndexingNodeStaked(
+                _indexer,
+                graphIndexingNodes[userIndex].amountStaked,
+                _subgraphId,
+                subgraphs[_subgraphId].totalIndexingStake
+            );
+            // When we are dealing with all other indexing arrays that aren't bootstrapping
+        } else {
+            require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+            require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
+            if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
+                subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
+            indexingNodes[_subgraphId][_indexer].amountStaked += _value;
+            subgraphs[_subgraphId].totalIndexingStake += _value;
+            emit IndexingNodeStaked(
+                _indexer,
+                indexingNodes[_subgraphId][_indexer].amountStaked,
+                _subgraphId,
+                subgraphs[_subgraphId].totalIndexingStake
+            );
+        }
     }
 
     /**
