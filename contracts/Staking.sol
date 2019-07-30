@@ -756,9 +756,24 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function beginLogout(bytes32 _subgraphId)
         external
     {
-        require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
-        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-        indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
+        // If we are dealing with the graph subgraph bootstrap index nodes
+        if (_subgraphId == graphSubgraphID) {
+            uint256 userIndex;
+            // We must find the indexers location in the array first
+            for (uint256 i; i < graphIndexingNodes.length; i++){
+                if (graphIndexingNodes[i].indexer == _indexer){
+                    userIndex = i;
+                    break;
+                }
+            }
+            require(graphIndexingNodes[userIndex].amountStaked > 0);
+            require(graphIndexingNodes[userIndex].logoutStarted == 0);
+            graphIndexingNodes[userIndex].logoutStarted == block.timestamp;
+        } else {
+            require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
+            require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+            indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
+        }
         emit IndexingNodeBeginLogout(msg.sender, _subgraphId);
     }
 
