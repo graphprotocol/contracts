@@ -1,5 +1,4 @@
-const { constants, shouldFail } = require('openzeppelin-test-helpers')
-const { ZERO_ADDRESS } = constants
+const { expect } = require('chai')
 
 // contracts
 const GraphToken = artifacts.require('./GraphToken.sol')
@@ -111,8 +110,8 @@ contract(
           curationStaker, // staker address
           subgraph1, // subgraphId
         )
-        curators.amountStaked.should.be.bignumber.equal('0')
-        curators.subgraphShares.should.be.bignumber.equal('0')
+        expect(curators.amountStaked).to.be.bignumber.equal('0')
+        expect(curators.subgraphShares).to.be.bignumber.equal('0')
       })
 
       it('...should return `indexingNodes`', async () => {
@@ -120,14 +119,14 @@ contract(
           indexingStaker, // staker address
           subgraph1, // subgraphId
         )
-        indexingNodes.amountStaked.should.be.bignumber.equal('0')
-        indexingNodes.logoutStarted.should.be.bignumber.equal('0')
+        expect(indexingNodes.amountStaked).to.be.bignumber.equal('0')
+        expect(indexingNodes.logoutStarted).to.be.bignumber.equal('0')
       })
 
       it('...should return `arbitrator` address', async () => {
         assert(
           (await gp.staking.arbitrator()) === daoContract,
-          'Arbitrator is set to governor.',
+          'Arbitrator set to governor.',
         )
       })
     })

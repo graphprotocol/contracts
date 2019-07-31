@@ -21,9 +21,9 @@ pragma solidity ^0.5.2;
  */
 
 import "./Governed.sol";
-import "./openzeppelin/ERC20Burnable.sol";
-import "./openzeppelin/ERC20Mintable.sol";
-import "./openzeppelin/ERC20Detailed.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 // @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
 // NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
