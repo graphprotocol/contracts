@@ -35,8 +35,7 @@ contract TokenReceiver
         bytes calldata _data
     )
         external
-        returns (bool)
-    ;
+        returns (bool);
 }
 
 contract GraphToken is
@@ -47,11 +46,11 @@ contract GraphToken is
 {
     // @imp 05, 06 Override so Governor can set Minters or mint tokens
     modifier onlyMinter() {
-        require(isMinter(msg.sender) || msg.sender == governor);
+        require(isMinter(msg.sender) || msg.sender == governor, "Only minter can call.");
         _;
     }
-    
-    /* 
+
+    /*
      * @dev Init Graph Token contract
      * @param _governor <address> Address of the multisig contract as Governor of this contract
      * @param _initialSupply <uint256> Initial supply of Graph Tokens
