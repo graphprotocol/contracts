@@ -36,7 +36,7 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
       .encodeABI()
     assert(
       directlyEncodedAbiTxData.length,
-      'Transaction data encoded via encodeABI.',
+      'Transaction data was not encoded via encodeABI.',
     )
 
     // encode transaction data using graphProtocol.js
@@ -49,13 +49,13 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
     )
     assert(
       moduleEncodedTxData.length,
-      'Transaction data encoded via gp.abiEncode.',
+      'Transaction data  was not encoded via gp.abiEncode.',
     )
 
     // both methods should return the same data
     assert(
       moduleEncodedTxData === directlyEncodedAbiTxData,
-      'JS library encodes ABI transaction data.',
+      'JS library did not encode ABI transaction data.',
     )
   })
 })

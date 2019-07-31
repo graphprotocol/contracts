@@ -1,12 +1,12 @@
 const MultiSigWallet = artifacts.require('./MultiSigWallet.sol')
-const UpgradableContract = artifacts.require('./ServiceRegistry.sol')
+const ServiceRegistry = artifacts.require('./ServiceRegistry.sol')
 
 // helpers
 const helpers = require('./lib/testHelpers')
 const GraphProtocol = require('../graphProtocol.js')
 const gp = GraphProtocol() // initialize GraphProtocol library
 
-contract('UpgradableContract', accounts => {
+contract('Governance', accounts => {
   let multiSigInstance1, multiSigInstance2
 
   before(async () => {
@@ -23,7 +23,7 @@ contract('UpgradableContract', accounts => {
     )
 
     // Deploy a Governed contract with multiSigInstance1 as the `governor`
-    governedContractInstance = await UpgradableContract.new(
+    governedContractInstance = await ServiceRegistry.new(
       multiSigInstance1.address,
     )
   })
@@ -32,7 +32,7 @@ contract('UpgradableContract', accounts => {
     const governor = await governedContractInstance.governor.call()
     assert(
       governor == multiSigInstance1.address,
-      'MultiSigWallet1 is the governor.',
+      'MultiSigWallet1 is not the governor.',
     )
   })
 
@@ -41,7 +41,7 @@ contract('UpgradableContract', accounts => {
       governedContractInstance.contract.methods.transferGovernance,
       [multiSigInstance2.address],
     )
-    assert(txData.length, 'Transaction data is constructed.')
+    assert(txData.length, 'Transaction data was not constructed.')
 
     // Submit the transaction to the multisig for confirmation
     const transaction = await multiSigInstance1.submitTransaction(
@@ -49,7 +49,7 @@ contract('UpgradableContract', accounts => {
       0, // value
       txData, // transaction data
     )
-    assert.isObject(transaction, 'Transaction saved.')
+    assert.isObject(transaction, 'Transaction was not saved.')
 
     // Get the `transactionId` from the logs
     const transactionId = helpers.getParamFromTxEvent(
@@ -58,14 +58,14 @@ contract('UpgradableContract', accounts => {
       null,
       'Submission',
     )
-    assert(!isNaN(transactionId.toNumber()), 'Transaction ID found.')
+    assert(!isNaN(transactionId.toNumber()), 'Transaction ID was not found.')
 
     // The transaction should be pending with only 1 confirmation
     let pendingTransactionCount = await multiSigInstance1.getTransactionCount(
       true, // include pending
       false, // include executed
     )
-    assert(pendingTransactionCount.toNumber() === 1, 'Transaction is pending.')
+    assert(pendingTransactionCount.toNumber() === 1, 'Transaction is not pending.')
 
     // Confirm transaction from a second multisig owner account
     await multiSigInstance1.contract.methods
@@ -86,13 +86,13 @@ contract('UpgradableContract', accounts => {
     const confirmations = await multiSigInstance1.getConfirmations(
       transactionId.toNumber(),
     )
-    assert(confirmations.length === 2, 'Transaction has 2 confirmations.')
+    assert(confirmations.length === 2, 'Transaction does not have 2 confirmations.')
 
     // Check that transaction status is `confirmed`
     const isConfirmed = await multiSigInstance1.isConfirmed(
       transactionId.toNumber(),
     )
-    assert(isConfirmed, 'Transaction is confirmed.')
+    assert(isConfirmed, 'Transaction is not confirmed.')
 
     // Check that 1 transaction has been `executed`
     const executedTransactionCount = await multiSigInstance1.getTransactionCount(
@@ -101,14 +101,14 @@ contract('UpgradableContract', accounts => {
     )
     assert(
       executedTransactionCount.toNumber() === 1,
-      'Transaction has been executed.',
+      'Transaction has not been executed.',
     )
 
     // Governor of the upgradable contract should now be the second multisig contract
     assert.equal(
       await governedContractInstance.governor.call(), // contract's new governor
       multiSigInstance2.address, // second multisig instance
-      'Upgradable contract has new governor.',
+      'Upgradable contract does not have a new governor.',
     )
   })
 })
