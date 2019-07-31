@@ -58,9 +58,9 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "pragma solidity ^0.5.2;\n\nimport \"./Governed.sol\";\n\ncontract RewardsManager is Governed {\n//\n//    /*\n//    * @title Graph Protocol Reward Manager contract\n//    *\n//    * @author Bryant Eisenbach\n//    * @author Reuven Etzion\n//    *\n//    * @notice Contract Specification:\n//    *\n//    * The total monetary inflation rate of Graph Tokens, over a given inflation period\n//    * (more on this later), is the sum of its two constituent components:\n//    * inflationRate = curatorRewardRate + participationRewardRate\n//    *\n//    * As indicated in the formula above, inflation is used to reward curation of datasets\n//    * and participation in the network.\n//    *\n//    * Participation Adjusted Inflation - In order to encourage Graph Token holders to\n//    * participate in the network, the protocol implements a participation-adjusted inflation reward.\n//    *\n//    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total\n//    * Graph Token supply, and is set via governance. As with the participation reward, it is paid\n//    * via inflation.\n//    *\n//    * Requirements (\"Reward Manager\" contract):\n//    * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism\n//    *   design of technical specification.\n//    * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }\n//    * req 03 claimRewards function\n//    * req 04 uint256 for yearly inflation rate\n//    * req 05 a mapping that records the usage in queries of each index chain ,\n//    * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)\n//    */\n//\n//\n//    /* STATE VARIABLES */\n//    // Percentage of the total Graph Token supply\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public curatorRewardRate;\n//\n//    // Targeted participitation reward rate\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public targetParticipationRate;\n//\n//    // Yearly Inflation Rate\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public yearlyInflationRate = 100000; // 10%\n//\n//    // Mapping of indexChainID to queryAmount\n//    mapping (bytes32 => uint256) public indexChainQueryAmounts;\n//\n//    /**\n//     * @dev Reward Manager Contract Constructor\n//     * @param _governor <address> - Address of the multisig contract as Governor of this contract\n//     */\n//    constructor (address _governor) public Governed (_governor) {}\n//\n//    /* Graph Protocol Functions */\n//    /**\n//     * @dev Governance contract owns this contract and can update curatorRewardRate\n//     * @param _newCuratorRewardRate <uint256> - New curation reward rate\n//     */\n//    function updateCuratorRewardRate (\n//        uint256 _newCuratorRewardRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can update targetParticipationRate\n//     * @param _newTargetParticipationRate <uint256> - New curation reward rate\n//     */\n//    function updateTargetParticipationRate (\n//        uint256 _newTargetParticipationRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can update targetParticipationRate\n//     * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)\n//     */\n//    function updateYearlyInflationRate (\n//        uint256 _newYearlyInflationRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can mint tokens based on reward calculations\n//     * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract\n//     * req Calculate rewards based on local variables and call the mint function in GraphToken\n//     * @param _account <address> - The account that will receive the created tokens.\n//     * @param _value <uint256> - The amount that will be created.\n//     */\n//    function mintRewardTokens (\n//        address _account,\n//        uint256 _value\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Validators can claim rewards or add them to their stake\n//     * @param _validatorId <bytes32> - ID of the validator claiming rewards\n//     * @param _addToStake <bool> - Send the rewards back to the validator's stake\n//     */\n//    function claimRewards (\n//        bytes32 _validatorId,\n//        bool _addToStake\n//    ) public returns (uint256 rewaredAmount)\n//    {\n//        revert();\n//    }\n\n}\n",
-  "sourcePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/RewardsManager.sol",
+  "sourcePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
   "ast": {
-    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/RewardsManager.sol",
+    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
     "exportedSymbols": {
       "RewardsManager": [
         1565
@@ -81,7 +81,7 @@
         "src": "0:23:5"
       },
       {
-        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/Governed.sol",
+        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/Governed.sol",
         "file": "./Governed.sol",
         "id": 1562,
         "nodeType": "ImportDirective",
@@ -133,7 +133,7 @@
     "src": "0:4850:5"
   },
   "legacyAST": {
-    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/RewardsManager.sol",
+    "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
     "exportedSymbols": {
       "RewardsManager": [
         1565
@@ -154,7 +154,7 @@
         "src": "0:23:5"
       },
       {
-        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/research/soho-token-contracts/contracts/contracts/Governed.sol",
+        "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/Governed.sol",
         "file": "./Governed.sol",
         "id": 1562,
         "nodeType": "ImportDirective",
@@ -236,7 +236,7 @@
     }
   },
   "schemaVersion": "3.0.10",
-  "updatedAt": "2019-07-30T19:23:52.092Z",
+  "updatedAt": "2019-07-31T14:21:55.234Z",
   "devdoc": {
     "methods": {
       "transferGovernance(address)": {
