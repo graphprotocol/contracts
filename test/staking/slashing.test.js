@@ -37,7 +37,7 @@ contract('Staking (Slashing)', ([
     tokensMintedForStaker = stakingAmount * 10,
     subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
     subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
-    subgraphIdBytes = helpers.randomSubgraphIdBytes(subgraphIdHex),
+    subgraphIdBytes = helpers.randomSubgraphIdBytes(),
     gp
 
   before(async () => {

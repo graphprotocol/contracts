@@ -29,7 +29,7 @@ contract('Staking (Indexing)', ([
     stakingAmount = 1000,
     tokensMintedForStaker = stakingAmount * 10,
     subgraphIdHex = helpers.randomSubgraphIdHex(),
-    subgraphIdBytes = helpers.randomSubgraphIdBytes(subgraphIdHex),
+    subgraphIdBytes = helpers.randomSubgraphIdBytes(),
     gp
 
   beforeEach(async () => {

@@ -25808,10 +25808,16 @@
       "links": {},
       "address": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
       "transactionHash": "0x202309cfc882824197fdcb54a2d19ba3e9d5a5ce7d99efc5752c6febf3d9ab92"
+    },
+    "1564601923601": {
+      "events": {},
+      "links": {},
+      "address": "0xC5aFE31AE505594B190AC71EA689B58139d1C354",
+      "transactionHash": "0xe32c2732df878bed00138457a99582a024ae78e2ebdb1ff107dce33243dc36c6"
     }
   },
   "schemaVersion": "3.0.10",
-  "updatedAt": "2019-07-31T14:21:55.226Z",
+  "updatedAt": "2019-07-31T20:30:17.082Z",
   "devdoc": {
     "author": "Stefan George - <stefan.george@consensys.net>",
     "methods": {

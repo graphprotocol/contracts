@@ -338,7 +338,7 @@
                             "name": "msg",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 7278,
+                            "referencedDeclaration": 8179,
                             "src": "1329:3:1",
                             "typeDescriptions": {
                               "typeIdentifier": "t_magic_message",
@@ -414,10 +414,10 @@
                       "name": "require",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [
-                        7281,
-                        7282
+                        8182,
+                        8183
                       ],
-                      "referencedDeclaration": 7282,
+                      "referencedDeclaration": 8183,
                       "src": "1321:7:1",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
@@ -915,7 +915,7 @@
                             "name": "msg",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 7278,
+                            "referencedDeclaration": 8179,
                             "src": "1329:3:1",
                             "typeDescriptions": {
                               "typeIdentifier": "t_magic_message",
@@ -991,10 +991,10 @@
                       "name": "require",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [
-                        7281,
-                        7282
+                        8182,
+                        8183
                       ],
-                      "referencedDeclaration": 7282,
+                      "referencedDeclaration": 8183,
                       "src": "1321:7:1",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
@@ -1230,7 +1230,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.10",
-  "updatedAt": "2019-07-31T14:21:55.212Z",
+  "updatedAt": "2019-07-31T20:29:07.257Z",
   "devdoc": {
     "methods": {
       "constructor": {

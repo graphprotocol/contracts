@@ -4,11 +4,72 @@
     {
       "constant": true,
       "inputs": [],
+      "name": "curatorRewardRate",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
       "name": "governor",
       "outputs": [
         {
           "name": "",
           "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "targetParticipationRate",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "yearlyInflationRate",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "indexChainQueryAmounts",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
         }
       ],
       "payable": false,
@@ -35,6 +96,17 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "name": "_governor",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -50,23 +122,126 @@
       ],
       "name": "GovernanceTransferred",
       "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_newCuratorRewardRate",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateCuratorRewardRate",
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_newTargetParticipationRate",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateTargetParticipationRate",
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_newYearlyInflationRate",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateYearlyInflationRate",
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_account",
+          "type": "address"
+        },
+        {
+          "name": "_value",
+          "type": "uint256"
+        }
+      ],
+      "name": "mintRewardTokens",
+      "outputs": [
+        {
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_validatorId",
+          "type": "bytes32"
+        },
+        {
+          "name": "_addToStake",
+          "type": "bool"
+        }
+      ],
+      "name": "claimRewards",
+      "outputs": [
+        {
+          "name": "rewaredAmount",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
   ],
-  "metadata": "",
-  "bytecode": "0x",
-  "deployedBytecode": "0x",
-  "sourceMap": "",
-  "deployedSourceMap": "",
-  "source": "pragma solidity ^0.5.2;\n\nimport \"./Governed.sol\";\n\ncontract RewardsManager is Governed {\n//\n//    /*\n//    * @title Graph Protocol Reward Manager contract\n//    *\n//    * @author Bryant Eisenbach\n//    * @author Reuven Etzion\n//    *\n//    * @notice Contract Specification:\n//    *\n//    * The total monetary inflation rate of Graph Tokens, over a given inflation period\n//    * (more on this later), is the sum of its two constituent components:\n//    * inflationRate = curatorRewardRate + participationRewardRate\n//    *\n//    * As indicated in the formula above, inflation is used to reward curation of datasets\n//    * and participation in the network.\n//    *\n//    * Participation Adjusted Inflation - In order to encourage Graph Token holders to\n//    * participate in the network, the protocol implements a participation-adjusted inflation reward.\n//    *\n//    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total\n//    * Graph Token supply, and is set via governance. As with the participation reward, it is paid\n//    * via inflation.\n//    *\n//    * Requirements (\"Reward Manager\" contract):\n//    * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism\n//    *   design of technical specification.\n//    * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }\n//    * req 03 claimRewards function\n//    * req 04 uint256 for yearly inflation rate\n//    * req 05 a mapping that records the usage in queries of each index chain ,\n//    * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)\n//    */\n//\n//\n//    /* STATE VARIABLES */\n//    // Percentage of the total Graph Token supply\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public curatorRewardRate;\n//\n//    // Targeted participitation reward rate\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public targetParticipationRate;\n//\n//    // Yearly Inflation Rate\n//    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n//    uint256 public yearlyInflationRate = 100000; // 10%\n//\n//    // Mapping of indexChainID to queryAmount\n//    mapping (bytes32 => uint256) public indexChainQueryAmounts;\n//\n//    /**\n//     * @dev Reward Manager Contract Constructor\n//     * @param _governor <address> - Address of the multisig contract as Governor of this contract\n//     */\n//    constructor (address _governor) public Governed (_governor) {}\n//\n//    /* Graph Protocol Functions */\n//    /**\n//     * @dev Governance contract owns this contract and can update curatorRewardRate\n//     * @param _newCuratorRewardRate <uint256> - New curation reward rate\n//     */\n//    function updateCuratorRewardRate (\n//        uint256 _newCuratorRewardRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can update targetParticipationRate\n//     * @param _newTargetParticipationRate <uint256> - New curation reward rate\n//     */\n//    function updateTargetParticipationRate (\n//        uint256 _newTargetParticipationRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can update targetParticipationRate\n//     * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)\n//     */\n//    function updateYearlyInflationRate (\n//        uint256 _newYearlyInflationRate\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Governance contract owns this contract and can mint tokens based on reward calculations\n//     * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract\n//     * req Calculate rewards based on local variables and call the mint function in GraphToken\n//     * @param _account <address> - The account that will receive the created tokens.\n//     * @param _value <uint256> - The amount that will be created.\n//     */\n//    function mintRewardTokens (\n//        address _account,\n//        uint256 _value\n//    ) public onlyGovernance returns (bool success)\n//    {\n//        revert();\n//    }\n//\n//    /**\n//     * @dev Validators can claim rewards or add them to their stake\n//     * @param _validatorId <bytes32> - ID of the validator claiming rewards\n//     * @param _addToStake <bool> - Send the rewards back to the validator's stake\n//     */\n//    function claimRewards (\n//        bytes32 _validatorId,\n//        bool _addToStake\n//    ) public returns (uint256 rewaredAmount)\n//    {\n//        revert();\n//    }\n\n}\n",
+  "metadata": "{\"compiler\":{\"version\":\"0.5.2+commit.1df8f40c\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":true,\"inputs\":[],\"name\":\"curatorRewardRate\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"governor\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newTargetParticipationRate\",\"type\":\"uint256\"}],\"name\":\"updateTargetParticipationRate\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_account\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"mintRewardTokens\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"targetParticipationRate\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newCuratorRewardRate\",\"type\":\"uint256\"}],\"name\":\"updateCuratorRewardRate\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"yearlyInflationRate\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"indexChainQueryAmounts\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newYearlyInflationRate\",\"type\":\"uint256\"}],\"name\":\"updateYearlyInflationRate\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newGovernor\",\"type\":\"address\"}],\"name\":\"transferGovernance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_validatorId\",\"type\":\"bytes32\"},{\"name\":\"_addToStake\",\"type\":\"bool\"}],\"name\":\"claimRewards\",\"outputs\":[{\"name\":\"rewaredAmount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"name\":\"_governor\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"_to\",\"type\":\"address\"}],\"name\":\"GovernanceTransferred\",\"type\":\"event\"}],\"devdoc\":{\"methods\":{\"claimRewards(bytes32,bool)\":{\"details\":\"Validators can claim rewards or add them to their stake\",\"params\":{\"_addToStake\":\"<bool> - Send the rewards back to the validator's stake\",\"_validatorId\":\"<bytes32> - ID of the validator claiming rewards\"}},\"constructor\":{\"details\":\"Reward Manager Contract Constructor\",\"params\":{\"_governor\":\"<address> - Address of the multisig contract as Governor of this contract\"}},\"mintRewardTokens(address,uint256)\":{\"details\":\"Governance contract owns this contract and can mint tokens based on reward calculationsThe RewardManger contract must be added as a treasurer in the GraphToken contract req Calculate rewards based on local variables and call the mint function in GraphToken\",\"params\":{\"_account\":\"<address> - The account that will receive the created tokens.\",\"_value\":\"<uint256> - The amount that will be created.\"}},\"transferGovernance(address)\":{\"details\":\"The current `governor` can assign a new `governor`\",\"params\":{\"_newGovernor\":\"<address> Address of new `governor`\"}},\"updateCuratorRewardRate(uint256)\":{\"details\":\"Governance contract owns this contract and can update curatorRewardRate\",\"params\":{\"_newCuratorRewardRate\":\"<uint256> - New curation reward rate\"}},\"updateTargetParticipationRate(uint256)\":{\"details\":\"Governance contract owns this contract and can update targetParticipationRate\",\"params\":{\"_newTargetParticipationRate\":\"<uint256> - New curation reward rate\"}},\"updateYearlyInflationRate(uint256)\":{\"details\":\"Governance contract owns this contract and can update targetParticipationRate\",\"params\":{\"_newYearlyInflationRate\":\"<uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)\"}}}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol\":\"RewardsManager\"},\"evmVersion\":\"byzantium\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":500},\"remappings\":[]},\"sources\":{\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/Governed.sol\":{\"keccak256\":\"0x9b7f92ef145e14af82d29011fd124c5cc6beec792917b15ca0e74134f14d3567\",\"urls\":[\"bzzr://d0d8f0f61695d173e214ee929648f3b89c4b3118bde85926de2159ef90443d3a\"]},\"/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol\":{\"keccak256\":\"0x3ec83280c301cabc918801b0de2092e4dcc66d8fb3985fbb74395f60bc1e086c\",\"urls\":[\"bzzr://3b4eab00f1dba75a65e5d9f9d3b644f2dc26bceb05bc84cc59be7928b287832d\"]}},\"version\":1}",
+  "bytecode": "0x6080604052620186a060035534801561001757600080fd5b5060405160208061043e8339810180604052602081101561003757600080fd5b505160008054600160a060020a03909216600160a060020a03199092169190911790556103d5806100696000396000f3fe608060405234801561001057600080fd5b50600436106100d6576000357c010000000000000000000000000000000000000000000000000000000090048063ab43f0841161009e578063c3b4fbdf11610078578063c3b4fbdf14610126578063d38bfff4146101bd578063fd68b882146101f0576100d6565b8063ab43f08414610126578063acedde1014610198578063c2ae5f4a146101a0576100d6565b80630b2a32ce146100db5780630c340a24146100f55780634a0c5556146101265780636eee2dad146101575780638e2f311c14610190575b600080fd5b6100e3610215565b60408051918252519081900360200190f35b6100fd61021b565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b6101436004803603602081101561013c57600080fd5b5035610237565b604080519115158252519081900360200190f35b6101436004803603604081101561016d57600080fd5b5073ffffffffffffffffffffffffffffffffffffffff8135169060200135610237565b6100e36102be565b6100e36102c4565b6100e3600480360360208110156101b657600080fd5b50356102ca565b610143600480360360208110156101d357600080fd5b503573ffffffffffffffffffffffffffffffffffffffff166102dc565b6100e36004803603604081101561020657600080fd5b508035906020013515156103a2565b60015481565b60005473ffffffffffffffffffffffffffffffffffffffff1681565b6000805473ffffffffffffffffffffffffffffffffffffffff1633146100d657604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4f6e6c7920476f7665726e6f722063616e2063616c6c2e000000000000000000604482015290519081900360640190fd5b60025481565b60035481565b60046020526000908152604090205481565b6000805473ffffffffffffffffffffffffffffffffffffffff16331461036357604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4f6e6c7920476f7665726e6f722063616e2063616c6c2e000000000000000000604482015290519081900360640190fd5b506000805473ffffffffffffffffffffffffffffffffffffffff831673ffffffffffffffffffffffffffffffffffffffff199091161790556001919050565b6000806000fdfea165627a7a72305820704e5f9039180f51c5407d52da430b576b9475fc31f67269d9aa5b21a3319bc20029",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100d6576000357c010000000000000000000000000000000000000000000000000000000090048063ab43f0841161009e578063c3b4fbdf11610078578063c3b4fbdf14610126578063d38bfff4146101bd578063fd68b882146101f0576100d6565b8063ab43f08414610126578063acedde1014610198578063c2ae5f4a146101a0576100d6565b80630b2a32ce146100db5780630c340a24146100f55780634a0c5556146101265780636eee2dad146101575780638e2f311c14610190575b600080fd5b6100e3610215565b60408051918252519081900360200190f35b6100fd61021b565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b6101436004803603602081101561013c57600080fd5b5035610237565b604080519115158252519081900360200190f35b6101436004803603604081101561016d57600080fd5b5073ffffffffffffffffffffffffffffffffffffffff8135169060200135610237565b6100e36102be565b6100e36102c4565b6100e3600480360360208110156101b657600080fd5b50356102ca565b610143600480360360208110156101d357600080fd5b503573ffffffffffffffffffffffffffffffffffffffff166102dc565b6100e36004803603604081101561020657600080fd5b508035906020013515156103a2565b60015481565b60005473ffffffffffffffffffffffffffffffffffffffff1681565b6000805473ffffffffffffffffffffffffffffffffffffffff1633146100d657604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4f6e6c7920476f7665726e6f722063616e2063616c6c2e000000000000000000604482015290519081900360640190fd5b60025481565b60035481565b60046020526000908152604090205481565b6000805473ffffffffffffffffffffffffffffffffffffffff16331461036357604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4f6e6c7920476f7665726e6f722063616e2063616c6c2e000000000000000000604482015290519081900360640190fd5b506000805473ffffffffffffffffffffffffffffffffffffffff831673ffffffffffffffffffffffffffffffffffffffff199091161790556001919050565b6000806000fdfea165627a7a72305820704e5f9039180f51c5407d52da430b576b9475fc31f67269d9aa5b21a3319bc20029",
+  "sourceMap": "51:4564:5:-;;;2127:6;2090:43;;2420:62;8:9:-1;5:2;;;30:1;27;20:12;5:2;2420:62:5;;;;;;;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;2420:62:5;1254:8:1;:20;;-1:-1:-1;;;;;1254:20:1;;;-1:-1:-1;;;;;;1254:20:1;;;;;;;;;51:4564:5;;;;;;",
+  "deployedSourceMap": "51:4564:5:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;51:4564:5;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1771:32;;;:::i;:::-;;;;;;;;;;;;;;;;913:23:1;;;:::i;:::-;;;;;;;;;;;;;;;;;;;3040:165:5;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;3040:165:5;;:::i;:::-;;;;;;;;;;;;;;;;;;4054:157;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;4054:157:5;;;;;;;;;:::i;1935:38::-;;;:::i;2090:43::-;;;:::i;2193:58::-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;2193:58:5;;:::i;1545:148:1:-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1545:148:1;;;;:::i;4459:153:5:-;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;4459:153:5;;;;;;;;;:::i;1771:32::-;;;;:::o;913:23:1:-;;;;;;:::o;3040:165:5:-;3162:12;1343:8:1;;;;1329:10;:22;1321:58;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1935:38:5;;;;:::o;2090:43::-;;;;:::o;2193:58::-;;;;;;;;;;;;;:::o;1545:148:1:-;1626:4;1343:8;;;;1329:10;:22;1321:58;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;1642:8:1;:23;;;;;-1:-1:-1;;1642:23:1;;;;;;;1545:148;;;:::o;4459:153:5:-;4560:21;4597:8;;",
+  "source": "pragma solidity ^0.5.2;\n\nimport \"./Governed.sol\";\n\ncontract RewardsManager is Governed {\n\n    /*\n    * @title Graph Protocol Reward Manager contract\n    *\n    * @author Bryant Eisenbach\n    * @author Reuven Etzion\n    *\n    * @notice Contract Specification:\n    *\n    * The total monetary inflation rate of Graph Tokens, over a given inflation period\n    * (more on this later), is the sum of its two constituent components:\n    * inflationRate = curatorRewardRate + participationRewardRate\n    *\n    * As indicated in the formula above, inflation is used to reward curation of datasets\n    * and participation in the network.\n    *\n    * Participation Adjusted Inflation - In order to encourage Graph Token holders to\n    * participate in the network, the protocol implements a participation-adjusted inflation reward.\n    *\n    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total\n    * Graph Token supply, and is set via governance. As with the participation reward, it is paid\n    * via inflation.\n    *\n    * Requirements (\"Reward Manager\" contract):\n    * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism\n    *   design of technical specification.\n    * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }\n    * req 03 claimRewards function\n    * req 04 uint256 for yearly inflation rate\n    * req 05 a mapping that records the usage in queries of each index chain ,\n    * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)\n    */\n\n\n    /* STATE VARIABLES */\n    // Percentage of the total Graph Token supply\n    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n    uint256 public curatorRewardRate;\n\n    // Targeted participitation reward rate\n    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n    uint256 public targetParticipationRate;\n\n    // Yearly Inflation Rate\n    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)\n    uint256 public yearlyInflationRate = 100000; // 10%\n\n    // Mapping of indexChainID to queryAmount\n    mapping (bytes32 => uint256) public indexChainQueryAmounts;\n\n    /**\n     * @dev Reward Manager Contract Constructor\n     * @param _governor <address> - Address of the multisig contract as Governor of this contract\n     */\n    constructor (address _governor) public Governed (_governor) {}\n\n    /* Graph Protocol Functions */\n    /**\n     * @dev Governance contract owns this contract and can update curatorRewardRate\n     * @param _newCuratorRewardRate <uint256> - New curation reward rate\n     */\n    function updateCuratorRewardRate (\n        uint256 _newCuratorRewardRate\n    ) public onlyGovernance returns (bool success)\n    {\n        revert();\n    }\n\n    /**\n     * @dev Governance contract owns this contract and can update targetParticipationRate\n     * @param _newTargetParticipationRate <uint256> - New curation reward rate\n     */\n    function updateTargetParticipationRate (\n        uint256 _newTargetParticipationRate\n    ) public onlyGovernance returns (bool success)\n    {\n        revert();\n    }\n\n    /**\n     * @dev Governance contract owns this contract and can update targetParticipationRate\n     * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)\n     */\n    function updateYearlyInflationRate (\n        uint256 _newYearlyInflationRate\n    ) public onlyGovernance returns (bool success)\n    {\n        revert();\n    }\n\n    /**\n     * @dev Governance contract owns this contract and can mint tokens based on reward calculations\n     * @dev The RewardManger contract must be added as a treasurer in the GraphToken contract\n     * req Calculate rewards based on local variables and call the mint function in GraphToken\n     * @param _account <address> - The account that will receive the created tokens.\n     * @param _value <uint256> - The amount that will be created.\n     */\n    function mintRewardTokens (\n        address _account,\n        uint256 _value\n    ) public onlyGovernance returns (bool success)\n    {\n        revert();\n    }\n\n    /**\n     * @dev Validators can claim rewards or add them to their stake\n     * @param _validatorId <bytes32> - ID of the validator claiming rewards\n     * @param _addToStake <bool> - Send the rewards back to the validator's stake\n     */\n    function claimRewards (\n        bytes32 _validatorId,\n        bool _addToStake\n    ) public returns (uint256 rewaredAmount)\n    {\n        revert();\n    }\n\n}\n",
   "sourcePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
   "ast": {
     "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
     "exportedSymbols": {
       "RewardsManager": [
-        1565
+        1652
       ]
     },
-    "id": 1566,
+    "id": 1653,
     "nodeType": "SourceUnit",
     "nodes": [
       {
@@ -85,7 +260,7 @@
         "file": "./Governed.sol",
         "id": 1562,
         "nodeType": "ImportDirective",
-        "scope": 1566,
+        "scope": 1653,
         "sourceUnit": 370,
         "src": "25:24:5",
         "symbolAliases": [],
@@ -117,29 +292,1022 @@
         ],
         "contractKind": "contract",
         "documentation": null,
-        "fullyImplemented": false,
-        "id": 1565,
+        "fullyImplemented": true,
+        "id": 1652,
         "linearizedBaseContracts": [
-          1565,
+          1652,
           369
         ],
         "name": "RewardsManager",
         "nodeType": "ContractDefinition",
-        "nodes": [],
-        "scope": 1566,
-        "src": "51:4798:5"
+        "nodes": [
+          {
+            "constant": false,
+            "id": 1566,
+            "name": "curatorRewardRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "1771:32:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1565,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "1771:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1568,
+            "name": "targetParticipationRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "1935:38:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1567,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "1935:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1571,
+            "name": "yearlyInflationRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "2090:43:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1569,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "2090:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": {
+              "argumentTypes": null,
+              "hexValue": "313030303030",
+              "id": 1570,
+              "isConstant": false,
+              "isLValue": false,
+              "isPure": true,
+              "kind": "number",
+              "lValueRequested": false,
+              "nodeType": "Literal",
+              "src": "2127:6:5",
+              "subdenomination": null,
+              "typeDescriptions": {
+                "typeIdentifier": "t_rational_100000_by_1",
+                "typeString": "int_const 100000"
+              },
+              "value": "100000"
+            },
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1575,
+            "name": "indexChainQueryAmounts",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "2193:58:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_bytes32_$_t_uint256_$",
+              "typeString": "mapping(bytes32 => uint256)"
+            },
+            "typeName": {
+              "id": 1574,
+              "keyType": {
+                "id": 1572,
+                "name": "bytes32",
+                "nodeType": "ElementaryTypeName",
+                "src": "2202:7:5",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "2193:28:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_bytes32_$_t_uint256_$",
+                "typeString": "mapping(bytes32 => uint256)"
+              },
+              "valueType": {
+                "id": 1573,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "2213:7:5",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1583,
+              "nodeType": "Block",
+              "src": "2480:2:5",
+              "statements": []
+            },
+            "documentation": "@dev Reward Manager Contract Constructor\n@param _governor <address> - Address of the multisig contract as Governor of this contract",
+            "id": 1584,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [
+              {
+                "arguments": [
+                  {
+                    "argumentTypes": null,
+                    "id": 1580,
+                    "name": "_governor",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 1577,
+                    "src": "2469:9:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                ],
+                "id": 1581,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1579,
+                  "name": "Governed",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 369,
+                  "src": "2459:8:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_type$_t_contract$_Governed_$369_$",
+                    "typeString": "type(contract Governed)"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "2459:20:5"
+              }
+            ],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1578,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1577,
+                  "name": "_governor",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1584,
+                  "src": "2433:17:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1576,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2433:7:5",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2432:19:5"
+            },
+            "returnParameters": {
+              "id": 1582,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2480:0:5"
+            },
+            "scope": 1652,
+            "src": "2420:62:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1596,
+              "nodeType": "Block",
+              "src": "2824:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1593,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "2834:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1594,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "2834:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1595,
+                  "nodeType": "ExpressionStatement",
+                  "src": "2834:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update curatorRewardRate\n@param _newCuratorRewardRate <uint256> - New curation reward rate",
+            "id": 1597,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1589,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1588,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "2782:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "2782:14:5"
+              }
+            ],
+            "name": "updateCuratorRewardRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1587,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1586,
+                  "name": "_newCuratorRewardRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1597,
+                  "src": "2739:29:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1585,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2739:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2729:45:5"
+            },
+            "returnParameters": {
+              "id": 1592,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1591,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1597,
+                  "src": "2806:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1590,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2806:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2805:14:5"
+            },
+            "scope": 1652,
+            "src": "2696:153:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1609,
+              "nodeType": "Block",
+              "src": "3180:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1606,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "3190:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1607,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "3190:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1608,
+                  "nodeType": "ExpressionStatement",
+                  "src": "3190:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update targetParticipationRate\n@param _newTargetParticipationRate <uint256> - New curation reward rate",
+            "id": 1610,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1602,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1601,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "3138:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "3138:14:5"
+              }
+            ],
+            "name": "updateTargetParticipationRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1600,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1599,
+                  "name": "_newTargetParticipationRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1610,
+                  "src": "3089:35:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1598,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3089:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3079:51:5"
+            },
+            "returnParameters": {
+              "id": 1605,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1604,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1610,
+                  "src": "3162:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1603,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3162:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3161:14:5"
+            },
+            "scope": 1652,
+            "src": "3040:165:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1622,
+              "nodeType": "Block",
+              "src": "3567:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1619,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "3577:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1620,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "3577:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1621,
+                  "nodeType": "ExpressionStatement",
+                  "src": "3577:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update targetParticipationRate\n@param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)",
+            "id": 1623,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1615,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1614,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "3525:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "3525:14:5"
+              }
+            ],
+            "name": "updateYearlyInflationRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1613,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1612,
+                  "name": "_newYearlyInflationRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1623,
+                  "src": "3480:31:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1611,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3480:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3470:47:5"
+            },
+            "returnParameters": {
+              "id": 1618,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1617,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1623,
+                  "src": "3549:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1616,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3549:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3548:14:5"
+            },
+            "scope": 1652,
+            "src": "3435:157:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1637,
+              "nodeType": "Block",
+              "src": "4186:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1634,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "4196:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1635,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "4196:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1636,
+                  "nodeType": "ExpressionStatement",
+                  "src": "4196:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can mint tokens based on reward calculations\n@dev The RewardManger contract must be added as a treasurer in the GraphToken contract\nreq Calculate rewards based on local variables and call the mint function in GraphToken\n@param _account <address> - The account that will receive the created tokens.\n@param _value <uint256> - The amount that will be created.",
+            "id": 1638,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1630,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1629,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "4144:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "4144:14:5"
+              }
+            ],
+            "name": "mintRewardTokens",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1628,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1625,
+                  "name": "_account",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4090:16:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1624,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4090:7:5",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1627,
+                  "name": "_value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4116:14:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1626,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4116:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4080:56:5"
+            },
+            "returnParameters": {
+              "id": 1633,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1632,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4168:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1631,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4168:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4167:14:5"
+            },
+            "scope": 1652,
+            "src": "4054:157:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1650,
+              "nodeType": "Block",
+              "src": "4587:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1647,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "4597:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1648,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "4597:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1649,
+                  "nodeType": "ExpressionStatement",
+                  "src": "4597:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Validators can claim rewards or add them to their stake\n@param _validatorId <bytes32> - ID of the validator claiming rewards\n@param _addToStake <bool> - Send the rewards back to the validator's stake",
+            "id": 1651,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "claimRewards",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1643,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1640,
+                  "name": "_validatorId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4491:20:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 1639,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4491:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1642,
+                  "name": "_addToStake",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4521:16:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1641,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4521:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4481:62:5"
+            },
+            "returnParameters": {
+              "id": 1646,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1645,
+                  "name": "rewaredAmount",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4560:21:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1644,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4560:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4559:23:5"
+            },
+            "scope": 1652,
+            "src": "4459:153:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 1653,
+        "src": "51:4564:5"
       }
     ],
-    "src": "0:4850:5"
+    "src": "0:4616:5"
   },
   "legacyAST": {
     "absolutePath": "/Users/davidkajpust/coding-no-icloud-backup/thegraph/dave/contracts/contracts/RewardsManager.sol",
     "exportedSymbols": {
       "RewardsManager": [
-        1565
+        1652
       ]
     },
-    "id": 1566,
+    "id": 1653,
     "nodeType": "SourceUnit",
     "nodes": [
       {
@@ -158,7 +1326,7 @@
         "file": "./Governed.sol",
         "id": 1562,
         "nodeType": "ImportDirective",
-        "scope": 1566,
+        "scope": 1653,
         "sourceUnit": 370,
         "src": "25:24:5",
         "symbolAliases": [],
@@ -190,20 +1358,1013 @@
         ],
         "contractKind": "contract",
         "documentation": null,
-        "fullyImplemented": false,
-        "id": 1565,
+        "fullyImplemented": true,
+        "id": 1652,
         "linearizedBaseContracts": [
-          1565,
+          1652,
           369
         ],
         "name": "RewardsManager",
         "nodeType": "ContractDefinition",
-        "nodes": [],
-        "scope": 1566,
-        "src": "51:4798:5"
+        "nodes": [
+          {
+            "constant": false,
+            "id": 1566,
+            "name": "curatorRewardRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "1771:32:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1565,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "1771:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1568,
+            "name": "targetParticipationRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "1935:38:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1567,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "1935:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1571,
+            "name": "yearlyInflationRate",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "2090:43:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 1569,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "2090:7:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "value": {
+              "argumentTypes": null,
+              "hexValue": "313030303030",
+              "id": 1570,
+              "isConstant": false,
+              "isLValue": false,
+              "isPure": true,
+              "kind": "number",
+              "lValueRequested": false,
+              "nodeType": "Literal",
+              "src": "2127:6:5",
+              "subdenomination": null,
+              "typeDescriptions": {
+                "typeIdentifier": "t_rational_100000_by_1",
+                "typeString": "int_const 100000"
+              },
+              "value": "100000"
+            },
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 1575,
+            "name": "indexChainQueryAmounts",
+            "nodeType": "VariableDeclaration",
+            "scope": 1652,
+            "src": "2193:58:5",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_bytes32_$_t_uint256_$",
+              "typeString": "mapping(bytes32 => uint256)"
+            },
+            "typeName": {
+              "id": 1574,
+              "keyType": {
+                "id": 1572,
+                "name": "bytes32",
+                "nodeType": "ElementaryTypeName",
+                "src": "2202:7:5",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "2193:28:5",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_bytes32_$_t_uint256_$",
+                "typeString": "mapping(bytes32 => uint256)"
+              },
+              "valueType": {
+                "id": 1573,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "2213:7:5",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1583,
+              "nodeType": "Block",
+              "src": "2480:2:5",
+              "statements": []
+            },
+            "documentation": "@dev Reward Manager Contract Constructor\n@param _governor <address> - Address of the multisig contract as Governor of this contract",
+            "id": 1584,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [
+              {
+                "arguments": [
+                  {
+                    "argumentTypes": null,
+                    "id": 1580,
+                    "name": "_governor",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 1577,
+                    "src": "2469:9:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                ],
+                "id": 1581,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1579,
+                  "name": "Governed",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 369,
+                  "src": "2459:8:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_type$_t_contract$_Governed_$369_$",
+                    "typeString": "type(contract Governed)"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "2459:20:5"
+              }
+            ],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1578,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1577,
+                  "name": "_governor",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1584,
+                  "src": "2433:17:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1576,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2433:7:5",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2432:19:5"
+            },
+            "returnParameters": {
+              "id": 1582,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2480:0:5"
+            },
+            "scope": 1652,
+            "src": "2420:62:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1596,
+              "nodeType": "Block",
+              "src": "2824:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1593,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "2834:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1594,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "2834:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1595,
+                  "nodeType": "ExpressionStatement",
+                  "src": "2834:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update curatorRewardRate\n@param _newCuratorRewardRate <uint256> - New curation reward rate",
+            "id": 1597,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1589,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1588,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "2782:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "2782:14:5"
+              }
+            ],
+            "name": "updateCuratorRewardRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1587,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1586,
+                  "name": "_newCuratorRewardRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1597,
+                  "src": "2739:29:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1585,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2739:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2729:45:5"
+            },
+            "returnParameters": {
+              "id": 1592,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1591,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1597,
+                  "src": "2806:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1590,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2806:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2805:14:5"
+            },
+            "scope": 1652,
+            "src": "2696:153:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1609,
+              "nodeType": "Block",
+              "src": "3180:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1606,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "3190:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1607,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "3190:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1608,
+                  "nodeType": "ExpressionStatement",
+                  "src": "3190:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update targetParticipationRate\n@param _newTargetParticipationRate <uint256> - New curation reward rate",
+            "id": 1610,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1602,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1601,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "3138:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "3138:14:5"
+              }
+            ],
+            "name": "updateTargetParticipationRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1600,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1599,
+                  "name": "_newTargetParticipationRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1610,
+                  "src": "3089:35:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1598,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3089:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3079:51:5"
+            },
+            "returnParameters": {
+              "id": 1605,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1604,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1610,
+                  "src": "3162:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1603,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3162:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3161:14:5"
+            },
+            "scope": 1652,
+            "src": "3040:165:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1622,
+              "nodeType": "Block",
+              "src": "3567:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1619,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "3577:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1620,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "3577:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1621,
+                  "nodeType": "ExpressionStatement",
+                  "src": "3577:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can update targetParticipationRate\n@param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)",
+            "id": 1623,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1615,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1614,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "3525:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "3525:14:5"
+              }
+            ],
+            "name": "updateYearlyInflationRate",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1613,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1612,
+                  "name": "_newYearlyInflationRate",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1623,
+                  "src": "3480:31:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1611,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3480:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3470:47:5"
+            },
+            "returnParameters": {
+              "id": 1618,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1617,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1623,
+                  "src": "3549:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1616,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3549:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3548:14:5"
+            },
+            "scope": 1652,
+            "src": "3435:157:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1637,
+              "nodeType": "Block",
+              "src": "4186:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1634,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "4196:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1635,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "4196:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1636,
+                  "nodeType": "ExpressionStatement",
+                  "src": "4196:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Governance contract owns this contract and can mint tokens based on reward calculations\n@dev The RewardManger contract must be added as a treasurer in the GraphToken contract\nreq Calculate rewards based on local variables and call the mint function in GraphToken\n@param _account <address> - The account that will receive the created tokens.\n@param _value <uint256> - The amount that will be created.",
+            "id": 1638,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 1630,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 1629,
+                  "name": "onlyGovernance",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 352,
+                  "src": "4144:14:5",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "4144:14:5"
+              }
+            ],
+            "name": "mintRewardTokens",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1628,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1625,
+                  "name": "_account",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4090:16:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1624,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4090:7:5",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1627,
+                  "name": "_value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4116:14:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1626,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4116:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4080:56:5"
+            },
+            "returnParameters": {
+              "id": 1633,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1632,
+                  "name": "success",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1638,
+                  "src": "4168:12:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1631,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4168:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4167:14:5"
+            },
+            "scope": 1652,
+            "src": "4054:157:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1650,
+              "nodeType": "Block",
+              "src": "4587:25:5",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 1647,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        8271,
+                        8272
+                      ],
+                      "referencedDeclaration": 8271,
+                      "src": "4597:6:5",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$__$returns$__$",
+                        "typeString": "function () pure"
+                      }
+                    },
+                    "id": 1648,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "4597:8:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1649,
+                  "nodeType": "ExpressionStatement",
+                  "src": "4597:8:5"
+                }
+              ]
+            },
+            "documentation": "@dev Validators can claim rewards or add them to their stake\n@param _validatorId <bytes32> - ID of the validator claiming rewards\n@param _addToStake <bool> - Send the rewards back to the validator's stake",
+            "id": 1651,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "claimRewards",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1643,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1640,
+                  "name": "_validatorId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4491:20:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 1639,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4491:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1642,
+                  "name": "_addToStake",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4521:16:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1641,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4521:4:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4481:62:5"
+            },
+            "returnParameters": {
+              "id": 1646,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1645,
+                  "name": "rewaredAmount",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1651,
+                  "src": "4560:21:5",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1644,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "4560:7:5",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "4559:23:5"
+            },
+            "scope": 1652,
+            "src": "4459:153:5",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 1653,
+        "src": "51:4564:5"
       }
     ],
-    "src": "0:4850:5"
+    "src": "0:4616:5"
   },
   "compiler": {
     "name": "solc",
@@ -233,16 +2394,60 @@
       "links": {},
       "address": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
       "transactionHash": "0x2ac99dfac706e6b94c55f4237d1d821eaaf0b4fd36b6e981606dc30a5b627cc6"
+    },
+    "1564601923601": {
+      "events": {},
+      "links": {},
+      "address": "0xd611F1AF9D056f00F49CB036759De2753EfA82c2",
+      "transactionHash": "0x1518bd68ad45404c1ec098f5c7047b25c9f55df81b1efa1289690947d3af5c2a"
     }
   },
   "schemaVersion": "3.0.10",
-  "updatedAt": "2019-07-31T14:21:55.234Z",
+  "updatedAt": "2019-07-31T20:30:17.093Z",
   "devdoc": {
     "methods": {
+      "claimRewards(bytes32,bool)": {
+        "details": "Validators can claim rewards or add them to their stake",
+        "params": {
+          "_addToStake": "<bool> - Send the rewards back to the validator's stake",
+          "_validatorId": "<bytes32> - ID of the validator claiming rewards"
+        }
+      },
+      "constructor": {
+        "details": "Reward Manager Contract Constructor",
+        "params": {
+          "_governor": "<address> - Address of the multisig contract as Governor of this contract"
+        }
+      },
+      "mintRewardTokens(address,uint256)": {
+        "details": "Governance contract owns this contract and can mint tokens based on reward calculationsThe RewardManger contract must be added as a treasurer in the GraphToken contract req Calculate rewards based on local variables and call the mint function in GraphToken",
+        "params": {
+          "_account": "<address> - The account that will receive the created tokens.",
+          "_value": "<uint256> - The amount that will be created."
+        }
+      },
       "transferGovernance(address)": {
         "details": "The current `governor` can assign a new `governor`",
         "params": {
           "_newGovernor": "<address> Address of new `governor`"
+        }
+      },
+      "updateCuratorRewardRate(uint256)": {
+        "details": "Governance contract owns this contract and can update curatorRewardRate",
+        "params": {
+          "_newCuratorRewardRate": "<uint256> - New curation reward rate"
+        }
+      },
+      "updateTargetParticipationRate(uint256)": {
+        "details": "Governance contract owns this contract and can update targetParticipationRate",
+        "params": {
+          "_newTargetParticipationRate": "<uint256> - New curation reward rate"
+        }
+      },
+      "updateYearlyInflationRate(uint256)": {
+        "details": "Governance contract owns this contract and can update targetParticipationRate",
+        "params": {
+          "_newYearlyInflationRate": "<uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)"
         }
       }
     }
