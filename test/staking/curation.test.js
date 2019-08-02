@@ -25,8 +25,9 @@ contract(
       initialTokenSupply = 1000000,
       stakingAmount = 1000,
       tokensMintedForStaker = stakingAmount * 10,
-      subgraphIdHex = helpers.randomSubgraphIdHex(),
-      subgraphIdBytes = helpers.randomSubgraphIdBytes(),
+      subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
+      subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
+      subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
       gp
 
     beforeEach(async () => {
@@ -107,7 +108,9 @@ contract(
       )
     })
 
-    // TODO need to introduce this back in, but because of dependency issues, this is being commented out until we merge two branches with updated open zepplin test helpers, which will change all the tests anyways
+    /* TODO need to introduce this back in, but because of dependency issues,
+        this is being commented out until we merge two branches with
+        updated open zepplin test helpers, which will change all the tests anyways */
     it('...should allow Curator to log out', async () => {
       // const subgraphShares = await stakeForCuration()
       //

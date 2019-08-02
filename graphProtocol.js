@@ -100,12 +100,12 @@ module.exports = (options = {}) => {
 
     /**
      * @dev Getter for `curators` mapping
-     * @param {Address} curationStaker Address of `curators` staking tokens
      * @param {Bytes32} subgraphId Subgraph ID `Curator` is staking for
+     * @param {Address} curationStaker Address of `curators` staking tokens
      * @returns {Object} Curator
      */
-    static curators(curationStaker, subgraphId) {
-      return Staking.curators.call(curationStaker, subgraphId)
+    static curators(subgraphId, curationStaker) {
+      return Staking.curators.call(subgraphId, curationStaker)
     }
 
     /**
