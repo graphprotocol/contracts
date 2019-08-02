@@ -110,12 +110,12 @@ module.exports = (options = {}) => {
 
     /**
      * @dev Getter for `indexingNodes` mapping
-     * @param {Address} indexingStaker Address of `indexingNodes` staking tokens
      * @param {Bytes32} subgraphId Subgraph ID `IndexingNode` is staking for
+     * @param {Address} indexingStaker Address of `indexingNodes` staking tokens
      * @returns {Object} IndexingNode
      */
-    static indexingNodes(indexingStaker, subgraphId) {
-      return Staking.indexingNodes.call(indexingStaker, subgraphId)
+    static indexingNodes(subgraphId, indexingStaker) {
+      return Staking.indexingNodes.call(subgraphId, indexingStaker)
     }
 
     /**

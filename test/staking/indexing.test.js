@@ -1,4 +1,4 @@
-const { expectEvent, shouldFail } = require('openzeppelin-test-helpers');
+const { expectEvent, expectRevert } = require('openzeppelin-test-helpers');
 
 // contracts
 const GraphToken = artifacts.require("./GraphToken.sol")
@@ -28,8 +28,9 @@ contract('Staking (Indexing)', ([
     initialTokenSupply = 1000000,
     stakingAmount = 1000,
     tokensMintedForStaker = stakingAmount * 10,
-    subgraphIdHex = helpers.randomSubgraphIdHex(),
-    subgraphIdBytes = helpers.randomSubgraphIdBytes(),
+    subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
+    subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
+    subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
     gp
 
   beforeEach(async () => {
@@ -92,17 +93,19 @@ contract('Staking (Indexing)', ([
       assert(indexingStake, "Stake Graph Tokens for indexing directly.")
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        indexingStaker,
-        subgraphIdBytes
+        subgraphIdBytes,
+        indexingStaker
+
       )
       assert(
         amountStaked.toNumber() === stakingAmount &&
         logoutStarted.toNumber() === 0,
         "Staked indexing amount confirmed."
       )
-      
+
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
+
       assert(
         stakerBalance.toNumber() === tokensMintedForStaker - stakingAmount && 
         totalBalance.toNumber() === stakingAmount,
@@ -127,8 +130,8 @@ contract('Staking (Indexing)', ([
       assert(indexingStake, "Stake Graph Tokens for indexing through module.")
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        indexingStaker,
-        subgraphIdBytes
+        subgraphIdBytes,
+        indexingStaker
       )
       assert(
         amountStaked.toNumber() === stakingAmount &&
@@ -149,7 +152,7 @@ contract('Staking (Indexing)', ([
   describe("logout", () => {
     let logout
 
-    it("...should begin logout", async () => {
+    it("...should begin logout and fail finalize logout", async () => {
       // stake some tokens
       const indexingStake = await gp.staking.stakeForIndexing(
         subgraphIdHex, // subgraphId
@@ -161,21 +164,21 @@ contract('Staking (Indexing)', ([
       // begin log out after staking
       logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
       assert.isObject(logout, "Begins log out.")
+
+      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
+        subgraphIdBytes,
+        indexingStaker
+      )
+
+      await expectRevert.unspecified(
+        gp.staking.finalizeLogout(subgraphIdBytes, indexingStaker)
+      )
     })
 
-    it("...should emit IndexingNodeLogout event", async () => {
-      expectEvent.inLogs(logout.logs, 'IndexingNodeLogout', {
+    it("...should emit IndexingNodeBeginLogout event", async () => {
+      expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
         staker: indexingStaker,
       })
-    })
-
-    /**
-     * @dev Staking involves a cooling period, so we need to mock that in order to test `finalizeLogout`
-     */
-    it("...should fail to finalize logout before cooling period", async () => {
-      await shouldFail(
-        gp.staking.finalizeLogout(subgraphIdHex, indexingStaker)
-      )
     })
 
     it("...should finalize logout after cooling period", async () => {
