@@ -761,9 +761,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            if (found == true) {
-                delete graphIndexingNodeAddresses[userIndex];
-            }
+            require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
+            delete graphIndexingNodeAddresses[userIndex];
         }
         // Decrement the total amount staked by the amount being returned
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
@@ -908,7 +907,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-            require(found != false, "This address is not a graph subgraph indexer.");
+            require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
             delete graphIndexingNodeAddresses[userIndex]; // Re-entrancy protection
         }
 
