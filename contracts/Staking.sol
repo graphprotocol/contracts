@@ -148,7 +148,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
     struct IndexingNode {
-        address indexer;
         uint256 amountStaked;
         uint256 feesAccrued;
         uint256 logoutStarted;
@@ -248,18 +247,18 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
 
-    // A single set of index nodes that bootstrap the graph subgraph
+    // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
     //       the list of all indexers at the start of indexing. The indexingNodes
     //       mapping can be retrieved for all other subgraphs, since they can
     //       depend on the existing graph subgraph. Therefore, a single dynamic
-    //       array exists as its own variable graphIndexingNodes, along with the
-    //       graphSubgraphID public variable. This was done because using dynamic
-    //       arrays means we need O(n) to delete and update indexing nodes. So
-    //       so restrict it to only one set. All other subgraphs can use the double
-    //       mapping, and update and delete with O(1).
+    //       array exists as its own variable graphIndexingNodeAddresses, along with the
+    //       graphSubgraphID public variable. The graphIndexing nodes are still stored
+    //       in indexingNodes, but with this array, and the graphSubgraphID as public
+    //       variables, the bootstrap indexing nodes can be retrieved without a subgraph.
+
     // TODO - potentially implement a upper limit, say 100 indexers, for simplification
-    IndexingNode[] public graphIndexingNodes;
+    address[] public graphIndexingNodeAddresses;
 
     // The graph subgraph ID
     bytes32 public graphSubgraphID;
@@ -436,15 +435,19 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     /**
      * @dev Set the graph subgraph ID
      * @param _subgraphID <bytes32> - The subgraph ID of the bootstrapping subgraph ID
+     * @param _newIndexers <Array<address>> - Array of new indexers that have coordinated outside
+     *        of the protocol, and pre-index the new subgraph before the switch happens
      */
     function setGraphSubgraphID (
-        bytes32 _subgraphID
+        bytes32 _subgraphID,
+        address[] calldata _newIndexers
     )
         external
         onlyGovernance
         returns (bool success)
     {
         graphSubgraphID = _subgraphID;
+        graphIndexingNodeAddresses = _newIndexers;
         return true;
     }
 
@@ -472,11 +475,14 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         if (option == TokenReceiptAction.Staking) {
             // Slice the rest of the data as indexing records
-            bytes memory _indexingRecords = _data.slice(33, _data.length-33);
+            // bytes memory _indexingRecords = _data.slice(33, _data.length-33);
             // Ensure that the remaining data is parse-able for indexing records
-            require(_indexingRecords.length % 32 == 0);
+            // require(_indexingRecords.length % 32 == 0);
             // @imp i01 Handle internal call for Index Staking
-            stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+            // stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+            // TODO - Delete above when confirmed indexing records are not needed
+            stakeGraphTokensForIndexing(_subgraphId, _from, _value);
+
         } else
         if (option == TokenReceiptAction.Curation) {
             // @imp c01 Handle internal call for Curation Staking
@@ -562,6 +568,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         bytes32 _subgraphId,
         address _curator,
         uint256 _tokenAmount
+        // bytes memory _indexingRecords // TODO - remove this on next PR, when confirmed it isn't needed
     )
         private
     {
@@ -698,49 +705,31 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function stakeGraphTokensForIndexing (
         bytes32 _subgraphId,
         address _indexer,
-        uint256 _value,
-        bytes memory _indexingRecords // TODO DK - what is this? Why isn't it used?
+        uint256 _value
     )
         private
     {
-
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-
+            (bool found, ) = findGraphIndexerIndex(_indexer);
             // If the user was never found, we must push them into the array
             if (found == false){
-                userIndex = graphIndexingNodes.length + 1;
-                IndexingNode memory newIndexer = IndexingNode({indexer: _indexer, amountStaked: 0, feesAccrued: 0, logoutStarted: 0});
-                graphIndexingNodes.push(newIndexer);
-                // TODO - ensure there is no way to go around this. i.e. if a user has 0 stake, it must be deleted from the dynamic array
-                subgraphs[_subgraphId].totalIndexers += 1;
+                graphIndexingNodeAddresses.push(_indexer);
             }
-            require(graphIndexingNodes[userIndex].logoutStarted == 0);
-            require(graphIndexingNodes[userIndex].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
-            graphIndexingNodes[userIndex].amountStaked += _value;
-            subgraphs[_subgraphId].totalIndexingStake += _value;
-            emit IndexingNodeStaked(
-                _indexer,
-                graphIndexingNodes[userIndex].amountStaked,
-                _subgraphId,
-                subgraphs[_subgraphId].totalIndexingStake
-            );
-        // When we are dealing with all other indexing arrays that aren't bootstrapping
-        } else {
-            require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-            require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
-            if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
-                subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-            indexingNodes[_subgraphId][_indexer].amountStaked += _value;
-            subgraphs[_subgraphId].totalIndexingStake += _value;
-            emit IndexingNodeStaked(
-                _indexer,
-                indexingNodes[_subgraphId][_indexer].amountStaked,
-                _subgraphId,
-                subgraphs[_subgraphId].totalIndexingStake
-            );
         }
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
+        if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
+            subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
+        indexingNodes[_subgraphId][_indexer].amountStaked += _value;
+        subgraphs[_subgraphId].totalIndexingStake += _value;
+        emit IndexingNodeStaked(
+            _indexer,
+            indexingNodes[_subgraphId][_indexer].amountStaked,
+            _subgraphId,
+            subgraphs[_subgraphId].totalIndexingStake
+        );
+
     }
 
     /**
@@ -750,20 +739,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function beginLogout(bytes32 _subgraphId)
         external
     {
-        // If we are dealing with the graph subgraph bootstrap index nodes
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            if (found == false) {
-                revert("This address is not a graph subgraph indexer.");
-            }
-            require(graphIndexingNodes[userIndex].amountStaked > 0);
-            require(graphIndexingNodes[userIndex].logoutStarted == 0);
-            graphIndexingNodes[userIndex].logoutStarted = block.timestamp;
-        } else {
-            require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
-            require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-            indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
-        }
+        require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
+        indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
         emit IndexingNodeBeginLogout(msg.sender, _subgraphId);
     }
 
@@ -774,29 +752,19 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
-        uint256 _stake;
-        uint256 _fees;
+        require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
+        // Return the amount the Indexing Node has staked
+        uint256 _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
+        // Return any outstanding fees accrued the Indexing Node does not have yet
+        uint256 _fees = indexingNodes[_subgraphId][msg.sender].feesAccrued;
+        delete indexingNodes[_subgraphId][msg.sender];
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            if (found == false) {
-                revert("This address is not a graph subgraph indexer.");
+            if (found == true) {
+                delete graphIndexingNodeAddresses[userIndex];
             }
-            require(graphIndexingNodes[userIndex].logoutStarted + thawingPeriod <= block.timestamp);
-            // Return the amount the Indexing Node has staked
-            _stake = graphIndexingNodes[userIndex].amountStaked;
-            // Return any outstanding fees accrued the Indexing Node does not have yet
-            _fees = graphIndexingNodes[userIndex].feesAccrued;
-            delete graphIndexingNodes[userIndex];
-        } else {
-            require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
-            // Return the amount the Indexing Node has staked
-            _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
-            // Return any outstanding fees accrued the Indexing Node does not have yet
-            _fees = indexingNodes[_subgraphId][msg.sender].feesAccrued;
-            delete indexingNodes[_subgraphId][msg.sender];
         }
-
         // Decrement the total amount staked by the amount being returned
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
@@ -872,15 +840,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Obtain the signer of the fully-encoded EIP-712 message hash
         // Note: The signer of the attestation is the indexing node that served it
         address _indexingNode = ecrecover(_disputeId, v, r, s);
-        uint256 _stake;
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexingNode);
-            require(found != false, "This address is not a graph subgraph indexer.");
-            // Get amount _indexingNode has staked (amountStaked is member 0)
-            _stake = graphIndexingNodes[userIndex].amountStaked;
-        } else {
-            _stake = indexingNodes[_subgraphId][_indexingNode].amountStaked;
-        }
+
+        uint256 _stake = indexingNodes[_subgraphId][_indexingNode].amountStaked;
         require(_stake > 0); // This also validates that _indexingNode exists
 
         // Ensure that fisherman has posted at least that amount
@@ -938,24 +899,18 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake;
-        uint256 _fees;
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-            require(found != false, "This address is not a graph subgraph indexer.");
-            // Get amount _indexingNode has staked (amountStaked is member 0)
-            _stake = graphIndexingNodes[userIndex].amountStaked;
-            // Capture the fees that the indexer would've earned
-            _fees = graphIndexingNodes[userIndex].feesAccrued;
-            delete graphIndexingNodes[userIndex]; // Re-entrancy protection
-        } else {
-            _stake = indexingNodes[_subgraphId][_indexer].amountStaked;
-            _fees = indexingNodes[_subgraphId][_indexer].feesAccrued;
-            delete indexingNodes[_subgraphId][_indexer]; // Re-entrancy protection
-        }
+        uint256 _stake = indexingNodes[_subgraphId][_indexer].amountStaked;
+        uint256 _fees = indexingNodes[_subgraphId][_indexer].feesAccrued;
+        delete indexingNodes[_subgraphId][_indexer]; // Re-entrancy protection
         assert(_stake > 0); // Ensure this is a valid staker (should always be true)
         uint256 _reward = getRewardForValue(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
+
+        if (_subgraphId == graphSubgraphID) {
+            (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
+            require(found != false, "This address is not a graph subgraph indexer.");
+            delete graphIndexingNodeAddresses[userIndex]; // Re-entrancy protection
+        }
 
         // Remove Indexing Node from Subgraph's stakers
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
@@ -1020,16 +975,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         uint256 _curatorRewardBasisPts = subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
         assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
         uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
-
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            require(found != false, "This address is not a graph subgraph indexer.");
-            // Give the indexing node their part of the fees
-            graphIndexingNodes[userIndex].feesAccrued += (_feesEarned - _curatorPortion);
-        } else {
-            indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned - _curatorPortion);
-        }
-
+        // Give the indexing node their part of the fees
+        indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned - _curatorPortion);
         // Increase the token balance for the subgraph (each share gets more tokens when sold)
         subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
     }
@@ -1045,17 +992,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         external
     {
         uint256 _feesAccrued;
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            require(found != false, "This address is not a graph subgraph indexer.");
-            _feesAccrued = graphIndexingNodes[userIndex].feesAccrued;
-            require(_feesAccrued > 0);
-            graphIndexingNodes[userIndex].feesAccrued = 0; // Re-entrancy protection
-        } else {
-            _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
-            require(_feesAccrued > 0);
-            indexingNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
-        }
+        _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
+        require(_feesAccrued > 0);
+        indexingNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
         token.transfer(msg.sender, _feesAccrued);
     }
 
@@ -1071,8 +1010,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         returns
         (bool found, uint256 userIndex)  {
         // We must find the indexers location in the array first
-        for (uint256 i; i < graphIndexingNodes.length; i++){
-            if (graphIndexingNodes[i].indexer == _indexer){
+        for (uint256 i; i < graphIndexingNodeAddresses.length; i++){
+            if (graphIndexingNodeAddresses[i] == _indexer){
                 userIndex = i;
                 found = true;
                 break;
