@@ -726,7 +726,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                 _subgraphId,
                 subgraphs[_subgraphId].totalIndexingStake
             );
-            // When we are dealing with all other indexing arrays that aren't bootstrapping
+        // When we are dealing with all other indexing arrays that aren't bootstrapping
         } else {
             require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
             require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
@@ -758,7 +758,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             }
             require(graphIndexingNodes[userIndex].amountStaked > 0);
             require(graphIndexingNodes[userIndex].logoutStarted == 0);
-            graphIndexingNodes[userIndex].logoutStarted == block.timestamp;
+            graphIndexingNodes[userIndex].logoutStarted = block.timestamp;
         } else {
             require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
             require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
@@ -1011,7 +1011,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      */
     function distributeChannelFees (
         bytes32 _subgraphId,
-        address _indexingNode, // TODO DK - Why is this here? does msg.sender replace this?
+        address _indexingNode, // TODO DK - https://github.com/graphprotocol/contracts/issues/124, talk to Jorge about this
         uint256 _feesEarned
     )
         private
