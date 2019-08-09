@@ -1,13 +1,5 @@
 const fs = require('fs')
 const HDWalletProvider = require('truffle-hdwallet-provider')
-const infuraKey = fs
-  .readFileSync('.infurakey.txt')
-  .toString()
-  .trim()
-const mnemonic = fs
-  .readFileSync('.privkey.txt')
-  .toString()
-  .trim()
 
 module.exports = {
   networks: {
@@ -20,8 +12,8 @@ module.exports = {
     kovan: {
       provider: () =>
         new HDWalletProvider(
-          mnemonic,
-          `https://kovan.infura.io/v3/${infuraKey}`,
+          fs.readFileSync('.privkey.txt').toString().trim(),
+          `https://kovan.infura.io/v3/${fs.readFileSync('.infurakey.txt').toString().trim()}`,
         ),
       network_id: 42, // kovan's id
       gas: 6000000,
@@ -31,8 +23,8 @@ module.exports = {
     ropsten: {
       provider: () =>
         new HDWalletProvider(
-          mnemonic,
-          `https://ropsten.infura.io/v3/${infuraKey}`,
+          fs.readFileSync('.privkey.txt').toString().trim(),
+          `https://ropsten.infura.io/v3/${fs.readFileSync('.infurakey.txt').toString().trim()}`,
         ),
       network_id: 3, // Ropsten's id
       gas: 6000000,
