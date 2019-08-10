@@ -168,52 +168,29 @@ contract('GNS', accounts => {
       }
     }
   })
+
+
+  it('...should delete the melonport subgraph', async () => {
+    const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[6])
+    const hashedSubdomain = web3.utils.soliditySha3(web3.utils.soliditySha3(helpers.subdomainNames[6]), topLevelDomainHash)
+    const { logs } = await deployedGNS.deleteSubdomain(hashedSubdomain, {
+      from: accounts[6],
+    })
+
+    expectEvent.inLogs(logs, 'DomainDeleted', {
+      domainHash: hashedSubdomain,
+    })
+
+    const deletedDomain = await deployedGNS.domains(hashedSubdomain)
+    assert(
+      deletedDomain.subgraphID === helpers.zeroHex(),
+      'SubgraphID was not deleted',
+    )
+    assert(
+      deletedDomain.owner === helpers.zeroAddress(),
+      'Owner was not removed',
+    )
+  })
 })
-//
-//   it('...should allow a user to transfer a domain', async () => {
-//     const { logs } = await deployedGNS.transferDomainOwnership(
-//       hashedSubdomain,
-//       accounts[2],
-//       { from: accounts[1] },
-//     )
-//
-//     expectEvent.inLogs(logs, 'DomainTransferred', {
-//       domainHash: hashedSubdomain,
-//       newOwner: accounts[2],
-//     })
-//
-//     // Check that a different owner can't call
-//     await expectRevert(
-//       deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[4], {
-//         from: accounts[3],
-//       }),
-//       'Only domain owner can call.',
-//     )
-//   })
-//
-//   it('...should allow a domain and subgraphID to be deleted', async () => {
-//     await expectRevert(
-//       deployedGNS.deleteSubdomain(hashedSubdomain, { from: accounts[3] }),
-//       'Only domain owner can call.',
-//     )
-//
-//     const { logs } = await deployedGNS.deleteSubdomain(hashedSubdomain, {
-//       from: accounts[2],
-//     })
-//
-//     expectEvent.inLogs(logs, 'DomainDeleted', {
-//       domainHash: hashedSubdomain,
-//     })
-//
-//     const deletedDomain = await deployedGNS.domains(hashedSubdomain)
-//     assert(
-//       deletedDomain.subgraphID === helpers.zeroHex(),
-//       'SubgraphID was not deleted',
-//     )
-//     assert(
-//       deletedDomain.owner === helpers.zeroAddress(),
-//       'Owner was not removed',
-//     )
-//   })
-//
-//  */
+
+// Not going to bother with testing accountMetadata or transferDomain for now. Might not need ever
