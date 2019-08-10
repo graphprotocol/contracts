@@ -21,7 +21,7 @@ contract('GNS', accounts => {
   it('...should allow a 10 users to register 10 domains', async () => {
     let accountCount = 0
     for (let i = 0; i < 10; i++) {
-      // Not in use
+      // Not in use, use when testing more than 10 in the loop
       // if (i % 10 === 0 && i !== 0) {
       //   accountCount++
       // }
@@ -54,7 +54,7 @@ contract('GNS', accounts => {
       let ipfsHash
       ipfsHash = helpers.testIPFSHashes[i]
 
-      // Not in use
+      // Not in use, use when testing more than 10 in the loop
       // if (i < 10){
       //   ipfsHash = helpers.testIPFSHashes[i]
       // } else {
@@ -88,7 +88,7 @@ contract('GNS', accounts => {
       } else {
         const { logs } = await deployedGNS.createSubgraph(
           topLevelDomainHash,
-          "",
+          '',
           ipfsHash,
           { from: accounts[accountCount] },
         )
@@ -100,7 +100,7 @@ contract('GNS', accounts => {
         expectEvent.inLogs(logs, 'SubgraphCreated', {
           topLevelDomainHash: topLevelDomainHash,
           registeredHash: topLevelDomainHash,
-          subdomainName: "",
+          subdomainName: '',
         })
 
         expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
@@ -111,53 +111,64 @@ contract('GNS', accounts => {
       accountCount++
     }
   })
-//
-//   it('...should allow a user to register a subgraph to a subdomain, and not allow a different user to do so. ', async () => {
-//     const { logs } = await deployedGNS.updateDomainSubgraphID(
-//       hashedSubdomain,
-//       subgraphID,
-//       { from: accounts[1] },
-//     )
-//     const domain = await deployedGNS.domains(hashedSubdomain)
-//     assert(
-//       (await domain.subgraphID) === web3.utils.bytesToHex(subgraphID),
-//       'Subdomain was not registered properly.',
-//     )
-//
-//     expectEvent.inLogs(logs, 'SubgraphIDUpdated', {
-//       domainHash: hashedSubdomain,
-//       subgraphID: web3.utils.bytesToHex(subgraphID),
-//     })
-//
-//     // Check that another user can't register
-//     await expectRevert(
-//       deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, {
-//         from: accounts[3],
-//       }),
-//       'Only domain owner can call.',
-//     )
-//   })
-//
-//   it('...should allow subgraph metadata to be updated', async () => {
-//     const { logs } = await deployedGNS.changeSubgraphMetadata(
-//       hashedSubdomain,
-//       ipfsHash,
-//       { from: accounts[1] },
-//     )
-//
-//     expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
-//       domainHash: hashedSubdomain,
-//       ipfsHash: web3.utils.bytesToHex(ipfsHash),
-//     })
-//
-//     // Check that a different owner can't call
-//     await expectRevert(
-//       deployedGNS.changeSubgraphMetadata(ipfsHash, hashedSubdomain, {
-//         from: accounts[3],
-//       }),
-//       'Only domain owner can call.',
-//     )
-//   })
+
+  it('...should register 10 subgraph ids for 10 different subgraphs. ', async () => {
+    for (let i = 0; i < 10; i++) {
+      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
+      const hashedSubdomain = web3.utils.soliditySha3(web3.utils.soliditySha3(helpers.subdomainNames[i]), topLevelDomainHash)
+
+      if (i % 2 === 0) {
+        const { logs } = await deployedGNS.updateDomainSubgraphID(
+          hashedSubdomain,
+          helpers.testSubgraphIDs[i],
+          { from: accounts[i] },
+        )
+        const domain = await deployedGNS.domains(hashedSubdomain)
+        assert(
+          (await domain.subgraphID) === helpers.testSubgraphIDs[i],
+          'Subdomain was not registered properly.',
+        )
+        expectEvent.inLogs(logs, 'SubgraphIDUpdated', {
+          domainHash: hashedSubdomain,
+          subgraphID: helpers.testSubgraphIDs[i],
+        })
+      } else {
+        const { logs } = await deployedGNS.updateDomainSubgraphID(
+          topLevelDomainHash,
+          helpers.testSubgraphIDs[i],
+          { from: accounts[i] },
+        )
+        const domain = await deployedGNS.domains(topLevelDomainHash)
+        assert(
+          (await domain.subgraphID) === helpers.testSubgraphIDs[i],
+          'Subdomain was not registered properly.',
+        )
+        expectEvent.inLogs(logs, 'SubgraphIDUpdated', {
+          domainHash: topLevelDomainHash,
+          subgraphID: helpers.testSubgraphIDs[i],
+        })
+      }
+    }
+  })
+
+  it('...should update the 5 tlds with no data to test data from  scaffold-metadata.json', async () => {
+    for (let i = 0; i < 10; i++) {
+      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
+      if (i % 2 === 0) {
+        const { logs } = await deployedGNS.changeSubgraphMetadata(
+          topLevelDomainHash,
+          '0xe2f321f2a488e2cae1a05229f730be3cc77b730246cc08641e515afda0fe0ba6', // dummy hash for scaffold-metadata.json
+          { from: accounts[i] },
+        )
+
+        expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
+          domainHash: topLevelDomainHash,
+          ipfsHash: "0xe2f321f2a488e2cae1a05229f730be3cc77b730246cc08641e515afda0fe0ba6",
+        })
+      }
+    }
+  })
+})
 //
 //   it('...should allow a user to transfer a domain', async () => {
 //     const { logs } = await deployedGNS.transferDomainOwnership(
@@ -204,23 +215,5 @@ contract('GNS', accounts => {
 //       'Owner was not removed',
 //     )
 //   })
-//
-//   it('...should allow account metadata event to be emitted  ', async () => {
-//     const accountIPFSHash = helpers.randomSubgraphIdBytes()
-//
-//     const { logs } = await deployedGNS.changeAccountMetadata(accountIPFSHash, {
-//       from: accounts[2],
-//     })
-//
-//     expectEvent.inLogs(logs, 'AccountMetadataChanged', {
-//       account: accounts[2],
-//       ipfsHash: web3.utils.bytesToHex(accountIPFSHash),
-//     })
-//   })
-})
-//
-// /*TODO
-//  * test that both the tld and subdomains are properly registered
-//  *
 //
 //  */
