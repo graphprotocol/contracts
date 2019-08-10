@@ -78,6 +78,7 @@ module.exports = (deployer, network, accounts) => {
   // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
   .then(deployedServiceRegistry => {
     deployed.ServiceRegistry = deployedServiceRegistry
+    console.log("Service Registry: ", deployed.ServiceRegistry.address)
     return deployer.deploy(
       GNS,
       deployed.MultiSigWallet.address, // <address> governor
@@ -87,6 +88,7 @@ module.exports = (deployer, network, accounts) => {
   // All contracts have been deployed and we log the total
   .then(deployedGNS => {
     deployed.GNS = deployedGNS
+    console.log("Service Registry: ", deployed.GNS.address)
     console.log(`Deployed ${Object.entries(deployed).length} contracts.`) 
   })
 
