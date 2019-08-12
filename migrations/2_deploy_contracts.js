@@ -33,6 +33,7 @@ module.exports = (deployer, network, accounts) => {
   // Deploy the GraphToken contract before deploying the Staking contract
   .then(deployedMultiSigWallet => {
     deployed.MultiSigWallet = deployedMultiSigWallet
+    console.log("MULTISIG ADDRESS: ", deployed.MultiSigWallet.address)
     return deployer.deploy(
       GraphToken,
       deployed.MultiSigWallet.address, // governor
@@ -43,6 +44,7 @@ module.exports = (deployer, network, accounts) => {
   // Deploy Staking contract using deployed GraphToken address + constants defined above
   .then(deployedGraphToken => {
     deployed.GraphToken = deployedGraphToken
+    console.log("GRAPH TOKEN ADDRESS: ", deployed.GraphToken.address)
     return deployer.deploy(
       Staking,
       deployed.MultiSigWallet.address, // <address> governor
@@ -60,6 +62,7 @@ module.exports = (deployer, network, accounts) => {
   // Deploy RewardsManager contract with MultiSigWallet as the `governor`
   .then(deployedStaking => {
     deployed.Staking = deployedStaking
+    console.log("STAKING ADDRESS: ", deployed.Staking.address)
     return deployer.deploy(
       RewardsManager,
       deployed.MultiSigWallet.address, // <address> governor
@@ -69,6 +72,7 @@ module.exports = (deployer, network, accounts) => {
   // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
   .then(deployedRewardsManager => {
     deployed.RewardsManager = deployedRewardsManager
+    console.log("REWARDS MANAGER ADDRESS: ", deployed.RewardsManager.address)
     return deployer.deploy(
       ServiceRegistry,
       deployed.MultiSigWallet.address, // <address> governor
@@ -88,7 +92,7 @@ module.exports = (deployer, network, accounts) => {
   // All contracts have been deployed and we log the total
   .then(deployedGNS => {
     deployed.GNS = deployedGNS
-    console.log("Service Registry: ", deployed.GNS.address)
+    console.log("GNS: ", deployed.GNS.address)
     console.log(`Deployed ${Object.entries(deployed).length} contracts.`) 
   })
 
