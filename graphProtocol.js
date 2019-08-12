@@ -100,22 +100,22 @@ module.exports = (options = {}) => {
 
     /**
      * @dev Getter for `curators` mapping
-     * @param {Address} curationStaker Address of `curators` staking tokens
      * @param {Bytes32} subgraphId Subgraph ID `Curator` is staking for
+     * @param {Address} curationStaker Address of `curators` staking tokens
      * @returns {Object} Curator
      */
-    static curators(curationStaker, subgraphId) {
-      return Staking.curators.call(curationStaker, subgraphId)
+    static curators(subgraphId, curationStaker) {
+      return Staking.curators.call(subgraphId, curationStaker)
     }
 
     /**
      * @dev Getter for `indexingNodes` mapping
-     * @param {Address} indexingStaker Address of `indexingNodes` staking tokens
      * @param {Bytes32} subgraphId Subgraph ID `IndexingNode` is staking for
+     * @param {Address} indexingStaker Address of `indexingNodes` staking tokens
      * @returns {Object} IndexingNode
      */
-    static indexingNodes(indexingStaker, subgraphId) {
-      return Staking.indexingNodes.call(indexingStaker, subgraphId)
+    static indexingNodes(subgraphId, indexingStaker) {
+      return Staking.indexingNodes.call(subgraphId, indexingStaker)
     }
 
     /**
@@ -184,7 +184,7 @@ module.exports = (options = {}) => {
         Staking.address, // to
         value, // value
         data, // data
-        { from }, // from/curator
+        { from } // from/curator
       )
     }
 
@@ -194,9 +194,10 @@ module.exports = (options = {}) => {
      * @param from <address> - Address of staking indexing node
      */
     static beginLogout(subgraphId, from) {
-      return Staking.beginLogout(web3.utils.hexToBytes('0x' + subgraphId), {
-        from,
-      })
+      return Staking.beginLogout(
+        subgraphId,
+        { from }
+      )
     }
 
     /**
@@ -205,9 +206,10 @@ module.exports = (options = {}) => {
      * @param from <address> - Address of staking indexing node
      */
     static finalizeLogout(subgraphId, from) {
-      return Staking.finalizeLogout(web3.utils.hexToBytes('0x' + subgraphId), {
-        from,
-      })
+      return Staking.finalizeLogout(
+        subgraphId,
+        { from }
+      )
     }
 
     /**
