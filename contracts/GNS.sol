@@ -52,7 +52,6 @@ contract GNS is Governed {
         bytes32 indexed registeredHash,
         string subdomainName
     );
-    event SubgraphDeployed(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event SubgraphIDUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event DomainDeleted(bytes32 indexed domainHash);
     event AccountMetadataChanged(address indexed account, bytes32 indexed ipfsHash);
