@@ -18,7 +18,8 @@
   },
   "scripts": {
     "test": "truffle test",
-    "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'"
+    "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'",
+    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abi/ -v"
   },
   "repository": {
     "type": "git",
