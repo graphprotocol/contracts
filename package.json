@@ -20,7 +20,7 @@
   "scripts": {
     "test": "truffle test",
     "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'",
-    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abi/ -v"
+    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v"
   },
   "repository": {
     "type": "git",
