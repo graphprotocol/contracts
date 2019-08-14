@@ -14,6 +14,7 @@
     "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
+    "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0"
   },
   "scripts": {
