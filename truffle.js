@@ -21,8 +21,8 @@ module.exports = {
     kovan: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync('.privkey.txt').toString().trim(),
-          `https://kovan.infura.io/v3/${fs.readFileSync('.infurakey.txt').toString().trim()}`,
+          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
+          `https://kovan.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
         ),
       network_id: 42, // kovan's id
       gas: 8000000,
@@ -32,8 +32,8 @@ module.exports = {
     ropsten: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync('.privkey.txt').toString().trim(),
-          `https://ropsten.infura.io/v3/${fs.readFileSync('.infurakey.txt').toString().trim()}`,
+          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
+          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
@@ -43,8 +43,8 @@ module.exports = {
     simpleRopsten: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync('.privkey.txt').toString().trim(),
-          `https://ropsten.infura.io/v3/${fs.readFileSync('.infurakey.txt').toString().trim()}`,
+          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
+          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,

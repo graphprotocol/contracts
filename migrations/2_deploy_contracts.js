@@ -19,21 +19,24 @@ const initialSupply = 1000000, // total supply of Graph Tokens at time of deploy
   multiSigOwners = [] // add addresses of the owners of the multisig contract here
 
 let deployed = {} // store deployed contracts in a JSON object
+let simpleGraphTokenGovernorAddress = '0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed'
 
 module.exports = (deployer, network, accounts) => {
+  console.log(accounts)
   // Simple deployment means we do not use the multisig wallet for deployment
   if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
     let deployAddress = accounts[0]
     deployer.deploy(
       GraphToken,
-      accounts[1], // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
+      // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
+      // Also, HDWallet only passes 1 account. So account[1] is hardcoded below
+      simpleGraphTokenGovernorAddress,
       initialSupply // initial supply
     )
 
     // Deploy Staking contract using deployed GraphToken address + constants defined above
       .then(deployedGraphToken => {
         deployed.GraphToken = deployedGraphToken
-        console.log('GRAPH TOKEN ADDRESS: ', deployed.GraphToken.address)
         return deployer.deploy(
           Staking,
           deployAddress, // <address> governor
@@ -81,7 +84,7 @@ module.exports = (deployer, network, accounts) => {
       .then(deployedGNS => {
         deployed.GNS = deployedGNS
         console.log('\n')
-        console.log('SIMPLE GOVERNOR ADDRESS: ', accounts[1])
+        console.log('SIMPLE GOVERNOR ADDRESS: ', simpleGraphTokenGovernorAddress)
         console.log('GRAPH TOKEN ADDRESS: ', deployed.GraphToken.address)
         console.log('STAKING ADDRESS: ', deployed.Staking.address)
         console.log('REWARDS MANAGER ADDRESS: ', deployed.RewardsManager.address)
