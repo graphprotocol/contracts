@@ -5,13 +5,15 @@ const RewardsManager = artifacts.require('RewardsManager')
 const ServiceRegistry = artifacts.require('ServiceRegistry')
 const Staking = artifacts.require('Staking')
 
+const BN = web3.utils.BN
+
 /**
  * @dev Parameters used in deploying the contracts.
  */
-const initialSupply = 1000000, // total supply of Graph Tokens at time of deployment
-  minimumCurationStakingAmount = 100, // minimum amount allowed to be staked by Market Curators
+const initialSupply = new BN("10000000000000000000000000"), // total supply of Graph Tokens at time of deployment
+  minimumCurationStakingAmount = new BN("100000000000000000000"), // minimum amount allowed to be staked by Market Curators
   defaultReserveRatio = 500000, // reserve ratio (percent as PPM)
-  minimumIndexingStakingAmount = 100, // minimum amount allowed to be staked by Indexing Nodes
+  minimumIndexingStakingAmount = new BN("100000000000000000000"), // minimum amount allowed to be staked by Indexing Nodes
   maximumIndexers = 10, // maximum number of Indexing Nodes staked higher than stake to consider
   slashingPercent = 10, // percent of stake to slash in successful dispute
   thawingPeriod = 60 * 60 * 24 * 7, // amount of seconds to wait until indexer can finish stake logout
@@ -22,7 +24,6 @@ let deployed = {} // store deployed contracts in a JSON object
 let simpleGraphTokenGovernorAddress = '0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed'
 
 module.exports = (deployer, network, accounts) => {
-  console.log(accounts)
   // Simple deployment means we do not use the multisig wallet for deployment
   if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
     let deployAddress = accounts[0]
@@ -45,7 +46,7 @@ module.exports = (deployer, network, accounts) => {
           minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
           maximumIndexers, // <uint256> maximumIndexers
           slashingPercent, // <uint256> slashingPercent
-          thawingPeriod, // <uint256> thawingPeriod
+          0, // <uint256> thawingPeriod NOTE - NO THAWING PERIOD
           deployed.GraphToken.address // <address> token
         )
       })
@@ -54,7 +55,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy RewardsManager contract with MultiSigWallet as the `governor`
       .then(deployedStaking => {
         deployed.Staking = deployedStaking
-        console.log('STAKING ADDRESS: ', deployed.Staking.address)
         return deployer.deploy(
           RewardsManager,
           deployAddress, // <address> governor
@@ -64,7 +64,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedRewardsManager => {
         deployed.RewardsManager = deployedRewardsManager
-        console.log('REWARDS MANAGER ADDRESS: ', deployed.RewardsManager.address)
         return deployer.deploy(
           ServiceRegistry,
           deployAddress, // <address> governor
@@ -74,7 +73,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedServiceRegistry => {
         deployed.ServiceRegistry = deployedServiceRegistry
-        console.log('Service Registry: ', deployed.ServiceRegistry.address)
         return deployer.deploy(
           GNS,
           deployAddress, // <address> governor
@@ -104,7 +102,6 @@ module.exports = (deployer, network, accounts) => {
     // Deploy the GraphToken contract before deploying the Staking contract
       .then(deployedMultiSigWallet => {
         deployed.MultiSigWallet = deployedMultiSigWallet
-        console.log('MULTISIG ADDRESS: ', deployed.MultiSigWallet.address)
         return deployer.deploy(
           GraphToken,
           deployed.MultiSigWallet.address, // governor
@@ -115,7 +112,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy Staking contract using deployed GraphToken address + constants defined above
       .then(deployedGraphToken => {
         deployed.GraphToken = deployedGraphToken
-        console.log('GRAPH TOKEN ADDRESS: ', deployed.GraphToken.address)
         return deployer.deploy(
           Staking,
           deployed.MultiSigWallet.address, // <address> governor
@@ -133,7 +129,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy RewardsManager contract with MultiSigWallet as the `governor`
       .then(deployedStaking => {
         deployed.Staking = deployedStaking
-        console.log('STAKING ADDRESS: ', deployed.Staking.address)
         return deployer.deploy(
           RewardsManager,
           deployed.MultiSigWallet.address, // <address> governor
@@ -143,7 +138,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedRewardsManager => {
         deployed.RewardsManager = deployedRewardsManager
-        console.log('REWARDS MANAGER ADDRESS: ', deployed.RewardsManager.address)
         return deployer.deploy(
           ServiceRegistry,
           deployed.MultiSigWallet.address, // <address> governor
@@ -153,7 +147,6 @@ module.exports = (deployer, network, accounts) => {
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedServiceRegistry => {
         deployed.ServiceRegistry = deployedServiceRegistry
-        console.log('Service Registry: ', deployed.ServiceRegistry.address)
         return deployer.deploy(
           GNS,
           deployed.MultiSigWallet.address, // <address> governor
