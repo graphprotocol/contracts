@@ -21,16 +21,21 @@ const initialSupply = new BN("10000000000000000000000000"), // total supply of G
   multiSigOwners = [] // add addresses of the owners of the multisig contract here
 
 let deployed = {} // store deployed contracts in a JSON object
-let simpleGraphTokenGovernorAddress = '0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed'
+let simpleGraphTokenGovernorAddress
 
 module.exports = (deployer, network, accounts) => {
   // Simple deployment means we do not use the multisig wallet for deployment
   if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
+    if (network === 'simpleRopsten'){
+      // HDWallet only passes 1 account. So account[1] is hardcoded below for Ropsten
+      simpleGraphTokenGovernorAddress = "0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed"
+    } else {
+      // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
+      simpleGraphTokenGovernorAddress = accounts[1]
+    }
     let deployAddress = accounts[0]
     deployer.deploy(
       GraphToken,
-      // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
-      // Also, HDWallet only passes 1 account. So account[1] is hardcoded below
       simpleGraphTokenGovernorAddress,
       initialSupply // initial supply
     )
