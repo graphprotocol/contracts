@@ -70,9 +70,13 @@ addresses for networks, so if you are trying to re-deploy you may have to run
 2. Get the new contract addresses from the deployment. They are logged in the terminal output from
 deploying. Put these contract addresses into the subgraph manifest
 3. Make sure you are a member of `graphprotocol` for the staging explorer application
-2. Then make sure you have the right access token for `graphprotocol`. You can set this up with 
+4. Then make sure you have the right access token for `graphprotocol`. You can set this up with 
 `graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`
-2. Then in the `graph-network-subgraph` repository, just run `yarn deploy` to update a new version
+5. Then in the `graph-network-subgraph` repository, just run `yarn deploy` to update a new version
+6. You will also have to update information in the `graph-explorer-dapp` repo. You must update
+the contract addresses in the `.env.development` file, and you need to update the contract addresses
+in the cloud build file 
+https://github.com/graphprotocol/graph-explorer-dapp/blob/master/cloudbuild.staging.yaml
 
 At some point in the future we will work on having scripts that will populate data in the subgraph
 on ropsten, so we can better test.  
