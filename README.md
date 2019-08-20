@@ -49,7 +49,8 @@ The current contract addresses are stored here: https://github.com/graphprotocol
  --debug    \
  ```
 6. In a new terminal go to the `graph-network-subgraph` repository, and create the subgraph with
-` yarn create-local`
+` yarn create-local` (NOTE - MAKE SURE THE CONTRACT ADDRESSES IN THE MANIFEST ARE SET TO THE
+GANACHE ADDRESSES!)
 7. Then deploy it with `yarn deploy-local`
 
 At this point, everything is setup. You can then interact with the contracts through Remix, or
