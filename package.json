@@ -10,9 +10,10 @@
     "chai": "^4.2.0",
     "openzeppelin-solidity": "^2.3.0",
     "openzeppelin-test-helpers": "0.4.0",
+    "prettier": "^1.18.2",
+    "truffle": "5.0.20",
     "truffle-hdwallet-provider": "^1.0.14",
-    "web3": "1.0.0-beta.55",
-    "truffle": "5.0.20"
+    "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
     "truffle-assertions": "0.8.0"
