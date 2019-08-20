@@ -24,15 +24,10 @@ We want to also run some test scripts to populate data each time new contracts a
 Jorge has something that will work for this. Also, running the tests in this repo will populate 
 data. 
 ### Current Contract Addresses
-#### Network: ropsten (id: 3) (Updated August 19 2019))
- - GNS: 0x7e0BBa74B7D0308986E2404f5f0868aaFd84D80C
- - GraphToken: 0x9Dcb2CCF45d8772c722f76A16374C1Ebc79DCB7E
- - MultiSigWallet: NOT CONTRACT - DAVES METAMASK - 0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
- - RewardsManager: 0x9e76Ed01881AE69CEa0E512CB972E942Da47774a
- - ServiceRegistry: 0xD7eF645bD0240cC954dE318bDe938886f14F6580
- - Staking: 0x7AA834EEE8d2675671Cc00f4bb1d4C3CAC05b6B2
- 
- #### Network: Ganache (id: 99)
+The current contract addresses are stored here: https://github.com/graphprotocol/contract-addresses
+  
+### Subgraph Deployment Instructions
+#### Ganache
  Note, ganache MUST be ran with `ganache-cli -d -i 99`. `-d` Makes the accounts the same for any
  instance of ganache, which allows us to have deterministic contract addresses. Therefore anyone can
  use the same subgraph manifest for ganache on their own laptop. `-i 99` is used to make the 
@@ -40,15 +35,7 @@ data.
  close ganache and start it up again and you can deploy. If you use the same subgraph ID though and
  reset ganche, you will have to drop the DB because it will have old data saved in it, with a new
  instance of ganache.
-  - GNS: 0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7
-  - GraphToken: 0xCfEB869F69431e42cdB54A4F4f105C19C080A601
-  - MultiSigWallet: NOT CONTRACT - GANACHE account[1] - 0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0
-  - RewardsManager: 0xC89Ce4735882C9F0f0FE26686c53074E09B0D550
-  - ServiceRegistry: 0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb
-  - Staking: 0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B
-  
-### Subgraph Deployment Instructions
-#### Ganache
+
 1. Run `ipfs daemon`
 2. In a new terminal run postrgres with `pg_ctl -D /usr/local/var/postgres -l logfile start`
 3. Create a database with `createdb graph-network-ganache`
