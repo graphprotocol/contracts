@@ -1,0 +1,2 @@
+The tests in this folder run many transactions, specifically to easily populate a subgraph with
+a lot of data, allowing us to test the implementation of the subgraph.

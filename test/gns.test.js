@@ -6,7 +6,7 @@ const helpers = require('./lib/testHelpers')
 
 contract('GNS', accounts => {
   let deployedGNS
-  const topLevelDomainName = 'thegraph.com'
+  const topLevelDomainName = 'thegraph'
   const topLevelDomainHash = web3.utils.soliditySha3(topLevelDomainName)
   const subdomainName = 'david'
   const hashedSubdomain = web3.utils.soliditySha3(
@@ -89,7 +89,7 @@ contract('GNS', accounts => {
     )
   })
 
-  it('...should allow a user to register a subgraph to a subdomain, and not allow a different user to do so. ', async () => {
+  it('...should allow a user to update a subgraphID, and not allow a different user to do so. ', async () => {
     const { logs } = await deployedGNS.updateDomainSubgraphID(
       hashedSubdomain,
       subgraphID,
@@ -197,7 +197,9 @@ contract('GNS', accounts => {
 })
 
 /*TODO
- * test that both the tld and subdomains are properly registered
- *
+ * - test that both the tld and subdomains are properly registered
+ * - and/or test that a subdomain can be moved to another owner, but you still own the tld and every
+ * thing works
+ * - and test recursive subdomains
 
  */

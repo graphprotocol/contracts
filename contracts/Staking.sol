@@ -593,7 +593,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].totalCurationShares = 1;
             curators[_subgraphId][_curator].amountStaked = minimumCurationStakingAmount;
             subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
-            _tokenAmount -= minimumCurationStakingAmount;
+            _tokenAmount -= minimumCurationStakingAmount; // TODO this raises a solium error - we should consider changing
         }
 
         if (_tokenAmount > 0) { // Corner case if only minimum is staked on first stake
