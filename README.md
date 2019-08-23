@@ -23,6 +23,13 @@ latest subgraph.
 We want to also run some test scripts to populate data each time new contracts are deployed (WIP, 
 Jorge has something that will work for this. Also, running the tests in this repo will populate 
 data. 
+
+You will need two  files to deploy anything and run `truffle`, they are `.privkey.txt` and 
+`.infurakey.txt`. Privkey is a 12 word mneumonic, you should grab you 12 words from metamask, so 
+that your metamask keys will work in the browser with what you deployed as a governor. The infura
+key is just the key you get from the infura website that lets you query up to 100,000 queries a day
+for free.
+
 ### Current Contract Addresses
 The current contract addresses are stored here: https://github.com/graphprotocol/contract-addresses
   
@@ -60,9 +67,8 @@ which will allow the subgraph to store data.
 
 #### Ropsten
 (Note we use the graph hosted service right now to deploy to. We do not use the new Dapp explorer UI
-to create and deploy subgraphs. It can be found here. The subgraph is already created, so we will 
-only mention how to update the subgraph here:
-https://staging.thegraph.com/explorer/subgraph/graphprotocol/explorer-dapp)
+to create and deploy subgraphs. It can be found [here](https://staging.thegraph.com/explorer/subgraph/graphprotocol/explorer-dapp)
+]. The subgraph is already created, so we will only mention how to update the subgraph here.
 
 1. Deploy new contracts to Ropsten with `truffle deploy --network ropsten`. Truffle stores the 
 addresses for networks, so if you are trying to re-deploy you may have to run 
@@ -71,7 +77,8 @@ addresses for networks, so if you are trying to re-deploy you may have to run
 deploying. Put these contract addresses into the subgraph manifest
 3. Make sure you are a member of `graphprotocol` for the staging explorer application
 4. Then make sure you have the right access token for `graphprotocol`. You can set this up with 
-`graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`
+`graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`. You can get it from the dashbaord in the
+UI, just pick `graphprotocol` instead of your own account, and you will see the token.
 5. Then in the `graph-network-subgraph` repository, just run `yarn deploy` to update a new version
 6. You will also have to update information in the `graph-explorer-dapp` repo. You must update
 the contract addresses in the `.env.development` file, and you need to update the contract addresses

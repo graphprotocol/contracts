@@ -26,13 +26,8 @@ let simpleGraphTokenGovernorAddress
 module.exports = (deployer, network, accounts) => {
   // Simple deployment means we do not use the multisig wallet for deployment
   if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
-    if (network === 'simpleRopsten'){
-      // HDWallet only passes 1 account. So account[1] is hardcoded below for Ropsten
-      simpleGraphTokenGovernorAddress = "0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed"
-    } else {
-      // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
-      simpleGraphTokenGovernorAddress = accounts[1]
-    }
+    // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
+    simpleGraphTokenGovernorAddress = accounts[1]
     let deployAddress = accounts[0]
     deployer.deploy(
       GraphToken,
@@ -55,7 +50,9 @@ module.exports = (deployer, network, accounts) => {
           deployed.GraphToken.address // <address> token
         )
       })
-
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
       /** @notice From this point on, the order of deployment does not matter. */
       // Deploy RewardsManager contract with MultiSigWallet as the `governor`
       .then(deployedStaking => {
@@ -64,6 +61,9 @@ module.exports = (deployer, network, accounts) => {
           RewardsManager,
           deployAddress, // <address> governor
         )
+      })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
       })
 
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
@@ -74,6 +74,9 @@ module.exports = (deployer, network, accounts) => {
           deployAddress, // <address> governor
         )
       })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
 
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedServiceRegistry => {
@@ -83,6 +86,10 @@ module.exports = (deployer, network, accounts) => {
           deployAddress, // <address> governor
         )
       })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
+
       // All contracts have been deployed and we log the total
       .then(deployedGNS => {
         deployed.GNS = deployedGNS
@@ -94,6 +101,11 @@ module.exports = (deployer, network, accounts) => {
         console.log('Service Registry: ', deployed.ServiceRegistry.address)
         console.log('GNS: ', deployed.GNS.address)
         console.log(`Deployed ${Object.entries(deployed).length} contracts.`)
+        console.log('HAHAH')
+        console.log(web3.eth.getAccounts())
+      })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
       })
   } else {
     // We need the Multisig contract address to set as governor for all upgradable contracts
@@ -113,6 +125,9 @@ module.exports = (deployer, network, accounts) => {
           initialSupply // initial supply
         )
       })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
 
       // Deploy Staking contract using deployed GraphToken address + constants defined above
       .then(deployedGraphToken => {
@@ -129,7 +144,9 @@ module.exports = (deployer, network, accounts) => {
           deployed.GraphToken.address // <address> token
         )
       })
-
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
       /** @notice From this point on, the order of deployment does not matter. */
       // Deploy RewardsManager contract with MultiSigWallet as the `governor`
       .then(deployedStaking => {
@@ -138,6 +155,9 @@ module.exports = (deployer, network, accounts) => {
           RewardsManager,
           deployed.MultiSigWallet.address, // <address> governor
         )
+      })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
       })
 
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
@@ -148,6 +168,9 @@ module.exports = (deployer, network, accounts) => {
           deployed.MultiSigWallet.address, // <address> governor
         )
       })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
+      })
 
       // Deploy ServiceRegistry contract with MultiSigWallet as the `governor`
       .then(deployedServiceRegistry => {
@@ -156,6 +179,9 @@ module.exports = (deployer, network, accounts) => {
           GNS,
           deployed.MultiSigWallet.address, // <address> governor
         )
+      })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
       })
       // All contracts have been deployed and we log the total
       .then(deployedGNS => {
@@ -168,6 +194,9 @@ module.exports = (deployer, network, accounts) => {
         console.log('Service Registry: ', deployed.ServiceRegistry.address)
         console.log('GNS: ', deployed.GNS.address)
         console.log(`Deployed ${Object.entries(deployed).length} contracts.`)
+      })
+      .catch(err => {
+        console.log('There was an error with deploy: ', err)
       })
   }
 }

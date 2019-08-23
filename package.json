@@ -16,11 +16,13 @@
     "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
+    "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0"
   },
   "scripts": {
     "test": "truffle test",
-    "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'"
+    "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'",
+    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v"
   },
   "repository": {
     "type": "git",

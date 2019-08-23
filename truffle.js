@@ -44,7 +44,7 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(
           fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
-          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
+          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`, 0, 2
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
