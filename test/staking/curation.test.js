@@ -89,16 +89,10 @@ contract(
       )
       assert(curationStake, 'Stake Graph Tokens for curation directly.')
 
-      const { amountStaked, subgraphShares } = await gp.staking.curators(
+      const { subgraphShares } = await gp.staking.curators(
         web3.utils.hexToBytes('0x' + subgraphIdHex),
         curationStaker,
       )
-      assert(
-        amountStaked.toNumber() === stakingAmount &&
-          subgraphShares.toNumber() > 0,
-        'Staked curation amount is not correect.',
-      )
-
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(

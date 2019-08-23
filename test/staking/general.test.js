@@ -110,8 +110,7 @@ contract(
           curationStaker, // staker address
           subgraph1, // subgraphId
         )
-        expect(curators.amountStaked).to.be.bignumber.equal('0')
-        expect(curators.subgraphShares).to.be.bignumber.equal('0')
+        expect(curators).to.be.bignumber.equal('0')
       })
 
       it('...should return `indexingNodes`', async () => {
