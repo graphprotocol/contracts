@@ -101,8 +101,6 @@ module.exports = (deployer, network, accounts) => {
         console.log('Service Registry: ', deployed.ServiceRegistry.address)
         console.log('GNS: ', deployed.GNS.address)
         console.log(`Deployed ${Object.entries(deployed).length} contracts.`)
-        console.log('HAHAH')
-        console.log(web3.eth.getAccounts())
       })
       .catch(err => {
         console.log('There was an error with deploy: ', err)
