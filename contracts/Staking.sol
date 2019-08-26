@@ -81,6 +81,16 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     using BytesLib for bytes;
 
     /* Events */
+    event Deposit (
+        address indexed user,
+        uint256 amount
+    );
+
+    event Withdraw (
+        address indexed user,
+        uint256 amount
+    );
+
     event CuratorStaked (
         address indexed staker,
         bytes32 subgraphID,
@@ -476,6 +486,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         require(msg.sender == address(token));
         standbyTokens[_from] += _value;
         success = true;
+
+        emit Deposit(_from, _value);
     }
 
 
@@ -528,8 +540,24 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
 
-    function tokensWithdrawn(){
+    /**
+     * @dev Withdraw tokens from standby pool
+     * @param _value <uint256> - Amount of Graph Tokens
+     */
+    function tokensWithdrawn (
+        uint256 _value
+    )
+        external
+        returns (bool success)
+    {
+        require(standbyTokens[msg.sender] > _value);
+        standbyTokens[msg.sender] -= _value;
+        success = true;
 
+        // Return the tokens to the curator
+        assert(token.transfer(msg.sender, _value));
+
+        emit Withdraw(msg.sender, _value);
     }
 
     /**
@@ -687,9 +715,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Update the amount of shares Curator has, and overall amount of shares
         curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
-
-        // Return the tokens to the curator
-        assert(token.transfer(msg.sender, _tokenRefund));
+//
+//        // Return the tokens to the curator
+//        assert(token.transfer(msg.sender, _tokenRefund));
 
     if (fullLogout) {
         // Emit the CuratorLogout event
