@@ -245,6 +245,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
 
+    // Mapping users to their stanbyTokens (tokens deposited in the
+    // contract, but not yet staked
+    mapping (address => uint256) public standbyTokens;
+
     // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
     //       the list of all indexers at the start of indexing. The indexingNodes
@@ -457,22 +461,36 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
     /**
-     * @dev Accept tokens and handle staking registration functions
+     * @dev Accept tokens into standby pool
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
-     * @param _data <bytes> - Data to parse and handle registration functions
      */
     function tokensReceived (
         address _from,
-        uint256 _value,
-        bytes calldata _data
+        uint256 _value
     )
         external
         returns (bool success)
     {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token));
+        standbyTokens[_from] += _value;
+        success = true;
+    }
 
+
+    /**
+     * @dev Handle staking registration functions
+     * @param _value <uint256> - Amount of Graph Tokens
+     * @param _data <bytes> - Data to parse and handle registration functions
+     */
+    function stake (
+        uint256 _value,
+        bytes calldata _data
+    )
+        external
+        returns (bool success)
+    {
         // Process _data to figure out the action to take (and which subgraph is involved)
         require(_data.length >= 1+32); // Must be at least 33 bytes (Header)
         TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
@@ -484,29 +502,34 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             // Ensure that the remaining data is parse-able for indexing records
             // require(_indexingRecords.length % 32 == 0);
             // @imp i01 Handle internal call for Index Staking
-            // stakeGraphTokensForIndexing(_subgraphId, _from, _value, _indexingRecords);
+            // stakeGraphTokensForIndexing(_subgraphId, msg.sender, _value, _indexingRecords);
             // TODO - Delete above when confirmed indexing records are not needed
-            stakeGraphTokensForIndexing(_subgraphId, _from, _value);
+            stakeGraphTokensForIndexing(_subgraphId, msg.sender, _value);
 
         } else
-        if (option == TokenReceiptAction.Curation) {
-            // @imp c01 Handle internal call for Curation Staking
-            stakeGraphTokensForCuration(_subgraphId, _from, _value);
-        } else
-        if (option == TokenReceiptAction.Dispute) {
-            require(_data.length == 33 + ATTESTATION_SIZE_BYTES);
-            bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
-            // Inner call to createDispute
-            createDispute(_attestation, _subgraphId, _from, _value);
-        } else
-        if (option == TokenReceiptAction.Settlement) {
-            require(_data.length >= 33 + 20); // Header + _indexingNode
-            address _indexingNode = _data.slice(65, 20).toAddress(0);
-            distributeChannelFees(_subgraphId, _indexingNode, _value);
-        } else {
-            revert();
-        }
+            if (option == TokenReceiptAction.Curation) {
+                // @imp c01 Handle internal call for Curation Staking
+                stakeGraphTokensForCuration(_subgraphId, msg.sender, _value);
+            } else
+                if (option == TokenReceiptAction.Dispute) {
+                    require(_data.length == 33 + ATTESTATION_SIZE_BYTES);
+                    bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
+                    // Inner call to createDispute
+                    createDispute(_attestation, _subgraphId, msg.sender, _value);
+                } else
+                    if (option == TokenReceiptAction.Settlement) {
+                        require(_data.length >= 33 + 20); // Header + _indexingNode
+                        address _indexingNode = _data.slice(65, 20).toAddress(0);
+                        distributeChannelFees(_subgraphId, _indexingNode, _value);
+                    } else {
+                        revert();
+                    }
         success = true;
+    }
+
+
+    function tokensWithdrawn(){
+
     }
 
     /**
