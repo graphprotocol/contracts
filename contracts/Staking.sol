@@ -509,15 +509,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0); // In subgraph factory, not necessary
 
         if (option == TokenReceiptAction.Staking) {
-            // Slice the rest of the data as indexing records
-            // bytes memory _indexingRecords = _data.slice(33, _data.length-33);
-            // Ensure that the remaining data is parse-able for indexing records
-            // require(_indexingRecords.length % 32 == 0);
-            // @imp i01 Handle internal call for Index Staking
-            // stakeGraphTokensForIndexing(_subgraphId, msg.sender, _value, _indexingRecords);
-            // TODO - Delete above when confirmed indexing records are not needed
             stakeGraphTokensForIndexing(_subgraphId, msg.sender, _value);
-
         } else
             if (option == TokenReceiptAction.Curation) {
                 // @imp c01 Handle internal call for Curation Staking
@@ -624,7 +616,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         bytes32 _subgraphId,
         address _curator,
         uint256 _tokenAmount
-        // bytes memory _indexingRecords // TODO - remove this on next PR, when confirmed it isn't needed
     )
         private
     {
@@ -667,6 +658,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             // Update the amount of shares issued to _curator, and total amount issued
             curators[_subgraphId][_curator].subgraphShares += _newShares;
             subgraphs[_subgraphId].totalCurationShares += _newShares;
+
+            // Decrease standby tokens now that signaling has occured for curation
+            standbyTokens[_curator] -= _tokenAmount;
 
             // Ensure curators cannot stake more than 100% in basis points
             // Note: ensures that distributeChannelFees() does not revert
@@ -715,9 +709,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Update the amount of shares Curator has, and overall amount of shares
         curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
-//
-//        // Return the tokens to the curator
-//        assert(token.transfer(msg.sender, _tokenRefund));
+
+       // Increase standbyTokens to be able to withdraw
+        standbyTokens[msg.sender] += _tokenRefund;
 
     if (fullLogout) {
         // Emit the CuratorLogout event
@@ -766,6 +760,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
+
+        // Decrease standby tokens now that user has staked for indexing
+        standbyTokens[_indexer] -= _value;
+
         emit IndexingNodeStaked(
             _indexer,
             indexingNodes[_subgraphId][_indexer].amountStaked,
@@ -810,8 +808,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Decrement the total amount staked by the amount being returned
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        // Send them all their funds back
-        assert(token.transfer(msg.sender, _stake + _fees));
+
+        // Increase standbyTokens to be able to withdraw
+        standbyTokens[msg.sender] += (_stake + _fees);
+
         emit IndexingNodeFinalizeLogout(
             msg.sender,
             _subgraphId,
@@ -916,6 +916,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Store dispute
         disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
 
+        // Decrease standbyTokens, since they are now within a dispute
+        standbyTokens[msg.sender] -= (_amount);
+
         // Log event that new dispute was created against _indexingNode
         emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
     }
@@ -961,10 +964,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         // Give governance the difference between the fisherman's reward and the total stake
         // plus the Indexing Node's accrued fees
-        token.transfer(governor, (_stake - _reward) + _fees); // TODO Burn or give to governance?
+        standbyTokens[governor] += (_stake - _reward + _fees); // TODO Burn or give to governance?
 
-        // Give the fisherman their reward and bond back
-        token.transfer(_fisherman, _reward + _bond);
+        // Give the fisherman their reward and bond back in stand by tokens
+        standbyTokens[_fisherman] += (_reward + bond);
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
         emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);
@@ -990,7 +993,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         delete disputes[_disputeId]; // Re-entrancy protection
 
         // Slash the fisherman's bond and send to the governor
-        token.transfer(governor, _bond); // TODO Burn or give to governance?
+        standbyTokens[governor] += _bond; // TODO Burn or give to governance?
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
@@ -1028,7 +1031,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      *      Indexing Node would be able to log out all the fees they earned during a dispute.
      * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
      */
-    function withdrawFees (
+    function unlockFees (
         bytes32 _subgraphId
     )
         external
@@ -1037,7 +1040,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
         require(_feesAccrued > 0);
         indexingNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
-        token.transfer(msg.sender, _feesAccrued);
+        standbyTokens[msg.sender] += _feesAccrued;
     }
 
     /**
