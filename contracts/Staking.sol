@@ -255,9 +255,13 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
 
-    // Mapping users to their stanbyTokens (tokens deposited in the
+    // Mapping users to their standbyTokens (tokens deposited in the
     // contract, but not yet staked
     mapping (address => uint256) public standbyTokens;
+
+    // Mapping users to their thawing tokens (tokens not earning rewards, that are stuck until
+    // the thawing period is over
+    mapping (address => uint256) public thawingTokens;
 
     // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
@@ -783,6 +787,25 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
         indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
+
+        // Return the amount the Indexing Node has staked
+        uint256 _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
+        indexingNodes[_subgraphId][msg.sender].amountStaked = 0;
+        // Return any outstanding fees accrued the Indexing Node does not have yet
+        uint256 _fees = indexingNodes[_subgraphId][msg.sender].feesAccrued;
+        indexingNodes[_subgraphId][msg.sender].feesAccrued = 0;
+        // If we are dealing with the graph subgraph bootstrap index nodes
+        if (_subgraphId == graphSubgraphID) {
+            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
+            require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
+            delete graphIndexingNodeAddresses[userIndex];
+        }
+        // Decrement the total amount staked by the amount being returned
+        subgraphs[_subgraphId].totalIndexingStake -= _stake;
+
+        // Increase thawingTokens to begin thawing
+        thawingTokens[msg.sender] += (_stake + _fees);
+
         emit IndexingNodeBeginLogout(msg.sender, _subgraphId);
     }
 
@@ -794,28 +817,24 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         external
     {
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
-        // Return the amount the Indexing Node has staked
-        uint256 _stake = indexingNodes[_subgraphId][msg.sender].amountStaked;
-        // Return any outstanding fees accrued the Indexing Node does not have yet
-        uint256 _fees = indexingNodes[_subgraphId][msg.sender].feesAccrued;
+
+        // Reset the timestamp
         delete indexingNodes[_subgraphId][msg.sender];
-        // If we are dealing with the graph subgraph bootstrap index nodes
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
-            delete graphIndexingNodeAddresses[userIndex];
-        }
-        // Decrement the total amount staked by the amount being returned
-        subgraphs[_subgraphId].totalIndexingStake -= _stake;
+
+        // Remove an indexer from the subgraph
         subgraphs[_subgraphId].totalIndexers -= 1;
 
+        uint256 _amount = thawingTokens[msg.sender];
+        delete thawingTokens[msg.sender];
+
         // Increase standbyTokens to be able to withdraw
-        standbyTokens[msg.sender] += (_stake + _fees);
+        standbyTokens[msg.sender] += _amount;
 
         emit IndexingNodeFinalizeLogout(
-            msg.sender,
-            _subgraphId,
-            subgraphs[_subgraphId].totalIndexingStake);
+                msg.sender,
+                _subgraphId,
+                subgraphs[_subgraphId].totalIndexingStake
+        );
     }
 
     /**
