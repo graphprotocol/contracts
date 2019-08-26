@@ -936,7 +936,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
 
         // Decrease standbyTokens, since they are now within a dispute
-        standbyTokens[msg.sender] -= (_amount);
+        standbyTokens[msg.sender] -= _amount;
 
         // Log event that new dispute was created against _indexingNode
         emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
@@ -986,7 +986,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         standbyTokens[governor] += (_stake - _reward + _fees); // TODO Burn or give to governance?
 
         // Give the fisherman their reward and bond back in stand by tokens
-        standbyTokens[_fisherman] += (_reward + bond);
+        standbyTokens[_fisherman] += (_reward + _bond);
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
         emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);

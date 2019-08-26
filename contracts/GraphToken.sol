@@ -31,7 +31,7 @@ contract TokenReceiver
 {
     function tokensReceived(
         address _from,
-        uint256 _amount,
+        uint256 _amount
     )
         external
         returns (bool);
@@ -82,7 +82,7 @@ contract GraphToken is
      */
     function transferWithData(
         address _to,
-        uint256 _amount,
+        uint256 _amount
     )
         public
         returns (bool success)
