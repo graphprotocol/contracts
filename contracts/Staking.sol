@@ -546,7 +546,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         external
         returns (bool success)
     {
-        require(standbyTokens[msg.sender] > _value);
+        require(standbyTokens[msg.sender] >= _value);
         standbyTokens[msg.sender] -= _value;
         success = true;
 
