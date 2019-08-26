@@ -665,7 +665,10 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
-        if (fullLogout) {
+        // Return the tokens to the curator
+        assert(token.transfer(msg.sender, _tokenRefund));
+
+    if (fullLogout) {
         // Emit the CuratorLogout event
             emit CuratorLogout(
                 msg.sender,
