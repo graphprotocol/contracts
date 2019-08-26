@@ -16,6 +16,7 @@
     "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
+    "ipfs-http-client": "34.0.0",
     "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0",
     "typechain": "^0.3.20"
