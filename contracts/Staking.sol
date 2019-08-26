@@ -450,6 +450,13 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
     /**
+     * @dev Get the number of graph indexing nodes in the dynamic array
+     */
+    function numberOfGraphIndexingNodeAddresses() public view returns (uint count) {
+        return graphIndexingNodeAddresses.length;
+    }
+
+    /**
      * @dev Accept tokens and handle staking registration functions
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
