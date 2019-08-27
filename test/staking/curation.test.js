@@ -74,7 +74,7 @@ contract(
       assert.isObject(gp, 'Initialize the Graph Protocol library.')
     })
 
-    it('...should allow staking directly', async () => {
+    it('...should allow signaling directly', async () => {
       let totalBalance = await deployedGraphToken.balanceOf(
         deployedStaking.address,
       )
@@ -113,9 +113,6 @@ contract(
         'Balances after transfer is incorrect.',
       )
 
-      const receipt = await web3.eth.getTransactionReceipt(stakeTx.tx);
-
-      // Not clear how to get this log, since it is emitted at the end of a few txs
       expectEvent.inTransaction(stakeTx.tx, Staking, 'CuratorStaked', {
         staker: curationStaker,
         subgraphID: subgraphIdHex0x,
@@ -123,12 +120,47 @@ contract(
         subgraphTotalCurationShares: subgraphShares,
         subgraphTotalCurationStake: stakingAmount,
       })
-
     })
 
-    /* TODO need to introduce this back in, but because of dependency issues,
-        this is being commented out until we merge two branches with
-        updated open zepplin test helpers, which will change all the tests anyways */
+    it('...should allow signaling through JS module', async () => {
+      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+      let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
+      assert(
+        curatorBalance.toString() === tokensMintedForStaker.toString() &&
+        totalBalance.toNumber() === 0,
+        "Balances before transfer are correct."
+      )
+
+      const curationStake = await gp.staking.stakeForCuration(
+        subgraphIdHex, // subgraphId
+        curationStaker, // from
+        stakingAmount // value
+      )
+      assert(curationStake, "Stake Graph Tokens for indexing through module.")
+
+      const subgraphShares  = await gp.staking.curators(
+        web3.utils.hexToBytes('0x' + subgraphIdHex),
+        curationStaker,
+      )
+
+      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+      curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
+      assert(
+        curatorBalance.toString() === shareAmountFor10000.toString() &&
+        totalBalance.toString() === stakingAmount.toString(),
+        'Balances after transfer is incorrect.',
+      )
+
+      // Not clear how to get this log, since it is emitted at the end of a few txs
+      expectEvent.inTransaction(curationStake.tx, Staking, 'CuratorStaked', {
+        staker: curationStaker,
+        subgraphID: subgraphIdHex0x,
+        curatorShares: subgraphShares,
+        subgraphTotalCurationShares: subgraphShares,
+        subgraphTotalCurationStake: stakingAmount,
+      })
+    })
+    
     it('...should allow Curator to log out', async () => {
       // const subgraphShares = await stakeForCuration()
       //
