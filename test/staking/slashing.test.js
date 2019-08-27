@@ -81,44 +81,6 @@ contract('Staking (Slashing)', ([
   })
 
   describe("slashing", () => {
-    it('...should allow staking for indexing', async () => {
-      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toNumber() === tokensMintedForStaker &&
-        totalBalance.toNumber() === 0,
-        "Balances before transfer are correct."
-      )
-
-      // stake for indexing
-      const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
-      const indexingStake = await deployedGraphToken.transferWithData(
-        deployedStaking.address, // to
-        stakingAmount, // value
-        data, // data
-        { from: indexingStaker }
-      )
-      assert(indexingStake, "Stake Graph Tokens for indexing directly.")
-
-      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        subgraphIdBytes,
-        indexingStaker
-      )
-      assert(
-        amountStaked.toNumber() === stakingAmount &&
-        logoutStarted.toNumber() === 0,
-        "Staked indexing amount confirmed."
-      )
-
-      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-        totalBalance.toNumber() === stakingAmount,
-        "Balances after transfer are correct."
-      )
-    })
-
     // Need to get this to work in the future, but not for alpha - dk
     // it('...should allow a dispute to be created', async () => {
     //   const data = await createDisputeDataWithSignedAttestation()

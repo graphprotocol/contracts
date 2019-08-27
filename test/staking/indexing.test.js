@@ -83,14 +83,21 @@ contract('Staking (Indexing)', ([
         "Balances before transfer are correct."
       )
 
-      const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
-      const indexingStake = await deployedGraphToken.transferWithData(
+      const depositTx = await deployedGraphToken.transferWithData(
         deployedStaking.address, // to
         stakingAmount, // value
-        data, // data
-        { from: indexingStaker }
+        { from: indexingStaker },
       )
-      assert(indexingStake, "Stake Graph Tokens for indexing directly.")
+      assert(depositTx, 'Deposit in the standby pool')
+
+      const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
+      const stakeTx = await deployedStaking.stake(
+        stakingAmount, // value
+        data,
+        { from: indexingStaker },
+      )
+      assert(stakeTx, "Stake Graph Tokens for indexing directly.")
+
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
