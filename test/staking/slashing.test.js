@@ -18,23 +18,27 @@ contract('Staking (Slashing)', ([
   /**
    * testing constants
    */
-  const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 500000, // PPM
-    minimumIndexingStakingAmount = 100,
-    maximumIndexers = 10,
-    slashingPercent = 10,
-    coolingPeriod = 60 * 60 * 24 * 7, // seconds
+  const
+    minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+    minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+    defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+    maximumIndexers = helpers.stakingConstants.maximumIndexers,
+    slashingPercent = helpers.stakingConstants.slashingPercent,
+    thawingPeriod = helpers.stakingConstants.thawingPeriod,
+    initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
+    stakingAmount = helpers.graphTokenConstants.stakingAmount,
+    shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000,
+    tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker,
+
     chainId = 1,
     domainTypeHash = web3.utils.sha3("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"),
     domainNameHash = web3.utils.sha3("Graph Protocol"),
     domainVersionHash = web3.utils.sha3("0.1"),
     attestationTypeHash = web3.utils.sha3("Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"),
     attestationByteSize = 197
-  let deployedStaking,
+  let
+    deployedStaking,
     deployedGraphToken,
-    initialTokenSupply = 1000000,
-    stakingAmount = 1000,
-    tokensMintedForStaker = stakingAmount * 10,
     subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
     subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
     subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
@@ -65,7 +69,7 @@ contract('Staking (Slashing)', ([
       minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
       maximumIndexers, // <uint256> maximumIndexers
       slashingPercent, // <uint256> slashingPercent
-      coolingPeriod, // <uint256> coolingPeriod
+      thawingPeriod, // <uint256> thawingPeriod
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )

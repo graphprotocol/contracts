@@ -18,18 +18,20 @@ contract(
     /**
      * testing constants & variables
      */
-    const minimumCurationStakingAmount = new BN("100000000000000000000") // 100 * 10^18 minimum amount allowed to be staked by Market Curators
-      defaultReserveRatio = 500000,
-      minimumIndexingStakingAmount = new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
-      maximumIndexers = 10,
-      slashingPercent = 10,
-      thawingPeriod = 60 * 60 * 24 * 7 // seconds
-    let deployedStaking,
+    const
+      minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+      minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+      defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+      maximumIndexers = helpers.stakingConstants.maximumIndexers,
+      slashingPercent = helpers.stakingConstants.slashingPercent,
+      simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
+      initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
+      stakingAmount = helpers.graphTokenConstants.stakingAmount,
+      shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000,
+      tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker
+    let
+      deployedStaking,
       deployedGraphToken,
-      initialTokenSupply = new BN("10000000000000000000000000"), // 10,000,000 * 10^18  total supply of Graph Tokens at time of deployment
-      stakingAmount = new BN("10000000000000000000000"), // 10000 * 10^18 minimum amount allowed to be staked by Market Curators
-      shareAmountFor10000 = new BN("90000000000000000000000") , // When one user stakes 10000, they will get 9 shares returned, as per the bancor formula
-      tokensMintedForStaker = new BN("100000000000000000000000"), // 100000 * 10^18 minimum amount allowed to be staked by Market Curators
       subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
       subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
       subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
@@ -60,7 +62,7 @@ contract(
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         slashingPercent, // <uint256> slashingPercent
-        thawingPeriod, // <uint256> thawingPeriod
+        simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
@@ -81,7 +83,7 @@ contract(
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
-          totalBalance.toString() == new BN(0).toString(),
+        totalBalance.toString() == new BN(0).toString(),
         'Balances before transfer are incorrect.',
       )
 
@@ -100,7 +102,7 @@ contract(
       )
       assert(stakeTx, 'Stake for curation')
 
-      const  subgraphShares  = await gp.staking.curators(
+      const subgraphShares = await gp.staking.curators(
         web3.utils.hexToBytes('0x' + subgraphIdHex),
         curationStaker,
       )
@@ -109,7 +111,7 @@ contract(
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === shareAmountFor10000.toString() &&
-          totalBalance.toString() === stakingAmount.toString(),
+        totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer is incorrect.',
       )
 
@@ -128,7 +130,7 @@ contract(
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        "Balances before transfer are correct."
+        'Balances before transfer are correct.'
       )
 
       const curationStake = await gp.staking.stakeForCuration(
@@ -136,9 +138,9 @@ contract(
         curationStaker, // from
         stakingAmount // value
       )
-      assert(curationStake, "Stake Graph Tokens for indexing through module.")
+      assert(curationStake, 'Stake Graph Tokens for indexing through module.')
 
-      const subgraphShares  = await gp.staking.curators(
+      const subgraphShares = await gp.staking.curators(
         web3.utils.hexToBytes('0x' + subgraphIdHex),
         curationStaker,
       )
@@ -160,7 +162,7 @@ contract(
         subgraphTotalCurationStake: stakingAmount,
       })
     })
-    
+
     it('...should allow Curator to log out', async () => {
       // const subgraphShares = await stakeForCuration()
       //
@@ -175,7 +177,7 @@ contract(
       // )
     })
 
-    async function stakeForCuration() {
+    async function stakeForCuration () {
       /** @dev Verify that balances are what we expect */
       let totalBalance = await deployedGraphToken.balanceOf(
         deployedStaking.address,
@@ -183,7 +185,7 @@ contract(
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker &&
-          totalBalance.toNumber() === 0,
+        totalBalance.toNumber() === 0,
         'Balances before transfer are incorrect.',
       )
 
@@ -202,14 +204,14 @@ contract(
       )
       assert(
         amountStaked.toNumber() === stakingAmount &&
-          subgraphShares.toNumber() > 0,
+        subgraphShares.toNumber() > 0,
         'Staked curation amount is not confirmed.',
       )
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-          totalBalance.toNumber() === stakingAmount,
+        totalBalance.toNumber() === stakingAmount,
         'Balances after transfer is incorrect.',
       )
 

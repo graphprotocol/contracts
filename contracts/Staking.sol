@@ -1064,7 +1064,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     /**
      * @dev A function to help find the location of the indexer in the dynamic array. Note that
-            it must return if the value was found, because an index of 0 can be literally the
+            it must return a bool if the value was found, because an index of 0 can be literally the
             index of 0, or else it refers to an address that was not found.
      * @param _indexer <address> - The address of the indexer to look up.
     */

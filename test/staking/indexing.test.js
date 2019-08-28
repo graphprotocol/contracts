@@ -17,17 +17,19 @@ contract('Staking (Indexing)', ([
   /**
    * testing constants
    */
-  const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 500000, // PPM
-    minimumIndexingStakingAmount = 100,
-    maximumIndexers = 10,
-    slashingPercent = 10,
-    coolingPeriod = 60 * 60 * 24 * 7 // seconds
-  let deployedStaking,
+  const
+    minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+    minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+    defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+    maximumIndexers = helpers.stakingConstants.maximumIndexers,
+    slashingPercent = helpers.stakingConstants.slashingPercent,
+    thawingPeriod = helpers.stakingConstants.thawingPeriod,
+    initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
+    stakingAmount = helpers.graphTokenConstants.stakingAmount,
+    tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker
+  let
+    deployedStaking,
     deployedGraphToken,
-    initialTokenSupply = 1000000,
-    stakingAmount = 1000,
-    tokensMintedForStaker = stakingAmount * 10,
     subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
     subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
     subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
@@ -58,7 +60,7 @@ contract('Staking (Indexing)', ([
       minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
       maximumIndexers, // <uint256> maximumIndexers
       slashingPercent, // <uint256> slashingPercent
-      coolingPeriod, // <uint256> coolingPeriod
+      thawingPeriod, // <uint256> thawingPeriod
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
@@ -78,7 +80,7 @@ contract('Staking (Indexing)', ([
       let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
       assert(
-        stakerBalance.toNumber() === tokensMintedForStaker &&
+        stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
         "Balances before transfer are correct."
       )
@@ -105,7 +107,7 @@ contract('Staking (Indexing)', ([
 
       )
       assert(
-        amountStaked.toNumber() === stakingAmount &&
+        amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
         "Staked indexing amount confirmed."
       )
@@ -114,8 +116,8 @@ contract('Staking (Indexing)', ([
       stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
 
       assert(
-        stakerBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-        totalBalance.toNumber() === stakingAmount,
+        stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
+        totalBalance.toString() === stakingAmount.toString(),
         "Balances after transfer are correct."
       )
     })
@@ -124,7 +126,7 @@ contract('Staking (Indexing)', ([
       let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
       assert(
-        stakerBalance.toNumber() === tokensMintedForStaker &&
+        stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
         "Balances before transfer are correct."
       )
@@ -141,7 +143,7 @@ contract('Staking (Indexing)', ([
         indexingStaker
       )
       assert(
-        amountStaked.toNumber() === stakingAmount &&
+        amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
         "Staked indexing amount confirmed."
       )
@@ -149,8 +151,8 @@ contract('Staking (Indexing)', ([
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
       assert(
-        stakerBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-        totalBalance.toNumber() === stakingAmount,
+        stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
+        totalBalance.toString() === stakingAmount.toString(),
         "Balances after transfer are correct."
       )
     })

@@ -6,35 +6,39 @@ const Staking = artifacts.require('./Staking.sol')
 
 // helpers
 const GraphProtocol = require('../../graphProtocol.js')
+const helpers = require('../lib/testHelpers')
 
 contract(
   'Staking (General)',
   ([
-    deploymentAddress,
-    daoContract,
-    curationStaker,
-    indexingStaker,
-    subgraph1,
-    ...accounts
-  ]) => {
+     deploymentAddress,
+     daoContract,
+     curationStaker,
+     indexingStaker,
+     subgraph1,
+     ...accounts
+   ]) => {
     /**
      * testing constants
      */
-    const initialSupply = 1000000,
-      minimumCurationStakingAmount = 100,
-      defaultReserveRatio = 10,
-      minimumIndexingStakingAmount = 100,
-      maximumIndexers = 10,
-      slashingPercent = 10,
-      thawingPeriod = 7,
-      stakingAmount = 100
-    let deployedStaking, deployedGraphToken, gp
+    const
+      minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+      minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+      defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+      maximumIndexers = helpers.stakingConstants.maximumIndexers,
+      slashingPercent = helpers.stakingConstants.slashingPercent,
+      simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
+      initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+    let
+      deployedStaking,
+      deployedGraphToken,
+      gp
 
     before(async () => {
       // deploy GraphToken contract
       deployedGraphToken = await GraphToken.new(
         daoContract, // governor
-        initialSupply, // initial supply
+        initialTokenSupply, // initial supply
         { from: deploymentAddress },
       )
       assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
@@ -47,7 +51,7 @@ contract(
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         slashingPercent, // <uint256> slashingPercent
-        thawingPeriod, // <uint256> thawingPeriod
+        simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
@@ -66,37 +70,37 @@ contract(
     })
 
     describe('state variables set in construction', () => {
-      it('...should set `governor` during construction', async function() {
+      it('...should set `governor` during construction', async function () {
         assert(
           (await gp.staking.governor()) === daoContract,
           'Set `governor` in constructor.',
         )
       })
 
-      it('...should set `maximumIndexers` during construction', async function() {
+      it('...should set `maximumIndexers` during construction', async function () {
         assert(
           (await gp.staking.maximumIndexers()).toNumber() === maximumIndexers,
           'Set `maximumIndexers` in constructor.',
         )
       })
 
-      it('...should set `minimumCurationStakingAmount` during construction', async function() {
+      it('...should set `minimumCurationStakingAmount` during construction', async function () {
         assert(
-          (await gp.staking.minimumCurationStakingAmount()).toNumber() ===
-            minimumCurationStakingAmount,
+          (await gp.staking.minimumCurationStakingAmount()).toString() ===
+          minimumCurationStakingAmount.toString(),
           'Set `minimumCurationStakingAmount` in constructor.',
         )
       })
 
-      it('...should set `minimumIndexingStakingAmount` during construction', async function() {
+      it('...should set `minimumIndexingStakingAmount` during construction', async function () {
         assert(
-          (await gp.staking.minimumIndexingStakingAmount()).toNumber() ===
-            minimumIndexingStakingAmount,
+          (await gp.staking.minimumIndexingStakingAmount()).toString() ===
+          minimumIndexingStakingAmount.toString(),
           'Set `minimumIndexingStakingAmount` in constructor.',
         )
       })
 
-      it('...should set `token` during construction', async function() {
+      it('...should set `token` during construction', async function () {
         assert(
           web3.utils.isAddress(await gp.staking.token()),
           'Set `token` in constructor.',
@@ -110,7 +114,7 @@ contract(
           curationStaker, // staker address
           subgraph1, // subgraphId
         )
-        expect(curators).to.be.bignumber.equal('0')
+        assert(curators.toString() === '0')
       })
 
       it('...should return `indexingNodes`', async () => {
@@ -118,8 +122,8 @@ contract(
           indexingStaker, // staker address
           subgraph1, // subgraphId
         )
-        expect(indexingNodes.amountStaked).to.be.bignumber.equal('0')
-        expect(indexingNodes.logoutStarted).to.be.bignumber.equal('0')
+        assert(indexingNodes.amountStaked.toString() === '0')
+        assert(indexingNodes.logoutStarted.toString() === '0')
       })
 
       it('...should return `arbitrator` address', async () => {

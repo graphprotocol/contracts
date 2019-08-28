@@ -32,18 +32,23 @@ const Staking = artifacts.require('./Staking.sol')
 
 // helpers
 const GraphProtocol = require('../../graphProtocol.js')
+const helpers = require('../lib/testHelpers')
 
 /**
  * testing constants
  */
-const initialSupply = 10000,
-  minimumCurationStakingAmount = 100,
-  defaultReserveRatio = 500000, // PPM
-  minimumIndexingStakingAmount = 100,
-  maximumIndexers = 10,
-  slashingPercent = 10,
-  thawingPeriod = 60 * 60 * 24 * 7 // seconds
-let deployedStaking, deployedGraphToken, gp
+const
+  minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+  minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+  defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+  maximumIndexers = helpers.stakingConstants.maximumIndexers,
+  slashingPercent = helpers.stakingConstants.slashingPercent,
+  simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
+  initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+let
+  deployedStaking,
+  deployedGraphToken,
+  gp
 
 /* bonding curve params */
 let totalShares, // total of staker's staked shares
@@ -68,7 +73,8 @@ const defaultParams = {
   purchaseAmount: minimumCurationStakingAmount,
   variancePercentage: 0.001,
 }
-function resetBondingParams() {
+
+function resetBondingParams () {
   totalShares = defaultParams.totalShares
   ;(continuousShares = defaultParams.continuousShares),
     (reserveTokenBalance = defaultParams.reserveTokenBalance),
@@ -87,7 +93,7 @@ contract(
       // deploy GraphToken contract
       deployedGraphToken = await GraphToken.new(
         daoContract, // governor
-        initialSupply, // initial supply
+        initialTokenSupply, // initial supply
         { from: deploymentAddress },
       )
       assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
@@ -100,7 +106,7 @@ contract(
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         slashingPercent, // <uint256> slashingPercent
-        thawingPeriod, // <uint256> thawingPeriod
+        simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
@@ -280,7 +286,7 @@ contract(
  * @param {uint256} _purchaseCount
  * @param {uint256} _purchaseAmount
  */
-async function testBondingCurve(
+async function testBondingCurve (
   _totalShares,
   _continuousShares,
   _reserveTokenBalance,
@@ -315,7 +321,7 @@ async function testBondingCurve(
  * @param {uint256} _purchaseCount
  * @param {uint256} _purchaseAmount
  */
-async function iterateStakeToShares(
+async function iterateStakeToShares (
   _totalShares,
   _continuousShares,
   _reserveTokenBalance,
@@ -351,7 +357,7 @@ async function iterateStakeToShares(
  * @param {uint256} _reserveRatio // Reserve ratio used in bonding curve
  * @param {function} _stakingMethod // method to use for calculation
  */
-async function computeStakeToShares(
+async function computeStakeToShares (
   _purchaseAmount,
   _reserveRatio,
   _stakingMethod,
@@ -377,7 +383,7 @@ async function computeStakeToShares(
       )
       // console.log(`\t  Staking ${_purchaseAmount} tokens (against ${reserveTokenBalance} existing tokens) returns ${shares} shares (plus ${continuousShares} previous total shares) for ${shares + continuousShares} total issued shares. (using ${_stakingMethod === gp.staking.stakeToShares ? 'SOL' : 'JS'})`)
       continuousShares += shares
-      reserveTokenBalance += _purchaseAmount
+      reserveTokenBalance = reserveTokenBalance.add(_purchaseAmount)
       totalShares += shares
       sharesReturned += shares
     }
@@ -396,7 +402,7 @@ async function computeStakeToShares(
  * @param {uint256} _continuousShares Total amount of current shares issued
  * @param {uint256} _reserveRatio Desired reserve ratio to maintain (in PPM)
  */
-function purchaseReturn(
+function purchaseReturn (
   _reserveTokensReceived,
   _reserveTokenBalance,
   _continuousShares,
@@ -418,7 +424,7 @@ function purchaseReturn(
  * @param {uint256} _reserveTokenBalance
  * @param {uint256} _reserveRatio
  */
-function saleReturn(
+function saleReturn (
   _continuousShares,
   _continuousTokensReceived,
   _reserveTokenBalance,

@@ -10,15 +10,18 @@ const MultiSigWallet = artifacts.require('./MultiSigWallet.sol')
 /**
  * testing constants
  */
-const initialSupply = 1000000,
-  minimumCurationStakingAmount = 100,
-  defaultReserveRatio = 10,
-  minimumIndexingStakingAmount = 100,
-  maximumIndexers = 10,
-  slashingPercent = 10,
-  thawingPeriod = 7
-
-let deployedGraphToken, deployedMultiSigWallet, deployedStaking, gp
+const
+  minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+  minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+  defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+  maximumIndexers = helpers.stakingConstants.maximumIndexers,
+  slashingPercent = helpers.stakingConstants.slashingPercent,
+  thawingPeriod = helpers.stakingConstants.thawingPeriod,
+  initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+let
+  deployedStaking,
+  deployedGraphToken,
+  gp
 
 contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
   before(async () => {
@@ -37,7 +40,7 @@ contract('Staking (Upgradability)', ([deployment, ...accounts]) => {
     // deploy GraphToken with multisig as governor
     deployedGraphToken = await GraphToken.new(
       deployedMultiSigWallet.address, // <address> governor
-      initialSupply, // <uint256> initialSupply
+      initialTokenSupply, // <uint256> initialSupply
       { from: deployment },
     )
     assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
