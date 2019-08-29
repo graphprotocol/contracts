@@ -115,13 +115,14 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     event IndexingNodeBeginLogout (
         address indexed staker,
-        bytes32 subgraphID
+        bytes32 subgraphID,
+        uint256 unstakedAmount,
+        uint256 fees
     );
 
     event IndexingNodeFinalizeLogout (
         address indexed staker,
-        bytes32 subgraphID,
-        uint256 subgraphTotalIndexingStake
+        bytes32 subgraphID
     );
 
 
@@ -806,7 +807,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Increase thawingTokens to begin thawing
         thawingTokens[msg.sender] += (_stake + _fees);
 
-        emit IndexingNodeBeginLogout(msg.sender, _subgraphId);
+        emit IndexingNodeBeginLogout(msg.sender, _subgraphId, _stake, _fees);
     }
 
     /**
@@ -832,8 +833,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
         emit IndexingNodeFinalizeLogout(
                 msg.sender,
-                _subgraphId,
-                subgraphs[_subgraphId].totalIndexingStake
+                _subgraphId
         );
     }
 
@@ -979,7 +979,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Remove Indexing Node from Subgraph's stakers
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
         subgraphs[_subgraphId].totalIndexers -= 1;
-        emit IndexingNodeBeginLogout(_indexer, _subgraphId);
+        emit IndexingNodeBeginLogout(_indexer, _subgraphId, _stake, _fees);
+        emit IndexingNodeFinalizeLogout(_indexer, _subgraphId);
 
         // Give governance the difference between the fisherman's reward and the total stake
         // plus the Indexing Node's accrued fees
