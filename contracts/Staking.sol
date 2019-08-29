@@ -332,7 +332,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         slashingPercent = _slashingPercent;
         thawingPeriod = _thawingPeriod;
         arbitrator = governor;
-        token = GraphToken(_token);
+        token = GraphToken(_token); // Question - do we need a function to upgrade this?
     }
 
     /**

@@ -67,19 +67,19 @@ module.exports = (options = {}) => {
     }
 
     /**
-     * @dev Getter for `maximumIndexers`
-     * @returns {Number} Maximum number of Indexing Nodes allowed
-     */
-    static maximumIndexers() {
-      return Staking.maximumIndexers()
-    }
-
-    /**
      * @dev Getter for `minimumCurationStakingAmount`
      * @returns {Number} Minimum curation staking amount
      */
     static minimumCurationStakingAmount() {
       return Staking.minimumCurationStakingAmount()
+    }
+
+    /**
+     * @dev Getter for `defaultReserveRatio`
+     * @returns {Number} Default reserve ratio
+     */
+    static defaultReserveRatio() {
+      return Staking.defaultReserveRatio()
     }
 
     /**
@@ -89,6 +89,40 @@ module.exports = (options = {}) => {
     static minimumIndexingStakingAmount() {
       return Staking.minimumIndexingStakingAmount()
     }
+
+    /**
+     * @dev Getter for `maximumIndexers`
+     * @returns {Number} Maximum number of Indexing Nodes allowed
+     */
+    static maximumIndexers() {
+      return Staking.maximumIndexers()
+    }
+
+    /**
+     * @dev Getter for `thawingPeriod`
+     * @returns {Number} Thawing period
+     */
+    static thawingPeriod() {
+      return Staking.thawingPeriod()
+    }
+
+    /**
+     * @dev Getter for `slashingPercent`
+     * @returns {Number} Slashing percent
+     */
+    static slashingPercent() {
+      return Staking.slashingPercent()
+    }
+
+    /**
+     * @dev Getter for `arbitrator`
+     * @returns {Number} Arbitrator
+     */
+    static setArbitrator() {
+      return Staking.setArbitrator()
+    }
+
+
 
     /**
      * @dev Getter for `token` (deployed GraphToken contract address)
