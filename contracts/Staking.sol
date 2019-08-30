@@ -83,7 +83,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     /* Events */
     event CuratorStaked (
         address indexed staker,
-        uint256 amountStaked,
         bytes32 subgraphID,
         uint256 curatorShares,
         uint256 subgraphTotalCurationShares,
@@ -143,7 +142,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
 
     /* Structs */
     struct Curator {
-        uint256 amountStaked;
         uint256 subgraphShares; // In subgraph factory pattern, Subgraph Token Balance
     }
 
@@ -452,6 +450,13 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     }
 
     /**
+     * @dev Get the number of graph indexing nodes in the dynamic array
+     */
+    function numberOfGraphIndexingNodeAddresses() public view returns (uint count) {
+        return graphIndexingNodeAddresses.length;
+    }
+
+    /**
      * @dev Accept tokens and handle staking registration functions
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
@@ -574,7 +579,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     {
         // Overflow protection
         require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount > subgraphs[_subgraphId].totalCurationStake);
-
+        uint256 tokenAmount = _tokenAmount;
         // If this subgraph hasn't been curated before...
         // NOTE: We have to do this to initialize the curve or else it has
         //       a discontinuity and cannot be computed. This method ensures
@@ -583,7 +588,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         if (subgraphs[_subgraphId].totalCurationStake == 0) {
 
             // Additional pre-condition check
-            require(_tokenAmount >= minimumCurationStakingAmount);
+            require(tokenAmount >= minimumCurationStakingAmount);
 
             // (Re)set the default reserve ratio to whatever governance has set
             subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
@@ -591,28 +596,22 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             // The first share costs minimumCurationStake amount of tokens
             curators[_subgraphId][_curator].subgraphShares = 1;
             subgraphs[_subgraphId].totalCurationShares = 1;
-            curators[_subgraphId][_curator].amountStaked = minimumCurationStakingAmount;
             subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
-            _tokenAmount -= minimumCurationStakingAmount; // TODO this raises a solium error - we should consider changing
+            tokenAmount -= minimumCurationStakingAmount;
         }
 
-        if (_tokenAmount > 0) { // Corner case if only minimum is staked on first stake
+        if (tokenAmount > 0) { // Corner case if only minimum is staked on first stake
             // Obtain the amount of shares to buy with the amount of tokens to sell
             // according to the bonding curve
             uint256 _newShares = stakeToShares(
-                _tokenAmount,
+                tokenAmount,
                 subgraphs[_subgraphId].totalCurationStake,
                 subgraphs[_subgraphId].totalCurationShares,
                 subgraphs[_subgraphId].reserveRatio
             );
 
             // Update the amount of tokens _curator has, and overall amount staked
-            curators[_subgraphId][_curator].amountStaked += _tokenAmount;
-            subgraphs[_subgraphId].totalCurationStake += _tokenAmount;
-
-            // @imp c02 Ensure the minimum amount is staked
-            // TODO Validate the need for this requirement
-            require(curators[_subgraphId][_curator].amountStaked >= minimumCurationStakingAmount);
+            subgraphs[_subgraphId].totalCurationStake += tokenAmount;
 
             // Update the amount of shares issued to _curator, and total amount issued
             curators[_subgraphId][_curator].subgraphShares += _newShares;
@@ -626,7 +625,6 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         // Emit the CuratorStaked event (updating the running tally)
         emit CuratorStaked(
             _curator,
-            curators[_subgraphId][_curator].amountStaked,
             _subgraphId,
             curators[_subgraphId][_curator].subgraphShares,
             subgraphs[_subgraphId].totalCurationShares,
@@ -657,21 +655,20 @@ contract Staking is Governed, TokenReceiver, BancorFormula
             subgraphs[_subgraphId].reserveRatio
         );
 
-        // Underflow protection
-        require(curators[_subgraphId][msg.sender].amountStaked >= _tokenRefund);
-
         // Keep track of whether this is a full logout
-        bool fullLogout = (curators[_subgraphId][msg.sender].amountStaked == _tokenRefund);
+        bool fullLogout = (curators[_subgraphId][msg.sender].subgraphShares == _numShares);
 
         // Update the amount of tokens Curator has, and overall amount staked
-        curators[_subgraphId][msg.sender].amountStaked -= _tokenRefund;
         subgraphs[_subgraphId].totalCurationStake -= _tokenRefund;
 
         // Update the amount of shares Curator has, and overall amount of shares
         curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
-        if (fullLogout) {
+        // Return the tokens to the curator
+        assert(token.transfer(msg.sender, _tokenRefund));
+
+    if (fullLogout) {
         // Emit the CuratorLogout event
             emit CuratorLogout(
                 msg.sender,
@@ -680,14 +677,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
                 subgraphs[_subgraphId].totalCurationStake
             );
         } else {
-            // Require that if not fully logging out, at least the minimum is kept staked
-            // TODO Validate the need for this requirement
-            require(curators[_subgraphId][msg.sender].amountStaked >= minimumCurationStakingAmount);
-
             // Emit the CuratorStaked event (updating the running tally)
             emit CuratorStaked(
                 msg.sender,
-                curators[_subgraphId][msg.sender].amountStaked,
                 _subgraphId,
                 curators[_subgraphId][msg.sender].subgraphShares,
                 subgraphs[_subgraphId].totalCurationShares,

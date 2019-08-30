@@ -10,10 +10,10 @@ const BN = web3.utils.BN
 /**
  * @dev Parameters used in deploying the contracts.
  */
-const initialSupply = new BN('10000000000000000000000000'), // total supply of Graph Tokens at time of deployment
-  minimumCurationStakingAmount = new BN('100000000000000000000'), // minimum amount allowed to be staked by Market Curators
+const initialSupply = new BN("10000000000000000000000000"), // 10,000,000 * 10^18  total supply of Graph Tokens at time of deployment
+  minimumCurationStakingAmount = new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
   defaultReserveRatio = 500000, // reserve ratio (percent as PPM)
-  minimumIndexingStakingAmount = new BN('100000000000000000000'), // minimum amount allowed to be staked by Indexing Nodes
+  minimumIndexingStakingAmount = new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Indexing Nodes
   maximumIndexers = 10, // maximum number of Indexing Nodes staked higher than stake to consider
   slashingPercent = 10, // percent of stake to slash in successful dispute
   thawingPeriod = 60 * 60 * 24 * 7, // amount of seconds to wait until indexer can finish stake logout
@@ -25,7 +25,7 @@ let simpleGraphTokenGovernorAddress
 
 module.exports = (deployer, network, accounts) => {
   // Simple deployment means we do not use the multisig wallet for deployment
-  if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
+  if (network === 'noMultisigRopsten' || network === 'noMultisigDevelopment') {
     // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
     simpleGraphTokenGovernorAddress = accounts[1]
     let deployAddress = accounts[0]
@@ -101,8 +101,6 @@ module.exports = (deployer, network, accounts) => {
         console.log('Service Registry: ', deployed.ServiceRegistry.address)
         console.log('GNS: ', deployed.GNS.address)
         console.log(`Deployed ${Object.entries(deployed).length} contracts.`)
-        console.log('HAHAH')
-        console.log(web3.eth.getAccounts())
       })
       .catch(err => {
         console.log('There was an error with deploy: ', err)

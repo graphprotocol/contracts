@@ -1,4 +1,8 @@
 const { expectEvent } = require('openzeppelin-test-helpers')
+// const Web3 = require("web3")
+// const web3 = new Web3(Web3.givenProvider)
+// console.log(web3.utils)
+const BN = web3.utils.BN
 
 // contracts
 const GraphToken = artifacts.require('./GraphToken.sol')
@@ -14,17 +18,18 @@ contract(
     /**
      * testing constants & variables
      */
-    const minimumCurationStakingAmount = 100,
+    const minimumCurationStakingAmount = new BN("100000000000000000000") // 100 * 10^18 minimum amount allowed to be staked by Market Curators
       defaultReserveRatio = 500000,
-      minimumIndexingStakingAmount = 100,
+      minimumIndexingStakingAmount = new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
       maximumIndexers = 10,
       slashingPercent = 10,
       thawingPeriod = 60 * 60 * 24 * 7 // seconds
     let deployedStaking,
       deployedGraphToken,
-      initialTokenSupply = 1000000,
-      stakingAmount = 1000,
-      tokensMintedForStaker = stakingAmount * 10,
+      initialTokenSupply = new BN("10000000000000000000000000"), // 10,000,000 * 10^18  total supply of Graph Tokens at time of deployment
+      stakingAmount = new BN("10000000000000000000000"), // 10000 * 10^18 minimum amount allowed to be staked by Market Curators
+      shareAmountFor10000 = 9, // When one user stakes 10000, they will get 9 shares returned, as per the bancor formula
+      tokensMintedForStaker = new BN("100000000000000000000000"), // 100000 * 10^18 minimum amount allowed to be staked by Market Curators
       subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
       subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
       subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
@@ -75,37 +80,44 @@ contract(
       )
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
-        curatorBalance.toNumber() === tokensMintedForStaker &&
-          totalBalance.toNumber() === 0,
+        curatorBalance.toString() === tokensMintedForStaker.toString() &&
+          totalBalance.toString() == new BN(0).toString(),
         'Balances before transfer are incorrect.',
       )
 
       const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
-      const curationStake = await deployedGraphToken.transferWithData(
+      const tx = await deployedGraphToken.transferWithData(
         deployedStaking.address, // to
         stakingAmount, // value
         data, // data
         { from: curationStaker },
       )
-      assert(curationStake, 'Stake Graph Tokens for curation directly.')
+      assert(tx, 'Stake Graph Tokens for curation directly.')
 
-      const { amountStaked, subgraphShares } = await gp.staking.curators(
+      const  subgraphShares  = await gp.staking.curators(
         web3.utils.hexToBytes('0x' + subgraphIdHex),
         curationStaker,
-      )
-      assert(
-        amountStaked.toNumber() === stakingAmount &&
-          subgraphShares.toNumber() > 0,
-        'Staked curation amount is not correect.',
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
-        curatorBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-          totalBalance.toNumber() === stakingAmount,
+        curatorBalance.toString() === new BN("90000000000000000000000").toString() &&
+          totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer is incorrect.',
       )
+
+      const receipt = await web3.eth.getTransactionReceipt(tx.tx);
+
+      // Not clear how to get this log, since it is emitted at the end of a few txs
+      expectEvent.inTransaction(tx.tx, Staking, 'CuratorStaked', {
+        staker: curationStaker,
+        subgraphID: subgraphIdHex0x,
+        curatorShares: subgraphShares,
+        subgraphTotalCurationShares: subgraphShares,
+        subgraphTotalCurationStake: stakingAmount,
+      })
+
     })
 
     /* TODO need to introduce this back in, but because of dependency issues,
