@@ -146,38 +146,7 @@ contract('Staking (Indexing)', ([
     })
 
     it('...should allow staking through JS module', async () => {
-      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toString() === tokensMintedForStaker.toString() &&
-        totalBalance.toNumber() === 0,
-        'Balances before transfer are incorrect.'
-      )
-
-      const indexingStake = await gp.staking.stakeForIndexing(
-        subgraphIdHex, // subgraphId
-        indexingStaker, // from
-        stakingAmount // value
-      )
-      assert(indexingStake, 'Stake Graph Tokens tx through graph module failed.')
-
-      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        subgraphIdBytes,
-        indexingStaker
-      )
-      assert(
-        amountStaked.toString() === stakingAmount.toString() &&
-        logoutStarted.toNumber() === 0,
-        'Staked indexing amount is not correct.'
-      )
-
-      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
-        totalBalance.toString() === stakingAmount.toString(),
-        'Balances after transfer are incorrect.'
-      )
+      await stakeForIndexing()
     })
 
     it('...should allow withdrawing tokens', async () => {
@@ -229,75 +198,57 @@ contract('Staking (Indexing)', ([
 
   describe('logout', () => {
     it('...should begin logout and fail finalize logout', async () => {
-      // stake some tokens
-      const indexingStake = await gp.staking.stakeForIndexing(
-        subgraphIdHex, // subgraphId
-        indexingStaker, // from
-        stakingAmount // value
-      )
-      assert(indexingStake, 'Stake Graph Tokens for indexing through module tx failed.')
-
-      const subgraphWithStake = await deployedStaking.subgraphs(subgraphIdBytes)
-      const previousTotalIndexingStake = subgraphWithStake.totalIndexingStake
-
-      // begin log out after staking
-      let logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
-      assert.isObject(logout, 'beginLogout tx failed.')
-
-      const blockNumber = logout.receipt.blockNumber
-      const block = await web3.eth.getBlock(blockNumber)
-
-      const indexNode = await gp.staking.indexingNodes(
-        subgraphIdBytes,
-        indexingStaker
-      )
-
-      assert(indexNode.amountStaked.toNumber() === 0, 'Amount staked was not reduced to 0.')
-      assert(indexNode.feesAccrued.toNumber() === 0, 'Fees accrued was not reduced to 0.')
-
-      assert(indexNode.logoutStarted.toNumber() === block.timestamp,
-        'Logout start is not equal to block timestamp'
-      )
-
-      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
-      assert(previousTotalIndexingStake.sub(stakingAmount).toString() === subgraph.totalIndexingStake.toString(), 'Subgraph did not decrease its total stake')
-
-      const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
-      assert(thawingTokens.toString() === stakingAmount.toString(), 'Thawing tokens not set properly')
-
+      await stakeForIndexing()
+      await beginLogout()
       await expectRevert.unspecified(
         gp.staking.finalizeLogout(subgraphIdBytes, indexingStaker)
       )
-      expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
-        staker: indexingStaker,
-        subgraphID: subgraphIdHex0x,
-        unstakedAmount: stakingAmount,
-        fees: new BN(0)
-      })
     })
 
     it('...should finalize logout after cooling period', async () => {
-      // redeploy Staking contract
-      deployedStaking = await Staking.new(
-        daoContract,
-        minimumCurationStakingAmount,
-        defaultReserveRatio,
-        minimumIndexingStakingAmount,
-        maximumIndexers,
-        slashingPercent,
-        0, /** @dev No Cooling Period */
-        deployedGraphToken.address,
-        { from: deploymentAddress }
-      )
-      assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
+      // TODO - fast forward time instead of doing a new deployment
 
-      // TODO - should reduce subgraph.totalStakers by 1, should delete indexingNodes(user), should decrease thawing tokens, should increase standby tokens, should check for event
-      // finalize logout
-      const finalizedLogout = await deployedStaking.finalizeLogout(
-        subgraphIdBytes, // subgraphId
-        { from: indexingStaker }
-      )
-      assert.isObject(finalizedLogout, 'Finalized Logout process.')
+      // // redeploy Staking contract
+      // deployedStaking = await Staking.new(
+      //   daoContract,
+      //   minimumCurationStakingAmount,
+      //   defaultReserveRatio,
+      //   minimumIndexingStakingAmount,
+      //   maximumIndexers,
+      //   slashingPercent,
+      //   0, /** @dev No Cooling Period */
+      //   deployedGraphToken.address,
+      //   { from: deploymentAddress }
+      // )
+      // assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
+      //
+      //
+      // await stakeForIndexing()
+      // await beginLogout()
+      // const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdBytes)
+      // const indexerCount = subgraphBeforeFinalize.totalIndexers
+      //
+      // // finalize logout
+      // const finalizedLogout = await deployedStaking.finalizeLogout(
+      //   subgraphIdBytes, // subgraphId
+      //   { from: indexingStaker }
+      // )
+      // assert.isObject(finalizedLogout, 'Finalized Logout process.')
+      //
+      // const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      // assert(subgraph.totalIndexers - 1 === indexerCount, 'Total indexers of subgraph did not decrease by 1.')
+      //
+      // const indexingNodes = await gp.staking.indexingNodes(subgraphIdBytes, indexingStaker)
+      // assert(indexingNodes.amountStaked === indexingNode.feesAccrued === indexingNode.logoutStarted === new BN(0), "Index node was not deleted.")
+      //
+      // const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
+      // assert(thawingTokens.toString() === '0', 'Thawing tokens did not decrease properly.')
+      //
+      // const standbyTokens = await deployedStaking.standbyTokens(indexingStaker)
+      // assert(standbyTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
+
+      // TODO - should check for event
+
     })
   })
 
@@ -330,5 +281,80 @@ contract('Staking (Indexing)', ([
       // TODO!!!!
     })
   })
+
+  async function stakeForIndexing () {
+    let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+    let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
+    assert(
+      stakerBalance.toString() === tokensMintedForStaker.toString() &&
+      totalBalance.toNumber() === 0,
+      'Balances before transfer are incorrect.'
+    )
+
+    const indexingStake = await gp.staking.stakeForIndexing(
+      subgraphIdHex, // subgraphId
+      indexingStaker, // from
+      stakingAmount // value
+    )
+    assert(indexingStake, 'Stake Graph Tokens tx through graph module failed.')
+
+    const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
+      subgraphIdBytes,
+      indexingStaker
+    )
+    assert(
+      amountStaked.toString() === stakingAmount.toString() &&
+      logoutStarted.toNumber() === 0,
+      'Staked indexing amount is not correct.'
+    )
+
+    totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+    stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
+    assert(
+      stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
+      totalBalance.toString() === stakingAmount.toString(),
+      'Balances after transfer are incorrect.'
+    )
+    return indexingStake
+
+  }
+
+  // begin log out after staking (must call stakeForIndexing() first)
+  async function beginLogout () {
+    const subgraphWithStake = await deployedStaking.subgraphs(subgraphIdBytes)
+    const previousTotalIndexingStake = subgraphWithStake.totalIndexingStake
+
+    const logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
+    assert.isObject(logout, 'beginLogout tx failed.')
+
+    const blockNumber = logout.receipt.blockNumber
+    const block = await web3.eth.getBlock(blockNumber)
+
+    const indexNode = await gp.staking.indexingNodes(
+      subgraphIdBytes,
+      indexingStaker
+    )
+
+    assert(indexNode.amountStaked.toNumber() === 0, 'Amount staked was not reduced to 0.')
+    assert(indexNode.feesAccrued.toNumber() === 0, 'Fees accrued was not reduced to 0.')
+
+    assert(indexNode.logoutStarted.toNumber() === block.timestamp,
+      'Logout start is not equal to block timestamp'
+    )
+
+    const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+    assert(previousTotalIndexingStake.sub(stakingAmount).toString() === subgraph.totalIndexingStake.toString(), 'Subgraph did not decrease its total stake')
+
+    const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
+    assert(thawingTokens.toString() === stakingAmount.toString(), 'Thawing tokens not set properly')
+
+    expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
+      staker: indexingStaker,
+      subgraphID: subgraphIdHex0x,
+      unstakedAmount: stakingAmount,
+      fees: new BN(0)
+    })
+    return logout
+  }
 
 })
