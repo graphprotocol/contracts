@@ -35,7 +35,7 @@ The current contract addresses are stored here: https://github.com/graphprotocol
   
 ### Subgraph Deployment Instructions
 #### Ganache
- Note, ganache MUST be ran with `ganache-cli -d -i 99`. `-d` Makes the accounts the same for any
+ Note, ganache MUST be ran with `ganache-cli -d -i 3859`. `-d` Makes the accounts the same for any
  instance of ganache, which allows us to have deterministic contract addresses. Therefore anyone can
  use the same subgraph manifest for ganache on their own laptop. `-i 99` is used to make the 
  network ID constant, which helps with the subgraph. If you update the subgraph, you can just

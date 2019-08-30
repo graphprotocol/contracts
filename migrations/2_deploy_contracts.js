@@ -25,7 +25,7 @@ let simpleGraphTokenGovernorAddress
 
 module.exports = (deployer, network, accounts) => {
   // Simple deployment means we do not use the multisig wallet for deployment
-  if (network === 'simpleRopsten' || network === 'simpleDevelopment') {
+  if (network === 'noMultisigRopsten' || network === 'noMultisigDevelopment') {
     // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0], because of a require statement in GraphToken.sol
     simpleGraphTokenGovernorAddress = accounts[1]
     let deployAddress = accounts[0]
