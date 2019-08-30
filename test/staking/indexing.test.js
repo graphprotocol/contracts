@@ -1,8 +1,8 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers');
+const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
 
 // contracts
-const GraphToken = artifacts.require("./GraphToken.sol")
-const Staking = artifacts.require("./Staking.sol")
+const GraphToken = artifacts.require('./GraphToken.sol')
+const Staking = artifacts.require('./Staking.sol')
 
 // helpers
 const GraphProtocol = require('../../graphProtocol.js')
@@ -42,7 +42,7 @@ contract('Staking (Indexing)', ([
       initialTokenSupply, // initial supply
       { from: deploymentAddress }
     )
-    assert.isObject(deployedGraphToken, "Deploy GraphToken contract.")
+    assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
 
     // send some tokens to the staking account
     const tokensForIndexer = await deployedGraphToken.mint(
@@ -50,7 +50,7 @@ contract('Staking (Indexing)', ([
       tokensMintedForStaker, // value
       { from: daoContract }
     )
-    assert(tokensForIndexer, "Mints Graph Tokens for Indexer.")
+    assert(tokensForIndexer, 'Mints Graph Tokens for Indexer.')
 
     // deploy Staking contract
     deployedStaking = await Staking.new(
@@ -64,25 +64,25 @@ contract('Staking (Indexing)', ([
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
-    assert.isObject(deployedStaking, "Deploy Staking contract.")
-    assert(web3.utils.isAddress(deployedStaking.address), "Staking address is address.")
+    assert.isObject(deployedStaking, 'Deploy Staking contract.')
+    assert(web3.utils.isAddress(deployedStaking.address), 'Staking address is address.')
 
     // init Graph Protocol JS library with deployed staking contract
     gp = GraphProtocol({
       Staking: deployedStaking,
       GraphToken: deployedGraphToken
     })
-    assert.isObject(gp, "Initialize the Graph Protocol library.")
+    assert.isObject(gp, 'Initialize the Graph Protocol library.')
   })
 
-  describe("staking", () => {
+  describe('staking', () => {
     it('...should allow staking directly', async () => {
       let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
       assert(
         stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        "Balances before transfer are correct."
+        'Balances before transfer are correct.'
       )
 
       const depositTx = await deployedGraphToken.transferWithData(
@@ -92,24 +92,34 @@ contract('Staking (Indexing)', ([
       )
       assert(depositTx, 'Deposit in the standby pool')
 
+      const standbyTokensDeposited = await deployedStaking.standbyTokens(indexingStaker)
+      assert(
+        standbyTokensDeposited.toString() === stakingAmount.toString(),
+        'Standby tokens were not deposited correctly.'
+      )
+
       const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
       const stakeTx = await deployedStaking.stake(
         stakingAmount, // value
         data,
         { from: indexingStaker },
       )
-      assert(stakeTx, "Stake Graph Tokens for indexing directly.")
+      assert(stakeTx, 'Stake Graph Tokens for indexing directly.')
 
+      const standbyTokensZero = await deployedStaking.standbyTokens(indexingStaker)
+      assert(
+        standbyTokensZero.toNumber() === 0,
+        'Standby token were not staked properly.'
+      )
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
         indexingStaker
-
       )
       assert(
         amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
-        "Staked indexing amount confirmed."
+        'Staked indexing amount confirmed.'
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -118,8 +128,9 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
         totalBalance.toString() === stakingAmount.toString(),
-        "Balances after transfer are correct."
+        'Balances after transfer are correct.'
       )
+
     })
 
     it('...should allow staking through JS module', async () => {
@@ -128,7 +139,7 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        "Balances before transfer are correct."
+        'Balances before transfer are correct.'
       )
 
       const indexingStake = await gp.staking.stakeForIndexing(
@@ -136,7 +147,7 @@ contract('Staking (Indexing)', ([
         indexingStaker, // from
         stakingAmount // value
       )
-      assert(indexingStake, "Stake Graph Tokens for indexing through module.")
+      assert(indexingStake, 'Stake Graph Tokens for indexing through module.')
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
@@ -145,7 +156,7 @@ contract('Staking (Indexing)', ([
       assert(
         amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
-        "Staked indexing amount confirmed."
+        'Staked indexing amount confirmed.'
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -153,26 +164,26 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
         totalBalance.toString() === stakingAmount.toString(),
-        "Balances after transfer are correct."
+        'Balances after transfer are correct.'
       )
     })
   })
 
-  describe("logout", () => {
+  describe('logout', () => {
     let logout
 
-    it("...should begin logout and fail finalize logout", async () => {
+    it('...should begin logout and fail finalize logout', async () => {
       // stake some tokens
       const indexingStake = await gp.staking.stakeForIndexing(
         subgraphIdHex, // subgraphId
         indexingStaker, // from
         stakingAmount // value
       )
-      assert(indexingStake, "Stake Graph Tokens for indexing through module.")
+      assert(indexingStake, 'Stake Graph Tokens for indexing through module.')
 
       // begin log out after staking
       logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
-      assert.isObject(logout, "Begins log out.")
+      assert.isObject(logout, 'Begins log out.')
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
@@ -184,13 +195,13 @@ contract('Staking (Indexing)', ([
       )
     })
 
-    it("...should emit IndexingNodeBeginLogout event", async () => {
+    it('...should emit IndexingNodeBeginLogout event', async () => {
       expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
         staker: indexingStaker,
       })
     })
 
-    it("...should finalize logout after cooling period", async () => {
+    it('...should finalize logout after cooling period', async () => {
       // redeploy Staking contract
       deployedStaking = await Staking.new(
         daoContract,
@@ -203,15 +214,44 @@ contract('Staking (Indexing)', ([
         deployedGraphToken.address,
         { from: deploymentAddress }
       )
-      assert.isObject(deployedStaking, "Deploy Staking contract.")
-      assert(web3.utils.isAddress(deployedStaking.address), "Staking address is address.")
+      assert.isObject(deployedStaking, 'Deploy Staking contract.')
+      assert(web3.utils.isAddress(deployedStaking.address), 'Staking address is address.')
 
       // finalize logout
       const finalizedLogout = await deployedStaking.finalizeLogout(
         subgraphIdBytes, // subgraphId
         { from: indexingStaker }
       )
-      assert.isObject(finalizedLogout, "Finalized Logout process.")
+      assert.isObject(finalizedLogout, 'Finalized Logout process.')
     })
   })
+
+  describe('Graph Network indexers array', () => {
+    it('...should allow setting of Graph Network subgraph ID, and the array of initial indexers, ' +
+      'and allow the length of the indexers to be returned', async () => {
+      const indexers = accounts.slice(0,3)
+      const subgraphID = subgraphIdHex0x
+
+      const tx = await deployedStaking.setGraphSubgraphID(
+        subgraphID,
+        indexers,
+        { from: daoContract },
+      )
+      assert(tx, 'Tx was not successful')
+
+      const setSubgraphID = await deployedStaking.graphSubgraphID()
+      assert(setSubgraphID === subgraphID, "Graph Network subgraph ID was not set properly.")
+
+      const indexersSetLength = await deployedStaking.numberOfGraphIndexingNodeAddresses()
+      assert(indexersSetLength.toNumber() === indexers.length, "The amount of indexers are not matching.")
+
+      for (let i = 0; i < 3; i++){
+        let indexer = await deployedStaking.graphIndexingNodeAddresses(i)
+        assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
+      }
+
+    })
+
+  })
+
 })

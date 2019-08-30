@@ -455,6 +455,8 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      * @param _newIndexers <Array<address>> - Array of new indexers that have coordinated outside
      *        of the protocol, and pre-index the new subgraph before the switch happens
      */
+    // TODO - Need to add in a check to make sure the indexers are already staked, i.e. they
+    // TODO - exist in indexingNodes for this subgraph
     function setGraphSubgraphID (
         bytes32 _subgraphID,
         address[] calldata _newIndexers

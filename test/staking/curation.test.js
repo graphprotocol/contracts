@@ -94,6 +94,12 @@ contract(
       )
       assert(depositTx, 'Deposit in the standby pool')
 
+      const standbyTokensDeposited = await deployedStaking.standbyTokens(curationStaker)
+      assert(
+        standbyTokensDeposited.toString() === stakingAmount.toString(),
+        "Standby tokens were not deposited correctly."
+      )
+
       const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
       const stakeTx = await deployedStaking.stake(
         stakingAmount, // value
@@ -101,6 +107,12 @@ contract(
         { from: curationStaker },
       )
       assert(stakeTx, 'Stake for curation')
+
+      const standbyTokensZero = await deployedStaking.standbyTokens(curationStaker)
+      assert(
+        standbyTokensZero.toNumber() === 0,
+        "Standby token were not staked properly."
+      )
 
       const subgraphShares = await gp.staking.curators(
         web3.utils.hexToBytes('0x' + subgraphIdHex),
