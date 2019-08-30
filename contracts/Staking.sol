@@ -828,7 +828,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         subgraphs[_subgraphId].totalIndexers -= 1;
 
         uint256 _amount = thawingTokens[msg.sender];
-        delete thawingTokens[msg.sender];
+        thawingTokens[msg.sender] -= _amount;
 
         // Increase standbyTokens to be able to withdraw
         standbyTokens[msg.sender] += _amount;
