@@ -1,4 +1,5 @@
 const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const BN = web3.utils.BN
 
 // contracts
 const GraphToken = artifacts.require('./GraphToken.sol')
@@ -107,6 +108,16 @@ contract('Staking (Indexing)', ([
       )
       assert(stakeTx, 'Stake Graph Tokens for indexing directly.')
 
+      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      assert(subgraph.totalIndexingStake.toString() === stakingAmount.toString(), 'Subgraph did not increase its total stake')
+
+      expectEvent.inLogs(stakeTx.logs, 'IndexingNodeStaked', {
+        staker: indexingStaker,
+        amountStaked: stakingAmount,
+        subgraphID: subgraphIdHex0x,
+        subgraphTotalIndexingStake: subgraph.totalIndexingStake
+      })
+
       const standbyTokensZero = await deployedStaking.standbyTokens(indexingStaker)
       assert(
         standbyTokensZero.toNumber() === 0,
@@ -214,12 +225,9 @@ contract('Staking (Indexing)', ([
 
     })
 
-
   })
 
   describe('logout', () => {
-    let logout
-
     it('...should begin logout and fail finalize logout', async () => {
       // stake some tokens
       const indexingStake = await gp.staking.stakeForIndexing(
@@ -229,23 +237,42 @@ contract('Staking (Indexing)', ([
       )
       assert(indexingStake, 'Stake Graph Tokens for indexing through module tx failed.')
 
+      const subgraphWithStake = await deployedStaking.subgraphs(subgraphIdBytes)
+      const previousTotalIndexingStake = subgraphWithStake.totalIndexingStake
+
       // begin log out after staking
-      logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
+      let logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
       assert.isObject(logout, 'beginLogout tx failed.')
 
-      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
+      const blockNumber = logout.receipt.blockNumber
+      const block = await web3.eth.getBlock(blockNumber)
+
+      const indexNode = await gp.staking.indexingNodes(
         subgraphIdBytes,
         indexingStaker
       )
 
+      assert(indexNode.amountStaked.toNumber() === 0, 'Amount staked was not reduced to 0.')
+      assert(indexNode.feesAccrued.toNumber() === 0, 'Fees accrued was not reduced to 0.')
+
+      assert(indexNode.logoutStarted.toNumber() === block.timestamp,
+        'Logout start is not equal to block timestamp'
+      )
+
+      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      assert(previousTotalIndexingStake.sub(stakingAmount).toString() === subgraph.totalIndexingStake.toString(), 'Subgraph did not decrease its total stake')
+
+      const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
+      assert(thawingTokens.toString() === stakingAmount.toString(), 'Thawing tokens not set properly')
+
       await expectRevert.unspecified(
         gp.staking.finalizeLogout(subgraphIdBytes, indexingStaker)
       )
-    })
-
-    it('...should emit IndexingNodeBeginLogout event', async () => {
       expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
         staker: indexingStaker,
+        subgraphID: subgraphIdHex0x,
+        unstakedAmount: stakingAmount,
+        fees: new BN(0)
       })
     })
 
@@ -264,6 +291,7 @@ contract('Staking (Indexing)', ([
       )
       assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
 
+      // TODO - should reduce subgraph.totalStakers by 1, should delete indexingNodes(user), should decrease thawing tokens, should increase standby tokens, should check for event
       // finalize logout
       const finalizedLogout = await deployedStaking.finalizeLogout(
         subgraphIdBytes, // subgraphId
@@ -276,7 +304,7 @@ contract('Staking (Indexing)', ([
   describe('Graph Network indexers array', () => {
     it('...should allow setting of Graph Network subgraph ID, and the array of initial indexers, ' +
       'and allow the length of the indexers to be returned', async () => {
-      const indexers = accounts.slice(0,3)
+      const indexers = accounts.slice(0, 3)
       const subgraphID = subgraphIdHex0x
 
       const tx = await deployedStaking.setGraphSubgraphID(
@@ -287,18 +315,20 @@ contract('Staking (Indexing)', ([
       assert(tx, 'Tx was not successful')
 
       const setSubgraphID = await deployedStaking.graphSubgraphID()
-      assert(setSubgraphID === subgraphID, "Graph Network subgraph ID was not set properly.")
+      assert(setSubgraphID === subgraphID, 'Graph Network subgraph ID was not set properly.')
 
       const indexersSetLength = await deployedStaking.numberOfGraphIndexingNodeAddresses()
-      assert(indexersSetLength.toNumber() === indexers.length, "The amount of indexers are not matching.")
+      assert(indexersSetLength.toNumber() === indexers.length, 'The amount of indexers are not matching.')
 
-      for (let i = 0; i < 3; i++){
+      for (let i = 0; i < 3; i++) {
         let indexer = await deployedStaking.graphIndexingNodeAddresses(i)
         assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
       }
 
     })
-
+    it('...should delete the indexer from graph network indexing nodes', async () => {
+      // TODO!!!!
+    })
   })
 
 })

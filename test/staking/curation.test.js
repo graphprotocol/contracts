@@ -102,7 +102,7 @@ contract(
       const standbyTokensDeposited = await deployedStaking.standbyTokens(curationStaker)
       assert(
         standbyTokensDeposited.toString() === stakingAmount.toString(),
-        "Standby tokens were not deposited correctly."
+        'Standby tokens were not deposited correctly.'
       )
 
       const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
@@ -116,7 +116,7 @@ contract(
       const standbyTokensZero = await deployedStaking.standbyTokens(curationStaker)
       assert(
         standbyTokensZero.toNumber() === 0,
-        "Standby token were not staked properly."
+        'Standby token were not staked properly.'
       )
 
       const subgraphShares = await gp.staking.curators(
@@ -141,7 +141,44 @@ contract(
       })
     })
 
-    it('...should allow signaling through JS module', async () => {
+    it('...should allow signaling through JS module and CuratorStaked emitted', async () => {
+      // We abstract this functionality into a function so we can use it in other tests
+      await stakeForCuration()
+    })
+
+    it('...should allow Curator to partially logout and fully logout', async () => {
+      const subgraphShares = await stakeForCuration()
+      const halfSharesInt = Math.floor(subgraphShares / 2)
+
+      await deployedStaking.curatorLogout(
+        subgraphIdBytes, // Subgraph ID the Curator is returning shares for
+        halfSharesInt, // Amount of shares to return
+        { from: curationStaker }
+      )
+
+      const halfShares = await gp.staking.curators(
+        web3.utils.hexToBytes('0x' + subgraphIdHex),
+        curationStaker,
+      )
+
+      assert(halfShares.toNumber() === (subgraphShares - halfSharesInt), 'Shares were not reduced by half')
+
+      const fullLogout = await deployedStaking.curatorLogout(
+        subgraphIdBytes, // Subgraph ID the Curator is returning shares for
+        subgraphShares - halfSharesInt, // Amount of shares to return
+        { from: curationStaker }
+      )
+
+      expectEvent.inLogs(fullLogout.logs, 'CuratorLogout', {
+          staker: curationStaker,
+          subgraphID: subgraphIdHex0x,
+          subgraphTotalCurationShares: new BN(0),
+          subgraphTotalCurationStake: new BN(0)
+        }
+      )
+    })
+
+    async function stakeForCuration () {
       let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
@@ -178,59 +215,6 @@ contract(
         subgraphTotalCurationShares: subgraphShares,
         subgraphTotalCurationStake: stakingAmount,
       })
-    })
-
-    it('...should allow Curator to log out', async () => {
-      // const subgraphShares = await stakeForCuration()
-      //
-      // /** @dev Log out Curator */
-      // const logOut = await deployedStaking.curatorLogout(
-      //   subgraphIdBytes, // Subgraph ID the Curator is returning shares for
-      //   subgraphShares, // Amount of shares to return
-      //   { from: curationStaker }
-      // )
-      // expectEvent.inLogs(logOut.logs, 'CuratorLogout',
-      //   { staker: curationStaker }
-      // )
-    })
-
-    async function stakeForCuration () {
-      /** @dev Verify that balances are what we expect */
-      let totalBalance = await deployedGraphToken.balanceOf(
-        deployedStaking.address,
-      )
-      let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
-      assert(
-        curatorBalance.toNumber() === tokensMintedForStaker &&
-        totalBalance.toNumber() === 0,
-        'Balances before transfer are incorrect.',
-      )
-
-      /** @dev Stake some tokens for curation */
-      const curationsStake = await gp.staking.stakeForCuration(
-        subgraphIdHex, // subgraphId
-        curationStaker, // from
-        stakingAmount, // value
-      )
-      assert(curationsStake, 'Stake Graph Tokens for curation through module.')
-
-      /** @dev Verify that balances are what we expect */
-      const { amountStaked, subgraphShares } = await gp.staking.curators(
-        subgraphIdBytes,
-        curationStaker,
-      )
-      assert(
-        amountStaked.toNumber() === stakingAmount &&
-        subgraphShares.toNumber() > 0,
-        'Staked curation amount is not confirmed.',
-      )
-      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
-      assert(
-        curatorBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-        totalBalance.toNumber() === stakingAmount,
-        'Balances after transfer is incorrect.',
-      )
 
       return subgraphShares.toNumber()
     }
