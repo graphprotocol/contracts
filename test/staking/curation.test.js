@@ -94,6 +94,11 @@ contract(
       )
       assert(depositTx, 'Deposit in the standby pool')
 
+      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
+        user: curationStaker,
+        amount: stakingAmount
+      })
+
       const standbyTokensDeposited = await deployedStaking.standbyTokens(curationStaker)
       assert(
         standbyTokensDeposited.toString() === stakingAmount.toString(),

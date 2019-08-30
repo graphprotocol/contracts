@@ -14,9 +14,6 @@ contract('Staking (Indexing)', ([
                                   indexingStaker,
                                   ...accounts
                                 ]) => {
-  /**
-   * testing constants
-   */
   const
     minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
     minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
@@ -42,7 +39,7 @@ contract('Staking (Indexing)', ([
       initialTokenSupply, // initial supply
       { from: deploymentAddress }
     )
-    assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
+    assert.isObject(deployedGraphToken, 'Deploy GraphToken contract tx failed.')
 
     // send some tokens to the staking account
     const tokensForIndexer = await deployedGraphToken.mint(
@@ -50,7 +47,7 @@ contract('Staking (Indexing)', ([
       tokensMintedForStaker, // value
       { from: daoContract }
     )
-    assert(tokensForIndexer, 'Mints Graph Tokens for Indexer.')
+    assert(tokensForIndexer, 'Mints Graph Tokens for Indexer tx failed.')
 
     // deploy Staking contract
     deployedStaking = await Staking.new(
@@ -64,8 +61,7 @@ contract('Staking (Indexing)', ([
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
-    assert.isObject(deployedStaking, 'Deploy Staking contract.')
-    assert(web3.utils.isAddress(deployedStaking.address), 'Staking address is address.')
+    assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
 
     // init Graph Protocol JS library with deployed staking contract
     gp = GraphProtocol({
@@ -82,7 +78,7 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.'
+        'Balances before transfer are incorrect.'
       )
 
       const depositTx = await deployedGraphToken.transferWithData(
@@ -90,7 +86,12 @@ contract('Staking (Indexing)', ([
         stakingAmount, // value
         { from: indexingStaker },
       )
-      assert(depositTx, 'Deposit in the standby pool')
+      assert(depositTx, 'Deposit in the standby pool tx failed')
+
+      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
+        user: indexingStaker,
+        amount: stakingAmount
+      })
 
       const standbyTokensDeposited = await deployedStaking.standbyTokens(indexingStaker)
       assert(
@@ -119,7 +120,7 @@ contract('Staking (Indexing)', ([
       assert(
         amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
-        'Staked indexing amount confirmed.'
+        'Staked indexing amount incorrect.'
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -128,7 +129,7 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
         totalBalance.toString() === stakingAmount.toString(),
-        'Balances after transfer are correct.'
+        'Balances after transfer are incorrect.'
       )
 
     })
@@ -139,7 +140,7 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.'
+        'Balances before transfer are incorrect.'
       )
 
       const indexingStake = await gp.staking.stakeForIndexing(
@@ -147,7 +148,7 @@ contract('Staking (Indexing)', ([
         indexingStaker, // from
         stakingAmount // value
       )
-      assert(indexingStake, 'Stake Graph Tokens for indexing through module.')
+      assert(indexingStake, 'Stake Graph Tokens tx through graph module failed.')
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
@@ -156,7 +157,7 @@ contract('Staking (Indexing)', ([
       assert(
         amountStaked.toString() === stakingAmount.toString() &&
         logoutStarted.toNumber() === 0,
-        'Staked indexing amount confirmed.'
+        'Staked indexing amount is not correct.'
       )
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
@@ -164,9 +165,56 @@ contract('Staking (Indexing)', ([
       assert(
         stakerBalance.toString() === tokensMintedForStaker.sub(stakingAmount).toString() &&
         totalBalance.toString() === stakingAmount.toString(),
-        'Balances after transfer are correct.'
+        'Balances after transfer are incorrect.'
       )
     })
+
+    it('...should allow withdrawing tokens', async () => {
+      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+      let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
+      assert(
+        stakerBalance.toString() === tokensMintedForStaker.toString() &&
+        totalBalance.toNumber() === 0,
+        'Balances before transfer are incorrect.'
+      )
+
+      const depositTx = await deployedGraphToken.transferWithData(
+        deployedStaking.address, // to
+        stakingAmount, // value
+        { from: indexingStaker },
+      )
+      assert(depositTx, 'Deposit in the standby pool Tx failed')
+
+      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
+        user: indexingStaker,
+        amount: stakingAmount
+      })
+
+      const standbyTokensDeposited = await deployedStaking.standbyTokens(indexingStaker)
+      assert(
+        standbyTokensDeposited.toString() === stakingAmount.toString(),
+        'Standby tokens were not deposited correctly.'
+      )
+
+      const withdrawTx = await deployedStaking.tokensWithdrawn(
+        stakingAmount, // value
+        { from: indexingStaker },
+      )
+      expectEvent.inLogs(withdrawTx.logs, 'Withdraw', {
+        user: indexingStaker,
+        amount: stakingAmount
+      })
+      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+      stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
+      assert(
+        stakerBalance.toString() === tokensMintedForStaker.toString() &&
+        totalBalance.toNumber() === 0,
+        'Balances after withdraw are incorrect.'
+      )
+
+    })
+
+
   })
 
   describe('logout', () => {
@@ -179,11 +227,11 @@ contract('Staking (Indexing)', ([
         indexingStaker, // from
         stakingAmount // value
       )
-      assert(indexingStake, 'Stake Graph Tokens for indexing through module.')
+      assert(indexingStake, 'Stake Graph Tokens for indexing through module tx failed.')
 
       // begin log out after staking
       logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
-      assert.isObject(logout, 'Begins log out.')
+      assert.isObject(logout, 'beginLogout tx failed.')
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdBytes,
@@ -214,8 +262,7 @@ contract('Staking (Indexing)', ([
         deployedGraphToken.address,
         { from: deploymentAddress }
       )
-      assert.isObject(deployedStaking, 'Deploy Staking contract.')
-      assert(web3.utils.isAddress(deployedStaking.address), 'Staking address is address.')
+      assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
 
       // finalize logout
       const finalizedLogout = await deployedStaking.finalizeLogout(
