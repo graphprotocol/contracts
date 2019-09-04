@@ -20,7 +20,7 @@ contract ServiceRegistry is Governed {
     */
 
     /* EVENTS */
-    event ServiceUrlSet (address indexed serviceProvider, bytes url);
+    event ServiceUrlSet (address indexed serviceProvider, string urlString, bytes urlBytes);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
@@ -37,11 +37,12 @@ contract ServiceRegistry is Governed {
      * @dev Only msg.sender may do this
      *
      * @param _serviceProvider <address> - Address of the service provider
-     * @param _url <bytes> - URL of the service provider
+     * @param _url <string> - URL of the service provider
      */
-    function setUrl(address _serviceProvider, bytes calldata _url) external {
+    function setUrl(address _serviceProvider, string calldata _url) external {
         require(msg.sender == _serviceProvider, "msg.sender must call");
-        urls[msg.sender] = _url;
-        emit ServiceUrlSet(_serviceProvider, _url);
+        bytes memory url = bytes(_url);
+        urls[msg.sender] = url;
+        emit ServiceUrlSet(_serviceProvider, _url, url);
     }
 }
