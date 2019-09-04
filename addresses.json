@@ -1,11 +1,11 @@
 {
-  "updated-on": "August 19th 2019",
+  "updated-on": "September 4th 2019",
   "ropsten": {
-    "GNS": "0x7e0BBa74B7D0308986E2404f5f0868aaFd84D80C",
-    "GraphToken": "0x9Dcb2CCF45d8772c722f76A16374C1Ebc79DCB7E",
+    "GNS": "0x6764C9f8c45A0432409C27b6542fe9f2c9864645",
+    "GraphToken": "0x8a714a02feEFd3CD763BF9d626650dCb0692be9A",
     "MultisigWallet": "Not a contract, currently daves metamask",
-    "ServiceRegistry": "0xD7eF645bD0240cC954dE318bDe938886f14F6580",
-    "Staking": "0x7AA834EEE8d2675671Cc00f4bb1d4C3CAC05b6B2",
+    "ServiceRegistry": "0x50A80D00406F74505e101c49de06a581229f47B9",
+    "Staking": "0x2aF5CcB503292937171228E72858793160fb6560",
   },
   "ganache": {
     "GNS": "0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7",
