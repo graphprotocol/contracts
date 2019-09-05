@@ -211,6 +211,8 @@ contract('Staking (Indexing)', ([
       const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdBytes)
       const indexerCount = subgraphBeforeFinalize.totalIndexers
 
+      // Note - be careful moving this function around. It may
+      // screw up time dependancies of other functions.
       await time.increase(thawingPeriod + 1)
 
       // finalize logout
@@ -247,30 +249,25 @@ contract('Staking (Indexing)', ([
   describe('Graph Network indexers array', () => {
     it('...should allow setting of Graph Network subgraph ID, and the array of initial indexers, ' +
       'and allow the length of the indexers to be returned', async () => {
-      const indexers = accounts.slice(0, 3)
-      const subgraphID = subgraphIdHex0x
-
-      const tx = await deployedStaking.setGraphSubgraphID(
-        subgraphID,
-        indexers,
-        { from: daoContract },
-      )
-      assert(tx, 'Tx was not successful')
-
-      const setSubgraphID = await deployedStaking.graphSubgraphID()
-      assert(setSubgraphID === subgraphID, 'Graph Network subgraph ID was not set properly.')
-
-      const indexersSetLength = await deployedStaking.numberOfGraphIndexingNodeAddresses()
-      assert(indexersSetLength.toNumber() === indexers.length, 'The amount of indexers are not matching.')
-
-      for (let i = 0; i < 3; i++) {
-        let indexer = await deployedStaking.graphIndexingNodeAddresses(i)
-        assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
-      }
-
+      await setGraphSubgraphID()
     })
-    it('...should delete the indexer from graph network bootstrap indexing nodes', async () => {
-      // TODO!!!!
+    it('...should add an indexer to the graphIndexingNodeAddresses(), and delete the user', async () => {
+      await setGraphSubgraphID()
+      const indexersSetLength = (await deployedStaking.numberOfGraphIndexingNodeAddresses()).toNumber()
+
+      await stakeForIndexing()
+
+      const newLength = (await deployedStaking.numberOfGraphIndexingNodeAddresses()).toNumber()
+      assert(newLength === indexersSetLength + 1, `Indexers length does not match.`)
+
+      let indexer = await deployedStaking.graphIndexingNodeAddresses(newLength-1)
+      assert(indexer === indexingStaker, `Indexer address does not match.`)
+
+      await beginLogout()
+
+      // Note - index isn't deleted on the array, the entry is just zeroed
+      let blankIndexer = await deployedStaking.graphIndexingNodeAddresses(newLength-1)
+      assert(blankIndexer === helpers.zeroAddress(), `Indexer was not deleted.`)
     })
   })
 
@@ -347,6 +344,29 @@ contract('Staking (Indexing)', ([
       fees: new BN(0)
     })
     return logout
+  }
+
+  async function setGraphSubgraphID() {
+    const indexers = accounts.slice(0, 3)
+    const subgraphID = subgraphIdHex0x
+
+    const tx = await deployedStaking.setGraphSubgraphID(
+      subgraphID,
+      indexers,
+      { from: daoContract },
+    )
+    assert(tx, 'Tx was not successful')
+
+    const setSubgraphID = await deployedStaking.graphSubgraphID()
+    assert(setSubgraphID === subgraphID, 'Graph Network subgraph ID was not set properly.')
+
+    const indexersSetLength = await deployedStaking.numberOfGraphIndexingNodeAddresses()
+    assert(indexersSetLength.toNumber() === indexers.length, 'The amount of indexers are not matching.')
+
+    for (let i = 0; i < 3; i++) {
+      let indexer = await deployedStaking.graphIndexingNodeAddresses(i)
+      assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
+    }
   }
 
 })

@@ -456,7 +456,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
      *        of the protocol, and pre-index the new subgraph before the switch happens
      */
     // TODO - Need to add in a check to make sure the indexers are already staked, i.e. they
-    // TODO - exist in indexingNodes for this subgraph
+    // TODO - exist in indexingNodes for this subgraph (60% sure we need this...)
     function setGraphSubgraphID (
         bytes32 _subgraphID,
         address[] calldata _newIndexers
@@ -801,6 +801,9 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
             require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
+            // Note, this does not decrease the length of the array
+            // It just sets this index to 0x0000...
+            // TODO - does the above statement introduce risk of this list getting too long? And creating a denial of service? I believe it will. To investigate in BETA
             delete graphIndexingNodeAddresses[userIndex];
         }
         // Decrement the total amount staked by the amount being returned
@@ -819,6 +822,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
     function finalizeLogout(bytes32 _subgraphId)
         external
     {
+        // TODO - BUG, you can call finalize logout here, without ever calling beginLogout, and it will work
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
 
         // Reset the timestamp
@@ -975,7 +979,7 @@ contract Staking is Governed, TokenReceiver, BancorFormula
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
             require(found != false, "This address is not a graph subgraph indexer. This error should never occur.");
-            delete graphIndexingNodeAddresses[userIndex]; // Re-entrancy protection
+            delete graphIndexingNodeAddresses[userIndex];
         }
 
         // Remove Indexing Node from Subgraph's stakers
