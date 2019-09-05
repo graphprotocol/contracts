@@ -20,6 +20,7 @@ contract('Service Registry', accounts => {
     for (let i = 0; i < 10; i++) {
 
       const url = helpers.testServiceRegistryURLS[i]
+      const urlBytes = web3.utils.utf8ToHex(url)
 
       // Set the url
       const { logs } = await deployedServiceRegistry.setUrl(
@@ -29,13 +30,14 @@ contract('Service Registry', accounts => {
       )
       assert(
         (await deployedServiceRegistry.urls(accounts[i])) ===
-        url,
+        urlBytes,
         'SetUrl did not store the URL properly.',
       )
 
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: accounts[i],
-        url: url,
+        urlString: url,
+        urlBytes: urlBytes
       })
     }
   })
