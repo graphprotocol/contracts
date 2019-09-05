@@ -1,4 +1,4 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent, expectRevert, time } = require('openzeppelin-test-helpers')
 const BN = web3.utils.BN
 
 // contracts
@@ -206,49 +206,41 @@ contract('Staking (Indexing)', ([
     })
 
     it('...should finalize logout after cooling period', async () => {
-      // TODO - fast forward time instead of doing a new deployment
+      await stakeForIndexing()
+      await beginLogout()
+      const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdBytes)
+      const indexerCount = subgraphBeforeFinalize.totalIndexers
 
-      // // redeploy Staking contract
-      // deployedStaking = await Staking.new(
-      //   daoContract,
-      //   minimumCurationStakingAmount,
-      //   defaultReserveRatio,
-      //   minimumIndexingStakingAmount,
-      //   maximumIndexers,
-      //   slashingPercent,
-      //   0, /** @dev No Cooling Period */
-      //   deployedGraphToken.address,
-      //   { from: deploymentAddress }
-      // )
-      // assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
-      //
-      //
-      // await stakeForIndexing()
-      // await beginLogout()
-      // const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdBytes)
-      // const indexerCount = subgraphBeforeFinalize.totalIndexers
-      //
-      // // finalize logout
-      // const finalizedLogout = await deployedStaking.finalizeLogout(
-      //   subgraphIdBytes, // subgraphId
-      //   { from: indexingStaker }
-      // )
-      // assert.isObject(finalizedLogout, 'Finalized Logout process.')
-      //
-      // const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
-      // assert(subgraph.totalIndexers - 1 === indexerCount, 'Total indexers of subgraph did not decrease by 1.')
-      //
-      // const indexingNodes = await gp.staking.indexingNodes(subgraphIdBytes, indexingStaker)
-      // assert(indexingNodes.amountStaked === indexingNode.feesAccrued === indexingNode.logoutStarted === new BN(0), "Index node was not deleted.")
-      //
-      // const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
-      // assert(thawingTokens.toString() === '0', 'Thawing tokens did not decrease properly.')
-      //
-      // const standbyTokens = await deployedStaking.standbyTokens(indexingStaker)
-      // assert(standbyTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
+      await time.increase(thawingPeriod + 1)
 
-      // TODO - should check for event
+      // finalize logout
+      const finalizedLogout = await deployedStaking.finalizeLogout(
+        subgraphIdBytes, // subgraphId
+        { from: indexingStaker }
+      )
+      assert.isObject(finalizedLogout, 'Finalized Logout process.')
 
+      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      assert(subgraph.totalIndexers.toNumber() === indexerCount.toNumber() - 1, 'Total indexers of subgraph did not decrease by 1.')
+
+      const indexingNode = await gp.staking.indexingNodes(subgraphIdBytes, indexingStaker)
+
+      assert(indexingNode.amountStaked.toNumber() === 0 &&
+        indexingNode.feesAccrued.toNumber() === 0 &&
+        indexingNode.logoutStarted.toNumber() === 0
+        , "Index node was not deleted."
+      )
+
+      const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
+      assert(thawingTokens.toString() === '0', 'Thawing tokens did not decrease properly.')
+
+      const standbyTokens = await deployedStaking.standbyTokens(indexingStaker)
+      assert(standbyTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
+
+      expectEvent.inLogs(finalizedLogout.logs, 'IndexingNodeFinalizeLogout', {
+        staker: indexingStaker,
+        subgraphID: subgraphIdHex0x,
+      })
     })
   })
 
@@ -277,7 +269,7 @@ contract('Staking (Indexing)', ([
       }
 
     })
-    it('...should delete the indexer from graph network indexing nodes', async () => {
+    it('...should delete the indexer from graph network bootstrap indexing nodes', async () => {
       // TODO!!!!
     })
   })
