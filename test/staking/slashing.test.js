@@ -88,7 +88,7 @@ contract('Staking (Slashing)', ([
     // Need to get this to work in the future, but not for alpha - dk
     // it('...should allow a dispute to be created', async () => {
     //   const data = await createDisputeDataWithSignedAttestation()
-    //   const createDispute = await deployedGraphToken.transferWithData(
+    //   const createDispute = await deployedGraphToken.transferToStaking(
     //     deployedStaking.address, // to
     //     0, // value
     //     data, // data

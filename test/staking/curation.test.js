@@ -87,7 +87,7 @@ contract(
         'Balances before transfer are incorrect.',
       )
 
-      const depositTx = await deployedGraphToken.transferWithData(
+      const depositTx = await deployedGraphToken.transferToStaking(
         deployedStaking.address, // to
         stakingAmount, // value
         { from: curationStaker },
