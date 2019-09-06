@@ -192,16 +192,14 @@ module.exports = (options = {}) => {
      */
     static async stakeForCuration(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      let hex = '0x01' + subgraphId
       await GraphToken.transferToStaking(
         Staking.address, // to
         value, // value
         { from: from },
       )
-      const data = web3.utils.hexToBytes(hex)
-      return Staking.stake(
+      return Staking.signalForCuration(
         value, // value
-        data,
+        subgraphId,
         { from: from },
       )
     }
@@ -216,16 +214,14 @@ module.exports = (options = {}) => {
      */
     static async stakeForIndexing(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      let hex = '0x00' + subgraphId
       await GraphToken.transferToStaking(
         Staking.address, // to
         value, // value
         { from: from },
       )
-      const data = web3.utils.hexToBytes(hex)
-      return Staking.stake(
+      return Staking.stakeForIndexing(
         value, // value
-        data,
+        subgraphId,
         { from: from },
       )
     }

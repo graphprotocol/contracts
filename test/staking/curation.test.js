@@ -105,10 +105,9 @@ contract(
         'Standby tokens were not deposited correctly.'
       )
 
-      const data = web3.utils.hexToBytes('0x01' + subgraphIdHex)
-      const stakeTx = await deployedStaking.stake(
+      const stakeTx = await deployedStaking.signalForCuration(
         stakingAmount, // value
-        data,
+        subgraphIdHex0x,
         { from: curationStaker },
       )
       assert(stakeTx, 'Stake for curation')
@@ -120,7 +119,7 @@ contract(
       )
 
       const subgraphShares = await gp.staking.curators(
-        web3.utils.hexToBytes('0x' + subgraphIdHex),
+        subgraphIdHex0x,
         curationStaker,
       )
 
@@ -151,20 +150,20 @@ contract(
       const halfSharesInt = Math.floor(subgraphShares / 2)
 
       await deployedStaking.curatorLogout(
-        subgraphIdBytes, // Subgraph ID the Curator is returning shares for
+        subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
         halfSharesInt, // Amount of shares to return
         { from: curationStaker }
       )
 
       const halfShares = await gp.staking.curators(
-        web3.utils.hexToBytes('0x' + subgraphIdHex),
+        subgraphIdHex0x,
         curationStaker,
       )
 
       assert(halfShares.toNumber() === (subgraphShares - halfSharesInt), 'Shares were not reduced by half')
 
       const fullLogout = await deployedStaking.curatorLogout(
-        subgraphIdBytes, // Subgraph ID the Curator is returning shares for
+        subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
         subgraphShares - halfSharesInt, // Amount of shares to return
         { from: curationStaker }
       )
@@ -188,14 +187,14 @@ contract(
       )
 
       const curationStake = await gp.staking.stakeForCuration(
-        subgraphIdHex, // subgraphId
+        subgraphIdHex0x, // subgraphId
         curationStaker, // from
         stakingAmount // value
       )
       assert(curationStake, 'Stake Graph Tokens for indexing through module.')
 
       const subgraphShares = await gp.staking.curators(
-        web3.utils.hexToBytes('0x' + subgraphIdHex),
+        subgraphIdHex0x,
         curationStaker,
       )
 

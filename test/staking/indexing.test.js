@@ -100,15 +100,14 @@ contract('Staking (Indexing)', ([
         'Standby tokens were not deposited correctly.'
       )
 
-      const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
-      const stakeTx = await deployedStaking.stake(
+      const stakeTx = await deployedStaking.stakeForIndexing(
         stakingAmount, // value
-        data,
+        subgraphIdHex0x,
         { from: indexingStaker },
       )
       assert(stakeTx, 'Stake Graph Tokens for indexing directly.')
 
-      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
       assert(subgraph.totalIndexingStake.toString() === stakingAmount.toString(), 'Subgraph did not increase its total stake')
 
       expectEvent.inLogs(stakeTx.logs, 'IndexingNodeStaked', {
@@ -125,7 +124,7 @@ contract('Staking (Indexing)', ([
       )
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        subgraphIdBytes,
+        subgraphIdHex0x,
         indexingStaker
       )
       assert(
@@ -201,14 +200,14 @@ contract('Staking (Indexing)', ([
       await stakeForIndexing()
       await beginLogout()
       await expectRevert.unspecified(
-        gp.staking.finalizeLogout(subgraphIdBytes, indexingStaker)
+        gp.staking.finalizeLogout(subgraphIdHex0x, indexingStaker)
       )
     })
 
     it('...should finalize logout after cooling period', async () => {
       await stakeForIndexing()
       await beginLogout()
-      const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdBytes)
+      const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdHex0x)
       const indexerCount = subgraphBeforeFinalize.totalIndexers
 
       // Note - be careful moving this function around. It may
@@ -217,15 +216,15 @@ contract('Staking (Indexing)', ([
 
       // finalize logout
       const finalizedLogout = await deployedStaking.finalizeLogout(
-        subgraphIdBytes, // subgraphId
+        subgraphIdHex0x, // subgraphId
         { from: indexingStaker }
       )
       assert.isObject(finalizedLogout, 'Finalized Logout process.')
 
-      const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+      const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
       assert(subgraph.totalIndexers.toNumber() === indexerCount.toNumber() - 1, 'Total indexers of subgraph did not decrease by 1.')
 
-      const indexingNode = await gp.staking.indexingNodes(subgraphIdBytes, indexingStaker)
+      const indexingNode = await gp.staking.indexingNodes(subgraphIdHex0x, indexingStaker)
 
       assert(indexingNode.amountStaked.toNumber() === 0 &&
         indexingNode.feesAccrued.toNumber() === 0 &&
@@ -281,14 +280,14 @@ contract('Staking (Indexing)', ([
     )
 
     const indexingStake = await gp.staking.stakeForIndexing(
-      subgraphIdHex, // subgraphId
+      subgraphIdHex0x, // subgraphId
       indexingStaker, // from
       stakingAmount // value
     )
     assert(indexingStake, 'Stake Graph Tokens tx through graph module failed.')
 
     const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-      subgraphIdBytes,
+      subgraphIdHex0x,
       indexingStaker
     )
     assert(
@@ -310,17 +309,17 @@ contract('Staking (Indexing)', ([
 
   // begin log out after staking (must call stakeForIndexing() first)
   async function beginLogout () {
-    const subgraphWithStake = await deployedStaking.subgraphs(subgraphIdBytes)
+    const subgraphWithStake = await deployedStaking.subgraphs(subgraphIdHex0x)
     const previousTotalIndexingStake = subgraphWithStake.totalIndexingStake
 
-    const logout = await gp.staking.beginLogout(subgraphIdBytes, indexingStaker)
+    const logout = await gp.staking.beginLogout(subgraphIdHex0x, indexingStaker)
     assert.isObject(logout, 'beginLogout tx failed.')
 
     const blockNumber = logout.receipt.blockNumber
     const block = await web3.eth.getBlock(blockNumber)
 
     const indexNode = await gp.staking.indexingNodes(
-      subgraphIdBytes,
+      subgraphIdHex0x,
       indexingStaker
     )
 
@@ -331,7 +330,7 @@ contract('Staking (Indexing)', ([
       'Logout start is not equal to block timestamp'
     )
 
-    const subgraph = await deployedStaking.subgraphs(subgraphIdBytes)
+    const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
     assert(previousTotalIndexingStake.sub(stakingAmount).toString() === subgraph.totalIndexingStake.toString(), 'Subgraph did not decrease its total stake')
 
     const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
