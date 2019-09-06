@@ -76,7 +76,7 @@ import "./Governed.sol";
 import "bytes/BytesLib.sol";
 import "./bancor/BancorFormula.sol";
 
-contract Staking is Governed, TokenReceiver, BancorFormula
+contract Staking is Governed, BancorFormula
 {
     using BytesLib for bytes;
 
