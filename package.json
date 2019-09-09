@@ -17,12 +17,14 @@
   },
   "devDependencies": {
     "truffle-abi": "^1.0.3",
-    "truffle-assertions": "0.8.0"
+    "truffle-assertions": "0.8.0",
+    "typechain": "^0.3.20"
   },
   "scripts": {
     "test": "truffle test",
     "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'",
-    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v"
+    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v",
+    "typechain": "typechain --target=ethers --outDir build/typechain/contracts/ ./build/abis/**/*.json"
   },
   "repository": {
     "type": "git",
