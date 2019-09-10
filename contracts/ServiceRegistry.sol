@@ -69,7 +69,7 @@ contract ServiceRegistry is Governed {
      * @param _indexer <address> - Address of the indexer
      */
     function removeGraphNetworkIndexerURL(address _indexer) external onlyGovernance {
-        (bool found, uint256 userIndex) = findURLIndex(msg.sender);
+        (bool found, uint256 userIndex) = findURLIndex(_indexer);
         require(found == true, "This address is not a graph subgraph indexer. This error should never occur.");
         // Note, this does not decrease the length of the array, it just sets this index to 0x000...
         delete graphNetworkServiceProviderURLs[userIndex];
