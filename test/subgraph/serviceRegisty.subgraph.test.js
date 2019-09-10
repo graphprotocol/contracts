@@ -28,11 +28,6 @@ contract('Service Registry', accounts => {
         url,
         { from: accounts[i] },
       )
-      assert(
-        (await deployedServiceRegistry.urls(accounts[i])) ===
-        urlBytes,
-        'SetUrl did not store the URL properly.',
-      )
 
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: accounts[i],
