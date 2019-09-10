@@ -82,7 +82,7 @@ contract('Staking (Indexing)', ([
         'Balances before transfer are incorrect.'
       )
 
-      const depositTx = await deployedGraphToken.transferToStaking(
+      const depositTx = await deployedGraphToken.transferToTokenReceiver(
         deployedStaking.address, // to
         stakingAmount, // value
         { from: indexingStaker },
@@ -157,7 +157,7 @@ contract('Staking (Indexing)', ([
         'Balances before transfer are incorrect.'
       )
 
-      const depositTx = await deployedGraphToken.transferToStaking(
+      const depositTx = await deployedGraphToken.transferToTokenReceiver(
         deployedStaking.address, // to
         stakingAmount, // value
         { from: indexingStaker },

@@ -118,8 +118,8 @@ module.exports = (options = {}) => {
      * @dev Getter for `arbitrator`
      * @returns {Number} Arbitrator
      */
-    static setArbitrator() {
-      return Staking.setArbitrator()
+    static arbitrator() {
+      return Staking.arbitrator()
     }
 
 
@@ -192,7 +192,7 @@ module.exports = (options = {}) => {
      */
     static async stakeForCuration(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      await GraphToken.transferToStaking(
+      await GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
         { from: from },
@@ -214,7 +214,7 @@ module.exports = (options = {}) => {
      */
     static async stakeForIndexing(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      await GraphToken.transferToStaking(
+      await GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
         { from: from },

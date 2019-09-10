@@ -87,7 +87,7 @@ contract(
         'Balances before transfer are incorrect.',
       )
 
-      const depositTx = await deployedGraphToken.transferToStaking(
+      const depositTx = await deployedGraphToken.transferToTokenReceiver(
         deployedStaking.address, // to
         stakingAmount, // value
         { from: curationStaker },
@@ -140,7 +140,7 @@ contract(
       })
     })
 
-    it('...should allow signaling through JS module and CuratorStaked emitted', async () => {
+    it('...should allow curation signaling and emit CuratorStaked', async () => {
       // We abstract this functionality into a function so we can use it in other tests
       await stakeForCuration()
     })
@@ -183,7 +183,7 @@ contract(
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
         totalBalance.toNumber() === 0,
-        'Balances before transfer are correct.'
+        'Balances before transfer are incorrect.'
       )
 
       const curationStake = await gp.staking.stakeForCuration(
@@ -191,7 +191,7 @@ contract(
         curationStaker, // from
         stakingAmount // value
       )
-      assert(curationStake, 'Stake Graph Tokens for indexing through module.')
+      assert(curationStake, 'Staking for curation failed.')
 
       const subgraphShares = await gp.staking.curators(
         subgraphIdHex0x,
