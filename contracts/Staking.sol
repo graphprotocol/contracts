@@ -754,7 +754,7 @@ contract Staking is Governed, BancorFormula
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            require(found == true, "This address is not a graph subgraph indexer. This error should never occur.");
+            assert(found == true);
             // Note, this does not decrease the length of the array
             // It just sets this index to 0x0000...
             // TODO - does the above statement introduce risk of this list getting too long? And creating a denial of service? I believe it will. To investigate in BETA
@@ -930,7 +930,7 @@ contract Staking is Governed, BancorFormula
 
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-            require(found == true, "This address is not a graph subgraph indexer. This error should never occur.");
+            require(found == true);
             delete graphIndexingNodeAddresses[userIndex];
         }
 

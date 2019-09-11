@@ -24,7 +24,6 @@ contract('Service Registry', accounts => {
 
     // Set the url
     const { logs } = await deployedServiceRegistry.setUrl(
-      indexer,
       url,
       { from: indexer },
     )
@@ -42,7 +41,6 @@ contract('Service Registry', accounts => {
 
     // Set the url
     const { logs } = await deployedServiceRegistry.setUrl(
-      indexer,
       url,
       { from: indexer },
     )
@@ -54,17 +52,6 @@ contract('Service Registry', accounts => {
     })
   })
 
-  it('...should prevent non msg.sender from setting URL', async () => {
-    const url = 'https://192.168.2.1/'
-
-    // We expect the revert, and confirm it fails on the correct require statement be checking the error message
-    await expectRevert(
-      deployedServiceRegistry.setUrl(indexer, url, {
-        from: accounts[5],
-      }),
-      'msg.sender must call',
-    )
-  })
 
   it('...should allow setting multiple graph network service providers URL, getting the length, and removing an indexer', async () => {
     const url = 'https://192.168.2.1/'

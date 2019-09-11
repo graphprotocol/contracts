@@ -30,7 +30,6 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
     // encode transaction data using encodeABI()
     const directlyEncodedAbiTxData = deployedServiceRegistry.contract.methods
       .setUrl(
-        serviceProvider, // <address> serviceProvider
         urlToRegister, // <bytes> url
       )
       .encodeABI()
@@ -43,7 +42,6 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
     const moduleEncodedTxData = gp.abiEncode(
       deployedServiceRegistry.contract.methods.setUrl,
       [
-        serviceProvider, // <address> serviceProvider
         urlToRegister, // <bytes> url
       ],
     )

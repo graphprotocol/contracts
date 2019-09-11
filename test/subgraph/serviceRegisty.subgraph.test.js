@@ -24,7 +24,6 @@ contract('Service Registry', accounts => {
 
       // Set the url
       const { logs } = await deployedServiceRegistry.setUrl(
-        accounts[i],
         url,
         { from: accounts[i] },
       )

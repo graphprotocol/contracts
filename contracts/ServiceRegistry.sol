@@ -79,13 +79,11 @@ contract ServiceRegistry is Governed {
      * @notice Set service provider url from their address
      * @dev Only msg.sender may do this
      *
-     * @param _indexer <address> - Address of the service provider
      * @param _url <string> - URL of the service provider
      */
-    function setUrl(address _indexer, string calldata _url) external {
-        require(msg.sender == _indexer, "msg.sender must call");
+    function setUrl(string calldata _url) external {
         bytes memory url = bytes(_url);
-        emit ServiceUrlSet(_indexer, _url, url);
+        emit ServiceUrlSet(msg.sender, _url, url);
     }
     /**
      * @dev A function to help find the location of the indexer URL in the dynamic array. Note that
