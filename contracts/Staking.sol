@@ -80,12 +80,6 @@ contract Staking is Governed, BancorFormula
 {
     using BytesLib for bytes;
 
-    /* Events */
-    event Deposit (
-        address indexed user,
-        uint256 amount
-    );
-
     event Withdraw (
         address indexed user,
         uint256 amount
@@ -160,6 +154,7 @@ contract Staking is Governed, BancorFormula
         uint256 amountStaked;
         uint256 feesAccrued;
         uint256 logoutStarted;
+        uint256 lockedTokens;
     }
 
     struct Subgraph { // In subgraph factory pattern, these are just globals
@@ -256,13 +251,12 @@ contract Staking is Governed, BancorFormula
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
 
-    // Mapping users to their standbyTokens (tokens deposited in the
-    // contract, but not yet staked
-    mapping (address => uint256) public standbyTokens;
+    // Mapping users to their lockedTokens (tokens unstaked from indexing, but not yet thawed
+    mapping (address => uint256) public lockedTokens;
 
-    // Mapping users to their thawing tokens (tokens not earning rewards, that are stuck until
-    // the thawing period is over
-    mapping (address => uint256) public thawingTokens;
+    // Mapping users to their thawed tokens (tokens that have endured the locking period, and can
+    // now be withdrawn to an ethereum account
+    mapping (address => uint256) public thawedTokens;
 
     // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
@@ -478,27 +472,50 @@ contract Staking is Governed, BancorFormula
     }
 
     /**
-     * @dev Accept tokens into standby pool
+     * @dev Accept tokens and handle staking registration functions
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
      */
-    function tokensReceived (
+    function tokensReceived(
         address _from,
-        uint256 _value
+        uint256 _value,
+        bytes calldata _data
     )
         external
         returns (bool success)
     {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token));
-        standbyTokens[_from] += _value;
-        success = true;
 
-        emit Deposit(_from, _value);
+        // Process _data to figure out the action to take (and which subgraph is involved)
+        require(_data.length >= 1 + 32);
+        // Must be at least 33 bytes (Header)
+        TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
+        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
+        // In subgraph factory, not necessary
+
+        if (option == TokenReceiptAction.Staking) {
+            stakeForIndexing(_subgraphId, _from, _value);
+        } else if (option == TokenReceiptAction.Curation) {
+            // @imp c01 Handle internal call for Curation Staking
+            signalForCuration(_subgraphId, _from, _value);
+        } else if (option == TokenReceiptAction.Dispute) {
+            require(_data.length == 33 + ATTESTATION_SIZE_BYTES);
+            bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
+            // Inner call to createDispute
+            createDispute(_attestation, _subgraphId, _from, _value);
+        } else if (option == TokenReceiptAction.Settlement) {
+            require(_data.length >= 33 + 20);
+            // Header + _indexingNode
+            address _indexingNode = _data.slice(65, 20).toAddress(0);
+            distributeChannelFees(_subgraphId, _indexingNode, _value);
+        } else {
+            revert();
+        }
     }
 
     /**
-     * @dev Withdraw tokens from standby pool
+     * @dev Withdraw from thawed token pool
      * @param _value <uint256> - Amount of Graph Tokens
      */
     function tokensWithdrawn (
@@ -507,8 +524,8 @@ contract Staking is Governed, BancorFormula
         external
         returns (bool success)
     {
-        require(standbyTokens[msg.sender] >= _value);
-        standbyTokens[msg.sender] -= _value;
+        require(thawedTokens[msg.sender] >= _value);
+        thawedTokens[msg.sender] -= _value;
         success = true;
 
         // Return the tokens to the curator
@@ -574,13 +591,15 @@ contract Staking is Governed, BancorFormula
     /**
      * @dev Stake Graph Tokens for Market Curation by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
+     * @param _curator <address> - Address of Staking party
      * @param _tokenAmount <uint256> - Amount of Graph Tokens to be staked
      */
     function signalForCuration (
-        uint256 _tokenAmount,
-        bytes32 _subgraphId
+        bytes32 _subgraphId,
+        address _curator,
+        uint256 _tokenAmount
     )
-        external
+        private
     {
         // Overflow protection
         require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount > subgraphs[_subgraphId].totalCurationStake);
@@ -599,7 +618,7 @@ contract Staking is Governed, BancorFormula
             subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
 
             // The first share costs minimumCurationStake amount of tokens
-            curators[_subgraphId][msg.sender].subgraphShares = 1;
+            curators[_subgraphId][_curator].subgraphShares = 1;
             subgraphs[_subgraphId].totalCurationShares = 1;
             subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
             tokenAmount -= minimumCurationStakingAmount;
@@ -615,15 +634,12 @@ contract Staking is Governed, BancorFormula
                 subgraphs[_subgraphId].reserveRatio
             );
 
-            // Update the amount of tokens msg.sender has, and overall amount staked
+            // Update the amount of tokens _curator has, and overall amount staked
             subgraphs[_subgraphId].totalCurationStake += tokenAmount;
 
-            // Update the amount of shares issued to msg.sender, and total amount issued
-            curators[_subgraphId][msg.sender].subgraphShares += _newShares;
+            // Update the amount of shares issued to _curator, and total amount issued
+            curators[_subgraphId][_curator].subgraphShares += _newShares;
             subgraphs[_subgraphId].totalCurationShares += _newShares;
-
-            // Decrease standby tokens now that signaling has occured for curation
-            standbyTokens[msg.sender] -= _tokenAmount;
 
             // Ensure curators cannot stake more than 100% in basis points
             // Note: ensures that distributeChannelFees() does not revert
@@ -632,9 +648,9 @@ contract Staking is Governed, BancorFormula
 
         // Emit the CuratorStaked event (updating the running tally)
         emit CuratorStaked(
-            msg.sender,
+            _curator,
             _subgraphId,
-            curators[_subgraphId][msg.sender].subgraphShares,
+            curators[_subgraphId][_curator].subgraphShares,
             subgraphs[_subgraphId].totalCurationShares,
             subgraphs[_subgraphId].totalCurationStake)
         ;
@@ -673,11 +689,11 @@ contract Staking is Governed, BancorFormula
         curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
         subgraphs[_subgraphId].totalCurationShares -= _numShares;
 
-       // Increase standbyTokens to be able to withdraw
-        standbyTokens[msg.sender] += _tokenRefund;
+        // Return the tokens to the curator
+        assert(token.transfer(msg.sender, _tokenRefund));
 
-    if (fullLogout) {
-        // Emit the CuratorLogout event
+        if (fullLogout) {
+            // Emit the CuratorLogout event
             emit CuratorLogout(
                 msg.sender,
                 _subgraphId,
@@ -699,41 +715,41 @@ contract Staking is Governed, BancorFormula
     /**
      * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
+     * @param _indexer <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
     function stakeForIndexing (
-        uint256 _value,
-        bytes32 _subgraphId
+        bytes32 _subgraphId,
+        address _indexer,
+        uint256 _value
     )
-        external
+        private
     {
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
-            (bool found, ) = findGraphIndexerIndex(msg.sender);
+            (bool found, ) = findGraphIndexerIndex(_indexer);
             // If the user was never found, we must push them into the array
             if (found == false){
-                graphIndexingNodeAddresses.push(msg.sender);
+                graphIndexingNodeAddresses.push(_indexer);
             }
         }
-        require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
-        require(indexingNodes[_subgraphId][msg.sender].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
-        if (indexingNodes[_subgraphId][msg.sender].amountStaked == 0)
+        require(indexingNodes[_subgraphId][_indexer].logoutStarted == 0);
+        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
+        if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-        indexingNodes[_subgraphId][msg.sender].amountStaked += _value;
+        indexingNodes[_subgraphId][_indexer].amountStaked += _value;
         subgraphs[_subgraphId].totalIndexingStake += _value;
 
-        // Decrease standby tokens now that user has staked for indexing
-        standbyTokens[msg.sender] -= _value;
-
         emit IndexingNodeStaked(
-            msg.sender,
-            indexingNodes[_subgraphId][msg.sender].amountStaked,
+            _indexer,
+            indexingNodes[_subgraphId][_indexer].amountStaked,
             _subgraphId,
             subgraphs[_subgraphId].totalIndexingStake
         );
 
     }
 
+    // TODO - implement partial logouts for these two functions
     /**
      * @dev Indexing node can start logout process
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
@@ -764,7 +780,7 @@ contract Staking is Governed, BancorFormula
         subgraphs[_subgraphId].totalIndexingStake -= _stake;
 
         // Increase thawingTokens to begin thawing
-        thawingTokens[msg.sender] += (_stake + _fees);
+        indexingNodes[_subgraphId][msg.sender].lockedTokens += (_stake + _fees);
 
         emit IndexingNodeBeginLogout(msg.sender, _subgraphId, _stake, _fees);
     }
@@ -779,21 +795,19 @@ contract Staking is Governed, BancorFormula
         // TODO - BUG, you can call finalize logout here, without ever calling beginLogout, and it will work
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
 
-        // Reset the timestamp
+        uint256 _amount = indexingNodes[_subgraphId][msg.sender].lockedTokens;
+        // Reset the index node
         delete indexingNodes[_subgraphId][msg.sender];
 
         // Remove an indexer from the subgraph
         subgraphs[_subgraphId].totalIndexers -= 1;
 
-        uint256 _amount = thawingTokens[msg.sender];
-        thawingTokens[msg.sender] -= _amount;
-
         // Increase standbyTokens to be able to withdraw
-        standbyTokens[msg.sender] += _amount;
+        thawedTokens[msg.sender] += _amount;
 
         emit IndexingNodeFinalizeLogout(
-                msg.sender,
-                _subgraphId
+            msg.sender,
+            _subgraphId
         );
     }
 
@@ -817,15 +831,17 @@ contract Staking is Governed, BancorFormula
      * @param _attestation <Attestation> - Signed Attestation message
      * @param _subgraphId <bytes32> - SubgraphId that Attestation message
      *                                contains (in request raw object at CID)
+     * @param _fisherman <address> - Creator of dispute
      * @param _amount <uint256> - Amount of tokens staked
      * @notice Payable using Graph Tokens for deposit
      */
     function createDispute (
-        bytes calldata _attestation,
+        bytes memory _attestation,
         bytes32 _subgraphId,
+        address _fisherman,
         uint256 _amount
     )
-        external
+        private
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         bytes32 _disputeId = keccak256(abi.encode(
@@ -891,13 +907,10 @@ contract Staking is Governed, BancorFormula
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
         // Store dispute
-        disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, msg.sender, _amount);
-
-        // Decrease standbyTokens, since they are now within a dispute
-        standbyTokens[msg.sender] -= _amount;
+        disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
 
         // Log event that new dispute was created against _indexingNode
-        emit DisputeCreated(_subgraphId, _indexingNode, msg.sender, _disputeId, _attestation);
+        emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
     }
 
     /**
@@ -930,7 +943,7 @@ contract Staking is Governed, BancorFormula
 
         if (_subgraphId == graphSubgraphID) {
             (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-            require(found == true);
+            assert(found == true);
             delete graphIndexingNodeAddresses[userIndex];
         }
 
@@ -942,10 +955,10 @@ contract Staking is Governed, BancorFormula
 
         // Give governance the difference between the fisherman's reward and the total stake
         // plus the Indexing Node's accrued fees
-        standbyTokens[governor] += (_stake - _reward + _fees); // TODO Burn or give to governance?
+        token.transfer(governor, (_stake - _reward) + _fees); // TODO Burn or give to governance?
 
-        // Give the fisherman their reward and bond back in stand by tokens
-        standbyTokens[_fisherman] += (_reward + _bond);
+        // Give the fisherman their reward and bond back
+        token.transfer(_fisherman, _reward + _bond);
 
         // Log event that we awarded _fisherman _reward in resolving _disputeId
         emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);
@@ -971,7 +984,7 @@ contract Staking is Governed, BancorFormula
         delete disputes[_disputeId]; // Re-entrancy protection
 
         // Slash the fisherman's bond and send to the governor
-        standbyTokens[governor] += _bond; // TODO Burn or give to governance?
+        token.transfer(governor, _bond); // TODO Burn or give to governance?
 
         // Log event that we slashed _fisherman for _bond in resolving _disputeId
         emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
@@ -992,7 +1005,7 @@ contract Staking is Governed, BancorFormula
         address _indexingNode,
         uint256 _feesEarned
     )
-        external
+        private
     {
         // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
         uint256 _curatorRewardBasisPts = subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
@@ -1009,7 +1022,7 @@ contract Staking is Governed, BancorFormula
      *      Indexing Node would be able to log out all the fees they earned during a dispute.
      * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
      */
-    function unlockFees (
+    function withdrawFees (
         bytes32 _subgraphId
     )
         external
@@ -1018,7 +1031,7 @@ contract Staking is Governed, BancorFormula
         _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
         require(_feesAccrued > 0);
         indexingNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
-        standbyTokens[msg.sender] += _feesAccrued;
+        token.transfer(msg.sender, _feesAccrued);
     }
 
     /**

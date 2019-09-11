@@ -31,7 +31,8 @@ contract TokenReceiver
 {
     function tokensReceived(
         address _from,
-        uint256 _amount
+        uint256 _amount,
+        bytes calldata _data
     )
         external
         returns (bool);
@@ -82,14 +83,15 @@ contract GraphToken is
      */
     function transferToTokenReceiver(
         address _to,
-        uint256 _amount
+        uint256 _amount,
+        bytes memory _data
     )
         public
         returns (bool success)
     {
         assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
         // @imp 08 Have staking contract receive the token and handle the data
-        assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount));
+        assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount, _data));
         success = true;
     }
 }
