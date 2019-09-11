@@ -20,7 +20,7 @@ contract ServiceRegistry is Governed {
     */
 
     /* EVENTS */
-    event ServiceUrlSet (address indexed serviceProvider, string urlString, bytes urlBytes);
+    event ServiceUrlSet (address indexed serviceProvider, string urlString);
 
     struct ServiceProvider {
         address indexer;
@@ -59,7 +59,7 @@ contract ServiceRegistry is Governed {
             // To update the URL
             graphNetworkServiceProviderURLs[index] = serviceProvider;
         }
-        emit ServiceUrlSet(_indexer, _url, url);
+        emit ServiceUrlSet(_indexer, _url);
     }
 
     /*
@@ -82,8 +82,7 @@ contract ServiceRegistry is Governed {
      * @param _url <string> - URL of the service provider
      */
     function setUrl(string calldata _url) external {
-        bytes memory url = bytes(_url);
-        emit ServiceUrlSet(msg.sender, _url, url);
+        emit ServiceUrlSet(msg.sender, _url);
     }
     /**
      * @dev A function to help find the location of the indexer URL in the dynamic array. Note that

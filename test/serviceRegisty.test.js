@@ -30,7 +30,6 @@ contract('Service Registry', accounts => {
     expectEvent.inLogs(logs, 'ServiceUrlSet', {
       serviceProvider: indexer,
       urlString: url,
-      urlBytes: urlBytes
     })
   })
 
@@ -47,7 +46,6 @@ contract('Service Registry', accounts => {
     expectEvent.inLogs(logs, 'ServiceUrlSet', {
       serviceProvider: indexer,
       urlString: url,
-      urlBytes: urlBytes
     })
   })
 
@@ -68,7 +66,6 @@ contract('Service Registry', accounts => {
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: indexers[i],
         urlString: url,
-        urlBytes: urlBytes
       })
     }
 

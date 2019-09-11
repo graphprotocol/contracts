@@ -30,7 +30,6 @@ contract('Service Registry', accounts => {
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: accounts[i],
         urlString: url,
-        urlBytes: urlBytes
       })
     }
   })
