@@ -40,7 +40,6 @@ contract('Staking (Indexing)', ([
       initialTokenSupply, // initial supply
       { from: deploymentAddress }
     )
-    assert.isObject(deployedGraphToken, 'Deploy GraphToken contract tx failed.')
 
     // send some tokens to the staking account
     const tokensForIndexer = await deployedGraphToken.mint(
@@ -62,14 +61,12 @@ contract('Staking (Indexing)', ([
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
-    assert.isObject(deployedStaking, 'Deploy Staking contract tx failed.')
 
     // init Graph Protocol JS library with deployed staking contract
     gp = GraphProtocol({
       Staking: deployedStaking,
       GraphToken: deployedGraphToken
     })
-    assert.isObject(gp, 'Initialize the Graph Protocol library.')
   })
 
   describe('staking', () => {
@@ -81,47 +78,23 @@ contract('Staking (Indexing)', ([
         totalBalance.toNumber() === 0,
         'Balances before transfer are incorrect.'
       )
-
-      const depositTx = await deployedGraphToken.transferToTokenReceiver(
+      const data = '0x00' + subgraphIdHex
+      const tx = await deployedGraphToken.transferToTokenReceiver(
         deployedStaking.address, // to
         stakingAmount, // value
+        data, // data
         { from: indexingStaker },
       )
-      assert(depositTx, 'Deposit in the standby pool tx failed')
-
-      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
-        user: indexingStaker,
-        amount: stakingAmount
-      })
-
-      const standbyTokensDeposited = await deployedStaking.standbyTokens(indexingStaker)
-      assert(
-        standbyTokensDeposited.toString() === stakingAmount.toString(),
-        'Standby tokens were not deposited correctly.'
-      )
-
-      const stakeTx = await deployedStaking.stakeForIndexing(
-        stakingAmount, // value
-        subgraphIdHex0x,
-        { from: indexingStaker },
-      )
-      assert(stakeTx, 'Stake Graph Tokens for indexing directly.')
 
       const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
       assert(subgraph.totalIndexingStake.toString() === stakingAmount.toString(), 'Subgraph did not increase its total stake')
 
-      expectEvent.inLogs(stakeTx.logs, 'IndexingNodeStaked', {
+      expectEvent.inTransaction(tx.tx, Staking,'IndexingNodeStaked', {
         staker: indexingStaker,
         amountStaked: stakingAmount,
         subgraphID: subgraphIdHex0x,
         subgraphTotalIndexingStake: subgraph.totalIndexingStake
       })
-
-      const standbyTokensZero = await deployedStaking.standbyTokens(indexingStaker)
-      assert(
-        standbyTokensZero.toNumber() === 0,
-        'Standby token were not staked properly.'
-      )
 
       const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
         subgraphIdHex0x,
@@ -141,56 +114,10 @@ contract('Staking (Indexing)', ([
         totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer are incorrect.'
       )
-
     })
 
     it('...should allow staking through JS module', async () => {
       await stakeForIndexing()
-    })
-
-    it('...should allow withdrawing tokens', async () => {
-      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toString() === tokensMintedForStaker.toString() &&
-        totalBalance.toNumber() === 0,
-        'Balances before transfer are incorrect.'
-      )
-
-      const depositTx = await deployedGraphToken.transferToTokenReceiver(
-        deployedStaking.address, // to
-        stakingAmount, // value
-        { from: indexingStaker },
-      )
-      assert(depositTx, 'Deposit in the standby pool Tx failed')
-
-      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
-        user: indexingStaker,
-        amount: stakingAmount
-      })
-
-      const standbyTokensDeposited = await deployedStaking.standbyTokens(indexingStaker)
-      assert(
-        standbyTokensDeposited.toString() === stakingAmount.toString(),
-        'Standby tokens were not deposited correctly.'
-      )
-
-      const withdrawTx = await deployedStaking.tokensWithdrawn(
-        stakingAmount, // value
-        { from: indexingStaker },
-      )
-      expectEvent.inLogs(withdrawTx.logs, 'Withdraw', {
-        user: indexingStaker,
-        amount: stakingAmount
-      })
-      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toString() === tokensMintedForStaker.toString() &&
-        totalBalance.toNumber() === 0,
-        'Balances after withdraw are incorrect.'
-      )
-
     })
 
   })
@@ -204,7 +131,7 @@ contract('Staking (Indexing)', ([
       )
     })
 
-    it('...should finalize logout after cooling period', async () => {
+    it('...should finalize logout and withdrawal after cooling period', async () => {
       await stakeForIndexing()
       await beginLogout()
       const subgraphBeforeFinalize = await deployedStaking.subgraphs(subgraphIdHex0x)
@@ -219,7 +146,6 @@ contract('Staking (Indexing)', ([
         subgraphIdHex0x, // subgraphId
         { from: indexingStaker }
       )
-      assert.isObject(finalizedLogout, 'Finalized Logout process.')
 
       const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
       assert(subgraph.totalIndexers.toNumber() === indexerCount.toNumber() - 1, 'Total indexers of subgraph did not decrease by 1.')
@@ -232,16 +158,28 @@ contract('Staking (Indexing)', ([
         , "Index node was not deleted."
       )
 
-      const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
-      assert(thawingTokens.toString() === '0', 'Thawing tokens did not decrease properly.')
+      assert(indexingNode.lockedTokens.toString() === '0', 'Locked tokens not set properly')
 
-      const standbyTokens = await deployedStaking.standbyTokens(indexingStaker)
-      assert(standbyTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
+      const thawedTokens = await deployedStaking.thawedTokens(indexingStaker)
+      assert(thawedTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
 
       expectEvent.inLogs(finalizedLogout.logs, 'IndexingNodeFinalizeLogout', {
         staker: indexingStaker,
         subgraphID: subgraphIdHex0x,
       })
+
+      const withdraw = await deployedStaking.tokensWithdrawn(
+        stakingAmount,
+        { from: indexingStaker }
+      )
+
+      expectEvent.inLogs(withdraw.logs, 'Withdraw', {
+        user: indexingStaker,
+        amount: thawedTokens,
+      })
+
+      const thawedTokensZero = await deployedStaking.thawedTokens(indexingStaker)
+      assert(thawedTokensZero.toString() === '0', 'Standby tokens did not increase properly.')
     })
   })
 
@@ -280,7 +218,7 @@ contract('Staking (Indexing)', ([
     )
 
     const indexingStake = await gp.staking.stakeForIndexing(
-      subgraphIdHex0x, // subgraphId
+      subgraphIdHex, // subgraphId
       indexingStaker, // from
       stakingAmount // value
     )
@@ -313,7 +251,6 @@ contract('Staking (Indexing)', ([
     const previousTotalIndexingStake = subgraphWithStake.totalIndexingStake
 
     const logout = await gp.staking.beginLogout(subgraphIdHex0x, indexingStaker)
-    assert.isObject(logout, 'beginLogout tx failed.')
 
     const blockNumber = logout.receipt.blockNumber
     const block = await web3.eth.getBlock(blockNumber)
@@ -333,8 +270,7 @@ contract('Staking (Indexing)', ([
     const subgraph = await deployedStaking.subgraphs(subgraphIdHex0x)
     assert(previousTotalIndexingStake.sub(stakingAmount).toString() === subgraph.totalIndexingStake.toString(), 'Subgraph did not decrease its total stake')
 
-    const thawingTokens = await deployedStaking.thawingTokens(indexingStaker)
-    assert(thawingTokens.toString() === stakingAmount.toString(), 'Thawing tokens not set properly')
+    assert(indexNode.lockedTokens.toString() === stakingAmount.toString(), 'Locked tokens not set properly')
 
     expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
       staker: indexingStaker,

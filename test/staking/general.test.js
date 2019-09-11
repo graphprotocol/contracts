@@ -41,7 +41,6 @@ contract(
         initialTokenSupply, // initial supply
         { from: deploymentAddress },
       )
-      assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
 
       // deploy Staking contract
       deployedStaking = await Staking.new(
@@ -55,7 +54,6 @@ contract(
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
-      assert.isObject(deployedStaking, 'Deploy Staking contract.')
       assert(
         web3.utils.isAddress(deployedStaking.address),
         'Staking address is address.',
@@ -66,7 +64,6 @@ contract(
         Staking: deployedStaking,
         GraphToken: deployedGraphToken,
       })
-      assert.isObject(gp, 'Initialize the Graph Protocol library.')
     })
 
     describe('state variables set in construction', () => {

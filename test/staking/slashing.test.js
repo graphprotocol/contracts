@@ -51,7 +51,6 @@ contract('Staking (Slashing)', ([
       initialTokenSupply, // initial supply
       { from: deploymentAddress }
     )
-    assert.isObject(deployedGraphToken, "Deploy GraphToken contract.")
 
     // send some tokens to the staking account
     const tokensForIndexer = await deployedGraphToken.mint(
@@ -73,7 +72,6 @@ contract('Staking (Slashing)', ([
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
-    assert.isObject(deployedStaking, "Deploy Staking contract.")
     assert(web3.utils.isAddress(deployedStaking.address), "Staking address is address.")
 
     // init Graph Protocol JS library with deployed staking contract
@@ -81,7 +79,6 @@ contract('Staking (Slashing)', ([
       Staking: deployedStaking,
       GraphToken: deployedGraphToken
     })
-    assert.isObject(gp, "Initialize the Graph Protocol library.")
   })
 
   describe("slashing", () => {
@@ -94,7 +91,6 @@ contract('Staking (Slashing)', ([
     //     data, // data
     //     { from: fisherman }
     //   )
-    //   assert.isObject(createDispute, "Creating dispute.")
     //   console.log({ createDispute })
     // })
   })

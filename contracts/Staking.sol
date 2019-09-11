@@ -510,8 +510,9 @@ contract Staking is Governed, BancorFormula
             address _indexingNode = _data.slice(65, 20).toAddress(0);
             distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
-            revert();
+            revert('Token received option must be 0, 1, 2, or 3.');
         }
+        success = true;
     }
 
     /**

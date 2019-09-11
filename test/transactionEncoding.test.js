@@ -14,13 +14,11 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
       governor, // governor
       { from: deployment },
     )
-    assert.isObject(deployedServiceRegistry, 'Deploy ServiceRegistry contract.')
 
     // init Graph Protocol JS library with deployed ServiceRegistry contract
     gp = GraphProtocol({
       ServiceRegistry: deployedServiceRegistry,
     })
-    assert.isObject(gp, 'Initialize the Graph Protocol library.')
   })
 
   it('...should allow using graphProtocol.js to encode ABI transaction data', async () => {

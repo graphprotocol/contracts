@@ -13,7 +13,6 @@ contract('Service Registry', accounts => {
       accounts[0], // governor
       { from: accounts[0] },
     )
-    assert.isObject(deployedServiceRegistry, 'Deploy ServiceRegistry contract.')
   })
 
   it('...should allow setting URL 10 times', async () => {

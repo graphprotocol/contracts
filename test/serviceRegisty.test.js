@@ -15,7 +15,6 @@ contract('Service Registry', accounts => {
       governor, // governor
       { from: governor },
     )
-    assert.isObject(deployedServiceRegistry, 'Deploy ServiceRegistry contract.')
   })
 
   it('...should allow setting URL with arbitrary length string', async () => {

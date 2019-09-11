@@ -90,7 +90,6 @@ module.exports = {
   // For some reason, when getting the tx hash from here, it works in governance.test.js line 50
   // The test for "...should be able to transfer governance of self to MultiSigWallet #2"
   getParamFromTxEvent: (transaction, paramName, contractFactory, eventName) => {
-    assert.isObject(transaction)
     let logs = transaction.logs || transaction.events || []
     if (eventName != null) {
       logs = logs.filter(l => l.event === eventName)

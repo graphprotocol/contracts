@@ -49,7 +49,6 @@ contract('Governance', accounts => {
       0, // value
       txData, // transaction data
     )
-    assert.isObject(transaction, 'Transaction was not saved.')
 
     // Get the `transactionId` from the logs
     const transactionId = helpers.getParamFromTxEvent(

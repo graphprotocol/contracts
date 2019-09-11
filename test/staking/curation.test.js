@@ -44,7 +44,6 @@ contract(
         initialTokenSupply, // initial supply
         { from: deploymentAddress },
       )
-      assert.isObject(deployedGraphToken, 'Deploy GraphToken contract.')
 
       // send some tokens to the staking account
       const tokensForCurator = await deployedGraphToken.mint(
@@ -66,14 +65,12 @@ contract(
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
       )
-      assert.isObject(deployedStaking, 'Deploy Staking contract.')
 
       // init Graph Protocol JS library with deployed staking contract
       gp = GraphProtocol({
         Staking: deployedStaking,
         GraphToken: deployedGraphToken,
       })
-      assert.isObject(gp, 'Initialize the Graph Protocol library.')
     })
 
     it('...should allow signaling directly', async () => {
@@ -87,41 +84,26 @@ contract(
         'Balances before transfer are incorrect.',
       )
 
-      const depositTx = await deployedGraphToken.transferToTokenReceiver(
+      const data = '0x01' + subgraphIdHex
+      const tx = await deployedGraphToken.transferToTokenReceiver(
         deployedStaking.address, // to
         stakingAmount, // value
+        data, // data
         { from: curationStaker },
-      )
-      assert(depositTx, 'Deposit in the standby pool')
-
-      expectEvent.inTransaction(depositTx.tx, Staking, 'Deposit', {
-        user: curationStaker,
-        amount: stakingAmount
-      })
-
-      const standbyTokensDeposited = await deployedStaking.standbyTokens(curationStaker)
-      assert(
-        standbyTokensDeposited.toString() === stakingAmount.toString(),
-        'Standby tokens were not deposited correctly.'
-      )
-
-      const stakeTx = await deployedStaking.signalForCuration(
-        stakingAmount, // value
-        subgraphIdHex0x,
-        { from: curationStaker },
-      )
-      assert(stakeTx, 'Stake for curation')
-
-      const standbyTokensZero = await deployedStaking.standbyTokens(curationStaker)
-      assert(
-        standbyTokensZero.toNumber() === 0,
-        'Standby token were not staked properly.'
       )
 
       const subgraphShares = await gp.staking.curators(
         subgraphIdHex0x,
         curationStaker,
       )
+
+      expectEvent.inTransaction(tx.tx, Staking, 'CuratorStaked', {
+        staker: curationStaker,
+        subgraphID: subgraphIdHex0x,
+        curatorShares: subgraphShares,
+        subgraphTotalCurationShares: subgraphShares,
+        subgraphTotalCurationStake: stakingAmount,
+      })
 
       totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
@@ -130,14 +112,6 @@ contract(
         totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer is incorrect.',
       )
-
-      expectEvent.inTransaction(stakeTx.tx, Staking, 'CuratorStaked', {
-        staker: curationStaker,
-        subgraphID: subgraphIdHex0x,
-        curatorShares: subgraphShares,
-        subgraphTotalCurationShares: subgraphShares,
-        subgraphTotalCurationStake: stakingAmount,
-      })
     })
 
     it('...should allow curation signaling and emit CuratorStaked', async () => {
@@ -187,11 +161,10 @@ contract(
       )
 
       const curationStake = await gp.staking.stakeForCuration(
-        subgraphIdHex0x, // subgraphId
+        subgraphIdHex, // subgraphId
         curationStaker, // from
         stakingAmount // value
       )
-      assert(curationStake, 'Staking for curation failed.')
 
       const subgraphShares = await gp.staking.curators(
         subgraphIdHex0x,
@@ -206,7 +179,6 @@ contract(
         'Balances after transfer is incorrect.',
       )
 
-      // Not clear how to get this log, since it is emitted at the end of a few txs
       expectEvent.inTransaction(curationStake.tx, Staking, 'CuratorStaked', {
         staker: curationStaker,
         subgraphID: subgraphIdHex0x,

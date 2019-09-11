@@ -192,14 +192,11 @@ module.exports = (options = {}) => {
      */
     static async stakeForCuration(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      await GraphToken.transferToTokenReceiver(
+      let data = '0x01' + subgraphId
+      return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
-        { from: from },
-      )
-      return Staking.signalForCuration(
-        value, // value
-        subgraphId,
+        data, // data
         { from: from },
       )
     }
@@ -214,14 +211,11 @@ module.exports = (options = {}) => {
      */
     static async stakeForIndexing(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      await GraphToken.transferToTokenReceiver(
+      let data = '0x00' + subgraphId
+      return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
-        { from: from },
-      )
-      return Staking.stakeForIndexing(
-        value, // value
-        subgraphId,
+        data, // data
         { from: from },
       )
     }
