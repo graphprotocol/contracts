@@ -160,26 +160,12 @@ contract('Staking (Indexing)', ([
 
       assert(indexingNode.lockedTokens.toString() === '0', 'Locked tokens not set properly')
 
-      const thawedTokens = await deployedStaking.thawedTokens(indexingStaker)
-      assert(thawedTokens.toString() === stakingAmount.toString(), 'Standby tokens did not increase properly.')
-
       expectEvent.inLogs(finalizedLogout.logs, 'IndexingNodeFinalizeLogout', {
         staker: indexingStaker,
         subgraphID: subgraphIdHex0x,
       })
 
-      const withdraw = await deployedStaking.tokensWithdrawn(
-        stakingAmount,
-        { from: indexingStaker }
-      )
 
-      expectEvent.inLogs(withdraw.logs, 'Withdraw', {
-        user: indexingStaker,
-        amount: thawedTokens,
-      })
-
-      const thawedTokensZero = await deployedStaking.thawedTokens(indexingStaker)
-      assert(thawedTokensZero.toString() === '0', 'Standby tokens did not increase properly.')
     })
   })
 

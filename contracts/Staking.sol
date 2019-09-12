@@ -80,11 +80,6 @@ contract Staking is Governed, BancorFormula
 {
     using BytesLib for bytes;
 
-    event Withdraw (
-        address indexed user,
-        uint256 amount
-    );
-
     event CuratorStaked (
         address indexed staker,
         bytes32 subgraphID,
@@ -250,13 +245,6 @@ contract Staking is Governed, BancorFormula
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
-
-    // Mapping users to their lockedTokens (tokens unstaked from indexing, but not yet thawed
-    mapping (address => uint256) public lockedTokens;
-
-    // Mapping users to their thawed tokens (tokens that have endured the locking period, and can
-    // now be withdrawn to an ethereum account
-    mapping (address => uint256) public thawedTokens;
 
     // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
@@ -513,26 +501,6 @@ contract Staking is Governed, BancorFormula
             revert('Token received option must be 0, 1, 2, or 3.');
         }
         success = true;
-    }
-
-    /**
-     * @dev Withdraw from thawed token pool
-     * @param _value <uint256> - Amount of Graph Tokens
-     */
-    function tokensWithdrawn (
-        uint256 _value
-    )
-        external
-        returns (bool success)
-    {
-        require(thawedTokens[msg.sender] >= _value);
-        thawedTokens[msg.sender] -= _value;
-        success = true;
-
-        // Return the tokens to the curator
-        assert(token.transfer(msg.sender, _value));
-
-        emit Withdraw(msg.sender, _value);
     }
 
     /**
@@ -803,13 +771,12 @@ contract Staking is Governed, BancorFormula
         // Remove an indexer from the subgraph
         subgraphs[_subgraphId].totalIndexers -= 1;
 
-        // Increase standbyTokens to be able to withdraw
-        thawedTokens[msg.sender] += _amount;
+        assert(token.transfer(msg.sender, _amount));
 
         emit IndexingNodeFinalizeLogout(
-            msg.sender,
-            _subgraphId
-        );
+                msg.sender,
+                _subgraphId
+            );
     }
 
     /**
