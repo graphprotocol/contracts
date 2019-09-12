@@ -4,7 +4,7 @@
     "GNS": "0xA8aCc2a937b9cc824918656BBf45627d3b72630E",
     "GraphToken": "0x2893e2Acb60a52c27bD54bfc04afe71b5e6cbe7A",
     "MultisigWallet": "Not a contract, currently daves metamask",
-    "ServiceRegistry": "0x6365aCA6bA43b6937228578142003966325585Fa",
+    "ServiceRegistry": "0x67CF3Db926CA1A30EC348c8b1Ce82087A4f003a6",
     "Staking": "0x89d58b45432706D3F2fa6239A24573cF70b10BC4"
   },
   "ganache": {
