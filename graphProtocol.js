@@ -67,19 +67,19 @@ module.exports = (options = {}) => {
     }
 
     /**
-     * @dev Getter for `maximumIndexers`
-     * @returns {Number} Maximum number of Indexing Nodes allowed
-     */
-    static maximumIndexers() {
-      return Staking.maximumIndexers()
-    }
-
-    /**
      * @dev Getter for `minimumCurationStakingAmount`
      * @returns {Number} Minimum curation staking amount
      */
     static minimumCurationStakingAmount() {
       return Staking.minimumCurationStakingAmount()
+    }
+
+    /**
+     * @dev Getter for `defaultReserveRatio`
+     * @returns {Number} Default reserve ratio
+     */
+    static defaultReserveRatio() {
+      return Staking.defaultReserveRatio()
     }
 
     /**
@@ -89,6 +89,40 @@ module.exports = (options = {}) => {
     static minimumIndexingStakingAmount() {
       return Staking.minimumIndexingStakingAmount()
     }
+
+    /**
+     * @dev Getter for `maximumIndexers`
+     * @returns {Number} Maximum number of Indexing Nodes allowed
+     */
+    static maximumIndexers() {
+      return Staking.maximumIndexers()
+    }
+
+    /**
+     * @dev Getter for `thawingPeriod`
+     * @returns {Number} Thawing period
+     */
+    static thawingPeriod() {
+      return Staking.thawingPeriod()
+    }
+
+    /**
+     * @dev Getter for `slashingPercent`
+     * @returns {Number} Slashing percent
+     */
+    static slashingPercent() {
+      return Staking.slashingPercent()
+    }
+
+    /**
+     * @dev Getter for `arbitrator`
+     * @returns {Number} Arbitrator
+     */
+    static arbitrator() {
+      return Staking.arbitrator()
+    }
+
+
 
     /**
      * @dev Getter for `token` (deployed GraphToken contract address)
@@ -156,14 +190,14 @@ module.exports = (options = {}) => {
      * @param {Number} value Amount of Graph Tokens to be staked for curation
      * @returns {Boolean} success
      */
-    static stakeForCuration(subgraphId, from, value) {
-      // encode data to be used in staking for curation
-      const data = web3.utils.hexToBytes('0x01' + subgraphId)
-      return GraphToken.transferWithData(
+    static async stakeForCuration(subgraphId, from, value) {
+      // encode data to be used in staking for indexing
+      let data = '0x01' + subgraphId
+      return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
         data, // data
-        { from }, // from/curator
+        { from: from },
       )
     }
 
@@ -175,16 +209,14 @@ module.exports = (options = {}) => {
      * @param {Data} indexingRecords Data containing indexing records for this subgraphId
      * @returns {Boolean} success
      */
-    static stakeForIndexing(subgraphId, from, value, indexingRecords) {
+    static async stakeForIndexing(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      let hex = '0x00' + subgraphId
-      if (indexingRecords) hex += indexingRecords
-      const data = web3.utils.hexToBytes(hex)
-      return GraphToken.transferWithData(
+      let data = '0x00' + subgraphId
+      return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
         data, // data
-        { from } // from/curator
+        { from: from },
       )
     }
 

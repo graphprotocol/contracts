@@ -18,23 +18,27 @@ contract('Staking (Slashing)', ([
   /**
    * testing constants
    */
-  const minimumCurationStakingAmount = 100,
-    defaultReserveRatio = 500000, // PPM
-    minimumIndexingStakingAmount = 100,
-    maximumIndexers = 10,
-    slashingPercent = 10,
-    coolingPeriod = 60 * 60 * 24 * 7, // seconds
+  const
+    minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
+    minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+    defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
+    maximumIndexers = helpers.stakingConstants.maximumIndexers,
+    slashingPercent = helpers.stakingConstants.slashingPercent,
+    thawingPeriod = helpers.stakingConstants.thawingPeriod,
+    initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
+    stakingAmount = helpers.graphTokenConstants.stakingAmount,
+    shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000,
+    tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker,
+
     chainId = 1,
     domainTypeHash = web3.utils.sha3("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"),
     domainNameHash = web3.utils.sha3("Graph Protocol"),
     domainVersionHash = web3.utils.sha3("0.1"),
     attestationTypeHash = web3.utils.sha3("Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"),
     attestationByteSize = 197
-  let deployedStaking,
+  let
+    deployedStaking,
     deployedGraphToken,
-    initialTokenSupply = 1000000,
-    stakingAmount = 1000,
-    tokensMintedForStaker = stakingAmount * 10,
     subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
     subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
     subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
@@ -47,7 +51,6 @@ contract('Staking (Slashing)', ([
       initialTokenSupply, // initial supply
       { from: deploymentAddress }
     )
-    assert.isObject(deployedGraphToken, "Deploy GraphToken contract.")
 
     // send some tokens to the staking account
     const tokensForIndexer = await deployedGraphToken.mint(
@@ -65,11 +68,10 @@ contract('Staking (Slashing)', ([
       minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
       maximumIndexers, // <uint256> maximumIndexers
       slashingPercent, // <uint256> slashingPercent
-      coolingPeriod, // <uint256> coolingPeriod
+      thawingPeriod, // <uint256> thawingPeriod
       deployedGraphToken.address, // <address> token
       { from: deploymentAddress }
     )
-    assert.isObject(deployedStaking, "Deploy Staking contract.")
     assert(web3.utils.isAddress(deployedStaking.address), "Staking address is address.")
 
     // init Graph Protocol JS library with deployed staking contract
@@ -77,58 +79,18 @@ contract('Staking (Slashing)', ([
       Staking: deployedStaking,
       GraphToken: deployedGraphToken
     })
-    assert.isObject(gp, "Initialize the Graph Protocol library.")
   })
 
   describe("slashing", () => {
-    it('...should allow staking for indexing', async () => {
-      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      let stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toNumber() === tokensMintedForStaker &&
-        totalBalance.toNumber() === 0,
-        "Balances before transfer are correct."
-      )
-
-      // stake for indexing
-      const data = web3.utils.hexToBytes('0x00' + subgraphIdHex)
-      const indexingStake = await deployedGraphToken.transferWithData(
-        deployedStaking.address, // to
-        stakingAmount, // value
-        data, // data
-        { from: indexingStaker }
-      )
-      assert(indexingStake, "Stake Graph Tokens for indexing directly.")
-
-      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
-        subgraphIdBytes,
-        indexingStaker
-      )
-      assert(
-        amountStaked.toNumber() === stakingAmount &&
-        logoutStarted.toNumber() === 0,
-        "Staked indexing amount confirmed."
-      )
-
-      totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-      stakerBalance = await deployedGraphToken.balanceOf(indexingStaker)
-      assert(
-        stakerBalance.toNumber() === tokensMintedForStaker - stakingAmount &&
-        totalBalance.toNumber() === stakingAmount,
-        "Balances after transfer are correct."
-      )
-    })
-
     // Need to get this to work in the future, but not for alpha - dk
     // it('...should allow a dispute to be created', async () => {
     //   const data = await createDisputeDataWithSignedAttestation()
-    //   const createDispute = await deployedGraphToken.transferWithData(
+    //   const createDispute = await deployedGraphToken.transferToTokenReceiver(
     //     deployedStaking.address, // to
     //     0, // value
     //     data, // data
     //     { from: fisherman }
     //   )
-    //   assert.isObject(createDispute, "Creating dispute.")
     //   console.log({ createDispute })
     // })
   })

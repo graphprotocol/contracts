@@ -1,3 +1,5 @@
+const BN = web3.utils.BN
+
 module.exports = {
   randomSubgraphIdHex0x: () => web3.utils.randomHex(32),
   randomSubgraphIdHex: (hex) => hex.substring(2),
@@ -88,7 +90,6 @@ module.exports = {
   // For some reason, when getting the tx hash from here, it works in governance.test.js line 50
   // The test for "...should be able to transfer governance of self to MultiSigWallet #2"
   getParamFromTxEvent: (transaction, paramName, contractFactory, eventName) => {
-    assert.isObject(transaction)
     let logs = transaction.logs || transaction.events || []
     if (eventName != null) {
       logs = logs.filter(l => l.event === eventName)
@@ -101,4 +102,20 @@ module.exports = {
       return contract
     } else return param
   },
+  stakingConstants: {
+    minimumCurationStakingAmount: new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
+    minimumIndexingStakingAmount: new BN("100000000000000000000"), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
+    defaultReserveRatio: 500000,
+    maximumIndexers: 10,
+    slashingPercent: 10,
+    thawingPeriod: 60 * 60 * 24 * 7, // In seconds
+    thawingPeriodSimple: 0,
+  },
+  graphTokenConstants: {
+    initialTokenSupply: new BN("10000000000000000000000000"), // 10,000,000 * 10^18  total supply of Graph Tokens at time of deployment
+    stakingAmount: new BN("10000000000000000000000"), // 10000 * 10^18 minimum amount allowed to be staked by Market Curators
+    shareAmountFor10000: new BN("90000000000000000000000") , // When one user stakes 10000, they will get 9 shares returned, as per the bancor formula
+    tokensMintedForStaker: new BN("100000000000000000000000"), // 100000 * 10^18 minimum amount allowed to be staked by Market Curators
+
+  }
 }

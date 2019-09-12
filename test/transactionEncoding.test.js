@@ -14,13 +14,11 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
       governor, // governor
       { from: deployment },
     )
-    assert.isObject(deployedServiceRegistry, 'Deploy ServiceRegistry contract.')
 
     // init Graph Protocol JS library with deployed ServiceRegistry contract
     gp = GraphProtocol({
       ServiceRegistry: deployedServiceRegistry,
     })
-    assert.isObject(gp, 'Initialize the Graph Protocol library.')
   })
 
   it('...should allow using graphProtocol.js to encode ABI transaction data', async () => {
@@ -30,7 +28,6 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
     // encode transaction data using encodeABI()
     const directlyEncodedAbiTxData = deployedServiceRegistry.contract.methods
       .setUrl(
-        serviceProvider, // <address> serviceProvider
         urlToRegister, // <bytes> url
       )
       .encodeABI()
@@ -43,7 +40,6 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
     const moduleEncodedTxData = gp.abiEncode(
       deployedServiceRegistry.contract.methods.setUrl,
       [
-        serviceProvider, // <address> serviceProvider
         urlToRegister, // <bytes> url
       ],
     )

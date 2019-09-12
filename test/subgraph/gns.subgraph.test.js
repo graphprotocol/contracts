@@ -15,7 +15,6 @@ contract('GNS', accounts => {
       accounts[0], // governor
       { from: accounts[0] },
     )
-    assert.isObject(deployedGNS, 'Deploy GNS contract.')
   })
 
   it('...should allow a 10 users to register 10 domains', async () => {

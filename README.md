@@ -31,7 +31,8 @@ key is just the key you get from the infura website that lets you query up to 10
 for free.
 
 ### Current Contract Addresses
-The current contract addresses are stored here: https://github.com/graphprotocol/contract-addresses
+
+See https://github.com/graphprotocol/contracts/blob/master/addresses.json. 
   
 ### Subgraph Deployment Instructions
 #### Ganache

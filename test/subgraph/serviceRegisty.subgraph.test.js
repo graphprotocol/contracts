@@ -13,29 +13,23 @@ contract('Service Registry', accounts => {
       accounts[0], // governor
       { from: accounts[0] },
     )
-    assert.isObject(deployedServiceRegistry, 'Deploy ServiceRegistry contract.')
   })
 
   it('...should allow setting URL 10 times', async () => {
     for (let i = 0; i < 10; i++) {
 
       const url = helpers.testServiceRegistryURLS[i]
+      const urlBytes = web3.utils.utf8ToHex(url)
 
       // Set the url
       const { logs } = await deployedServiceRegistry.setUrl(
-        accounts[i],
         url,
         { from: accounts[i] },
-      )
-      assert(
-        (await deployedServiceRegistry.urls(accounts[i])) ===
-        url,
-        'SetUrl did not store the URL properly.',
       )
 
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: accounts[i],
-        url: url,
+        urlString: url,
       })
     }
   })
