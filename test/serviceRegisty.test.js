@@ -46,15 +46,15 @@ contract('Service Registry', accounts => {
     })
   })
 
-  it('...should allow setting multiple graph network service providers URL, getting the length, and removing an indexer', async () => {
+  it('...should allow setting multiple graph bootstrap indexer URLs', async () => {
     const url = 'https://192.168.2.1/'
     const urlBytes = web3.utils.utf8ToHex(url)
+
     const indexers = accounts.slice(5, 8)
+
     for (let i = 0; i < 3; i++) {
       // Set the url, only governor can
-      const {
-        logs,
-      } = await deployedServiceRegistry.setGraphNetworkServiceProviderURL(
+      const { logs } = await deployedServiceRegistry.setBootstrapIndexerURL(
         indexers[i],
         url,
         { from: governor },
@@ -67,7 +67,7 @@ contract('Service Registry', accounts => {
       })
 
       // Verify that the indexer URL has been updated
-      let indexerUrlBytes = await deployedServiceRegistry.graphNetworkServiceProviderURLs(
+      let indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(
         indexers[i],
       )
       assert(

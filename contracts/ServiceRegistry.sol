@@ -29,11 +29,11 @@ contract ServiceRegistry is Governed {
     /*  A dynamic array of URLs that bootstrap the graph subgraph
         Note: The graph subgraph bootstraps the network. It has no way to retrieve
         the list of all indexers at the start of indexing. Therefore a single
-        dynamic array graphNetworkServiceProviderURLs is used to store the URLS of the Graph
+        dynamic array bootstrapIndexerURLs is used to store the URLS of the Graph
         Network indexing nodes for the query node to obtain */
 
     // TODO - Who should be able to set this? Right now it is only governance. It needed to more robust, and we need to consider the out of protocol coordination
-    mapping(address => bytes) public graphNetworkServiceProviderURLs;
+    mapping(address => bytes) public bootstrapIndexerURLs;
 
     /* Graph Protocol Functions */
 
@@ -44,9 +44,9 @@ contract ServiceRegistry is Governed {
      * @param _indexer <address> - Address of the indexer
      * @param _url <string> - URL of the service provider
      */
-    function setGraphNetworkServiceProviderURL(address _indexer, string calldata _url) external onlyGovernance {
+    function setBootstrapIndexerURL(address _indexer, string calldata _url) external onlyGovernance {
         bytes memory url = bytes(_url);
-        graphNetworkServiceProviderURLs[_indexer] = url;
+        bootstrapIndexerURLs[_indexer] = url;
         emit ServiceUrlSet(_indexer, _url);
     }
 
