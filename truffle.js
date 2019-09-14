@@ -1,5 +1,6 @@
 const fs = require('fs')
 const HDWalletProvider = require('truffle-hdwallet-provider')
+const utils = require('web3-utils')
 
 // noMultisigDevelopement and noMultisigRopsten allow for quick testing of the contracts
 // i.e. no thawing period, no multisig
@@ -37,8 +38,8 @@ module.exports = {
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
+      gasPrice: utils.toWei('10', 'gwei'),
       skipDryRun: true,
-      from: '0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd',
     },
     noMultisigRopsten: {
       provider: () =>
@@ -48,8 +49,8 @@ module.exports = {
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
+      gasPrice: utils.toWei('10', 'gwei'),
       skipDryRun: true,
-      from: '0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd',
     },
   },
 
