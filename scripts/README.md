@@ -15,6 +15,13 @@ The scripts expect the following:
 
 - A `.infurakey.txt` file at the root of this repository with an Infura project ID.
 
+- TypeScript bindings need to be generated from the contracts first. Run the
+  following at the root of the repository:
+
+  ```sh
+  yarn contracts && yarn typechain
+  ```
+
 ## Set the Graph subgraph ID and bootstrap indexers
 
 ```sh
