@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const utils = require('web3-utils')
 
@@ -22,8 +23,14 @@ module.exports = {
     kovan: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
-          `https://kovan.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
+          fs
+            .readFileSync(__dirname + '/.privkey.txt')
+            .toString()
+            .trim(),
+          `https://kovan.infura.io/v3/${fs
+            .readFileSync(__dirname + '/.infurakey.txt')
+            .toString()
+            .trim()}`,
         ),
       network_id: 42, // kovan's id
       gas: 8000000,
@@ -33,8 +40,14 @@ module.exports = {
     ropsten: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
-          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`,
+          fs
+            .readFileSync(__dirname + '/.privkey.txt')
+            .toString()
+            .trim(),
+          `https://ropsten.infura.io/v3/${fs
+            .readFileSync(__dirname + '/.infurakey.txt')
+            .toString()
+            .trim()}`,
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
@@ -44,8 +57,12 @@ module.exports = {
     noMultisigRopsten: {
       provider: () =>
         new HDWalletProvider(
-          fs.readFileSync(__dirname + '/.privkey.txt').toString().trim(),
-          `https://ropsten.infura.io/v3/${fs.readFileSync(__dirname + '/.infurakey.txt').toString().trim()}`, 0, 2
+          fs.readFileSync(path.join(__dirname, '.privkey.txt'), 'utf-8').trim(),
+          `https://ropsten.infura.io/v3/${fs
+            .readFileSync(path.join(__dirname, '/.infurakey.txt'), 'utf-8')
+            .trim()}`,
+          0,
+          2,
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,
