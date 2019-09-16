@@ -22,7 +22,7 @@ Usage: ${path.basename(process.argv[1])} \
 
 let domainHash = utils.solidityKeccak256(['string'], [domain])
 
-console.log('Domain:    ', domain, '->', domainHash)
+console.log('Domain: ', domain, '->', domainHash)
 
 const main = async () => {
   try {
