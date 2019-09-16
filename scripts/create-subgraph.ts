@@ -51,7 +51,7 @@ let subdomainName = subgraphName.split('/')[1]
 console.log('Subgraph:    ', subgraphName)
 console.log('IPFS:        ', ipfs)
 console.log('TLD hash:    ', tldHash)
-console.log('Subgdomain:  ', subdomainName)
+console.log('Subdomain:   ', subdomainName)
 
 console.log('Meta data:')
 console.log('  Display name:', displayName || '')
