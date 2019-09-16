@@ -15,7 +15,7 @@ if (!amount || !subgraphId) {
     `
 Usage: ${path.basename(process.argv[1])} \
 --subgraph-id <ipfs-hash> \
---amount <graph-tokens>
+--amount <graph-tokens>   # minimum: 100
 `,
   )
   process.exit(1)

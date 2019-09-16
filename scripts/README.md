@@ -77,7 +77,7 @@ Run the script without arguments for more usage info.
 ```sh
 ./stake-for-indexing.ts       \
     --subgraph-id <ipfs-hash> \
-    --amount <number>         # min: 100
+    --amount <number>         # minimum: 100
 ```
 
 Run the script without arguments for more usage info.
