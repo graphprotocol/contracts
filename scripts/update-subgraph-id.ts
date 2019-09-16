@@ -6,16 +6,19 @@ import * as minimist from 'minimist'
 
 import { contracts, createIpfsClient, ipfsHashToBytes32 } from './helpers'
 
-let { subgraph: subgraphName, id: subgraphId } = minimist(process.argv.slice(2), {
-  string: ['subgraph', 'id'],
-})
+let { subgraph: subgraphName, 'subgraph-id': subgraphId } = minimist(
+  process.argv.slice(2),
+  {
+    string: ['subgraph', 'subgraph-id'],
+  },
+)
 
 if (!subgraphName || !subgraphId || subgraphName.split('/').length !== 2) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])} \
 --subgraph <name> \
---id <ipfs-hash>
+--subgraph-id <ipfs-hash>
 `,
   )
   process.exit(1)
