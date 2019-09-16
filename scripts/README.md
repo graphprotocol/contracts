@@ -27,7 +27,7 @@ The scripts expect the following:
 ```sh
 ./set-graph-subgraph-id.ts          \
     --subgraph-id <ipfs-hash>       \
-    --indexers <addr1>,[<addr2>,...]
+    --indexers <addr1>[,<addr2>,...]
 ```
 
 Run the script without arguments for more usage info.

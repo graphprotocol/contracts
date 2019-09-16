@@ -16,7 +16,7 @@ if (!indexers || !subgraphId) {
     `
 Usage: ${path.basename(process.argv[1])} \
 --subgraph-id <id> \
---indexers <addr1>,[<addr2>,...]
+--indexers <addr1>[,<addr2>,...]
 `,
   )
   process.exit(1)
