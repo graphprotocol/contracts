@@ -81,3 +81,14 @@ Run the script without arguments for more usage info.
 ```
 
 Run the script without arguments for more usage info.
+
+## Update an indexer's node URL
+
+This sets the current Ethereum account's index node URL in the service registry.
+
+```sh
+./set-url.ts \
+    --url <index-node-url>
+```
+
+Run the script without arguments for more usage info.
