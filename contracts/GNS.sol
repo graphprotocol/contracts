@@ -50,7 +50,8 @@ contract GNS is Governed {
     event SubgraphCreated(
         bytes32 indexed topLevelDomainHash,
         bytes32 indexed registeredHash,
-        string subdomainName
+        string subdomainName,
+        address indexed owner
     );
     event SubgraphIDUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event DomainDeleted(bytes32 indexed domainHash);
@@ -126,7 +127,7 @@ contract GNS is Governed {
         // Note - subdomain name and IPFS hash are only emitted through the events.
         // Note - if the subdomain is blank, the domain hash ends up being the top level
         // domain hash, not the hash of a blank string.
-        emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName);
+        emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName, msg.sender);
         emit SubgraphMetadataChanged(domainHash, _ipfsHash);
     }
 
