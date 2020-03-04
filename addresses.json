@@ -14,5 +14,12 @@
     "ServiceRegistry": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
     "Staking": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
   },
+  "kovan": {
+    "GNS": "0x9B20eD2d1e9F52C787f8C41e3419771822a2FEe1",
+    "GraphToken": "0x85bcdBf4d77f33625C4a88CB4BB80C726865dD25",
+    "MultisigWallet": "Not a contract, currently daves metamask",
+    "ServiceRegistry": "0xD8530C664521919B65D6378146EfAaD2eB4E6852",
+    "Staking": "0x33AF9a8CAcae99b439F20E8c9Fe8Ed488FBEbBa2"
+  },
   "mainnet": {}
 }
