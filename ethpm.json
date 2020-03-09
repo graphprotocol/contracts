@@ -12,8 +12,5 @@
         "dapp",
         "query"
     ],
-    "dependencies": {
-        "bytes": "0.0.7"
-    },
     "license": "MIT"
 }
