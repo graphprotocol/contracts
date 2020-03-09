@@ -21,14 +21,17 @@
     "prettier-plugin-solidity": "^1.0.0-alpha.41",
     "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0",
+    "truffle-flattener": "^1.4.2",
     "typechain": "^0.3.20"
   },
   "scripts": {
+    "build": "npm run compile && npm run flatten && npm run abi:extract",
     "compile": "truffle compile",
     "test": "truffle test",
     "lint": "solium --dir ./contracts",
     "prettier": "prettier --write 'contracts/*.sol' 'test/**/*.js'",
-    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v",
+    "flatten": "scripts/flatten.sh",
+    "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
     "typechain": "typechain --target=ethers --outDir build/typechain/contracts/ ./build/abis/**/*.json"
   },
   "repository": {
