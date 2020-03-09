@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
-contract Governed {
 
+contract Governed {
     /*
     * @title Graph Contract Governance contract
     *
@@ -45,9 +45,12 @@ contract Governed {
      * @dev The current `governor` can assign a new `governor`
      * @param _newGovernor <address> Address of new `governor`
      */
-    function transferGovernance(address _newGovernor) public onlyGovernance returns (bool) {
+    function transferGovernance(address _newGovernor)
+        public
+        onlyGovernance
+        returns (bool)
+    {
         governor = _newGovernor;
         return true;
     }
-
 }

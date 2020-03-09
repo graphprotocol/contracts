@@ -2,8 +2,8 @@ pragma solidity ^0.5.2;
 
 import "./Governed.sol";
 
-contract RewardsManager is Governed {
 
+contract RewardsManager is Governed {
     /*
     * @title Graph Protocol Reward Manager contract
     *
@@ -36,7 +36,6 @@ contract RewardsManager is Governed {
     * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
     */
 
-
     /* STATE VARIABLES */
     // Percentage of the total Graph Token supply
     // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
@@ -51,22 +50,23 @@ contract RewardsManager is Governed {
     uint256 public yearlyInflationRate = 100000; // 10%
 
     // Mapping of indexChainID to queryAmount
-    mapping (bytes32 => uint256) public indexChainQueryAmounts;
+    mapping(bytes32 => uint256) public indexChainQueryAmounts;
 
     /**
      * @dev Reward Manager Contract Constructor
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      */
-    constructor (address _governor) public Governed (_governor) {}
+    constructor(address _governor) public Governed(_governor) {}
 
     /* Graph Protocol Functions */
     /**
      * @dev Governance contract owns this contract and can update curatorRewardRate
      * @param _newCuratorRewardRate <uint256> - New curation reward rate
      */
-    function updateCuratorRewardRate (
-        uint256 _newCuratorRewardRate
-    ) public onlyGovernance returns (bool success)
+    function updateCuratorRewardRate(uint256 _newCuratorRewardRate)
+        public
+        onlyGovernance
+        returns (bool success)
     {
         revert();
     }
@@ -75,9 +75,10 @@ contract RewardsManager is Governed {
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newTargetParticipationRate <uint256> - New curation reward rate
      */
-    function updateTargetParticipationRate (
-        uint256 _newTargetParticipationRate
-    ) public onlyGovernance returns (bool success)
+    function updateTargetParticipationRate(uint256 _newTargetParticipationRate)
+        public
+        onlyGovernance
+        returns (bool success)
     {
         revert();
     }
@@ -86,9 +87,10 @@ contract RewardsManager is Governed {
      * @dev Governance contract owns this contract and can update targetParticipationRate
      * @param _newYearlyInflationRate <uint256> - New yearly inflation rate in parts per million. (999999 = 99.9999%)
      */
-    function updateYearlyInflationRate (
-        uint256 _newYearlyInflationRate
-    ) public onlyGovernance returns (bool success)
+    function updateYearlyInflationRate(uint256 _newYearlyInflationRate)
+        public
+        onlyGovernance
+        returns (bool success)
     {
         revert();
     }
@@ -100,10 +102,10 @@ contract RewardsManager is Governed {
      * @param _account <address> - The account that will receive the created tokens.
      * @param _value <uint256> - The amount that will be created.
      */
-    function mintRewardTokens (
-        address _account,
-        uint256 _value
-    ) public onlyGovernance returns (bool success)
+    function mintRewardTokens(address _account, uint256 _value)
+        public
+        onlyGovernance
+        returns (bool success)
     {
         revert();
     }
@@ -113,12 +115,10 @@ contract RewardsManager is Governed {
      * @param _validatorId <bytes32> - ID of the validator claiming rewards
      * @param _addToStake <bool> - Send the rewards back to the validator's stake
      */
-    function claimRewards (
-        bytes32 _validatorId,
-        bool _addToStake
-    ) public returns (uint256 rewaredAmount)
+    function claimRewards(bytes32 _validatorId, bool _addToStake)
+        public
+        returns (uint256 rewaredAmount)
     {
         revert();
     }
-
 }

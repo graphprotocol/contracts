@@ -37,18 +37,16 @@ const helpers = require('../lib/testHelpers')
 /**
  * testing constants
  */
-const
-  minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
-  minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+const minimumCurationStakingAmount =
+    helpers.stakingConstants.minimumCurationStakingAmount,
+  minimumIndexingStakingAmount =
+    helpers.stakingConstants.minimumIndexingStakingAmount,
   defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
   maximumIndexers = helpers.stakingConstants.maximumIndexers,
   slashingPercent = helpers.stakingConstants.slashingPercent,
   simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
   initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
-let
-  deployedStaking,
-  deployedGraphToken,
-  gp
+let deployedStaking, deployedGraphToken, gp
 
 /* bonding curve params */
 let totalShares, // total of staker's staked shares
@@ -74,7 +72,7 @@ const defaultParams = {
   variancePercentage: 0.001,
 }
 
-function resetBondingParams () {
+function resetBondingParams() {
   totalShares = defaultParams.totalShares
   ;(continuousShares = defaultParams.continuousShares),
     (reserveTokenBalance = defaultParams.reserveTokenBalance),
@@ -283,7 +281,7 @@ contract(
  * @param {uint256} _purchaseCount
  * @param {uint256} _purchaseAmount
  */
-async function testBondingCurve (
+async function testBondingCurve(
   _totalShares,
   _continuousShares,
   _reserveTokenBalance,
@@ -318,7 +316,7 @@ async function testBondingCurve (
  * @param {uint256} _purchaseCount
  * @param {uint256} _purchaseAmount
  */
-async function iterateStakeToShares (
+async function iterateStakeToShares(
   _totalShares,
   _continuousShares,
   _reserveTokenBalance,
@@ -354,7 +352,7 @@ async function iterateStakeToShares (
  * @param {uint256} _reserveRatio // Reserve ratio used in bonding curve
  * @param {function} _stakingMethod // method to use for calculation
  */
-async function computeStakeToShares (
+async function computeStakeToShares(
   _purchaseAmount,
   _reserveRatio,
   _stakingMethod,
@@ -399,7 +397,7 @@ async function computeStakeToShares (
  * @param {uint256} _continuousShares Total amount of current shares issued
  * @param {uint256} _reserveRatio Desired reserve ratio to maintain (in PPM)
  */
-function purchaseReturn (
+function purchaseReturn(
   _reserveTokensReceived,
   _reserveTokenBalance,
   _continuousShares,
@@ -421,7 +419,7 @@ function purchaseReturn (
  * @param {uint256} _reserveTokenBalance
  * @param {uint256} _reserveRatio
  */
-function saleReturn (
+function saleReturn(
   _continuousShares,
   _continuousTokensReceived,
   _reserveTokenBalance,

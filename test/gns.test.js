@@ -42,7 +42,9 @@ contract('GNS', accounts => {
 
     // Confirm another user cannot register this name
     await expectRevert(
-      deployedGNS.registerDomain(topLevelDomainName, { from: accounts[3] }),
+      deployedGNS.registerDomain(topLevelDomainName, {
+        from: accounts[3],
+      }),
       'Domain is already owned.',
     )
   })

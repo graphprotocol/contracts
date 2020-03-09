@@ -17,15 +17,13 @@ contract('Service Registry', accounts => {
 
   it('...should allow setting URL 10 times', async () => {
     for (let i = 0; i < 10; i++) {
-
       const url = helpers.testServiceRegistryURLS[i]
       const urlBytes = web3.utils.utf8ToHex(url)
 
       // Set the url
-      const { logs } = await deployedServiceRegistry.setUrl(
-        url,
-        { from: accounts[i] },
-      )
+      const { logs } = await deployedServiceRegistry.setUrl(url, {
+        from: accounts[i],
+      })
 
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
         serviceProvider: accounts[i],

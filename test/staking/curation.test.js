@@ -18,9 +18,10 @@ contract(
     /**
      * testing constants & variables
      */
-    const
-      minimumCurationStakingAmount = helpers.stakingConstants.minimumCurationStakingAmount,
-      minimumIndexingStakingAmount = helpers.stakingConstants.minimumIndexingStakingAmount,
+    const minimumCurationStakingAmount =
+        helpers.stakingConstants.minimumCurationStakingAmount,
+      minimumIndexingStakingAmount =
+        helpers.stakingConstants.minimumIndexingStakingAmount,
       defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
       maximumIndexers = helpers.stakingConstants.maximumIndexers,
       slashingPercent = helpers.stakingConstants.slashingPercent,
@@ -29,8 +30,7 @@ contract(
       stakingAmount = helpers.graphTokenConstants.stakingAmount,
       shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000,
       tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker
-    let
-      deployedStaking,
+    let deployedStaking,
       deployedGraphToken,
       subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
       subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
@@ -80,7 +80,7 @@ contract(
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
-        totalBalance.toString() == new BN(0).toString(),
+          totalBalance.toString() == new BN(0).toString(),
         'Balances before transfer are incorrect.',
       )
 
@@ -109,7 +109,7 @@ contract(
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === shareAmountFor10000.toString() &&
-        totalBalance.toString() === stakingAmount.toString(),
+          totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer is incorrect.',
       )
     })
@@ -126,7 +126,7 @@ contract(
       await deployedStaking.curatorLogout(
         subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
         halfSharesInt, // Amount of shares to return
-        { from: curationStaker }
+        { from: curationStaker },
       )
 
       const halfShares = await gp.staking.curators(
@@ -134,36 +134,40 @@ contract(
         curationStaker,
       )
 
-      assert(halfShares.toNumber() === (subgraphShares - halfSharesInt), 'Shares were not reduced by half')
+      assert(
+        halfShares.toNumber() === subgraphShares - halfSharesInt,
+        'Shares were not reduced by half',
+      )
 
       const fullLogout = await deployedStaking.curatorLogout(
         subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
         subgraphShares - halfSharesInt, // Amount of shares to return
-        { from: curationStaker }
+        { from: curationStaker },
       )
 
       expectEvent.inLogs(fullLogout.logs, 'CuratorLogout', {
-          staker: curationStaker,
-          subgraphID: subgraphIdHex0x,
-          subgraphTotalCurationShares: new BN(0),
-          subgraphTotalCurationStake: new BN(0)
-        }
-      )
+        staker: curationStaker,
+        subgraphID: subgraphIdHex0x,
+        subgraphTotalCurationShares: new BN(0),
+        subgraphTotalCurationStake: new BN(0),
+      })
     })
 
-    async function stakeForCuration () {
-      let totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
+    async function stakeForCuration() {
+      let totalBalance = await deployedGraphToken.balanceOf(
+        deployedStaking.address,
+      )
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
-        totalBalance.toNumber() === 0,
-        'Balances before transfer are incorrect.'
+          totalBalance.toNumber() === 0,
+        'Balances before transfer are incorrect.',
       )
 
       const curationStake = await gp.staking.stakeForCuration(
         subgraphIdHex, // subgraphId
         curationStaker, // from
-        stakingAmount // value
+        stakingAmount, // value
       )
 
       const subgraphShares = await gp.staking.curators(
@@ -175,7 +179,7 @@ contract(
       curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === shareAmountFor10000.toString() &&
-        totalBalance.toString() === stakingAmount.toString(),
+          totalBalance.toString() === stakingAmount.toString(),
         'Balances after transfer is incorrect.',
       )
 
