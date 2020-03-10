@@ -73,7 +73,7 @@ pragma solidity ^0.5.2;
 
 import "./GraphToken.sol";
 import "./Governed.sol";
-import "bytes/BytesLib.sol";
+import "./bytes/BytesLib.sol";
 import "./bancor/BancorFormula.sol";
 
 
