@@ -29,6 +29,7 @@
     "compile": "truffle compile",
     "test": "truffle test",
     "lint": "solium --dir ./contracts",
+    "lint:fix": "solium --dir ./contracts --fix",
     "prettier": "prettier --write 'contracts/*.sol' 'test/**/*.js'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
