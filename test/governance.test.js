@@ -72,7 +72,7 @@ contract('Governance', accounts => {
     // Confirm transaction from a second multisig owner account
     await multiSigInstance1.contract.methods
       .confirmTransaction(transactionId.toNumber())
-      .send({ from: accounts[1] })
+      .send({ from: accounts[1], gas: 6e6 })
 
     // Check status is no longer `pending`
     pendingTransactionCount = await multiSigInstance1.getTransactionCount(
