@@ -1,7 +1,7 @@
 {
   "name": "graph-protocol",
   "version": "1.0.0",
-  "descrnpmiption": "![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg) ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)",
+  "description": "",
   "main": "graphProtocol.js",
   "directories": {
     "test": "test"

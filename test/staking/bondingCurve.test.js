@@ -43,7 +43,6 @@ const minimumCurationStakingAmount =
     helpers.stakingConstants.minimumIndexingStakingAmount,
   defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
   maximumIndexers = helpers.stakingConstants.maximumIndexers,
-  slashingPercent = helpers.stakingConstants.slashingPercent,
   simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
   initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
 let deployedStaking, deployedGraphToken, gp
@@ -102,7 +101,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },

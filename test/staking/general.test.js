@@ -27,7 +27,6 @@ contract(
         helpers.stakingConstants.minimumIndexingStakingAmount,
       defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
       maximumIndexers = helpers.stakingConstants.maximumIndexers,
-      slashingPercent = helpers.stakingConstants.slashingPercent,
       simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
       initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
     let deployedStaking, deployedGraphToken, gp
@@ -47,7 +46,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
@@ -111,17 +109,6 @@ contract(
         )
       })
 
-      it('...should set `slashingPercentage` to a new value', async function() {
-        const newPercentage = 20
-        await deployedStaking.updateSlashingPercentage(newPercentage, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.slashingPercent()).toNumber() === newPercentage,
-          'Set `slashingPercentage` does not work.',
-        )
-      })
-
       it('...should set `thawingPeriod` to a new value', async function() {
         const thawingPeriod = 60 * 60 * 24 * 7 * 3 // 3 weeks
         await deployedStaking.updateThawingPeriod(thawingPeriod, {
@@ -130,16 +117,6 @@ contract(
         assert(
           (await gp.staking.thawingPeriod()).toNumber() === thawingPeriod,
           'Set `thawingPeriod` does not work.',
-        )
-      })
-
-      it('...should set `arbitrator` to a new value', async function() {
-        await deployedStaking.setArbitrator(deploymentAddress, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.arbitrator()) === deploymentAddress,
-          'Set `arbitrator` does not work.',
         )
       })
 
