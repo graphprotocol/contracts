@@ -71,11 +71,10 @@ pragma solidity ^0.5.2;
 /*
 */
 
-import "./GraphToken.sol";
 import "./Governed.sol";
+import "./GraphToken.sol";
 import "./bytes/BytesLib.sol";
 import "./bancor/BancorFormula.sol";
-
 
 contract Staking is Governed, BancorFormula {
     using BytesLib for bytes;
@@ -114,30 +113,8 @@ contract Staking is Governed, BancorFormula {
         bytes32 subgraphID
     );
 
-    // @dev Dispute was created by fisherman
-    event DisputeCreated(
-        bytes32 indexed _subgraphId,
-        address indexed _indexingNode,
-        address indexed _fisherman,
-        bytes32 _disputeId,
-        bytes _attestation
-    );
-
-    // @dev Dispute was accepted, indexing node lost their stake
-    event DisputeAccepted(
-        bytes32 indexed _disputeId,
-        bytes32 indexed _subgraphId,
-        address indexed _indexingNode,
-        uint256 _amount
-    );
-
-    // @dev Dispute was rejected, fisherman lost the given bond amount
-    event DisputeRejected(
-        bytes32 indexed _disputeId,
-        bytes32 indexed _subgraphId,
-        address indexed _fisherman,
-        uint256 _amount
-    );
+    event SlasherAdded(address indexed caller, address indexed slasher);
+    event SlasherRemoved(address indexed caller, address indexed slasher);
 
     /* Structs */
     struct Curator {
@@ -160,54 +137,8 @@ contract Staking is Governed, BancorFormula {
         uint256 totalIndexers;
     }
 
-    // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
-    struct IpfsHash {
-        bytes32 hash; // Note: Not future proof against IPFS planned updates to
-        //       support multihash, which would require a len field
-        uint16 hashFunction; // 0x1220 is 'Qm', or SHA256 with 32 byte length
-    }
-
-    // @dev signed message sent from Indexing Node in response to a request
-    struct Attestation {
-        // Content Identifier for request message sent from user to indexing node
-        IpfsHash requestCID; // Note: Message is located at the given IPFS content addr
-        // Content Identifier for signed response message from indexing node
-        IpfsHash responseCID; // Note: Message is located at the given IPFS content addr
-        // Amount of computational account units (gas) used to process query
-        uint256 gasUsed;
-        // Amount of data sent in the response
-        uint256 responseNumBytes;
-        // ECDSA vrs signature (using secp256k1)
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-    uint256 private constant ATTESTATION_SIZE_BYTES = 197;
-
-    // EIP-712 constants
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-    );
-    bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-        "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
-    );
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
-
-    // TODO: EIP-1344 adds support for the Chain ID opcode
-    //       Use that instead
-    uint256 private constant CHAIN_ID = 1; // Mainnet
-
-    // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
-    struct Dispute {
-        bytes32 subgraphId;
-        address indexingNode;
-        address fisherman;
-        uint256 depositAmount;
-    }
-
     /* ENUMS */
-    enum TokenReceiptAction { Staking, Curation, Dispute, Settlement }
+    enum TokenReceiptAction { Staking, Curation, Settlement }
 
     /* STATE VARIABLES */
     // Minimum amount allowed to be staked by Market Curators
@@ -231,10 +162,6 @@ contract Staking is Governed, BancorFormula {
 
     // Maximum number of Indexing Nodes staked higher than stake to consider
     uint256 public maximumIndexers;
-
-    // Percent of stake to slash in successful dispute
-    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public slashingPercent;
 
     // Amount of seconds to wait until indexer can finish stake logout
     // @dev Thawing Period allows disputes to be processed during logout
@@ -265,29 +192,22 @@ contract Staking is Governed, BancorFormula {
     // Subgraphs mapping
     mapping(bytes32 => Subgraph) public subgraphs;
 
-    // @dev Disputes created by the Fisherman or other authorized entites
-    // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
-    mapping(bytes32 => Dispute) private disputes;
+    // List of addresses allowed to slash
+    mapping(address => bool) public slashers;
 
-    // The arbitrator is solely in control of arbitrating disputes
-    address public arbitrator;
-
-    // Graph Token address
+    // Related contracts
     GraphToken public token;
 
-    /* MODIFIERS */
-    // Disputes management only can be settled by arbitrator
-    modifier onlyArbitrator {
-        require(msg.sender == arbitrator);
-        _;
-    }
-
-    /* CONSTANTS */
     // @dev 100% in parts per million.
     uint256 private constant MAX_PPM = 1000000;
 
     // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
     uint256 private constant BASIS_PT = 100;
+
+    modifier onlySlasher {
+        require(slashers[msg.sender] == true, "Caller is not a slasher");
+        _;
+    }
 
     /**
      * @dev Staking Contract Constructor
@@ -300,7 +220,6 @@ contract Staking is Governed, BancorFormula {
         uint256 _defaultReserveRatio,
         uint256 _minimumIndexingStakingAmount,
         uint256 _maximumIndexers,
-        uint256 _slashingPercent,
         uint256 _thawingPeriod,
         address _token
     ) public Governed(_governor) {
@@ -309,10 +228,18 @@ contract Staking is Governed, BancorFormula {
         defaultReserveRatio = _defaultReserveRatio;
         minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
         maximumIndexers = _maximumIndexers;
-        slashingPercent = _slashingPercent;
         thawingPeriod = _thawingPeriod;
-        arbitrator = governor;
         token = GraphToken(_token); // Question - do we need a function to upgrade this?
+    }
+
+    function addSlasher(address _slasher) external onlyGovernance {
+        slashers[_slasher] = true;
+        emit SlasherAdded(msg.sender, _slasher);
+    }
+
+    function removeSlasher(address _slasher) external onlyGovernance {
+        slashers[_slasher] = false;
+        emit SlasherRemoved(msg.sender, _slasher);
     }
 
     /**
@@ -369,45 +296,91 @@ contract Staking is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the percent that the fisherman gets when slashing occurs
-     * @param _slashingPercent <uint256> - Slashing percent
-     */
-    function updateSlashingPercentage(uint256 _slashingPercent)
-        external
-        onlyGovernance
-        returns (bool success)
-    {
-        // Slashing Percent must be within 0% to 100% (inclusive)
-        require(_slashingPercent >= 0);
-        require(_slashingPercent <= MAX_PPM);
-        slashingPercent = _slashingPercent;
-        return true;
-    }
-
-    /**
      * @dev Set the thawing period for indexer logout
      * @param _thawingPeriod <uint256> - Number of seconds for thawing period
      */
     function updateThawingPeriod(uint256 _thawingPeriod)
         external
         onlyGovernance
-        returns (bool success)
     {
         thawingPeriod = _thawingPeriod;
-        return true;
     }
 
-    /**
-     * @dev Set the arbitrator address
-     * @param _arbitrator <address> - The address of the arbitration contract or party
-     */
-    function setArbitrator(address _arbitrator)
-        external
-        onlyGovernance
-        returns (bool success)
+    function removeGraphIndexingNode(address _indexingNode)
+        private
+        returns (bool)
     {
-        arbitrator = _arbitrator;
-        return true;
+        (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexingNode);
+        if (found) {
+            delete graphIndexingNodeAddresses[userIndex];
+            return true;
+        }
+        return false;
+    }
+
+    function getIndexingNodeStake(bytes32 _subgraphId, address _indexingNode)
+        public
+        view
+        returns (uint256)
+    {
+        return indexingNodes[_subgraphId][_indexingNode].amountStaked;
+    }
+
+    function slash(
+        bytes32 _subgraphId,
+        address _indexingNode,
+        uint256 _reward,
+        address _beneficiary
+    ) external onlySlasher {
+        require(
+            _beneficiary != address(0),
+            "Beneficiary must not be an empty address"
+        );
+        require(_reward > 0, "Slashing reward must be greater than 0");
+
+        // Get indexer to be slashed
+        IndexingNode memory _slashedIndexingNode = indexingNodes[_subgraphId][_indexingNode];
+
+        // Remove indexer from the stakes
+        delete indexingNodes[_subgraphId][_indexingNode]; // Re-entrancy protection
+
+        // Indexer needs to exist and have stakes
+        require(
+            _slashedIndexingNode.amountStaked > 0,
+            "Indexer has no stake on the subgraph"
+        );
+
+        // Handle special case for bootstrap nodes
+        if (_subgraphId == graphSubgraphID) {
+            require(
+                removeGraphIndexingNode(_indexingNode),
+                "Bootstrap indexer not found"
+            );
+        }
+
+        // Remove Indexing Node for subgraph
+        subgraphs[_subgraphId].totalIndexingStake -= _slashedIndexingNode
+            .amountStaked;
+        subgraphs[_subgraphId].totalIndexers -= 1;
+
+        // Burn index node stake and fees setting apart a reward for the beneficiary
+        uint256 tokensToBurn = (_slashedIndexingNode.amountStaked - _reward) +
+            _slashedIndexingNode.feesAccrued;
+        token.burn(tokensToBurn);
+
+        // Give the beneficiary a reward for the slashing
+        require(
+            token.transfer(_beneficiary, _reward),
+            "Error sending dispute deposit"
+        );
+
+        emit IndexingNodeBeginLogout(
+            _indexingNode,
+            _subgraphId,
+            _slashedIndexingNode.amountStaked,
+            _slashedIndexingNode.feesAccrued
+        );
+        emit IndexingNodeFinalizeLogout(_indexingNode, _subgraphId);
     }
 
     /**
@@ -464,11 +437,6 @@ contract Staking is Governed, BancorFormula {
         } else if (option == TokenReceiptAction.Curation) {
             // @imp c01 Handle internal call for Curation Staking
             signalForCuration(_subgraphId, _from, _value);
-        } else if (option == TokenReceiptAction.Dispute) {
-            require(_data.length == 33 + ATTESTATION_SIZE_BYTES);
-            bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
-            // Inner call to createDispute
-            createDispute(_attestation, _subgraphId, _from, _value);
         } else if (option == TokenReceiptAction.Settlement) {
             require(_data.length >= 33 + 20);
             // Header + _indexingNode
@@ -744,192 +712,6 @@ contract Staking is Governed, BancorFormula {
         assert(token.transfer(msg.sender, _amount));
 
         emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId);
-    }
-
-    /**
-     * @dev Get the amount of fisherman reward for a given amount of stake
-     * @param _value <uint256> - Amount of validator's stake
-     * @return <uint256> - Percentage of validator's stake to be considered a reward
-     */
-    function getRewardForValue(uint256 _value) public view returns (uint256) {
-        return (slashingPercent * _value) / MAX_PPM; // slashingPercent is in PPM
-    }
-
-    /**
-     * @dev Create a dispute for the arbitrator to resolve
-     * @param _attestation <Attestation> - Signed Attestation message
-     * @param _subgraphId <bytes32> - SubgraphId that Attestation message
-     *                                contains (in request raw object at CID)
-     * @param _fisherman <address> - Creator of dispute
-     * @param _amount <uint256> - Amount of tokens staked
-     * @notice Payable using Graph Tokens for deposit
-     */
-    function createDispute(
-        bytes memory _attestation,
-        bytes32 _subgraphId,
-        address _fisherman,
-        uint256 _amount
-    ) private {
-        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 _disputeId = keccak256(
-            abi.encode(
-                // HACK: Remove this line until eth_signTypedData is in common use
-                //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                "\x19Ethereum Signed Message:\n",
-                64, // 64 bytes (2 hashes)
-                // END HACK
-                keccak256(
-                    abi.encode( // EIP 712 domain separator
-                        DOMAIN_TYPE_HASH,
-                        DOMAIN_NAME_HASH,
-                        DOMAIN_VERSION_HASH,
-                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
-                        this, // contract address
-                        // Application-specific domain separator
-                        // Ensures msgs for different subgraphs cannot be reused
-                        // Note: Not necessary when subgraphs are factory pattern because of contract address
-                        _subgraphId // EIP-712 Salt
-                    )
-                ),
-                keccak256(
-                    abi.encode( // EIP 712-encoded message hash
-                        ATTESTATION_TYPE_HASH,
-                        _attestation.slice(0, ATTESTATION_SIZE_BYTES - 65) // Everything except the signature
-                    )
-                )
-            )
-        );
-
-        // Decode the signature
-        (uint8 v, bytes32 r, bytes32 s) = abi.decode( // VRS signature components
-            _attestation.slice(ATTESTATION_SIZE_BYTES - 65, 65), // just the signature
-            (uint8, bytes32, bytes32) // V, R, and S
-        );
-
-        // Obtain the signer of the fully-encoded EIP-712 message hash
-        // Note: The signer of the attestation is the indexing node that served it
-        address _indexingNode = ecrecover(_disputeId, v, r, s);
-
-        uint256 _stake = indexingNodes[_subgraphId][_indexingNode].amountStaked;
-        require(_stake > 0); // This also validates that _indexingNode exists
-
-        // Ensure that fisherman has posted at least that amount
-        require(_amount >= getRewardForValue(_stake));
-        // NOTE: There is a potential for a front-running attack against a fisherman
-        //       by the indexing node if this were strictly equal to the amount of
-        //       reward that the fisherman were to expect. As a partial mitigation for
-        //       this, the fisherman can over-stake their bond. For every X amount that
-        //       the fisherman overstakes by, the staker would have to also up their
-        //       stake by the same proportion, and due to the reward being slasingPercent
-        //       of the total stake already, the amount the indexing node would have to
-        //       up their stake by would be a significant multiple of this increase.
-        //
-        //       As an example, if slashingPercent were 10%, and the indexer had staked
-        //       100 tokens, the minimum the fisherman would be required to stake is 10
-        //       tokens. If the fisherman staked 20 tokens instead on their dispute, the
-        //       indexing node would have to stake more than 100 tokens extra to front-
-        //       run their dispute and cancel it before it is created. This is a safety
-        //       factor of 10x for the fisherman. The smaller slashingPercent is, the
-        //       larger the multiple would be.
-        //
-        //       Due to this mechanic, this partial mitigation may be enough to defend
-        //       against this in practice until a better design is contructed that takes
-        //       this into account.
-
-        // A fisherman can only open one dispute with a given indexing node
-        // per subgraphId at a time
-        require(disputes[_disputeId].fisherman == address(0)); // Must be empty
-
-        // Store dispute
-        disputes[_disputeId] = Dispute(
-            _subgraphId,
-            _indexingNode,
-            _fisherman,
-            _amount
-        );
-
-        // Log event that new dispute was created against _indexingNode
-        emit DisputeCreated(
-            _subgraphId,
-            _indexingNode,
-            _fisherman,
-            _disputeId,
-            _attestation
-        );
-    }
-
-    /**
-     * @dev The arbitrator can verify a dispute as being valid.
-     * @param _disputeId <bytes32> - ID of the dispute to be verified
-     */
-    function verifyDispute(bytes32 _disputeId)
-        external
-        onlyArbitrator
-        returns (bool success)
-    {
-        // Input validation, read storage for later (when deleted)
-        uint256 _bond = disputes[_disputeId].depositAmount;
-        require(_bond > 0); // Ensure this is a valid dispute
-        address _fisherman = disputes[_disputeId].fisherman;
-        address _indexer = disputes[_disputeId].indexingNode;
-        bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        delete disputes[_disputeId]; // Re-entrancy protection
-
-        // Have staking slash the index node and reward the fisherman
-        // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = indexingNodes[_subgraphId][_indexer].amountStaked;
-        uint256 _fees = indexingNodes[_subgraphId][_indexer].feesAccrued;
-        delete indexingNodes[_subgraphId][_indexer]; // Re-entrancy protection
-        assert(_stake > 0); // Ensure this is a valid staker (should always be true)
-        uint256 _reward = getRewardForValue(_stake);
-        assert(_reward <= _stake); // sanity check on fixed-point math
-
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexer);
-            assert(found == true);
-            delete graphIndexingNodeAddresses[userIndex];
-        }
-
-        // Remove Indexing Node from Subgraph's stakers
-        subgraphs[_subgraphId].totalIndexingStake -= _stake;
-        subgraphs[_subgraphId].totalIndexers -= 1;
-        emit IndexingNodeBeginLogout(_indexer, _subgraphId, _stake, _fees);
-        emit IndexingNodeFinalizeLogout(_indexer, _subgraphId);
-
-        // Give governance the difference between the fisherman's reward and the total stake
-        // plus the Indexing Node's accrued fees
-        token.transfer(governor, (_stake - _reward) + _fees); // TODO Burn or give to governance?
-
-        // Give the fisherman their reward and bond back
-        token.transfer(_fisherman, _reward + _bond);
-
-        // Log event that we awarded _fisherman _reward in resolving _disputeId
-        emit DisputeAccepted(_disputeId, _subgraphId, _indexer, _reward);
-        success = true;
-    }
-
-    /**
-     * @dev The arbitrator can reject a dispute as being invalid.
-     * @param _disputeId <bytes32> - ID of the dispute to be rejected
-     */
-    function rejectDispute(bytes32 _disputeId)
-        external
-        onlyArbitrator
-        returns (bool success)
-    {
-        // Input validation, read storage for later (when deleted)
-        uint256 _bond = disputes[_disputeId].depositAmount;
-        require(_bond > 0); // Ensure this is a valid dispute
-        address _fisherman = disputes[_disputeId].fisherman;
-        bytes32 _subgraphId = disputes[_disputeId].subgraphId;
-        delete disputes[_disputeId]; // Re-entrancy protection
-
-        // Slash the fisherman's bond and send to the governor
-        token.transfer(governor, _bond); // TODO Burn or give to governance?
-
-        // Log event that we slashed _fisherman for _bond in resolving _disputeId
-        emit DisputeRejected(_disputeId, _subgraphId, _fisherman, _bond);
-        success = true;
     }
 
     /**

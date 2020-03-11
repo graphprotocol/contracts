@@ -45,7 +45,6 @@ module.exports = (deployer, network, accounts) => {
           defaultReserveRatio, // <uint256> defaultReserveRatio
           minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
           maximumIndexers, // <uint256> maximumIndexers
-          slashingPercent, // <uint256> slashingPercent
           0, // <uint256> thawingPeriod NOTE - NO THAWING PERIOD
           deployed.GraphToken.address // <address> token
         )
@@ -137,7 +136,6 @@ module.exports = (deployer, network, accounts) => {
           defaultReserveRatio, // <uint256> defaultReserveRatio
           minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
           maximumIndexers, // <uint256> maximumIndexers
-          slashingPercent, // <uint256> slashingPercent
           thawingPeriod, // <uint256> thawingPeriod
           deployed.GraphToken.address // <address> token
         )
