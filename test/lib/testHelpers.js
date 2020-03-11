@@ -277,7 +277,7 @@ module.exports = {
     minimumIndexingStakingAmount: new BN('100000000000000000000'), // 100 * 10^18 minimum amount allowed to be staked by Market Curators
     defaultReserveRatio: 500000,
     maximumIndexers: 10,
-    slashingPercent: 10,
+    slashingPercent: 1000,
     thawingPeriod: 60 * 60 * 24 * 7, // In seconds
     thawingPeriodSimple: 0,
   },

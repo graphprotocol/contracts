@@ -76,6 +76,7 @@ import "./GraphToken.sol";
 import "./bytes/BytesLib.sol";
 import "./bancor/BancorFormula.sol";
 
+
 contract Staking is Governed, BancorFormula {
     using BytesLib for bytes;
 
@@ -113,7 +114,11 @@ contract Staking is Governed, BancorFormula {
         bytes32 subgraphID
     );
 
-    event SlasherUpdated(address indexed caller, address indexed slasher, bool enabled);
+    event SlasherUpdated(
+        address indexed caller,
+        address indexed slasher,
+        bool enabled
+    );
 
     /* Structs */
     struct Curator {
@@ -338,7 +343,9 @@ contract Staking is Governed, BancorFormula {
         require(_reward > 0, "Slashing reward must be greater than 0");
 
         // Get indexer to be slashed
-        IndexingNode memory _slashedIndexingNode = indexingNodes[_subgraphId][_indexingNode];
+
+            IndexingNode memory _slashedIndexingNode
+         = indexingNodes[_subgraphId][_indexingNode];
 
         // Remove indexer from the stakes
         delete indexingNodes[_subgraphId][_indexingNode]; // Re-entrancy protection

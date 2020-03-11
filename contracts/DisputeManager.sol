@@ -189,7 +189,7 @@ contract DisputeManager is Governed {
      * @dev Set the percent that the fisherman gets when slashing occurs
      * @param _slashingPercent <uint256> - Slashing percent
      */
-    function setSlashingPercentage(uint256 _slashingPercent)
+    function setSlashingPercent(uint256 _slashingPercent)
         external
         onlyGovernance
     {
@@ -200,7 +200,7 @@ contract DisputeManager is Governed {
         );
         require(
             _slashingPercent <= MAX_PPM,
-            "Slashing percent must be below or equal to 100"
+            "Slashing percent must be below or equal to MAX_PPM"
         );
 
         slashingPercent = _slashingPercent;
@@ -249,7 +249,10 @@ contract DisputeManager is Governed {
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexingNode);
+        uint256 _stake = staking.getIndexingNodeStake(
+            _subgraphID,
+            _indexingNode
+        );
         uint256 _reward = getRewardForStake(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
         staking.slash(_subgraphID, _indexingNode, _reward, _fisherman);
@@ -345,7 +348,10 @@ contract DisputeManager is Governed {
         address _indexingNode = ecrecover(_disputeID, v, r, s);
 
         // Get staked amount on the served subgraph by indexer
-        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexingNode);
+        uint256 _stake = staking.getIndexingNodeStake(
+            _subgraphID,
+            _indexingNode
+        );
         // This also validates that indexer node exists
         require(
             _stake > 0,

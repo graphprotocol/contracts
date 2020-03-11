@@ -37,7 +37,7 @@ contract Governed {
     }
 
     modifier onlyGovernance {
-        require(msg.sender == governor, "Only Governor can call.");
+        require(msg.sender == governor, "Only Governor can call");
         _;
     }
 
