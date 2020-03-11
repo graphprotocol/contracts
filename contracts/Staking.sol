@@ -113,8 +113,7 @@ contract Staking is Governed, BancorFormula {
         bytes32 subgraphID
     );
 
-    event SlasherAdded(address indexed caller, address indexed slasher);
-    event SlasherRemoved(address indexed caller, address indexed slasher);
+    event SlasherUpdated(address indexed caller, address indexed slasher, bool enabled);
 
     /* Structs */
     struct Curator {
@@ -234,12 +233,12 @@ contract Staking is Governed, BancorFormula {
 
     function addSlasher(address _slasher) external onlyGovernance {
         slashers[_slasher] = true;
-        emit SlasherAdded(msg.sender, _slasher);
+        emit SlasherUpdated(msg.sender, _slasher, true);
     }
 
     function removeSlasher(address _slasher) external onlyGovernance {
         slashers[_slasher] = false;
-        emit SlasherRemoved(msg.sender, _slasher);
+        emit SlasherUpdated(msg.sender, _slasher, false);
     }
 
     /**
