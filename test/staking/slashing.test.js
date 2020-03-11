@@ -1,3 +1,4 @@
+const { expect } = require('chai')
 const { expectEvent } = require('openzeppelin-test-helpers')
 
 // contracts
@@ -10,23 +11,14 @@ const helpers = require('../lib/testHelpers')
 
 contract(
   'Staking (Slashing)',
-  ([
-    deploymentAddress,
-    daoContract,
-    indexingStaker,
-    fisherman,
-    ...accounts
-  ]) => {
-    /**
-     * testing constants
-     */
+  ([deploymentAddress, daoContract, indexNode, fisherman, ...accounts]) => {
+    // testing constants
     const minimumCurationStakingAmount =
         helpers.stakingConstants.minimumCurationStakingAmount,
       minimumIndexingStakingAmount =
         helpers.stakingConstants.minimumIndexingStakingAmount,
       defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
       maximumIndexers = helpers.stakingConstants.maximumIndexers,
-      slashingPercent = helpers.stakingConstants.slashingPercent,
       thawingPeriod = helpers.stakingConstants.thawingPeriod,
       initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
       stakingAmount = helpers.graphTokenConstants.stakingAmount,
@@ -42,6 +34,7 @@ contract(
         'Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)',
       ),
       attestationByteSize = 197
+
     let deployedStaking,
       deployedGraphToken,
       subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
@@ -59,7 +52,7 @@ contract(
 
       // send some tokens to the staking account
       const tokensForIndexer = await deployedGraphToken.mint(
-        indexingStaker, // to
+        indexNode, // to
         tokensMintedForStaker, // value
         { from: daoContract },
       )
@@ -72,7 +65,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         thawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
