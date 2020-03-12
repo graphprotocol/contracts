@@ -24,12 +24,20 @@ contract('GNS', accounts => {
       // if (i % 10 === 0 && i !== 0) {
       //   accountCount++
       // }
-      const { logs } = await deployedGNS.registerDomain(helpers.topLevelDomainNames[i], {
-        from: accounts[accountCount],
-      })
-      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
+      const { logs } = await deployedGNS.registerDomain(
+        helpers.topLevelDomainNames[i],
+        {
+          from: accounts[accountCount],
+        },
+      )
+      const topLevelDomainHash = web3.utils.soliditySha3(
+        helpers.topLevelDomainNames[i],
+      )
       const domain = await deployedGNS.domains(topLevelDomainHash)
-      assert(domain.owner === accounts[accountCount], 'Name was not registered properly.',)
+      assert(
+        domain.owner === accounts[accountCount],
+        'Name was not registered properly.',
+      )
 
       expectEvent.inLogs(logs, 'DomainAdded', {
         topLevelDomainHash: topLevelDomainHash,
@@ -49,7 +57,9 @@ contract('GNS', accounts => {
   it('...should allow multiple subdomains to be registered to tlds  ', async () => {
     let accountCount = 0
     for (let i = 0; i < 10; i++) {
-      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
+      const topLevelDomainHash = web3.utils.soliditySha3(
+        helpers.topLevelDomainNames[i],
+      )
       let ipfsHash
       ipfsHash = helpers.testIPFSHashes[i]
 
@@ -68,9 +78,13 @@ contract('GNS', accounts => {
           ipfsHash,
           { from: accounts[accountCount] },
         )
-        const hashedSubdomain = web3.utils.soliditySha3(web3.utils.soliditySha3(helpers.subdomainNames[i]), topLevelDomainHash)
+        const hashedSubdomain = web3.utils.soliditySha3(
+          web3.utils.soliditySha3(helpers.subdomainNames[i]),
+          topLevelDomainHash,
+        )
         const subdomain = await deployedGNS.domains(hashedSubdomain)
-        assert(subdomain.owner === accounts[accountCount],
+        assert(
+          subdomain.owner === accounts[accountCount],
           'Subdomain was not created properly.',
         )
 
@@ -92,7 +106,8 @@ contract('GNS', accounts => {
           { from: accounts[accountCount] },
         )
         const domain = await deployedGNS.domains(topLevelDomainHash)
-        assert(domain.owner === accounts[accountCount],
+        assert(
+          domain.owner === accounts[accountCount],
           'Subdomain was not created properly.',
         )
 
@@ -113,11 +128,18 @@ contract('GNS', accounts => {
 
   it('...should register 10 subgraph ids for 10 different subgraphs. ', async () => {
     for (let i = 0; i < 10; i++) {
-      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
-      const hashedSubdomain = web3.utils.soliditySha3(web3.utils.soliditySha3(helpers.subdomainNames[i]), topLevelDomainHash)
+      const topLevelDomainHash = web3.utils.soliditySha3(
+        helpers.topLevelDomainNames[i],
+      )
+      const hashedSubdomain = web3.utils.soliditySha3(
+        web3.utils.soliditySha3(helpers.subdomainNames[i]),
+        topLevelDomainHash,
+      )
 
       if (i % 2 === 0) {
-        const { logs } = await deployedGNS.updateDomainSubgraphID(
+        const {
+          logs,
+        } = await deployedGNS.updateDomainSubgraphID(
           hashedSubdomain,
           helpers.testSubgraphIDs[i],
           { from: accounts[i] },
@@ -132,7 +154,9 @@ contract('GNS', accounts => {
           subgraphID: helpers.testSubgraphIDs[i],
         })
       } else {
-        const { logs } = await deployedGNS.updateDomainSubgraphID(
+        const {
+          logs,
+        } = await deployedGNS.updateDomainSubgraphID(
           topLevelDomainHash,
           helpers.testSubgraphIDs[i],
           { from: accounts[i] },
@@ -152,7 +176,9 @@ contract('GNS', accounts => {
 
   it('...should update the 5 tlds with no data to test data from  scaffold-metadata.json', async () => {
     for (let i = 0; i < 10; i++) {
-      const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[i])
+      const topLevelDomainHash = web3.utils.soliditySha3(
+        helpers.topLevelDomainNames[i],
+      )
       if (i % 2 === 0) {
         const { logs } = await deployedGNS.changeSubgraphMetadata(
           topLevelDomainHash,
@@ -162,16 +188,21 @@ contract('GNS', accounts => {
 
         expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
           domainHash: topLevelDomainHash,
-          ipfsHash: "0xe2f321f2a488e2cae1a05229f730be3cc77b730246cc08641e515afda0fe0ba6",
+          ipfsHash:
+            '0xe2f321f2a488e2cae1a05229f730be3cc77b730246cc08641e515afda0fe0ba6',
         })
       }
     }
   })
 
-
   it('...should delete the melonport subgraph', async () => {
-    const topLevelDomainHash = web3.utils.soliditySha3(helpers.topLevelDomainNames[6])
-    const hashedSubdomain = web3.utils.soliditySha3(web3.utils.soliditySha3(helpers.subdomainNames[6]), topLevelDomainHash)
+    const topLevelDomainHash = web3.utils.soliditySha3(
+      helpers.topLevelDomainNames[6],
+    )
+    const hashedSubdomain = web3.utils.soliditySha3(
+      web3.utils.soliditySha3(helpers.subdomainNames[6]),
+      topLevelDomainHash,
+    )
     const { logs } = await deployedGNS.deleteSubdomain(hashedSubdomain, {
       from: accounts[6],
     })

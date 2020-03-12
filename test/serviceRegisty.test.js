@@ -54,7 +54,9 @@ contract('Service Registry', accounts => {
 
     for (let i = 0; i < 3; i++) {
       // Set the url, only governor can
-      const { logs } = await deployedServiceRegistry.setBootstrapIndexerURL(
+      const {
+        logs,
+      } = await deployedServiceRegistry.setBootstrapIndexerURL(
         indexers[i],
         url,
         { from: governor },

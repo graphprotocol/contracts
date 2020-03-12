@@ -2,8 +2,8 @@ pragma solidity ^0.5.2;
 
 import "./Governed.sol";
 
-contract ServiceRegistry is Governed {
 
+contract ServiceRegistry is Governed {
     /*
     * @title Graph Protocol Service Registry contract
     *
@@ -20,11 +20,11 @@ contract ServiceRegistry is Governed {
     */
 
     /* EVENTS */
-    event ServiceUrlSet (address indexed serviceProvider, string urlString);
+    event ServiceUrlSet(address indexed serviceProvider, string urlString);
 
     /* Contract Constructor */
     /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor (address _governor) public Governed(_governor) {}
+    constructor(address _governor) public Governed(_governor) {}
 
     /*  A dynamic array of URLs that bootstrap the graph subgraph
         Note: The graph subgraph bootstraps the network. It has no way to retrieve
@@ -44,7 +44,10 @@ contract ServiceRegistry is Governed {
      * @param _indexer <address> - Address of the indexer
      * @param _url <string> - URL of the service provider
      */
-    function setBootstrapIndexerURL(address _indexer, string calldata _url) external onlyGovernance {
+    function setBootstrapIndexerURL(address _indexer, string calldata _url)
+        external
+        onlyGovernance
+    {
         bytes memory url = bytes(_url);
         bootstrapIndexerURLs[_indexer] = url;
         emit ServiceUrlSet(_indexer, _url);
@@ -60,4 +63,3 @@ contract ServiceRegistry is Governed {
         emit ServiceUrlSet(msg.sender, _url);
     }
 }
-

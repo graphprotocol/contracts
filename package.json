@@ -10,21 +10,28 @@
     "chai": "^4.2.0",
     "openzeppelin-solidity": "^2.3.0",
     "openzeppelin-test-helpers": "0.4.0",
-    "prettier": "^1.18.2",
     "truffle": "5.0.20",
     "truffle-hdwallet-provider": "^1.0.14",
     "web3": "1.0.0-beta.55"
   },
   "devDependencies": {
+    "ethlint": "^1.2.5",
     "ipfs-http-client": "34.0.0",
+    "prettier": "^1.19.1",
+    "prettier-plugin-solidity": "^1.0.0-alpha.41",
     "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0",
+    "truffle-flattener": "^1.4.2",
     "typechain": "^0.3.20"
   },
   "scripts": {
+    "build": "npm run compile && npm run flatten && npm run abi:extract",
+    "compile": "truffle compile",
     "test": "truffle test",
-    "prettier": "./node_modules/.bin/prettier —-write 'test/**/*.js'",
-    "contracts": "truffle build && truffle-abi -d ./build/contracts -o ./build/abis/ -v",
+    "lint": "solium --dir ./contracts",
+    "prettier": "prettier --write 'contracts/*.sol' 'test/**/*.js'",
+    "flatten": "scripts/flatten.sh",
+    "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
     "typechain": "typechain --target=ethers --outDir build/typechain/contracts/ ./build/abis/**/*.json"
   },
   "repository": {

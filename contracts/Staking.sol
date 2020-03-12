@@ -76,11 +76,11 @@ import "./Governed.sol";
 import "bytes/BytesLib.sol";
 import "./bancor/BancorFormula.sol";
 
-contract Staking is Governed, BancorFormula
-{
+
+contract Staking is Governed, BancorFormula {
     using BytesLib for bytes;
 
-    event CuratorStaked (
+    event CuratorStaked(
         address indexed staker,
         bytes32 subgraphID,
         uint256 curatorShares,
@@ -88,35 +88,34 @@ contract Staking is Governed, BancorFormula
         uint256 subgraphTotalCurationStake
     );
 
-    event CuratorLogout (
+    event CuratorLogout(
         address indexed staker,
         bytes32 subgraphID,
         uint256 subgraphTotalCurationShares,
         uint256 subgraphTotalCurationStake
     );
 
-    event IndexingNodeStaked (
+    event IndexingNodeStaked(
         address indexed staker,
         uint256 amountStaked,
         bytes32 subgraphID,
         uint256 subgraphTotalIndexingStake
     );
 
-    event IndexingNodeBeginLogout (
+    event IndexingNodeBeginLogout(
         address indexed staker,
         bytes32 subgraphID,
         uint256 unstakedAmount,
         uint256 fees
     );
 
-    event IndexingNodeFinalizeLogout (
+    event IndexingNodeFinalizeLogout(
         address indexed staker,
         bytes32 subgraphID
     );
 
-
     // @dev Dispute was created by fisherman
-    event DisputeCreated (
+    event DisputeCreated(
         bytes32 indexed _subgraphId,
         address indexed _indexingNode,
         address indexed _fisherman,
@@ -125,7 +124,7 @@ contract Staking is Governed, BancorFormula
     );
 
     // @dev Dispute was accepted, indexing node lost their stake
-    event DisputeAccepted (
+    event DisputeAccepted(
         bytes32 indexed _disputeId,
         bytes32 indexed _subgraphId,
         address indexed _indexingNode,
@@ -133,7 +132,7 @@ contract Staking is Governed, BancorFormula
     );
 
     // @dev Dispute was rejected, fisherman lost the given bond amount
-    event DisputeRejected (
+    event DisputeRejected(
         bytes32 indexed _disputeId,
         bytes32 indexed _subgraphId,
         address indexed _fisherman,
@@ -152,7 +151,8 @@ contract Staking is Governed, BancorFormula
         uint256 lockedTokens;
     }
 
-    struct Subgraph { // In subgraph factory pattern, these are just globals
+    struct Subgraph {
+        // In subgraph factory pattern, these are just globals
         uint256 reserveRatio;
         uint256 totalCurationStake; // Reserve token
         uint256 totalCurationShares; // In subgraph factory pattern, Subgraph Token total supply
@@ -163,7 +163,7 @@ contract Staking is Governed, BancorFormula
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
         bytes32 hash; // Note: Not future proof against IPFS planned updates to
-                      //       support multihash, which would require a len field
+        //       support multihash, which would require a len field
         uint16 hashFunction; // 0x1220 is 'Qm', or SHA256 with 32 byte length
     }
 
@@ -241,10 +241,10 @@ contract Staking is Governed, BancorFormula
     uint256 public thawingPeriod;
 
     // Mapping subgraphId to list of addresses to Curators
-    mapping (bytes32 => mapping (address => Curator)) public curators;
+    mapping(bytes32 => mapping(address => Curator)) public curators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
-    mapping (bytes32 => mapping (address => IndexingNode)) public indexingNodes;
+    mapping(bytes32 => mapping(address => IndexingNode)) public indexingNodes;
 
     // A dynamic array of index node addresses that bootstrap the graph subgraph
     // Note: The graph subgraph bootstraps the network. It has no way to retrieve
@@ -263,11 +263,11 @@ contract Staking is Governed, BancorFormula
     bytes32 public graphSubgraphID;
 
     // Subgraphs mapping
-    mapping (bytes32 => Subgraph) public subgraphs;
+    mapping(bytes32 => Subgraph) public subgraphs;
 
     // @dev Disputes created by the Fisherman or other authorized entites
     // @key <bytes32> _disputeId - Hash of readIndex data + disputer data
-    mapping (bytes32 => Dispute) private disputes;
+    mapping(bytes32 => Dispute) private disputes;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
@@ -294,7 +294,7 @@ contract Staking is Governed, BancorFormula
      * @param _governor <address> - Address of the multisig contract as Governor of this contract
      * @param _token <address> - Address of the Graph Protocol token
      */
-    constructor (
+    constructor(
         address _governor,
         uint256 _minimumCurationStakingAmount,
         uint256 _defaultReserveRatio,
@@ -303,14 +303,11 @@ contract Staking is Governed, BancorFormula
         uint256 _slashingPercent,
         uint256 _thawingPeriod,
         address _token
-    )
-        public
-        Governed(_governor)
-    {
+    ) public Governed(_governor) {
         // Governance Parameter Defaults
-        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+        minimumCurationStakingAmount = _minimumCurationStakingAmount; // @imp c03
         defaultReserveRatio = _defaultReserveRatio;
-        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
         maximumIndexers = _maximumIndexers;
         slashingPercent = _slashingPercent;
         thawingPeriod = _thawingPeriod;
@@ -323,14 +320,10 @@ contract Staking is Governed, BancorFormula
      * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked
      * for Curation
      */
-    function setMinimumCurationStakingAmount (
+    function setMinimumCurationStakingAmount(
         uint256 _minimumCurationStakingAmount
-    )
-        external
-        onlyGovernance
-        returns (bool success)
-    {
-        minimumCurationStakingAmount = _minimumCurationStakingAmount;  // @imp c03
+    ) external onlyGovernance returns (bool success) {
+        minimumCurationStakingAmount = _minimumCurationStakingAmount; // @imp c03
         return true;
     }
 
@@ -338,9 +331,7 @@ contract Staking is Governed, BancorFormula
      * @dev Set the percent that the default reserve ratio is for new subgraphs
      * @param _defaultReserveRatio <uint256> - Reserve ratio (in percent)
      */
-    function updateDefaultReserveRatio (
-        uint256 _defaultReserveRatio
-    )
+    function updateDefaultReserveRatio(uint256 _defaultReserveRatio)
         external
         onlyGovernance
         returns (bool success)
@@ -357,14 +348,10 @@ contract Staking is Governed, BancorFormula
      * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked
      * for Indexing Nodes
      */
-    function setMinimumIndexingStakingAmount (
+    function setMinimumIndexingStakingAmount(
         uint256 _minimumIndexingStakingAmount
-    )
-        external
-        onlyGovernance
-        returns (bool success)
-    {
-        minimumIndexingStakingAmount = _minimumIndexingStakingAmount;  // @imp i03
+    ) external onlyGovernance returns (bool success) {
+        minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
         return true;
     }
 
@@ -372,9 +359,7 @@ contract Staking is Governed, BancorFormula
      * @dev Set the maximum number of Indexing Nodes
      * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
      */
-    function setMaximumIndexers (
-        uint256 _maximumIndexers
-    )
+    function setMaximumIndexers(uint256 _maximumIndexers)
         external
         onlyGovernance
         returns (bool success)
@@ -387,9 +372,7 @@ contract Staking is Governed, BancorFormula
      * @dev Set the percent that the fisherman gets when slashing occurs
      * @param _slashingPercent <uint256> - Slashing percent
      */
-    function updateSlashingPercentage (
-        uint256 _slashingPercent
-    )
+    function updateSlashingPercentage(uint256 _slashingPercent)
         external
         onlyGovernance
         returns (bool success)
@@ -405,9 +388,7 @@ contract Staking is Governed, BancorFormula
      * @dev Set the thawing period for indexer logout
      * @param _thawingPeriod <uint256> - Number of seconds for thawing period
      */
-    function updateThawingPeriod (
-        uint256 _thawingPeriod
-    )
+    function updateThawingPeriod(uint256 _thawingPeriod)
         external
         onlyGovernance
         returns (bool success)
@@ -420,9 +401,7 @@ contract Staking is Governed, BancorFormula
      * @dev Set the arbitrator address
      * @param _arbitrator <address> - The address of the arbitration contract or party
      */
-    function setArbitrator (
-        address _arbitrator
-    )
+    function setArbitrator(address _arbitrator)
         external
         onlyGovernance
         returns (bool success)
@@ -439,14 +418,10 @@ contract Staking is Governed, BancorFormula
      */
     // TODO - Need to add in a check to make sure the indexers are already staked, i.e. they
     // TODO - exist in indexingNodes for this subgraph (60% sure we need this...)
-    function setGraphSubgraphID (
+    function setGraphSubgraphID(
         bytes32 _subgraphID,
         address[] calldata _newIndexers
-    )
-        external
-        onlyGovernance
-        returns (bool success)
-    {
+    ) external onlyGovernance returns (bool success) {
         graphSubgraphID = _subgraphID;
         graphIndexingNodeAddresses = _newIndexers;
         return true;
@@ -455,7 +430,11 @@ contract Staking is Governed, BancorFormula
     /**
      * @dev Get the number of graph indexing nodes in the dynamic array
      */
-    function numberOfGraphIndexingNodeAddresses() public view returns (uint count) {
+    function numberOfGraphIndexingNodeAddresses()
+        public
+        view
+        returns (uint256 count)
+    {
         return graphIndexingNodeAddresses.length;
     }
 
@@ -464,11 +443,7 @@ contract Staking is Governed, BancorFormula
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
      */
-    function tokensReceived(
-        address _from,
-        uint256 _value,
-        bytes calldata _data
-    )
+    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
         external
         returns (bool success)
     {
@@ -478,7 +453,9 @@ contract Staking is Governed, BancorFormula
         // Process _data to figure out the action to take (and which subgraph is involved)
         require(_data.length >= 1 + 32);
         // Must be at least 33 bytes (Header)
-        TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
+        TokenReceiptAction option = TokenReceiptAction(
+            _data.slice(0, 1).toUint8(0)
+        );
         bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
         // In subgraph factory, not necessary
 
@@ -498,7 +475,7 @@ contract Staking is Governed, BancorFormula
             address _indexingNode = _data.slice(65, 20).toAddress(0);
             distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
-            revert('Token received option must be 0, 1, 2, or 3.');
+            revert("Token received option must be 0, 1, 2, or 3.");
         }
         success = true;
     }
@@ -512,16 +489,12 @@ contract Staking is Governed, BancorFormula
      * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return issuedShares <uint256> - Amount of additional shares issued given the above
      */
-    function stakeToShares (
+    function stakeToShares(
         uint256 _purchaseTokens,
         uint256 _currentTokens,
         uint256 _currentShares,
         uint256 _reserveRatio
-    )
-        public
-        view
-        returns (uint256 issuedShares)
-    {
+    ) public view returns (uint256 issuedShares) {
         issuedShares = calculatePurchaseReturn(
             _currentShares,
             _currentTokens,
@@ -539,16 +512,12 @@ contract Staking is Governed, BancorFormula
      * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return refundTokens <uint256> - Amount of tokens to return given the above
      */
-    function sharesToStake (
+    function sharesToStake(
         uint256 _returnedShares,
         uint256 _currentTokens,
         uint256 _currentShares,
         uint256 _reserveRatio
-    )
-        public
-        view
-        returns (uint256 refundTokens)
-    {
+    ) public view returns (uint256 refundTokens) {
         refundTokens = calculateSaleReturn(
             _currentShares,
             _currentTokens,
@@ -563,15 +532,16 @@ contract Staking is Governed, BancorFormula
      * @param _curator <address> - Address of Staking party
      * @param _tokenAmount <uint256> - Amount of Graph Tokens to be staked
      */
-    function signalForCuration (
+    function signalForCuration(
         bytes32 _subgraphId,
         address _curator,
         uint256 _tokenAmount
-    )
-        private
-    {
+    ) private {
         // Overflow protection
-        require(subgraphs[_subgraphId].totalCurationStake + _tokenAmount > subgraphs[_subgraphId].totalCurationStake);
+        require(
+            subgraphs[_subgraphId].totalCurationStake + _tokenAmount >
+                subgraphs[_subgraphId].totalCurationStake
+        );
         uint256 tokenAmount = _tokenAmount;
         // If this subgraph hasn't been curated before...
         // NOTE: We have to do this to initialize the curve or else it has
@@ -579,7 +549,6 @@ contract Staking is Governed, BancorFormula
         //       that this doesn't occur, and also sets the initial slope for
         //       the curve (controlled by minimumCurationStake)
         if (subgraphs[_subgraphId].totalCurationStake == 0) {
-
             // Additional pre-condition check
             require(tokenAmount >= minimumCurationStakingAmount);
 
@@ -589,11 +558,13 @@ contract Staking is Governed, BancorFormula
             // The first share costs minimumCurationStake amount of tokens
             curators[_subgraphId][_curator].subgraphShares = 1;
             subgraphs[_subgraphId].totalCurationShares = 1;
-            subgraphs[_subgraphId].totalCurationStake = minimumCurationStakingAmount;
+            subgraphs[_subgraphId]
+                .totalCurationStake = minimumCurationStakingAmount;
             tokenAmount -= minimumCurationStakingAmount;
         }
 
-        if (tokenAmount > 0) { // Corner case if only minimum is staked on first stake
+        if (tokenAmount > 0) {
+            // Corner case if only minimum is staked on first stake
             // Obtain the amount of shares to buy with the amount of tokens to sell
             // according to the bonding curve
             uint256 _newShares = stakeToShares(
@@ -612,7 +583,10 @@ contract Staking is Governed, BancorFormula
 
             // Ensure curators cannot stake more than 100% in basis points
             // Note: ensures that distributeChannelFees() does not revert
-            require(subgraphs[_subgraphId].totalCurationShares <= (MAX_PPM / BASIS_PT));
+            require(
+                subgraphs[_subgraphId].totalCurationShares <=
+                    (MAX_PPM / BASIS_PT)
+            );
         }
 
         // Emit the CuratorStaked event (updating the running tally)
@@ -621,8 +595,8 @@ contract Staking is Governed, BancorFormula
             _subgraphId,
             curators[_subgraphId][_curator].subgraphShares,
             subgraphs[_subgraphId].totalCurationShares,
-            subgraphs[_subgraphId].totalCurationStake)
-        ;
+            subgraphs[_subgraphId].totalCurationStake
+        );
     }
 
     /**
@@ -630,12 +604,7 @@ contract Staking is Governed, BancorFormula
      * @param _subgraphId <bytes32> - Subgraph ID the Curator is returning shares for
      * @param _numShares <uint256> - Amount of shares to return
      */
-    function curatorLogout (
-        bytes32 _subgraphId,
-        uint256 _numShares
-    )
-        external
-    {
+    function curatorLogout(bytes32 _subgraphId, uint256 _numShares) external {
         // Underflow protection
         require(curators[_subgraphId][msg.sender].subgraphShares >= _numShares);
 
@@ -649,7 +618,8 @@ contract Staking is Governed, BancorFormula
         );
 
         // Keep track of whether this is a full logout
-        bool fullLogout = (curators[_subgraphId][msg.sender].subgraphShares == _numShares);
+        bool fullLogout = (curators[_subgraphId][msg.sender].subgraphShares ==
+            _numShares);
 
         // Update the amount of tokens Curator has, and overall amount staked
         subgraphs[_subgraphId].totalCurationStake -= _tokenRefund;
@@ -687,23 +657,24 @@ contract Staking is Governed, BancorFormula
      * @param _indexer <address> - Address of Staking party
      * @param _value <uint256> - Amount of Graph Tokens to be staked
      */
-    function stakeForIndexing (
+    function stakeForIndexing(
         bytes32 _subgraphId,
         address _indexer,
         uint256 _value
-    )
-        private
-    {
+    ) private {
         // If we are dealing with the graph subgraph bootstrap index nodes
         if (_subgraphId == graphSubgraphID) {
             (bool found, ) = findGraphIndexerIndex(_indexer);
             // If the user was never found, we must push them into the array
-            if (found == false){
+            if (found == false) {
                 graphIndexingNodeAddresses.push(_indexer);
             }
         }
         require(indexingNodes[_subgraphId][_indexer].logoutStarted == 0);
-        require(indexingNodes[_subgraphId][_indexer].amountStaked + _value >= minimumIndexingStakingAmount); // @imp i02
+        require(
+            indexingNodes[_subgraphId][_indexer].amountStaked + _value >=
+                minimumIndexingStakingAmount
+        ); // @imp i02
         if (indexingNodes[_subgraphId][_indexer].amountStaked == 0)
             subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
         indexingNodes[_subgraphId][_indexer].amountStaked += _value;
@@ -715,7 +686,6 @@ contract Staking is Governed, BancorFormula
             _subgraphId,
             subgraphs[_subgraphId].totalIndexingStake
         );
-
     }
 
     // TODO - implement partial logouts for these two functions
@@ -723,9 +693,7 @@ contract Staking is Governed, BancorFormula
      * @dev Indexing node can start logout process
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
-    function beginLogout(bytes32 _subgraphId)
-        external
-    {
+    function beginLogout(bytes32 _subgraphId) external {
         require(indexingNodes[_subgraphId][msg.sender].amountStaked > 0);
         require(indexingNodes[_subgraphId][msg.sender].logoutStarted == 0);
         indexingNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
@@ -758,11 +726,13 @@ contract Staking is Governed, BancorFormula
      * @dev Indexing node can finish the logout process after a thawing off period
      * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
      */
-    function finalizeLogout(bytes32 _subgraphId)
-        external
-    {
+    function finalizeLogout(bytes32 _subgraphId) external {
         // TODO - BUG, you can call finalize logout here, without ever calling beginLogout, and it will work
-        require(indexingNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <= block.timestamp);
+        require(
+            indexingNodes[_subgraphId][msg.sender].logoutStarted +
+                thawingPeriod <=
+                block.timestamp
+        );
 
         uint256 _amount = indexingNodes[_subgraphId][msg.sender].lockedTokens;
         // Reset the index node
@@ -773,10 +743,7 @@ contract Staking is Governed, BancorFormula
 
         assert(token.transfer(msg.sender, _amount));
 
-        emit IndexingNodeFinalizeLogout(
-                msg.sender,
-                _subgraphId
-            );
+        emit IndexingNodeFinalizeLogout(msg.sender, _subgraphId);
     }
 
     /**
@@ -784,14 +751,8 @@ contract Staking is Governed, BancorFormula
      * @param _value <uint256> - Amount of validator's stake
      * @return <uint256> - Percentage of validator's stake to be considered a reward
      */
-    function getRewardForValue(
-        uint256 _value
-    )
-        public
-        view
-        returns (uint256)
-    {
-        return slashingPercent * _value / MAX_PPM; // slashingPercent is in PPM
+    function getRewardForValue(uint256 _value) public view returns (uint256) {
+        return (slashingPercent * _value) / MAX_PPM; // slashingPercent is in PPM
     }
 
     /**
@@ -803,42 +764,47 @@ contract Staking is Governed, BancorFormula
      * @param _amount <uint256> - Amount of tokens staked
      * @notice Payable using Graph Tokens for deposit
      */
-    function createDispute (
+    function createDispute(
         bytes memory _attestation,
         bytes32 _subgraphId,
         address _fisherman,
         uint256 _amount
-    )
-        private
-    {
+    ) private {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 _disputeId = keccak256(abi.encode(
-            // HACK: Remove this line until eth_signTypedData is in common use
-            //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-            "\x19Ethereum Signed Message:\n", 64, // 64 bytes (2 hashes)
-            // END HACK
-            keccak256(abi.encode( // EIP 712 domain separator
-                    DOMAIN_TYPE_HASH,
-                    DOMAIN_NAME_HASH,
-                    DOMAIN_VERSION_HASH,
-                    CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
-                    this, // contract address
-                    // Application-specific domain separator
-                    // Ensures msgs for different subgraphs cannot be reused
-                    // Note: Not necessary when subgraphs are factory pattern because of contract address
-                    _subgraphId // EIP-712 Salt
-            )),
-            keccak256(abi.encode( // EIP 712-encoded message hash
-                    ATTESTATION_TYPE_HASH,
-                    _attestation.slice(0, ATTESTATION_SIZE_BYTES-65) // Everything except the signature
-            ))
-        ));
+        bytes32 _disputeId = keccak256(
+            abi.encode(
+                // HACK: Remove this line until eth_signTypedData is in common use
+                //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                "\x19Ethereum Signed Message:\n",
+                64, // 64 bytes (2 hashes)
+                // END HACK
+                keccak256(
+                    abi.encode( // EIP 712 domain separator
+                        DOMAIN_TYPE_HASH,
+                        DOMAIN_NAME_HASH,
+                        DOMAIN_VERSION_HASH,
+                        CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
+                        this, // contract address
+                        // Application-specific domain separator
+                        // Ensures msgs for different subgraphs cannot be reused
+                        // Note: Not necessary when subgraphs are factory pattern because of contract address
+                        _subgraphId // EIP-712 Salt
+                    )
+                ),
+                keccak256(
+                    abi.encode( // EIP 712-encoded message hash
+                        ATTESTATION_TYPE_HASH,
+                        _attestation.slice(0, ATTESTATION_SIZE_BYTES - 65) // Everything except the signature
+                    )
+                )
+            )
+        );
 
         // Decode the signature
         (uint8 v, bytes32 r, bytes32 s) = abi.decode( // VRS signature components
-                _attestation.slice(ATTESTATION_SIZE_BYTES-65, 65), // just the signature
-                (uint8, bytes32, bytes32) // V, R, and S
-            );
+            _attestation.slice(ATTESTATION_SIZE_BYTES - 65, 65), // just the signature
+            (uint8, bytes32, bytes32) // V, R, and S
+        );
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
         // Note: The signer of the attestation is the indexing node that served it
@@ -875,19 +841,28 @@ contract Staking is Governed, BancorFormula
         require(disputes[_disputeId].fisherman == address(0)); // Must be empty
 
         // Store dispute
-        disputes[_disputeId] = Dispute(_subgraphId, _indexingNode, _fisherman, _amount);
+        disputes[_disputeId] = Dispute(
+            _subgraphId,
+            _indexingNode,
+            _fisherman,
+            _amount
+        );
 
         // Log event that new dispute was created against _indexingNode
-        emit DisputeCreated(_subgraphId, _indexingNode, _fisherman, _disputeId, _attestation);
+        emit DisputeCreated(
+            _subgraphId,
+            _indexingNode,
+            _fisherman,
+            _disputeId,
+            _attestation
+        );
     }
 
     /**
      * @dev The arbitrator can verify a dispute as being valid.
      * @param _disputeId <bytes32> - ID of the dispute to be verified
      */
-    function verifyDispute (
-        bytes32 _disputeId
-    )
+    function verifyDispute(bytes32 _disputeId)
         external
         onlyArbitrator
         returns (bool success)
@@ -937,9 +912,7 @@ contract Staking is Governed, BancorFormula
      * @dev The arbitrator can reject a dispute as being invalid.
      * @param _disputeId <bytes32> - ID of the dispute to be rejected
      */
-    function rejectDispute (
-        bytes32 _disputeId
-    )
+    function rejectDispute(bytes32 _disputeId)
         external
         onlyArbitrator
         returns (bool success)
@@ -968,19 +941,21 @@ contract Staking is Governed, BancorFormula
      * @param _indexingNode <address> - Indexing Node that earned the fees.
      * @param _feesEarned <uint256> - Total amount of fees earned.
      */
-    function distributeChannelFees (
+    function distributeChannelFees(
         bytes32 _subgraphId,
         address _indexingNode,
         uint256 _feesEarned
-    )
-        private
-    {
+    ) private {
         // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
-        uint256 _curatorRewardBasisPts = subgraphs[_subgraphId].totalCurationShares * BASIS_PT;
+        uint256 _curatorRewardBasisPts = subgraphs[_subgraphId]
+            .totalCurationShares *
+            BASIS_PT;
         assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
-        uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) / MAX_PPM;
+        uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) /
+            MAX_PPM;
         // Give the indexing node their part of the fees
-        indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned - _curatorPortion);
+        indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned -
+            _curatorPortion);
         // Increase the token balance for the subgraph (each share gets more tokens when sold)
         subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
     }
@@ -990,11 +965,7 @@ contract Staking is Governed, BancorFormula
      *      Indexing Node would be able to log out all the fees they earned during a dispute.
      * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
      */
-    function withdrawFees (
-        bytes32 _subgraphId
-    )
-        external
-    {
+    function withdrawFees(bytes32 _subgraphId) external {
         uint256 _feesAccrued;
         _feesAccrued = indexingNodes[_subgraphId][msg.sender].feesAccrued;
         require(_feesAccrued > 0);
@@ -1008,14 +979,14 @@ contract Staking is Governed, BancorFormula
             index of 0, or else it refers to an address that was not found.
      * @param _indexer <address> - The address of the indexer to look up.
     */
-    function findGraphIndexerIndex (address _indexer)
+    function findGraphIndexerIndex(address _indexer)
         private
         view
-        returns
-        (bool found, uint256 userIndex)  {
+        returns (bool found, uint256 userIndex)
+    {
         // We must find the indexers location in the array first
-        for (uint256 i; i < graphIndexingNodeAddresses.length; i++){
-            if (graphIndexingNodeAddresses[i] == _indexer){
+        for (uint256 i; i < graphIndexingNodeAddresses.length; i++) {
+            if (graphIndexingNodeAddresses[i] == _indexer) {
                 userIndex = i;
                 found = true;
                 break;

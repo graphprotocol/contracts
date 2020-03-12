@@ -64,7 +64,10 @@ contract('Governance', accounts => {
       true, // include pending
       false, // include executed
     )
-    assert(pendingTransactionCount.toNumber() === 1, 'Transaction is not pending.')
+    assert(
+      pendingTransactionCount.toNumber() === 1,
+      'Transaction is not pending.',
+    )
 
     // Confirm transaction from a second multisig owner account
     await multiSigInstance1.contract.methods
@@ -85,7 +88,10 @@ contract('Governance', accounts => {
     const confirmations = await multiSigInstance1.getConfirmations(
       transactionId.toNumber(),
     )
-    assert(confirmations.length === 2, 'Transaction does not have 2 confirmations.')
+    assert(
+      confirmations.length === 2,
+      'Transaction does not have 2 confirmations.',
+    )
 
     // Check that transaction status is `confirmed`
     const isConfirmed = await multiSigInstance1.isConfirmed(
