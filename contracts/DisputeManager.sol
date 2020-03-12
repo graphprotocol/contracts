@@ -80,35 +80,38 @@ contract DisputeManager is Governed {
 
     // @dev Dispute was created by fisherman
     event DisputeCreated(
-        bytes32 _disputeID,
-        bytes32 indexed _subgraphID,
-        address indexed _indexingNode,
-        address indexed _fisherman,
-        bytes _attestation
+        bytes32 disputeID,
+        bytes32 indexed subgraphID,
+        address indexed indexingNode,
+        address indexed fisherman,
+        bytes attestation
     );
 
     // @dev Dispute was accepted, indexing node stake gets slashed
     event DisputeAccepted(
-        bytes32 indexed _disputeID,
-        bytes32 indexed _subgraphID,
-        address indexed _indexingNode,
-        uint256 _amount
+        bytes32 disputeID,
+        bytes32 indexed subgraphID,
+        address indexed indexingNode,
+        address indexed fisherman,
+        uint256 amount
     );
 
     // @dev Dispute was rejected, fisherman lose the deposit
     event DisputeRejected(
-        bytes32 indexed _disputeID,
-        bytes32 indexed _subgraphID,
-        address indexed _fisherman,
-        uint256 _amount
+        bytes32 disputeID,
+        bytes32 indexed subgraphID,
+        address indexed indexingNode,
+        address indexed fisherman,
+        uint256 amount
     );
 
     // @dev Dispute was disregarded
     event DisputeIgnored(
-        bytes32 indexed _disputeID,
-        bytes32 indexed _subgraphID,
-        address indexed _fisherman,
-        uint256 _amount
+        bytes32 disputeID,
+        bytes32 indexed subgraphID,
+        address indexed indexingNode,
+        address indexed fisherman,
+        uint256 amount
     );
 
     modifier onlyArbitrator {
@@ -264,7 +267,13 @@ contract DisputeManager is Governed {
         );
 
         // Log event that we awarded _fisherman _reward in resolving _disputeID
-        emit DisputeAccepted(_disputeID, _subgraphID, _indexingNode, _reward);
+        emit DisputeAccepted(
+            _disputeID,
+            _subgraphID,
+            _indexingNode,
+            _fisherman,
+            _reward
+        );
     }
 
     /**
@@ -276,6 +285,7 @@ contract DisputeManager is Governed {
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
         address _fisherman = disputes[_disputeID].fisherman;
+        address _indexingNode = disputes[_disputeID].indexingNode;
         uint256 _depositAmount = disputes[_disputeID].depositAmount;
 
         // Resolve dispute
@@ -287,6 +297,7 @@ contract DisputeManager is Governed {
         emit DisputeRejected(
             _disputeID,
             _subgraphID,
+            _indexingNode,
             _fisherman,
             _depositAmount
         );
@@ -301,6 +312,7 @@ contract DisputeManager is Governed {
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
         address _fisherman = disputes[_disputeID].fisherman;
+        address _indexingNode = disputes[_disputeID].indexingNode;
         uint256 _depositAmount = disputes[_disputeID].depositAmount;
 
         // Resolve dispute
@@ -315,6 +327,7 @@ contract DisputeManager is Governed {
         emit DisputeIgnored(
             _disputeID,
             _subgraphID,
+            _indexingNode,
             _fisherman,
             _depositAmount
         );
