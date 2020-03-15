@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 contract DisputeManager is Governed {
     using BytesLib for bytes;
     using ECDSA for bytes32;
+    using SafeMath for uint256;
 
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
@@ -157,7 +158,7 @@ contract DisputeManager is Governed {
      * @return <uint256> - Percentage of validator's stake to be considered a reward
      */
     function getRewardForStake(uint256 _value) public view returns (uint256) {
-        return (slashingPercent * _value) / MAX_PPM; // slashingPercent is in PPM
+        return slashingPercent.mul(_value).div(MAX_PPM); // slashingPercent is in PPM
     }
 
     /**

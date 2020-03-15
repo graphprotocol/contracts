@@ -161,6 +161,7 @@ contract(
           { from: fisherman },
         )
 
+        // Event emitted
         expectEvent.inTransaction(
           tx,
           disputeManager.constructor,
