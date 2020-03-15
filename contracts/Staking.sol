@@ -69,7 +69,7 @@ pragma solidity ^0.5.2;
  */
 
 /*
-*/
+ */
 
 import "./Governed.sol";
 import "./GraphToken.sol";
@@ -343,6 +343,7 @@ contract Staking is Governed, BancorFormula {
         require(_reward > 0, "Slashing reward must be greater than 0");
 
         // Get indexer to be slashed
+
 
             IndexingNode memory _slashedIndexingNode
          = indexingNodes[_subgraphId][_indexingNode];
@@ -736,8 +737,7 @@ contract Staking is Governed, BancorFormula {
     ) private {
         // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
         uint256 _curatorRewardBasisPts = subgraphs[_subgraphId]
-            .totalCurationShares *
-            BASIS_PT;
+            .totalCurationShares * BASIS_PT;
         assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
         uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) /
             MAX_PPM;

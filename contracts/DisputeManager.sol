@@ -4,22 +4,25 @@ import "./Governed.sol";
 import "./GraphToken.sol";
 import "./Staking.sol";
 import "./bytes/BytesLib.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 contract DisputeManager is Governed {
     using BytesLib for bytes;
+    using ECDSA for bytes32;
 
     // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
     struct Dispute {
         bytes32 subgraphID;
-        address indexingNode;
+        address indexNode;
         address fisherman;
         uint256 depositAmount;
     }
 
+    // -- Attestation --
+
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
-        bytes32 hash; // Note: Not future proof against IPFS planned updates to
-        //       support multihash, which would require a len field
+        bytes32 hash; // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
         uint16 hashFunction; // 0x1220 is 'Qm', or SHA256 with 32 byte length
     }
 
@@ -39,27 +42,33 @@ contract DisputeManager is Governed {
         bytes32 s;
     }
 
-    uint256 private constant ATTESTATION_SIZE_BYTES = 197;
+    uint256 private constant ATTESTATION_SIZE_BYTES = 192;
+    uint256 private constant SIGNATURE_SIZE_BYTES = 65;
 
-    // EIP-712 constants
+    // -- EIP-712  --
+
     bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
     );
+    bytes32 private constant DOMAIN_NAME_HASH = keccak256(
+        bytes("Graph Protocol")
+    );
+    bytes32 private constant DOMAIN_VERSION_HASH = keccak256(bytes("0.1"));
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
         "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
     );
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
-
-    // TODO: EIP-1344 adds support for the Chain ID opcode
-    //       Use that instead
-    uint256 private constant CHAIN_ID = 1; // Mainnet
+    uint256 private constant CHAIN_ID = 1; // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
+    bytes32 private DOMAIN_SEPARATOR;
 
     // @dev 100% in parts per million.
     uint256 private constant MAX_PPM = 1000000;
 
     // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
     uint256 private constant BASIS_PT = 100;
+
+    // @dev Disputes created by the Fisherman or other authorized entites
+    // @key <bytes32> _disputeID - Hash of readIndex data + disputer data
+    mapping(bytes32 => Dispute) public disputes;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
@@ -74,42 +83,36 @@ contract DisputeManager is Governed {
     // Staking contract used for slashing
     Staking public staking;
 
-    // @dev Disputes created by the Fisherman or other authorized entites
-    // @key <bytes32> _disputeID - Hash of readIndex data + disputer data
-    mapping(bytes32 => Dispute) private disputes;
+    // -- Events --
 
-    // @dev Dispute was created by fisherman
     event DisputeCreated(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexingNode,
+        address indexed indexNode,
         address indexed fisherman,
         bytes attestation
     );
 
-    // @dev Dispute was accepted, indexing node stake gets slashed
     event DisputeAccepted(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexingNode,
+        address indexed indexNode,
         address indexed fisherman,
         uint256 amount
     );
 
-    // @dev Dispute was rejected, fisherman lose the deposit
     event DisputeRejected(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexingNode,
+        address indexed indexNode,
         address indexed fisherman,
         uint256 amount
     );
 
-    // @dev Dispute was disregarded
     event DisputeIgnored(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexingNode,
+        address indexed indexNode,
         address indexed fisherman,
         uint256 amount
     );
@@ -131,6 +134,17 @@ contract DisputeManager is Governed {
         staking = Staking(_staking);
 
         slashingPercent = _slashingPercent;
+
+        // EIP-712 domain separator
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                DOMAIN_TYPE_HASH,
+                DOMAIN_NAME_HASH,
+                DOMAIN_VERSION_HASH,
+                CHAIN_ID,
+                address(this)
+            )
+        );
     }
 
     function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
@@ -148,41 +162,24 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Get the hash of encoded message to use as disputeID
-     * @param _subgraphID <bytes32> - subgraphID of the Attestation message
      * @param _attestation <Attestation> - Signed Attestation message
      * @return <bytes32> - Hash of encodede message used as disputeID
      */
-    function getdisputeID(bytes32 _subgraphID, bytes memory _attestation)
+    function getDisputeID(bytes memory _attestation)
         public
         view
         returns (bytes32)
     {
         return
             keccak256(
-                abi.encode(
+                abi.encodePacked(
                     // HACK: Remove this line until eth_signTypedData is in common use
-                    //"\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    "\x19Ethereum Signed Message:\n",
-                    64, // 64 bytes (2 hashes)
+                    // "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                    "\x19Ethereum Signed Message:\n64",
                     // END HACK
+                    DOMAIN_SEPARATOR,
                     keccak256(
-                        abi.encode( // EIP 712 domain separator
-                            DOMAIN_TYPE_HASH,
-                            DOMAIN_NAME_HASH,
-                            DOMAIN_VERSION_HASH,
-                            CHAIN_ID, // (Change to block.chain_id after EIP-1344 support)
-                            this, // contract address
-                            // Application-specific domain separator
-                            // Ensures msgs for different subgraphs cannot be reused
-                            // Note: Not necessary when subgraphs are factory pattern because of contract address
-                            _subgraphID // EIP-712 Salt
-                        )
-                    ),
-                    keccak256(
-                        abi.encode( // EIP 712-encoded message hash
-                            ATTESTATION_TYPE_HASH,
-                            _attestation.slice(0, ATTESTATION_SIZE_BYTES - 65) // Everything except the signature
-                        )
+                        abi.encode(ATTESTATION_TYPE_HASH, _attestation) // EIP 712-encoded message hash
                     )
                 )
             );
@@ -229,9 +226,28 @@ contract DisputeManager is Governed {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token");
 
-        bytes32 _subgraphID = _data.slice(1, 32).toBytes32(0);
-        bytes memory _attestation = _data.slice(33, ATTESTATION_SIZE_BYTES);
-        createDispute(_attestation, _subgraphID, _from, _value);
+        // Decode subgraphID
+        bytes32 _subgraphID = _data.slice(0, 32).toBytes32(0);
+
+        // Decode attestation
+        bytes memory _attestation = _data.slice(32, ATTESTATION_SIZE_BYTES);
+        require(
+            _attestation.length == ATTESTATION_SIZE_BYTES,
+            "Signature must be 192 bytes long"
+        );
+
+        // Decode attestation signature
+        bytes memory _sig = _data.slice(
+            32 + ATTESTATION_SIZE_BYTES,
+            SIGNATURE_SIZE_BYTES
+        );
+        require(
+            _sig.length == SIGNATURE_SIZE_BYTES,
+            "Signature must be 65 bytes long"
+        );
+
+        createDispute(_attestation, _sig, _subgraphID, _from, _value);
+
         return true;
     }
 
@@ -244,7 +260,7 @@ contract DisputeManager is Governed {
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
         address _fisherman = disputes[_disputeID].fisherman;
-        address _indexingNode = disputes[_disputeID].indexingNode;
+        address _indexNode = disputes[_disputeID].indexNode;
         uint256 _depositAmount = disputes[_disputeID].depositAmount;
 
         // Resolve dispute
@@ -252,13 +268,10 @@ contract DisputeManager is Governed {
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = staking.getIndexingNodeStake(
-            _subgraphID,
-            _indexingNode
-        );
+        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexNode);
         uint256 _reward = getRewardForStake(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
-        staking.slash(_subgraphID, _indexingNode, _reward, _fisherman);
+        staking.slash(_subgraphID, _indexNode, _reward, _fisherman);
 
         // Give the fisherman their deposit back
         require(
@@ -270,7 +283,7 @@ contract DisputeManager is Governed {
         emit DisputeAccepted(
             _disputeID,
             _subgraphID,
-            _indexingNode,
+            _indexNode,
             _fisherman,
             _reward
         );
@@ -285,7 +298,7 @@ contract DisputeManager is Governed {
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
         address _fisherman = disputes[_disputeID].fisherman;
-        address _indexingNode = disputes[_disputeID].indexingNode;
+        address _indexNode = disputes[_disputeID].indexNode;
         uint256 _depositAmount = disputes[_disputeID].depositAmount;
 
         // Resolve dispute
@@ -297,7 +310,7 @@ contract DisputeManager is Governed {
         emit DisputeRejected(
             _disputeID,
             _subgraphID,
-            _indexingNode,
+            _indexNode,
             _fisherman,
             _depositAmount
         );
@@ -312,7 +325,7 @@ contract DisputeManager is Governed {
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
         address _fisherman = disputes[_disputeID].fisherman;
-        address _indexingNode = disputes[_disputeID].indexingNode;
+        address _indexNode = disputes[_disputeID].indexNode;
         uint256 _depositAmount = disputes[_disputeID].depositAmount;
 
         // Resolve dispute
@@ -327,7 +340,7 @@ contract DisputeManager is Governed {
         emit DisputeIgnored(
             _disputeID,
             _subgraphID,
-            _indexingNode,
+            _indexNode,
             _fisherman,
             _depositAmount
         );
@@ -335,7 +348,8 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
-     * @param _attestation <Attestation> - Signed Attestation message
+     * @param _attestation <Attestation> - Attestation message
+     * @param _sig <bytes> - Attestation signature
      * @param _subgraphID <bytes32> - subgraphID that Attestation message
      *                                contains (in request raw object at CID)
      * @param _fisherman <address> - Creator of dispute
@@ -343,28 +357,20 @@ contract DisputeManager is Governed {
      */
     function createDispute(
         bytes memory _attestation,
+        bytes memory _sig,
         bytes32 _subgraphID,
         address _fisherman,
         uint256 _amount
     ) private {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 _disputeID = getdisputeID(_subgraphID, _attestation);
-
-        // Decode the signature
-        (uint8 v, bytes32 r, bytes32 s) = abi.decode( // VRS signature components
-            _attestation.slice(ATTESTATION_SIZE_BYTES - 65, 65), // just the signature
-            (uint8, bytes32, bytes32) // V, R, and S
-        );
+        bytes32 _disputeID = getDisputeID(_attestation);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
-        // Note: The signer of the attestation is the indexing node that served it
-        address _indexingNode = ecrecover(_disputeID, v, r, s);
+        // Note: The signer of the attestation is the indexNode that served it
+        address _indexNode = _disputeID.recover(_sig);
 
         // Get staked amount on the served subgraph by indexer
-        uint256 _stake = staking.getIndexingNodeStake(
-            _subgraphID,
-            _indexingNode
-        );
+        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexNode);
         // This also validates that indexer node exists
         require(
             _stake > 0,
@@ -377,7 +383,7 @@ contract DisputeManager is Governed {
             "Dispute deposit under minimum required"
         );
 
-        // A fisherman can only open one dispute for a given indexing node / subgraphID at a time
+        // A fisherman can only open one dispute for a given index node / subgraphID at a time
         require(!isDisputeCreated(_disputeID), "Dispute already created"); // Must be empty
 
         // NOTE: There is a potential for a front-running attack against a fisherman
@@ -404,16 +410,16 @@ contract DisputeManager is Governed {
         // Store dispute
         disputes[_disputeID] = Dispute(
             _subgraphID,
-            _indexingNode,
+            _indexNode,
             _fisherman,
             _amount
         );
 
-        // Log event that new dispute was created against IndexingNode
+        // Log event that new dispute was created against IndexNode
         emit DisputeCreated(
             _disputeID,
             _subgraphID,
-            _indexingNode,
+            _indexNode,
             _fisherman,
             _attestation
         );

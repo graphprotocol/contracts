@@ -7,9 +7,11 @@
     "test": "test"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^2.5.0",
     "chai": "^4.2.0",
     "openzeppelin-solidity": "^2.3.0",
     "openzeppelin-test-helpers": "0.4.0",
+    "prettier-plugin-solidity": "^1.0.0-alpha.45",
     "truffle": "5.0.20",
     "truffle-hdwallet-provider": "^1.0.14",
     "web3": "1.0.0-beta.55"
@@ -18,7 +20,6 @@
     "ethlint": "^1.2.5",
     "ipfs-http-client": "34.0.0",
     "prettier": "^1.19.1",
-    "prettier-plugin-solidity": "^1.0.0-alpha.41",
     "truffle-abi": "^1.0.3",
     "truffle-assertions": "0.8.0",
     "truffle-flattener": "^1.4.2",
