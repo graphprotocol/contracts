@@ -95,36 +95,27 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
 
   // required bytes: 32 + 257 = 289
   const payload = createPayload(subgraphId, attestation, messageSig)
-  const payloadBytes = web3.utils.hexToBytes(payload)
 
   return {
-    signerAddress: signer,
+    signer,
 
     // domain
     domainSeparatorHash: domainSeparatorHash,
 
     // subgraphId
-    subgraphId: subgraphId,
-    subgraphIdLength: subgraphId.length,
-    subgraphIdByteLength: web3.utils.hexToBytes(subgraphId).length,
+    subgraphId,
 
     // attestation
-    attestation: attestation,
-    attestationLength: attestation.length,
-    attestationByteLength: web3.utils.hexToBytes(attestation).length,
-    attestationHash: attestationHash,
+    attestation,
+    attestationHash,
 
     // message
-    message: message,
+    message,
     messageHash: helpers.toEthSignedMessageHash(message),
-    messageSig: messageSig,
-    messageSigLength: messageSig.length,
-    messageSigByteLength: web3.utils.hexToBytes(messageSig).length,
+    messageSig,
 
     // payload
-    payload: payload,
-    payloadLength: payload.length,
-    payloadByteLength: payloadBytes.length,
+    payload,
   }
 }
 

@@ -6,7 +6,6 @@ import "./Staking.sol";
 import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
-
 contract DisputeManager is Governed {
     using BytesLib for bytes;
     using ECDSA for bytes32;
@@ -172,6 +171,7 @@ contract DisputeManager is Governed {
         view
         returns (bytes32)
     {
+        // TODO: add a nonce?
         return
             keccak256(
                 abi.encodePacked(
@@ -254,10 +254,10 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can verify a dispute as being valid.
-     * @param _disputeID <bytes32> - ID of the dispute to be verified
+     * @dev The arbitrator can accept a dispute as being valid.
+     * @param _disputeID <bytes32> - ID of the dispute to be accepted
      */
-    function verifyDispute(bytes32 _disputeID) external onlyArbitrator {
+    function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         bytes32 _subgraphID = disputes[_disputeID].subgraphID;
