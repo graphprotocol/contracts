@@ -6,6 +6,7 @@ import "./Staking.sol";
 import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
+
 contract DisputeManager is Governed {
     using BytesLib for bytes;
     using ECDSA for bytes32;

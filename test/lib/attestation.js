@@ -90,7 +90,8 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
   // Message
   const message = createMessage(domainSeparatorHash, attestationHash)
   const messageSig = helpers.fixSignature(await web3.eth.sign(message, signer))
-  // WARN: sign() prepends the "\x19Ethereum Signed Message:\n64" we could raw sign to use the EIP-191 encoding pad, EIP-712 version 1 -> 0x1901
+  // WARN: sign() prepends the "\x19Ethereum Signed Message:\n64" we could
+  // raw sign to use the EIP-191 encoding pad, EIP-712 version 1 -> 0x1901
 
   // required bytes: 32 + 257 = 289
   const payload = createPayload(subgraphId, attestation, messageSig)

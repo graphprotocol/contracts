@@ -22,7 +22,7 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
   })
 
   it('...should allow using graphProtocol.js to encode ABI transaction data', async () => {
-    const serviceProvider = accounts[0]
+    // const serviceProvider = accounts[0]
     const urlToRegister = accounts[1]
 
     // encode transaction data using encodeABI()

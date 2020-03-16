@@ -1,8 +1,7 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent } = require('openzeppelin-test-helpers')
 
 // contracts
 const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')
-const helpers = require('./lib/testHelpers')
 
 contract('Service Registry', accounts => {
   let deployedServiceRegistry
@@ -32,8 +31,7 @@ contract('Service Registry', accounts => {
   })
 
   it('...should allow setting URL with a very long string', async () => {
-    const url =
-      'https://aaaaanksgrhlqghqrefgerqfgnsqgjklsohfdhjkfkjsdhrhesrhkfshkfehkusefhkjesjhfsehjfhkserhkjsehkrhesjkrhsjhrshjkerhjkshjerhjkse.com'
+    const url = 'https://' + 'a'.repeat(125) + '.com'
 
     // Set the url
     const { logs } = await deployedServiceRegistry.setUrl(url, {
@@ -69,7 +67,7 @@ contract('Service Registry', accounts => {
       })
 
       // Verify that the indexer URL has been updated
-      let indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(
+      const indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(
         indexers[i],
       )
       assert(

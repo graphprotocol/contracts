@@ -22,14 +22,16 @@ contract(
      * testing constants
      */
     const minimumCurationStakingAmount =
-        helpers.stakingConstants.minimumCurationStakingAmount,
-      minimumIndexingStakingAmount =
-        helpers.stakingConstants.minimumIndexingStakingAmount,
-      defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
-      maximumIndexers = helpers.stakingConstants.maximumIndexers,
-      simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
-      initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
-    let deployedStaking, deployedGraphToken, gp
+      helpers.stakingConstants.minimumCurationStakingAmount
+    const minimumIndexingStakingAmount =
+      helpers.stakingConstants.minimumIndexingStakingAmount
+    const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
+    const maximumIndexers = helpers.stakingConstants.maximumIndexers
+    const simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple
+    const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+    let deployedStaking
+    let deployedGraphToken
+    let gp
 
     before(async () => {
       // deploy GraphToken contract

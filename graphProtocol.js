@@ -23,12 +23,12 @@
 module.exports = (options = {}) => {
   // Destructure the options properties for our contract ABIs
   const {
-    DisputeManager,
-    GNS,
+    // DisputeManager,
+    // GNS,
     GraphToken,
     MultiSigWallet,
-    RewardsManager,
-    ServiceRegistry,
+    // RewardsManager,
+    // ServiceRegistry,
     Staking,
   } = options
 
@@ -118,11 +118,9 @@ module.exports = (options = {}) => {
      * @dev Getter for `arbitrator`
      * @returns {Number} Arbitrator
      */
-    static arbitrator() {
+    static getArbitrator() {
       return Staking.arbitrator()
     }
-
-
 
     /**
      * @dev Getter for `token` (deployed GraphToken contract address)
@@ -192,7 +190,7 @@ module.exports = (options = {}) => {
      */
     static async stakeForCuration(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      let data = '0x01' + subgraphId
+      const data = '0x01' + subgraphId
       return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
@@ -211,7 +209,7 @@ module.exports = (options = {}) => {
      */
     static async stakeForIndexing(subgraphId, from, value) {
       // encode data to be used in staking for indexing
-      let data = '0x00' + subgraphId
+      const data = '0x00' + subgraphId
       return GraphToken.transferToTokenReceiver(
         Staking.address, // to
         value, // value
@@ -226,10 +224,7 @@ module.exports = (options = {}) => {
      * @param from <address> - Address of staking indexing node
      */
     static beginLogout(subgraphId, from) {
-      return Staking.beginLogout(
-        subgraphId,
-        { from }
-      )
+      return Staking.beginLogout(subgraphId, { from })
     }
 
     /**
@@ -238,10 +233,7 @@ module.exports = (options = {}) => {
      * @param from <address> - Address of staking indexing node
      */
     static finalizeLogout(subgraphId, from) {
-      return Staking.finalizeLogout(
-        subgraphId,
-        { from }
-      )
+      return Staking.finalizeLogout(subgraphId, { from })
     }
 
     /**

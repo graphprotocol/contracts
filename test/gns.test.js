@@ -196,11 +196,3 @@ contract('GNS', accounts => {
     })
   })
 })
-
-/*TODO
- * - test that both the tld and subdomains are properly registered
- * - and/or test that a subdomain can be moved to another owner, but you still own the tld and every
- * thing works
- * - and test recursive subdomains
-
- */

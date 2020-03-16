@@ -5,19 +5,19 @@ import "./Governed.sol";
 
 contract ServiceRegistry is Governed {
     /*
-    * @title Graph Protocol Service Registry contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * Requirements ("Service Registry" contract):
-    * req 01 Maps Ethereum Addresses to URLs
-    * req 02 No other contracts depend on this, rather is consumed by users of The Graph.
-    * ...
-    * @question - Who sets registeredUrls? Staking? (need interface)
-    */
+     * @title Graph Protocol Service Registry contract
+     *
+     * @author Bryant Eisenbach
+     * @author Reuven Etzion
+     *
+     * @notice Contract Specification:
+     *
+     * Requirements ("Service Registry" contract):
+     * req 01 Maps Ethereum Addresses to URLs
+     * req 02 No other contracts depend on this, rather is consumed by users of The Graph.
+     * ...
+     * @question - Who sets registeredUrls? Staking? (need interface)
+     */
 
     /* EVENTS */
     event ServiceUrlSet(address indexed serviceProvider, string urlString);
