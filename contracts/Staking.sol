@@ -208,7 +208,7 @@ contract Staking is Governed, BancorFormula {
     uint256 private constant BASIS_PT = 100;
 
     modifier onlySlasher {
-        require(slashers[msg.sender] == true, "Caller is not a slasher");
+        require(slashers[msg.sender] == true, "Caller is not a Slasher");
         _;
     }
 

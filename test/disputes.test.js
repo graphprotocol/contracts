@@ -319,6 +319,21 @@ contract(
               )
             })
 
+            it('reject to accept dispute if DisputeManager is not slasher', async function() {
+              // Dispute manager is not allowed to slash
+              await this.staking.removeSlasher(this.disputeManager.address, {
+                from: governor,
+              })
+
+              // Perform transaction (accept)
+              await expectRevert(
+                this.disputeManager.acceptDispute(this.dispute.messageHash, {
+                  from: arbitrator,
+                }),
+                'Caller is not a Slasher',
+              )
+            })
+
             it('should resolve dispute, slash indexer and reward the fisherman', async function() {
               const fishermanBalanceBefore = await this.graphToken.balanceOf(
                 fisherman,
