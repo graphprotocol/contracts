@@ -12,7 +12,7 @@ const NON_EXISTING_DISPUTE_ID = '0x0'
 contract(
   'Disputes',
   ([me, other, governor, arbitrator, indexNode, fisherman]) => {
-    before(async function() {
+    beforeEach(async function() {
       // Deploy graph token
       this.graphToken = await deployment.deployGraphToken(governor, {
         from: me,
@@ -161,14 +161,14 @@ contract(
       })
 
       context('when stake does exist', function() {
-        before(async function() {
-          // Give some funds to the indexNode
-          await this.graphToken.mint(indexNode, this.tokensForIndexNode, {
+        beforeEach(async function() {
+          // Dispute manager is allowed to slash
+          await this.staking.addSlasher(this.disputeManager.address, {
             from: governor,
           })
 
-          // Dispute manager is allowed to slash
-          await this.staking.addSlasher(this.disputeManager.address, {
+          // Give some funds to the indexNode
+          await this.graphToken.mint(indexNode, this.tokensForIndexNode, {
             from: governor,
           })
 
@@ -183,7 +183,7 @@ contract(
         })
 
         describe('create dispute', function() {
-          before(async function() {
+          beforeEach(async function() {
             // Get index node signed attestation
             this.dispute = await attestation.createDisputePayload(
               this.subgraphId,
@@ -252,6 +252,19 @@ contract(
             })
 
             // Create dispute
+            await this.graphToken.transferToTokenReceiver(
+              this.disputeManager.address,
+              this.tokensForFisherman,
+              this.dispute.payload,
+              { from: fisherman },
+            )
+
+            // Give some funds to the fisherman
+            await this.graphToken.mint(fisherman, this.tokensForFisherman, {
+              from: governor,
+            })
+
+            // Create dispute (duplicated)
             await expectRevert(
               this.graphToken.transferToTokenReceiver(
                 this.disputeManager.address,
@@ -307,14 +320,44 @@ contract(
             })
 
             it('should resolve dispute, slash indexer and reward the fisherman', async function() {
-              // await this.disputeManager.acceptDispute(
-              //   this.validDispute.messageHash,
-              //   { from: arbitrator },
-              // )
-              // Fisherman reward properly assigned
-              // Fisherman deposit returned
+              const fishermanBalanceBefore = await this.graphToken.balanceOf(
+                fisherman,
+              )
+              const totalSupplyBefore = await this.graphToken.totalSupply()
+              const reward = await this.disputeManager.getRewardForStake(
+                this.indexNodeStake,
+              )
+
+              // Perform transaction (accept)
+              await this.disputeManager.acceptDispute(
+                this.dispute.messageHash,
+                { from: arbitrator },
+              )
+
+              // Fisherman reward properly assigned + deposit returned
+              const deposit = web3.utils.toBN(this.tokensForFisherman)
+              const fishermanBalanceAfter = await this.graphToken.balanceOf(
+                fisherman,
+              )
+              expect(fishermanBalanceAfter).to.be.bignumber.equal(
+                fishermanBalanceBefore.add(deposit).add(reward),
+              )
+
               // IndexNode slashed
+              const currentIndexNodeStake = await this.staking.getIndexingNodeStake(
+                this.subgraphId,
+                indexNode,
+              )
+              expect(currentIndexNodeStake).to.be.bignumber.equal(
+                web3.utils.toBN(0),
+              )
+
               // Slashed funds burned
+              const indexNodeStake = web3.utils.toBN(this.indexNodeStake)
+              const totalSupplyAfter = await this.graphToken.totalSupply()
+              expect(totalSupplyAfter).to.be.bignumber.equal(
+                totalSupplyBefore.sub(indexNodeStake.sub(reward)),
+              )
             })
           })
 
