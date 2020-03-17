@@ -1,9 +1,8 @@
 pragma solidity ^0.5.2;
 
 /*
- * @title DisputeManager contract
- *
- * Provides an effective way to align the incentives of the multiple participants ensuring that Query Results are trustful.
+ * @title Dispute management
+ * @notice Provides a way to align the incentives of  participants ensuring that Query Results are trustful.
  */
 
 import "./Governed.sol";
@@ -17,7 +16,7 @@ contract DisputeManager is Governed {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    // @dev Disputes contain info neccessary for the arbitrator to verify and resolve
+    // Disputes contain info neccessary for the Arbitrator to verify and resolve
     struct Dispute {
         bytes32 subgraphID;
         address indexNode;
@@ -27,20 +26,21 @@ contract DisputeManager is Governed {
 
     // -- Attestation --
 
-    // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
+    // Store IPFS hash as 32 byte hash and 2 byte hash function
+    // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
+    // Note: hashFunction - 0x1220 is 'Qm', or SHA256 with 32 byte length
     struct IpfsHash {
-        // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
         bytes32 hash;
-        // 0x1220 is 'Qm', or SHA256 with 32 byte length
         uint16 hashFunction;
     }
 
-    // @dev signed message sent from Indexing Node in response to a request
+    // Signed message sent from IndexNode in response to a request
+    // Note: Message is located at the given IPFS content address
     struct Attestation {
         // Content Identifier for request message sent from user to indexing node
-        IpfsHash requestCID; // Note: Message is located at the given IPFS content addr
+        IpfsHash requestCID;
         // Content Identifier for signed response message from indexing node
-        IpfsHash responseCID; // Note: Message is located at the given IPFS content addr
+        IpfsHash responseCID;
         // Amount of computational account units (gas) used to process query
         uint256 gasUsed;
         // Amount of data sent in the response
@@ -66,16 +66,17 @@ contract DisputeManager is Governed {
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
         "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
     );
-    uint256 private constant CHAIN_ID = 1; // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
+    // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
+    uint256 private constant CHAIN_ID = 1;
     bytes32 private DOMAIN_SEPARATOR;
 
-    // @dev 100% in parts per million
+    // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
-    // @dev 1 basis point (0.01%) is 100 parts per million (PPM)
+    // 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
 
-    // @dev Disputes created by the Fisherman or other authorized entites
+    // Disputes created by the Fisherman or other authorized entites
     // @key <bytes32> _disputeID - Hash of readIndex data + disputer data
     mapping(bytes32 => Dispute) public disputes;
 
@@ -83,7 +84,7 @@ contract DisputeManager is Governed {
     address public arbitrator;
 
     // Percent of stake to slash in successful dispute
-    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercent;
 
     // Graph Token address
@@ -132,7 +133,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev DisputeManager Contract Constructor
+     * @dev Contract Constructor
      * @param _governor <address> - Owner address of this contract
      * @param _token <address> - Address of the Graph Protocol token
      * @param _arbitrator <address> - Arbitrator role
@@ -166,6 +167,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Return whether a dispute exists or not
+     * @notice Return if dispute with ID `_disputeID` exists
      * @param _disputeID <bool> - True if dispute already exists
      */
     function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
@@ -174,6 +176,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Get the amount of fisherman reward for a given amount of stake
+     * @notice Return the fisherman reward for a stake of `_value`
      * @param _value <uint256> - Amount of validator's stake
      * @return <uint256> - Percentage of validator's stake to be considered a reward
      */
@@ -183,6 +186,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Get the hash of encoded message to use as disputeID
+     * @notice Return the disputeID for a particular attestation
      * @param _attestation <Attestation> - Signed Attestation message
      * @return <bytes32> - Hash of encoded message used as disputeID
      */
@@ -209,6 +213,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Set the percent that the fisherman gets when slashing occurs
+     * @notice Update the slashing percent to `_slashingPercent`
      * @param _slashingPercent <uint256> - Slashing percent
      */
     function setSlashingPercent(uint256 _slashingPercent)
@@ -230,6 +235,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Set the arbitrator address
+     * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator <address> - The address of the arbitration contract or party
      */
     function setArbitrator(address _arbitrator) external onlyGovernance {
@@ -238,6 +244,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Accept tokens
+     * @notice Receive Graph tokens
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
      * @param _data <bytes> - Extra data payload
@@ -276,6 +283,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev The arbitrator can accept a dispute as being valid
+     * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID <bytes32> - ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
@@ -314,6 +322,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev The arbitrator can reject a dispute as being invalid
+     * @notice Reject a dispute with ID `_disputeID`
      * @param _disputeID <bytes32> - ID of the dispute to be rejected
      */
     function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
@@ -341,6 +350,7 @@ contract DisputeManager is Governed {
 
     /**
      * @dev The arbitrator can disregard a dispute
+     * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID <bytes32> - ID of the dispute to be disregarded
      */
     function ignoreDispute(bytes32 _disputeID) external onlyArbitrator {
