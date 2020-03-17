@@ -93,7 +93,7 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
   // WARN: sign() prepends the "\x19Ethereum Signed Message:\n64" we could
   // raw sign to use the EIP-191 encoding pad, EIP-712 version 1 -> 0x1901
 
-  // required bytes: 32 + 257 = 289
+  // required bytes: 32 + 192 + 65 = 289
   const payload = createPayload(subgraphId, attestation, messageSig)
 
   return {

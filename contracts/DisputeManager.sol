@@ -1,5 +1,11 @@
 pragma solidity ^0.5.2;
 
+/*
+ * @title DisputeManager contract
+ *
+ * Provides an effective way to align the incentives of the multiple participants ensuring that Query Results are trustful.
+ */
+
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./Staking.sol";
@@ -23,8 +29,10 @@ contract DisputeManager is Governed {
 
     // @dev Store IPFS hash as 32 byte hash and 2 byte hash function
     struct IpfsHash {
-        bytes32 hash; // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
-        uint16 hashFunction; // 0x1220 is 'Qm', or SHA256 with 32 byte length
+        // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
+        bytes32 hash;
+        // 0x1220 is 'Qm', or SHA256 with 32 byte length
+        uint16 hashFunction;
     }
 
     // @dev signed message sent from Indexing Node in response to a request
@@ -61,10 +69,10 @@ contract DisputeManager is Governed {
     uint256 private constant CHAIN_ID = 1; // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
     bytes32 private DOMAIN_SEPARATOR;
 
-    // @dev 100% in parts per million.
+    // @dev 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
-    // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
+    // @dev 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
 
     // @dev Disputes created by the Fisherman or other authorized entites
@@ -123,6 +131,14 @@ contract DisputeManager is Governed {
         _;
     }
 
+    /**
+     * @dev DisputeManager Contract Constructor
+     * @param _governor <address> - Owner address of this contract
+     * @param _token <address> - Address of the Graph Protocol token
+     * @param _arbitrator <address> - Arbitrator role
+     * @param _staking <address> - Address of the staking contract used for slashing
+     * @param _slashingPercent <uint256> - Percent of stake the fisherman gets on slashing (in PPM)
+     */
     constructor(
         address _governor,
         address _token,
@@ -148,6 +164,10 @@ contract DisputeManager is Governed {
         );
     }
 
+    /**
+     * @dev Return whether a dispute exists or not
+     * @param _disputeID <bool> - True if dispute already exists
+     */
     function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
         return disputes[_disputeID].fisherman != address(0);
     }
@@ -164,7 +184,7 @@ contract DisputeManager is Governed {
     /**
      * @dev Get the hash of encoded message to use as disputeID
      * @param _attestation <Attestation> - Signed Attestation message
-     * @return <bytes32> - Hash of encodede message used as disputeID
+     * @return <bytes32> - Hash of encoded message used as disputeID
      */
     function getDisputeID(bytes memory _attestation)
         public
@@ -220,6 +240,7 @@ contract DisputeManager is Governed {
      * @dev Accept tokens
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
+     * @param _data <bytes> - Extra data payload
      */
     function tokensReceived(address _from, uint256 _value, bytes calldata _data)
         external
@@ -254,7 +275,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can accept a dispute as being valid.
+     * @dev The arbitrator can accept a dispute as being valid
      * @param _disputeID <bytes32> - ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
@@ -292,7 +313,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can reject a dispute as being invalid.
+     * @dev The arbitrator can reject a dispute as being invalid
      * @param _disputeID <bytes32> - ID of the dispute to be rejected
      */
     function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
@@ -319,7 +340,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can disregard a dispute.
+     * @dev The arbitrator can disregard a dispute
      * @param _disputeID <bytes32> - ID of the dispute to be disregarded
      */
     function ignoreDispute(bytes32 _disputeID) external onlyArbitrator {
@@ -373,6 +394,7 @@ contract DisputeManager is Governed {
 
         // Get staked amount on the served subgraph by indexer
         uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexNode);
+
         // This also validates that indexer node exists
         require(
             _stake > 0,
@@ -387,27 +409,6 @@ contract DisputeManager is Governed {
 
         // A fisherman can only open one dispute for a given index node / subgraphID at a time
         require(!isDisputeCreated(_disputeID), "Dispute already created"); // Must be empty
-
-        // NOTE: There is a potential for a front-running attack against a fisherman
-        //       by the indexing node if this were strictly equal to the amount of
-        //       reward that the fisherman were to expect. As a partial mitigation for
-        //       this, the fisherman can over-stake their bond. For every X amount that
-        //       the fisherman overstakes by, the staker would have to also up their
-        //       stake by the same proportion, and due to the reward being slasingPercent
-        //       of the total stake already, the amount the indexing node would have to
-        //       up their stake by would be a significant multiple of this increase.
-        //
-        //       As an example, if slashingPercent were 10%, and the indexer had staked
-        //       100 tokens, the minimum the fisherman would be required to stake is 10
-        //       tokens. If the fisherman staked 20 tokens instead on their dispute, the
-        //       indexing node would have to stake more than 100 tokens extra to front-
-        //       run their dispute and cancel it before it is created. This is a safety
-        //       factor of 10x for the fisherman. The smaller slashingPercent is, the
-        //       larger the multiple would be.
-        //
-        //       Due to this mechanic, this partial mitigation may be enough to defend
-        //       against this in practice until a better design is contructed that takes
-        //       this into account.
 
         // Store dispute
         disputes[_disputeID] = Dispute(
