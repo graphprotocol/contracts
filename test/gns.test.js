@@ -1,4 +1,4 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 
 // contracts
 const GNS = artifacts.require('./GNS.sol')

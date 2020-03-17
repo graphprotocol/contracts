@@ -1,4 +1,4 @@
-const { expectEvent } = require('openzeppelin-test-helpers')
+const { expectEvent } = require('@openzeppelin/test-helpers')
 
 // contracts
 const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')

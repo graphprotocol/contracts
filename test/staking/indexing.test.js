@@ -1,4 +1,8 @@
-const { expectEvent, expectRevert, time } = require('openzeppelin-test-helpers')
+const {
+  expectEvent,
+  expectRevert,
+  time,
+} = require('@openzeppelin/test-helpers')
 const BN = web3.utils.BN
 
 // contracts

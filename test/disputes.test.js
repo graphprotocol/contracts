@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 
 // helpers
 const attestation = require('./lib/attestation')
