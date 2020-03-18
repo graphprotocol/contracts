@@ -7,7 +7,7 @@
     "test": "test"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^2.5.0",
+    "@openzeppelin/contracts": "3.0.0-rc.0",
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
     "eslint": "^6.8.0",
@@ -18,8 +18,8 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "eth-lib": "^0.1.29",
-    "openzeppelin-solidity": "^2.5.0",
     "prettier-plugin-solidity": "^1.0.0-alpha.45",
+    "solidity-bytes-utils": "0.0.8",
     "truffle": "^5.1.17",
     "truffle-hdwallet-provider": "^1.0.14",
     "web3": "^1.2.6"
