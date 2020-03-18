@@ -1,5 +1,10 @@
 const { expect } = require('chai')
-const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
+const {
+  constants,
+  expectEvent,
+  expectRevert,
+} = require('@openzeppelin/test-helpers')
+const { ZERO_ADDRESS } = constants
 
 // helpers
 const attestation = require('./lib/attestation')
@@ -43,9 +48,6 @@ contract(
         // Can set if allowed
         await this.disputeManager.transferGovernance(other, { from: governor })
         expect(await this.disputeManager.governor()).to.equal(other)
-
-        // Restore
-        await this.disputeManager.transferGovernance(governor, { from: other })
       })
 
       it('should set `graphToken`', async function() {
@@ -62,15 +64,19 @@ contract(
         // Can set if allowed
         await this.disputeManager.setArbitrator(other, { from: governor })
         expect(await this.disputeManager.arbitrator()).to.equal(other)
+      })
 
-        // Restore
-        await this.disputeManager.setArbitrator(arbitrator, { from: governor })
-        expect(await this.disputeManager.arbitrator()).to.equal(arbitrator)
+      it('reject set `arbitrator` if empty address', async function() {
+        await expectRevert(
+          this.disputeManager.setArbitrator(ZERO_ADDRESS, { from: governor }),
+          'Cannot set arbitrator to empty address',
+        )
       })
 
       it('reject set `arbitrator` if not allowed', async function() {
-        await expectRevert.unspecified(
+        await expectRevert(
           this.disputeManager.setArbitrator(arbitrator, { from: other }),
+          'Only Governor can call',
         )
       })
 
@@ -108,7 +114,18 @@ contract(
       })
     })
 
-    describe('reward calculation', () => {
+    describe('token transfer', function() {
+      it('reject calls to token received hook if not the GRT token contract', async function() {
+        await expectRevert(
+          this.disputeManager.tokensReceived(fisherman, 10000, '0x0', {
+            from: me,
+          }),
+          'Caller is not the GRT token contract',
+        )
+      })
+    })
+
+    describe('reward calculation', function() {
       it('should calculate the reward for a stake', async function() {
         const stakedAmount = 1000
         const trueReward =

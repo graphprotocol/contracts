@@ -145,7 +145,7 @@ contract DisputeManager is Governed {
         address _staking,
         uint256 _slashingPercent
     ) public Governed(_governor) {
-        arbitrator = _arbitrator;
+        _setArbitrator(_arbitrator);
         token = GraphToken(_token);
         staking = Staking(_staking);
 
@@ -210,6 +210,28 @@ contract DisputeManager is Governed {
     }
 
     /**
+     * @dev Set the arbitrator address
+     * @notice Update the arbitrator to `_arbitrator`
+     * @param _arbitrator <address> - The address of the arbitration contract or party
+     */
+    function setArbitrator(address _arbitrator) external onlyGovernance {
+        _setArbitrator(_arbitrator);
+    }
+
+    /**
+     * @dev Set the arbitrator address
+     * @notice Update the arbitrator to `_arbitrator`
+     * @param _arbitrator <address> - The address of the arbitration contract or party
+     */
+    function _setArbitrator(address _arbitrator) private {
+        require(
+            _arbitrator != address(0),
+            "Cannot set arbitrator to empty address"
+        );
+        arbitrator = _arbitrator;
+    }
+
+    /**
      * @dev Set the percent that the fisherman gets when slashing occurs
      * @notice Update the slashing percent to `_slashingPercent`
      * @param _slashingPercent <uint256> - Slashing percent
@@ -232,15 +254,6 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the arbitrator address
-     * @notice Update the arbitrator to `_arbitrator`
-     * @param _arbitrator <address> - The address of the arbitration contract or party
-     */
-    function setArbitrator(address _arbitrator) external onlyGovernance {
-        arbitrator = _arbitrator;
-    }
-
-    /**
      * @dev Accept tokens
      * @notice Receive Graph tokens
      * @param _from <address> - Token holder's address
@@ -252,7 +265,10 @@ contract DisputeManager is Governed {
         returns (bool)
     {
         // Make sure the token is the caller of this function
-        require(msg.sender == address(token), "Caller is not the GRT token");
+        require(
+            msg.sender == address(token),
+            "Caller is not the GRT token contract"
+        );
 
         // Decode subgraphID
         bytes32 _subgraphID = _data.slice(0, 32).toBytes32(0);
@@ -287,33 +303,38 @@ contract DisputeManager is Governed {
     function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
-        bytes32 _subgraphID = disputes[_disputeID].subgraphID;
-        address _fisherman = disputes[_disputeID].fisherman;
-        address _indexNode = disputes[_disputeID].indexNode;
-        uint256 _depositAmount = disputes[_disputeID].depositAmount;
+        Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexNode);
+        uint256 _stake = staking.getIndexingNodeStake(
+            dispute.subgraphID,
+            dispute.indexNode
+        );
         uint256 _reward = getRewardForStake(_stake);
         assert(_reward <= _stake); // sanity check on fixed-point math
-        staking.slash(_subgraphID, _indexNode, _reward, _fisherman);
+        staking.slash(
+            dispute.subgraphID,
+            dispute.indexNode,
+            _reward,
+            dispute.fisherman
+        );
 
         // Give the fisherman their deposit back
         require(
-            token.transfer(_fisherman, _depositAmount),
+            token.transfer(dispute.fisherman, dispute.depositAmount),
             "Error sending dispute deposit"
         );
 
         // Log event that we awarded _fisherman _reward in resolving _disputeID
         emit DisputeAccepted(
             _disputeID,
-            _subgraphID,
-            _indexNode,
-            _fisherman,
+            dispute.subgraphID,
+            dispute.indexNode,
+            dispute.fisherman,
             _reward
         );
     }
@@ -326,23 +347,20 @@ contract DisputeManager is Governed {
     function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
-        bytes32 _subgraphID = disputes[_disputeID].subgraphID;
-        address _fisherman = disputes[_disputeID].fisherman;
-        address _indexNode = disputes[_disputeID].indexNode;
-        uint256 _depositAmount = disputes[_disputeID].depositAmount;
+        Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Burn the fisherman's deposit
-        token.burn(_depositAmount);
+        token.burn(dispute.depositAmount);
 
         emit DisputeRejected(
             _disputeID,
-            _subgraphID,
-            _indexNode,
-            _fisherman,
-            _depositAmount
+            dispute.subgraphID,
+            dispute.indexNode,
+            dispute.fisherman,
+            dispute.depositAmount
         );
     }
 
@@ -354,26 +372,23 @@ contract DisputeManager is Governed {
     function ignoreDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
-        bytes32 _subgraphID = disputes[_disputeID].subgraphID;
-        address _fisherman = disputes[_disputeID].fisherman;
-        address _indexNode = disputes[_disputeID].indexNode;
-        uint256 _depositAmount = disputes[_disputeID].depositAmount;
+        Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Return deposit to the fisherman
         require(
-            token.transfer(_fisherman, _depositAmount),
+            token.transfer(dispute.fisherman, dispute.depositAmount),
             "Error sending dispute deposit"
         );
 
         emit DisputeIgnored(
             _disputeID,
-            _subgraphID,
-            _indexNode,
-            _fisherman,
-            _depositAmount
+            dispute.subgraphID,
+            dispute.indexNode,
+            dispute.fisherman,
+            dispute.depositAmount
         );
     }
 
