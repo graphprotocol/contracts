@@ -22,8 +22,8 @@ before_install:
   - npm install -g ganache-cli truffle@5.0.20
 
 install:
-  - npm install 
+  - npm install
 
 script:
-  - ganache-cli &
+  - ganache-cli -d -l 9900000 -i 9545 &
   - truffle test
