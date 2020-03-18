@@ -197,10 +197,7 @@ contract DisputeManager is Governed {
         return
             keccak256(
                 abi.encodePacked(
-                    // HACK: Remove this line until eth_signTypedData is in common use
-                    // "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    "\x19Ethereum Signed Message:\n64",
-                    // END HACK
+                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
                     DOMAIN_SEPARATOR,
                     keccak256(
                         abi.encode(ATTESTATION_TYPE_HASH, _attestation) // EIP 712-encoded message hash

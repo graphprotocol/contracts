@@ -1,5 +1,4 @@
-// helpers
-const helpers = require('./testHelpers')
+const Account = require('eth-lib/lib/account')
 
 function createAttestation() {
   const attestation = {
@@ -67,7 +66,9 @@ function createDomainSeparatorHash(contractAddress) {
 }
 
 function createMessage(domainSeparatorHash, attestationHash) {
-  return domainSeparatorHash + attestationHash.substring(2)
+  return (
+    '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
+  )
 }
 
 function createPayload(subgraphId, attestation, messageSig) {
@@ -89,9 +90,8 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
 
   // Message
   const message = createMessage(domainSeparatorHash, attestationHash)
-  const messageSig = helpers.fixSignature(await web3.eth.sign(message, signer))
-  // WARN: sign() prepends the "\x19Ethereum Signed Message:\n64" we could
-  // raw sign to use the EIP-191 encoding pad, EIP-712 version 1 -> 0x1901
+  const messageHash = web3.utils.sha3(message)
+  const messageSig = Account.sign(messageHash, signer)
 
   // required bytes: 32 + 192 + 65 = 289
   const payload = createPayload(subgraphId, attestation, messageSig)
@@ -111,7 +111,7 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
 
     // message
     message,
-    messageHash: helpers.toEthSignedMessageHash(message),
+    messageHash,
     messageSig,
 
     // payload

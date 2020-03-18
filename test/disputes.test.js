@@ -18,6 +18,9 @@ contract(
   'Disputes',
   ([me, other, governor, arbitrator, indexNode, fisherman]) => {
     beforeEach(async function() {
+      this.indexNodePrivKey =
+        '0xadd53f9a7e588d003326d1cbf9e4a43c061aadd9bc938c843a79e7b4fd2ad743'
+
       // Deploy graph token
       this.graphToken = await deployment.deployGraphToken(governor, {
         from: me,
@@ -161,7 +164,7 @@ contract(
           const dispute = await attestation.createDisputePayload(
             this.subgraphId,
             this.disputeManager.address,
-            indexNode,
+            this.indexNodePrivKey,
           )
 
           // Create dispute
@@ -205,7 +208,7 @@ contract(
             this.dispute = await attestation.createDisputePayload(
               this.subgraphId,
               this.disputeManager.address,
-              indexNode,
+              this.indexNodePrivKey,
             )
           })
 
@@ -300,7 +303,7 @@ contract(
             this.dispute = await attestation.createDisputePayload(
               this.subgraphId,
               this.disputeManager.address,
-              indexNode,
+              this.indexNodePrivKey,
             )
 
             // Give some funds to the fisherman
