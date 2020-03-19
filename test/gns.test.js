@@ -1,4 +1,4 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 
 // contracts
 const GNS = artifacts.require('./GNS.sol')
@@ -196,11 +196,3 @@ contract('GNS', accounts => {
     })
   })
 })
-
-/*TODO
- * - test that both the tld and subdomains are properly registered
- * - and/or test that a subdomain can be moved to another owner, but you still own the tld and every
- * thing works
- * - and test recursive subdomains
-
- */

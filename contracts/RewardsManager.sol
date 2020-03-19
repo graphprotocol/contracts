@@ -5,36 +5,36 @@ import "./Governed.sol";
 
 contract RewardsManager is Governed {
     /*
-    * @title Graph Protocol Reward Manager contract
-    *
-    * @author Bryant Eisenbach
-    * @author Reuven Etzion
-    *
-    * @notice Contract Specification:
-    *
-    * The total monetary inflation rate of Graph Tokens, over a given inflation period
-    * (more on this later), is the sum of its two constituent components:
-    * inflationRate = curatorRewardRate + participationRewardRate
-    *
-    * As indicated in the formula above, inflation is used to reward curation of datasets
-    * and participation in the network.
-    *
-    * Participation Adjusted Inflation - In order to encourage Graph Token holders to
-    * participate in the network, the protocol implements a participation-adjusted inflation reward.
-    *
-    * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total
-    * Graph Token supply, and is set via governance. As with the participation reward, it is paid
-    * via inflation.
-    *
-    * Requirements ("Reward Manager" contract):
-    * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism
-    *   design of technical specification.
-    * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
-    * req 03 claimRewards function
-    * req 04 uint256 for yearly inflation rate
-    * req 05 a mapping that records the usage in queries of each index chain ,
-    * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
-    */
+     * @title Graph Protocol Reward Manager contract
+     *
+     * @author Bryant Eisenbach
+     * @author Reuven Etzion
+     *
+     * @notice Contract Specification:
+     *
+     * The total monetary inflation rate of Graph Tokens, over a given inflation period
+     * (more on this later), is the sum of its two constituent components:
+     * inflationRate = curatorRewardRate + participationRewardRate
+     *
+     * As indicated in the formula above, inflation is used to reward curation of datasets
+     * and participation in the network.
+     *
+     * Participation Adjusted Inflation - In order to encourage Graph Token holders to
+     * participate in the network, the protocol implements a participation-adjusted inflation reward.
+     *
+     * Curator Inflation Reward - The curationRewardRate is defined as a percentage of the total
+     * Graph Token supply, and is set via governance. As with the participation reward, it is paid
+     * via inflation.
+     *
+     * Requirements ("Reward Manager" contract):
+     * req 01 Has the ability to mint tokens according to the reward rules specified in mechanism
+     *   design of technical specification.
+     * req 02 Governance contract can update parameters { curatorRewardRate, targetParticipationRate, yearlyInflationRate }
+     * req 03 claimRewards function
+     * req 04 uint256 for yearly inflation rate
+     * req 05 a mapping that records the usage in queries of each index chain ,
+     * which would look like mapping( indexChainID bytes32 -> queryAmount uint256)
+     */
 
     /* STATE VARIABLES */
     // Percentage of the total Graph Token supply

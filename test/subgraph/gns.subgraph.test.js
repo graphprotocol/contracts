@@ -1,4 +1,4 @@
-const { expectEvent, expectRevert } = require('openzeppelin-test-helpers')
+const { expectEvent } = require('@openzeppelin/test-helpers')
 
 // contracts
 const GNS = artifacts.require('./GNS.sol')
@@ -60,8 +60,7 @@ contract('GNS', accounts => {
       const topLevelDomainHash = web3.utils.soliditySha3(
         helpers.topLevelDomainNames[i],
       )
-      let ipfsHash
-      ipfsHash = helpers.testIPFSHashes[i]
+      const ipfsHash = helpers.testIPFSHashes[i]
 
       // Not in use, use when testing more than 10 in the loop
       // if (i < 10){

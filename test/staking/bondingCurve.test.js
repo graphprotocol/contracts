@@ -38,24 +38,26 @@ const helpers = require('../lib/testHelpers')
  * testing constants
  */
 const minimumCurationStakingAmount =
-    helpers.stakingConstants.minimumCurationStakingAmount,
-  minimumIndexingStakingAmount =
-    helpers.stakingConstants.minimumIndexingStakingAmount,
-  defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
-  maximumIndexers = helpers.stakingConstants.maximumIndexers,
-  slashingPercent = helpers.stakingConstants.slashingPercent,
-  simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
-  initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
-let deployedStaking, deployedGraphToken, gp
+  helpers.stakingConstants.minimumCurationStakingAmount
+const minimumIndexingStakingAmount =
+  helpers.stakingConstants.minimumIndexingStakingAmount
+const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
+const maximumIndexers = helpers.stakingConstants.maximumIndexers
+const simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple
+const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+let deployedStaking
+let deployedGraphToken
+let gp
 
 /* bonding curve params */
-let totalShares, // total of staker's staked shares
-  continuousShares, // total shares issued for subgraphId
-  reserveTokenBalance, // total amount of tokens currently in reserves
-  reserveRatios, // array of ratios used in bonding curve
-  purchaseCount, // number of purchases to be made for each reserveRatios value
-  purchaseAmount, // amount of tokens being staked (purchase amount)
-  variancePercentage
+let totalShares // total of staker's staked shares
+let continuousShares // total shares issued for subgraphId
+let reserveTokenBalance // total amount of tokens currently in reserves
+let reserveRatios // array of ratios used in bonding curve
+let purchaseCount // number of purchases to be made for each reserveRatios value
+let purchaseAmount // amount of tokens being staked (purchase amount)
+// let variancePercentage
+
 const defaultParams = {
   totalShares: 1,
   continuousShares: 1,
@@ -74,12 +76,12 @@ const defaultParams = {
 
 function resetBondingParams() {
   totalShares = defaultParams.totalShares
-  ;(continuousShares = defaultParams.continuousShares),
-    (reserveTokenBalance = defaultParams.reserveTokenBalance),
-    (reserveRatios = defaultParams.reserveRatios)
+  continuousShares = defaultParams.continuousShares
+  reserveTokenBalance = defaultParams.reserveTokenBalance
+  reserveRatios = defaultParams.reserveRatios
   purchaseCount = defaultParams.purchaseCount
   purchaseAmount = defaultParams.purchaseAmount
-  variancePercentage = defaultParams.variancePercentage
+  // variancePercentage = defaultParams.variancePercentage
 }
 
 contract(
@@ -102,7 +104,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
@@ -231,7 +232,7 @@ contract(
         // Reset / set bonding params
         resetBondingParams()
         // Call contract for returned number of shares
-        let stakeToShares = await iterateStakeToShares(
+        const stakeToShares = await iterateStakeToShares(
           totalShares,
           continuousShares,
           reserveTokenBalance,
@@ -248,7 +249,7 @@ contract(
         // Reset / set bonding params
         resetBondingParams()
         // Call contract for returned number of shares
-        let stakeToShares = await iterateStakeToShares(
+        const stakeToShares = await iterateStakeToShares(
           totalShares,
           continuousShares,
           reserveTokenBalance,
@@ -324,8 +325,8 @@ async function iterateStakeToShares(
   _purchaseAmount,
   _affirmTokenPriceIncrease,
 ) {
-  let rtn,
-    lastReturn = 1
+  let rtn
+  let lastReturn = 1
   for (let r = 0; r < reserveRatios.length; r++) {
     // console.log(`\tStaking at ${reserveRatios[r]/1000000} reserve ratio`)
     // reset vars for this ratio
@@ -337,7 +338,7 @@ async function iterateStakeToShares(
     for (let p = 0; p < _purchaseCount; p++) {
       rtn = await computeStakeToShares(_purchaseAmount, reserveRatios[r])
       if (_affirmTokenPriceIncrease && rtn > lastReturn) {
-        console.error(new Error(`Price of shares has behaved unexpectedly.`))
+        console.error(new Error('Price of shares has behaved unexpectedly.'))
         return false
       }
       lastReturn = rtn
@@ -376,7 +377,6 @@ async function computeStakeToShares(
           _reserveRatio, // Reserve ratio
         ),
       )
-      // console.log(`\t  Staking ${_purchaseAmount} tokens (against ${reserveTokenBalance} existing tokens) returns ${shares} shares (plus ${continuousShares} previous total shares) for ${shares + continuousShares} total issued shares. (using ${_stakingMethod === gp.staking.stakeToShares ? 'SOL' : 'JS'})`)
       continuousShares += shares
       reserveTokenBalance = reserveTokenBalance.add(_purchaseAmount)
       totalShares += shares
@@ -412,24 +412,24 @@ function purchaseReturn(
   )
 }
 
-/**
- * @title Shares To Stake formula
- * @param {uint256} _continuousShares
- * @param {uint256} _continuousTokensReceived
- * @param {uint256} _reserveTokenBalance
- * @param {uint256} _reserveRatio
- */
-function saleReturn(
-  _continuousShares,
-  _continuousTokensReceived,
-  _reserveTokenBalance,
-  _reserveRatio,
-) {
-  // convert PPM ratios
-  if (_reserveRatio > 1) _reserveRatio = _reserveRatio / 1000000
-  return (
-    _reserveTokenBalance *
-    ((1 - (1 - _continuousTokensReceived / _continuousShares)) ^
-      (1 / _reserveRatio))
-  )
-}
+// /**
+//  * @title Shares To Stake formula
+//  * @param {uint256} _continuousShares
+//  * @param {uint256} _continuousTokensReceived
+//  * @param {uint256} _reserveTokenBalance
+//  * @param {uint256} _reserveRatio
+//  */
+// function saleReturn(
+//   _continuousShares,
+//   _continuousTokensReceived,
+//   _reserveTokenBalance,
+//   _reserveRatio,
+// ) {
+//   // convert PPM ratios
+//   if (_reserveRatio > 1) _reserveRatio = _reserveRatio / 1000000
+//   return (
+//     _reserveTokenBalance *
+//     ((1 - (1 - _continuousTokensReceived / _continuousShares)) ^
+//       (1 / _reserveRatio))
+//   )
+// }

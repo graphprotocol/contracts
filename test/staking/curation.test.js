@@ -1,4 +1,4 @@
-const { expectEvent } = require('openzeppelin-test-helpers')
+const { expectEvent } = require('@openzeppelin/test-helpers')
 // const Web3 = require("web3")
 // const web3 = new Web3(Web3.givenProvider)
 // console.log(web3.utils)
@@ -19,23 +19,22 @@ contract(
      * testing constants & variables
      */
     const minimumCurationStakingAmount =
-        helpers.stakingConstants.minimumCurationStakingAmount,
-      minimumIndexingStakingAmount =
-        helpers.stakingConstants.minimumIndexingStakingAmount,
-      defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
-      maximumIndexers = helpers.stakingConstants.maximumIndexers,
-      slashingPercent = helpers.stakingConstants.slashingPercent,
-      simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple,
-      initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
-      stakingAmount = helpers.graphTokenConstants.stakingAmount,
-      shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000,
-      tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker
-    let deployedStaking,
-      deployedGraphToken,
-      subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
-      subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
-      subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
-      gp
+      helpers.stakingConstants.minimumCurationStakingAmount
+    const minimumIndexingStakingAmount =
+      helpers.stakingConstants.minimumIndexingStakingAmount
+    const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
+    const maximumIndexers = helpers.stakingConstants.maximumIndexers
+    const simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple
+    const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+    const stakingAmount = helpers.graphTokenConstants.stakingAmount
+    const shareAmountFor10000 = helpers.graphTokenConstants.shareAmountFor10000
+    const tokensMintedForStaker =
+      helpers.graphTokenConstants.tokensMintedForStaker
+    let deployedStaking
+    let deployedGraphToken
+    const subgraphIdHex0x = helpers.randomSubgraphIdHex0x()
+    const subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x)
+    let gp
 
     beforeEach(async () => {
       // deploy GraphToken contract
@@ -60,7 +59,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         simpleThawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
@@ -80,7 +78,7 @@ contract(
       let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
       assert(
         curatorBalance.toString() === tokensMintedForStaker.toString() &&
-          totalBalance.toString() == new BN(0).toString(),
+          totalBalance.toString() === new BN(0).toString(),
         'Balances before transfer are incorrect.',
       )
 

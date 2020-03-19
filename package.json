@@ -1,35 +1,48 @@
 {
   "name": "graph-protocol",
   "version": "1.0.0",
-  "descrnpmiption": "![WIP Badge](https://img.shields.io/badge/version-0.0.1-lightgrey.svg) ![WIP Badge](https://img.shields.io/badge/status-wip-yellowgreen.svg)",
+  "description": "",
   "main": "graphProtocol.js",
   "directories": {
     "test": "test"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^2.5.0",
+    "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
-    "openzeppelin-solidity": "^2.3.0",
-    "openzeppelin-test-helpers": "0.4.0",
-    "truffle": "5.0.20",
+    "eslint": "^6.8.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-mocha-no-only": "^1.1.0",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "eth-lib": "^0.1.29",
+    "openzeppelin-solidity": "^2.5.0",
+    "prettier-plugin-solidity": "^1.0.0-alpha.45",
+    "truffle": "^5.1.17",
     "truffle-hdwallet-provider": "^1.0.14",
-    "web3": "1.0.0-beta.55"
+    "web3": "^1.2.6"
   },
   "devDependencies": {
     "ethlint": "^1.2.5",
     "ipfs-http-client": "34.0.0",
     "prettier": "^1.19.1",
-    "prettier-plugin-solidity": "^1.0.0-alpha.41",
     "truffle-abi": "^1.0.3",
-    "truffle-assertions": "0.8.0",
+    "truffle-assertions": "^0.9.2",
     "truffle-flattener": "^1.4.2",
-    "typechain": "^0.3.20"
+    "typechain": "^1.0.5"
   },
   "scripts": {
     "build": "npm run compile && npm run flatten && npm run abi:extract",
     "compile": "truffle compile",
     "test": "truffle test",
-    "lint": "solium --dir ./contracts",
-    "lint:fix": "solium --dir ./contracts --fix",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
+    "lint:js": "eslint .",
+    "lint:js:fix": "eslint . --fix",
+    "lint:sol": "solium --dir ./contracts",
+    "lint:sol:fix": "solium --dir ./contracts --fix",
     "prettier": "prettier --write 'contracts/*.sol' 'test/**/*.js'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",

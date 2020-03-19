@@ -23,29 +23,29 @@ contract('Governance', accounts => {
     )
 
     // Deploy a Governed contract with multiSigInstance1 as the `governor`
-    governedContractInstance = await ServiceRegistry.new(
+    this.governedContractInstance = await ServiceRegistry.new(
       multiSigInstance1.address,
     )
   })
 
   it('...should be governed by MultiSigWallet #1', async () => {
-    const governor = await governedContractInstance.governor.call()
+    const governor = await this.governedContractInstance.governor.call()
     assert(
-      governor == multiSigInstance1.address,
+      governor === multiSigInstance1.address,
       'MultiSigWallet1 is not the governor.',
     )
   })
 
   it('...should be able to transfer governance of self to MultiSigWallet #2', async () => {
     const txData = gp.abiEncode(
-      governedContractInstance.contract.methods.transferGovernance,
+      this.governedContractInstance.contract.methods.transferGovernance,
       [multiSigInstance2.address],
     )
     assert(txData.length, 'Transaction data was not constructed.')
 
     // Submit the transaction to the multisig for confirmation
     const transaction = await multiSigInstance1.submitTransaction(
-      governedContractInstance.address, // destination contract
+      this.governedContractInstance.address, // destination contract
       0, // value
       txData, // transaction data
     )
@@ -72,7 +72,7 @@ contract('Governance', accounts => {
     // Confirm transaction from a second multisig owner account
     await multiSigInstance1.contract.methods
       .confirmTransaction(transactionId.toNumber())
-      .send({ from: accounts[1] })
+      .send({ from: accounts[1], gas: 6e6 })
 
     // Check status is no longer `pending`
     pendingTransactionCount = await multiSigInstance1.getTransactionCount(
@@ -111,7 +111,7 @@ contract('Governance', accounts => {
 
     // Governor of the upgradable contract should now be the second multisig contract
     assert.equal(
-      await governedContractInstance.governor.call(), // contract's new governor
+      await this.governedContractInstance.governor.call(), // contract's new governor
       multiSigInstance2.address, // second multisig instance
       'Upgradable contract does not have a new governor.',
     )

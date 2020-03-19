@@ -1,4 +1,8 @@
-const { expectEvent, expectRevert, time } = require('openzeppelin-test-helpers')
+const {
+  expectEvent,
+  expectRevert,
+  time,
+} = require('@openzeppelin/test-helpers')
 const BN = web3.utils.BN
 
 // contracts
@@ -13,22 +17,21 @@ contract(
   'Staking (Indexing)',
   ([deploymentAddress, daoContract, indexingStaker, ...accounts]) => {
     const minimumCurationStakingAmount =
-        helpers.stakingConstants.minimumCurationStakingAmount,
-      minimumIndexingStakingAmount =
-        helpers.stakingConstants.minimumIndexingStakingAmount,
-      defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio,
-      maximumIndexers = helpers.stakingConstants.maximumIndexers,
-      slashingPercent = helpers.stakingConstants.slashingPercent,
-      thawingPeriod = helpers.stakingConstants.thawingPeriod,
-      initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply,
-      stakingAmount = helpers.graphTokenConstants.stakingAmount,
-      tokensMintedForStaker = helpers.graphTokenConstants.tokensMintedForStaker
-    let deployedStaking,
-      deployedGraphToken,
-      subgraphIdHex0x = helpers.randomSubgraphIdHex0x(),
-      subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x),
-      subgraphIdBytes = web3.utils.hexToBytes(subgraphIdHex0x),
-      gp
+      helpers.stakingConstants.minimumCurationStakingAmount
+    const minimumIndexingStakingAmount =
+      helpers.stakingConstants.minimumIndexingStakingAmount
+    const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
+    const maximumIndexers = helpers.stakingConstants.maximumIndexers
+    const thawingPeriod = helpers.stakingConstants.thawingPeriod
+    const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
+    const tokensMintedForStaker =
+      helpers.graphTokenConstants.tokensMintedForStaker
+    const stakingAmount = helpers.graphTokenConstants.stakingAmount
+    const subgraphIdHex0x = helpers.randomSubgraphIdHex0x()
+    const subgraphIdHex = helpers.randomSubgraphIdHex(subgraphIdHex0x)
+    let deployedStaking
+    let deployedGraphToken
+    let gp
 
     beforeEach(async () => {
       // deploy GraphToken contract
@@ -53,7 +56,6 @@ contract(
         defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
-        slashingPercent, // <uint256> slashingPercent
         thawingPeriod, // <uint256> thawingPeriod
         deployedGraphToken.address, // <address> token
         { from: deploymentAddress },
@@ -204,23 +206,23 @@ contract(
         ).toNumber()
         assert(
           newLength === indexersSetLength + 1,
-          `Indexers length does not match.`,
+          'Indexers length does not match.',
         )
 
-        let indexer = await deployedStaking.graphIndexingNodeAddresses(
+        const indexer = await deployedStaking.graphIndexingNodeAddresses(
           newLength - 1,
         )
-        assert(indexer === indexingStaker, `Indexer address does not match.`)
+        assert(indexer === indexingStaker, 'Indexer address does not match.')
 
         await beginLogout()
 
         // Note - index isn't deleted on the array, the entry is just zeroed
-        let blankIndexer = await deployedStaking.graphIndexingNodeAddresses(
+        const blankIndexer = await deployedStaking.graphIndexingNodeAddresses(
           newLength - 1,
         )
         assert(
           blankIndexer === helpers.zeroAddress(),
-          `Indexer was not deleted.`,
+          'Indexer was not deleted.',
         )
       })
     })
@@ -344,7 +346,7 @@ contract(
       )
 
       for (let i = 0; i < 3; i++) {
-        let indexer = await deployedStaking.graphIndexingNodeAddresses(i)
+        const indexer = await deployedStaking.graphIndexingNodeAddresses(i)
         assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
       }
     }
