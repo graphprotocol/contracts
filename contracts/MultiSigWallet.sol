@@ -1,5 +1,4 @@
-pragma solidity ^0.5.2;
-
+pragma solidity ^0.6.4;
 
 // upgraded from solidity ^0.4.15 (Gnosis MultiSigWallet v1.3.7)
 
@@ -95,7 +94,7 @@ contract MultiSigWallet {
     }
 
     /// @dev Fallback function allows to deposit ether.
-    function() external payable {
+    fallback() external payable {
         if (msg.value > 0) emit Deposit(msg.sender, msg.value);
     }
 
@@ -143,7 +142,7 @@ contract MultiSigWallet {
                 owners[i] = owners[owners.length - 1];
                 break;
             }
-        owners.length -= 1;
+        owners.pop();
         if (required > owners.length) changeRequirement(owners.length);
         emit OwnerRemoval(owner);
     }
@@ -183,7 +182,7 @@ contract MultiSigWallet {
     /// @param destination Transaction target address.
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
-    /// @return Returns transaction ID.
+    /// @return transactionId Returns transaction ID.
     function submitTransaction(
         address destination,
         uint256 value,
@@ -257,7 +256,7 @@ contract MultiSigWallet {
             let x := mload(0x40) // "Allocate" memory for output (0x40 is where "free memory" pointer is stored by convention)
             let d := add(data, 32) // First 32 bytes are the padded length of data, so exclude that
             result := call(
-                sub(gas, 34710), // 34710 is the value that solidity is currently emitting
+                sub(gas(), 34710), // 34710 is the value that solidity is currently emitting
                 // It includes callGas (700) + callVeryLow (3, to pay for SUB) + callValueTransferGas (9000) +
                 // callNewAccountGas (25000, in case the destination address does not exist and needs creating)
                 destination,
@@ -289,7 +288,7 @@ contract MultiSigWallet {
     /// @param destination Transaction target address.
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
-    /// @return Returns transaction ID.
+    /// @return transactionId Returns transaction ID.
     function addTransaction(
         address destination,
         uint256 value,
@@ -311,7 +310,7 @@ contract MultiSigWallet {
      */
     /// @dev Returns number of confirmations of a transaction.
     /// @param transactionId Transaction ID.
-    /// @return Number of confirmations.
+    /// @return count Number of confirmations.
     function getConfirmationCount(uint256 transactionId)
         public
         view
@@ -324,7 +323,7 @@ contract MultiSigWallet {
     /// @dev Returns total number of transactions after filers are applied.
     /// @param pending Include pending transactions.
     /// @param executed Include executed transactions.
-    /// @return Total number of transactions after filters are applied.
+    /// @return count Total number of transactions after filters are applied.
     function getTransactionCount(bool pending, bool executed)
         public
         view
@@ -345,7 +344,7 @@ contract MultiSigWallet {
 
     /// @dev Returns array with owner addresses, which confirmed transaction.
     /// @param transactionId Transaction ID.
-    /// @return Returns array of owner addresses.
+    /// @return _confirmations Returns array of owner addresses.
     function getConfirmations(uint256 transactionId)
         public
         view
@@ -368,7 +367,7 @@ contract MultiSigWallet {
     /// @param to Index end position of transaction array.
     /// @param pending Include pending transactions.
     /// @param executed Include executed transactions.
-    /// @return Returns array of transaction IDs.
+    /// @return _transactionIds Returns array of transaction IDs.
     function getTransactionIds(
         uint256 from,
         uint256 to,
