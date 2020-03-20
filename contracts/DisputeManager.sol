@@ -22,7 +22,7 @@ contract DisputeManager is Governed {
         bytes32 subgraphID;
         address indexNode;
         address fisherman;
-        uint256 depositAmount;
+        uint256 deposit;
     }
 
     // -- Attestation --
@@ -107,7 +107,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 amount
+        uint256 deposit
     );
 
     event DisputeRejected(
@@ -115,7 +115,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 amount
+        uint256 deposit
     );
 
     event DisputeIgnored(
@@ -123,7 +123,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 amount
+        uint256 deposit
     );
 
     modifier onlyArbitrator {
@@ -269,26 +269,26 @@ contract DisputeManager is Governed {
         );
 
         // Decode subgraphID
-        bytes32 _subgraphID = _data.slice(0, 32).toBytes32(0);
+        bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
 
         // Decode attestation
-        bytes memory _attestation = _data.slice(32, ATTESTATION_SIZE_BYTES);
+        bytes memory attestation = _data.slice(32, ATTESTATION_SIZE_BYTES);
         require(
-            _attestation.length == ATTESTATION_SIZE_BYTES,
+            attestation.length == ATTESTATION_SIZE_BYTES,
             "Signature must be 192 bytes long"
         );
 
         // Decode attestation signature
-        bytes memory _sig = _data.slice(
+        bytes memory sig = _data.slice(
             32 + ATTESTATION_SIZE_BYTES,
             SIGNATURE_SIZE_BYTES
         );
         require(
-            _sig.length == SIGNATURE_SIZE_BYTES,
+            sig.length == SIGNATURE_SIZE_BYTES,
             "Signature must be 65 bytes long"
         );
 
-        createDispute(_attestation, _sig, _subgraphID, _from, _value);
+        createDispute(attestation, sig, subgraphID, _from, _value);
 
         return true;
     }
@@ -308,22 +308,22 @@ contract DisputeManager is Governed {
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
-        uint256 _stake = staking.getIndexingNodeStake(
+        uint256 stake = staking.getIndexingNodeStake(
             dispute.subgraphID,
             dispute.indexNode
         );
-        uint256 _reward = getRewardForStake(_stake);
-        assert(_reward <= _stake); // sanity check on fixed-point math
+        uint256 reward = getRewardForStake(stake);
+        assert(reward <= stake); // sanity check on fixed-point math
         staking.slash(
             dispute.subgraphID,
             dispute.indexNode,
-            _reward,
+            reward,
             dispute.fisherman
         );
 
         // Give the fisherman their deposit back
         require(
-            token.transfer(dispute.fisherman, dispute.depositAmount),
+            token.transfer(dispute.fisherman, dispute.deposit),
             "Error sending dispute deposit"
         );
 
@@ -333,7 +333,7 @@ contract DisputeManager is Governed {
             dispute.subgraphID,
             dispute.indexNode,
             dispute.fisherman,
-            _reward
+            reward
         );
     }
 
@@ -351,14 +351,14 @@ contract DisputeManager is Governed {
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Burn the fisherman's deposit
-        token.burn(dispute.depositAmount);
+        token.burn(dispute.deposit);
 
         emit DisputeRejected(
             _disputeID,
             dispute.subgraphID,
             dispute.indexNode,
             dispute.fisherman,
-            dispute.depositAmount
+            dispute.deposit
         );
     }
 
@@ -377,7 +377,7 @@ contract DisputeManager is Governed {
 
         // Return deposit to the fisherman
         require(
-            token.transfer(dispute.fisherman, dispute.depositAmount),
+            token.transfer(dispute.fisherman, dispute.deposit),
             "Error sending dispute deposit"
         );
 
@@ -386,7 +386,7 @@ contract DisputeManager is Governed {
             dispute.subgraphID,
             dispute.indexNode,
             dispute.fisherman,
-            dispute.depositAmount
+            dispute.deposit
         );
     }
 
@@ -397,53 +397,53 @@ contract DisputeManager is Governed {
      * @param _subgraphID <bytes32> - subgraphID that Attestation message
      *                                contains (in request raw object at CID)
      * @param _fisherman <address> - Creator of dispute
-     * @param _amount <uint256> - Amount of tokens staked
+     * @param _deposit <uint256> - Amount of tokens staked as deposit
      */
     function createDispute(
         bytes memory _attestation,
         bytes memory _sig,
         bytes32 _subgraphID,
         address _fisherman,
-        uint256 _amount
+        uint256 _deposit
     ) private {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 _disputeID = getDisputeID(_attestation);
+        bytes32 disputeID = getDisputeID(_attestation);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
         // Note: The signer of the attestation is the indexNode that served it
-        address _indexNode = _disputeID.recover(_sig);
+        address indexNode = disputeID.recover(_sig);
 
         // Get staked amount on the served subgraph by indexer
-        uint256 _stake = staking.getIndexingNodeStake(_subgraphID, _indexNode);
+        uint256 stake = staking.getIndexingNodeStake(_subgraphID, indexNode);
 
         // This also validates that indexer node exists
         require(
-            _stake > 0,
+            stake > 0,
             "Dispute has no stake on the subgraph by the indexer node"
         );
 
         // Ensure that fisherman has posted at least that amount
         require(
-            _amount >= getRewardForStake(_stake),
+            _deposit >= getRewardForStake(stake),
             "Dispute deposit under minimum required"
         );
 
         // A fisherman can only open one dispute for a given index node / subgraphID at a time
-        require(!isDisputeCreated(_disputeID), "Dispute already created"); // Must be empty
+        require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[_disputeID] = Dispute(
+        disputes[disputeID] = Dispute(
             _subgraphID,
-            _indexNode,
+            indexNode,
             _fisherman,
-            _amount
+            _deposit
         );
 
         // Log event that new dispute was created against IndexNode
         emit DisputeCreated(
-            _disputeID,
+            disputeID,
             _subgraphID,
-            _indexNode,
+            indexNode,
             _fisherman,
             _attestation
         );

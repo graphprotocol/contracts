@@ -452,7 +452,7 @@ contract(
                   subgraphID: this.subgraphId,
                   indexNode: indexNode,
                   fisherman: fisherman,
-                  amount: this.tokensForFisherman,
+                  deposit: this.tokensForFisherman,
                 },
               )
             })
@@ -507,7 +507,7 @@ contract(
                   subgraphID: this.subgraphId,
                   indexNode: indexNode,
                   fisherman: fisherman,
-                  amount: this.tokensForFisherman,
+                  deposit: this.tokensForFisherman,
                 },
               )
             })
