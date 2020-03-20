@@ -297,11 +297,13 @@ module.exports = {
   stakingConstants: {
     // 100 * 10^18 minimum amount allowed to be staked by Market Curators
     minimumCurationStakingAmount: new BN('100000000000000000000'),
-    // 100 * 10^18 minimum amount allowed to be staked by Market Curators
+    // 100 * 10^18 minimum amount allowed to be staked by Indexers
     minimumIndexingStakingAmount: new BN('100000000000000000000'),
+    // 100 * 10^18 minimum amount required as deposit to create a Dispute
+    minimumDisputeDepositAmount: new BN('100000000000000000000'),
     defaultReserveRatio: 500000,
     maximumIndexers: 10,
-    slashingPercent: 1000,
+    slashingPercentage: 1000,
     thawingPeriod: 60 * 60 * 24 * 7, // In seconds
     thawingPeriodSimple: 0,
   },

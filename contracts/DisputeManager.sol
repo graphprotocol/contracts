@@ -82,9 +82,12 @@ contract DisputeManager is Governed {
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
 
-    // Percent of stake to slash in successful dispute
+    // Minimum deposit required to create a Dispute
+    uint256 public minimumDeposit;
+
+    // Percentage of index node stake to slash in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public slashingPercent;
+    uint256 public slashingPercentage;
 
     // Graph Token address
     GraphToken public token;
@@ -137,20 +140,23 @@ contract DisputeManager is Governed {
      * @param _token <address> - Address of the Graph Protocol token
      * @param _arbitrator <address> - Arbitrator role
      * @param _staking <address> - Address of the staking contract used for slashing
-     * @param _slashingPercent <uint256> - Percent of stake the fisherman gets on slashing (in PPM)
+     * @param _slashingPercentage <uint256> - Percent of stake the fisherman gets on slashing (in PPM)
+     * @param _minimumDeposit <uint256> - Minimum deposit required to create a Dispute
      */
     constructor(
         address _governor,
         address _token,
         address _arbitrator,
         address _staking,
-        uint256 _slashingPercent
+        uint256 _slashingPercentage,
+        uint256 _minimumDeposit
     ) public Governed(_governor) {
         _setArbitrator(_arbitrator);
         token = GraphToken(_token);
         staking = Staking(_staking);
 
-        slashingPercent = _slashingPercent;
+        minimumDeposit = _minimumDeposit;
+        slashingPercentage = _slashingPercentage;
 
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
@@ -180,7 +186,7 @@ contract DisputeManager is Governed {
      * @return <uint256> - Percentage of validator's stake to be considered a reward
      */
     function getRewardForStake(uint256 _value) public view returns (uint256) {
-        return slashingPercent.mul(_value).div(MAX_PPM); // slashingPercent is in PPM
+        return slashingPercentage.mul(_value).div(MAX_PPM); // slashingPercentage is in PPM
     }
 
     /**
@@ -230,25 +236,37 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the percent that the fisherman gets when slashing occurs
-     * @notice Update the slashing percent to `_slashingPercent`
-     * @param _slashingPercent <uint256> - Slashing percent
+     * @dev Set the minimum deposit required to create a dispute
+     * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
+     * @param _minimumDeposit <uint256> - The minimum deposit in Graph Tokens
      */
-    function setSlashingPercent(uint256 _slashingPercent)
+    function setMinimumDeposit(uint256 _minimumDeposit)
         external
         onlyGovernance
     {
-        // Slashing Percent must be within 0% to 100% (inclusive)
+        minimumDeposit = _minimumDeposit;
+    }
+
+    /**
+     * @dev Set the percent that the fisherman gets when slashing occurs
+     * @notice Update the slashing percent to `_slashingPercentage`
+     * @param _slashingPercentage <uint256> - Slashing percentage
+     */
+    function setSlashingPercentage(uint256 _slashingPercentage)
+        external
+        onlyGovernance
+    {
+        // Must be within 0% to 100% (inclusive)
         require(
-            _slashingPercent >= 0,
-            "Slashing percent must above or equal to 0"
+            _slashingPercentage >= 0,
+            "Slashing percentage must above or equal to 0"
         );
         require(
-            _slashingPercent <= MAX_PPM,
-            "Slashing percent must be below or equal to MAX_PPM"
+            _slashingPercentage <= MAX_PPM,
+            "Slashing percentage must be below or equal to MAX_PPM"
         );
 
-        slashingPercent = _slashingPercent;
+        slashingPercentage = _slashingPercentage;
     }
 
     /**
@@ -307,7 +325,7 @@ contract DisputeManager is Governed {
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Have staking slash the index node and reward the fisherman
-        // Give the fisherman a reward equal to the slashingPercent of the indexer's stake
+        // Give the fisherman a reward equal to the slashingPercentage of the indexer's stake
         uint256 stake = staking.getIndexingNodeStake(
             dispute.subgraphID,
             dispute.indexNode
@@ -422,9 +440,9 @@ contract DisputeManager is Governed {
             "Dispute has no stake on the subgraph by the indexer node"
         );
 
-        // Ensure that fisherman has posted at least that amount
+        // Ensure that fisherman has staked at least that amount
         require(
-            _deposit >= getRewardForStake(stake),
+            _deposit >= minimumDeposit,
             "Dispute deposit under minimum required"
         );
 

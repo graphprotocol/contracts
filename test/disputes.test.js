@@ -83,35 +83,64 @@ contract(
         )
       })
 
-      it('should set `slashingPercent`', async function() {
+      it('should set `slashingPercentage`', async function() {
+        const slashingPercentage = helpers.stakingConstants.slashingPercentage
+
         // Set right in the constructor
         expect(
-          await this.disputeManager.slashingPercent(),
-        ).to.be.bignumber.equal(
-          helpers.stakingConstants.slashingPercent.toString(),
-        )
+          await this.disputeManager.slashingPercentage(),
+        ).to.be.bignumber.equal(slashingPercentage.toString())
 
-        // Can set if allowed
-        await this.disputeManager.setSlashingPercent(0, { from: governor })
-        await this.disputeManager.setSlashingPercent(1, { from: governor })
-        await this.disputeManager.setSlashingPercent(
-          helpers.stakingConstants.slashingPercent,
-          { from: governor },
-        )
+        // Set new value
+        await this.disputeManager.setSlashingPercentage(0, { from: governor })
+        await this.disputeManager.setSlashingPercentage(1, { from: governor })
+        await this.disputeManager.setSlashingPercentage(slashingPercentage, {
+          from: governor,
+        })
       })
 
-      it('reject set `slashingPercent` if out of bounds', async function() {
+      it('reject set `slashingPercentage` if out of bounds', async function() {
         await expectRevert(
-          this.disputeManager.setSlashingPercent(MAX_PPM + 1, {
+          this.disputeManager.setSlashingPercentage(MAX_PPM + 1, {
             from: governor,
           }),
-          'Slashing percent must be below or equal to MAX_PPM',
+          'Slashing percentage must be below or equal to MAX_PPM',
         )
       })
 
-      it('reject set `slashingPercent` if not allowed', async function() {
+      it('reject set `slashingPercentage` if not allowed', async function() {
         await expectRevert(
-          this.disputeManager.setSlashingPercent(50, { from: other }),
+          this.disputeManager.setSlashingPercentage(50, { from: other }),
+          'Only Governor can call',
+        )
+      })
+      it('should set `minimumDeposit`', async function() {
+        const minimumDeposit =
+          helpers.stakingConstants.minimumDisputeDepositAmount
+        const newMinimumDeposit = web3.utils.toBN(1)
+
+        // Set right in the constructor
+        expect(
+          await this.disputeManager.minimumDeposit(),
+        ).to.be.bignumber.equal(minimumDeposit)
+
+        // Set new value
+        await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
+          from: governor,
+        })
+        expect(
+          await this.disputeManager.minimumDeposit(),
+        ).to.be.bignumber.equal(newMinimumDeposit)
+      })
+
+      it('reject set `minimumDeposit` if not allowed', async function() {
+        const minimumDeposit =
+          helpers.stakingConstants.minimumDisputeDepositAmount
+
+        await expectRevert(
+          this.disputeManager.setMinimumDeposit(minimumDeposit, {
+            from: other,
+          }),
           'Only Governor can call',
         )
       })
@@ -132,7 +161,7 @@ contract(
       it('should calculate the reward for a stake', async function() {
         const stakedAmount = 1000
         const trueReward =
-          (helpers.stakingConstants.slashingPercent * stakedAmount) / MAX_PPM
+          (helpers.stakingConstants.slashingPercentage * stakedAmount) / MAX_PPM
         const funcReward = await this.disputeManager.getRewardForStake(
           stakedAmount,
         )
@@ -219,9 +248,7 @@ contract(
             })
 
             // Minimum deposit a fisherman is required to do should be >= reward
-            const minimumDeposit = await this.disputeManager.getRewardForStake(
-              this.indexNodeStake,
-            )
+            const minimumDeposit = await this.disputeManager.minimumDeposit()
             const belowMinimumDeposit = minimumDeposit.sub(web3.utils.toBN(1))
 
             // Create invalid dispute as deposit is below minimum
