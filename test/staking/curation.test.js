@@ -1,7 +1,4 @@
 const { expectEvent } = require('@openzeppelin/test-helpers')
-// const Web3 = require("web3")
-// const web3 = new Web3(Web3.givenProvider)
-// console.log(web3.utils)
 const BN = web3.utils.BN
 
 // contracts

@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 /*
  * @title Dispute management
- * @notice Provides a way to align the incentives of  participants ensuring that Query Results are trustful.
+ * @notice Provides a way to align the incentives of participants ensuring that Query Results are trustful.
  */
 
 import "./Governed.sol";
@@ -67,13 +67,16 @@ contract DisputeManager is Governed {
     );
     // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
     uint256 private constant CHAIN_ID = 1;
-    bytes32 private DOMAIN_SEPARATOR;
 
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
     // 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
+
+    // -- State --
+
+    bytes32 private DOMAIN_SEPARATOR;
 
     // Disputes created by the Fisherman or other authorized entites
     // @key <bytes32> _disputeID - Hash of readIndex data + disputer data
@@ -345,7 +348,6 @@ contract DisputeManager is Governed {
             "Error sending dispute deposit"
         );
 
-        // Log event that we awarded _fisherman _reward in resolving _disputeID
         emit DisputeAccepted(
             _disputeID,
             dispute.subgraphID,
@@ -457,7 +459,6 @@ contract DisputeManager is Governed {
             _deposit
         );
 
-        // Log event that new dispute was created against IndexNode
         emit DisputeCreated(
             disputeID,
             _subgraphID,
