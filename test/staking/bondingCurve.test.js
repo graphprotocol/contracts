@@ -100,8 +100,6 @@ contract(
       // deploy Staking contract
       deployedStaking = await Staking.new(
         daoContract, // <address> governor
-        minimumCurationStakingAmount, // <uint256> minimumCurationStakingAmount
-        defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         simpleThawingPeriod, // <uint256> thawingPeriod

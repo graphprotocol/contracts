@@ -16,11 +16,8 @@ const helpers = require('../lib/testHelpers')
 contract(
   'Staking (Indexing)',
   ([deploymentAddress, daoContract, indexingStaker, ...accounts]) => {
-    const minimumCurationStakingAmount =
-      helpers.stakingConstants.minimumCurationStakingAmount
     const minimumIndexingStakingAmount =
       helpers.stakingConstants.minimumIndexingStakingAmount
-    const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
     const maximumIndexers = helpers.stakingConstants.maximumIndexers
     const thawingPeriod = helpers.stakingConstants.thawingPeriod
     const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
@@ -52,8 +49,6 @@ contract(
       // deploy Staking contract
       deployedStaking = await Staking.new(
         daoContract, // <address> governor
-        minimumCurationStakingAmount, // <uint256> minimumCurationStakingAmount
-        defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         thawingPeriod, // <uint256> thawingPeriod

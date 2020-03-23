@@ -295,12 +295,10 @@ module.exports = {
     } else return param
   },
   stakingConstants: {
-    // 100 * 10^18 minimum amount allowed to be staked by Market Curators
-    minimumCurationStakingAmount: new BN('100000000000000000000'),
     // 100 * 10^18 minimum amount allowed to be staked by Indexers
-    minimumIndexingStakingAmount: new BN('100000000000000000000'),
+    minimumIndexingStakingAmount: web3.utils.toWei(new BN('100')),
     // 100 * 10^18 minimum amount required as deposit to create a Dispute
-    minimumDisputeDepositAmount: new BN('100000000000000000000'),
+    minimumDisputeDepositAmount: web3.utils.toWei(new BN('100')),
     defaultReserveRatio: 500000,
     maximumIndexers: 10,
     slashingPercentage: 1000,
@@ -316,5 +314,16 @@ module.exports = {
     shareAmountFor10000: new BN('90000000000000000000000'),
     // 100000 * 10^18 minimum amount allowed to be staked by Market Curators
     tokensMintedForStaker: new BN('100000000000000000000000'),
+  },
+  defaults: {
+    token: {
+      initialSupply: web3.utils.toWei(new BN('10000000')),
+    },
+    curation: {
+      // Reserve ratio to set bonding curve for curation
+      reserveRatio: new BN('500000'),
+      // Minimum amount allowed to be staked by Curators
+      minimumCurationStake: web3.utils.toWei(new BN('100')),
+    },
   },
 }

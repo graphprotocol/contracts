@@ -1,10 +1,6 @@
 const fs = require('fs')
-const path = require('path')
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const utils = require('web3-utils')
-
-// noMultisigDevelopement and noMultisigRopsten allow for quick testing of the contracts
-// i.e. no thawing period, no multisig
 
 module.exports = {
   networks: {
@@ -12,12 +8,6 @@ module.exports = {
       host: '127.0.0.1', // Localhost (default: none)
       port: 8545, // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
-      skipDryRun: true,
-    },
-    noMultisigDevelopment: {
-      host: '127.0.0.1', // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
-      network_id: '3859', // Any network (default: none)
       skipDryRun: true,
     },
     kovan: {
@@ -48,21 +38,6 @@ module.exports = {
             .readFileSync(__dirname + '/.infurakey.txt')
             .toString()
             .trim()}`,
-        ),
-      network_id: 3, // Ropsten's id
-      gas: 8000000,
-      gasPrice: utils.toWei('10', 'gwei'),
-      skipDryRun: true,
-    },
-    noMultisigRopsten: {
-      provider: () =>
-        new HDWalletProvider(
-          fs.readFileSync(path.join(__dirname, '.privkey.txt'), 'utf-8').trim(),
-          `https://ropsten.infura.io/v3/${fs
-            .readFileSync(path.join(__dirname, '/.infurakey.txt'), 'utf-8')
-            .trim()}`,
-          0,
-          2,
         ),
       network_id: 3, // Ropsten's id
       gas: 8000000,

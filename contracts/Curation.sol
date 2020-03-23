@@ -50,7 +50,7 @@ contract Curation is Governed, BancorFormula {
     mapping(bytes32 => mapping(address => SubgraphCurator)) public subgraphCurators;
 
     // Address of a party that will distribute fees to subgraph reserves
-    address distributor;
+    address public distributor;
 
     // Token used for staking
     GraphToken public token;
