@@ -149,154 +149,189 @@ contract(
       })
     })
 
-    it('should allow staking on a subgraph', async function() {
-      // Give some funds to the curator
-      const curatorTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(curator, curatorTokens, {
-        from: governor,
+    context('when subgraph is not curated', function() {
+      beforeEach(function() {
+        this.subgraphId = helpers.randomSubgraphIdHex0x()
       })
 
-      // Before balances
-      const totalBalanceBefore = await this.graphToken.balanceOf(
-        this.curation.address,
-      )
-      const curatorBalanceBefore = await this.graphToken.balanceOf(curator)
+      it('should stake on a subgraph', async function() {
+        // Give some funds to the curator
+        const curatorTokens = web3.utils.toWei(new BN('1000'))
+        await this.graphToken.mint(curator, curatorTokens, {
+          from: governor,
+        })
 
-      // Curate a subgraph
-      const subgraphId = helpers.randomSubgraphIdHex0x()
-      const curatorStake = defaults.curation.minimumCurationStake
-      const { tx } = await this.graphToken.transferToTokenReceiver(
-        this.curation.address,
-        curatorStake,
-        subgraphId,
-        { from: curator },
-      )
+        // Before balances
+        const totalBalanceBefore = await this.graphToken.balanceOf(
+          this.curation.address,
+        )
+        const curatorBalanceBefore = await this.graphToken.balanceOf(curator)
 
-      // After balances
-      const totalBalanceAfter = await this.graphToken.balanceOf(
-        this.curation.address,
-      )
-      const curatorBalanceAfter = await this.graphToken.balanceOf(curator)
+        // Curate a subgraph
+        const curatorStake = defaults.curation.minimumCurationStake
+        const { tx } = await this.graphToken.transferToTokenReceiver(
+          this.curation.address,
+          curatorStake,
+          this.subgraphId,
+          { from: curator },
+        )
 
-      // Tokens transferred properly
-      expect(totalBalanceAfter).to.be.bignumber.equal(
-        totalBalanceBefore.add(curatorStake),
-      )
-      expect(curatorBalanceAfter).to.be.bignumber.equal(
-        curatorBalanceBefore.sub(curatorStake),
-      )
+        // After balances
+        const totalBalanceAfter = await this.graphToken.balanceOf(
+          this.curation.address,
+        )
+        const curatorBalanceAfter = await this.graphToken.balanceOf(curator)
 
-      // State properly updated
-      const subgraph = await this.curation.subgraphs(subgraphId)
-      expect(subgraph.reserveRatio).to.be.bignumber.equal(
-        defaults.curation.reserveRatio,
-      )
-      expect(subgraph.totalStake).to.be.bignumber.equal(curatorStake)
-      expect(subgraph.totalShares).to.be.bignumber.equal(web3.utils.toBN(1))
+        // Tokens transferred properly
+        expect(totalBalanceAfter).to.be.bignumber.equal(
+          totalBalanceBefore.add(curatorStake),
+        )
+        expect(curatorBalanceAfter).to.be.bignumber.equal(
+          curatorBalanceBefore.sub(curatorStake),
+        )
 
-      const subgraphCurator = await this.curation.subgraphCurators(
-        subgraphId,
-        curator,
-      )
-      expect(subgraphCurator).to.be.bignumber.equal(web3.utils.toBN(1))
+        // State properly updated
+        const subgraph = await this.curation.subgraphs(this.subgraphId)
+        expect(subgraph.reserveRatio).to.be.bignumber.equal(
+          defaults.curation.reserveRatio,
+        )
+        expect(subgraph.totalStake).to.be.bignumber.equal(curatorStake)
+        expect(subgraph.totalShares).to.be.bignumber.equal(web3.utils.toBN(1))
 
-      // Event emitted
-      expectEvent.inTransaction(
-        tx,
-        this.curation.constructor,
-        'CuratorStakeUpdated',
-        {
-          curator: curator,
-          subgraphID: subgraphId,
-          totalShares: '1',
-        },
-      )
+        const subgraphCurator = await this.curation.subgraphCurators(
+          this.subgraphId,
+          curator,
+        )
+        expect(subgraphCurator).to.be.bignumber.equal(web3.utils.toBN(1))
 
-      expectEvent.inTransaction(
-        tx,
-        this.curation.constructor,
-        'SubgraphStakeUpdated',
-        {
-          subgraphID: subgraphId,
-          totalShares: '1',
-          totalStake: curatorStake,
-        },
-      )
+        // Event emitted
+        expectEvent.inTransaction(
+          tx,
+          this.curation.constructor,
+          'CuratorStakeUpdated',
+          {
+            curator: curator,
+            subgraphID: this.subgraphId,
+            totalShares: '1',
+          },
+        )
+
+        expectEvent.inTransaction(
+          tx,
+          this.curation.constructor,
+          'SubgraphStakeUpdated',
+          {
+            subgraphID: this.subgraphId,
+            totalShares: '1',
+            totalStake: curatorStake,
+          },
+        )
+      })
+
+      it('reject unstaking', async function() {
+        await expectRevert(
+          this.curation.unstake(this.subgraphId, 1),
+          'Cannot unstake more shares than you own',
+        )
+      })
+
+      it('reject collect tokens distributed as fees for the subgraph', async function() {
+        // Give some funds to the distributor
+        const tokens = web3.utils.toWei(new BN('1000'))
+        await this.graphToken.mint(distributor, tokens, {
+          from: governor,
+        })
+
+        // Source of tokens must be the distributor for this to work
+        await expectRevert(
+          this.graphToken.transferToTokenReceiver(
+            this.curation.address,
+            tokens,
+            this.subgraphId,
+            { from: distributor },
+          ),
+          'Subgraph must be curated to collect fees',
+        )
+      })
     })
 
-    // it('...should allow Curator to partially logout and fully logout', async () => {
-    //   const subgraphShares = await stakeForCuration()
-    //   const halfSharesInt = Math.floor(subgraphShares / 2)
+    context('when subgraph is curated', function() {
+      beforeEach(async function() {
+        this.subgraphId = helpers.randomSubgraphIdHex0x()
 
-    //   await deployedStaking.curatorLogout(
-    //     subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
-    //     halfSharesInt, // Amount of shares to return
-    //     { from: curationStaker },
-    //   )
+        // Give some funds to the curator
+        const curatorTokens = web3.utils.toWei(new BN('1000'))
+        await this.graphToken.mint(curator, curatorTokens, {
+          from: governor,
+        })
 
-    //   const halfShares = await gp.staking.curators(
-    //     subgraphIdHex0x,
-    //     curationStaker,
-    //   )
+        // Curate a subgraph
+        const curatorStake = curatorTokens
+        await this.graphToken.transferToTokenReceiver(
+          this.curation.address,
+          curatorStake,
+          this.subgraphId,
+          { from: curator },
+        )
+      })
 
-    //   assert(
-    //     halfShares.toNumber() === subgraphShares - halfSharesInt,
-    //     'Shares were not reduced by half',
-    //   )
+      it('reject unstake zero shares from a subgraph', async function() {
+        await expectRevert(
+          this.curation.unstake(this.subgraphId, 0),
+          'Cannot unstake zero shares',
+        )
+      })
 
-    //   const fullLogout = await deployedStaking.curatorLogout(
-    //     subgraphIdHex0x, // Subgraph ID the Curator is returning shares for
-    //     subgraphShares - halfSharesInt, // Amount of shares to return
-    //     { from: curationStaker },
-    //   )
+      // it('should allow unstaking on a subgraph', async function() {
+      //   await this.curation.unstake(this.subgraphId, 0)
+      // })
+      it('should collect tokens distributed as reserves for a subgraph', async function() {
+        // Give some funds to the distributor
+        const tokens = web3.utils.toWei(new BN('1000'))
+        await this.graphToken.mint(distributor, tokens, {
+          from: governor,
+        })
 
-    //   expectEvent.inLogs(fullLogout.logs, 'CuratorLogout', {
-    //     staker: curationStaker,
-    //     subgraphID: subgraphIdHex0x,
-    //     subgraphTotalCurationShares: new BN(0),
-    //     subgraphTotalCurationStake: new BN(0),
-    //   })
-    // })
+        // Before balances
+        const totalBalanceBefore = await this.graphToken.balanceOf(
+          this.curation.address,
+        )
+        const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
 
-    // async function stakeForCuration() {
-    //   let totalBalance = await deployedGraphToken.balanceOf(
-    //     deployedStaking.address,
-    //   )
-    //   let curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
-    //   assert(
-    //     curatorBalance.toString() === tokensMintedForStaker.toString() &&
-    //       totalBalance.toNumber() === 0,
-    //     'Balances before transfer are incorrect.',
-    //   )
+        // Source of tokens must be the distributor for this to work
+        const { tx } = await this.graphToken.transferToTokenReceiver(
+          this.curation.address,
+          tokens,
+          this.subgraphId,
+          { from: distributor },
+        )
 
-    //   const curationStake = await gp.staking.stakeForCuration(
-    //     subgraphIdHex, // subgraphId
-    //     curationStaker, // from
-    //     stakingAmount, // value
-    //   )
+        // After balances
+        const totalBalanceAfter = await this.graphToken.balanceOf(
+          this.curation.address,
+        )
+        const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
 
-    //   const subgraphShares = await gp.staking.curators(
-    //     subgraphIdHex0x,
-    //     curationStaker,
-    //   )
+        // State properly updated
+        expect(totalBalanceAfter).to.be.bignumber.equal(
+          totalBalanceBefore.add(tokens),
+        )
+        expect(subgraphAfter.totalStake).to.be.bignumber.equal(
+          subgraphBefore.totalStake.add(tokens),
+        )
 
-    //   totalBalance = await deployedGraphToken.balanceOf(deployedStaking.address)
-    //   curatorBalance = await deployedGraphToken.balanceOf(curationStaker)
-    //   assert(
-    //     curatorBalance.toString() === shareAmountFor10000.toString() &&
-    //       totalBalance.toString() === stakingAmount.toString(),
-    //     'Balances after transfer is incorrect.',
-    //   )
-
-    //   expectEvent.inTransaction(curationStake.tx, Staking, 'CuratorStaked', {
-    //     staker: curationStaker,
-    //     subgraphID: subgraphIdHex0x,
-    //     curatorShares: subgraphShares,
-    //     subgraphTotalCurationShares: subgraphShares,
-    //     subgraphTotalCurationStake: stakingAmount,
-    //   })
-
-    //   return subgraphShares.toNumber()
-    // }
+        // Event emitted
+        expectEvent.inTransaction(
+          tx,
+          this.curation.constructor,
+          'SubgraphStakeUpdated',
+          {
+            subgraphID: this.subgraphId,
+            totalShares: subgraphAfter.totalShares,
+            totalStake: subgraphAfter.totalStake,
+          },
+        )
+      })
+    })
   },
 )
