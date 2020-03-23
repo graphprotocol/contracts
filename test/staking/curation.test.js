@@ -71,7 +71,25 @@ contract(
         )
       })
 
-      it('reject set `setDefaultReserveRatio` if out of bounds', async function() {
+      it('should set `defaultReserveRatio`', async function() {
+        // Set right in the constructor
+        expect(await this.curation.defaultReserveRatio()).to.be.bignumber.equal(
+          defaults.curation.reserveRatio,
+        )
+
+        // Can set if allowed
+        const newDefaultReserveRatio = defaults.curation.reserveRatio.add(
+          new BN(100),
+        )
+        await this.curation.setDefaultReserveRatio(newDefaultReserveRatio, {
+          from: governor,
+        })
+        expect(await this.curation.defaultReserveRatio()).to.be.bignumber.equal(
+          newDefaultReserveRatio,
+        )
+      })
+
+      it('reject set `defaultReserveRatio` if out of bounds', async function() {
         await expectRevert(
           this.curation.setDefaultReserveRatio(0, { from: governor }),
           'Default reserve ratio must be > 0',
@@ -84,11 +102,48 @@ contract(
         )
       })
 
-      it('reject set `setDefaultReserveRatio` if not allowed', async function() {
+      it('reject set `defaultReserveRatio` if not allowed', async function() {
         await expectRevert(
           this.curation.setDefaultReserveRatio(defaults.curation.reserveRatio, {
             from: other,
           }),
+          'Only Governor can call',
+        )
+      })
+
+      it('should set `minimumCurationStake`', async function() {
+        // Set right in the constructor
+        expect(
+          await this.curation.minimumCurationStake(),
+        ).to.be.bignumber.equal(defaults.curation.minimumCurationStake)
+
+        // Can set if allowed
+        const newMinimumCurationStake = defaults.curation.minimumCurationStake.add(
+          new BN(100),
+        )
+        await this.curation.setMinimumCurationStake(newMinimumCurationStake, {
+          from: governor,
+        })
+        expect(
+          await this.curation.minimumCurationStake(),
+        ).to.be.bignumber.equal(newMinimumCurationStake)
+      })
+
+      it('reject set `minimumCurationStake` if out of bounds', async function() {
+        await expectRevert(
+          this.curation.setMinimumCurationStake(0, { from: governor }),
+          'Minimum curation stake cannot be 0',
+        )
+      })
+
+      it('reject set `minimumCurationStake` if not allowed', async function() {
+        await expectRevert(
+          this.curation.setMinimumCurationStake(
+            defaults.curation.minimumCurationStake,
+            {
+              from: other,
+            },
+          ),
           'Only Governor can call',
         )
       })
