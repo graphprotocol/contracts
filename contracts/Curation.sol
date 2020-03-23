@@ -60,7 +60,7 @@ contract Curation is Governed, BancorFormula {
     event CuratorStakeUpdated(
         address indexed curator,
         bytes32 indexed subgraphID,
-        uint256 curatorShares
+        uint256 totalShares
     );
 
     event SubgraphStakeUpdated(
@@ -131,7 +131,7 @@ contract Curation is Governed, BancorFormula {
      * @param _distributor <address> - Address of the party doing fee distributions
      */
     function _setDistributor(address _distributor) private {
-        require(distributor != address(0), "A distributor must be set");
+        require(_distributor != address(0), "Distributor must be set");
         distributor = _distributor;
     }
 
@@ -152,7 +152,10 @@ contract Curation is Governed, BancorFormula {
      * @param _minimumCurationStake <uint256> - Minimum amount of tokens required stake
      */
     function _setMinimumCurationStake(uint256 _minimumCurationStake) private {
-        require(minimumCurationStake > 0, "Minimum curation stake cannot be 0");
+        require(
+            _minimumCurationStake > 0,
+            "Minimum curation stake cannot be 0"
+        );
         minimumCurationStake = _minimumCurationStake;
     }
 

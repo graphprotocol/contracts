@@ -157,7 +157,6 @@ contract DisputeManager is Governed {
         _setArbitrator(_arbitrator);
         token = GraphToken(_token);
         staking = Staking(_staking);
-
         minimumDeposit = _minimumDeposit;
         slashingPercentage = _slashingPercentage;
 
