@@ -181,7 +181,7 @@ contract Curation is Governed, BancorFormula {
 
         // Transfers from distributor means we are assigning fees to reserves
         if (_from == distributor) {
-            reserve(subgraphID, _value);
+            collect(subgraphID, _value);
             return true;
         }
 
@@ -200,6 +200,8 @@ contract Curation is Governed, BancorFormula {
         address curator = msg.sender;
         Subgraph storage subgraph = subgraphs[_subgraphID];
         SubgraphCurator storage subgraphCurator = subgraphCurators[_subgraphID][curator];
+
+        require(_shares > 0, "Cannot unstake zero shares");
 
         // Underflow protection
         require(
@@ -310,13 +312,13 @@ contract Curation is Governed, BancorFormula {
      * @param _subgraphID <bytes32> - Subgraph where funds should be allocated as reserves
      * @param _amount <uint256> - Amount of Graph Tokens to add to reserves
      */
-    function reserve(bytes32 _subgraphID, uint256 _amount) private {
+    function collect(bytes32 _subgraphID, uint256 _amount) private {
         require(
             isSubgraphCurated(_subgraphID),
-            "Subgraph must be curated to be assigned reserves"
+            "Subgraph must be curated to collect fees"
         );
 
-        // Assign new funds to reserve
+        // Collect new funds to reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.totalStake = subgraph.totalStake.add(_amount);
 
