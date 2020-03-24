@@ -40,14 +40,17 @@ function deployDisputeManagerContract(
   staking,
   params,
 ) {
-  const slashingPercent = helpers.stakingConstants.slashingPercent
+  const slashingPercentage = helpers.stakingConstants.slashingPercentage
+  const minimumDisputeDepositAmount =
+    helpers.stakingConstants.minimumDisputeDepositAmount
 
   return DisputeManager.new(
     owner,
     graphToken,
     arbitrator,
     staking,
-    slashingPercent,
+    slashingPercentage,
+    minimumDisputeDepositAmount,
     params,
   )
 }

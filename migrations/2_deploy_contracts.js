@@ -22,7 +22,7 @@ const minimumIndexingStakingAmount = new BN('100000000000000000000')
 // maximum number of Indexing Nodes staked higher than stake to consider
 const maximumIndexers = 10
 // percent of stake to slash in successful dispute
-// const slashingPercent = 10
+// const slashingPercentage = 10
 // amount of seconds to wait until indexer can finish stake logout
 const thawingPeriod = 60 * 60 * 24 * 7
 // votes required (setting a required amount here will override a formula used later)

@@ -107,11 +107,11 @@ module.exports = (options = {}) => {
     }
 
     /**
-     * @dev Getter for `slashingPercent`
-     * @returns {Number} Slashing percent
+     * @dev Getter for `slashingPercentage`
+     * @returns {Number} Slashing percentage
      */
-    static slashingPercent() {
-      return Staking.slashingPercent()
+    static slashingPercentage() {
+      return Staking.slashingPercentage()
     }
 
     /**
