@@ -320,7 +320,7 @@ module.exports = {
       initialSupply: web3.utils.toWei(new BN('10000000')),
     },
     curation: {
-      // Reserve ratio to set bonding curve for curation
+      // Reserve ratio to set bonding curve for curation (in PPM)
       reserveRatio: new BN('500000'),
       // Minimum amount allowed to be staked by Curators
       minimumCurationStake: web3.utils.toWei(new BN('100')),

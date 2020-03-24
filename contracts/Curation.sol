@@ -41,15 +41,14 @@ contract Curation is Governed, BancorFormula {
     uint256 public defaultReserveRatio;
 
     // Minimum amount allowed to be staked by Market Curators
+    // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
     // Total staked tokens across all subgraphs
     uint256 public totalTokens;
 
-    // Subgraphs mapping
+    // Subgraphs and curators mapping
     mapping(bytes32 => Subgraph) public subgraphs;
-
-    // Subgraphs/Curators mapping
     mapping(bytes32 => mapping(address => SubgraphCurator)) public subgraphCurators;
 
     // Address of a party that will distribute fees to subgraph reserves
@@ -213,7 +212,7 @@ contract Curation is Governed, BancorFormula {
         );
 
         // Obtain the amount of tokens to refund based on returned shares
-        uint256 tokensToRefund = convertSharesToStake(
+        uint256 tokensToRefund = convertSharesToTokens(
             _shares,
             subgraph.totalTokens,
             subgraph.totalShares,
@@ -274,7 +273,7 @@ contract Curation is Governed, BancorFormula {
      * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return issuedShares <uint256> - Amount of additional shares issued given the above
      */
-    function convertStakeToShares(
+    function convertTokensToShares(
         uint256 _purchaseTokens,
         uint256 _currentTokens,
         uint256 _currentShares,
@@ -298,7 +297,7 @@ contract Curation is Governed, BancorFormula {
      * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
      * @return <uint256> - Amount of tokens to return given the above
      */
-    function convertSharesToStake(
+    function convertSharesToTokens(
         uint256 _returnedShares,
         uint256 _currentTokens,
         uint256 _currentShares,
@@ -375,7 +374,7 @@ contract Curation is Governed, BancorFormula {
         // Process unallocated tokens
         if (tokens > 0) {
             // Obtain the amount of shares to buy with the amount of tokens to sell
-            uint256 newShares = convertStakeToShares(
+            uint256 newShares = convertTokensToShares(
                 tokens,
                 subgraph.totalTokens,
                 subgraph.totalShares,
