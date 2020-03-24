@@ -315,6 +315,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
         this.subgraphId,
         curator,
       )
+      const totalTokensBefore = await this.curation.totalTokens()
 
       // Unstake
       const sharesToSell = new BN(1) // Curator want to sell 1 share
@@ -337,6 +338,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
         this.subgraphId,
         curator,
       )
+      const totalTokensAfter = await this.curation.totalTokens()
 
       // State properly updated
       expect(curatorTokensAfter).to.be.bignumber.equal(
@@ -347,6 +349,9 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       )
       expect(subgraphAfter.totalShares).to.be.bignumber.equal(
         subgraphBefore.totalShares.sub(sharesToSell),
+      )
+      expect(totalTokensAfter).to.be.bignumber.equal(
+        totalTokensBefore.sub(expectedTokens),
       )
 
       // Event emitted
