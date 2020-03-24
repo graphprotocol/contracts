@@ -140,9 +140,7 @@ contract(
         await expectRevert(
           this.curation.setMinimumCurationStake(
             defaults.curation.minimumCurationStake,
-            {
-              from: other,
-            },
+            { from: other },
           ),
           'Only Governor can call',
         )
@@ -168,6 +166,7 @@ contract(
         const curatorBalanceBefore = await this.graphToken.balanceOf(curator)
 
         // Curate a subgraph
+        // Staking the minimum required = 1 share
         const curatorStake = defaults.curation.minimumCurationStake
         const { tx } = await this.graphToken.transferToTokenReceiver(
           this.curation.address,
@@ -195,7 +194,7 @@ contract(
         expect(subgraph.reserveRatio).to.be.bignumber.equal(
           defaults.curation.reserveRatio,
         )
-        expect(subgraph.totalStake).to.be.bignumber.equal(curatorStake)
+        expect(subgraph.totalTokens).to.be.bignumber.equal(curatorStake)
         expect(subgraph.totalShares).to.be.bignumber.equal(web3.utils.toBN(1))
 
         const subgraphCurator = await this.curation.subgraphCurators(
@@ -203,6 +202,9 @@ contract(
           curator,
         )
         expect(subgraphCurator).to.be.bignumber.equal(web3.utils.toBN(1))
+
+        const totalTokens = await this.curation.totalTokens()
+        expect(totalTokens).to.be.bignumber.equal(curatorStake)
 
         // Event emitted
         expectEvent.inTransaction(
@@ -223,7 +225,7 @@ contract(
           {
             subgraphID: this.subgraphId,
             totalShares: '1',
-            totalStake: curatorStake,
+            totalTokens: curatorStake,
           },
         )
       })
@@ -285,6 +287,7 @@ contract(
       // it('should allow unstaking on a subgraph', async function() {
       //   await this.curation.unstake(this.subgraphId, 0)
       // })
+
       it('should collect tokens distributed as reserves for a subgraph', async function() {
         // Give some funds to the distributor
         const tokens = web3.utils.toWei(new BN('1000'))
@@ -316,8 +319,8 @@ contract(
         expect(totalBalanceAfter).to.be.bignumber.equal(
           totalBalanceBefore.add(tokens),
         )
-        expect(subgraphAfter.totalStake).to.be.bignumber.equal(
-          subgraphBefore.totalStake.add(tokens),
+        expect(subgraphAfter.totalTokens).to.be.bignumber.equal(
+          subgraphBefore.totalTokens.add(tokens),
         )
 
         // Event emitted
@@ -328,7 +331,7 @@ contract(
           {
             subgraphID: this.subgraphId,
             totalShares: subgraphAfter.totalShares,
-            totalStake: subgraphAfter.totalStake,
+            totalTokens: subgraphAfter.totalTokens,
           },
         )
       })

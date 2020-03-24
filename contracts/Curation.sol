@@ -20,7 +20,7 @@ contract Curation is Governed, BancorFormula {
 
     struct Subgraph {
         uint256 reserveRatio;
-        uint256 totalStake;
+        uint256 totalTokens;
         uint256 totalShares;
     }
 
@@ -42,6 +42,9 @@ contract Curation is Governed, BancorFormula {
 
     // Minimum amount allowed to be staked by Market Curators
     uint256 public minimumCurationStake;
+
+    // Total staked tokens across all subgraphs
+    uint256 public totalTokens;
 
     // Subgraphs mapping
     mapping(bytes32 => Subgraph) public subgraphs;
@@ -66,7 +69,7 @@ contract Curation is Governed, BancorFormula {
     event SubgraphStakeUpdated(
         bytes32 indexed subgraphID,
         uint256 totalShares,
-        uint256 totalStake
+        uint256 totalTokens
     );
 
     /**
@@ -212,20 +215,23 @@ contract Curation is Governed, BancorFormula {
         // Obtain the amount of tokens to refund based on returned shares
         uint256 tokensToRefund = convertSharesToStake(
             _shares,
-            subgraph.totalStake,
+            subgraph.totalTokens,
             subgraph.totalShares,
             subgraph.reserveRatio
         );
 
         // Update subgraph balances
-        subgraph.totalStake = subgraph.totalStake.sub(tokensToRefund);
+        subgraph.totalTokens = subgraph.totalTokens.sub(tokensToRefund);
         subgraph.totalShares = subgraph.totalShares.sub(_shares);
 
         // Update subgraph/curator balances
         subgraphCurator.totalShares = subgraphCurator.totalShares.sub(_shares);
 
+        // Update global tokens balance
+        totalTokens = totalTokens.sub(tokensToRefund);
+
         // Delete if left without stakes
-        if (subgraph.totalStake == 0) {
+        if (subgraph.totalTokens == 0) {
             delete subgraphs[_subgraphID];
         }
         if (subgraphCurator.totalShares == 0) {
@@ -246,7 +252,7 @@ contract Curation is Governed, BancorFormula {
         emit SubgraphStakeUpdated(
             _subgraphID,
             subgraph.totalShares,
-            subgraph.totalStake
+            subgraph.totalTokens
         );
     }
 
@@ -256,7 +262,7 @@ contract Curation is Governed, BancorFormula {
       * @return <bool> True if the subgraph is curated
       */
     function isSubgraphCurated(bytes32 _subgraphID) public view returns (bool) {
-        return subgraphs[_subgraphID].totalStake > 0;
+        return subgraphs[_subgraphID].totalTokens > 0;
     }
 
     /**
@@ -320,12 +326,15 @@ contract Curation is Governed, BancorFormula {
 
         // Collect new funds to reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
-        subgraph.totalStake = subgraph.totalStake.add(_amount);
+        subgraph.totalTokens = subgraph.totalTokens.add(_amount);
+
+        // Update global tokens balance
+        totalTokens = totalTokens.add(_amount);
 
         emit SubgraphStakeUpdated(
             _subgraphID,
             subgraph.totalShares,
-            subgraph.totalStake
+            subgraph.totalTokens
         );
     }
 
@@ -354,7 +363,7 @@ contract Curation is Governed, BancorFormula {
             // Update subgraph balances
             // Note: The first share costs minimumCurationStake amount of tokens
             subgraph.reserveRatio = defaultReserveRatio;
-            subgraph.totalStake = minimumCurationStake;
+            subgraph.totalTokens = minimumCurationStake;
             subgraph.totalShares = 1;
 
             // Update subgraph/curator balances
@@ -368,13 +377,13 @@ contract Curation is Governed, BancorFormula {
             // Obtain the amount of shares to buy with the amount of tokens to sell
             uint256 newShares = convertStakeToShares(
                 tokens,
-                subgraph.totalStake,
+                subgraph.totalTokens,
                 subgraph.totalShares,
                 subgraph.reserveRatio
             );
 
             // Update subgraph balances
-            subgraph.totalStake = subgraph.totalStake.add(tokens);
+            subgraph.totalTokens = subgraph.totalTokens.add(tokens);
             subgraph.totalShares = subgraph.totalShares.add(newShares);
 
             // Update subgraph/curator balances
@@ -382,6 +391,9 @@ contract Curation is Governed, BancorFormula {
                 newShares
             );
         }
+
+        // Update global tokens balance
+        totalTokens = totalTokens.add(_amount);
 
         emit CuratorStakeUpdated(
             _curator,
@@ -391,7 +403,7 @@ contract Curation is Governed, BancorFormula {
         emit SubgraphStakeUpdated(
             _subgraphID,
             subgraph.totalShares,
-            subgraph.totalStake
+            subgraph.totalTokens
         );
     }
 }
