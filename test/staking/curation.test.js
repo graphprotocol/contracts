@@ -307,7 +307,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       )
     })
 
-    it('should allow to unstake on a subgraph', async function() {
+    it('should allow to unstake *partially* on a subgraph', async function() {
       // Before balances
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
@@ -376,6 +376,34 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
           totalTokens: subgraphAfter.totalTokens,
         },
       )
+    })
+
+    it('should allow to unstake *fully* on a subgraph', async function() {
+      // Before balances
+      const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
+
+      // Unstake all shares
+      const sharesToSell = subgraphBefore.totalShares // we are selling all shares in the subgraph
+      const tokensToReceive = subgraphBefore.totalTokens // we are withdrawing all funds
+      await this.curation.unstake(this.subgraphId, sharesToSell, {
+        from: curator,
+      })
+
+      // After balances
+      const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
+      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorSharesAfter = await this.curation.subgraphCurators(
+        this.subgraphId,
+        curator,
+      )
+      const totalTokensAfter = await this.curation.totalTokens()
+
+      // State properly updated
+      expect(curatorTokensAfter).to.be.bignumber.equal(tokensToReceive)
+      expect(curatorSharesAfter).to.be.bignumber.equal(new BN(0))
+      expect(subgraphAfter.totalTokens).to.be.bignumber.equal(new BN(0))
+      expect(subgraphAfter.totalShares).to.be.bignumber.equal(new BN(0))
+      expect(totalTokensAfter).to.be.bignumber.equal(new BN(0))
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
