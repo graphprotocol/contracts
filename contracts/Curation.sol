@@ -213,9 +213,16 @@ contract Curation is Governed, BancorFormula {
 
         // Obtain the amount of tokens to refund based on returned shares
         uint256 tokensToRefund = subgraphSharesToTokens(_subgraphID, _shares);
+        uint256 tokensLeft = subgraph.totalTokens.sub(tokensToRefund);
+
+        // Ensure we are not under minimum required stake
+        require(
+            tokensLeft >= minimumCurationStake || tokensLeft == 0,
+            "Cannot unstake below minimum required stake for subgraph"
+        );
 
         // Update subgraph balances
-        subgraph.totalTokens = subgraph.totalTokens.sub(tokensToRefund);
+        subgraph.totalTokens = tokensLeft;
         subgraph.totalShares = subgraph.totalShares.sub(_shares);
 
         // Update subgraph/curator balances
