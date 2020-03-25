@@ -212,12 +212,7 @@ contract Curation is Governed, BancorFormula {
         );
 
         // Obtain the amount of tokens to refund based on returned shares
-        uint256 tokensToRefund = convertSharesToTokens(
-            _shares,
-            subgraph.totalTokens,
-            subgraph.totalShares,
-            subgraph.reserveRatio
-        );
+        uint256 tokensToRefund = subgraphSharesToTokens(_subgraphID, _shares);
 
         // Update subgraph balances
         subgraph.totalTokens = subgraph.totalTokens.sub(tokensToRefund);
@@ -265,50 +260,52 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Calculate number of shares that should be issued in return for
-     *      staking of _purchaseAmount of tokens, along the given bonding curve
-     * @param _purchaseTokens <uint256> - Amount of tokens being staked (purchase amount)
-     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
-     * @param _currentShares <uint256> - Total amount of current shares issued
-     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
-     * @return issuedShares <uint256> - Amount of additional shares issued given the above
-     */
-    function convertTokensToShares(
-        uint256 _purchaseTokens,
-        uint256 _currentTokens,
-        uint256 _currentShares,
-        uint256 _reserveRatio
-    ) public view returns (uint256) {
+      * @dev Calculate number of subgraph shares that can be bought with a number of tokens
+      * @param _subgraphID <bytes32> Subgraph ID from where to buy shares
+      * @param _tokens <uint256> Amount of tokens used to buy shares
+      * @return <uint256> Amount of shares that can be bought
+      */
+    function subgraphTokensToShares(bytes32 _subgraphID, uint256 _tokens)
+        public
+        view
+        returns (uint256)
+    {
+        require(
+            isSubgraphCurated(_subgraphID),
+            "Subgraph must be curated to perform calculations"
+        );
+        Subgraph memory subgraph = subgraphs[_subgraphID];
         return
             calculatePurchaseReturn(
-                _currentShares,
-                _currentTokens,
-                uint32(_reserveRatio),
-                _purchaseTokens
+                subgraph.totalShares,
+                subgraph.totalTokens,
+                uint32(subgraph.reserveRatio),
+                _tokens
             );
     }
 
     /**
-     * @dev Calculate number of tokens that should be returned for the proportion
-     *      of _returnedShares to _currentShares, along the given bonding curve
-     * @param _returnedShares <uint256> - Amount of shares being returned
-     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
-     * @param _currentShares <uint256> - Total amount of current shares issued
-     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
-     * @return <uint256> - Amount of tokens to return given the above
-     */
-    function convertSharesToTokens(
-        uint256 _returnedShares,
-        uint256 _currentTokens,
-        uint256 _currentShares,
-        uint256 _reserveRatio
-    ) public view returns (uint256) {
+      * @dev Calculate number of tokens to get when selling subgraph shares
+      * @param _subgraphID <bytes32> Subgraph ID from where to sell shares
+      * @param _shares <uint256> Amount of shares to sell
+      * @return <uint256> Amount of tokens to get after selling shares
+      */
+    function subgraphSharesToTokens(bytes32 _subgraphID, uint256 _shares)
+        public
+        view
+        returns (uint256)
+    {
+        require(
+            isSubgraphCurated(_subgraphID),
+            "Subgraph must be curated to perform calculations"
+        );
+        Subgraph memory subgraph = subgraphs[_subgraphID];
         return
             calculateSaleReturn(
-                _currentShares,
-                _currentTokens,
-                uint32(_reserveRatio),
-                _returnedShares
+                subgraph.totalShares,
+                subgraph.totalTokens,
+                uint32(subgraph.reserveRatio),
+                _shares
             );
     }
 
@@ -359,27 +356,23 @@ contract Curation is Governed, BancorFormula {
                 "Curation stake is below minimum required"
             );
 
-            // Update subgraph balances
+            // Update subgraph balance
             // Note: The first share costs minimumCurationStake amount of tokens
             subgraph.reserveRatio = defaultReserveRatio;
             subgraph.totalTokens = minimumCurationStake;
             subgraph.totalShares = 1;
 
-            // Update subgraph/curator balances
+            // Update subgraph/curator balance
             subgraphCurator.totalShares = 1;
 
+            // Update tokens used for stake
             tokens = tokens.sub(minimumCurationStake);
         }
 
         // Process unallocated tokens
         if (tokens > 0) {
             // Obtain the amount of shares to buy with the amount of tokens to sell
-            uint256 newShares = convertTokensToShares(
-                tokens,
-                subgraph.totalTokens,
-                subgraph.totalShares,
-                subgraph.reserveRatio
-            );
+            uint256 newShares = subgraphTokensToShares(_subgraphID, tokens);
 
             // Update subgraph balances
             subgraph.totalTokens = subgraph.totalTokens.add(tokens);

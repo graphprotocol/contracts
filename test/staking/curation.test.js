@@ -282,29 +282,13 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
 
     it('should assign the right amount of shares according to bonding curve', async function() {
-      // Calculate curator share and tokens after buying 1 share using `minimumCurationStake`
-      const minimumCurationStake = defaults.curation.minimumCurationStake
-      const curatorSharesBefore = new BN(1) // Shares bought with minimum stake
-      const curatorTokens = (await this.curation.totalTokens()).sub(
-        minimumCurationStake,
-      )
-
-      // Buy more shares
-      const newShares = await this.curation.convertTokensToShares(
-        curatorTokens,
-        minimumCurationStake,
-        curatorSharesBefore,
-        defaults.curation.reserveRatio,
-      )
-
-      // Shares should be curatorShares (bought with minimum stake) + newShares with rest of tokens
-      const curatorSharesAfter = await this.curation.subgraphCurators(
+      // Shares should be curatorShares bought with minimum stake (1) + newShares with rest of tokens
+      const expectedShares = new BN(3)
+      const curatorShares = await this.curation.subgraphCurators(
         this.subgraphId,
         curator,
       )
-      expect(curatorSharesAfter).to.be.bignumber.equal(
-        curatorSharesBefore.add(newShares),
-      )
+      expect(curatorShares).to.be.bignumber.equal(expectedShares)
     })
 
     it('should allow to unstake *partially* on a subgraph', async function() {
@@ -319,11 +303,9 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
       // Unstake
       const sharesToSell = new BN(1) // Curator want to sell 1 share
-      const expectedTokens = await this.curation.convertSharesToTokens(
+      const expectedTokens = await this.curation.subgraphSharesToTokens(
+        this.subgraphId,
         sharesToSell,
-        subgraphBefore.totalTokens,
-        subgraphBefore.totalShares,
-        subgraphBefore.reserveRatio,
       )
       const { tx } = await this.curation.unstake(
         this.subgraphId,
