@@ -293,13 +293,13 @@ contract Staking is Governed {
 
         if (option == TokenReceiptAction.Staking) {
             stakeForIndexing(_subgraphId, _from, _value);
-            // } else if (option == TokenReceiptAction.Settlement) {
-            //     require(_data.length >= 33 + 20);
-            //     // Header + _indexingNode
-            //     address _indexingNode = _data.slice(65, 20).toAddress(0);
-            //     distributeChannelFees(_subgraphId, _indexingNode, _value);
+        } else if (option == TokenReceiptAction.Settlement) {
+            require(_data.length >= 33 + 20);
+            // Header + _indexingNode
+            // address _indexingNode = _data.slice(65, 20).toAddress(0);
+            // distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
-            revert("Token received option must be 0, 1, 2, or 3.");
+            revert("Token received option must be 0 or 1");
         }
         success = true;
     }

@@ -145,6 +145,49 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
   })
 
+  context('bonding curve', function() {
+    beforeEach(function() {
+      this.subgraphId = helpers.randomSubgraphIdHex0x()
+    })
+
+    it('convert shares to tokens', async function() {
+      // Give some funds to the curator
+      const curatorTokens = web3.utils.toWei(new BN('1000'))
+      await this.graphToken.mint(curator, curatorTokens, {
+        from: governor,
+      })
+
+      // Curate a subgraph
+      await this.graphToken.transferToTokenReceiver(
+        this.curation.address,
+        curatorTokens,
+        this.subgraphId,
+        { from: curator },
+      )
+
+      // Conversion
+      const shares = (await this.curation.subgraphs(this.subgraphId))
+        .totalShares
+      const tokens = await this.curation.subgraphSharesToTokens(
+        this.subgraphId,
+        shares,
+      )
+      expect(tokens).to.be.bignumber.equal(curatorTokens)
+    })
+
+    it('convert tokens to shares', async function() {
+      // Conversion
+      const tokens = web3.utils.toWei(new BN('1000'))
+      const shares = await this.curation.subgraphTokensToShares(
+        this.subgraphId,
+        tokens,
+      )
+      expect(shares).to.be.bignumber.equal(
+        defaults.curation.shareAmountFor1000Tokens,
+      )
+    })
+  })
+
   context('when subgraph is not curated', function() {
     beforeEach(function() {
       this.subgraphId = helpers.randomSubgraphIdHex0x()
@@ -283,12 +326,13 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
     it('should assign the right amount of shares according to bonding curve', async function() {
       // Shares should be curatorShares bought with minimum stake (1) + newShares with rest of tokens
-      const expectedShares = new BN(3)
       const curatorShares = await this.curation.subgraphCurators(
         this.subgraphId,
         curator,
       )
-      expect(curatorShares).to.be.bignumber.equal(expectedShares)
+      expect(curatorShares).to.be.bignumber.equal(
+        defaults.curation.shareAmountFor1000Tokens,
+      )
     })
 
     it('should allow to unstake *partially* on a subgraph', async function() {

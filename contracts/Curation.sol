@@ -34,6 +34,9 @@ contract Curation is Governed, BancorFormula {
     // 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
 
+    // Amount of shares you get with your minimum token stake
+    uint256 private constant SHARES_PER_MINIMUM_STAKE = 1;
+
     // -- State --
 
     // Default reserve ratio to configure curator shares bonding curve (for new subgraphs)
@@ -167,6 +170,7 @@ contract Curation is Governed, BancorFormula {
      * @param _from <address> - Token holder's address
      * @param _value <uint256> - Amount of Graph Tokens
      * @param _data <bytes> - Extra data payload
+     * @return <bool> True token transfer is processed
      */
     function tokensReceived(address _from, uint256 _value, bytes calldata _data)
         external
@@ -204,8 +208,6 @@ contract Curation is Governed, BancorFormula {
         SubgraphCurator storage subgraphCurator = subgraphCurators[_subgraphID][curator];
 
         require(_shares > 0, "Cannot unstake zero shares");
-
-        // Underflow protection
         require(
             subgraphCurator.totalShares >= _shares,
             "Cannot unstake more shares than you own"
@@ -277,18 +279,22 @@ contract Curation is Governed, BancorFormula {
         view
         returns (uint256)
     {
-        require(
-            isSubgraphCurated(_subgraphID),
-            "Subgraph must be curated to perform calculations"
-        );
+        // handle initialization of bonding curve
+        uint256 shares = 0;
         Subgraph memory subgraph = subgraphs[_subgraphID];
+        if (subgraph.totalTokens == 0) {
+            subgraph = getDefaultSubgraph();
+            shares = 1;
+        }
+
         return
             calculatePurchaseReturn(
                 subgraph.totalShares,
                 subgraph.totalTokens,
                 uint32(subgraph.reserveRatio),
                 _tokens
-            );
+            ) +
+            shares;
     }
 
     /**
@@ -302,11 +308,15 @@ contract Curation is Governed, BancorFormula {
         view
         returns (uint256)
     {
+        Subgraph memory subgraph = subgraphs[_subgraphID];
         require(
-            isSubgraphCurated(_subgraphID),
+            subgraph.totalTokens > 0,
             "Subgraph must be curated to perform calculations"
         );
-        Subgraph memory subgraph = subgraphs[_subgraphID];
+        require(
+            subgraph.totalShares >= _shares,
+            "Shares must be above or equal to total shares issued for the subgraph"
+        );
         return
             calculateSaleReturn(
                 subgraph.totalShares,
@@ -314,6 +324,19 @@ contract Curation is Governed, BancorFormula {
                 uint32(subgraph.reserveRatio),
                 _shares
             );
+    }
+
+    /**
+     * @dev Get a sugbraph using default initial values
+     * @return <Subgraph> An initialized subgraph
+     */
+    function getDefaultSubgraph() private view returns (Subgraph memory) {
+        Subgraph memory subgraph = Subgraph(
+            defaultReserveRatio,
+            minimumCurationStake,
+            SHARES_PER_MINIMUM_STAKE
+        );
+        return subgraph;
     }
 
     /**
@@ -363,14 +386,12 @@ contract Curation is Governed, BancorFormula {
                 "Curation stake is below minimum required"
             );
 
-            // Update subgraph balance
+            // Initialize subgraph
             // Note: The first share costs minimumCurationStake amount of tokens
-            subgraph.reserveRatio = defaultReserveRatio;
-            subgraph.totalTokens = minimumCurationStake;
-            subgraph.totalShares = 1;
+            subgraphs[_subgraphID] = getDefaultSubgraph();
 
             // Update subgraph/curator balance
-            subgraphCurator.totalShares = 1;
+            subgraphCurator.totalShares = SHARES_PER_MINIMUM_STAKE;
 
             // Update tokens used for stake
             tokens = tokens.sub(minimumCurationStake);
