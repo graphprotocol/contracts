@@ -295,12 +295,10 @@ module.exports = {
     } else return param
   },
   stakingConstants: {
-    // 100 * 10^18 minimum amount allowed to be staked by Market Curators
-    minimumCurationStakingAmount: new BN('100000000000000000000'),
-    // 100 * 10^18 minimum amount allowed to be staked by Indexers
-    minimumIndexingStakingAmount: new BN('100000000000000000000'),
-    // 100 * 10^18 minimum amount required as deposit to create a Dispute
-    minimumDisputeDepositAmount: new BN('100000000000000000000'),
+    // 100 (in wei) minimum amount allowed to be staked by Indexers
+    minimumIndexingStakingAmount: web3.utils.toWei(new BN('100')),
+    // 100 (in wei) minimum amount required as deposit to create a Dispute
+    minimumDisputeDepositAmount: web3.utils.toWei(new BN('100')),
     defaultReserveRatio: 500000,
     maximumIndexers: 10,
     slashingPercentage: 1000,
@@ -308,13 +306,24 @@ module.exports = {
     thawingPeriodSimple: 0,
   },
   graphTokenConstants: {
-    // 10,000,000 * 10^18  total supply of Graph Tokens at time of deployment
-    initialTokenSupply: new BN('10000000000000000000000000'),
-    // 10000 * 10^18 minimum amount allowed to be staked by Market Curators
-    stakingAmount: new BN('10000000000000000000000'),
-    // When one user stakes 10000, they will get 9 shares returned, as per the bancor formula
-    shareAmountFor10000: new BN('90000000000000000000000'),
-    // 100000 * 10^18 minimum amount allowed to be staked by Market Curators
-    tokensMintedForStaker: new BN('100000000000000000000000'),
+    // 10,000,000 (in wei) total supply of Graph Tokens at time of deployment
+    initialTokenSupply: web3.utils.toWei(new BN('10000000')),
+    // 10000 (in wei) minimum amount allowed to be staked by Market Curators
+    stakingAmount: web3.utils.toWei(new BN('10000')),
+    // 100000 (in wei) minimum amount allowed to be staked by Market Curators
+    tokensMintedForStaker: web3.utils.toWei(new BN('100000')),
+  },
+  defaults: {
+    token: {
+      initialSupply: web3.utils.toWei(new BN('10000000')),
+    },
+    curation: {
+      // Reserve ratio to set bonding curve for curation (in PPM)
+      reserveRatio: new BN('500000'),
+      // Minimum amount allowed to be staked by Curators
+      minimumCurationStake: web3.utils.toWei(new BN('100')),
+      // When one user stakes 1000, they will get 3 shares returned, as per the Bancor formula
+      shareAmountFor1000Tokens: new BN(3),
+    },
   },
 }

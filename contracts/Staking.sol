@@ -4,96 +4,14 @@ pragma experimental ABIEncoderV2;
 /*
  * @title Staking contract
  *
- * @author Bryant Eisenbach
- * @author Reuven Etzion
- *
- * Curator Requirements
- * @req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.
- * @req c02 The amount of tokens to stake required to become a Curator must be greater than or
- *          equal to the minimum curation staking amount.
- * @req c03 Only Governance can change the minimum curation staking amount.
- * @req c04 A Curator is issued shares according to a pre-defined bonding curve depending on
- *          equal to the total amount of Curation stake for a given subgraphId if they
- *          successfully stake on a given subgraphId.
- * @req c05 A Curator can add any amount of stake for a given subgraphId at any time, as long
- *          as their total amount remains more than minimumCurationStakingAmount.
- * @req c06 A Curator can remove any amount of their stake for a given subgraphId at any time,
- *          as long as their total amount remains more than minimumCurationStakingAmount.
- * @req c07 A Curator can remove all of their stake for a given subgraphId at any time.
- * @req c08 Curation shares accrue 1 basis point per share of any fees an Indexing Node would
- *          earn when a channel settlement occurs for a given subgraphId.
- *
- * Indexer Requirements
- * @req i01 Any User can stake Graph Tokens to be included as an Indexer for a given subgraphId.
- * @req i02 The amount of tokens to stake required to become an Indexer must be greater than or
- *          equal to the minimum indexing staking amount.
- * @req i03 Only Governance can change the minimum indexing staking amount.
- * @req i04 An Indexer can start the process of removing their stake for a given subgraphId at
- *          any time.
- * @req i05 An Indexer may withdraw their stake for a given subgraphId after the process has
- *          been started and a thawing period has elapsed.
- * @req i06 An Indexer can add any amount of stake for a given subgraphId at any time, as long
- *          as their total amount remains more than minimumIndexingStakingAmount.
- * @req i07 An Indexer earns a portion of all fees from the settlement a channel they were
- *          involved in.
- *
- * Slashing Requirements
- * @req s01 The Dispute Manager contract can burn the staked Tokens of any Indexer.
- * @req s02 Only Governance can change the Dispute Manager contract address.
- * @reg s03 Only Governance can update slashingPercent.
- *
- * Fisherman Requirements
- * @req f01 A fisherman can provide a bond, a valid read request and an invalid read
- *          response which has been signed by a current indexing node to create a
- *          dispute.
- * @req f02 If the dispute is accepted by arbitration, the fisherman should receive a
- *          reward proportional to the amount staked by the indexing node.
- *
- * Dispute Arbitrator Requirements
- * @req a01 The arbitrator can rule to accept a proposed dispute, which will trigger a
- *          slashing of the indexing node that the dispute concerns.
- * @req a02 The arbitrator can rule to reject a proposed dispute, which will slash the
- *          bond posted by the fisherman who proposed it.
- *
- * @notice Dispute resolution is handled through an on-chain dispute resolution
- *         process. In the v1 specification the outcome of a dispute will be decided
- *         by a centralized arbitrator (the contract owner / multisig contract)
- *         interacting with the on-chain dispute resolution process.
- *
- * ----------------------------------- TODO This may change -------------------------------------
- * @notice Indexing Nodes who have staked for a dataset, are not limited by the protocol in how
- *         many read requests they may process for that dataset. However, it may be assumed that
- *         Indexing Nodes with higher deposits will receive more read requests and thus collect
- *         more fees, all else being equal, as this represents a greater economic security margin
- *         to the end user.
- *
- */
-
-/*
  */
 
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./bytes/BytesLib.sol";
-import "./bancor/BancorFormula.sol";
 
-contract Staking is Governed, BancorFormula {
+contract Staking is Governed {
     using BytesLib for bytes;
-
-    event CuratorStaked(
-        address indexed staker,
-        bytes32 subgraphID,
-        uint256 curatorShares,
-        uint256 subgraphTotalCurationShares,
-        uint256 subgraphTotalCurationStake
-    );
-
-    event CuratorLogout(
-        address indexed staker,
-        bytes32 subgraphID,
-        uint256 subgraphTotalCurationShares,
-        uint256 subgraphTotalCurationStake
-    );
 
     event IndexingNodeStaked(
         address indexed staker,
@@ -120,11 +38,6 @@ contract Staking is Governed, BancorFormula {
         bool enabled
     );
 
-    /* Structs */
-    struct Curator {
-        uint256 subgraphShares; // In subgraph factory pattern, Subgraph Token Balance
-    }
-
     struct IndexingNode {
         uint256 amountStaked;
         uint256 feesAccrued;
@@ -133,33 +46,11 @@ contract Staking is Governed, BancorFormula {
     }
 
     struct Subgraph {
-        // In subgraph factory pattern, these are just globals
-        uint256 reserveRatio;
-        uint256 totalCurationStake; // Reserve token
-        uint256 totalCurationShares; // In subgraph factory pattern, Subgraph Token total supply
         uint256 totalIndexingStake;
         uint256 totalIndexers;
     }
 
-    /* ENUMS */
-    enum TokenReceiptAction { Staking, Curation, Settlement }
-
-    /* STATE VARIABLES */
-    // Minimum amount allowed to be staked by Market Curators
-    uint256 public minimumCurationStakingAmount;
-
-    // Default reserve ratio (for new subgraphs)
-    // Note: A subgraph that hasn't been curated yet sets it's reserve ratio to
-    //       this amount, which prevents changes from breaking the invariant. This
-    //       means that we cannot control active curation markets, only new ones.
-    // Note: In order to reset the reserveRatio of a subgraph to whatever this
-    //       number is updated to, the market must sell and buy-back all of it's
-    //       shares (taking advantage of the more attractive pricing). The trick
-    //       is to set this number conservatively at first, and narrow in on the
-    //       most optimal value, so that Curators are incentivized to perform this
-    //       "upgrade" against their shares.
-    // @dev Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public defaultReserveRatio;
+    enum TokenReceiptAction { Staking, Settlement }
 
     // Minimum amount allowed to be staked by Indexing Nodes
     uint256 public minimumIndexingStakingAmount;
@@ -170,9 +61,6 @@ contract Staking is Governed, BancorFormula {
     // Amount of seconds to wait until indexer can finish stake logout
     // @dev Thawing Period allows disputes to be processed during logout
     uint256 public thawingPeriod;
-
-    // Mapping subgraphId to list of addresses to Curators
-    mapping(bytes32 => mapping(address => Curator)) public curators;
 
     // Mapping subgraphId to list of addresses to Indexing Nodes
     mapping(bytes32 => mapping(address => IndexingNode)) public indexingNodes;
@@ -220,16 +108,12 @@ contract Staking is Governed, BancorFormula {
      */
     constructor(
         address _governor,
-        uint256 _minimumCurationStakingAmount,
-        uint256 _defaultReserveRatio,
         uint256 _minimumIndexingStakingAmount,
         uint256 _maximumIndexers,
         uint256 _thawingPeriod,
         address _token
     ) public Governed(_governor) {
         // Governance Parameter Defaults
-        minimumCurationStakingAmount = _minimumCurationStakingAmount; // @imp c03
-        defaultReserveRatio = _defaultReserveRatio;
         minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
         maximumIndexers = _maximumIndexers;
         thawingPeriod = _thawingPeriod;
@@ -244,34 +128,6 @@ contract Staking is Governed, BancorFormula {
     function removeSlasher(address _slasher) external onlyGovernance {
         slashers[_slasher] = false;
         emit SlasherUpdated(msg.sender, _slasher, false);
-    }
-
-    /**
-     * @dev Set the Minimum Staking Amount for Market Curators
-     * @param _minimumCurationStakingAmount <uint256> - Minimum amount allowed to be staked
-     * for Curation
-     */
-    function setMinimumCurationStakingAmount(
-        uint256 _minimumCurationStakingAmount
-    ) external onlyGovernance returns (bool success) {
-        minimumCurationStakingAmount = _minimumCurationStakingAmount; // @imp c03
-        return true;
-    }
-
-    /**
-     * @dev Set the percent that the default reserve ratio is for new subgraphs
-     * @param _defaultReserveRatio <uint256> - Reserve ratio (in percent)
-     */
-    function updateDefaultReserveRatio(uint256 _defaultReserveRatio)
-        external
-        onlyGovernance
-        returns (bool success)
-    {
-        // Reserve Ratio must be within 0% to 100% (exclusive)
-        require(_defaultReserveRatio > 0);
-        require(_defaultReserveRatio <= MAX_PPM);
-        defaultReserveRatio = _defaultReserveRatio;
-        return true;
     }
 
     /**
@@ -298,7 +154,6 @@ contract Staking is Governed, BancorFormula {
         maximumIndexers = _maximumIndexers;
         return true;
     }
-
     /**
      * @dev Set the thawing period for indexer logout
      * @param _thawingPeriod <uint256> - Number of seconds for thawing period
@@ -438,189 +293,15 @@ contract Staking is Governed, BancorFormula {
 
         if (option == TokenReceiptAction.Staking) {
             stakeForIndexing(_subgraphId, _from, _value);
-        } else if (option == TokenReceiptAction.Curation) {
-            // @imp c01 Handle internal call for Curation Staking
-            signalForCuration(_subgraphId, _from, _value);
         } else if (option == TokenReceiptAction.Settlement) {
             require(_data.length >= 33 + 20);
             // Header + _indexingNode
-            address _indexingNode = _data.slice(65, 20).toAddress(0);
-            distributeChannelFees(_subgraphId, _indexingNode, _value);
+            // address _indexingNode = _data.slice(65, 20).toAddress(0);
+            // distributeChannelFees(_subgraphId, _indexingNode, _value);
         } else {
-            revert("Token received option must be 0, 1, 2, or 3.");
+            revert("Token received option must be 0 or 1");
         }
         success = true;
-    }
-
-    /**
-     * @dev Calculate number of shares that should be issued in return for
-     *      staking of _purchaseAmount of tokens, along the given bonding curve
-     * @param _purchaseTokens <uint256> - Amount of tokens being staked (purchase amount)
-     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
-     * @param _currentShares <uint256> - Total amount of current shares issued
-     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
-     * @return issuedShares <uint256> - Amount of additional shares issued given the above
-     */
-    function stakeToShares(
-        uint256 _purchaseTokens,
-        uint256 _currentTokens,
-        uint256 _currentShares,
-        uint256 _reserveRatio
-    ) public view returns (uint256 issuedShares) {
-        issuedShares = calculatePurchaseReturn(
-            _currentShares,
-            _currentTokens,
-            uint32(_reserveRatio),
-            _purchaseTokens
-        );
-    }
-
-    /**
-     * @dev Calculate number of tokens that should be returned for the proportion
-     *      of _returnedShares to _currentShares, along the given bonding curve
-     * @param _returnedShares <uint256> - Amount of shares being returned
-     * @param _currentTokens <uint256> - Total amount of tokens currently in reserves
-     * @param _currentShares <uint256> - Total amount of current shares issued
-     * @param _reserveRatio <uint256> - Desired reserve ratio to maintain (in PPM)
-     * @return refundTokens <uint256> - Amount of tokens to return given the above
-     */
-    function sharesToStake(
-        uint256 _returnedShares,
-        uint256 _currentTokens,
-        uint256 _currentShares,
-        uint256 _reserveRatio
-    ) public view returns (uint256 refundTokens) {
-        refundTokens = calculateSaleReturn(
-            _currentShares,
-            _currentTokens,
-            uint32(_reserveRatio),
-            _returnedShares
-        );
-    }
-
-    /**
-     * @dev Stake Graph Tokens for Market Curation by subgraphId
-     * @param _subgraphId <bytes32> - Subgraph ID the Curator is staking Graph Tokens for
-     * @param _curator <address> - Address of Staking party
-     * @param _tokenAmount <uint256> - Amount of Graph Tokens to be staked
-     */
-    function signalForCuration(
-        bytes32 _subgraphId,
-        address _curator,
-        uint256 _tokenAmount
-    ) private {
-        // Overflow protection
-        require(
-            subgraphs[_subgraphId].totalCurationStake + _tokenAmount >
-                subgraphs[_subgraphId].totalCurationStake
-        );
-        uint256 tokenAmount = _tokenAmount;
-        // If this subgraph hasn't been curated before...
-        // NOTE: We have to do this to initialize the curve or else it has
-        //       a discontinuity and cannot be computed. This method ensures
-        //       that this doesn't occur, and also sets the initial slope for
-        //       the curve (controlled by minimumCurationStake)
-        if (subgraphs[_subgraphId].totalCurationStake == 0) {
-            // Additional pre-condition check
-            require(tokenAmount >= minimumCurationStakingAmount);
-
-            // (Re)set the default reserve ratio to whatever governance has set
-            subgraphs[_subgraphId].reserveRatio = defaultReserveRatio;
-
-            // The first share costs minimumCurationStake amount of tokens
-            curators[_subgraphId][_curator].subgraphShares = 1;
-            subgraphs[_subgraphId].totalCurationShares = 1;
-            subgraphs[_subgraphId]
-                .totalCurationStake = minimumCurationStakingAmount;
-            tokenAmount -= minimumCurationStakingAmount;
-        }
-
-        if (tokenAmount > 0) {
-            // Corner case if only minimum is staked on first stake
-            // Obtain the amount of shares to buy with the amount of tokens to sell
-            // according to the bonding curve
-            uint256 _newShares = stakeToShares(
-                tokenAmount,
-                subgraphs[_subgraphId].totalCurationStake,
-                subgraphs[_subgraphId].totalCurationShares,
-                subgraphs[_subgraphId].reserveRatio
-            );
-
-            // Update the amount of tokens _curator has, and overall amount staked
-            subgraphs[_subgraphId].totalCurationStake += tokenAmount;
-
-            // Update the amount of shares issued to _curator, and total amount issued
-            curators[_subgraphId][_curator].subgraphShares += _newShares;
-            subgraphs[_subgraphId].totalCurationShares += _newShares;
-
-            // Ensure curators cannot stake more than 100% in basis points
-            // Note: ensures that distributeChannelFees() does not revert
-            require(
-                subgraphs[_subgraphId].totalCurationShares <=
-                    (MAX_PPM / BASIS_PT)
-            );
-        }
-
-        // Emit the CuratorStaked event (updating the running tally)
-        emit CuratorStaked(
-            _curator,
-            _subgraphId,
-            curators[_subgraphId][_curator].subgraphShares,
-            subgraphs[_subgraphId].totalCurationShares,
-            subgraphs[_subgraphId].totalCurationStake
-        );
-    }
-
-    /**
-     * @dev Return any amount of shares to get tokens back (above the minimum)
-     * @param _subgraphId <bytes32> - Subgraph ID the Curator is returning shares for
-     * @param _numShares <uint256> - Amount of shares to return
-     */
-    function curatorLogout(bytes32 _subgraphId, uint256 _numShares) external {
-        // Underflow protection
-        require(curators[_subgraphId][msg.sender].subgraphShares >= _numShares);
-
-        // Obtain the amount of tokens to refunded with the amount of shares returned
-        // according to the bonding curve
-        uint256 _tokenRefund = sharesToStake(
-            _numShares,
-            subgraphs[_subgraphId].totalCurationStake,
-            subgraphs[_subgraphId].totalCurationShares,
-            subgraphs[_subgraphId].reserveRatio
-        );
-
-        // Keep track of whether this is a full logout
-        bool fullLogout = (curators[_subgraphId][msg.sender].subgraphShares ==
-            _numShares);
-
-        // Update the amount of tokens Curator has, and overall amount staked
-        subgraphs[_subgraphId].totalCurationStake -= _tokenRefund;
-
-        // Update the amount of shares Curator has, and overall amount of shares
-        curators[_subgraphId][msg.sender].subgraphShares -= _numShares;
-        subgraphs[_subgraphId].totalCurationShares -= _numShares;
-
-        // Return the tokens to the curator
-        assert(token.transfer(msg.sender, _tokenRefund));
-
-        if (fullLogout) {
-            // Emit the CuratorLogout event
-            emit CuratorLogout(
-                msg.sender,
-                _subgraphId,
-                subgraphs[_subgraphId].totalCurationShares,
-                subgraphs[_subgraphId].totalCurationStake
-            );
-        } else {
-            // Emit the CuratorStaked event (updating the running tally)
-            emit CuratorStaked(
-                msg.sender,
-                _subgraphId,
-                curators[_subgraphId][msg.sender].subgraphShares,
-                subgraphs[_subgraphId].totalCurationShares,
-                subgraphs[_subgraphId].totalCurationStake
-            );
-        }
     }
 
     /**
@@ -727,24 +408,24 @@ contract Staking is Governed, BancorFormula {
      * @param _indexingNode <address> - Indexing Node that earned the fees.
      * @param _feesEarned <uint256> - Total amount of fees earned.
      */
-    function distributeChannelFees(
-        bytes32 _subgraphId,
-        address _indexingNode,
-        uint256 _feesEarned
-    ) private {
-        // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
-        uint256 _curatorRewardBasisPts = subgraphs[_subgraphId]
-            .totalCurationShares *
-            BASIS_PT;
-        assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
-        uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) /
-            MAX_PPM;
-        // Give the indexing node their part of the fees
-        indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned -
-            _curatorPortion);
-        // Increase the token balance for the subgraph (each share gets more tokens when sold)
-        subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
-    }
+    // function distributeChannelFees(
+    //     bytes32 _subgraphId,
+    //     address _indexingNode,
+    //     uint256 _feesEarned
+    // ) private {
+    //     // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
+    //     uint256 _curatorRewardBasisPts = subgraphs[_subgraphId]
+    //         .totalCurationShares *
+    //         BASIS_PT;
+    //     assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
+    //     uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) /
+    //         MAX_PPM;
+    //     // Give the indexing node their part of the fees
+    //     indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned -
+    //         _curatorPortion);
+    //     // Increase the token balance for the subgraph (each share gets more tokens when sold)
+    //     subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
+    // }
 
     /**
      * @dev The Indexing Node can get all of their accrued fees for a subgraph at once.

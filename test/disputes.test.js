@@ -43,7 +43,7 @@ contract(
       )
     })
 
-    describe('state variables accesors', () => {
+    describe('state variables functions', () => {
       it('should set `governor`', async function() {
         // Set right in the constructor
         expect(await this.disputeManager.governor()).to.equal(governor)
@@ -114,6 +114,7 @@ contract(
           'Only Governor can call',
         )
       })
+
       it('should set `minimumDeposit`', async function() {
         const minimumDeposit =
           helpers.stakingConstants.minimumDisputeDepositAmount

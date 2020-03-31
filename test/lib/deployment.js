@@ -1,34 +1,24 @@
 // contracts
+const Curation = artifacts.require('./Curation.sol')
+const DisputeManager = artifacts.require('./DisputeManager')
 const GraphToken = artifacts.require('./GraphToken.sol')
 const Staking = artifacts.require('./Staking.sol')
-const DisputeManager = artifacts.require('./DisputeManager')
 
 // helpers
 const helpers = require('./testHelpers')
+const { defaults } = require('./testHelpers')
 
 function deployGraphToken(owner, params) {
-  const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
-
-  return GraphToken.new(owner, initialTokenSupply, params)
+  return GraphToken.new(owner, defaults.token.initialSupply, params)
 }
 
-function deployStakingContract(owner, graphToken, params) {
-  const minimumCurationStakingAmount =
-    helpers.stakingConstants.minimumCurationStakingAmount
-  const minimumIndexingStakingAmount =
-    helpers.stakingConstants.minimumIndexingStakingAmount
-  const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
-  const maximumIndexers = helpers.stakingConstants.maximumIndexers
-  const thawingPeriod = helpers.stakingConstants.thawingPeriod
-
-  return Staking.new(
-    owner, // <address> governor
-    minimumCurationStakingAmount, // <uint256> minimumCurationStakingAmount
-    defaultReserveRatio, // <uint256> defaultReserveRatio (ppm)
-    minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
-    maximumIndexers, // <uint256> maximumIndexers
-    thawingPeriod, // <uint256> thawingPeriod
-    graphToken, // <address> token
+function deployCurationContract(owner, graphToken, distributor, params) {
+  return Curation.new(
+    owner,
+    graphToken,
+    distributor,
+    defaults.curation.reserveRatio,
+    defaults.curation.minimumCurationStake,
     params,
   )
 }
@@ -55,8 +45,25 @@ function deployDisputeManagerContract(
   )
 }
 
+function deployStakingContract(owner, graphToken, params) {
+  const minimumIndexingStakingAmount =
+    helpers.stakingConstants.minimumIndexingStakingAmount
+  const maximumIndexers = helpers.stakingConstants.maximumIndexers
+  const thawingPeriod = helpers.stakingConstants.thawingPeriod
+
+  return Staking.new(
+    owner, // <address> governor
+    minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
+    maximumIndexers, // <uint256> maximumIndexers
+    thawingPeriod, // <uint256> thawingPeriod
+    graphToken, // <address> token
+    params,
+  )
+}
+
 module.exports = {
+  deployCurationContract,
+  deployDisputeManagerContract,
   deployGraphToken,
   deployStakingContract,
-  deployDisputeManagerContract,
 }

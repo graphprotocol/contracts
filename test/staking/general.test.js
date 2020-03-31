@@ -21,11 +21,8 @@ contract(
     /**
      * testing constants
      */
-    const minimumCurationStakingAmount =
-      helpers.stakingConstants.minimumCurationStakingAmount
     const minimumIndexingStakingAmount =
       helpers.stakingConstants.minimumIndexingStakingAmount
-    const defaultReserveRatio = helpers.stakingConstants.defaultReserveRatio
     const maximumIndexers = helpers.stakingConstants.maximumIndexers
     const simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple
     const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
@@ -44,8 +41,6 @@ contract(
       // deploy Staking contract
       deployedStaking = await Staking.new(
         daoContract, // <address> governor
-        minimumCurationStakingAmount, // <uint256> minimumCurationStakingAmount
-        defaultReserveRatio, // <uint256> defaultReserveRatio
         minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
         maximumIndexers, // <uint256> maximumIndexers
         simpleThawingPeriod, // <uint256> thawingPeriod
@@ -65,29 +60,6 @@ contract(
     })
 
     describe('state variables set in construction', () => {
-      it('...should set `minimumCurationStakingAmount` to a new value', async function() {
-        const newMin = new BN('200000000000000000000')
-        await deployedStaking.setMinimumCurationStakingAmount(newMin, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.minimumCurationStakingAmount()).toString() ===
-            newMin.toString(),
-          'Set `minimumCurationStakingAmount` does not work.',
-        )
-      })
-
-      it('...should set `updateDefaultReserveRatio` to a new value', async function() {
-        const newDRR = 100000
-        await deployedStaking.updateDefaultReserveRatio(newDRR, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.defaultReserveRatio()).toNumber() === newDRR,
-          'Set `defaultReserveRatio` does not work.',
-        )
-      })
-
       it('...should set `minimumIndexingStakingAmount` during construction', async function() {
         const newMin = new BN('200000000000000000000')
         await deployedStaking.setMinimumIndexingStakingAmount(newMin, {
