@@ -314,6 +314,9 @@ module.exports = {
     tokensMintedForStaker: web3.utils.toWei(new BN('100000')),
   },
   defaults: {
+    epochs: {
+      lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
+    },
     token: {
       initialSupply: web3.utils.toWei(new BN('10000000')),
     },
