@@ -33,6 +33,8 @@ const deployed = {} // store deployed contracts in a JSON object
 let simpleGraphTokenGovernorAddress
 
 module.exports = (deployer, network, accounts) => {
+  if (network === 'development') return
+
   // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0],
   // because of a require statement in GraphToken.sol
   simpleGraphTokenGovernorAddress = accounts[1]
