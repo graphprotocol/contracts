@@ -1,16 +1,13 @@
 const { expect } = require('chai')
 const {
-  constants,
   expectEvent,
   expectRevert,
   time,
 } = require('@openzeppelin/test-helpers')
-const { ZERO_ADDRESS } = constants
 const BN = web3.utils.BN
 
 // helpers
 const deployment = require('./lib/deployment')
-const helpers = require('./lib/testHelpers')
 const { defaults } = require('./lib/testHelpers')
 
 contract('EpochManager', ([me, other, governor]) => {
@@ -118,29 +115,43 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlock.add(this.epochLength))
       })
 
-      context('epoch not started', function() {
-        it('should return current epoch is not started', async function() {
-          expect(await this.epochManager.isCurrentEpochStarted(), false)
+      context('epoch not run', function() {
+        it('should return that current epoch is not run', async function() {
+          expect(await this.epochManager.isCurrentEpochRun(), false)
         })
 
-        // it('should start new epoch', async function() {
-        //   await this.epochManager.startEpoch()
-        // })
+        it('should run new epoch', async function() {
+          // Run epoch
+          const currentEpoch = await this.epochManager.currentEpoch()
+          const { logs } = await this.epochManager.runEpoch({ from: me })
+          const currentBlock = await time.latestBlock()
+
+          // State
+          const lastRunEpoch = await this.epochManager.lastRunEpoch()
+          expect(lastRunEpoch).to.be.bignumber.equal(currentEpoch)
+
+          // Event emitted
+          expectEvent.inLogs(logs, 'NewEpoch', {
+            epoch: currentEpoch,
+            blockNumber: currentBlock,
+            caller: me,
+          })
+        })
       })
 
-      context('epoch started', function() {
+      context('epoch run', function() {
         beforeEach(async function() {
-          await this.epochManager.startEpoch()
+          await this.epochManager.runEpoch()
         })
 
-        it('should return current epoch is started', async function() {
-          expect(await this.epochManager.isCurrentEpochStarted(), true)
+        it('should return current epoch is already run', async function() {
+          expect(await this.epochManager.isCurrentEpochRun(), true)
         })
 
-        it('reject start new epoch', async function() {
+        it('reject run new epoch', async function() {
           await expectRevert(
-            this.epochManager.startEpoch(),
-            'Need to finish current epoch before starting a new epoch',
+            this.epochManager.runEpoch(),
+            'Current epoch already run',
           )
         })
       })

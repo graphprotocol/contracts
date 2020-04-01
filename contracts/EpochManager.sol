@@ -18,8 +18,8 @@ contract EpochManager is Governed {
     // Epoch length in blocks
     uint256 public epochLength;
 
-    // Epoch that was last started
-    uint256 public lastStartedEpoch;
+    // Epoch that was last run
+    uint256 public lastRunEpoch;
 
     // Block and epoch when epoch length was last updated
     uint256 public lastLengthUpdateEpoch;
@@ -58,26 +58,25 @@ contract EpochManager is Governed {
     }
 
     /**
-     * @dev Start a new epoch, called once at the start of any epoch
+     * @dev Run a new epoch, should be called once at the start of any epoch
      */
-    function startEpoch() external {
+    function runEpoch() external {
         // Check if already called for the current epoch
-        require(
-            !isCurrentEpochStarted(),
-            "Need to finish current epoch before starting a new epoch"
-        );
+        require(!isCurrentEpochRun(), "Current epoch already run");
 
-        lastStartedEpoch = currentEpoch();
+        lastRunEpoch = currentEpoch();
 
-        emit NewEpoch(lastStartedEpoch, blockNum(), msg.sender);
+        // Hook for protocol general state updates
+
+        emit NewEpoch(lastRunEpoch, blockNum(), msg.sender);
     }
 
     /**
-     * @dev Return true if the current epoch has already started
-     * @return <bool> Return true if epoch started
+     * @dev Return true if the current epoch has already run
+     * @return <bool> Return true if epoch has run
      */
-    function isCurrentEpochStarted() public view returns (bool) {
-        return lastStartedEpoch == currentEpoch();
+    function isCurrentEpochRun() public view returns (bool) {
+        return lastRunEpoch == currentEpoch();
     }
 
     /**
@@ -105,8 +104,7 @@ contract EpochManager is Governed {
     }
 
     /**
-     * @dev Return the current epoch, it may have not been started yet
-     * @dev Need to call startEpoch if not started
+     * @dev Return the current epoch, it may have not been run yet
      * @return <uint256> The current epoch based on epoch length
      */
     function currentEpoch() public view returns (uint256) {
