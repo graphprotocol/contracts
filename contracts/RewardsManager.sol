@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 
+
 contract RewardsManager is Governed {
     /*
      * @title Graph Protocol Reward Manager contract
@@ -65,7 +66,7 @@ contract RewardsManager is Governed {
      */
     function updateCuratorRewardRate(uint256 _newCuratorRewardRate)
         public
-        onlyGovernance
+        onlyGovernor
         returns (bool success)
     {
         revert();
@@ -77,7 +78,7 @@ contract RewardsManager is Governed {
      */
     function updateTargetParticipationRate(uint256 _newTargetParticipationRate)
         public
-        onlyGovernance
+        onlyGovernor
         returns (bool success)
     {
         revert();
@@ -89,7 +90,7 @@ contract RewardsManager is Governed {
      */
     function updateYearlyInflationRate(uint256 _newYearlyInflationRate)
         public
-        onlyGovernance
+        onlyGovernor
         returns (bool success)
     {
         revert();
@@ -104,7 +105,7 @@ contract RewardsManager is Governed {
      */
     function mintRewardTokens(address _account, uint256 _value)
         public
-        onlyGovernance
+        onlyGovernor
         returns (bool success)
     {
         revert();

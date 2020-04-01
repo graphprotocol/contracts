@@ -24,7 +24,7 @@ contract('EpochManager', ([me, other, governor]) => {
       expect(await this.epochManager.governor()).to.equal(governor)
 
       // Can set if allowed
-      await this.epochManager.transferGovernance(other, { from: governor })
+      await this.epochManager.transferOwnership(other, { from: governor })
       expect(await this.epochManager.governor()).to.equal(other)
     })
 

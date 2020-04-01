@@ -38,7 +38,7 @@ contract('Governance', accounts => {
 
   it('...should be able to transfer governance of self to MultiSigWallet #2', async () => {
     const txData = gp.abiEncode(
-      this.governedContractInstance.contract.methods.transferGovernance,
+      this.governedContractInstance.contract.methods.transferOwnership,
       [multiSigInstance2.address],
     )
     assert(txData.length, 'Transaction data was not constructed.')

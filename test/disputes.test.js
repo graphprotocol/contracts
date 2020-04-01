@@ -49,7 +49,7 @@ contract(
         expect(await this.disputeManager.governor()).to.equal(governor)
 
         // Can set if allowed
-        await this.disputeManager.transferGovernance(other, { from: governor })
+        await this.disputeManager.transferOwnership(other, { from: governor })
         expect(await this.disputeManager.governor()).to.equal(other)
       })
 
@@ -407,7 +407,7 @@ contract(
               )
 
               // IndexNode slashed
-              const currentIndexNodeStake = await this.staking.getIndexingNodeStake(
+              const currentIndexNodeStake = await this.staking.getIndexNodeStake(
                 this.subgraphId,
                 indexNode,
               )

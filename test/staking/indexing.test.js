@@ -88,14 +88,14 @@ contract(
           'Subgraph did not increase its total stake',
         )
 
-        expectEvent.inTransaction(tx.tx, Staking, 'IndexingNodeStaked', {
+        expectEvent.inTransaction(tx.tx, Staking, 'IndexNodeStaked', {
           staker: indexingStaker,
           amountStaked: stakingAmount,
           subgraphID: subgraphIdHex0x,
           subgraphTotalIndexingStake: subgraph.totalIndexingStake,
         })
 
-        const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
+        const { amountStaked, logoutStarted } = await gp.staking.indexNodes(
           subgraphIdHex0x,
           indexingStaker,
         )
@@ -156,24 +156,24 @@ contract(
           'Total indexers of subgraph did not decrease by 1.',
         )
 
-        const indexingNode = await gp.staking.indexingNodes(
+        const indexNode = await gp.staking.indexNodes(
           subgraphIdHex0x,
           indexingStaker,
         )
 
         assert(
-          indexingNode.amountStaked.toNumber() === 0 &&
-            indexingNode.feesAccrued.toNumber() === 0 &&
-            indexingNode.logoutStarted.toNumber() === 0,
+          indexNode.amountStaked.toNumber() === 0 &&
+            indexNode.feesAccrued.toNumber() === 0 &&
+            indexNode.logoutStarted.toNumber() === 0,
           'Index node was not deleted.',
         )
 
         assert(
-          indexingNode.lockedTokens.toString() === '0',
+          indexNode.lockedTokens.toString() === '0',
           'Locked tokens not set properly',
         )
 
-        expectEvent.inLogs(finalizedLogout.logs, 'IndexingNodeFinalizeLogout', {
+        expectEvent.inLogs(finalizedLogout.logs, 'IndexNodeFinalizeLogout', {
           staker: indexingStaker,
           subgraphID: subgraphIdHex0x,
         })
@@ -188,23 +188,23 @@ contract(
           await setGraphSubgraphID()
         },
       )
-      it('...should add an indexer to the graphIndexingNodeAddresses(), and delete the user', async () => {
+      it('...should add an indexer to the graphIndexNodeAddresses(), and delete the user', async () => {
         await setGraphSubgraphID()
         const indexersSetLength = (
-          await deployedStaking.numberOfGraphIndexingNodeAddresses()
+          await deployedStaking.numberOfGraphIndexNodeAddresses()
         ).toNumber()
 
         await stakeForIndexing()
 
         const newLength = (
-          await deployedStaking.numberOfGraphIndexingNodeAddresses()
+          await deployedStaking.numberOfGraphIndexNodeAddresses()
         ).toNumber()
         assert(
           newLength === indexersSetLength + 1,
           'Indexers length does not match.',
         )
 
-        const indexer = await deployedStaking.graphIndexingNodeAddresses(
+        const indexer = await deployedStaking.graphIndexNodeAddresses(
           newLength - 1,
         )
         assert(indexer === indexingStaker, 'Indexer address does not match.')
@@ -212,7 +212,7 @@ contract(
         await beginLogout()
 
         // Note - index isn't deleted on the array, the entry is just zeroed
-        const blankIndexer = await deployedStaking.graphIndexingNodeAddresses(
+        const blankIndexer = await deployedStaking.graphIndexNodeAddresses(
           newLength - 1,
         )
         assert(
@@ -243,7 +243,7 @@ contract(
         'Stake Graph Tokens tx through graph module failed.',
       )
 
-      const { amountStaked, logoutStarted } = await gp.staking.indexingNodes(
+      const { amountStaked, logoutStarted } = await gp.staking.indexNodes(
         subgraphIdHex0x,
         indexingStaker,
       )
@@ -277,7 +277,7 @@ contract(
       const blockNumber = logout.receipt.blockNumber
       const block = await web3.eth.getBlock(blockNumber)
 
-      const indexNode = await gp.staking.indexingNodes(
+      const indexNode = await gp.staking.indexNodes(
         subgraphIdHex0x,
         indexingStaker,
       )
@@ -308,7 +308,7 @@ contract(
         'Locked tokens not set properly',
       )
 
-      expectEvent.inLogs(logout.logs, 'IndexingNodeBeginLogout', {
+      expectEvent.inLogs(logout.logs, 'IndexNodeBeginLogout', {
         staker: indexingStaker,
         subgraphID: subgraphIdHex0x,
         unstakedAmount: stakingAmount,
@@ -334,14 +334,14 @@ contract(
         'Graph Network subgraph ID was not set properly.',
       )
 
-      const indexersSetLength = await deployedStaking.numberOfGraphIndexingNodeAddresses()
+      const indexersSetLength = await deployedStaking.numberOfGraphIndexNodeAddresses()
       assert(
         indexersSetLength.toNumber() === indexers.length,
         'The amount of indexers are not matching.',
       )
 
       for (let i = 0; i < 3; i++) {
-        const indexer = await deployedStaking.graphIndexingNodeAddresses(i)
+        const indexer = await deployedStaking.graphIndexNodeAddresses(i)
         assert(indexer === indexers[i], `Indexer address ${i} does not match.`)
       }
     }

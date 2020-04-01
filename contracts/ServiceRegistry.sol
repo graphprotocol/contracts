@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 
+
 contract ServiceRegistry is Governed {
     /*
      * @title Graph Protocol Service Registry contract
@@ -46,7 +47,7 @@ contract ServiceRegistry is Governed {
      */
     function setBootstrapIndexerURL(address _indexer, string calldata _url)
         external
-        onlyGovernance
+        onlyGovernor
     {
         bytes memory url = bytes(_url);
         bootstrapIndexerURLs[_indexer] = url;

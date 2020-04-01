@@ -10,6 +10,7 @@ import "./Governed.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
+
 // @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
 // NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
 interface TokenReceiver {
@@ -19,6 +20,7 @@ interface TokenReceiver {
         bytes calldata _data
     ) external returns (bool);
 }
+
 
 contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
     mapping(address => bool) private _minters;
@@ -52,11 +54,11 @@ contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
         _mint(_governor, _initialSupply);
     }
 
-    function addMinter(address _account) external onlyGovernance {
+    function addMinter(address _account) external onlyGovernor {
         _addMinter(_account);
     }
 
-    function removeMinter(address _account) external onlyGovernance {
+    function removeMinter(address _account) external onlyGovernor {
         _removeMinter(_account);
     }
 
