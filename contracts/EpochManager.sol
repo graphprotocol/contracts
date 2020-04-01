@@ -60,11 +60,11 @@ contract EpochManager is Governed {
     /**
      * @dev Start a new epoch, called once at the start of any epoch
      */
-    function nextEpoch() external {
+    function startEpoch() external {
         // Check if already called for the current epoch
         require(
             !isCurrentEpochStarted(),
-            "Need to finish current epoch before starting next"
+            "Need to finish current epoch before starting a new epoch"
         );
 
         lastStartedEpoch = currentEpoch();
@@ -72,6 +72,10 @@ contract EpochManager is Governed {
         emit NewEpoch(lastStartedEpoch, blockNum(), msg.sender);
     }
 
+    /**
+     * @dev Return true if the current epoch has already started
+     * @return <bool> Return true if epoch started
+     */
     function isCurrentEpochStarted() public view returns (bool) {
         return lastStartedEpoch == currentEpoch();
     }
@@ -102,7 +106,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return the current epoch, it may have not been started yet
-     * @dev Need to call nextEpoch
+     * @dev Need to call startEpoch if not started
      * @return <uint256> The current epoch based on epoch length
      */
     function currentEpoch() public view returns (uint256) {
