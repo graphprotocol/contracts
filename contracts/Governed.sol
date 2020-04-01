@@ -10,7 +10,7 @@ pragma experimental ABIEncoderV2;
 contract Governed {
     address public governor;
 
-    event GovernanceTransferred(address indexed _from, address indexed _to);
+    event OwnershipTransferred(address indexed from, address indexed to);
 
     modifier onlyGovernor {
         require(msg.sender == governor, "Only Governor can call");
@@ -29,12 +29,9 @@ contract Governed {
      * @dev The current `governor` can assign a new `governor`
      * @param _newGovernor <address> Address of new `governor`
      */
-    function transferOwnership(address _newGovernor)
-        public
-        onlyGovernor
-        returns (bool)
-    {
+    function transferOwnership(address _newGovernor) public onlyGovernor {
+        require(_newGovernor != address(0), "New owner is the zero address");
+        emit OwnershipTransferred(governor, _newGovernor);
         governor = _newGovernor;
-        return true;
     }
 }
