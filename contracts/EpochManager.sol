@@ -35,10 +35,7 @@ contract EpochManager is Governed {
      * @param _governor Owner address of this contract
      * @param _epochLength Epoch length in blocks
      */
-    constructor(address _governor, uint256 _epochLength)
-        public
-        Governed(_governor)
-    {
+    constructor(address _governor, uint256 _epochLength) public Governed(_governor) {
         require(_epochLength > 0, "Epoch length cannot be 0");
 
         lastLengthUpdateEpoch = 0;
