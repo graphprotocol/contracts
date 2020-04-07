@@ -24,24 +24,14 @@ function deployCurationContract(owner, graphToken, distributor, params) {
   )
 }
 
-function deployDisputeManagerContract(
-  owner,
-  graphToken,
-  arbitrator,
-  staking,
-  params,
-) {
-  const slashingPercentage = helpers.stakingConstants.slashingPercentage
-  const minimumDisputeDepositAmount =
-    helpers.stakingConstants.minimumDisputeDepositAmount
-
+function deployDisputeManagerContract(owner, graphToken, arbitrator, staking, params) {
   return DisputeManager.new(
     owner,
     graphToken,
     arbitrator,
     staking,
-    slashingPercentage,
-    minimumDisputeDepositAmount,
+    defaults.dispute.rewardPercentage,
+    defaults.dispute.minimumDeposit,
     params,
   )
 }
@@ -50,18 +40,13 @@ function deployEpochManagerContract(owner, params) {
   return EpochManager.new(owner, defaults.epochs.lengthInBlocks, params)
 }
 
-function deployStakingContract(owner, graphToken, params) {
-  const minimumIndexingStakingAmount =
-    helpers.stakingConstants.minimumIndexingStakingAmount
-  const maximumIndexers = helpers.stakingConstants.maximumIndexers
-  const thawingPeriod = helpers.stakingConstants.thawingPeriod
-
+function deployStakingContract(owner, graphToken, epochManager, params) {
   return Staking.new(
-    owner, // <address> governor
-    minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
-    maximumIndexers, // <uint256> maximumIndexers
-    thawingPeriod, // <uint256> thawingPeriod
-    graphToken, // <address> token
+    owner,
+    graphToken,
+    epochManager,
+    defaults.staking.maxSettlementDuration,
+    defaults.staking.slashingPercentage,
     params,
   )
 }

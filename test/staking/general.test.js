@@ -1,113 +1,60 @@
 const BN = web3.utils.BN
-
-// contracts
-const GraphToken = artifacts.require('./GraphToken.sol')
-const Staking = artifacts.require('./Staking.sol')
+const { expect } = require('chai')
+const { constants, expectRevert, expectEvent } = require('@openzeppelin/test-helpers')
 
 // helpers
-const GraphProtocol = require('../../graphProtocol.js')
+const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
 
-contract(
-  'Staking (General)',
-  ([
-    deploymentAddress,
-    daoContract, // Note - this is not an actual multisig, it is just account[1]
-    curationStaker,
-    indexingStaker,
-    subgraph1,
-    ...accounts
-  ]) => {
-    /**
-     * testing constants
-     */
-    const minimumIndexingStakingAmount =
-      helpers.stakingConstants.minimumIndexingStakingAmount
-    const maximumIndexers = helpers.stakingConstants.maximumIndexers
-    const simpleThawingPeriod = helpers.stakingConstants.thawingPeriodSimple
-    const initialTokenSupply = helpers.graphTokenConstants.initialTokenSupply
-    let deployedStaking
-    let deployedGraphToken
-    let gp
+contract('Staking (general)', ([me, other, governor, indexNode]) => {
+  before(async function() {
+    // Deploy epoch contract
+    this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
 
-    before(async () => {
-      // deploy GraphToken contract
-      deployedGraphToken = await GraphToken.new(
-        daoContract, // governor
-        initialTokenSupply, // initial supply
-        { from: deploymentAddress },
-      )
+    // Deploy graph token
+    this.graphToken = await deployment.deployGraphToken(governor, {
+      from: me,
+    })
 
-      // deploy Staking contract
-      deployedStaking = await Staking.new(
-        daoContract, // <address> governor
-        minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
-        maximumIndexers, // <uint256> maximumIndexers
-        simpleThawingPeriod, // <uint256> thawingPeriod
-        deployedGraphToken.address, // <address> token
-        { from: deploymentAddress },
-      )
-      assert(
-        web3.utils.isAddress(deployedStaking.address),
-        'Staking address is address.',
-      )
+    // Deploy staking contract
+    this.staking = await deployment.deployStakingContract(
+      governor,
+      this.graphToken.address,
+      this.epochManager.address,
+      { from: me },
+    )
+  })
 
-      // init Graph Protocol JS library with deployed staking contract
-      gp = GraphProtocol({
-        Staking: deployedStaking,
-        GraphToken: deployedGraphToken,
+  describe('state variables functions', function() {
+    it('should set `governor`', async function() {
+      // Set right in the constructor
+      expect(await this.staking.governor()).to.equal(governor)
+    })
+
+    it('should set `graphToken`', async function() {
+      // Set right in the constructor
+      expect(await this.staking.token()).to.equal(this.graphToken.address)
+    })
+  })
+
+  describe('staking', function() {
+    beforeEach(async function() {
+      // Give some funds to the indexNode
+      this.indexNodeTokens = web3.utils.toWei(new BN('1000'))
+      await this.graphToken.mint(indexNode, this.indexNodeTokens, {
+        from: governor,
       })
     })
 
-    describe('state variables set in construction', () => {
-      it('...should set `minimumIndexingStakingAmount` during construction', async function() {
-        const newMin = new BN('200000000000000000000')
-        await deployedStaking.setMinimumIndexingStakingAmount(newMin, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.minimumIndexingStakingAmount()).toString() ===
-            newMin.toString(),
-          'Set `minimumIndexingStakingAmount` does not work.',
-        )
+    it('should stake tokens', async function() {
+      // Stake as an index node
+      const indexNodeStake = web3.utils.toWei(new BN('100'))
+      await this.graphToken.transferToTokenReceiver(this.staking.address, indexNodeStake, '0x00', {
+        from: indexNode,
       })
 
-      it('...should set `maximumIndexers` to a new value', async function() {
-        const newMaxIndexers = 20
-        await deployedStaking.setMaximumIndexers(newMaxIndexers, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.maximumIndexers()).toNumber() === newMaxIndexers,
-          'Set `maximumIndexers` does not work.',
-        )
-      })
-
-      it('...should set `thawingPeriod` to a new value', async function() {
-        const thawingPeriod = 60 * 60 * 24 * 7 * 3 // 3 weeks
-        await deployedStaking.updateThawingPeriod(thawingPeriod, {
-          from: daoContract,
-        })
-        assert(
-          (await gp.staking.thawingPeriod()).toNumber() === thawingPeriod,
-          'Set `thawingPeriod` does not work.',
-        )
-      })
-
-      it('...should set `token` during construction', async function() {
-        assert(
-          web3.utils.isAddress(await gp.staking.token()),
-          'Set `token` in constructor.',
-        )
-      })
-
-      it('...should set `governor` during construction', async function() {
-        // No need to test transferGovernance(), it is tested in governance.test.js
-        assert(
-          (await gp.staking.governor()) === daoContract,
-          'Set `governor` in constructor.',
-        )
-      })
+      const stakeTokens = await this.staking.getStakeTokens(indexNode)
+      expect(stakeTokens).to.be.bignumber.equal(indexNodeStake)
     })
-  },
-)
+  })
+})
