@@ -350,7 +350,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
           it('reject to accept dispute if DisputeManager is not slasher', async function() {
             // Dispute manager is not allowed to slash
-            await this.staking.removeSlasher(this.disputeManager.address, {
+            await this.staking.setSlasher(this.disputeManager.address, false, {
               from: governor,
             })
 
