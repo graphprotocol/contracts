@@ -1,41 +1,15 @@
 const BN = web3.utils.BN
 
-function fixSignature(signature) {
-  // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
-  // signature malleability if version is 0/1
-  // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
-  let v = parseInt(signature.slice(130, 132), 16)
-  if (v < 27) {
-    v += 27
-  }
-  const vHex = v.toString(16)
-  return signature.slice(0, 130) + vHex
-}
-
-function toEthSignedMessageHash(messageHex) {
-  const messageBuffer = Buffer.from(messageHex.substring(2), 'hex')
-  const prefix = Buffer.from(
-    `\u0019Ethereum Signed Message:\n${messageBuffer.length}`,
-  )
-  return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]))
-}
-
 module.exports = {
-  toEthSignedMessageHash,
-  fixSignature,
   randomSubgraphIdHex0x: () => web3.utils.randomHex(32),
   randomSubgraphIdHex: hex => hex.substring(2),
-  randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) =>
-    web3.utils.hexToBytes(hex),
+  randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes(hex),
   // randomSubgraphIdBytes: (hex = web3.utils.randomHex(32).substring(2)) =>
   //   web3.utils.hexToBytes('0x' + hex.substring(hex.length - 64)),
 
   zerobytes: () =>
-    web3.utils.hexToBytes(
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
-    ),
-  zeroHex: () =>
-    '0x0000000000000000000000000000000000000000000000000000000000000000',
+    web3.utils.hexToBytes('0x0000000000000000000000000000000000000000000000000000000000000000'),
+  zeroHex: () => '0x0000000000000000000000000000000000000000000000000000000000000000',
   zeroAddress: () => '0x0000000000000000000000000000000000000000',
 
   topLevelDomainNames: [
@@ -314,12 +288,6 @@ module.exports = {
     tokensMintedForStaker: web3.utils.toWei(new BN('100000')),
   },
   defaults: {
-    epochs: {
-      lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
-    },
-    token: {
-      initialSupply: web3.utils.toWei(new BN('10000000')),
-    },
     curation: {
       // Reserve ratio to set bonding curve for curation (in PPM)
       reserveRatio: new BN('500000'),
@@ -327,6 +295,20 @@ module.exports = {
       minimumCurationStake: web3.utils.toWei(new BN('100')),
       // When one user stakes 1000, they will get 3 shares returned, as per the Bancor formula
       shareAmountFor1000Tokens: new BN(3),
+    },
+    dispute: {
+      minimumDeposit: web3.utils.toWei(new BN('100')),
+      rewardPercentage: new BN(1000), // in basis points
+    },
+    epochs: {
+      lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
+    },
+    staking: {
+      maxSettlementDuration: 5,
+      slashingPercentage: new BN(1000),
+    },
+    token: {
+      initialSupply: web3.utils.toWei(new BN('10000000')),
     },
   },
 }
