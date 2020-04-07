@@ -186,7 +186,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
     context('when stake does exist', function() {
       beforeEach(async function() {
         // Dispute manager is allowed to slash
-        await this.staking.addSlasher(this.disputeManager.address, {
+        await this.staking.setSlasher(this.disputeManager.address, true, {
           from: governor,
         })
 

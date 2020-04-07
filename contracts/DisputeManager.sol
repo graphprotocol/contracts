@@ -248,7 +248,6 @@ contract DisputeManager is Governed {
      */
     function setRewardPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage >= 0, "Reward percentage must above or equal to 0");
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
 
         rewardPercentage = _percentage;
@@ -394,7 +393,7 @@ contract DisputeManager is Governed {
         address indexNode = disputeID.recover(_sig);
 
         // This also validates that index node node exists
-        require(staking.isIndexNodeStaked(indexNode), "Dispute has no stake by the index node");
+        require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
 
         // Ensure that fisherman has staked at least that amount
         require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
