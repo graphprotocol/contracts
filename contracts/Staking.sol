@@ -23,7 +23,6 @@ library Stakes {
 
     struct IndexNode {
         uint256 tokens; // Tokens on this stake (IndexNode + Delegators)
-        uint256 tokensDelegated;
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensAvailable; // Tokens available for the IndexNode to allocate
         mapping(bytes32 => Allocation) allocations; // Subgraph stake tracking
@@ -48,11 +47,14 @@ contract Staking is Governed {
 
     // -- State --
 
+    uint256 public maxSettlementDuration; // in epochs
+
     // Percentage of index node stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercentage;
 
-    uint256 public maxSettlementDuration; // in epochs
+    // Time in blocks to unstake
+    uint256 public thawingPeriod;
 
     // IndexNode stake tracking
     mapping(address => Stakes.IndexNode) public stakes;
@@ -100,6 +102,14 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Set the max settlement time allowed for index nodes
+     * @param _maxSettlementDuration Settlement duration limit in epochs
+     */
+    function setMaxSettlementDuration(uint256 _maxSettlementDuration) external onlyGovernor {
+        maxSettlementDuration = _maxSettlementDuration;
+    }
+
+    /**
      * @dev Set an address as allowed slasher
      * @param _slasher Address of the party allowed to slash index nodes
      * @param _allowed True if slasher is allowed
@@ -121,11 +131,11 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Set the max settlement time allowed for index nodes
-     * @param _maxSettlementDuration Settlement duration limit in epochs
+     * @dev Set the thawing period for unstaking
+     * @param _thawingPeriod Time need to pass in blocks to withdraw stake
      */
-    function setMaxSettlementDuration(uint256 _maxSettlementDuration) external onlyGovernor {
-        maxSettlementDuration = _maxSettlementDuration;
+    function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
+        thawingPeriod = _thawingPeriod;
     }
 
     /**
@@ -262,7 +272,7 @@ contract Staking is Governed {
         // TODO
         // check subgraph allocation exist
         // check balances are enough
-        // channel must be settled
+        // channel must be closed
         // move balances to the main stack
     }
 
