@@ -35,7 +35,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(await this.curation.governor()).to.equal(governor)
 
       // Can set if allowed
-      await this.curation.transferGovernance(other, { from: governor })
+      await this.curation.transferOwnership(other, { from: governor })
       expect(await this.curation.governor()).to.equal(other)
     })
 

@@ -12,6 +12,7 @@ import "./Staking.sol";
 import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
+
 contract DisputeManager is Governed {
     using BytesLib for bytes;
     using ECDSA for bytes32;
@@ -220,7 +221,7 @@ contract DisputeManager is Governed {
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator <address> - The address of the arbitration contract or party
      */
-    function setArbitrator(address _arbitrator) external onlyGovernance {
+    function setArbitrator(address _arbitrator) external onlyGovernor {
         _setArbitrator(_arbitrator);
     }
 
@@ -242,10 +243,7 @@ contract DisputeManager is Governed {
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit <uint256> - The minimum deposit in Graph Tokens
      */
-    function setMinimumDeposit(uint256 _minimumDeposit)
-        external
-        onlyGovernance
-    {
+    function setMinimumDeposit(uint256 _minimumDeposit) external onlyGovernor {
         minimumDeposit = _minimumDeposit;
     }
 
@@ -256,7 +254,7 @@ contract DisputeManager is Governed {
      */
     function setSlashingPercentage(uint256 _slashingPercentage)
         external
-        onlyGovernance
+        onlyGovernor
     {
         // Must be within 0% to 100% (inclusive)
         require(
@@ -328,7 +326,7 @@ contract DisputeManager is Governed {
 
         // Have staking slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the slashingPercentage of the indexer's stake
-        uint256 stake = staking.getIndexingNodeStake(
+        uint256 stake = staking.getIndexNodeStake(
             dispute.subgraphID,
             dispute.indexNode
         );
@@ -433,7 +431,7 @@ contract DisputeManager is Governed {
         address indexNode = disputeID.recover(_sig);
 
         // Get staked amount on the served subgraph by indexer
-        uint256 stake = staking.getIndexingNodeStake(_subgraphID, indexNode);
+        uint256 stake = staking.getIndexNodeStake(_subgraphID, indexNode);
 
         // This also validates that indexer node exists
         require(

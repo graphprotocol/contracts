@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 /*
  * @title Curation contract
- * @notice Allows Curators to signal Subgraphs that are relevant for indexers and earn fees from the Query Market.
+ * @notice Allows Curators to signal Subgraphs that are relevant for indexers and earn fees from the Query Market
  */
 
 import "./Governed.sol";
@@ -11,6 +11,7 @@ import "./GraphToken.sol";
 import "./bancor/BancorFormula.sol";
 import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+
 
 contract Curation is Governed, BancorFormula {
     using BytesLib for bytes;
@@ -102,7 +103,7 @@ contract Curation is Governed, BancorFormula {
      */
     function setDefaultReserveRatio(uint256 _defaultReserveRatio)
         external
-        onlyGovernance
+        onlyGovernor
     {
         _setDefaultReserveRatio(_defaultReserveRatio);
     }
@@ -127,7 +128,7 @@ contract Curation is Governed, BancorFormula {
      * @notice Update the distributor address to `_distributor`
      * @param _distributor <address> - Address of the party doing fee distributions
      */
-    function setDistributor(address _distributor) external onlyGovernance {
+    function setDistributor(address _distributor) external onlyGovernor {
         _setDistributor(_distributor);
     }
 
@@ -147,7 +148,7 @@ contract Curation is Governed, BancorFormula {
      */
     function setMinimumCurationStake(uint256 _minimumCurationStake)
         external
-        onlyGovernance
+        onlyGovernor
     {
         _setMinimumCurationStake(_minimumCurationStake);
     }
@@ -205,7 +206,10 @@ contract Curation is Governed, BancorFormula {
     function unstake(bytes32 _subgraphID, uint256 _shares) external {
         address curator = msg.sender;
         Subgraph storage subgraph = subgraphs[_subgraphID];
-        SubgraphCurator storage subgraphCurator = subgraphCurators[_subgraphID][curator];
+
+
+            SubgraphCurator storage subgraphCurator
+         = subgraphCurators[_subgraphID][curator];
 
         require(_shares > 0, "Cannot unstake zero shares");
         require(
@@ -260,20 +264,20 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-      * @dev Check if any Graph tokens are staked for a particular subgraph
-      * @param _subgraphID <uint256> Subgraph ID to check if tokens are staked
-      * @return <bool> True if the subgraph is curated
-      */
+     * @dev Check if any Graph tokens are staked for a particular subgraph
+     * @param _subgraphID <uint256> Subgraph ID to check if tokens are staked
+     * @return <bool> True if the subgraph is curated
+     */
     function isSubgraphCurated(bytes32 _subgraphID) public view returns (bool) {
         return subgraphs[_subgraphID].totalTokens > 0;
     }
 
     /**
-      * @dev Calculate number of subgraph shares that can be bought with a number of tokens
-      * @param _subgraphID <bytes32> Subgraph ID from where to buy shares
-      * @param _tokens <uint256> Amount of tokens used to buy shares
-      * @return <uint256> Amount of shares that can be bought
-      */
+     * @dev Calculate number of subgraph shares that can be bought with a number of tokens
+     * @param _subgraphID <bytes32> Subgraph ID from where to buy shares
+     * @param _tokens <uint256> Amount of tokens used to buy shares
+     * @return <uint256> Amount of shares that can be bought
+     */
     function subgraphTokensToShares(bytes32 _subgraphID, uint256 _tokens)
         public
         view
@@ -293,16 +297,15 @@ contract Curation is Governed, BancorFormula {
                 subgraph.totalTokens,
                 uint32(subgraph.reserveRatio),
                 _tokens
-            ) +
-            shares;
+            ) + shares;
     }
 
     /**
-      * @dev Calculate number of tokens to get when selling subgraph shares
-      * @param _subgraphID <bytes32> Subgraph ID from where to sell shares
-      * @param _shares <uint256> Amount of shares to sell
-      * @return <uint256> Amount of tokens to get after selling shares
-      */
+     * @dev Calculate number of tokens to get when selling subgraph shares
+     * @param _subgraphID <bytes32> Subgraph ID from where to sell shares
+     * @param _shares <uint256> Amount of shares to sell
+     * @return <uint256> Amount of tokens to get after selling shares
+     */
     function subgraphSharesToTokens(bytes32 _subgraphID, uint256 _shares)
         public
         view
@@ -375,7 +378,10 @@ contract Curation is Governed, BancorFormula {
     {
         uint256 tokens = _amount;
         Subgraph storage subgraph = subgraphs[_subgraphID];
-        SubgraphCurator storage subgraphCurator = subgraphCurators[_subgraphID][_curator];
+
+
+            SubgraphCurator storage subgraphCurator
+         = subgraphCurators[_subgraphID][_curator];
 
         // If this subgraph hasn't been curated before then initialize the curve
         // Sets the initial slope for the curve, controlled by minimumCurationStake

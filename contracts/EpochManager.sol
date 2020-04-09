@@ -53,7 +53,7 @@ contract EpochManager is Governed {
      * @notice Set epoch length to `_epochLength` blocks
      * @param _epochLength Epoch length in blocks
      */
-    function setEpochLength(uint256 _epochLength) external onlyGovernance {
+    function setEpochLength(uint256 _epochLength) external onlyGovernor {
         require(_epochLength > 0, "Epoch length cannot be 0");
         require(
             _epochLength != epochLength,
