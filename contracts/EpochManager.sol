@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 /*
  * @title EpochManager contract
- * @notice
+ * @notice Tracks epochs based on its block duration to sync contracts in the protocol.
  */
 
 import "./Governed.sol";
@@ -28,11 +28,12 @@ contract EpochManager is Governed {
     // -- Events --
 
     event NewEpoch(uint256 indexed epoch, uint256 blockNumber, address caller);
+    event EpochLengthUpdate(uint256 indexed epoch, uint256 epochLength);
 
     /**
      * @dev Contract Constructor
-     * @param _governor <address> - Owner address of this contract
-     * @param _epochLength <> -
+     * @param _governor Owner address of this contract
+     * @param _epochLength Epoch length in blocks
      */
     constructor(address _governor, uint256 _epochLength)
         public
@@ -40,25 +41,35 @@ contract EpochManager is Governed {
     {
         require(_epochLength > 0, "Epoch length cannot be 0");
 
+        lastLengthUpdateEpoch = 0;
+        lastLengthUpdateBlock = blockNum();
         epochLength = _epochLength;
-        lastLengthUpdateEpoch = currentEpoch();
-        lastLengthUpdateBlock = currentEpochBlock();
+
+        emit EpochLengthUpdate(lastLengthUpdateEpoch, epochLength);
     }
 
     /**
-     * @notice Set epoch length
+     * @dev Set the epoch length
+     * @notice Set epoch length to `_epochLength` blocks
      * @param _epochLength Epoch length in blocks
      */
     function setEpochLength(uint256 _epochLength) external onlyGovernance {
         require(_epochLength > 0, "Epoch length cannot be 0");
+        require(
+            _epochLength != epochLength,
+            "Epoch length must be different to current"
+        );
 
         lastLengthUpdateEpoch = currentEpoch();
         lastLengthUpdateBlock = currentEpochBlock();
         epochLength = _epochLength;
+
+        emit EpochLengthUpdate(lastLengthUpdateEpoch, epochLength);
     }
 
     /**
      * @dev Run a new epoch, should be called once at the start of any epoch
+     * @notice Perform state changes for the current epoch
      */
     function runEpoch() external {
         // Check if already called for the current epoch
@@ -73,7 +84,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return true if the current epoch has already run
-     * @return <bool> Return true if epoch has run
+     * @return Return true if epoch has run
      */
     function isCurrentEpochRun() public view returns (bool) {
         return lastRunEpoch == currentEpoch();
@@ -81,7 +92,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return current block number
-     * @return <uint256> Block number
+     * @return Block number
      */
     function blockNum() public view returns (uint256) {
         return block.number;
@@ -89,7 +100,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return blockhash for a block
-     * @return <bytes32> BlockHash for `_block` number
+     * @return BlockHash for `_block` number
      */
     function blockHash(uint256 _block) public view returns (bytes32) {
         uint256 currentBlock = blockNum();
@@ -105,7 +116,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return the current epoch, it may have not been run yet
-     * @return <uint256> The current epoch based on epoch length
+     * @return The current epoch based on epoch length
      */
     function currentEpoch() public view returns (uint256) {
         return lastLengthUpdateEpoch.add(epochsSinceUpdate());
@@ -113,7 +124,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return block where the current epoch started
-     * @return <uint256> The block number when the current epoch started
+     * @return The block number when the current epoch started
      */
     function currentEpochBlock() public view returns (uint256) {
         return lastLengthUpdateBlock.add(epochsSinceUpdate().mul(epochLength));
@@ -121,7 +132,7 @@ contract EpochManager is Governed {
 
     /**
      * @dev Return number of epochs passed since last epoch length update
-     * @return <uint256> The number of epoch that passed since last epoch length update
+     * @return The number of epoch that passed since last epoch length update
      */
     function epochsSinceUpdate() private view returns (uint256) {
         return blockNum().sub(lastLengthUpdateBlock).div(epochLength);

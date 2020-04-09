@@ -36,10 +36,19 @@ contract('EpochManager', ([me, other, governor]) => {
 
       // Update and check new value
       const newEpochLength = new BN(4)
-      await this.epochManager.setEpochLength(newEpochLength, { from: governor })
+      const currentEpoch = await this.epochManager.currentEpoch()
+      const { logs } = await this.epochManager.setEpochLength(newEpochLength, {
+        from: governor,
+      })
       expect(await this.epochManager.epochLength()).to.be.bignumber.equal(
         newEpochLength,
       )
+
+      // Event emitted
+      expectEvent.inLogs(logs, 'EpochLengthUpdate', {
+        epoch: currentEpoch,
+        epochLength: newEpochLength,
+      })
     })
 
     it('reject set `epochLength` if zero', async function() {
