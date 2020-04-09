@@ -1,4 +1,5 @@
 const Curation = artifacts.require('Curation')
+const EpochManager = artifacts.require('EpochManager')
 const GNS = artifacts.require('GNS')
 const GraphToken = artifacts.require('GraphToken')
 const RewardsManager = artifacts.require('RewardsManager')
@@ -25,11 +26,15 @@ const reserveRatio = new BN('500000')
 // const slashingPercentage = 10
 // amount of seconds to wait until indexer can finish stake logout
 const thawingPeriod = 60 * 60 * 24 * 7
+// Epoch length
+const epochLength = new BN((24 * 60 * 60) / 15) // One day in blocks
 
 const deployed = {} // store deployed contracts in a JSON object
 let simpleGraphTokenGovernorAddress
 
 module.exports = (deployer, network, accounts) => {
+  if (network === 'development') return
+
   // governor NOTE - Governor of GraphToken is accounts[1], NOT accounts[0],
   // because of a require statement in GraphToken.sol
   simpleGraphTokenGovernorAddress = accounts[1]
@@ -41,9 +46,18 @@ module.exports = (deployer, network, accounts) => {
       initialSupply, // initial supply
     )
 
-    // Deploy Staking contract using deployed GraphToken address + constants defined above
     .then(deployedGraphToken => {
       deployed.GraphToken = deployedGraphToken
+      return deployer.deploy(
+        EpochManager,
+        deployAddress, // <address> governor
+        epochLength, // <uint256> epoch duration in blocks
+      )
+    })
+
+    // Deploy Staking contract using deployed GraphToken address + constants defined above
+    .then(deployedEpochManager => {
+      deployed.EpochManager = deployedEpochManager
       return deployer.deploy(
         Staking,
         deployAddress, // <address> governor
@@ -113,15 +127,20 @@ module.exports = (deployer, network, accounts) => {
     // All contracts have been deployed and we log the total
     .then(deployedGNS => {
       deployed.GNS = deployedGNS
+
       console.log('\n')
-      console.log('GOVERNOR: ', simpleGraphTokenGovernorAddress)
-      console.log('GRAPH TOKEN: ', deployed.GraphToken.address)
-      console.log('STAKING: ', deployed.Staking.address)
-      console.log('CURATION', deployed.Curation.address)
-      console.log('REWARDS MANAGER: ', deployed.RewardsManager.address)
-      console.log('SERVICE REGISTRY: ', deployed.ServiceRegistry.address)
-      console.log('GNS: ', deployed.GNS.address)
-      console.log(`Deployed ${Object.entries(deployed).length} contracts.`)
+      console.log('> GOVERNOR:', simpleGraphTokenGovernorAddress)
+      console.log('> GRAPH TOKEN:', deployed.GraphToken.address)
+      console.log('> EPOCH MANAGER:', deployed.EpochManager.address)
+      console.log('[Incentives]')
+      console.log('> STAKING:', deployed.Staking.address)
+      console.log('> CURATION:', deployed.Curation.address)
+      console.log('> REWARDS MANAGER:', deployed.RewardsManager.address)
+      console.log('[Discovery]')
+      console.log('> SERVICE REGISTRY:', deployed.ServiceRegistry.address)
+      console.log('> GNS:', deployed.GNS.address)
+      console.log('\n')
+      console.log(`>> Deployed ${Object.entries(deployed).length} contracts`)
     })
     .catch(err => {
       console.log('There was an error with deploy: ', err)
