@@ -17,7 +17,7 @@ library Stakes {
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
-        bytes channelID; // IndexNode xpub used in off-chain channel
+        bytes channelID; // IndexNode payment channel ID used off chain
         ChannelStatus status; // Current status
     }
 
@@ -25,6 +25,8 @@ library Stakes {
         uint256 tokens; // Tokens on this stake (IndexNode + Delegators)
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensAvailable; // Tokens available for the IndexNode to allocate
+        uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
+        uint256 tokensLockedUntil; // Date where locked tokens can be withdrawn
         mapping(bytes32 => Allocation) allocations; // Subgraph stake tracking
     }
 }
@@ -126,7 +128,6 @@ contract Staking is Governed {
     function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
-
         slashingPercentage = _percentage;
     }
 
@@ -246,7 +247,7 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelID xpub used to identify off-chain payment channels
+     * @param _channelID ID used to identify off-chain payment channels
      */
     function allocate(bytes32 _subgraphID, uint256 _tokens, bytes calldata _channelID) external {
         address indexNode = msg.sender;
@@ -286,19 +287,31 @@ contract Staking is Governed {
 
         require(hasStake(indexNode), "Stake: index node has no stakes");
         require(stake.tokensAvailable >= _tokens, "Stake: not enough available tokens to unstake");
-        // TODO: check epoch conditions, can unstake now?
-        // TODO: take into account thawing period
-        // TODO: how to take into account slashed funds? we could be below our balance...
 
-        stake.tokens = stake.tokens.sub(_tokens);
         stake.tokensAvailable = stake.tokensAvailable.sub(_tokens);
-        if (stake.tokens == 0) {
-            delete stakes[indexNode];
-        }
+        stake.tokensLocked = stake.tokensLocked.add(_tokens);
+        stake.tokensLockedUntil = block.number.add(_thawingPeriod);
 
-        require(token.transfer(indexNode, _tokens), "Stake: cannot transfer tokens");
+        // TODO: how to take into account slashed funds? we could be below our balance...
+    }
 
-        emit StakeUpdate(indexNode, stake.tokens);
+    function withdraw() external {
+        address indexNode = msg.sender;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+
+        require(hasStake(indexNode), "Stake: index node has no stakes");
+
+        // Calculate tokens to release
+        uint256 tokensToRelease = stake.tokensLocked;
+        stake.tokensLocked = 0;
+        // TODO: take into account there could be less tokens because of slashing
+
+        // Reset lock period
+        stake.tokensLockedUntil = 0;
+
+        // Transfer tokens to index node
+        stake.tokens = stake.tokens.sub(tokensToRelease);
+        require(token.transfer(indexNode, tokensToRelease), "Stake: cannot transfer tokens");
     }
 
     /**
@@ -308,6 +321,7 @@ contract Staking is Governed {
      */
     function _stake(address _indexNode, uint256 _tokens) internal {
         Stakes.IndexNode storage stake = stakes[_indexNode];
+
         stake.tokens = stake.tokens.add(_tokens);
         stake.tokensAvailable = stake.tokensAvailable.add(_tokens);
 
@@ -326,7 +340,7 @@ contract Staking is Governed {
     /**
      * @dev Track payment channel information for an allocation
      * @param _allocation Allocation data
-     * @param _channelID Payment channel ID (xpub)
+     * @param _channelID Payment channel ID
      */
     function _setupChannel(Stakes.Allocation storage _allocation, bytes memory _channelID)
         internal
@@ -334,12 +348,14 @@ contract Staking is Governed {
         require(channels[_channelID] == false, "Allocate: payment channel ID already in use");
         require(_isChannelActive(_allocation), "Allocate: payment channel must be closed");
 
+        // TODO: deploy multisig contract from factory
+
         // Update channel
         _allocation.channelID = _channelID;
         _allocation.status = Stakes.ChannelStatus.Active;
         _allocation.createdAtEpoch = epochManager.currentEpoch();
 
-        // Keep track of used xpubs
+        // Keep track of used
         channels[_channelID] = true;
     }
 
@@ -352,7 +368,7 @@ contract Staking is Governed {
         _allocation.channelID = "";
         _allocation.status = Stakes.ChannelStatus.Closed;
 
-        // Keep track of used xpubs
+        // Keep track of used
         channels[_allocation.channelID] = false;
     }
 }
