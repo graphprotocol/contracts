@@ -299,13 +299,14 @@ module.exports = {
     dispute: {
       minimumDeposit: web3.utils.toWei(new BN('100')),
       rewardPercentage: new BN(1000), // in basis points
+      slashingPercentage: new BN(1000), // in basis points
     },
     epochs: {
       lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
     },
     staking: {
       maxSettlementDuration: 5,
-      slashingPercentage: new BN(1000),
+      thawingPeriod: 1,
     },
     token: {
       initialSupply: web3.utils.toWei(new BN('10000000')),

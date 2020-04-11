@@ -27,11 +27,12 @@ function deployCurationContract(owner, graphToken, distributor, params) {
 function deployDisputeManagerContract(owner, graphToken, arbitrator, staking, params) {
   return DisputeManager.new(
     owner,
-    graphToken,
     arbitrator,
+    graphToken,
     staking,
-    defaults.dispute.rewardPercentage,
     defaults.dispute.minimumDeposit,
+    defaults.dispute.rewardPercentage,
+    defaults.dispute.slashingPercentage,
     params,
   )
 }
@@ -46,7 +47,7 @@ function deployStakingContract(owner, graphToken, epochManager, params) {
     graphToken,
     epochManager,
     defaults.staking.maxSettlementDuration,
-    defaults.staking.slashingPercentage,
+    defaults.staking.thawingPeriod,
     params,
   )
 }

@@ -93,6 +93,10 @@ contract DisputeManager is Governed {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public rewardPercentage;
 
+    // Percentage of index node stake to slash on disputes
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public slashingPercentage;
+
     // Graph Token address
     GraphToken public token;
 
@@ -144,22 +148,25 @@ contract DisputeManager is Governed {
      * @param _token Address of the Graph Protocol token
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
-     * @param _rewardPercentage Percent of slashed funds the fisherman gets (in PPM)
      * @param _minimumDeposit Minimum deposit required to create a Dispute
+     * @param _rewardPercentage Percent of slashed funds the fisherman gets (in PPM)
+     * @param _slashingPercentage Percentage of index node stake slashed after a dispute
      */
     constructor(
         address _governor,
-        address _token,
         address _arbitrator,
+        address _token,
         address _staking,
+        uint256 _minimumDeposit,
         uint256 _rewardPercentage,
-        uint256 _minimumDeposit
+        uint256 _slashingPercentage
     ) public Governed(_governor) {
         _setArbitrator(_arbitrator);
         token = GraphToken(_token);
         staking = Staking(_staking);
         minimumDeposit = _minimumDeposit;
         rewardPercentage = _rewardPercentage;
+        slashingPercentage = _slashingPercentage;
 
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
@@ -188,9 +195,19 @@ contract DisputeManager is Governed {
      * @param _indexNode IndexNode to be slashed
      * @return Reward calculated as percentage of the index node slashed funds
      */
-    function getRewardForStake(address _indexNode) public view returns (uint256) {
-        uint256 _value = staking.getSlashingAmount(_indexNode);
-        return rewardPercentage.mul(_value).div(MAX_PPM); // rewardPercentage is in PPM
+    function getTokensToReward(address _indexNode) public view returns (uint256) {
+        uint256 value = getTokensToSlash(_indexNode);
+        return rewardPercentage.mul(value).div(MAX_PPM); // rewardPercentage is in PPM
+    }
+
+    /**
+     * @dev Get the amount of tokens to slash for an index node based on the stake
+     * @param _indexNode Address of the index node
+     * @return Amount of tokens to slash
+     */
+    function getTokensToSlash(address _indexNode) public view returns (uint256) {
+        uint256 tokens = staking.getIndexNodeStakeTokens(_indexNode); // slashable tokens
+        return slashingPercentage.mul(tokens).div(MAX_PPM); // slashingPercentage is in PPM
     }
 
     /**
@@ -254,6 +271,16 @@ contract DisputeManager is Governed {
     }
 
     /**
+     * @dev Set the percentage used for slashing index nodes
+     * @param _percentage Percentage used for slashing
+     */
+    function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
+        slashingPercentage = _percentage;
+    }
+
+    /**
      * @dev Accept tokens
      * @notice Receive Graph tokens
      * @param _from Token holder's address
@@ -298,8 +325,9 @@ contract DisputeManager is Governed {
 
         // Have staking contract slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the rewardPercentage of the index node slashed amount
-        uint256 reward = getRewardForStake(dispute.indexNode);
-        staking.slash(dispute.indexNode, reward, dispute.fisherman);
+        uint256 tokensToReward = getTokensToReward(dispute.indexNode);
+        uint256 tokensToSlash = getTokensToSlash(dispute.indexNode);
+        staking.slash(dispute.indexNode, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
         require(
@@ -312,7 +340,7 @@ contract DisputeManager is Governed {
             dispute.subgraphID,
             dispute.indexNode,
             dispute.fisherman,
-            dispute.deposit.add(reward)
+            dispute.deposit.add(tokensToReward)
         );
     }
 

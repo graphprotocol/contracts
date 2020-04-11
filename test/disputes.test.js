@@ -108,6 +108,38 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       )
     })
 
+    it('should set `slashingPercentage`', async function() {
+      const slashingPercentage = defaults.dispute.rewardPercentage
+
+      // Set right in the constructor
+      expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.equal(
+        slashingPercentage.toString(),
+      )
+
+      // Set new value
+      await this.disputeManager.setSlashingPercentage(0, { from: governor })
+      await this.disputeManager.setSlashingPercentage(1, { from: governor })
+      await this.disputeManager.setSlashingPercentage(slashingPercentage, {
+        from: governor,
+      })
+    })
+
+    it('reject set `slashingPercentage` if out of bounds', async function() {
+      await expectRevert(
+        this.disputeManager.setSlashingPercentage(MAX_PPM + 1, {
+          from: governor,
+        }),
+        'Slashing percentage must be below or equal to MAX_PPM',
+      )
+    })
+
+    it('reject set `slashingPercentage` if not allowed', async function() {
+      await expectRevert(
+        this.disputeManager.setSlashingPercentage(50, { from: other }),
+        'Only Governor can call',
+      )
+    })
+
     it('should set `minimumDeposit`', async function() {
       const minimumDeposit = helpers.stakingConstants.minimumDisputeDepositAmount
       const newMinimumDeposit = web3.utils.toBN(1)
@@ -209,11 +241,11 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
         it('should calculate the reward for a stake', async function() {
           const stakedAmount = this.indexNodeStake
           const trueReward = stakedAmount
-            .mul(defaults.staking.slashingPercentage)
+            .mul(defaults.dispute.slashingPercentage)
             .div(new BN(MAX_PPM))
             .mul(defaults.dispute.rewardPercentage)
             .div(new BN(MAX_PPM))
-          const funcReward = await this.disputeManager.getRewardForStake(indexNode)
+          const funcReward = await this.disputeManager.getTokensToReward(indexNode)
           expect(funcReward).to.be.bignumber.equal(trueReward.toString())
         })
       })
@@ -364,11 +396,11 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           })
 
           it('should resolve dispute, slash indexer and reward the fisherman', async function() {
-            const indexNodeStakeBefore = await this.staking.getStakeTokens(indexNode)
-            const tokensToSlash = await this.staking.getSlashingAmount(indexNode)
+            const indexNodeStakeBefore = await this.staking.getIndexNodeStakeTokens(indexNode)
+            const tokensToSlash = await this.disputeManager.getTokensToSlash(indexNode)
             const fishermanBalanceBefore = await this.graphToken.balanceOf(fisherman)
             const totalSupplyBefore = await this.graphToken.totalSupply()
-            const reward = await this.disputeManager.getRewardForStake(indexNode)
+            const reward = await this.disputeManager.getTokensToReward(indexNode)
 
             // Perform transaction (accept)
             const { tx } = await this.disputeManager.acceptDispute(this.dispute.messageHash, {
@@ -383,7 +415,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             )
 
             // Index node slashed
-            const indexNodeStakeAfter = await this.staking.getStakeTokens(indexNode)
+            const indexNodeStakeAfter = await this.staking.getIndexNodeStakeTokens(indexNode)
             expect(indexNodeStakeAfter).to.be.bignumber.equal(
               indexNodeStakeBefore.sub(tokensToSlash),
             )

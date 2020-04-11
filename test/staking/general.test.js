@@ -53,7 +53,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         from: indexNode,
       })
 
-      const stakeTokens = await this.staking.getStakeTokens(indexNode)
+      const stakeTokens = await this.staking.getIndexNodeStakeTokens(indexNode)
       expect(stakeTokens).to.be.bignumber.equal(indexNodeStake)
     })
   })

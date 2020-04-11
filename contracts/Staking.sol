@@ -8,34 +8,15 @@ pragma experimental ABIEncoderV2;
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./EpochManager.sol";
+import "./libs/Stakes.sol";
 import "./bytes/BytesLib.sol";
-
-
-library Stakes {
-    enum ChannelStatus { Closed, Active }
-
-    struct Allocation {
-        uint256 tokens; // Tokens allocated to a subgraph
-        uint256 createdAtEpoch; // Epoch when it was created
-        bytes channelID; // IndexNode payment channel ID used off chain
-        ChannelStatus status; // Current status
-    }
-
-    struct IndexNode {
-        uint256 tokens; // Tokens on this stake (IndexNode + Delegators)
-        uint256 tokensAllocated; // Tokens used in subgraph allocations
-        uint256 tokensAvailable; // Tokens available for the IndexNode to allocate
-        uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
-        uint256 tokensLockedUntil; // Date where locked tokens can be withdrawn
-        mapping(bytes32 => Allocation) allocations; // Subgraph stake tracking
-    }
-}
 
 
 contract Staking is Governed {
     using BytesLib for bytes;
     using SafeMath for uint256;
     using Stakes for Stakes.IndexNode;
+    using Stakes for Stakes.Allocation;
 
     // -- Stakes --
 
@@ -46,14 +27,9 @@ contract Staking is Governed {
 
     // 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
-
     // -- State --
 
     uint256 public maxSettlementDuration; // in epochs
-
-    // Percentage of index node stake to slash on disputes
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public slashingPercentage;
 
     // Time in blocks to unstake
     uint256 public thawingPeriod;
@@ -74,6 +50,7 @@ contract Staking is Governed {
     // -- Events --
 
     event StakeUpdate(address indexed indexNode, uint256 tokens);
+    event StakeLocked(address indexed indexNode, uint256 tokens, uint256 until);
     event AllocationUpdate(address indexed indexNode, bytes32 indexed subgraphID, uint256 tokens);
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
@@ -88,19 +65,18 @@ contract Staking is Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      * @param _maxSettlementDuration Max settlement duration
-     * @param _slashingPercentage Percentage of index node stake slashed after a dispute
      */
     constructor(
         address _governor,
         address _token,
         address _epochManager,
         uint256 _maxSettlementDuration,
-        uint256 _slashingPercentage
+        uint256 _thawingPeriod
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
         maxSettlementDuration = _maxSettlementDuration;
-        slashingPercentage = _slashingPercentage;
+        thawingPeriod = _thawingPeriod;
     }
 
     /**
@@ -122,16 +98,6 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Set the percentage used for slashing index nodes
-     * @param _percentage Percentage used for slashing
-     */
-    function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
-        // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
-        slashingPercentage = _percentage;
-    }
-
-    /**
      * @dev Set the thawing period for unstaking
      * @param _thawingPeriod Time need to pass in blocks to withdraw stake
      */
@@ -145,7 +111,7 @@ contract Staking is Governed {
      * @return True if index node has staked tokens
      */
     function hasStake(address _indexNode) public view returns (bool) {
-        return getStakeTokens(_indexNode) > 0;
+        return stakes[_indexNode].hasTokens();
     }
 
     /**
@@ -153,18 +119,8 @@ contract Staking is Governed {
      * @param _indexNode Address of the index node
      * @return Amount of tokens staked by the index node
      */
-    function getStakeTokens(address _indexNode) public view returns (uint256) {
+    function getIndexNodeStakeTokens(address _indexNode) public view returns (uint256) {
         return stakes[_indexNode].tokens;
-    }
-
-    /**
-     * @dev Get the amount of tokens to slash for an index node based on its total stake
-     * @param _indexNode Address of the index node
-     * @return Amount of tokens to slash
-     */
-    function getSlashingAmount(address _indexNode) public view returns (uint256) {
-        uint256 tokens = getStakeTokens(_indexNode);
-        return slashingPercentage.mul(tokens).div(MAX_PPM); // slashingPercentage is in PPM
     }
 
     /**
@@ -184,29 +140,26 @@ contract Staking is Governed {
     /**
      * @dev Slash the index node stake
      * @param _indexNode Address of index node to slash
-     * @param _reward Amount of reward to send to a beneficiary
+     * @param _tokens Amount of tokens to slash from the index node stake
+     * @param _reward Amount of reward tokens to send to a beneficiary
      * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(address _indexNode, uint256 _reward, address _beneficiary) external onlySlasher {
-        // Beneficiary conditions
+    function slash(address _indexNode, uint256 _tokens, uint256 _reward, address _beneficiary)
+        external
+        onlySlasher
+    {
+        uint256 tokensToSlash = _tokens;
+        Stakes.IndexNode storage stake = stakes[_indexNode];
+
+        require(stake.hasTokens(), "Slash: index node has no stakes");
         require(_beneficiary != address(0), "Slash: beneficiary must not be an empty address");
-
-        // Get stake to be slashed
-        uint256 stakeTokens = getStakeTokens(_indexNode);
-
-        // Index node need to have stakes
-        require(stakeTokens > 0, "Slash: index node has no stakes");
+        require(tokensToSlash >= _reward, "Slash: reward cannot be higher than slashed amount");
 
         // Slash stake
-        uint256 tokensToSlash = getSlashingAmount(_indexNode);
-        stakes[_indexNode].tokens = stakeTokens.sub(tokensToSlash);
-        // TODO: how do we updated the available tokens?
+        stake.releaseTokens(tokensToSlash);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        uint256 tokensToBurn = tokensToSlash.sub(
-            _reward,
-            "Slash: reward cannot be higher than slashed amount"
-        );
+        uint256 tokensToBurn = tokensToSlash.sub(_reward);
         if (tokensToBurn > 0) {
             token.burn(tokensToBurn);
         }
@@ -216,7 +169,7 @@ contract Staking is Governed {
             require(token.transfer(_beneficiary, _reward), "Slash: error sending dispute reward");
         }
 
-        emit StakeUpdate(_indexNode, getStakeTokens(_indexNode));
+        emit StakeUpdate(_indexNode, stake.tokens);
     }
 
     /**
@@ -237,6 +190,8 @@ contract Staking is Governed {
         // Action according to payload
         if (option == TokenReceiptAction.Staking) {
             _stake(_from, _value);
+        } else if (option == TokenReceiptAction.Settlement) {
+            // TODO: settlement
         } else {
             revert("Token received option must be 0 or 1");
         }
@@ -252,66 +207,65 @@ contract Staking is Governed {
     function allocate(bytes32 _subgraphID, uint256 _tokens, bytes calldata _channelID) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
-        Stakes.Allocation storage allocation = stake.allocations[_subgraphID];
 
-        require(stake.tokensAvailable >= _tokens, "Allocate: not enough available tokens");
+        require(stake.hasTokens(), "Allocate: index node has no stakes");
+        require(stake.tokensAvailable() >= _tokens, "Allocate: not enough available tokens");
 
-        _setupChannel(allocation, _channelID);
-        allocation.tokens = allocation.tokens.add(_tokens);
-        stake.tokensAvailable = stake.tokensAvailable.sub(_tokens);
+        Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
+        _setupChannel(alloc, _channelID);
 
-        emit AllocationUpdate(indexNode, _subgraphID, allocation.tokens);
+        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens);
     }
 
     /**
      * @dev Unallocate tokens from a subgraph
      * @param _subgraphID ID of the subgraph where tokens are allocated
+     * @param _tokens Amount of tokens to unallocate
      */
-    function unallocate(bytes32 _subgraphID) external {
+    function unallocate(bytes32 _subgraphID, uint256 _tokens) external {
         address indexNode = msg.sender;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+        Stakes.Allocation storage alloc = stake.allocations[_subgraphID];
 
-        // TODO
-        // check subgraph allocation exist
-        // check balances are enough
-        // channel must be closed
-        // move balances to the main stack
+        require(_tokens > 0, "Allocate: tokens to unallocate cannot be zero");
+        require(alloc.tokens > 0, "Allocate: no tokens allocated to the subgraph");
+        require(alloc.tokens >= _tokens, "Allocate: not enough tokens available in the subgraph");
+        require(alloc.hasActiveChannel() == false, "Allocate: channel must be settled");
+
+        stake.unallocateTokens(_subgraphID, _tokens);
+
+        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens);
     }
 
     /**
-     * @dev Withdraw tokens from the index node stake
+     * @dev Unstake tokens from the index node stake, lock them until thawning period expires
      * @param _tokens Amount of tokens to unstake
      */
     function unstake(uint256 _tokens) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
-        require(hasStake(indexNode), "Stake: index node has no stakes");
-        require(stake.tokensAvailable >= _tokens, "Stake: not enough available tokens to unstake");
+        require(stake.hasTokens(), "Stake: index node has no stakes");
+        require(stake.tokensAvailable() >= _tokens, "Stake: not enough available tokens");
 
-        stake.tokensAvailable = stake.tokensAvailable.sub(_tokens);
-        stake.tokensLocked = stake.tokensLocked.add(_tokens);
-        stake.tokensLockedUntil = block.number.add(_thawingPeriod);
+        stake.lockTokens(_tokens, thawingPeriod);
 
-        // TODO: how to take into account slashed funds? we could be below our balance...
+        emit StakeLocked(indexNode, stake.tokensLocked, stake.tokensLockedUntil);
     }
 
+    /**
+     * @dev Withdraw tokens once the thawning period has passed
+     */
     function withdraw() external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
-        require(hasStake(indexNode), "Stake: index node has no stakes");
+        uint256 tokensToWithdraw = stake.withdrawTokens();
+        require(tokensToWithdraw > 0, "Stake: no tokens available for withdrawal");
 
-        // Calculate tokens to release
-        uint256 tokensToRelease = stake.tokensLocked;
-        stake.tokensLocked = 0;
-        // TODO: take into account there could be less tokens because of slashing
+        require(token.transfer(indexNode, tokensToWithdraw), "Stake: cannot transfer tokens");
 
-        // Reset lock period
-        stake.tokensLockedUntil = 0;
-
-        // Transfer tokens to index node
-        stake.tokens = stake.tokens.sub(tokensToRelease);
-        require(token.transfer(indexNode, tokensToRelease), "Stake: cannot transfer tokens");
+        emit StakeUpdate(indexNode, stake.tokens);
     }
 
     /**
@@ -322,38 +276,26 @@ contract Staking is Governed {
     function _stake(address _indexNode, uint256 _tokens) internal {
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
-        stake.tokens = stake.tokens.add(_tokens);
-        stake.tokensAvailable = stake.tokensAvailable.add(_tokens);
+        stake.depositTokens(_tokens);
 
         emit StakeUpdate(_indexNode, stake.tokens);
     }
 
     /**
-     * @dev Return if channel for an allocation is active
-     * @param _allocation Allocation data
-     * @return True if payment channel related to allocation is active
-     */
-    function _isChannelActive(Stakes.Allocation memory _allocation) internal returns (bool) {
-        return _allocation.status == Stakes.ChannelStatus.Active;
-    }
-
-    /**
      * @dev Track payment channel information for an allocation
-     * @param _allocation Allocation data
+     * @param _alloc Allocation data
      * @param _channelID Payment channel ID
      */
-    function _setupChannel(Stakes.Allocation storage _allocation, bytes memory _channelID)
-        internal
-    {
+    function _setupChannel(Stakes.Allocation storage _alloc, bytes memory _channelID) internal {
         require(channels[_channelID] == false, "Allocate: payment channel ID already in use");
-        require(_isChannelActive(_allocation), "Allocate: payment channel must be closed");
+        require(_alloc.hasActiveChannel() == false, "Allocate: payment channel must be closed");
 
         // TODO: deploy multisig contract from factory
 
         // Update channel
-        _allocation.channelID = _channelID;
-        _allocation.status = Stakes.ChannelStatus.Active;
-        _allocation.createdAtEpoch = epochManager.currentEpoch();
+        _alloc.channelID = _channelID;
+        _alloc.status = Stakes.ChannelStatus.Active;
+        _alloc.createdAtEpoch = epochManager.currentEpoch();
 
         // Keep track of used
         channels[_channelID] = true;
@@ -361,14 +303,14 @@ contract Staking is Governed {
 
     /**
      * @dev Close payment channel related to allocation
-     * @param _allocation Allocation data
+     * @param _alloc Allocation data
      */
-    function _closeChannel(Stakes.Allocation storage _allocation) internal {
+    function _closeChannel(Stakes.Allocation storage _alloc) internal {
         // Update channel
-        _allocation.channelID = "";
-        _allocation.status = Stakes.ChannelStatus.Closed;
+        _alloc.channelID = "";
+        _alloc.status = Stakes.ChannelStatus.Closed;
 
         // Keep track of used
-        channels[_allocation.channelID] = false;
+        channels[_alloc.channelID] = false;
     }
 }

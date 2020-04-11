@@ -15,10 +15,6 @@ const BN = web3.utils.BN
 // 10,000,000 (in wei)  total supply of Graph Tokens at time of deployment
 const initialSupply = web3.utils.toWei(new BN('10000000'))
 // 100 (in wei) minimum amount allowed to be staked by Indexing Nodes
-const minimumIndexingStakingAmount = web3.utils.toWei(new BN('100'))
-// maximum number of Indexing Nodes staked higher than stake to consider
-const maximumIndexers = 10
-// 100 (in wei) minimum amount allowed to be staked by Indexing Nodes
 const minimumCurationStake = web3.utils.toWei(new BN('100'))
 // Reserve ratio to set bonding curve for curation (in PPM)
 const reserveRatio = new BN('500000')
@@ -26,6 +22,8 @@ const reserveRatio = new BN('500000')
 // const slashingPercentage = 10
 // amount of seconds to wait until indexer can finish stake logout
 const thawingPeriod = 60 * 60 * 24 * 7
+// In epochs
+const maxSettlementDuration = 5
 // Epoch length
 const epochLength = new BN((24 * 60 * 60) / 15) // One day in blocks
 
@@ -55,16 +53,15 @@ module.exports = (deployer, network, accounts) => {
       )
     })
 
-    // Deploy Staking contract using deployed GraphToken address + constants defined above
     .then(deployedEpochManager => {
       deployed.EpochManager = deployedEpochManager
       return deployer.deploy(
         Staking,
         deployAddress, // <address> governor
-        minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
-        maximumIndexers, // <uint256> maximumIndexers
-        thawingPeriod, // <uint256> thawingPeriod NOTE - NO THAWING PERIOD
-        deployed.GraphToken.address, // <address> token
+        deployed.GraphToken.address,
+        deployed.EpochManager.address,
+        maxSettlementDuration,
+        thawingPeriod,
       )
     })
     .catch(err => {
