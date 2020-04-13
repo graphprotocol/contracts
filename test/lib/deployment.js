@@ -6,7 +6,6 @@ const GraphToken = artifacts.require('./GraphToken.sol')
 const Staking = artifacts.require('./Staking.sol')
 
 // helpers
-const helpers = require('./testHelpers')
 const { defaults } = require('./testHelpers')
 
 function deployGraphToken(owner, params) {
