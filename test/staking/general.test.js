@@ -1,13 +1,13 @@
 const BN = web3.utils.BN
 const { expect } = require('chai')
-const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers')
+const { expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers')
 
 // helpers
 const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
 const { defaults } = require('../lib/testHelpers')
 
-contract('Staking (general)', ([me, other, governor, indexNode, otherIndexNode]) => {
+contract('Staking (general)', ([me, other, governor, indexNode]) => {
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -107,7 +107,7 @@ contract('Staking (general)', ([me, other, governor, indexNode, otherIndexNode])
       }
     })
 
-    context('when not staked', function() {
+    context('when NOT staked', function() {
       it('should not have stakes `hasStake()`', async function() {
         expect(await this.staking.hasStake(indexNode)).to.be.equal(false)
       })
@@ -134,6 +134,14 @@ contract('Staking (general)', ([me, other, governor, indexNode, otherIndexNode])
         const indexNodeStake = web3.utils.toWei(new BN('100'))
         await expectRevert(this.allocate(indexNodeStake), 'Allocate: index node has no stakes')
       })
+
+      it('reject unstake tokens', async function() {
+        const tokensToUnstake = web3.utils.toWei(new BN('2'))
+        await expectRevert(
+          this.staking.unstake(tokensToUnstake, { from: indexNode }),
+          'Stake: index node has no stakes',
+        )
+      })
     })
 
     context('when staked', function() {
@@ -147,27 +155,73 @@ contract('Staking (general)', ([me, other, governor, indexNode, otherIndexNode])
         expect(await this.staking.hasStake(indexNode)).to.be.equal(true)
       })
 
-      it('should allocate to subgraph', async function() {
-        await this.allocate(this.indexNodeStake)
+      it('should unstake and lock tokens with thawing period', async function() {
+        const tokensToUnstake = web3.utils.toWei(new BN('2'))
+        const thawingPeriod = await this.staking.thawingPeriod()
+        const currentBlock = await time.latestBlock()
+        const until = currentBlock.add(thawingPeriod).add(new BN(1))
+        const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+        expectEvent.inLogs(logs, 'StakeLocked', {
+          indexNode: indexNode,
+          tokens: tokensToUnstake,
+          until: until,
+        })
       })
 
-      it('reject allocate to subgraph more than available tokens', async function() {
+      it('should unstake and lock tokens with (weighted average) thawing period if repeated', async function() {
+        // const tokensToUnstake = web3.utils.toWei(new BN('2'))
+        // const thawingPeriod = await this.staking.thawingPeriod()
+        // const currentBlock = await time.latestBlock()
+        // const until = currentBlock.add(thawingPeriod).add(new BN(1))
+        // const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+      })
+
+      it('reject unstake more than available tokens', async function() {
         const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
         await expectRevert(
-          this.allocate(tokensOverCapacity),
-          'Allocate: not enough available tokens',
+          this.staking.unstake(tokensOverCapacity, { from: indexNode }),
+          'Stake: not enough tokens available to unstake',
         )
+      })
+
+      it('reject withdraw if no tokens available', async function() {
+        await expectRevert(
+          this.staking.withdraw({ from: indexNode }),
+          'Stake: no tokens available to withdraw',
+        )
+      })
+
+      context('when subgraph NOT allocated', function() {
+        it('should allocate to subgraph', async function() {
+          const { logs } = await this.allocate(this.indexNodeStake)
+          expectEvent.inLogs(logs, 'AllocationUpdate', {
+            indexNode: indexNode,
+            subgraphID: this.subgraphId,
+            tokens: this.indexNodeStake,
+          })
+        })
+
+        it('reject allocate to subgraph more than available tokens', async function() {
+          const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
+          await expectRevert(
+            this.allocate(tokensOverCapacity),
+            'Allocate: not enough tokens available to allocate',
+          )
+        })
       })
 
       context('when subgraph allocated', function() {
         beforeEach(async function() {
-          this.allocTokens = web3.utils.toWei(new BN('10'))
-          await this.allocate(this.allocTokens)
+          this.tokensAllocated = web3.utils.toWei(new BN('10'))
+          await this.allocate(this.tokensAllocated)
         })
 
         it('reject allocate to subgraph if channel is active', async function() {
-          const tokens = web3.utils.toWei(new BN('10'))
-          await expectRevert(this.allocate(tokens), 'Allocate: payment channel ID already in use')
+          const tokensToAllocate = web3.utils.toWei(new BN('10'))
+          await expectRevert(
+            this.allocate(tokensToAllocate),
+            'Allocate: payment channel ID already in use',
+          )
         })
       })
     })

@@ -209,7 +209,10 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[indexNode];
 
         require(stake.hasTokens(), "Allocate: index node has no stakes");
-        require(stake.tokensAvailable() >= _tokens, "Allocate: not enough available tokens");
+        require(
+            stake.tokensAvailable() >= _tokens,
+            "Allocate: not enough tokens available to allocate"
+        );
 
         Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
         _setupChannel(alloc, _channelID);
@@ -246,7 +249,10 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[indexNode];
 
         require(stake.hasTokens(), "Stake: index node has no stakes");
-        require(stake.tokensAvailable() >= _tokens, "Stake: not enough available tokens");
+        require(
+            stake.tokensAvailable() >= _tokens,
+            "Stake: not enough tokens available to unstake"
+        );
 
         stake.lockTokens(_tokens, thawingPeriod);
 
@@ -261,7 +267,7 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[indexNode];
 
         uint256 tokensToWithdraw = stake.withdrawTokens();
-        require(tokensToWithdraw > 0, "Stake: no tokens available for withdrawal");
+        require(tokensToWithdraw > 0, "Stake: no tokens available to withdraw");
 
         require(token.transfer(indexNode, tokensToWithdraw), "Stake: cannot transfer tokens");
 

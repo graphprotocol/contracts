@@ -141,7 +141,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
     })
 
     it('should set `minimumDeposit`', async function() {
-      const minimumDeposit = helpers.stakingConstants.minimumDisputeDepositAmount
+      const minimumDeposit = defaults.dispute.minimumDeposit
       const newMinimumDeposit = web3.utils.toBN(1)
 
       // Set right in the constructor
@@ -155,10 +155,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
     })
 
     it('reject set `minimumDeposit` if not allowed', async function() {
-      const minimumDeposit = helpers.stakingConstants.minimumDisputeDepositAmount
-
       await expectRevert(
-        this.disputeManager.setMinimumDeposit(minimumDeposit, {
+        this.disputeManager.setMinimumDeposit(defaults.dispute.minimumDeposit, {
           from: other,
         }),
         'Only Governor can call',

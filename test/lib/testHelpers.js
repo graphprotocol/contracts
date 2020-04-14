@@ -268,17 +268,6 @@ module.exports = {
       return contract
     } else return param
   },
-  stakingConstants: {
-    // 100 (in wei) minimum amount allowed to be staked by Indexers
-    minimumIndexingStakingAmount: web3.utils.toWei(new BN('100')),
-    // 100 (in wei) minimum amount required as deposit to create a Dispute
-    minimumDisputeDepositAmount: web3.utils.toWei(new BN('100')),
-    defaultReserveRatio: 500000,
-    maximumIndexers: 10,
-    slashingPercentage: 1000,
-    thawingPeriod: 60 * 60 * 24 * 7, // In seconds
-    thawingPeriodSimple: 0,
-  },
   graphTokenConstants: {
     // 10,000,000 (in wei) total supply of Graph Tokens at time of deployment
     initialTokenSupply: web3.utils.toWei(new BN('10000000')),
@@ -306,7 +295,7 @@ module.exports = {
     },
     staking: {
       maxSettlementDuration: 5,
-      thawingPeriod: 1,
+      thawingPeriod: 1, // in blocks
     },
     token: {
       initialSupply: web3.utils.toWei(new BN('10000000')),
