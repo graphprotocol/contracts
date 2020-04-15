@@ -280,7 +280,7 @@ module.exports = {
     curation: {
       // Reserve ratio to set bonding curve for curation (in PPM)
       reserveRatio: new BN('500000'),
-      // Minimum amount allowed to be staked by Curators
+      // Minimum amount required to be staked by Curators
       minimumCurationStake: web3.utils.toWei(new BN('100')),
       // When one user stakes 1000, they will get 3 shares returned, as per the Bancor formula
       shareAmountFor1000Tokens: new BN(3),
@@ -295,7 +295,7 @@ module.exports = {
     },
     staking: {
       maxSettlementDuration: 5,
-      thawingPeriod: 1, // in blocks
+      thawingPeriod: 20, // in blocks
     },
     token: {
       initialSupply: web3.utils.toWei(new BN('10000000')),

@@ -7,6 +7,13 @@ const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
 const { defaults } = require('../lib/testHelpers')
 
+function weightedAverage(valueA, valueB, periodA, periodB) {
+  return periodA
+    .mul(valueA)
+    .add(periodB.mul(valueB))
+    .div(valueA.add(valueB))
+}
+
 contract('Staking (general)', ([me, other, governor, indexNode]) => {
   beforeEach(async function() {
     // Deploy epoch contract
@@ -155,11 +162,12 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         expect(await this.staking.hasStake(indexNode)).to.be.equal(true)
       })
 
-      it('should unstake and lock tokens with thawing period', async function() {
+      it('should unstake and lock tokens for thawing period', async function() {
         const tokensToUnstake = web3.utils.toWei(new BN('2'))
         const thawingPeriod = await this.staking.thawingPeriod()
         const currentBlock = await time.latestBlock()
         const until = currentBlock.add(thawingPeriod).add(new BN(1))
+
         const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
         expectEvent.inLogs(logs, 'StakeLocked', {
           indexNode: indexNode,
@@ -168,12 +176,31 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         })
       })
 
-      it('should unstake and lock tokens with (weighted average) thawing period if repeated', async function() {
-        // const tokensToUnstake = web3.utils.toWei(new BN('2'))
-        // const thawingPeriod = await this.staking.thawingPeriod()
-        // const currentBlock = await time.latestBlock()
-        // const until = currentBlock.add(thawingPeriod).add(new BN(1))
-        // const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+      it('should unstake and lock tokens for (weighted average) thawing period if repeated', async function() {
+        const tokensToUnstake = web3.utils.toWei(new BN('10'))
+        const thawingPeriod = await this.staking.thawingPeriod()
+
+        // Unstake (1)
+        let r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+        const tokensLockedUntil1 = r.logs[0].args.until
+
+        // Move forward
+        await time.advanceBlockTo(tokensLockedUntil1)
+
+        // Calculate expected new locking time for tokens taking into account the previous unstake request
+        const currentBlock = await time.latestBlock()
+        const lockingPeriod = weightedAverage(
+          tokensToUnstake,
+          tokensToUnstake,
+          tokensLockedUntil1.sub(currentBlock),
+          thawingPeriod,
+        )
+        const expectedLockedUntil = currentBlock.add(lockingPeriod).add(new BN(1))
+
+        // Unstake (2)
+        r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+        const tokensLockedUntil2 = r.logs[0].args.until
+        expect(expectedLockedUntil).to.be.bignumber.equal(tokensLockedUntil2)
       })
 
       it('reject unstake more than available tokens', async function() {
@@ -182,6 +209,28 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
           this.staking.unstake(tokensOverCapacity, { from: indexNode }),
           'Stake: not enough tokens available to unstake',
         )
+      })
+
+      it('should withdraw if tokens available', async function() {
+        // Unstake
+        const tokensToUnstake = web3.utils.toWei(new BN('10'))
+        const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+        const tokensLockedUntil = logs[0].args.until
+
+        // Withdraw on locking period (should fail)
+        await expectRevert(
+          this.staking.withdraw({ from: indexNode }),
+          'Stake: no tokens available to withdraw',
+        )
+
+        // Move forward
+        await time.advanceBlockTo(tokensLockedUntil)
+
+        // Withdraw after locking period (all good)
+        const balanceBefore = await this.graphToken.balanceOf(indexNode)
+        await this.staking.withdraw({ from: indexNode })
+        const balanceAfter = await this.graphToken.balanceOf(indexNode)
+        expect(balanceAfter).to.be.bignumber.equal(balanceBefore.add(tokensToUnstake))
       })
 
       it('reject withdraw if no tokens available', async function() {
@@ -227,3 +276,5 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
     })
   })
 })
+
+// TODO: unallocate
