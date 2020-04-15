@@ -45,21 +45,21 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
   describe('state variables functions', () => {
     it('should set `governor`', async function() {
       // Set right in the constructor
-      expect(await this.disputeManager.governor()).to.equal(governor)
+      expect(await this.disputeManager.governor()).to.eq(governor)
     })
 
     it('should set `graphToken`', async function() {
       // Set right in the constructor
-      expect(await this.disputeManager.token()).to.equal(this.graphToken.address)
+      expect(await this.disputeManager.token()).to.eq(this.graphToken.address)
     })
 
     it('should set `arbitrator`', async function() {
       // Set right in the constructor
-      expect(await this.disputeManager.arbitrator()).to.equal(arbitrator)
+      expect(await this.disputeManager.arbitrator()).to.eq(arbitrator)
 
       // Can set if allowed
       await this.disputeManager.setArbitrator(other, { from: governor })
-      expect(await this.disputeManager.arbitrator()).to.equal(other)
+      expect(await this.disputeManager.arbitrator()).to.eq(other)
     })
 
     it('reject set `arbitrator` if empty address', async function() {
@@ -80,7 +80,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       const rewardPercentage = defaults.dispute.rewardPercentage
 
       // Set right in the constructor
-      expect(await this.disputeManager.rewardPercentage()).to.be.bignumber.equal(
+      expect(await this.disputeManager.rewardPercentage()).to.be.bignumber.eq(
         rewardPercentage.toString(),
       )
 
@@ -112,7 +112,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       const slashingPercentage = defaults.dispute.rewardPercentage
 
       // Set right in the constructor
-      expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.equal(
+      expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.eq(
         slashingPercentage.toString(),
       )
 
@@ -145,13 +145,13 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       const newMinimumDeposit = web3.utils.toBN(1)
 
       // Set right in the constructor
-      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.equal(minimumDeposit)
+      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(minimumDeposit)
 
       // Set new value
       await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
         from: governor,
       })
-      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.equal(newMinimumDeposit)
+      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(newMinimumDeposit)
     })
 
     it('reject set `minimumDeposit` if not allowed', async function() {
@@ -244,7 +244,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             .mul(defaults.dispute.rewardPercentage)
             .div(new BN(MAX_PPM))
           const funcReward = await this.disputeManager.getTokensToReward(indexNode)
-          expect(funcReward).to.be.bignumber.equal(trueReward.toString())
+          expect(funcReward).to.be.bignumber.eq(trueReward.toString())
         })
       })
 
@@ -408,20 +408,18 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             // Fisherman reward properly assigned + deposit returned
             const deposit = web3.utils.toBN(this.tokensForFisherman)
             const fishermanBalanceAfter = await this.graphToken.balanceOf(fisherman)
-            expect(fishermanBalanceAfter).to.be.bignumber.equal(
+            expect(fishermanBalanceAfter).to.be.bignumber.eq(
               fishermanBalanceBefore.add(deposit).add(reward),
             )
 
             // Index node slashed
             const indexNodeStakeAfter = await this.staking.getIndexNodeStakeTokens(indexNode)
-            expect(indexNodeStakeAfter).to.be.bignumber.equal(
-              indexNodeStakeBefore.sub(tokensToSlash),
-            )
+            expect(indexNodeStakeAfter).to.be.bignumber.eq(indexNodeStakeBefore.sub(tokensToSlash))
 
             // Slashed funds burned
             const tokensToBurn = tokensToSlash.sub(reward)
             const totalSupplyAfter = await this.graphToken.totalSupply()
-            expect(totalSupplyAfter).to.be.bignumber.equal(totalSupplyBefore.sub(tokensToBurn))
+            expect(totalSupplyAfter).to.be.bignumber.eq(totalSupplyBefore.sub(tokensToBurn))
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeAccepted', {
@@ -464,12 +462,12 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
             // No change in fisherman balance
             const fishermanBalanceAfter = await this.graphToken.balanceOf(fisherman)
-            expect(fishermanBalanceAfter).to.be.bignumber.equal(fishermanBalanceBefore)
+            expect(fishermanBalanceAfter).to.be.bignumber.eq(fishermanBalanceBefore)
 
             // Burn fisherman deposit
             const totalSupplyAfter = await this.graphToken.totalSupply()
             const burnedTokens = web3.utils.toBN(this.tokensForFisherman)
-            expect(totalSupplyAfter).to.be.bignumber.equal(totalSupplyBefore.sub(burnedTokens))
+            expect(totalSupplyAfter).to.be.bignumber.eq(totalSupplyBefore.sub(burnedTokens))
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeRejected', {
@@ -512,7 +510,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             // Fisherman should see the deposit returned
             const fishermanBalanceAfter = await this.graphToken.balanceOf(fisherman)
             const deposit = web3.utils.toBN(this.tokensForFisherman)
-            expect(fishermanBalanceAfter).to.be.bignumber.equal(fishermanBalanceBefore.add(deposit))
+            expect(fishermanBalanceAfter).to.be.bignumber.eq(fishermanBalanceBefore.add(deposit))
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeIgnored', {

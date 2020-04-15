@@ -28,21 +28,21 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
   describe('state variables functions', function() {
     it('should set `governor`', async function() {
       // Set right in the constructor
-      expect(await this.curation.governor()).to.equal(governor)
+      expect(await this.curation.governor()).to.eq(governor)
     })
 
     it('should set `graphToken`', async function() {
       // Set right in the constructor
-      expect(await this.curation.token()).to.equal(this.graphToken.address)
+      expect(await this.curation.token()).to.eq(this.graphToken.address)
     })
 
     it('should set `distributor`', async function() {
       // Set right in the constructor
-      expect(await this.curation.distributor()).to.equal(distributor)
+      expect(await this.curation.distributor()).to.eq(distributor)
 
       // Can set if allowed
       await this.curation.setDistributor(other, { from: governor })
-      expect(await this.curation.distributor()).to.equal(other)
+      expect(await this.curation.distributor()).to.eq(other)
     })
 
     it('reject set `distributor` if empty address', async function() {
@@ -63,7 +63,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
     it('should set `defaultReserveRatio`', async function() {
       // Set right in the constructor
-      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.equal(
+      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(
         defaults.curation.reserveRatio,
       )
 
@@ -72,9 +72,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       await this.curation.setDefaultReserveRatio(newDefaultReserveRatio, {
         from: governor,
       })
-      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.equal(
-        newDefaultReserveRatio,
-      )
+      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(newDefaultReserveRatio)
     })
 
     it('reject set `defaultReserveRatio` if out of bounds', async function() {
@@ -101,7 +99,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
     it('should set `minimumCurationStake`', async function() {
       // Set right in the constructor
-      expect(await this.curation.minimumCurationStake()).to.be.bignumber.equal(
+      expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(
         defaults.curation.minimumCurationStake,
       )
 
@@ -110,9 +108,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       await this.curation.setMinimumCurationStake(newMinimumCurationStake, {
         from: governor,
       })
-      expect(await this.curation.minimumCurationStake()).to.be.bignumber.equal(
-        newMinimumCurationStake,
-      )
+      expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(newMinimumCurationStake)
     })
 
     it('reject set `minimumCurationStake` if out of bounds', async function() {
@@ -155,14 +151,14 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       // Conversion
       const shares = (await this.curation.subgraphs(this.subgraphId)).shares
       const tokens = await this.curation.subgraphSharesToTokens(this.subgraphId, shares)
-      expect(tokens).to.be.bignumber.equal(curatorTokens)
+      expect(tokens).to.be.bignumber.eq(curatorTokens)
     })
 
     it('convert tokens to shares', async function() {
       // Conversion
       const tokens = web3.utils.toWei(new BN('1000'))
       const shares = await this.curation.subgraphTokensToShares(this.subgraphId, tokens)
-      expect(shares).to.be.bignumber.equal(defaults.curation.shareAmountFor1000Tokens)
+      expect(shares).to.be.bignumber.eq(defaults.curation.shareAmountFor1000Tokens)
     })
   })
 
@@ -197,20 +193,20 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const curatorBalanceAfter = await this.graphToken.balanceOf(curator)
 
       // Tokens transferred properly
-      expect(totalBalanceAfter).to.be.bignumber.equal(totalBalanceBefore.add(curatorStake))
-      expect(curatorBalanceAfter).to.be.bignumber.equal(curatorBalanceBefore.sub(curatorStake))
+      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(curatorStake))
+      expect(curatorBalanceAfter).to.be.bignumber.eq(curatorBalanceBefore.sub(curatorStake))
 
       // State properly updated
       const subgraph = await this.curation.subgraphs(this.subgraphId)
-      expect(subgraph.reserveRatio).to.be.bignumber.equal(defaults.curation.reserveRatio)
-      expect(subgraph.tokens).to.be.bignumber.equal(curatorStake)
-      expect(subgraph.shares).to.be.bignumber.equal(web3.utils.toBN(1))
+      expect(subgraph.reserveRatio).to.be.bignumber.eq(defaults.curation.reserveRatio)
+      expect(subgraph.tokens).to.be.bignumber.eq(curatorStake)
+      expect(subgraph.shares).to.be.bignumber.eq(web3.utils.toBN(1))
 
       const curatorShares = await this.curation.getCuratorShares(curator, this.subgraphId)
-      expect(curatorShares).to.be.bignumber.equal(web3.utils.toBN(1))
+      expect(curatorShares).to.be.bignumber.eq(web3.utils.toBN(1))
 
       const totalTokens = await this.curation.totalTokens()
-      expect(totalTokens).to.be.bignumber.equal(curatorStake)
+      expect(totalTokens).to.be.bignumber.eq(curatorStake)
 
       // Event emitted
       expectEvent.inTransaction(tx, this.curation.constructor, 'CuratorStakeUpdated', {
@@ -276,7 +272,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     it('should assign the right amount of shares according to bonding curve', async function() {
       // Shares should be curatorShares bought with minimum stake (1) + newShares with rest of tokens
       const curatorShares = await this.curation.getCuratorShares(curator, this.subgraphId)
-      expect(curatorShares).to.be.bignumber.equal(defaults.curation.shareAmountFor1000Tokens)
+      expect(curatorShares).to.be.bignumber.eq(defaults.curation.shareAmountFor1000Tokens)
     })
 
     it('should allow to unstake *partially* on a subgraph', async function() {
@@ -301,10 +297,10 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const totalTokensAfter = await this.curation.totalTokens()
 
       // State properly updated
-      expect(curatorTokensAfter).to.be.bignumber.equal(curatorTokensBefore.add(expectedTokens))
-      expect(curatorSharesAfter).to.be.bignumber.equal(curatorSharesBefore.sub(sharesToSell))
-      expect(subgraphAfter.shares).to.be.bignumber.equal(subgraphBefore.shares.sub(sharesToSell))
-      expect(totalTokensAfter).to.be.bignumber.equal(totalTokensBefore.sub(expectedTokens))
+      expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(expectedTokens))
+      expect(curatorSharesAfter).to.be.bignumber.eq(curatorSharesBefore.sub(sharesToSell))
+      expect(subgraphAfter.shares).to.be.bignumber.eq(subgraphBefore.shares.sub(sharesToSell))
+      expect(totalTokensAfter).to.be.bignumber.eq(totalTokensBefore.sub(expectedTokens))
 
       // Event emitted
       expectEvent.inTransaction(tx, this.curation.constructor, 'CuratorStakeUpdated', {
@@ -338,11 +334,11 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const totalTokensAfter = await this.curation.totalTokens()
 
       // State properly updated
-      expect(curatorTokensAfter).to.be.bignumber.equal(tokensToReceive)
-      expect(curatorSharesAfter).to.be.bignumber.equal(new BN(0))
-      expect(subgraphAfter.tokens).to.be.bignumber.equal(new BN(0))
-      expect(subgraphAfter.shares).to.be.bignumber.equal(new BN(0))
-      expect(totalTokensAfter).to.be.bignumber.equal(new BN(0))
+      expect(curatorTokensAfter).to.be.bignumber.eq(tokensToReceive)
+      expect(curatorSharesAfter).to.be.bignumber.eq(new BN(0))
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(new BN(0))
+      expect(subgraphAfter.shares).to.be.bignumber.eq(new BN(0))
+      expect(totalTokensAfter).to.be.bignumber.eq(new BN(0))
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
@@ -369,8 +365,8 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
 
       // State properly updated
-      expect(totalBalanceAfter).to.be.bignumber.equal(totalBalanceBefore.add(tokens))
-      expect(subgraphAfter.tokens).to.be.bignumber.equal(subgraphBefore.tokens.add(tokens))
+      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokens))
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokens))
 
       // Event emitted
       expectEvent.inTransaction(tx, this.curation.constructor, 'SubgraphStakeUpdated', {

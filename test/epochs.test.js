@@ -17,12 +17,12 @@ contract('EpochManager', ([me, other, governor]) => {
   describe('state variables functions', () => {
     it('should set `governor`', async function() {
       // Set right in the constructor
-      expect(await this.epochManager.governor()).to.equal(governor)
+      expect(await this.epochManager.governor()).to.eq(governor)
     })
 
     it('should set `epochLength', async function() {
       // Set right in the constructor
-      expect(await this.epochManager.epochLength()).to.be.bignumber.equal(
+      expect(await this.epochManager.epochLength()).to.be.bignumber.eq(
         defaults.epochs.lengthInBlocks,
       )
 
@@ -32,7 +32,7 @@ contract('EpochManager', ([me, other, governor]) => {
       const { logs } = await this.epochManager.setEpochLength(newEpochLength, {
         from: governor,
       })
-      expect(await this.epochManager.epochLength()).to.be.bignumber.equal(newEpochLength)
+      expect(await this.epochManager.epochLength()).to.be.bignumber.eq(newEpochLength)
 
       // Event emitted
       expectEvent.inLogs(logs, 'EpochLengthUpdate', {
@@ -65,7 +65,7 @@ contract('EpochManager', ([me, other, governor]) => {
     describe('calculations', () => {
       it('should return correct block number', async function() {
         const currentBlock = await time.latestBlock()
-        expect(await this.epochManager.blockNum()).to.be.bignumber.equal(currentBlock)
+        expect(await this.epochManager.blockNum()).to.be.bignumber.eq(currentBlock)
       })
 
       it('should return next starting block if we move to the next epoch', async function() {
@@ -75,7 +75,7 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlockBefore.add(this.epochLength))
 
         const currentEpochBlockAfter = await this.epochManager.currentEpochBlock()
-        expect(currentEpochBlockAfter).to.be.bignumber.not.equal(currentEpochBlockBefore)
+        expect(currentEpochBlockAfter).to.be.bignumber.not.eq(currentEpochBlockBefore)
       })
 
       it('should return next epoch if advance > epochLength', async function() {
@@ -86,7 +86,7 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlock.add(this.epochLength))
 
         const currentEpochAfter = await this.epochManager.currentEpoch()
-        expect(currentEpochAfter).to.be.bignumber.equal(nextEpoch)
+        expect(currentEpochAfter).to.be.bignumber.eq(nextEpoch)
       })
     })
 
@@ -109,7 +109,7 @@ contract('EpochManager', ([me, other, governor]) => {
 
           // State
           const lastRunEpoch = await this.epochManager.lastRunEpoch()
-          expect(lastRunEpoch).to.be.bignumber.equal(currentEpoch)
+          expect(lastRunEpoch).to.be.bignumber.eq(currentEpoch)
 
           // Event emitted
           expectEvent.inLogs(logs, 'NewEpoch', {

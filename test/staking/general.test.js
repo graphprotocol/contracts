@@ -36,24 +36,24 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
   describe('state variables functions', function() {
     it('should set `governor`', async function() {
       // Set right in the constructor
-      expect(await this.staking.governor()).to.equal(governor)
+      expect(await this.staking.governor()).to.eq(governor)
     })
 
     it('should set `graphToken`', async function() {
       // Set right in the constructor
-      expect(await this.staking.token()).to.equal(this.graphToken.address)
+      expect(await this.staking.token()).to.eq(this.graphToken.address)
     })
 
     it('should set `setMaxSettlementDuration`', async function() {
       // Set right in the constructor
-      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.equal(
+      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(
         new BN(defaults.staking.maxSettlementDuration),
       )
 
       // Can set if allowed
       const newValue = new BN(5)
       await this.staking.setMaxSettlementDuration(newValue, { from: governor })
-      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.equal(newValue)
+      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(newValue)
     })
 
     it('reject set `setMaxSettlementDuration` if not allowed', async function() {
@@ -66,14 +66,14 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
 
     it('should set `setThawingPeriod`', async function() {
       // Set right in the constructor
-      expect(await this.staking.thawingPeriod()).to.be.bignumber.equal(
+      expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(
         new BN(defaults.staking.thawingPeriod),
       )
 
       // Can set if allowed
       const newValue = new BN(5)
       await this.staking.setThawingPeriod(newValue, { from: governor })
-      expect(await this.staking.thawingPeriod()).to.be.bignumber.equal(newValue)
+      expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(newValue)
     })
 
     it('reject set `setThawingPeriod` if not allowed', async function() {
@@ -116,7 +116,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
 
     context('when NOT staked', function() {
       it('should not have stakes `hasStake()`', async function() {
-        expect(await this.staking.hasStake(indexNode)).to.be.equal(false)
+        expect(await this.staking.hasStake(indexNode)).to.be.eq(false)
       })
 
       it('should stake tokens', async function() {
@@ -125,12 +125,12 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         // Stake
         await this.stake(indexNodeStake)
         const tokens1 = await this.staking.getIndexNodeStakeTokens(indexNode)
-        expect(tokens1).to.be.bignumber.equal(indexNodeStake)
+        expect(tokens1).to.be.bignumber.eq(indexNodeStake)
 
         // Re-stake
         const { tx } = await this.stake(indexNodeStake)
         const tokens2 = await this.staking.getIndexNodeStakeTokens(indexNode)
-        expect(tokens2).to.be.bignumber.equal(indexNodeStake.add(indexNodeStake))
+        expect(tokens2).to.be.bignumber.eq(indexNodeStake.add(indexNodeStake))
         expectEvent.inTransaction(tx, this.staking.constructor, 'StakeUpdate', {
           indexNode: indexNode,
           tokens: tokens2,
@@ -159,7 +159,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
       })
 
       it('should have stakes `hasStake()`', async function() {
-        expect(await this.staking.hasStake(indexNode)).to.be.equal(true)
+        expect(await this.staking.hasStake(indexNode)).to.be.eq(true)
       })
 
       it('should unstake and lock tokens for thawing period', async function() {
@@ -200,7 +200,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         // Unstake (2)
         r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
         const tokensLockedUntil2 = r.logs[0].args.until
-        expect(expectedLockedUntil).to.be.bignumber.equal(tokensLockedUntil2)
+        expect(expectedLockedUntil).to.be.bignumber.eq(tokensLockedUntil2)
       })
 
       it('reject unstake more than available tokens', async function() {
@@ -230,7 +230,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         const balanceBefore = await this.graphToken.balanceOf(indexNode)
         await this.staking.withdraw({ from: indexNode })
         const balanceAfter = await this.graphToken.balanceOf(indexNode)
-        expect(balanceAfter).to.be.bignumber.equal(balanceBefore.add(tokensToUnstake))
+        expect(balanceAfter).to.be.bignumber.eq(balanceBefore.add(tokensToUnstake))
       })
 
       it('reject withdraw if no tokens available', async function() {
