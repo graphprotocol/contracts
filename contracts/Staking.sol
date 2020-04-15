@@ -233,7 +233,7 @@ contract Staking is Governed {
         require(_tokens > 0, "Allocate: tokens to unallocate cannot be zero");
         require(alloc.tokens > 0, "Allocate: no tokens allocated to the subgraph");
         require(alloc.tokens >= _tokens, "Allocate: not enough tokens available in the subgraph");
-        require(alloc.hasActiveChannel() == false, "Allocate: channel must be settled");
+        require(alloc.hasActiveChannel() == false, "Allocate: channel must be closed");
 
         stake.unallocateTokens(_subgraphID, _tokens);
 
@@ -297,6 +297,11 @@ contract Staking is Governed {
         require(_alloc.hasActiveChannel() == false, "Allocate: payment channel must be closed");
 
         // TODO: deploy multisig contract from factory
+        // - I need the address of the proxy contract deployed (param)
+        // - I need to call createProxyWithNonce(mastercopy, initializer, saltNonce)
+        //   - mastercopy: address of the deployed MinimumViableMultisig ()
+        //   - initializer: 0x
+        //   - saltNonce: 0
 
         // Update channel
         _alloc.channelID = _channelID;

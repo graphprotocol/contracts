@@ -14,7 +14,7 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
-contract('Staking (general)', ([me, other, governor, indexNode]) => {
+contract('Staking', ([me, other, governor, indexNode]) => {
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -44,43 +44,58 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
       expect(await this.staking.token()).to.eq(this.graphToken.address)
     })
 
-    it('should set `setMaxSettlementDuration`', async function() {
-      // Set right in the constructor
-      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(
-        new BN(defaults.staking.maxSettlementDuration),
-      )
+    describe('maxSettlementDuration', function() {
+      it('should set `setMaxSettlementDuration`', async function() {
+        // Set right in the constructor
+        expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(
+          new BN(defaults.staking.maxSettlementDuration),
+        )
 
-      // Can set if allowed
-      const newValue = new BN(5)
-      await this.staking.setMaxSettlementDuration(newValue, { from: governor })
-      expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(newValue)
+        // Can set if allowed
+        const newValue = new BN(5)
+        await this.staking.setMaxSettlementDuration(newValue, { from: governor })
+        expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(newValue)
+      })
+
+      it('reject set `setMaxSettlementDuration` if not allowed', async function() {
+        const newValue = new BN(5)
+        await expectRevert(
+          this.staking.setMaxSettlementDuration(newValue, { from: other }),
+          'Only Governor can call',
+        )
+      })
     })
 
-    it('reject set `setMaxSettlementDuration` if not allowed', async function() {
-      const newValue = new BN(5)
+    describe('thawingPeriod', function() {
+      it('should set `setThawingPeriod`', async function() {
+        // Set right in the constructor
+        expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(
+          new BN(defaults.staking.thawingPeriod),
+        )
+
+        // Can set if allowed
+        const newValue = new BN(5)
+        await this.staking.setThawingPeriod(newValue, { from: governor })
+        expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(newValue)
+      })
+
+      it('reject set `setThawingPeriod` if not allowed', async function() {
+        const newValue = 5
+        await expectRevert(
+          this.staking.setThawingPeriod(newValue, { from: other }),
+          'Only Governor can call',
+        )
+      })
+    })
+  })
+
+  describe('token transfer', function() {
+    it('reject calls to token received hook if not the GRT token contract', async function() {
       await expectRevert(
-        this.staking.setMaxSettlementDuration(newValue, { from: other }),
-        'Only Governor can call',
-      )
-    })
-
-    it('should set `setThawingPeriod`', async function() {
-      // Set right in the constructor
-      expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(
-        new BN(defaults.staking.thawingPeriod),
-      )
-
-      // Can set if allowed
-      const newValue = new BN(5)
-      await this.staking.setThawingPeriod(newValue, { from: governor })
-      expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(newValue)
-    })
-
-    it('reject set `setThawingPeriod` if not allowed', async function() {
-      const newValue = 5
-      await expectRevert(
-        this.staking.setThawingPeriod(newValue, { from: other }),
-        'Only Governor can call',
+        this.staking.tokensReceived(indexNode, 10000, '0x0', {
+          from: me,
+        }),
+        'Caller is not the GRT token contract',
       )
     })
   })
@@ -106,11 +121,13 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
           { from: indexNode },
         )
       }
-
       this.allocate = function(tokens) {
         return this.staking.allocate(this.subgraphId, tokens, this.channelId, {
           from: indexNode,
         })
+      }
+      this.unallocate = function(tokens) {
+        return this.staking.unallocate(this.subgraphId, tokens, { from: indexNode })
       }
     })
 
@@ -137,17 +154,17 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         })
       })
 
-      it('reject allocate to subgraph', async function() {
-        const indexNodeStake = web3.utils.toWei(new BN('100'))
-        await expectRevert(this.allocate(indexNodeStake), 'Allocate: index node has no stakes')
-      })
-
       it('reject unstake tokens', async function() {
         const tokensToUnstake = web3.utils.toWei(new BN('2'))
         await expectRevert(
           this.staking.unstake(tokensToUnstake, { from: indexNode }),
           'Stake: index node has no stakes',
         )
+      })
+
+      it('reject allocate to subgraph', async function() {
+        const indexNodeStake = web3.utils.toWei(new BN('100'))
+        await expectRevert(this.allocate(indexNodeStake), 'Allocate: index node has no stakes')
       })
     })
 
@@ -176,7 +193,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         })
       })
 
-      it('should unstake and lock tokens for (weighted average) thawing period if repeated', async function() {
+      it('should unstake and lock tokens for (weighted avg) thawing period if repeated', async function() {
         const tokensToUnstake = web3.utils.toWei(new BN('10'))
         const thawingPeriod = await this.staking.thawingPeriod()
 
@@ -187,7 +204,7 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         // Move forward
         await time.advanceBlockTo(tokensLockedUntil1)
 
-        // Calculate expected new locking time for tokens taking into account the previous unstake request
+        // Calculate locking time for tokens taking into account the previous unstake request
         const currentBlock = await time.latestBlock()
         const lockingPeriod = weightedAverage(
           tokensToUnstake,
@@ -240,41 +257,72 @@ contract('Staking (general)', ([me, other, governor, indexNode]) => {
         )
       })
 
-      context('when subgraph NOT allocated', function() {
-        it('should allocate to subgraph', async function() {
-          const { logs } = await this.allocate(this.indexNodeStake)
-          expectEvent.inLogs(logs, 'AllocationUpdate', {
-            indexNode: indexNode,
-            subgraphID: this.subgraphId,
-            tokens: this.indexNodeStake,
+      describe('allocation', function() {
+        context('when subgraph NOT allocated', function() {
+          it('should allocate to subgraph', async function() {
+            const { logs } = await this.allocate(this.indexNodeStake)
+            expectEvent.inLogs(logs, 'AllocationUpdate', {
+              indexNode: indexNode,
+              subgraphID: this.subgraphId,
+              tokens: this.indexNodeStake,
+            })
+          })
+
+          it('reject allocate more than available tokens', async function() {
+            const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
+            await expectRevert(
+              this.allocate(tokensOverCapacity),
+              'Allocate: not enough tokens available to allocate',
+            )
+          })
+
+          it('reject to unallocate', async function() {
+            const tokensToUnallocate = web3.utils.toWei(new BN('10'))
+            await expectRevert(
+              this.unallocate(tokensToUnallocate),
+              'Allocate: no tokens allocated to the subgraph',
+            )
           })
         })
 
-        it('reject allocate to subgraph more than available tokens', async function() {
-          const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
-          await expectRevert(
-            this.allocate(tokensOverCapacity),
-            'Allocate: not enough tokens available to allocate',
-          )
-        })
-      })
+        context('when subgraph allocated', function() {
+          beforeEach(async function() {
+            this.tokensAllocated = web3.utils.toWei(new BN('10'))
+            await this.allocate(this.tokensAllocated)
+          })
 
-      context('when subgraph allocated', function() {
-        beforeEach(async function() {
-          this.tokensAllocated = web3.utils.toWei(new BN('10'))
-          await this.allocate(this.tokensAllocated)
-        })
+          it('reject allocate if channel is active', async function() {
+            const tokensToAllocate = web3.utils.toWei(new BN('10'))
+            await expectRevert(
+              this.allocate(tokensToAllocate),
+              'Allocate: payment channel ID already in use',
+            )
+          })
 
-        it('reject allocate to subgraph if channel is active', async function() {
-          const tokensToAllocate = web3.utils.toWei(new BN('10'))
-          await expectRevert(
-            this.allocate(tokensToAllocate),
-            'Allocate: payment channel ID already in use',
-          )
+          it('reject unallocate if channel is active', async function() {
+            const tokensToUnallocate = web3.utils.toWei(new BN('10'))
+            await expectRevert(
+              this.unallocate(tokensToUnallocate),
+              'Allocate: channel must be closed',
+            )
+          })
+
+          it('reject unallocate zero tokens', async function() {
+            await expectRevert(
+              this.unallocate(new BN(0)),
+              'Allocate: tokens to unallocate cannot be zero',
+            )
+          })
+
+          it('reject unallocate more than available tokens', async function() {
+            const tokensOverCapacity = this.tokensAllocated.add(new BN(1))
+            await expectRevert(
+              this.unallocate(tokensOverCapacity),
+              'Allocate: not enough tokens available in the subgraph',
+            )
+          })
         })
       })
     })
   })
 })
-
-// TODO: unallocate
