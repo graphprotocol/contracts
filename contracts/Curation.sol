@@ -234,11 +234,7 @@ contract Curation is Governed, BancorFormula {
      * @param _tokens Amount of tokens used to buy shares
      * @return Amount of shares that can be bought
      */
-    function subgraphTokensToShares(bytes32 _subgraphID, uint256 _tokens)
-        public
-        view
-        returns (uint256)
-    {
+    function tokensToShares(bytes32 _subgraphID, uint256 _tokens) public view returns (uint256) {
         // Handle initialization of bonding curve
         uint256 tokens = _tokens;
         uint256 shares = 0;
@@ -268,11 +264,7 @@ contract Curation is Governed, BancorFormula {
      * @param _shares Amount of shares to sell
      * @return Amount of tokens to get after selling shares
      */
-    function subgraphSharesToTokens(bytes32 _subgraphID, uint256 _shares)
-        public
-        view
-        returns (uint256)
-    {
+    function sharesToTokens(bytes32 _subgraphID, uint256 _shares) public view returns (uint256) {
         Subgraph memory subgraph = subgraphs[_subgraphID];
         require(subgraph.tokens > 0, "Subgraph must be curated to perform calculations");
         require(
@@ -300,7 +292,7 @@ contract Curation is Governed, BancorFormula {
         returns (uint256)
     {
         Subgraph storage subgraph = subgraphs[_subgraphID];
-        uint256 shares = subgraphTokensToShares(_subgraphID, _tokens);
+        uint256 shares = tokensToShares(_subgraphID, _tokens);
 
         // Update tokens
         subgraph.tokens = subgraph.tokens.add(_tokens);
@@ -327,7 +319,7 @@ contract Curation is Governed, BancorFormula {
         returns (uint256)
     {
         Subgraph storage subgraph = subgraphs[_subgraphID];
-        uint256 tokens = subgraphSharesToTokens(_subgraphID, _shares);
+        uint256 tokens = sharesToTokens(_subgraphID, _shares);
 
         // Update tokens
         subgraph.tokens = subgraph.tokens.sub(tokens);

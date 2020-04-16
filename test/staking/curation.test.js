@@ -150,14 +150,14 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
       // Conversion
       const shares = (await this.curation.subgraphs(this.subgraphId)).shares
-      const tokens = await this.curation.subgraphSharesToTokens(this.subgraphId, shares)
+      const tokens = await this.curation.sharesToTokens(this.subgraphId, shares)
       expect(tokens).to.be.bignumber.eq(curatorTokens)
     })
 
     it('convert tokens to shares', async function() {
       // Conversion
       const tokens = web3.utils.toWei(new BN('1000'))
-      const shares = await this.curation.subgraphTokensToShares(this.subgraphId, tokens)
+      const shares = await this.curation.tokensToShares(this.subgraphId, tokens)
       expect(shares).to.be.bignumber.eq(defaults.curation.shareAmountFor1000Tokens)
     })
   })
@@ -284,10 +284,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
       // Unstake
       const sharesToSell = new BN(1) // Curator want to sell 1 share
-      const expectedTokens = await this.curation.subgraphSharesToTokens(
-        this.subgraphId,
-        sharesToSell,
-      )
+      const expectedTokens = await this.curation.sharesToTokens(this.subgraphId, sharesToSell)
       const { tx } = await this.curation.unstake(this.subgraphId, sharesToSell, { from: curator })
 
       // After balances
