@@ -295,7 +295,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensToAllocate = web3.utils.toWei(new BN('10'))
             await expectRevert(
               this.allocate(tokensToAllocate),
-              'Allocate: payment channel ID already in use',
+              'Allocate: payment channel must be closed',
             )
           })
 

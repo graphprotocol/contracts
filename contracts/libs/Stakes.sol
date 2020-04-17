@@ -19,7 +19,7 @@ library Stakes {
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
-        bytes channelID; // IndexNode payment channel ID used off chain
+        address channelID; // IndexNode payment channel ID used off chain
         ChannelStatus status; // Current status
     }
 
@@ -48,6 +48,12 @@ library Stakes {
         return alloc;
     }
 
+    /**
+     * @dev Unallocate tokens from a subgraph
+     * @param stake Stake data
+     * @param _subgraphID Subgraph from where to unallocate tokens
+     * @param _tokens Amount of tokens to unallocate
+     */
     function unallocateTokens(Stakes.IndexNode storage stake, bytes32 _subgraphID, uint256 _tokens)
         internal
         returns (Allocation storage)
