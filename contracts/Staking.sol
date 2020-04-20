@@ -206,17 +206,13 @@ contract Staking is Governed {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
-        // Parse token received payload
-        TokenReceiptAction option = TokenReceiptAction(_data.slice(0, 1).toUint8(0));
-
-        // Action according to payload
-        // TODO: remove payload and use the channels to verify where the funds are coming from
-        if (option == TokenReceiptAction.Staking) {
-            _stake(_from, _value);
-        } else if (option == TokenReceiptAction.Settlement) {
-            _settle(_from, _value);
+        // If we receive funds from a channel multisig it is a settle
+        // Every other case is a staking of funds
+        Channel storage channel = channels[_from];
+        if (channel.indexNode != address(0)) {
+            _settle(channel, _value);
         } else {
-            revert("Token received option must be 0 or 1");
+            _stake(_from, _value);
         }
         return true;
     }
@@ -321,11 +317,13 @@ contract Staking is Governed {
      * @param _channelID Address of the channel multisig contract
      * @param _tokens Amount of tokens to stake
      */
-    function _settle(address _channelID, uint256 _tokens) internal {
-        Channel memory channel = channels[_channelID];
+    function _settle(Channel storage channel, uint256 _tokens) internal {
+        Stakes.Allocation storage alloc = stakes[channel.indexNode].allocations[channel.subgraphID];
 
-        // TODO: must be valid channelID
-        // TODO: find allocation from channelID
+        // TODO: send part of the funds to the rebate pool
+        // TODO: send part of the funds to the curator subgraph curve
+        // require(token.transfer(curation, curationFees));
+
         // TODO: can close after one epoch
         // TODO: distribute funds
         // TODO: emit an event
