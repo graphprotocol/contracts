@@ -412,7 +412,7 @@ contract DisputeManager is Governed {
         bytes32 _subgraphID,
         address _fisherman,
         uint256 _deposit
-    ) internal {
+    ) private {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         bytes32 disputeID = getDisputeID(_attestation);
 
@@ -423,7 +423,7 @@ contract DisputeManager is Governed {
         // This also validates that index node node exists
         require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
 
-        // Ensure that fisherman has staked at least that amount
+        // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
 
         // A fisherman can only open one dispute for a given index node / subgraphID at a time

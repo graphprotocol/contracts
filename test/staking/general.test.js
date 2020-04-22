@@ -14,7 +14,7 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
-contract('Staking', ([me, other, governor, indexNode]) => {
+contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -24,13 +24,22 @@ contract('Staking', ([me, other, governor, indexNode]) => {
       from: me,
     })
 
+    // Deploy curation contract
+    this.curation = await deployment.deployCurationContract(governor, this.graphToken.address, {
+      from: me,
+    })
+
     // Deploy staking contract
     this.staking = await deployment.deployStakingContract(
       governor,
       this.graphToken.address,
       this.epochManager.address,
+      this.curation.address,
       { from: me },
     )
+
+    // Set staking as distributor of funds to curation
+    await this.curation.setDistributor(this.staking.address, { from: governor })
   })
 
   describe('state variables functions', function() {
@@ -102,7 +111,6 @@ contract('Staking', ([me, other, governor, indexNode]) => {
 
   describe('staking', function() {
     beforeEach(async function() {
-      this.channelId = '0x10'
       this.subgraphId = helpers.randomSubgraphIdHex0x()
 
       // Give some funds to the index node
@@ -122,7 +130,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
         )
       }
       this.allocate = function(tokens) {
-        return this.staking.allocate(this.subgraphId, tokens, this.channelId, {
+        return this.staking.allocate(this.subgraphId, tokens, channelOwner, {
           from: indexNode,
         })
       }
@@ -158,13 +166,13 @@ contract('Staking', ([me, other, governor, indexNode]) => {
         const tokensToUnstake = web3.utils.toWei(new BN('2'))
         await expectRevert(
           this.staking.unstake(tokensToUnstake, { from: indexNode }),
-          'Stake: index node has no stakes',
+          'Staking: index node has no stakes',
         )
       })
 
       it('reject allocate to subgraph', async function() {
         const indexNodeStake = web3.utils.toWei(new BN('100'))
-        await expectRevert(this.allocate(indexNodeStake), 'Allocate: index node has no stakes')
+        await expectRevert(this.allocate(indexNodeStake), 'Allocation: index node has no stakes')
       })
     })
 
@@ -224,7 +232,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
         const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
         await expectRevert(
           this.staking.unstake(tokensOverCapacity, { from: indexNode }),
-          'Stake: not enough tokens available to unstake',
+          'Staking: not enough tokens available to unstake',
         )
       })
 
@@ -237,7 +245,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
         // Withdraw on locking period (should fail)
         await expectRevert(
           this.staking.withdraw({ from: indexNode }),
-          'Stake: no tokens available to withdraw',
+          'Staking: no tokens available to withdraw',
         )
 
         // Move forward
@@ -253,7 +261,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
       it('reject withdraw if no tokens available', async function() {
         await expectRevert(
           this.staking.withdraw({ from: indexNode }),
-          'Stake: no tokens available to withdraw',
+          'Staking: no tokens available to withdraw',
         )
       })
 
@@ -272,7 +280,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
             await expectRevert(
               this.allocate(tokensOverCapacity),
-              'Allocate: not enough tokens available to allocate',
+              'Allocation: not enough tokens available to allocate',
             )
           })
 
@@ -280,7 +288,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensToUnallocate = web3.utils.toWei(new BN('10'))
             await expectRevert(
               this.unallocate(tokensToUnallocate),
-              'Allocate: no tokens allocated to the subgraph',
+              'Allocation: no tokens allocated to the subgraph',
             )
           })
         })
@@ -295,7 +303,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensToAllocate = web3.utils.toWei(new BN('10'))
             await expectRevert(
               this.allocate(tokensToAllocate),
-              'Allocate: payment channel must be closed',
+              'Allocation: channel must be closed',
             )
           })
 
@@ -303,14 +311,14 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensToUnallocate = web3.utils.toWei(new BN('10'))
             await expectRevert(
               this.unallocate(tokensToUnallocate),
-              'Allocate: channel must be closed',
+              'Allocation: channel must be closed',
             )
           })
 
           it('reject unallocate zero tokens', async function() {
             await expectRevert(
               this.unallocate(new BN(0)),
-              'Allocate: tokens to unallocate cannot be zero',
+              'Allocation: tokens to unallocate cannot be zero',
             )
           })
 
@@ -318,7 +326,7 @@ contract('Staking', ([me, other, governor, indexNode]) => {
             const tokensOverCapacity = this.tokensAllocated.add(new BN(1))
             await expectRevert(
               this.unallocate(tokensOverCapacity),
-              'Allocate: not enough tokens available in the subgraph',
+              'Allocation: not enough tokens available in the subgraph',
             )
           })
         })

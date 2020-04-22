@@ -29,6 +29,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       governor,
       this.graphToken.address,
       this.epochManager.address,
+      ZERO_ADDRESS,
       { from: me },
     )
 

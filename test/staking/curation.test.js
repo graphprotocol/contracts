@@ -1,6 +1,6 @@
 const BN = web3.utils.BN
 const { expect } = require('chai')
-const { constants, expectRevert, expectEvent } = require('@openzeppelin/test-helpers')
+const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers')
 
 // helpers
 const deployment = require('../lib/deployment')
@@ -17,12 +17,10 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
 
     // Deploy curation contract
-    this.curation = await deployment.deployCurationContract(
-      governor,
-      this.graphToken.address,
-      distributor,
-      { from: me },
-    )
+    this.curation = await deployment.deployCurationContract(governor, this.graphToken.address, {
+      from: me,
+    })
+    await this.curation.setDistributor(distributor, { from: governor })
   })
 
   describe('state variables functions', function() {
@@ -43,15 +41,6 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       // Can set if allowed
       await this.curation.setDistributor(other, { from: governor })
       expect(await this.curation.distributor()).to.eq(other)
-    })
-
-    it('reject set `distributor` if empty address', async function() {
-      await expectRevert(
-        this.curation.setDistributor(constants.ZERO_ADDRESS, {
-          from: governor,
-        }),
-        'Distributor must be set',
-      )
     })
 
     it('reject set `distributor` if not allowed', async function() {

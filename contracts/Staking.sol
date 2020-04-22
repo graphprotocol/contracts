@@ -33,12 +33,21 @@ contract Staking is Governed {
 
     // 1 basis point (0.01%) is 100 parts per million (PPM)
     uint256 private constant BASIS_PT = 100;
+
     // -- State --
 
+    // Percentage of fees going to curators
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public curationPercentage;
+
+    // Need to pass this period for delegators to settle
     uint256 public maxSettlementDuration; // in epochs
 
     // Time in blocks to unstake
     uint256 public thawingPeriod;
+
+    // Total tokens staked in the protocol
+    uint256 public totalTokens;
 
     // IndexNode stake tracking
     mapping(address => Stakes.IndexNode) public stakes;
@@ -52,16 +61,22 @@ contract Staking is Governed {
     // Related contracts
     GraphToken public token;
     EpochManager public epochManager;
+    address public curation;
 
     ProxyFactory public channelFactory;
-    address public channelMasterCopy;
+    address public channelMaster;
     address public channelHub;
 
     // -- Events --
 
     event StakeUpdate(address indexed indexNode, uint256 tokens);
     event StakeLocked(address indexed indexNode, uint256 tokens, uint256 until);
-    event AllocationUpdate(address indexed indexNode, bytes32 indexed subgraphID, uint256 tokens);
+    event AllocationUpdate(
+        address indexed indexNode,
+        bytes32 indexed subgraphID,
+        uint256 tokens,
+        address channelID
+    );
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     modifier onlySlasher {
@@ -74,30 +89,33 @@ contract Staking is Governed {
      * @param _governor Address of the multisig contract as Governor of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
+     * @param _curation Address of the Curation contract
      * @param _maxSettlementDuration Max settlement duration
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      * @param _channelFactory Address of the factory contract to deploy channel multisig
-     * @param _channelMasterCopy Address of the contract to use as template for multisig
+     * @param _channelMaster Address of the contract to use as template for multisig
      * @param _channelHub Address of the payment channel hub
      */
     constructor(
         address _governor,
         address _token,
         address _epochManager,
+        address _curation,
         uint256 _maxSettlementDuration,
         uint256 _thawingPeriod,
         address _channelFactory,
-        address _channelMasterCopy,
+        address _channelMaster,
         address _channelHub
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
+        curation = _curation;
 
         maxSettlementDuration = _maxSettlementDuration;
         thawingPeriod = _thawingPeriod;
 
         channelFactory = ProxyFactory(_channelFactory);
-        channelMasterCopy = _channelMasterCopy;
+        channelMaster = _channelMaster;
         channelHub = _channelHub;
     }
 
@@ -173,9 +191,9 @@ contract Staking is Governed {
         uint256 tokensToSlash = _tokens;
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
-        require(stake.hasTokens(), "Slash: index node has no stakes");
-        require(_beneficiary != address(0), "Slash: beneficiary must not be an empty address");
-        require(tokensToSlash >= _reward, "Slash: reward cannot be higher than slashed amount");
+        require(stake.hasTokens(), "Slashing: index node has no stakes");
+        require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
+        require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
 
         // Slash stake
         stake.releaseTokens(tokensToSlash);
@@ -188,7 +206,10 @@ contract Staking is Governed {
 
         // Give the beneficiary a reward for slashing
         if (_reward > 0) {
-            require(token.transfer(_beneficiary, _reward), "Slash: error sending dispute reward");
+            require(
+                token.transfer(_beneficiary, _reward),
+                "Slashing: error sending dispute reward"
+            );
         }
 
         emit StakeUpdate(_indexNode, stake.tokens);
@@ -199,21 +220,23 @@ contract Staking is Governed {
      * @param _from Token holder's address
      * @param _value Amount of Graph Tokens
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
-    {
+    function tokensReceived(
+        address _from,
+        uint256 _value,
+        bytes calldata /*_data*/
+    ) external returns (bool) {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
         // If we receive funds from a channel multisig it is a settle
-        // Every other case is a staking of funds
         Channel storage channel = channels[_from];
         if (channel.indexNode != address(0)) {
             _settle(channel, _value);
-        } else {
-            _stake(_from, _value);
+            return true;
         }
+
+        // Any other case is a staking of funds
+        _stake(_from, _value);
         return true;
     }
 
@@ -221,27 +244,25 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelOwner ID used to identify off-chain payment channels
+     * @param _channelOwner The address used by the IndexNode to setup the off-chain payment channel
      */
     function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelOwner) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
-        require(stake.hasTokens(), "Allocate: index node has no stakes");
+        require(stake.hasTokens(), "Allocation: index node has no stakes");
         require(
             stake.tokensAvailable() >= _tokens,
-            "Allocate: not enough tokens available to allocate"
+            "Allocation: not enough tokens available to allocate"
         );
 
         Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
+
+        // Setup channel
         address channelID = _setupChannel(alloc, _channelOwner);
-        require(
-            channels[channelID].indexNode != address(0),
-            "Allocate: payment channel ID already in use"
-        );
         channels[channelID] = Channel(indexNode, _subgraphID);
 
-        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens);
+        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens, channelID);
     }
 
     /**
@@ -254,15 +275,15 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[indexNode];
         Stakes.Allocation storage alloc = stake.allocations[_subgraphID];
 
-        require(_tokens > 0, "Allocate: tokens to unallocate cannot be zero");
-        require(alloc.tokens > 0, "Allocate: no tokens allocated to the subgraph");
-        require(alloc.tokens >= _tokens, "Allocate: not enough tokens available in the subgraph");
-        require(alloc.hasActiveChannel() == false, "Allocate: channel must be closed");
+        require(_tokens > 0, "Allocation: tokens to unallocate cannot be zero");
+        require(alloc.tokens > 0, "Allocation: no tokens allocated to the subgraph");
+        require(alloc.tokens >= _tokens, "Allocation: not enough tokens available in the subgraph");
+        require(alloc.hasActiveChannel() == false, "Allocation: channel must be closed");
 
         stake.unallocateTokens(_subgraphID, _tokens);
         // TODO: should we delete alloc if empty?
 
-        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens);
+        emit AllocationUpdate(indexNode, _subgraphID, alloc.tokens, alloc.channelID);
     }
 
     /**
@@ -273,10 +294,10 @@ contract Staking is Governed {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
-        require(stake.hasTokens(), "Stake: index node has no stakes");
+        require(stake.hasTokens(), "Staking: index node has no stakes");
         require(
             stake.tokensAvailable() >= _tokens,
-            "Stake: not enough tokens available to unstake"
+            "Staking: not enough tokens available to unstake"
         );
 
         stake.lockTokens(_tokens, thawingPeriod);
@@ -292,9 +313,10 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[indexNode];
 
         uint256 tokensToWithdraw = stake.withdrawTokens();
-        require(tokensToWithdraw > 0, "Stake: no tokens available to withdraw");
+        require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
+        totalTokens = totalTokens.sub(tokensToWithdraw);
 
-        require(token.transfer(indexNode, tokensToWithdraw), "Stake: cannot transfer tokens");
+        require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
 
         emit StakeUpdate(indexNode, stake.tokens);
     }
@@ -304,29 +326,59 @@ contract Staking is Governed {
      * @param _indexNode Address of staking party
      * @param _tokens Amount of tokens to stake
      */
-    function _stake(address _indexNode, uint256 _tokens) internal {
+    function _stake(address _indexNode, uint256 _tokens) private {
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
         stake.depositTokens(_tokens);
+        totalTokens = totalTokens.add(_tokens);
 
         emit StakeUpdate(_indexNode, stake.tokens);
     }
 
     /**
      * @dev Settle a channel after receiving collected funds from it
-     * @param _channelID Address of the channel multisig contract
+     * @param _channel Channel multisig contract
      * @param _tokens Amount of tokens to stake
      */
-    function _settle(Channel storage channel, uint256 _tokens) internal {
-        Stakes.Allocation storage alloc = stakes[channel.indexNode].allocations[channel.subgraphID];
+    function _settle(Channel storage _channel, uint256 _tokens) private {
+        uint256 tokensFee = _tokens;
+
+        Stakes.Allocation storage alloc = stakes[_channel.indexNode].allocations[_channel
+            .subgraphID];
+        require(alloc.hasActiveChannel(), "Channel: Must be active for settlement");
+
+        // Epoch conditions
+        uint256 epochs = epochManager.currentEpoch().sub(alloc.createdAtEpoch);
+        require(epochs > 0, "Channel: Can only settle after one epoch passed");
+
+        // Send part of the funds to the curator subgraph curve
+        uint256 curationFees = curationPercentage.mul(_tokens).div(MAX_PPM);
+        tokensFee = tokensFee.sub(curationFees);
+        require(
+            token.transferToTokenReceiver(
+                curation,
+                curationFees,
+                abi.encodePacked(_channel.subgraphID)
+            ),
+            "Channel: Could not transfer tokens to Curators"
+        );
+
+        uint256 tokensAllocation = getTokensEffectiveAllocation(alloc.tokens, epochs);
+        // indexer_i_effective_allocation_j_epoch_k = settle(10, 1)
+        // indexer_i_fees_j_epoch_k = 100
+        // network_stake_epoch_k = 1000
+        // network_fees_epoch_k = 10000
+
+        // uint256 reward = tokesAllocation.div(totalTokens).pow(0.5).mul(
+        //     tokensFee.div(network_fees_epoch_k).pow(0.5)
+        // );
 
         // TODO: send part of the funds to the rebate pool
-        // TODO: send part of the funds to the curator subgraph curve
-        // require(token.transfer(curation, curationFees));
-
         // TODO: can close after one epoch
         // TODO: distribute funds
         // TODO: emit an event
+
+        _closeChannel(alloc);
     }
 
     /**
@@ -335,24 +387,16 @@ contract Staking is Governed {
      * @param _channelOwner Address of the channel initiating party
      */
     function _setupChannel(Stakes.Allocation storage _alloc, address _channelOwner)
-        internal
+        private
         returns (address)
     {
-        require(_alloc.hasActiveChannel() == false, "Allocate: payment channel must be closed");
+        require(_alloc.hasActiveChannel() == false, "Allocation: channel must be closed");
 
-        // Deploy multisig from a factory contract
-        //   - mastercopy: address of the deployed MinimumViableMultisig ()
-        //   - initializer: setup multisig with signers (IndexNode and Hub)
-        //   - saltNonce: a number to differentiate a channel per (IndexNode, Hub)
-        bytes memory initializer = abi.encodeWithSignature(
-            "setup(address[])",
-            [[_channelOwner, channelHub]]
-        );
-        // NOTE: fixing nonce to 0 as per Connext convention
-        uint256 nonce = 0;
-        bytes32 salt = keccak256(abi.encodePacked(getChainID(), nonce));
-        address channelID = address(
-            channelFactory.createProxyWithNonce(channelMasterCopy, initializer, uint256(salt))
+        // ChannelID (multisig contract address) for IndexNode<->Hub
+        address channelID = _createChannelID(_channelOwner);
+        require(
+            channels[channelID].indexNode == address(0),
+            "Allocation: payment channel ID already in use"
         );
 
         // Update channel
@@ -367,17 +411,47 @@ contract Staking is Governed {
      * @dev Close payment channel related to allocation
      * @param _alloc Allocation data
      */
-    function _closeChannel(Stakes.Allocation storage _alloc) internal {
+    function _closeChannel(Stakes.Allocation storage _alloc) private {
         // Update channel
         _alloc.channelID = address(0);
         _alloc.status = Stakes.ChannelStatus.Closed;
     }
 
     /**
+     * @dev Create a multisig contract using CREATE2 with signers (channelOwner, channelHub)
+     * @dev The address of this contract must match the one created in the counterfactual payment channel
+     * @return Address of the multisig contract
+     */
+    function _createChannelID(address _channelOwner) private returns (address) {
+        // Deploy multisig from a factory contract
+        //   - mastercopy: address of the deployed MinimumViableMultisig
+        //   - initializer: setup multisig with signers (IndexNode and Hub)
+        //   - saltNonce: number to have multiple channels per (IndexNode, Hub)
+        // NOTE: nonce is fixed to 0 as per Connext convention
+        // NOTE: setup(address[] memory) -> 0xfdf55b99
+        bytes memory initializer = abi.encodeWithSelector(0xfdf55b99, [_channelOwner, channelHub]);
+        uint256 nonce = 0;
+        bytes32 salt = keccak256(abi.encodePacked(getChainID(), nonce));
+        return
+            address(channelFactory.createProxyWithNonce(channelMaster, initializer, uint256(salt)));
+    }
+
+    function getTokensEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
+        internal
+        view
+        returns (uint256)
+    {
+        return
+            (_numEpochs < maxSettlementDuration)
+                ? _tokens.mul(_numEpochs)
+                : _tokens.mul(maxSettlementDuration);
+    }
+
+    /**
      * @dev Get the running network chain ID
      * @return The chain ID
      */
-    function getChainID() internal view returns (uint256) {
+    function getChainID() internal pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
