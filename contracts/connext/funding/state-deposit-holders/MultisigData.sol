@@ -14,4 +14,11 @@ contract MultisigData {
 
     mapping (address => uint256) public totalAmountWithdrawn;
 
+    // TODO: These should probably be hardcoded since we can't 
+    // give context when deploying?
+    address constant INDEXER_CTDT_ADDRESS = address(0x0); // temporary
+    address constant INDEXER_STAKING_ADDRESS = address(0x0); //temporary
+    address constant INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = address(0x0) // temporary
+    address constant INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = address(0x0) // temporary
+
 }
