@@ -158,7 +158,8 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
         expect(tokens2).to.be.bignumber.eq(indexNodeStake.add(indexNodeStake))
         expectEvent.inTransaction(tx, this.staking.constructor, 'StakeUpdate', {
           indexNode: indexNode,
-          tokens: tokens2,
+          tokens: indexNodeStake,
+          total: tokens2,
         })
       })
 
@@ -269,9 +270,10 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
         context('when subgraph NOT allocated', function() {
           it('should allocate to subgraph', async function() {
             const { logs } = await this.allocate(this.indexNodeStake)
-            expectEvent.inLogs(logs, 'AllocationUpdate', {
+            expectEvent.inLogs(logs, 'AllocationUpdated', {
               indexNode: indexNode,
               subgraphID: this.subgraphId,
+              epoch: await this.epochManager.currentEpoch(),
               tokens: this.indexNodeStake,
             })
           })
@@ -299,11 +301,11 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
             await this.allocate(this.tokensAllocated)
           })
 
-          it('reject allocate if channel is active', async function() {
+          it('reject allocate again', async function() {
             const tokensToAllocate = web3.utils.toWei(new BN('10'))
             await expectRevert(
               this.allocate(tokensToAllocate),
-              'Allocation: channel must be closed',
+              'Allocation: cannot allocate if already allocated',
             )
           })
 

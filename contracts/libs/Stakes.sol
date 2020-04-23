@@ -155,6 +155,20 @@ library Stakes {
     }
 
     /**
+     * @dev Return true if the IndexNode has allocated stake on the subgraph
+     * @param stake Stake data
+     * @param _subgraphID Subgraph for the allocation
+     * @return True if allocated
+     */
+    function hasAllocation(Stakes.IndexNode storage stake, bytes32 _subgraphID)
+        internal
+        view
+        returns (bool)
+    {
+        return stake.allocations[_subgraphID].tokens > 0;
+    }
+
+    /**
      * @dev Total tokens staked both from IndexNode and Delegators
      * @param stake Stake data
      * @return Token amount
@@ -201,5 +215,21 @@ library Stakes {
      */
     function hasActiveChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
         return alloc.status == Stakes.ChannelStatus.Active;
+    }
+
+    /**
+     * @dev Get the effective stake allocation considering epochs from allocation to settlement
+     * @param alloc Allocation data
+     * @param _numEpochs Number of epochs that passed from allocation to settlement
+     * @param _maxEpochs Number of epochs used as a maximum to cap effective allocation
+     * @return Effective allocated tokens accross epochs
+     */
+    function getTokensEffectiveAllocation(
+        Stakes.Allocation storage alloc,
+        uint256 _numEpochs,
+        uint256 _maxEpochs
+    ) internal view returns (uint256) {
+        uint256 tokens = alloc.tokens;
+        return (_numEpochs < _maxEpochs) ? tokens.mul(_numEpochs) : tokens.mul(_maxEpochs);
     }
 }
