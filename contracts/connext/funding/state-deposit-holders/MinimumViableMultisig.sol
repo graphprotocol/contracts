@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import "./MultisigData.sol";
 import "../../shared/libs/LibCommitment.sol";
 import "../../shared/libs/LibChannelCrypto.sol";
+import "../../../Staking.sol"
 
 
 /// @title MinimumViableMultisig - A multisig wallet supporting the minimum
@@ -57,6 +58,12 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     )
         public
     {
+        if( Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[0]) ||
+            Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[1]) 
+        {
+            to = INDEXER_CTDT_ADDRESS;
+        }
+
         bytes32 transactionHash = getTransactionHash(
             to,
             value,
