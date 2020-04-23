@@ -5,9 +5,10 @@ pragma experimental ABIEncoderV2;
  * @title Staking contract
  */
 
+import "./Curation.sol";
+import "./EpochManager.sol";
 import "./Governed.sol";
 import "./GraphToken.sol";
-import "./EpochManager.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 import "./bytes/BytesLib.sol";
@@ -67,7 +68,7 @@ contract Staking is Governed {
     // Related contracts
     GraphToken public token;
     EpochManager public epochManager;
-    address public curation;
+    Curation public curation;
 
     ProxyFactory public channelFactory;
     address public channelMaster;
@@ -126,7 +127,7 @@ contract Staking is Governed {
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
-        curation = _curation;
+        curation = Curation(_curation);
 
         maxSettlementDuration = _maxSettlementDuration;
         thawingPeriod = _thawingPeriod;
@@ -415,12 +416,18 @@ contract Staking is Governed {
 
         // Send part of the funds to the curator subgraph curve
         uint256 fees = _tokens;
-        uint256 curationFees = curationPercentage.mul(_tokens).div(MAX_PPM);
-        fees = fees.sub(curationFees);
-        require(
-            token.transferToTokenReceiver(curation, curationFees, abi.encodePacked(subgraphID)),
-            "Channel: Could not transfer tokens to Curators"
-        );
+        if (curation.isSubgraphCurated(subgraphID)) {
+            uint256 curationFees = curationPercentage.mul(_tokens).div(MAX_PPM);
+            fees = fees.sub(curationFees);
+            require(
+                token.transferToTokenReceiver(
+                    address(curation),
+                    curationFees,
+                    abi.encodePacked(subgraphID)
+                ),
+                "Channel: Could not transfer tokens to Curators"
+            );
+        }
 
         // Set apart fees into a rebate pool
         Rebates.Pool storage pool = rebates[currentEpoch];
