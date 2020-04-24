@@ -1,20 +1,21 @@
-const web3 = require('web3')
-const BN = web3.utils.BN
+const BN = require('bn.js')
+
+const TOKEN_UNIT = new BN('10').pow(new BN('18'))
 
 module.exports = {
   curation: {
     // Reserve ratio to set bonding curve for curation (in PPM)
-    reserveRatio: new BN('500000'),
+    reserveRatio: 500000,
     // Minimum amount required to be staked by Curators
-    minimumCurationStake: web3.utils.toWei(new BN('100')),
+    minimumCurationStake: new BN('100').mul(TOKEN_UNIT),
   },
   dispute: {
-    minimumDeposit: web3.utils.toWei(new BN('100')),
-    rewardPercentage: new BN(1000), // in basis points
-    slashingPercentage: new BN(1000), // in basis points
+    minimumDeposit: new BN('100').mul(TOKEN_UNIT),
+    rewardPercentage: 1000, // in basis points
+    slashingPercentage: 1000, // in basis points
   },
   epochs: {
-    lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
+    lengthInBlocks: (24 * 60 * 60) / 15, // One day in blocks
   },
   staking: {
     channelHub: '0x4b8e4A4335CE274DA2B44FBF7a4502b3cB0AcA57',
@@ -22,6 +23,6 @@ module.exports = {
     thawingPeriod: 20, // in blocks
   },
   token: {
-    initialSupply: web3.utils.toWei(new BN('10000000')),
+    initialSupply: new BN('10000000').mul(TOKEN_UNIT),
   },
 }
