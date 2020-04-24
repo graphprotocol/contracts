@@ -14,7 +14,11 @@ const ChannelMaster = artifacts.require(
   'channel/funding/state-deposit-holders/MinimumViableMultisig',
 )
 
-module.exports = function(deployer, network, accounts) {
+module.exports = async (deployer, network, accounts) => {
+  const log = (msg, ...params) => {
+    deployer.logger.log(msg, ...params)
+  }
+
   deployer
     .then(async () => {
       const governor = accounts[0]
@@ -61,19 +65,24 @@ module.exports = function(deployer, network, accounts) {
       const gns = await deployer.deploy(GNS, governor)
 
       // Set Curation parameters
-      await curation.setDistributor(staking.address)
+      log('   Configuring Contracts')
+      log('   ---------------------')
+      const { tx } = await curation.setDistributor(staking.address)
+      log('   > Curation -> Set distributor: ', tx)
 
-      deployer.logger.log('Contract Addresses')
-      deployer.logger.log('==================')
-      deployer.logger.log('> GOVERNOR:', governor)
-      deployer.logger.log('> GRAPH TOKEN:', graphToken.address)
-      deployer.logger.log('> EPOCH MANAGER:', epochManager.address)
-      deployer.logger.log('> DISPUTE MANAGER', disputeManager.address)
-      deployer.logger.log('> STAKING:', staking.address)
-      deployer.logger.log('> CURATION:', curation.address)
-      deployer.logger.log('> REWARDS MANAGER:', rewardsManager.address)
-      deployer.logger.log('> SERVICE REGISTRY:', serviceRegistry.address)
-      deployer.logger.log('> GNS:', gns.address)
+      // Summary
+      log('\n')
+      log('Contract Addresses')
+      log('==================')
+      log('> GOVERNOR:', governor)
+      log('> GRAPH TOKEN:', graphToken.address)
+      log('> EPOCH MANAGER:', epochManager.address)
+      log('> DISPUTE MANAGER', disputeManager.address)
+      log('> STAKING:', staking.address)
+      log('> CURATION:', curation.address)
+      log('> REWARDS MANAGER:', rewardsManager.address)
+      log('> SERVICE REGISTRY:', serviceRegistry.address)
+      log('> GNS:', gns.address)
     })
-    .catch(err => deployer.logger.log(err))
+    .catch(err => log(err))
 }
