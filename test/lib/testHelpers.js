@@ -4,8 +4,6 @@ module.exports = {
   randomSubgraphIdHex0x: () => web3.utils.randomHex(32),
   randomSubgraphIdHex: hex => hex.substring(2),
   randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes(hex),
-  // randomSubgraphIdBytes: (hex = web3.utils.randomHex(32).substring(2)) =>
-  //   web3.utils.hexToBytes('0x' + hex.substring(hex.length - 64)),
 
   zerobytes: () =>
     web3.utils.hexToBytes('0x0000000000000000000000000000000000000000000000000000000000000000'),
@@ -295,7 +293,7 @@ module.exports = {
     },
     staking: {
       channelHub: '0x4b8e4A4335CE274DA2B44FBF7a4502b3cB0AcA57',
-      maxSettlementDuration: 5,
+      maxSettlementDuration: 5, // in epochs
       thawingPeriod: 20, // in blocks
     },
     token: {
