@@ -12,7 +12,6 @@ import "./GraphToken.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 import "./bytes/BytesLib.sol";
-import "./channel/funding/proxies/ProxyFactory.sol";
 
 
 contract Staking is Governed {
@@ -70,10 +69,6 @@ contract Staking is Governed {
     EpochManager public epochManager;
     Curation public curation;
 
-    ProxyFactory public channelFactory;
-    address public channelMaster;
-    address public channelHub;
-
     // -- Events --
 
     event StakeUpdate(address indexed indexNode, uint256 tokens, uint256 total);
@@ -92,7 +87,8 @@ contract Staking is Governed {
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 tokens,
-        address channelID
+        address channelID,
+        address from
     );
 
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
@@ -110,9 +106,6 @@ contract Staking is Governed {
      * @param _curation Address of the Curation contract
      * @param _maxSettlementDuration Max settlement duration
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
-     * @param _channelFactory Address of the factory contract to deploy channel multisig
-     * @param _channelMaster Address of the contract to use as template for multisig
-     * @param _channelHub Address of the payment channel hub
      */
     constructor(
         address _governor,
@@ -120,10 +113,7 @@ contract Staking is Governed {
         address _epochManager,
         address _curation,
         uint256 _maxSettlementDuration,
-        uint256 _thawingPeriod,
-        address _channelFactory,
-        address _channelMaster,
-        address _channelHub
+        uint256 _thawingPeriod
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
@@ -131,10 +121,6 @@ contract Staking is Governed {
 
         maxSettlementDuration = _maxSettlementDuration;
         thawingPeriod = _thawingPeriod;
-
-        channelFactory = ProxyFactory(_channelFactory);
-        channelMaster = _channelMaster;
-        channelHub = _channelHub;
     }
 
     /**
@@ -161,6 +147,15 @@ contract Staking is Governed {
      */
     function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
         thawingPeriod = _thawingPeriod;
+    }
+
+    /**
+     * @dev Return if channelID (address) is already used
+     * @param _channelID Address used as signer for index node in payment channel
+     * @return True if channelID already used
+     */
+    function isChannel(address _channelID) public view returns (bool) {
+        return channels[_channelID].indexNode != address(0);
     }
 
     /**
@@ -238,19 +233,21 @@ contract Staking is Governed {
      * @param _from Token holder's address
      * @param _value Amount of Graph Tokens
      */
-    function tokensReceived(
-        address _from,
-        uint256 _value,
-        bytes calldata /*_data*/
-    ) external returns (bool) {
+    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
+        external
+        returns (bool)
+    {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
         // If we receive funds from a channel multisig it is a settle
-        Channel storage channel = channels[_from];
-        if (channel.indexNode != address(0)) {
-            _settle(channel, _value);
-            return true;
+        // TODO: review with how funds are sent from multisig
+        if (_data.length == 20) {
+            address channelID = _data.toAddress(0);
+            if (isChannel(channelID)) {
+                _settle(channelID, _from, _value);
+                return true;
+            }
         }
 
         // Any other case is a staking of funds
@@ -262,12 +259,13 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelOwner The address used by the IndexNode to setup the off-chain payment channel
+     * @param _channelID The signer address used by the IndexNode to setup the off-chain payment channel
      */
-    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelOwner) external {
+    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelID) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
+        require(_tokens > 0, "Allocation: cannot allocate zero tokens");
         require(stake.hasTokens(), "Allocation: index node has no stakes");
         require(
             stake.tokensAvailable() >= _tokens,
@@ -276,22 +274,21 @@ contract Staking is Governed {
         require(
             stake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
-        );
-        // TODO: should index node be able to allocate more at any time?
+        ); // TODO: should index node be able to allocate more funds at any time?
+        require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
 
-        // Account new allocation
+        // Allocate and setup channel
         Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
-
-        // Setup channel
-        address channelID = _setupChannel(alloc, _channelOwner);
-        channels[channelID] = Channel(indexNode, _subgraphID);
+        alloc.channelID = _channelID;
+        alloc.createdAtEpoch = epochManager.currentEpoch();
+        channels[_channelID] = Channel(indexNode, _subgraphID);
 
         emit AllocationUpdated(
             indexNode,
             _subgraphID,
             alloc.createdAtEpoch,
             alloc.tokens,
-            channelID
+            _channelID
         );
     }
 
@@ -308,7 +305,7 @@ contract Staking is Governed {
         require(_tokens > 0, "Allocation: tokens to unallocate cannot be zero");
         require(alloc.tokens > 0, "Allocation: no tokens allocated to the subgraph");
         require(alloc.tokens >= _tokens, "Allocation: not enough tokens available in the subgraph");
-        require(alloc.hasActiveChannel() == false, "Allocation: channel must be closed");
+        require(alloc.hasChannel() == false, "Allocation: channel must be closed");
         // TODO: should this only happen before one epoch?
 
         // Account new allocation
@@ -399,26 +396,47 @@ contract Staking is Governed {
 
     /**
      * @dev Settle a channel after receiving collected query fees from it
-     * @param _channel Channel multisig contract
-     * @param _tokens Amount of tokens to stake
+     * @param _channelID ChannelID - address of the index node in the channel
+     * @param _from Multisig channel address that triggered settlement
+     * @param _tokens Amount of tokens to settle
      */
-    function _settle(Channel storage _channel, uint256 _tokens) private {
-        address indexNode = _channel.indexNode;
-        bytes32 subgraphID = _channel.subgraphID;
+    function _settle(address _channelID, address _from, uint256 _tokens) private {
+        address indexNode = channels[_channelID].indexNode;
+        bytes32 subgraphID = channels[_channelID].subgraphID;
         Stakes.IndexNode storage stake = stakes[indexNode];
         Stakes.Allocation storage alloc = stake.allocations[subgraphID];
-        require(alloc.hasActiveChannel(), "Channel: Must be active for settlement");
 
-        // Epoch conditions
-        uint256 currentEpoch = epochManager.currentEpoch();
-        uint256 epochs = currentEpoch.sub(alloc.createdAtEpoch);
+        require(alloc.hasChannel(), "Channel: Must be active for settlement");
+
+        // Time conditions
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
-        // Send part of the funds to the curator subgraph curve
-        uint256 fees = _tokens;
-        if (curation.isSubgraphCurated(subgraphID)) {
-            uint256 curationFees = curationPercentage.mul(_tokens).div(MAX_PPM);
-            fees = fees.sub(curationFees);
+        // Calculate curation fees
+        uint256 curationFees = (curation.isSubgraphCurated(subgraphID))
+            ? curationPercentage.mul(_tokens).div(MAX_PPM)
+            : 0;
+
+        // Set apart fees into a rebate pool
+        uint256 rebateFees = _tokens.sub(curationFees);
+        rebates[currentEpoch].depositTokens(
+            indexNode,
+            subgraphID,
+            rebateFees,
+            alloc.getTokensEffectiveAllocation(epochs, maxSettlementDuration)
+        );
+
+        // Update global counter of collected fees
+        totalFees = totalFees.add(rebateFees);
+
+        // Close channel
+        stake.unallocateTokens(subgraphID, alloc.tokens);
+        alloc.channelID = address(0);
+        alloc.createdAtEpoch = 0;
+        delete channels[_channelID];
+
+        // Send curation fees to the curator subgraph reserve
+        if (curationFees > 0) {
             require(
                 token.transferToTokenReceiver(
                     address(curation),
@@ -429,79 +447,7 @@ contract Staking is Governed {
             );
         }
 
-        // Set apart fees into a rebate pool
-        Rebates.Pool storage pool = rebates[currentEpoch];
-        pool.depositTokens(
-            indexNode,
-            subgraphID,
-            fees,
-            alloc.getTokensEffectiveAllocation(epochs, maxSettlementDuration)
-        );
-
-        // Update global counter of collected fees
-        totalFees = totalFees.add(fees);
-
-        // Close channel
-        stake.unallocateTokens(subgraphID, alloc.tokens);
-        address channelID = _closeChannel(alloc);
-        delete channels[channelID];
-
-        emit AllocationSettled(indexNode, subgraphID, currentEpoch, _tokens, channelID);
-    }
-
-    /**
-     * @dev Track payment channel information for an allocation
-     * @param _alloc Allocation data
-     * @param _channelOwner Address of the channel initiating party
-     */
-    function _setupChannel(Stakes.Allocation storage _alloc, address _channelOwner)
-        private
-        returns (address)
-    {
-        // ChannelID (multisig contract address) for IndexNode<->Hub
-        address channelID = _createChannelID(_channelOwner);
-        require(channels[channelID].indexNode == address(0), "Channel: channel ID already in use");
-
-        // Update channel
-        _alloc.channelID = channelID;
-        _alloc.status = Stakes.ChannelStatus.Active;
-        _alloc.createdAtEpoch = epochManager.currentEpoch();
-
-        return channelID;
-    }
-
-    /**
-     * @dev Close payment channel related to allocation
-     * @param _alloc Allocation data
-     */
-    function _closeChannel(Stakes.Allocation storage _alloc) private returns (address) {
-        address channelID = _alloc.channelID;
-
-        // Update channel
-        _alloc.channelID = address(0);
-        _alloc.createdAtEpoch = 0;
-        _alloc.status = Stakes.ChannelStatus.Closed;
-
-        return channelID;
-    }
-
-    /**
-     * @dev Create a multisig contract using CREATE2 with signers (channelOwner, channelHub)
-     * @dev The address of this contract must match the one created in the counterfactual payment channel
-     * @return Address of the multisig contract
-     */
-    function _createChannelID(address _channelOwner) private returns (address) {
-        // Deploy multisig from a factory contract
-        //   - mastercopy: address of the deployed MinimumViableMultisig
-        //   - initializer: setup multisig with signers (IndexNode and Hub)
-        //   - saltNonce: number to have multiple channels per (IndexNode, Hub)
-        // NOTE: nonce is fixed to 0 as per Connext convention
-        // NOTE: setup(address[] memory) -> 0xfdf55b99
-        bytes memory initializer = abi.encodeWithSelector(0xfdf55b99, [_channelOwner, channelHub]);
-        uint256 nonce = 0;
-        bytes32 salt = keccak256(abi.encodePacked(_getChainID(), nonce));
-        return
-            address(channelFactory.createProxyWithNonce(channelMaster, initializer, uint256(salt)));
+        emit AllocationSettled(indexNode, subgraphID, currentEpoch, _tokens, _channelID, _from);
     }
 
     /**

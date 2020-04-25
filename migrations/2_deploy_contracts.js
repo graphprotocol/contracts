@@ -9,11 +9,6 @@ const RewardsManager = artifacts.require('RewardsManager')
 const ServiceRegistry = artifacts.require('ServiceRegistry')
 const Staking = artifacts.require('Staking')
 
-const ChannelFactory = artifacts.require('channel/funding/proxies/ProxyFactory')
-const ChannelMaster = artifacts.require(
-  'channel/funding/state-deposit-holders/MinimumViableMultisig',
-)
-
 module.exports = async (deployer, network, accounts) => {
   const log = (msg, ...params) => {
     deployer.logger.log(msg, ...params)
@@ -36,8 +31,6 @@ module.exports = async (deployer, network, accounts) => {
         config.curation.reserveRatio,
         config.curation.minimumCurationStake,
       )
-      const channelFactory = await deployer.deploy(ChannelFactory)
-      const channelMaster = await deployer.deploy(ChannelMaster)
       const staking = await deployer.deploy(
         Staking,
         governor,
@@ -46,9 +39,6 @@ module.exports = async (deployer, network, accounts) => {
         curation.address,
         config.staking.maxSettlementDuration,
         config.staking.thawingPeriod,
-        channelFactory.address,
-        channelMaster.address,
-        config.staking.channelHub,
       )
       const rewardsManager = await deployer.deploy(RewardsManager, governor)
       const disputeManager = await deployer.deploy(

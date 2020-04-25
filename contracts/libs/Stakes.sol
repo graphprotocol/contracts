@@ -14,13 +14,10 @@ library Stakes {
     using SafeMath for uint256;
     using Stakes for Stakes.IndexNode;
 
-    enum ChannelStatus { Closed, Active }
-
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
         address channelID; // IndexNode payment channel ID used off chain
-        ChannelStatus status; // Current status
     }
 
     struct IndexNode {
@@ -213,8 +210,8 @@ library Stakes {
      * @param alloc Allocation data
      * @return True if payment channel related to allocation is active
      */
-    function hasActiveChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
-        return alloc.status == Stakes.ChannelStatus.Active;
+    function hasChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
+        return alloc.channelID != address(0);
     }
 
     /**

@@ -5,10 +5,6 @@ const EpochManager = artifacts.require('./EpochManager')
 const GraphToken = artifacts.require('./GraphToken.sol')
 const Staking = artifacts.require('./Staking.sol')
 
-// contracts for channels
-const ProxyFactory = artifacts.require('./channel/funding/proxies/ProxyFactory.sol')
-const Channel = artifacts.require('./channel/state-deposit-holders/MinimumViableMultisig.sol')
-
 // helpers
 const { defaults } = require('./testHelpers')
 
@@ -44,7 +40,6 @@ function deployEpochManagerContract(owner, params) {
 }
 
 async function deployStakingContract(owner, graphToken, epochManager, curation, params) {
-  const { channelMaster, channelFactory } = await deployChannelContracts()
   return Staking.new(
     owner,
     graphToken,
@@ -52,22 +47,11 @@ async function deployStakingContract(owner, graphToken, epochManager, curation, 
     curation,
     defaults.staking.maxSettlementDuration,
     defaults.staking.thawingPeriod,
-    channelFactory.address,
-    channelMaster.address,
-    defaults.staking.channelHub,
     params,
   )
 }
 
-async function deployChannelContracts() {
-  return {
-    channelMaster: await Channel.new(),
-    channelFactory: await ProxyFactory.new(),
-  }
-}
-
 module.exports = {
-  deployChannelContracts,
   deployCurationContract,
   deployDisputeManagerContract,
   deployEpochManagerContract,

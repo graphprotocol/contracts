@@ -52,10 +52,7 @@ contract EpochManager is Governed {
      */
     function setEpochLength(uint256 _epochLength) external onlyGovernor {
         require(_epochLength > 0, "Epoch length cannot be 0");
-        require(
-            _epochLength != epochLength,
-            "Epoch length must be different to current"
-        );
+        require(_epochLength != epochLength, "Epoch length must be different to current");
 
         lastLengthUpdateEpoch = currentEpoch();
         lastLengthUpdateBlock = currentEpochBlock();
@@ -128,10 +125,20 @@ contract EpochManager is Governed {
     }
 
     /**
+     * @dev Return the number of epoch that passed since another epoch
+     * @param _epoch Epoch to use as since epoch value
+     * @return Number of epochs and current epoch
+     */
+    function epochsSince(uint256 _epoch) public view returns (uint256, uint256) {
+        uint256 epoch = currentEpoch();
+        return (epoch.sub(_epoch), epoch);
+    }
+
+    /**
      * @dev Return number of epochs passed since last epoch length update
      * @return The number of epoch that passed since last epoch length update
      */
-    function epochsSinceUpdate() private view returns (uint256) {
+    function epochsSinceUpdate() public view returns (uint256) {
         return blockNum().sub(lastLengthUpdateBlock).div(epochLength);
     }
 }

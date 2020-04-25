@@ -292,7 +292,6 @@ module.exports = {
       lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
     },
     staking: {
-      channelHub: '0x4b8e4A4335CE274DA2B44FBF7a4502b3cB0AcA57',
       maxSettlementDuration: 5, // in epochs
       thawingPeriod: 20, // in blocks
     },
