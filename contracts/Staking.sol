@@ -40,11 +40,14 @@ contract Staking is Governed {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public curationPercentage;
 
+    // Need to pass this period to claim fees in rebate pool
+    uint256 public channelDisputePeriod; // in epochs
+
     // Need to pass this period for delegators to settle
     uint256 public maxSettlementDuration; // in epochs
 
     // Time in blocks to unstake
-    uint256 public thawingPeriod;
+    uint256 public thawingPeriod; // in blocks
 
     // Total tokens staked in the protocol
     uint256 public totalTokens;
@@ -121,6 +124,14 @@ contract Staking is Governed {
 
         maxSettlementDuration = _maxSettlementDuration;
         thawingPeriod = _thawingPeriod;
+    }
+
+    /**
+     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
+     * @param _channelDisputePeriod Period in epochs
+     */
+    function setChannelDisputePeriod(uint256 _channelDisputePeriod) external onlyGovernor {
+        channelDisputePeriod = _channelDisputePeriod;
     }
 
     /**
@@ -368,6 +379,7 @@ contract Staking is Governed {
         Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
 
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
+        // TODO: add check based on channelDisputePeriod
 
         // Rebate
         uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
