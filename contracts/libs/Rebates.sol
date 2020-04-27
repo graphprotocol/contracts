@@ -23,6 +23,7 @@ library Rebates {
     struct Pool {
         uint256 fees;
         uint256 allocation;
+        uint256 settlementsCount;
         mapping(address => mapping(bytes32 => Settlement)) settlements;
     }
 
@@ -44,6 +45,7 @@ library Rebates {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
         pool.settlements[_indexNode][_subgraphID] = Settlement(_tokens, _allocation);
+        pool.settlementsCount += 1;
 
         return pool.settlements[_indexNode][_subgraphID];
     }
@@ -60,6 +62,7 @@ library Rebates {
     {
         Rebates.Settlement storage settlement = pool.settlements[_indexNode][_subgraphID];
 
+        // Production function reward calculation
         uint256 alpha = 1;
         uint256 termA = settlement.allocation.div(pool.allocation)**(alpha);
         uint256 termB = settlement.fees.div(pool.fees)**(1 - alpha);
@@ -67,7 +70,7 @@ library Rebates {
 
         // Reedem settlement
         delete pool.settlements[_indexNode][_subgraphID];
-        // TODO: prune rebate pool state if not needed anymore
+        pool.settlementsCount -= 1;
 
         return tokens;
     }

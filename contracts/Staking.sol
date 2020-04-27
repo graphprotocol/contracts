@@ -369,15 +369,20 @@ contract Staking is Governed {
 
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
+        // Rebate
         uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
         require(tokensToClaim > 0, "Rebate: no tokens available to claim");
+        if (pool.settlementsCount == 0) {
+            delete rebates[_epoch];
+        }
 
+        // Update global counter of collected fees
         totalFees = totalFees.sub(tokensToClaim);
 
         // TODO: support re-staking
         require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
 
-        // TODO: emit event
+        emit Coso();
     }
 
     /**
