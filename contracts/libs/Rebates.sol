@@ -68,7 +68,7 @@ library Rebates {
         uint256 termB = settlement.fees.div(pool.fees)**(1 - alpha);
         uint256 tokens = termA.mul(termB);
 
-        // Reedem settlement
+        // Redeem settlement
         delete pool.settlements[_indexNode][_subgraphID];
         pool.settlementsCount -= 1;
 

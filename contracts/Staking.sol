@@ -398,6 +398,8 @@ contract Staking is Governed {
         // Process rebate
         uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
         require(tokensToClaim > 0, "Rebate: no tokens available to claim");
+
+        // All settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
             delete rebates[_epoch];
         }
