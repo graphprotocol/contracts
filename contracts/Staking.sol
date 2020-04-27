@@ -312,35 +312,6 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Unallocate tokens from a subgraph
-     * @param _subgraphID ID of the subgraph where tokens are allocated
-     * @param _tokens Amount of tokens to unallocate
-     */
-    function unallocate(bytes32 _subgraphID, uint256 _tokens) external {
-        address indexNode = msg.sender;
-        Stakes.IndexNode storage stake = stakes[indexNode];
-        Stakes.Allocation storage alloc = stake.allocations[_subgraphID];
-
-        require(_tokens > 0, "Allocation: tokens to unallocate cannot be zero");
-        require(alloc.tokens > 0, "Allocation: no tokens allocated to the subgraph");
-        require(alloc.tokens >= _tokens, "Allocation: not enough tokens available in the subgraph");
-        require(alloc.hasChannel() == false, "Allocation: channel must be closed");
-        // TODO: should this only happen before one epoch?
-
-        // Account new allocation
-        stake.unallocateTokens(_subgraphID, _tokens);
-        // TODO: should we delete alloc if empty?
-
-        emit AllocationUpdated(
-            indexNode,
-            _subgraphID,
-            epochManager.currentEpoch(),
-            alloc.tokens,
-            alloc.channelID
-        );
-    }
-
-    /**
      * @dev Unstake tokens from the index node stake, lock them until thawning period expires
      * @param _tokens Amount of tokens to unstake
      */

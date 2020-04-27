@@ -134,9 +134,6 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
           from: indexNode,
         })
       }
-      this.unallocate = function(tokens) {
-        return this.staking.unallocate(this.subgraphId, tokens, { from: indexNode })
-      }
     })
 
     context('when NOT staked', function() {
@@ -285,14 +282,6 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
               'Allocation: not enough tokens available to allocate',
             )
           })
-
-          it('reject to unallocate', async function() {
-            const tokensToUnallocate = web3.utils.toWei(new BN('10'))
-            await expectRevert(
-              this.unallocate(tokensToUnallocate),
-              'Allocation: no tokens allocated to the subgraph',
-            )
-          })
         })
 
         context('when subgraph allocated', function() {
@@ -306,29 +295,6 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
             await expectRevert(
               this.allocate(tokensToAllocate),
               'Allocation: cannot allocate if already allocated',
-            )
-          })
-
-          it('reject unallocate if channel is active', async function() {
-            const tokensToUnallocate = web3.utils.toWei(new BN('10'))
-            await expectRevert(
-              this.unallocate(tokensToUnallocate),
-              'Allocation: channel must be closed',
-            )
-          })
-
-          it('reject unallocate zero tokens', async function() {
-            await expectRevert(
-              this.unallocate(new BN(0)),
-              'Allocation: tokens to unallocate cannot be zero',
-            )
-          })
-
-          it('reject unallocate more than available tokens', async function() {
-            const tokensOverCapacity = this.tokensAllocated.add(new BN(1))
-            await expectRevert(
-              this.unallocate(tokensOverCapacity),
-              'Allocation: not enough tokens available in the subgraph',
             )
           })
         })
