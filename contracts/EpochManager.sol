@@ -27,7 +27,7 @@ contract EpochManager is Governed {
 
     // -- Events --
 
-    event EpochRun(uint256 indexed epoch, uint256 blockNumber, address caller);
+    event EpochRun(uint256 indexed epoch, address caller);
     event EpochLengthUpdate(uint256 indexed epoch, uint256 epochLength);
 
     /**
@@ -73,7 +73,7 @@ contract EpochManager is Governed {
 
         // Hook for protocol general state updates
 
-        emit EpochRun(lastRunEpoch, blockNum(), msg.sender);
+        emit EpochRun(lastRunEpoch, msg.sender);
     }
 
     /**
