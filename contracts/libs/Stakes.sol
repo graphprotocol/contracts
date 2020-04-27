@@ -21,7 +21,7 @@ library Stakes {
     }
 
     struct IndexNode {
-        uint256 tokens; // Tokens on the IndexNode stake
+        uint256 tokens; // Tokens on the IndexNode stake (staked by the index node)
         uint256 tokensDelegated; // Tokens on the Delegated stake
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period

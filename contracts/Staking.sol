@@ -230,6 +230,7 @@ contract Staking is Governed {
         require(stake.hasTokens(), "Slashing: index node has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
         require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
+        require(tokensToSlash <= stake.tokens, "Slashing: cannot slash more than available stake");
 
         // Slash stake
         stake.releaseTokens(tokensToSlash);
