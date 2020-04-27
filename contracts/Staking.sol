@@ -98,6 +98,7 @@ contract Staking is Governed {
         address indexed indexNode,
         bytes32 indexed subgraphID,
         uint256 epoch,
+        uint256 forEpoch,
         uint256 tokens
     );
 
@@ -114,20 +115,14 @@ contract Staking is Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      * @param _curation Address of the Curation contract
-     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
-    constructor(
-        address _governor,
-        address _token,
-        address _epochManager,
-        address _curation,
-        uint256 _thawingPeriod
-    ) public Governed(_governor) {
+    constructor(address _governor, address _token, address _epochManager, address _curation)
+        public
+        Governed(_governor)
+    {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
         curation = Curation(_curation);
-
-        thawingPeriod = _thawingPeriod;
     }
 
     /**
@@ -166,7 +161,7 @@ contract Staking is Governed {
 
     /**
      * @dev Set the thawing period for unstaking
-     * @param _thawingPeriod Time need to pass in blocks to withdraw stake
+     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
     function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
         thawingPeriod = _thawingPeriod;
@@ -392,10 +387,15 @@ contract Staking is Governed {
         Rebates.Pool storage pool = rebates[_epoch];
         Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
 
-        require(settlement.allocation > 0, "Rebate: settlement does not exist");
-        // TODO: add check based on channelDisputePeriod
+        (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
 
-        // Rebate
+        require(
+            epochsSinceSettlement >= channelDisputePeriod,
+            "Rebate: need to wait channel dispute period"
+        );
+        require(settlement.allocation > 0, "Rebate: settlement does not exist");
+
+        // Process rebate
         uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
         require(tokensToClaim > 0, "Rebate: no tokens available to claim");
         if (pool.settlementsCount == 0) {
@@ -405,15 +405,16 @@ contract Staking is Governed {
         // Update global counter of collected fees
         totalFees = totalFees.sub(tokensToClaim);
 
+        // Assign claimed tokens
         if (_restake) {
             // Restake to place fees into the index node stake
             _stake(indexNode, tokensToClaim);
         } else {
-            // Tranfer funds back to the index node
+            // Transfer funds back to the index node
             require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
         }
 
-        emit RebateClaimed(indexNode, _subgraphID, _epoch, tokensToClaim);
+        emit RebateClaimed(indexNode, _subgraphID, currentEpoch, _epoch, tokensToClaim);
     }
 
     /**

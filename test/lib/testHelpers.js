@@ -292,6 +292,7 @@ module.exports = {
       lengthInBlocks: new BN((24 * 60 * 60) / 15), // One day in blocks
     },
     staking: {
+      channelDisputePeriod: 1, // in epochs
       maxSettlementDuration: 5, // in epochs
       thawingPeriod: 20, // in blocks
     },

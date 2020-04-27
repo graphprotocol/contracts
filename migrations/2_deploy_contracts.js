@@ -13,6 +13,10 @@ module.exports = async (deployer, network, accounts) => {
   const log = (msg, ...params) => {
     deployer.logger.log(msg, ...params)
   }
+  const executeAndLog = async (fn, msg, ...params) => {
+    const { tx } = await fn
+    log(msg, tx, ...params)
+  }
 
   deployer
     .then(async () => {
@@ -37,7 +41,6 @@ module.exports = async (deployer, network, accounts) => {
         graphToken.address,
         epochManager.address,
         curation.address,
-        config.staking.thawingPeriod,
       )
       const rewardsManager = await deployer.deploy(RewardsManager, governor)
       const disputeManager = await deployer.deploy(
@@ -56,11 +59,22 @@ module.exports = async (deployer, network, accounts) => {
       // Set Curation parameters
       log('   Configuring Contracts')
       log('   ---------------------')
-      let r
-      r = await staking.setMaxSettlementDuration(config.staking.maxSettlementDuration)
-      log('   > Staking -> Set maxSettlementDuration: ', r.tx)
-      r = await curation.setDistributor(staking.address)
-      log('   > Curation -> Set distributor: ', r.tx)
+      await executeAndLog(
+        staking.setMaxSettlementDuration(config.staking.maxSettlementDuration),
+        '   > Staking -> Set maxSettlementDuration: ',
+      )
+      await executeAndLog(
+        staking.setThawingPeriod(config.staking.thawingPeriod),
+        '   > Staking -> Set thawingPeriod: ',
+      )
+      await executeAndLog(
+        staking.setChannelDisputePeriod(config.staking.channelDisputePeriod),
+        '   > Staking -> Set channelDisputePeriod: ',
+      )
+      await executeAndLog(
+        curation.setDistributor(staking.address),
+        '   > Curation -> Set distributor: ',
+      )
 
       // Summary
       log('\n')

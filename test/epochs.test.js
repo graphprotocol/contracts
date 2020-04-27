@@ -112,7 +112,7 @@ contract('EpochManager', ([me, other, governor]) => {
           expect(lastRunEpoch).to.be.bignumber.eq(currentEpoch)
 
           // Event emitted
-          expectEvent.inLogs(logs, 'NewEpoch', {
+          expectEvent.inLogs(logs, 'EpochRun', {
             epoch: currentEpoch,
             blockNumber: currentBlock,
             caller: me,
