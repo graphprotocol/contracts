@@ -384,8 +384,9 @@ contract Staking is Governed {
      * @dev Claim tokens from the rebate pool
      * @param _epoch Epoch of the rebate pool we are claiming tokens from
      * @param _subgraphID Subgraph we are claiming tokens from
+     * @param _restake True if restake fees instead of transfer to index node
      */
-    function claim(uint256 _epoch, bytes32 _subgraphID) external {
+    function claim(uint256 _epoch, bytes32 _subgraphID, bool _restake) external {
         address indexNode = msg.sender;
         Rebates.Pool storage pool = rebates[_epoch];
         Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
@@ -403,8 +404,13 @@ contract Staking is Governed {
         // Update global counter of collected fees
         totalFees = totalFees.sub(tokensToClaim);
 
-        // TODO: support re-staking
-        require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
+        if (_restake) {
+            // Restake to place fees into the index node stake
+            _stake(indexNode, tokensToClaim);
+        } else {
+            // Tranfer funds back to the index node
+            require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
+        }
 
         emit RebateClaimed(indexNode, _subgraphID, _epoch, tokensToClaim);
     }
