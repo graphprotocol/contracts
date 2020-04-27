@@ -37,7 +37,6 @@ module.exports = async (deployer, network, accounts) => {
         graphToken.address,
         epochManager.address,
         curation.address,
-        config.staking.maxSettlementDuration,
         config.staking.thawingPeriod,
       )
       const rewardsManager = await deployer.deploy(RewardsManager, governor)
@@ -57,8 +56,11 @@ module.exports = async (deployer, network, accounts) => {
       // Set Curation parameters
       log('   Configuring Contracts')
       log('   ---------------------')
-      const { tx } = await curation.setDistributor(staking.address)
-      log('   > Curation -> Set distributor: ', tx)
+      let r
+      r = await staking.setMaxSettlementDuration(config.staking.maxSettlementDuration)
+      log('   > Staking -> Set maxSettlementDuration: ', r.tx)
+      r = await curation.setDistributor(staking.address)
+      log('   > Curation -> Set distributor: ', r.tx)
 
       // Summary
       log('\n')

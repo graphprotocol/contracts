@@ -94,6 +94,13 @@ contract Staking is Governed {
         address from
     );
 
+    event RebateClaimed(
+        address indexed indexNode,
+        bytes32 indexed subgraphID,
+        uint256 epoch,
+        uint256 tokens
+    );
+
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     modifier onlySlasher {
@@ -107,7 +114,6 @@ contract Staking is Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      * @param _curation Address of the Curation contract
-     * @param _maxSettlementDuration Max settlement duration
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
     constructor(
@@ -115,15 +121,21 @@ contract Staking is Governed {
         address _token,
         address _epochManager,
         address _curation,
-        uint256 _maxSettlementDuration,
         uint256 _thawingPeriod
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
         curation = Curation(_curation);
 
-        maxSettlementDuration = _maxSettlementDuration;
         thawingPeriod = _thawingPeriod;
+    }
+
+    /**
+     * @dev Set the curation contract where to send curation fees
+     * @param _curation Address of the curation contract
+     */
+    function setCuration(Curation _curation) external onlyGovernor {
+        curation = _curation;
     }
 
     /**
@@ -394,7 +406,7 @@ contract Staking is Governed {
         // TODO: support re-staking
         require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
 
-        emit Coso();
+        emit RebateClaimed(indexNode, _subgraphID, _epoch, tokensToClaim);
     }
 
     /**

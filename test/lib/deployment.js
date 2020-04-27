@@ -40,15 +40,16 @@ function deployEpochManagerContract(owner, params) {
 }
 
 async function deployStakingContract(owner, graphToken, epochManager, curation, params) {
-  return Staking.new(
+  const contract = await Staking.new(
     owner,
     graphToken,
     epochManager,
     curation,
-    defaults.staking.maxSettlementDuration,
     defaults.staking.thawingPeriod,
     params,
   )
+  await contract.setMaxSettlementDuration(defaults.staking.maxSettlementDuration, { from: owner })
+  return contract
 }
 
 module.exports = {
