@@ -66,8 +66,6 @@ contract DisputeManager is Governed {
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
         "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
     );
-    // 1 - mainnet // TODO: EIP-1344 adds support for the Chain ID opcode
-    uint256 private constant CHAIN_ID = 1;
 
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
@@ -174,7 +172,7 @@ contract DisputeManager is Governed {
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
-                CHAIN_ID,
+                _getChainID(),
                 address(this)
             )
         );
@@ -433,5 +431,17 @@ contract DisputeManager is Governed {
         disputes[disputeID] = Dispute(_subgraphID, indexNode, _fisherman, _deposit);
 
         emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _attestation);
+    }
+
+    /**
+     * @dev Get the running network chain ID
+     * @return The chain ID
+     */
+    function _getChainID() private pure returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
     }
 }
