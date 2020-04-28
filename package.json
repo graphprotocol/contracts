@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "ethlint": "^1.2.5",
+    "husky": "^4.2.5",
     "ipfs-http-client": "34.0.0",
     "prettier": "^1.19.1",
     "truffle-abi": "^1.0.3",
