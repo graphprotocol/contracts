@@ -293,7 +293,7 @@ contract Staking is Governed {
         require(
             stake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
-        ); // TODO: should index node be able to allocate more funds at any time?
+        );
         require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
@@ -443,7 +443,7 @@ contract Staking is Governed {
         stake.unallocateTokens(subgraphID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
-        delete channels[_channelID];
+        delete channels[_channelID]; //TODO: send multisig one-shot invalidation
 
         // Send curation fees to the curator subgraph reserve
         if (curationFees > 0) {

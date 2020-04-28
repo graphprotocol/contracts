@@ -63,6 +63,7 @@ library Rebates {
         Rebates.Settlement storage settlement = pool.settlements[_indexNode][_subgraphID];
 
         // Production function reward calculation
+        // TODO: exponential calculation when alpha < 1...
         uint256 alpha = 1;
         uint256 termA = settlement.allocation.div(pool.allocation)**(alpha);
         uint256 termB = settlement.fees.div(pool.fees)**(1 - alpha);
