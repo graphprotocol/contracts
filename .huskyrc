@@ -1,5 +1,0 @@
-{
-  "hooks": {
-    "pre-push": "git diff HEAD --quiet && npm run lint && npm test"
-  }
-}

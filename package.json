@@ -59,8 +59,7 @@
       "prettier --write"
     ],
     "test/**/*.js": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   },
   "husky": {
