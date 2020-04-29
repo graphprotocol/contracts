@@ -105,7 +105,6 @@ contract('EpochManager', ([me, other, governor]) => {
           // Run epoch
           const currentEpoch = await this.epochManager.currentEpoch()
           const { logs } = await this.epochManager.runEpoch({ from: me })
-          const currentBlock = await time.latestBlock()
 
           // State
           const lastRunEpoch = await this.epochManager.lastRunEpoch()
@@ -114,7 +113,6 @@ contract('EpochManager', ([me, other, governor]) => {
           // Event emitted
           expectEvent.inLogs(logs, 'EpochRun', {
             epoch: currentEpoch,
-            blockNumber: currentBlock,
             caller: me,
           })
         })
