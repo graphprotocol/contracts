@@ -1,5 +1,6 @@
 pragma solidity ^0.6.4;
 
+
 // upgraded from solidity ^0.4.15 (Gnosis MultiSigWallet v1.3.7)
 
 /// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -183,11 +184,10 @@ contract MultiSigWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return transactionId Returns transaction ID.
-    function submitTransaction(
-        address destination,
-        uint256 value,
-        bytes memory data
-    ) public returns (uint256 transactionId) {
+    function submitTransaction(address destination, uint256 value, bytes memory data)
+        public
+        returns (uint256 transactionId)
+    {
         transactionId = addTransaction(destination, value, data);
         confirmTransaction(transactionId);
     }
@@ -228,14 +228,8 @@ contract MultiSigWallet {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
-            if (
-                external_call(
-                    txn.destination,
-                    txn.value,
-                    txn.data.length,
-                    txn.data
-                )
-            ) emit Execution(transactionId);
+            if (external_call(txn.destination, txn.value, txn.data.length, txn.data))
+                emit Execution(transactionId);
             else {
                 emit ExecutionFailure(transactionId);
                 txn.executed = false;
@@ -289,11 +283,11 @@ contract MultiSigWallet {
     /// @param value Transaction ether value.
     /// @param data Transaction data payload.
     /// @return transactionId Returns transaction ID.
-    function addTransaction(
-        address destination,
-        uint256 value,
-        bytes memory data
-    ) internal notNull(destination) returns (uint256 transactionId) {
+    function addTransaction(address destination, uint256 value, bytes memory data)
+        internal
+        notNull(destination)
+        returns (uint256 transactionId)
+    {
         transactionId = transactionCount;
         transactions[transactionId] = Transaction({
             destination: destination,
@@ -311,11 +305,7 @@ contract MultiSigWallet {
     /// @dev Returns number of confirmations of a transaction.
     /// @param transactionId Transaction ID.
     /// @return count Number of confirmations.
-    function getConfirmationCount(uint256 transactionId)
-        public
-        view
-        returns (uint256 count)
-    {
+    function getConfirmationCount(uint256 transactionId) public view returns (uint256 count) {
         for (uint256 i = 0; i < owners.length; i++)
             if (confirmations[transactionId][owners[i]]) count += 1;
     }
@@ -324,16 +314,10 @@ contract MultiSigWallet {
     /// @param pending Include pending transactions.
     /// @param executed Include executed transactions.
     /// @return count Total number of transactions after filters are applied.
-    function getTransactionCount(bool pending, bool executed)
-        public
-        view
-        returns (uint256 count)
-    {
+    function getTransactionCount(bool pending, bool executed) public view returns (uint256 count) {
         for (uint256 i = 0; i < transactionCount; i++)
-            if (
-                (pending && !transactions[i].executed) ||
-                (executed && transactions[i].executed)
-            ) count += 1;
+            if ((pending && !transactions[i].executed) || (executed && transactions[i].executed))
+                count += 1;
     }
 
     /// @dev Returns list of owners.
@@ -368,25 +352,20 @@ contract MultiSigWallet {
     /// @param pending Include pending transactions.
     /// @param executed Include executed transactions.
     /// @return _transactionIds Returns array of transaction IDs.
-    function getTransactionIds(
-        uint256 from,
-        uint256 to,
-        bool pending,
-        bool executed
-    ) public view returns (uint256[] memory _transactionIds) {
+    function getTransactionIds(uint256 from, uint256 to, bool pending, bool executed)
+        public
+        view
+        returns (uint256[] memory _transactionIds)
+    {
         uint256[] memory transactionIdsTemp = new uint256[](transactionCount);
         uint256 count = 0;
         uint256 i;
         for (i = 0; i < transactionCount; i++)
-            if (
-                (pending && !transactions[i].executed) ||
-                (executed && transactions[i].executed)
-            ) {
+            if ((pending && !transactions[i].executed) || (executed && transactions[i].executed)) {
                 transactionIdsTemp[count] = i;
                 count += 1;
             }
         _transactionIds = new uint256[](to - from);
-        for (i = from; i < to; i++)
-            _transactionIds[i - from] = transactionIdsTemp[i];
+        for (i = from; i < to; i++) _transactionIds[i - from] = transactionIdsTemp[i];
     }
 }

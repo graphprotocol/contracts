@@ -52,13 +52,9 @@ contract('Service Registry', accounts => {
 
     for (let i = 0; i < 3; i++) {
       // Set the url, only governor can
-      const {
-        logs,
-      } = await deployedServiceRegistry.setBootstrapIndexerURL(
-        indexers[i],
-        url,
-        { from: governor },
-      )
+      const { logs } = await deployedServiceRegistry.setBootstrapIndexerURL(indexers[i], url, {
+        from: governor,
+      })
 
       // Verify that the the ServiceUrlSet event is emitted
       expectEvent.inLogs(logs, 'ServiceUrlSet', {
@@ -67,13 +63,8 @@ contract('Service Registry', accounts => {
       })
 
       // Verify that the indexer URL has been updated
-      const indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(
-        indexers[i],
-      )
-      assert(
-        indexerUrlBytes === urlBytes,
-        `Indexer ${i} URL was not set to ${url}`,
-      )
+      const indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(indexers[i])
+      assert(indexerUrlBytes === urlBytes, `Indexer ${i} URL was not set to ${url}`)
     }
   })
 })

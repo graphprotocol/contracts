@@ -230,9 +230,7 @@ library Stakes {
         uint256 _maxEpochs
     ) internal view returns (uint256) {
         uint256 tokens = alloc.tokens;
-        return
-            (_maxEpochs > 0 && _numEpochs > _maxEpochs)
-                ? tokens.mul(_maxEpochs)
-                : tokens.mul(_numEpochs);
+        bool shouldCap = _maxEpochs > 0 && _numEpochs > _maxEpochs;
+        return (shouldCap) ? tokens.mul(_maxEpochs) : tokens.mul(_numEpochs);
     }
 }

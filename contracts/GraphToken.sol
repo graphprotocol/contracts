@@ -11,14 +11,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
 
-// @imp 08 target _to of transfer(_to, _amount, _data) in Token must implement this interface
 // NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
 interface TokenReceiver {
-    function tokensReceived(
-        address _from,
-        uint256 _amount,
-        bytes calldata _data
-    ) external returns (bool);
+    function tokensReceived(address _from, uint256 _amount, bytes calldata _data)
+        external
+        returns (bool);
 }
 
 
@@ -30,10 +27,7 @@ contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
     event MinterRemoved(address indexed account);
 
     modifier onlyMinter() {
-        require(
-            isMinter(msg.sender) || msg.sender == governor,
-            "Only minter can call"
-        );
+        require(isMinter(msg.sender) || msg.sender == governor, "Only minter can call");
         _;
     }
 
@@ -70,11 +64,7 @@ contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
         _removeMinter(msg.sender);
     }
 
-    function mint(address _account, uint256 _amount)
-        external
-        onlyMinter
-        returns (bool)
-    {
+    function mint(address _account, uint256 _amount) external onlyMinter returns (bool) {
         _mint(_account, _amount);
         return true;
     }
@@ -84,11 +74,10 @@ contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
      * @notice Interacts with Staking contract
      * @notice Overriding `transfer` was not working with web3.js so we renamed to `transferToTokenReceiver`
      */
-    function transferToTokenReceiver(
-        address _to,
-        uint256 _amount,
-        bytes memory _data
-    ) public returns (bool success) {
+    function transferToTokenReceiver(address _to, uint256 _amount, bytes memory _data)
+        public
+        returns (bool success)
+    {
         assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
         // @imp 08 Have staking contract receive the token and handle the data
         assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount, _data));
