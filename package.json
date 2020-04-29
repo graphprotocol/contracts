@@ -28,6 +28,7 @@
     "ethlint": "^1.2.5",
     "husky": "^4.2.5",
     "ipfs-http-client": "34.0.0",
+    "lint-staged": "^10.2.0",
     "prettier": "^1.19.1",
     "truffle-abi": "^1.0.3",
     "truffle-assertions": "^0.9.2",
@@ -36,7 +37,9 @@
   },
   "scripts": {
     "build": "npm run compile && npm run flatten && npm run abi:extract",
-    "compile": "truffle compile",
+    "clean": "rm -rf build/contracts",
+    "compile": "truffle compile --all",
+    "migrate": "truffle migrate",
     "test": "truffle test",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
@@ -44,10 +47,27 @@
     "lint:js:fix": "eslint . --fix",
     "lint:sol": "solium --dir ./contracts",
     "lint:sol:fix": "solium --dir ./contracts --fix",
-    "prettier": "prettier --write 'contracts/*.sol' 'test/**/*.js'",
+    "prettier": "npm run prettier:js && npm run prettier:sol",
+    "prettier:js": "prettier --write 'test/**/*.js'",
+    "prettier:sol": "prettier --write 'contracts/*.sol'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
     "typechain": "typechain --target=ethers --outDir build/typechain/contracts/ ./build/abis/**/*.json"
+  },
+  "lint-staged": {
+    "contracts/*.sol": [
+      "prettier --write"
+    ],
+    "test/**/*.js": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "git diff HEAD --quiet && npm run lint && npm test"
+    }
   },
   "repository": {
     "type": "git",
