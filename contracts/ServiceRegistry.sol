@@ -45,10 +45,7 @@ contract ServiceRegistry is Governed {
      * @param _indexer <address> - Address of the indexer
      * @param _url <string> - URL of the service provider
      */
-    function setBootstrapIndexerURL(address _indexer, string calldata _url)
-        external
-        onlyGovernor
-    {
+    function setBootstrapIndexerURL(address _indexer, string calldata _url) external onlyGovernor {
         bytes memory url = bytes(_url);
         bootstrapIndexerURLs[_indexer] = url;
         emit ServiceUrlSet(_indexer, _url);

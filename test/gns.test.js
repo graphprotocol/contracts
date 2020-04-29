@@ -29,10 +29,7 @@ contract('GNS', accounts => {
       from: accounts[1],
     })
     const domain = await deployedGNS.domains(topLevelDomainHash)
-    assert(
-      (await domain.owner) === accounts[1],
-      'Name was not registered properly.',
-    )
+    assert((await domain.owner) === accounts[1], 'Name was not registered properly.')
 
     expectEvent.inLogs(logs, 'DomainAdded', {
       topLevelDomainHash: topLevelDomainHash,
@@ -50,17 +47,11 @@ contract('GNS', accounts => {
   })
 
   it('...should allow a user to create a subgraph only once, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.createSubgraph(
-      topLevelDomainHash,
-      subdomainName,
-      ipfsHash,
-      { from: accounts[1] },
-    )
+    const { logs } = await deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, {
+      from: accounts[1],
+    })
     const domain = await deployedGNS.domains(hashedSubdomain)
-    assert(
-      (await domain.owner) === accounts[1],
-      'Subdomain was not created properly.',
-    )
+    assert((await domain.owner) === accounts[1], 'Subdomain was not created properly.')
 
     expectEvent.inLogs(logs, 'SubgraphCreated', {
       topLevelDomainHash: topLevelDomainHash,
@@ -91,11 +82,9 @@ contract('GNS', accounts => {
   })
 
   it('...should allow a user to update a subgraphID, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.updateDomainSubgraphID(
-      hashedSubdomain,
-      subgraphID,
-      { from: accounts[1] },
-    )
+    const { logs } = await deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, {
+      from: accounts[1],
+    })
     const domain = await deployedGNS.domains(hashedSubdomain)
     assert(
       (await domain.subgraphID) === web3.utils.bytesToHex(subgraphID),
@@ -117,11 +106,9 @@ contract('GNS', accounts => {
   })
 
   it('...should allow subgraph metadata to be updated', async () => {
-    const { logs } = await deployedGNS.changeSubgraphMetadata(
-      hashedSubdomain,
-      ipfsHash,
-      { from: accounts[1] },
-    )
+    const { logs } = await deployedGNS.changeSubgraphMetadata(hashedSubdomain, ipfsHash, {
+      from: accounts[1],
+    })
 
     expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
       domainHash: hashedSubdomain,
@@ -138,11 +125,9 @@ contract('GNS', accounts => {
   })
 
   it('...should allow a user to transfer a domain', async () => {
-    const { logs } = await deployedGNS.transferDomainOwnership(
-      hashedSubdomain,
-      accounts[2],
-      { from: accounts[1] },
-    )
+    const { logs } = await deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[2], {
+      from: accounts[1],
+    })
 
     expectEvent.inLogs(logs, 'DomainTransferred', {
       domainHash: hashedSubdomain,
@@ -173,14 +158,8 @@ contract('GNS', accounts => {
     })
 
     const deletedDomain = await deployedGNS.domains(hashedSubdomain)
-    assert(
-      deletedDomain.subgraphID === helpers.zeroHex(),
-      'SubgraphID was not deleted',
-    )
-    assert(
-      deletedDomain.owner === helpers.zeroAddress(),
-      'Owner was not removed',
-    )
+    assert(deletedDomain.subgraphID === helpers.zeroHex(), 'SubgraphID was not deleted')
+    assert(deletedDomain.owner === helpers.zeroAddress(), 'Owner was not removed')
   })
 
   it('...should allow account metadata event to be emitted  ', async () => {

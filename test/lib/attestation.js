@@ -35,10 +35,7 @@ function createAttestationHash(attestation) {
 
   // ABI encoded
   return web3.utils.sha3(
-    web3.eth.abi.encodeParameters(
-      ['bytes32', 'bytes'],
-      [attestationTypeHash, attestation],
-    ),
+    web3.eth.abi.encodeParameters(['bytes32', 'bytes'], [attestationTypeHash, attestation]),
   )
 }
 
@@ -54,21 +51,13 @@ function createDomainSeparatorHash(contractAddress) {
   return web3.utils.sha3(
     web3.eth.abi.encodeParameters(
       ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
-      [
-        domainTypeHash,
-        domainNameHash,
-        domainVersionHash,
-        chainId,
-        contractAddress,
-      ],
+      [domainTypeHash, domainNameHash, domainVersionHash, chainId, contractAddress],
     ),
   )
 }
 
 function createMessage(domainSeparatorHash, attestationHash) {
-  return (
-    '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
-  )
+  return '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
 }
 
 function createPayload(subgraphId, attestation, messageSig) {
