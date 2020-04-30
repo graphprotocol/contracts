@@ -26,15 +26,30 @@ contract ConditionalTransactionDelegateTarget is MultisigTransfer {
         address[] tokenAddresses;
     }
 
-    function withdrawWrapper(
-        address payable recipient,
-        address assetId,
-        uint256 amount,
+    function executeWithdraw(
+        address interpreterAddress
         bytes32 nonce
+        bytes memory encodedOutput
+        bytes memory encodedParams
     )
         public
     {
-        multisigTransfer(recipient, assetId, amount);
+        (
+            bool success,
+            // solium-disable-next-line no-unused-vars
+            bytes memory returnData
+        ) = interpreterAddress.delegatecall(
+            abi.encodeWithSignature(
+                "interpretOutcomeAndExecuteEffect(bytes,bytes)",
+                encodedOutput,
+                encodedParams
+            )
+        );
+
+        require(
+            success,
+            "Execution of executeWithdraw failed"
+        );
     }
 
     function executeEffectOfFreeBalance(
