@@ -24,16 +24,31 @@ contract IndexerCTDT is MultisigTransfer {
         address[] tokenAddresses;
     }
 
-    // TODO how do we want to handle withdrawals?
-    function withdrawWrapper(
-        address payable recipient,
-        address assetId,
-        uint256 amount,
+    function executeWithdraw(
+        address interpreterAddress
         bytes32 nonce
+        bytes memory encodedOutput
+        bytes memory encodedParams
     )
         public
     {
-        multisigTransfer(recipient, assetId, amount);
+        address payable withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS;
+        (
+            bool success,
+            // solium-disable-next-line no-unused-vars
+            bytes memory returnData
+        ) = withdrawInterpreter.delegatecall(
+            abi.encodeWithSignature(
+                "interpretOutcomeAndExecuteEffect(bytes,bytes)",
+                encodedOutput,
+                encodedParams
+            )
+        );
+
+        require(
+            success,
+            "Execution of executeWithdraw failed"
+        );
     }
 
     function executeEffectOfFreeBalance(

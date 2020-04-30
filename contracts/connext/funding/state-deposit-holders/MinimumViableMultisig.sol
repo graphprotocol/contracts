@@ -27,6 +27,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     address payable INDEXER_STAKING_ADDRESS;
     address payable INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
     address payable INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
+    address payable INDEXER_WITHDRAW_INTERPRETER_ADDRESS;
 
     enum Operation {
         Call,
@@ -47,12 +48,14 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         address payable CTDT,
         address payable staking,
         address payable singleAssetInterpreter,
-        address payable multiAssetInterpreter
+        address payable multiAssetInterpreter,
+        address payable withdrawInterpreter
     ) public {
         INDEXER_CTDT_ADDRESS = CTDT;
         INDEXER_STAKING_ADDRESS = staking;
         INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
         INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = multiAssetInterpreter;
+        INDEXER_WITHDRAW_INTERPRETER_ADDRESS = withdrawInterpreter;
     }
 
 
