@@ -1,6 +1,7 @@
 pragma solidity 0.5.11;
 pragma experimental "ABIEncoderV2";
 
+import "./state-deposit-holders/MinimumViableMultisig.sol";
 import "../state-deposit-holders/MultisigTransfer.sol";
 import "../libs/LibOutcome.sol";
 import "../Interpreter.sol";
@@ -34,9 +35,10 @@ contract IndexerSingleAssetInterpreter is MultisigTransfer, Interpreter {
             (LibOutcome.CoinTransfer[2])
         );
 
-        // TODO is this the right way to do this?
+        address payable stakingAddress = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS;
+
         multisigTransfer(outcome[0].to, params.tokenAddress, outcome[0].amount);
-        multisigTransfer(INDEXER_STAKING_ADDRESS, params.tokenAddress, outcome[1].amount);
+        multisigTransfer(stakingAddress, params.tokenAddress, outcome[1].amount);
     }
 
 }

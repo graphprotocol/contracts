@@ -1,6 +1,7 @@
 pragma solidity 0.5.11;
 pragma experimental "ABIEncoderV2";
 
+import "./state-deposit-holders/MinimumViableMultisig.sol";
 import "./state-deposit-holders/MultisigTransfer.sol";
 import "../adjudicator/ChallengeRegistry.sol";
 import "./libs/LibOutcome.sol";
@@ -51,6 +52,8 @@ contract IndexerCTDT is MultisigTransfer {
             freeBalanceAppState.tokenAddresses.length
         );
 
+        address payable multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
+
         for (uint256 i = 0; i < freeBalanceAppState.tokenAddresses.length; i++) {
             // The transaction's interpreter parameters are determined at the time
             // of creation of the free balance; hence we cannot know how much will be
@@ -63,7 +66,7 @@ contract IndexerCTDT is MultisigTransfer {
             bool success,
             // solium-disable-next-line no-unused-vars
             bytes memory returnData
-        ) = INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS.delegatecall(
+        ) = multiAssetInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 abi.encode(freeBalanceAppState.balances),
@@ -100,6 +103,8 @@ contract IndexerCTDT is MultisigTransfer {
 
         bool appIsFunded = false;
 
+        address payable singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
+
         for (uint256 i = 0; i < activeApps.length; i++) {
             if (activeApps[i] == appIdentityHash) {
                 appIsFunded = true;
@@ -114,7 +119,7 @@ contract IndexerCTDT is MultisigTransfer {
             bool success,
             // solium-disable-next-line no-unused-vars
             bytes memory returnData
-        ) = INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS.delegatecall(
+        ) = singleAssetInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 outcome,

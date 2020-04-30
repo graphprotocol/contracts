@@ -1,6 +1,7 @@
 pragma solidity 0.5.11;
 pragma experimental "ABIEncoderV2";
 
+import "./state-deposit-holders/MinimumViableMultisig.sol";
 import "../state-deposit-holders/MultisigTransfer.sol";
 import "../libs/LibOutcome.sol";
 import "../Interpreter.sol";
@@ -36,6 +37,8 @@ contract IndexerMultiAssetInterpreter is MultisigTransfer, Interpreter {
             (LibOutcome.CoinTransfer[][])
         );
 
+        address payable stakingAddress = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS;
+
         for (uint256 i = 0; i < coinTransferListOfLists.length; i++) {
 
             address tokenAddress = params.tokenAddresses[i];
@@ -48,10 +51,10 @@ contract IndexerMultiAssetInterpreter is MultisigTransfer, Interpreter {
                 limitRemaining -= coinTransfers[0].amount;
                 multisigTransfer(coinTransfers[0].to, tokenAddress, coinTransfers[0].amount);
             }
-            // TODO is this the right way to do this?
+
             if (coinTransfers[1].amount > 0) {
                 limitRemaining -= coinTransfers[1].amount;
-                multisigTransfer(INDEXER_STAKING_ADDRESS, tokenAddress, coinTransfers[1].amount);
+                multisigTransfer(stakingAddress, tokenAddress, coinTransfers[1].amount);
             }
 
             // NOTE: If the limit is MAX_UINT256 it can bypass this check.

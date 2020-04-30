@@ -81,14 +81,17 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     )
         public
     {
+        let parsedTo;
         if( Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[0]) ||
             Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[1]) 
         {
-            to = INDEXER_CTDT_ADDRESS;
+            parsedTo = INDEXER_CTDT_ADDRESS;
+        } else {
+            parsedTo = to
         }
 
         bytes32 transactionHash = getTransactionHash(
-            to,
+            parsedTo,
             value,
             data,
             operation
@@ -108,7 +111,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         }
 
         execute(
-            to,
+            parsedTo,
             value,
             data,
             operation
