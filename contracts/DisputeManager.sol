@@ -264,7 +264,6 @@ contract DisputeManager is Governed {
     function setRewardPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
-
         rewardPercentage = _percentage;
     }
 

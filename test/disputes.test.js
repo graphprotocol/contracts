@@ -54,114 +54,122 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       expect(await this.disputeManager.token()).to.eq(this.graphToken.address)
     })
 
-    it('should set `arbitrator`', async function() {
-      // Set right in the constructor
-      expect(await this.disputeManager.arbitrator()).to.eq(arbitrator)
+    describe('arbitrator', function() {
+      it('should set `arbitrator`', async function() {
+        // Set right in the constructor
+        expect(await this.disputeManager.arbitrator()).to.eq(arbitrator)
 
-      // Can set if allowed
-      await this.disputeManager.setArbitrator(other, { from: governor })
-      expect(await this.disputeManager.arbitrator()).to.eq(other)
-    })
+        // Can set if allowed
+        await this.disputeManager.setArbitrator(other, { from: governor })
+        expect(await this.disputeManager.arbitrator()).to.eq(other)
+      })
 
-    it('reject set `arbitrator` if empty address', async function() {
-      await expectRevert(
-        this.disputeManager.setArbitrator(ZERO_ADDRESS, { from: governor }),
-        'Cannot set arbitrator to empty address',
-      )
-    })
+      it('reject set `arbitrator` if empty address', async function() {
+        await expectRevert(
+          this.disputeManager.setArbitrator(ZERO_ADDRESS, { from: governor }),
+          'Cannot set arbitrator to empty address',
+        )
+      })
 
-    it('reject set `arbitrator` if not allowed', async function() {
-      await expectRevert(
-        this.disputeManager.setArbitrator(arbitrator, { from: other }),
-        'Only Governor can call',
-      )
-    })
-
-    it('should set `rewardPercentage`', async function() {
-      const rewardPercentage = defaults.dispute.rewardPercentage
-
-      // Set right in the constructor
-      expect(await this.disputeManager.rewardPercentage()).to.be.bignumber.eq(
-        rewardPercentage.toString(),
-      )
-
-      // Set new value
-      await this.disputeManager.setRewardPercentage(0, { from: governor })
-      await this.disputeManager.setRewardPercentage(1, { from: governor })
-      await this.disputeManager.setRewardPercentage(rewardPercentage, {
-        from: governor,
+      it('reject set `arbitrator` if not allowed', async function() {
+        await expectRevert(
+          this.disputeManager.setArbitrator(arbitrator, { from: other }),
+          'Only Governor can call',
+        )
       })
     })
 
-    it('reject set `rewardPercentage` if out of bounds', async function() {
-      await expectRevert(
-        this.disputeManager.setRewardPercentage(MAX_PPM + 1, {
+    describe('rewardPercentage', function() {
+      it('should set `rewardPercentage`', async function() {
+        const rewardPercentage = defaults.dispute.rewardPercentage
+
+        // Set right in the constructor
+        expect(await this.disputeManager.rewardPercentage()).to.be.bignumber.eq(
+          rewardPercentage.toString(),
+        )
+
+        // Set new value
+        await this.disputeManager.setRewardPercentage(0, { from: governor })
+        await this.disputeManager.setRewardPercentage(1, { from: governor })
+        await this.disputeManager.setRewardPercentage(rewardPercentage, {
           from: governor,
-        }),
-        'Reward percentage must be below or equal to MAX_PPM',
-      )
-    })
+        })
+      })
 
-    it('reject set `rewardPercentage` if not allowed', async function() {
-      await expectRevert(
-        this.disputeManager.setRewardPercentage(50, { from: other }),
-        'Only Governor can call',
-      )
-    })
+      it('reject set `rewardPercentage` if out of bounds', async function() {
+        await expectRevert(
+          this.disputeManager.setRewardPercentage(MAX_PPM + 1, {
+            from: governor,
+          }),
+          'Reward percentage must be below or equal to MAX_PPM',
+        )
+      })
 
-    it('should set `slashingPercentage`', async function() {
-      const slashingPercentage = defaults.dispute.rewardPercentage
-
-      // Set right in the constructor
-      expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.eq(
-        slashingPercentage.toString(),
-      )
-
-      // Set new value
-      await this.disputeManager.setSlashingPercentage(0, { from: governor })
-      await this.disputeManager.setSlashingPercentage(1, { from: governor })
-      await this.disputeManager.setSlashingPercentage(slashingPercentage, {
-        from: governor,
+      it('reject set `rewardPercentage` if not allowed', async function() {
+        await expectRevert(
+          this.disputeManager.setRewardPercentage(50, { from: other }),
+          'Only Governor can call',
+        )
       })
     })
 
-    it('reject set `slashingPercentage` if out of bounds', async function() {
-      await expectRevert(
-        this.disputeManager.setSlashingPercentage(MAX_PPM + 1, {
+    describe('slashingPercentage', function() {
+      it('should set `slashingPercentage`', async function() {
+        const slashingPercentage = defaults.dispute.rewardPercentage
+
+        // Set right in the constructor
+        expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.eq(
+          slashingPercentage.toString(),
+        )
+
+        // Set new value
+        await this.disputeManager.setSlashingPercentage(0, { from: governor })
+        await this.disputeManager.setSlashingPercentage(1, { from: governor })
+        await this.disputeManager.setSlashingPercentage(slashingPercentage, {
           from: governor,
-        }),
-        'Slashing percentage must be below or equal to MAX_PPM',
-      )
-    })
-
-    it('reject set `slashingPercentage` if not allowed', async function() {
-      await expectRevert(
-        this.disputeManager.setSlashingPercentage(50, { from: other }),
-        'Only Governor can call',
-      )
-    })
-
-    it('should set `minimumDeposit`', async function() {
-      const minimumDeposit = defaults.dispute.minimumDeposit
-      const newMinimumDeposit = web3.utils.toBN(1)
-
-      // Set right in the constructor
-      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(minimumDeposit)
-
-      // Set new value
-      await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
-        from: governor,
+        })
       })
-      expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(newMinimumDeposit)
+
+      it('reject set `slashingPercentage` if out of bounds', async function() {
+        await expectRevert(
+          this.disputeManager.setSlashingPercentage(MAX_PPM + 1, {
+            from: governor,
+          }),
+          'Slashing percentage must be below or equal to MAX_PPM',
+        )
+      })
+
+      it('reject set `slashingPercentage` if not allowed', async function() {
+        await expectRevert(
+          this.disputeManager.setSlashingPercentage(50, { from: other }),
+          'Only Governor can call',
+        )
+      })
     })
 
-    it('reject set `minimumDeposit` if not allowed', async function() {
-      await expectRevert(
-        this.disputeManager.setMinimumDeposit(defaults.dispute.minimumDeposit, {
-          from: other,
-        }),
-        'Only Governor can call',
-      )
+    describe('minimumDeposit', function() {
+      it('should set `minimumDeposit`', async function() {
+        const minimumDeposit = defaults.dispute.minimumDeposit
+        const newMinimumDeposit = web3.utils.toBN(1)
+
+        // Set right in the constructor
+        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(minimumDeposit)
+
+        // Set new value
+        await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
+          from: governor,
+        })
+        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(newMinimumDeposit)
+      })
+
+      it('reject set `minimumDeposit` if not allowed', async function() {
+        await expectRevert(
+          this.disputeManager.setMinimumDeposit(defaults.dispute.minimumDeposit, {
+            from: other,
+          }),
+          'Only Governor can call',
+        )
+      })
     })
   })
 

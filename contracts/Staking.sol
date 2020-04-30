@@ -134,6 +134,16 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Set the curation percentage of index node fees sent to curators
+     * @param _percentage Percentage of index node fees sent to curators
+     */
+    function setCurationPercentage(uint256 _percentage) external onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
+        curationPercentage = _percentage;
+    }
+
+    /**
      * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
      * @param _channelDisputePeriod Period in epochs
      */
@@ -423,7 +433,8 @@ contract Staking is Governed {
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
         // Calculate curation fees
-        uint256 curationFees = (curation.isSubgraphCurated(subgraphID))
+        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
+        uint256 curationFees = (isCurationEnabled && curation.isSubgraphCurated(subgraphID))
             ? curationPercentage.mul(_tokens).div(MAX_PPM)
             : 0;
 

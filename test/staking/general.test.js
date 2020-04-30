@@ -1,11 +1,14 @@
 const BN = web3.utils.BN
 const { expect } = require('chai')
-const { expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers')
+const { constants, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers')
+const { ZERO_ADDRESS } = constants
 
 // helpers
 const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
 const { defaults } = require('../lib/testHelpers')
+
+const MAX_PPM = 1000000
 
 function weightedAverage(valueA, valueB, periodA, periodB) {
   return periodA
@@ -42,7 +45,7 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
     await this.curation.setDistributor(this.staking.address, { from: governor })
   })
 
-  describe('state variables functions', function() {
+  describe('configuration', function() {
     it('should set `governor`', async function() {
       // Set right in the constructor
       expect(await this.staking.governor()).to.eq(governor)
@@ -53,20 +56,71 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
       expect(await this.staking.token()).to.eq(this.graphToken.address)
     })
 
-    describe('maxSettlementDuration', function() {
-      it('should set `setMaxSettlementDuration`', async function() {
-        // Set right in the constructor
-        expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(
-          new BN(defaults.staking.maxSettlementDuration),
-        )
+    describe('channelDisputePeriod', function() {
+      it('should set `channelDisputePeriod`', async function() {
+        const newValue = new BN(5)
+        await this.staking.setChannelDisputePeriod(newValue, { from: governor })
+        expect(await this.staking.channelDisputePeriod()).to.be.bignumber.eq(newValue)
+      })
 
-        // Can set if allowed
+      it('reject set `channelDisputePeriod` if not allowed', async function() {
+        const newValue = new BN(5)
+        await expectRevert(
+          this.staking.setChannelDisputePeriod(newValue, { from: other }),
+          'Only Governor can call',
+        )
+      })
+    })
+
+    describe('curation', function() {
+      it('should set `curation`', async function() {
+        // Set right in the constructor
+        expect(await this.staking.curation()).to.eq(this.curation.address)
+
+        await this.staking.setCuration(ZERO_ADDRESS, { from: governor })
+        expect(await this.staking.curation()).to.eq(ZERO_ADDRESS)
+      })
+
+      it('reject set `curation` if not allowed', async function() {
+        await expectRevert(
+          this.staking.setChannelDisputePeriod(ZERO_ADDRESS, { from: other }),
+          'Only Governor can call',
+        )
+      })
+    })
+
+    describe('curationPercentage', function() {
+      it('should set `curationPercentage`', async function() {
+        const newValue = new BN(5)
+        await this.staking.setCurationPercentage(newValue, { from: governor })
+        expect(await this.staking.curationPercentage()).to.be.bignumber.eq(newValue)
+      })
+
+      it('reject set `curationPercentage` if out of bounds', async function() {
+        await expectRevert(
+          this.staking.setCurationPercentage(MAX_PPM + 1, {
+            from: governor,
+          }),
+          'Curation percentage must be below or equal to MAX_PPM',
+        )
+      })
+
+      it('reject set `curationPercentage` if not allowed', async function() {
+        await expectRevert(
+          this.staking.setCurationPercentage(50, { from: other }),
+          'Only Governor can call',
+        )
+      })
+    })
+
+    describe('maxSettlementDuration', function() {
+      it('should set `maxSettlementDuration`', async function() {
         const newValue = new BN(5)
         await this.staking.setMaxSettlementDuration(newValue, { from: governor })
         expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(newValue)
       })
 
-      it('reject set `setMaxSettlementDuration` if not allowed', async function() {
+      it('reject set `maxSettlementDuration` if not allowed', async function() {
         const newValue = new BN(5)
         await expectRevert(
           this.staking.setMaxSettlementDuration(newValue, { from: other }),
@@ -76,20 +130,14 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
     })
 
     describe('thawingPeriod', function() {
-      it('should set `setThawingPeriod`', async function() {
-        // Set right in the constructor
-        expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(
-          new BN(defaults.staking.thawingPeriod),
-        )
-
-        // Can set if allowed
+      it('should set `thawingPeriod`', async function() {
         const newValue = new BN(5)
         await this.staking.setThawingPeriod(newValue, { from: governor })
         expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(newValue)
       })
 
-      it('reject set `setThawingPeriod` if not allowed', async function() {
-        const newValue = 5
+      it('reject set `thawingPeriod` if not allowed', async function() {
+        const newValue = new BN(5)
         await expectRevert(
           this.staking.setThawingPeriod(newValue, { from: other }),
           'Only Governor can call',
