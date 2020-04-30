@@ -23,6 +23,11 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     address[] private _owners;
 
+    address payable INDEXER_CTDT_ADDRESS;
+    address payable INDEXER_STAKING_ADDRESS;
+    address payable INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
+    address payable INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
+
     enum Operation {
         Call,
         DelegateCall
@@ -33,7 +38,25 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         payable
     {}
 
-    /// @notice Contract constructor
+    /// @notice Contract constructor (mastercopy)
+    /// @param CTDT Address of indexer-specific CTDT contract
+    /// @param staking Address of indexer staking contract
+    /// @param singeAssetInterpreter Address of indexer-specific singleAssetInterpreter contract
+    /// @param multiAssetInterpreter Address of indexer-specific multiAssetInterpreter contract
+    constructor(
+        address payable CTDT,
+        address payable staking,
+        address payable singleAssetInterpreter,
+        address payable multiAssetInterpreter
+    ) public {
+        INDEXER_CTDT_ADDRESS = CTDT;
+        INDEXER_STAKING_ADDRESS = staking;
+        INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
+        INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = multiAssetInterpreter;
+    }
+
+
+    /// @notice Contract constructor (proxy instance)
     /// @param owners An array of unique addresses representing the multisig owners
     function setup(address[] memory owners) public {
         require(_owners.length == 0, "Contract has been set up before");
