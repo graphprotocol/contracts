@@ -1,0 +1,16 @@
+site:
+  title: Graph Protocol Network Docs
+  start_page: contracts::index.adoc
+content:
+  sources:
+    - url: .
+      branches: HEAD
+      start_path: docs
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/master/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: true 
+asciidoc:
+  attributes:
+    idprefix: ''
+
