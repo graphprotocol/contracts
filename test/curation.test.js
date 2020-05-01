@@ -3,9 +3,9 @@ const { expect } = require('chai')
 const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers')
 
 // helpers
-const deployment = require('../lib/deployment')
-const helpers = require('../lib/testHelpers')
-const { defaults } = require('../lib/testHelpers')
+const deployment = require('./lib/deployment')
+const helpers = require('./lib/testHelpers')
+const { defaults } = require('./lib/testHelpers')
 
 const MAX_PPM = 1000000
 
