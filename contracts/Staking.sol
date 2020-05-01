@@ -201,7 +201,7 @@ contract Staking is Governed {
      * @return Amount of tokens staked by the index node
      */
     function getIndexNodeStakeTokens(address _indexNode) public view returns (uint256) {
-        return stakes[_indexNode].tokens;
+        return stakes[_indexNode].tokensIndexNode;
     }
 
     /**
@@ -235,7 +235,10 @@ contract Staking is Governed {
         require(stake.hasTokens(), "Slashing: index node has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
         require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
-        require(tokensToSlash <= stake.tokens, "Slashing: cannot slash more than available stake");
+        require(
+            tokensToSlash <= stake.tokensIndexNode,
+            "Slashing: cannot slash more than available stake"
+        );
 
         // Slash stake
         stake.release(tokensToSlash);
@@ -254,7 +257,7 @@ contract Staking is Governed {
             );
         }
 
-        emit StakeUpdate(_indexNode, tokensToSlash, stake.tokens);
+        emit StakeUpdate(_indexNode, tokensToSlash, stake.tokensIndexNode);
     }
 
     /**
@@ -354,7 +357,7 @@ contract Staking is Governed {
 
         require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
 
-        emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokens);
+        emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokensIndexNode);
     }
 
     /**
@@ -412,7 +415,7 @@ contract Staking is Governed {
         stake.deposit(_tokens);
         totalTokens = totalTokens.add(_tokens);
 
-        emit StakeUpdate(_indexNode, _tokens, stake.tokens);
+        emit StakeUpdate(_indexNode, _tokens, stake.tokensIndexNode);
     }
 
     /**

@@ -21,8 +21,8 @@ library Stakes {
     }
 
     struct IndexNode {
-        uint256 tokens; // Tokens on the IndexNode stake (staked by the index node)
-        uint256 tokensDelegated; // Tokens on the Delegated stake
+        uint256 tokensIndexNode; // Tokens on the IndexNode stake (staked by the index node)
+        uint256 tokensDelegated; // Tokens on the Delegated stake (staked by the delegators)
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
@@ -68,7 +68,7 @@ library Stakes {
      * @param _tokens Amount of tokens to deposit
      */
     function deposit(Stakes.IndexNode storage stake, uint256 _tokens) internal {
-        stake.tokens = stake.tokens.add(_tokens);
+        stake.tokensIndexNode = stake.tokensIndexNode.add(_tokens);
     }
 
     /**
@@ -77,7 +77,7 @@ library Stakes {
      * @param _tokens Amount of tokens to release
      */
     function release(Stakes.IndexNode storage stake, uint256 _tokens) internal {
-        stake.tokens = stake.tokens.sub(_tokens);
+        stake.tokensIndexNode = stake.tokensIndexNode.sub(_tokens);
     }
 
     /**
@@ -149,7 +149,7 @@ library Stakes {
      * @return True if staked
      */
     function hasTokens(Stakes.IndexNode storage stake) internal view returns (bool) {
-        return stake.tokens > 0;
+        return stake.tokensIndexNode > 0;
     }
 
     /**
@@ -172,11 +172,12 @@ library Stakes {
      * @return Token amount
      */
     function tokensStaked(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokens.add(stake.tokensDelegated);
+        return stake.tokensIndexNode.add(stake.tokensDelegated);
     }
 
     /**
      * @dev Tokens available for use in allocations
+     * @dev tokensIndexNode + tokensDelegated - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
@@ -190,7 +191,7 @@ library Stakes {
      * @return Token amount
      */
     function tokensSlashable(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokens;
+        return stake.tokensIndexNode;
     }
 
     /**
@@ -206,7 +207,10 @@ library Stakes {
         // Cannot withdraw more than currently staked
         // This condition can happen if while tokens are locked for withdrawal a slash condition happens
         // In that case the total staked tokens could be below the amount to be withdrawn
-        return (stake.tokensLocked > stake.tokens) ? stake.tokens : stake.tokensLocked;
+        if (stake.tokensLocked > stake.tokensIndexNode) {
+            return stake.tokensIndexNode;
+        }
+        return stake.tokensLocked;
     }
 
     /**
