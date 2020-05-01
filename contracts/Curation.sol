@@ -70,7 +70,7 @@ contract Curation is Governed, BancorFormula {
         uint256 shares
     );
 
-    event Rewarded(bytes32 indexed subgraphID, uint256 tokens);
+    event Collected(bytes32 indexed subgraphID, uint256 tokens);
 
     /**
      * @dev Contract Constructor
@@ -331,7 +331,7 @@ contract Curation is Governed, BancorFormula {
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
 
-        emit Rewarded(_subgraphID, _tokens);
+        emit Collected(_subgraphID, _tokens);
     }
 
     /**

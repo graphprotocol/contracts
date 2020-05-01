@@ -346,8 +346,8 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
       // Give some funds to the distributor
-      const tokensToReward = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(distributor, tokensToReward, {
+      const tokensToCollect = web3.utils.toWei(new BN('1000'))
+      await this.graphToken.mint(distributor, tokensToCollect, {
         from: governor,
       })
 
@@ -358,13 +358,13 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       // Source of tokens must be the distributor for this to work
       const { tx } = await this.graphToken.transferToTokenReceiver(
         this.curation.address,
-        tokensToReward,
+        tokensToCollect,
         this.subgraphId,
         { from: distributor },
       )
-      expectEvent.inTransaction(tx, this.curation.constructor, 'Rewarded', {
+      expectEvent.inTransaction(tx, this.curation.constructor, 'Collected', {
         subgraphID: this.subgraphId,
-        tokens: tokensToReward,
+        tokens: tokensToCollect,
       })
 
       // After balances
@@ -372,10 +372,10 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
 
       // Subgraph balance updated
-      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokensToReward))
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokensToCollect))
 
       // Contract balance updated
-      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokensToReward))
+      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokensToCollect))
     })
   })
 })
