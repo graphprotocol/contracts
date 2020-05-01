@@ -34,86 +34,94 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(await this.curation.token()).to.eq(this.graphToken.address)
     })
 
-    it('should set `distributor`', async function() {
-      // Set right in the constructor
-      expect(await this.curation.distributor()).to.eq(distributor)
+    describe('distributor', function() {
+      it('should set `distributor`', async function() {
+        // Set right in the constructor
+        expect(await this.curation.distributor()).to.eq(distributor)
 
-      // Can set if allowed
-      await this.curation.setDistributor(other, { from: governor })
-      expect(await this.curation.distributor()).to.eq(other)
-    })
-
-    it('reject set `distributor` if not allowed', async function() {
-      await expectRevert(
-        this.curation.setDistributor(distributor, { from: other }),
-        'Only Governor can call',
-      )
-    })
-
-    it('should set `defaultReserveRatio`', async function() {
-      // Set right in the constructor
-      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(
-        defaults.curation.reserveRatio,
-      )
-
-      // Can set if allowed
-      const newDefaultReserveRatio = defaults.curation.reserveRatio.add(new BN(100))
-      await this.curation.setDefaultReserveRatio(newDefaultReserveRatio, {
-        from: governor,
+        // Can set if allowed
+        await this.curation.setDistributor(other, { from: governor })
+        expect(await this.curation.distributor()).to.eq(other)
       })
-      expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(newDefaultReserveRatio)
+
+      it('reject set `distributor` if not allowed', async function() {
+        await expectRevert(
+          this.curation.setDistributor(distributor, { from: other }),
+          'Only Governor can call',
+        )
+      })
     })
 
-    it('reject set `defaultReserveRatio` if out of bounds', async function() {
-      await expectRevert(
-        this.curation.setDefaultReserveRatio(0, { from: governor }),
-        'Default reserve ratio must be > 0',
-      )
-      await expectRevert(
-        this.curation.setDefaultReserveRatio(MAX_PPM + 1, {
+    describe('defaultReserveRatio', function() {
+      it('should set `defaultReserveRatio`', async function() {
+        // Set right in the constructor
+        expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(
+          defaults.curation.reserveRatio,
+        )
+
+        // Can set if allowed
+        const newDefaultReserveRatio = defaults.curation.reserveRatio.add(new BN(100))
+        await this.curation.setDefaultReserveRatio(newDefaultReserveRatio, {
           from: governor,
-        }),
-        'Default reserve ratio cannot be higher than MAX_PPM',
-      )
-    })
-
-    it('reject set `defaultReserveRatio` if not allowed', async function() {
-      await expectRevert(
-        this.curation.setDefaultReserveRatio(defaults.curation.reserveRatio, {
-          from: other,
-        }),
-        'Only Governor can call',
-      )
-    })
-
-    it('should set `minimumCurationStake`', async function() {
-      // Set right in the constructor
-      expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(
-        defaults.curation.minimumCurationStake,
-      )
-
-      // Can set if allowed
-      const newMinimumCurationStake = defaults.curation.minimumCurationStake.add(new BN(100))
-      await this.curation.setMinimumCurationStake(newMinimumCurationStake, {
-        from: governor,
+        })
+        expect(await this.curation.defaultReserveRatio()).to.be.bignumber.eq(newDefaultReserveRatio)
       })
-      expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(newMinimumCurationStake)
+
+      it('reject set `defaultReserveRatio` if out of bounds', async function() {
+        await expectRevert(
+          this.curation.setDefaultReserveRatio(0, { from: governor }),
+          'Default reserve ratio must be > 0',
+        )
+        await expectRevert(
+          this.curation.setDefaultReserveRatio(MAX_PPM + 1, {
+            from: governor,
+          }),
+          'Default reserve ratio cannot be higher than MAX_PPM',
+        )
+      })
+
+      it('reject set `defaultReserveRatio` if not allowed', async function() {
+        await expectRevert(
+          this.curation.setDefaultReserveRatio(defaults.curation.reserveRatio, {
+            from: other,
+          }),
+          'Only Governor can call',
+        )
+      })
     })
 
-    it('reject set `minimumCurationStake` if out of bounds', async function() {
-      await expectRevert(
-        this.curation.setMinimumCurationStake(0, { from: governor }),
-        'Minimum curation stake cannot be 0',
-      )
-    })
+    describe('minimumCurationStake', function() {
+      it('should set `minimumCurationStake`', async function() {
+        // Set right in the constructor
+        expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(
+          defaults.curation.minimumCurationStake,
+        )
 
-    it('reject set `minimumCurationStake` if not allowed', async function() {
-      await expectRevert(
-        this.curation.setMinimumCurationStake(defaults.curation.minimumCurationStake, {
-          from: other,
-        }),
-        'Only Governor can call',
-      )
+        // Can set if allowed
+        const newMinimumCurationStake = defaults.curation.minimumCurationStake.add(new BN(100))
+        await this.curation.setMinimumCurationStake(newMinimumCurationStake, {
+          from: governor,
+        })
+        expect(await this.curation.minimumCurationStake()).to.be.bignumber.eq(
+          newMinimumCurationStake,
+        )
+      })
+
+      it('reject set `minimumCurationStake` if out of bounds', async function() {
+        await expectRevert(
+          this.curation.setMinimumCurationStake(0, { from: governor }),
+          'Minimum curation stake cannot be 0',
+        )
+      })
+
+      it('reject set `minimumCurationStake` if not allowed', async function() {
+        await expectRevert(
+          this.curation.setMinimumCurationStake(defaults.curation.minimumCurationStake, {
+            from: other,
+          }),
+          'Only Governor can call',
+        )
+      })
     })
   })
 
@@ -198,23 +206,18 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(totalTokens).to.be.bignumber.eq(curatorStake)
 
       // Event emitted
-      expectEvent.inTransaction(tx, this.curation.constructor, 'CuratorStakeUpdated', {
+      expectEvent.inTransaction(tx, this.curation.constructor, 'Staked', {
         curator: curator,
         subgraphID: this.subgraphId,
-        shares: '1',
-      })
-
-      expectEvent.inTransaction(tx, this.curation.constructor, 'SubgraphStakeUpdated', {
-        subgraphID: this.subgraphId,
-        shares: '1',
         tokens: curatorStake,
+        shares: '1',
       })
     })
 
-    it('reject unstake', async function() {
+    it('reject redeem', async function() {
       await expectRevert(
-        this.curation.unstake(this.subgraphId, 1),
-        'Cannot unstake more shares than you own',
+        this.curation.redeem(this.subgraphId, 1),
+        'Cannot redeem more shares than you own',
       )
     })
 
@@ -254,8 +257,8 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       )
     })
 
-    it('reject unstake zero shares from a subgraph', async function() {
-      await expectRevert(this.curation.unstake(this.subgraphId, 0), 'Cannot unstake zero shares')
+    it('reject redeem zero shares from a subgraph', async function() {
+      await expectRevert(this.curation.redeem(this.subgraphId, 0), 'Cannot redeem zero shares')
     })
 
     it('should assign the right amount of shares according to bonding curve', async function() {
@@ -264,17 +267,17 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(curatorShares).to.be.bignumber.eq(defaults.curation.shareAmountFor1000Tokens)
     })
 
-    it('should allow to unstake *partially* on a subgraph', async function() {
+    it('should allow to redeem *partially* on a subgraph', async function() {
       // Before balances
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
       const totalTokensBefore = await this.curation.totalTokens()
 
-      // Unstake
+      // Redeem
       const sharesToSell = new BN(1) // Curator want to sell 1 share
-      const expectedTokens = await this.curation.sharesToTokens(this.subgraphId, sharesToSell)
-      const { tx } = await this.curation.unstake(this.subgraphId, sharesToSell, { from: curator })
+      const tokensToReceive = await this.curation.sharesToTokens(this.subgraphId, sharesToSell)
+      const { tx } = await this.curation.redeem(this.subgraphId, sharesToSell, { from: curator })
 
       // After balances
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
@@ -283,33 +286,28 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const totalTokensAfter = await this.curation.totalTokens()
 
       // State properly updated
-      expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(expectedTokens))
+      expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(tokensToReceive))
       expect(curatorSharesAfter).to.be.bignumber.eq(curatorSharesBefore.sub(sharesToSell))
       expect(subgraphAfter.shares).to.be.bignumber.eq(subgraphBefore.shares.sub(sharesToSell))
-      expect(totalTokensAfter).to.be.bignumber.eq(totalTokensBefore.sub(expectedTokens))
+      expect(totalTokensAfter).to.be.bignumber.eq(totalTokensBefore.sub(tokensToReceive))
 
       // Event emitted
-      expectEvent.inTransaction(tx, this.curation.constructor, 'CuratorStakeUpdated', {
+      expectEvent.inTransaction(tx, this.curation.constructor, 'Redeemed', {
         curator: curator,
         subgraphID: this.subgraphId,
-        shares: curatorSharesAfter,
-      })
-
-      expectEvent.inTransaction(tx, this.curation.constructor, 'SubgraphStakeUpdated', {
-        subgraphID: this.subgraphId,
-        shares: subgraphAfter.shares,
-        tokens: subgraphAfter.tokens,
+        tokens: tokensToReceive,
+        shares: sharesToSell,
       })
     })
 
-    it('should allow to unstake *fully* on a subgraph', async function() {
+    it('should allow to redeem *fully* on a subgraph', async function() {
       // Before balances
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
 
-      // Unstake all shares
+      // Redeem all shares
       const sharesToSell = subgraphBefore.shares // we are selling all shares in the subgraph
       const tokensToReceive = subgraphBefore.tokens // we are withdrawing all funds
-      await this.curation.unstake(this.subgraphId, sharesToSell, {
+      const { tx } = await this.curation.redeem(this.subgraphId, sharesToSell, {
         from: curator,
       })
 
@@ -325,6 +323,14 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(subgraphAfter.tokens).to.be.bignumber.eq(new BN(0))
       expect(subgraphAfter.shares).to.be.bignumber.eq(new BN(0))
       expect(totalTokensAfter).to.be.bignumber.eq(new BN(0))
+
+      // Event emitted
+      expectEvent.inTransaction(tx, this.curation.constructor, 'Redeemed', {
+        curator: curator,
+        subgraphID: this.subgraphId,
+        tokens: tokensToReceive,
+        shares: sharesToSell,
+      })
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {

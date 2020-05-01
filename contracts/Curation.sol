@@ -23,7 +23,7 @@ contract Curation is Governed, BancorFormula {
         uint256 reserveRatio; // Ratio for the bonding curve
         uint256 tokens; // Tokens that constitute the subgraph reserve
         uint256 shares; // Shares issued for this subgraph
-        mapping(address => uint256) curatorShares;
+        mapping(address => uint256) curatorShares; // Mapping of curator => shares
     }
 
     // 100% in parts per million
@@ -41,14 +41,14 @@ contract Curation is Governed, BancorFormula {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public defaultReserveRatio;
 
-    // Minimum amount allowed to be staked by Market Curators
+    // Minimum amount allowed to be staked by curators
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
     // Total staked tokens across all subgraphs
     uint256 public totalTokens;
 
-    // Subgraphs and curators mapping : subgraphID => Subgraph
+    // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
     // Address of a party that will distribute fees to subgraph reserves
@@ -59,8 +59,21 @@ contract Curation is Governed, BancorFormula {
 
     // -- Events --
 
-    event CuratorStakeUpdated(address indexed curator, bytes32 indexed subgraphID, uint256 shares);
-    event SubgraphStakeUpdated(bytes32 indexed subgraphID, uint256 shares, uint256 tokens);
+    event Staked(
+        address indexed curator,
+        bytes32 indexed subgraphID,
+        uint256 tokens,
+        uint256 shares
+    );
+
+    event Redeemed(
+        address indexed curator,
+        bytes32 indexed subgraphID,
+        uint256 tokens,
+        uint256 shares
+    );
+
+    event Rewarded(bytes32 indexed subgraphID, uint256 tokens);
 
     /**
      * @dev Contract Constructor
@@ -155,34 +168,34 @@ contract Curation is Governed, BancorFormula {
             return true;
         }
 
-        // Any other source address means they are staking
+        // Any other source address means they are staking tokens for shares
         _stake(_from, subgraphID, _value);
         return true;
     }
 
     /**
-     * @dev Return any amount of shares to get tokens back (above the minimum)
-     * @notice Unstake _shares from the subgraph with _subgraphID
+     * @dev Return an amount of shares to get tokens back
+     * @notice Redeem _shares from the subgraph with _subgraphID
      * @param _subgraphID Subgraph ID the Curator is returning shares for
      * @param _shares Amount of shares to return
      */
-    function unstake(bytes32 _subgraphID, uint256 _shares) external {
+    function redeem(bytes32 _subgraphID, uint256 _shares) external {
         address curator = msg.sender;
         Subgraph storage subgraph = subgraphs[_subgraphID];
 
-        require(_shares > 0, "Cannot unstake zero shares");
+        require(_shares > 0, "Cannot redeem zero shares");
         require(
             subgraph.curatorShares[curator] >= _shares,
-            "Cannot unstake more shares than you own"
+            "Cannot redeem more shares than you own"
         );
 
         // Update balance and get the amount of tokens to refund based on returned shares
-        uint256 tokensToRefund = _sellShares(curator, _subgraphID, _shares);
+        uint256 tokens = _sellShares(curator, _subgraphID, _shares);
 
         // Ensure we are not under minimum required stake
         require(
             subgraph.tokens >= minimumCurationStake || subgraph.tokens == 0,
-            "Cannot unstake below minimum required stake for subgraph"
+            "Cannot redeem below minimum required stake for subgraph"
         );
 
         // Delete if left without stakes
@@ -191,10 +204,9 @@ contract Curation is Governed, BancorFormula {
         }
 
         // Return the tokens to the curator
-        require(token.transfer(curator, tokensToRefund), "Error sending curator tokens");
+        require(token.transfer(curator, tokens), "Error sending curator tokens");
 
-        emit CuratorStakeUpdated(curator, _subgraphID, subgraph.curatorShares[curator]);
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Redeemed(curator, _subgraphID, tokens, _shares);
     }
 
     /**
@@ -330,21 +342,21 @@ contract Curation is Governed, BancorFormula {
     function _collect(bytes32 _subgraphID, uint256 _tokens) private {
         require(isSubgraphCurated(_subgraphID), "Subgraph must be curated to collect fees");
 
-        // Collect new funds to reserve
+        // Collect new funds to into a subgraph reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
 
         // Update global tokens balance
         totalTokens = totalTokens.add(_tokens);
 
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Rewarded(_subgraphID, subgraph.tokens);
     }
 
     /**
-     * @dev Stake Graph Tokens for Market Curation by subgraphID
-     * @param _subgraphID Subgraph ID the Curator is staking Graph Tokens for
-     * @param _curator Address of Staking party
-     * @param _tokens Amount of Graph Tokens to be staked
+     * @dev Deposit Graph Tokens in exchange for shares of a subgraph
+     * @param _subgraphID Subgraph ID where the curator is staking Graph Tokens
+     * @param _curator Address of staking party
+     * @param _tokens Amount of Graph Tokens to stake
      */
     function _stake(address _curator, bytes32 _subgraphID, uint256 _tokens) private {
         Subgraph storage subgraph = subgraphs[_subgraphID];
@@ -358,9 +370,8 @@ contract Curation is Governed, BancorFormula {
         }
 
         // Update subgraph balances
-        _buyShares(_curator, _subgraphID, _tokens);
+        uint256 shares = _buyShares(_curator, _subgraphID, _tokens);
 
-        emit CuratorStakeUpdated(_curator, _subgraphID, subgraph.curatorShares[_curator]);
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Staked(_curator, _subgraphID, _tokens, shares);
     }
 }
