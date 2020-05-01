@@ -21,6 +21,15 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       from: me,
     })
     await this.curation.setDistributor(distributor, { from: governor })
+
+    // Give some funds to the curator
+    this.curatorTokens = web3.utils.toWei(new BN('1000'))
+    await this.graphToken.mint(curator, this.curatorTokens, {
+      from: governor,
+    })
+
+    // Randomize a subgraphId
+    this.subgraphId = helpers.randomSubgraphIdHex0x()
   })
 
   describe('state variables functions', function() {
@@ -131,16 +140,10 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
 
     it('convert shares to tokens', async function() {
-      // Give some funds to the curator
-      const curatorTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(curator, curatorTokens, {
-        from: governor,
-      })
-
       // Curate a subgraph
       await this.graphToken.transferToTokenReceiver(
         this.curation.address,
-        curatorTokens,
+        this.curatorTokens,
         this.subgraphId,
         { from: curator },
       )
@@ -148,7 +151,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       // Conversion
       const shares = (await this.curation.subgraphs(this.subgraphId)).shares
       const tokens = await this.curation.sharesToTokens(this.subgraphId, shares)
-      expect(tokens).to.be.bignumber.eq(curatorTokens)
+      expect(tokens).to.be.bignumber.eq(this.curatorTokens)
     })
 
     it('convert tokens to shares', async function() {
@@ -160,17 +163,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
   })
 
   context('when subgraph is not curated', function() {
-    beforeEach(function() {
-      this.subgraphId = helpers.randomSubgraphIdHex0x()
-    })
-
     it('should stake on a subgraph', async function() {
-      // Give some funds to the curator
-      const curatorTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(curator, curatorTokens, {
-        from: governor,
-      })
-
       // Before balances
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
@@ -213,6 +206,19 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokensToStake))
     })
 
+    it('reject stake below minimum tokens required', async function() {
+      const tokensToStake = defaults.curation.minimumCurationStake.sub(new BN(1))
+      await expectRevert(
+        this.graphToken.transferToTokenReceiver(
+          this.curation.address,
+          tokensToStake,
+          this.subgraphId,
+          { from: curator },
+        ),
+        'Curation stake is below minimum required',
+      )
+    })
+
     it('reject redeem more than a curator owns', async function() {
       await expectRevert(
         this.curation.redeem(this.subgraphId, 1),
@@ -239,18 +245,10 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
   context('when subgraph is curated', function() {
     beforeEach(async function() {
-      this.subgraphId = helpers.randomSubgraphIdHex0x()
-
-      // Give some funds to the curator
-      const curatorTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(curator, curatorTokens, {
-        from: governor,
-      })
-
       // Curate a subgraph using all funds
       await this.graphToken.transferToTokenReceiver(
         this.curation.address,
-        curatorTokens,
+        this.curatorTokens,
         this.subgraphId,
         { from: curator },
       )
