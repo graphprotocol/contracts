@@ -125,6 +125,14 @@ contract EpochManager is Governed {
     }
 
     /**
+     * @dev Return the number of blocks that passed since current epoch started
+     * @return Blocks that passed since start of epoch
+     */
+    function currentEpochBlockSinceStart() public view returns (uint256) {
+        return blockNum() - currentEpochBlock();
+    }
+
+    /**
      * @dev Return the number of epoch that passed since another epoch
      * @param _epoch Epoch to use as since epoch value
      * @return Number of epochs and current epoch
