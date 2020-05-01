@@ -202,7 +202,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const curatorShares = await this.curation.getCuratorShares(curator, this.subgraphId)
       expect(curatorShares).to.be.bignumber.eq(web3.utils.toBN(1))
 
-      const totalTokens = await this.curation.totalTokens()
+      const totalTokens = await this.graphToken.balanceOf(this.curation.address)
       expect(totalTokens).to.be.bignumber.eq(curatorStake)
 
       // Event emitted
@@ -214,7 +214,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       })
     })
 
-    it('reject redeem', async function() {
+    it('reject redeem more than a curator owns', async function() {
       await expectRevert(
         this.curation.redeem(this.subgraphId, 1),
         'Cannot redeem more shares than you own',
@@ -272,7 +272,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
-      const totalTokensBefore = await this.curation.totalTokens()
+      const totalTokensBefore = await this.graphToken.balanceOf(this.curation.address)
 
       // Redeem
       const sharesToSell = new BN(1) // Curator want to sell 1 share
@@ -283,7 +283,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensAfter = await this.graphToken.balanceOf(curator)
       const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
-      const totalTokensAfter = await this.curation.totalTokens()
+      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
 
       // State properly updated
       expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(tokensToReceive))
@@ -315,7 +315,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensAfter = await this.graphToken.balanceOf(curator)
       const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
-      const totalTokensAfter = await this.curation.totalTokens()
+      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
 
       // State properly updated
       expect(curatorTokensAfter).to.be.bignumber.eq(tokensToReceive)

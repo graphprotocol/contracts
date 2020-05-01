@@ -45,9 +45,6 @@ contract Curation is Governed, BancorFormula {
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
-    // Total staked tokens across all subgraphs
-    uint256 public totalTokens;
-
     // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
@@ -301,9 +298,6 @@ contract Curation is Governed, BancorFormula {
         subgraph.shares = subgraph.shares.add(shares);
         subgraph.curatorShares[_curator] = subgraph.curatorShares[_curator].add(shares);
 
-        // Update global balance
-        totalTokens = totalTokens.add(_tokens);
-
         return shares;
     }
 
@@ -328,9 +322,6 @@ contract Curation is Governed, BancorFormula {
         subgraph.shares = subgraph.shares.sub(_shares);
         subgraph.curatorShares[_curator] = subgraph.curatorShares[_curator].sub(_shares);
 
-        // Update global balance
-        totalTokens = totalTokens.sub(tokens);
-
         return tokens;
     }
 
@@ -345,9 +336,6 @@ contract Curation is Governed, BancorFormula {
         // Collect new funds to into a subgraph reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
-
-        // Update global tokens balance
-        totalTokens = totalTokens.add(_tokens);
 
         emit Rewarded(_subgraphID, subgraph.tokens);
     }
