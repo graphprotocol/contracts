@@ -64,13 +64,6 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
         expect(await this.disputeManager.arbitrator()).to.eq(other)
       })
 
-      it('reject set `arbitrator` if empty address', async function() {
-        await expectRevert(
-          this.disputeManager.setArbitrator(ZERO_ADDRESS, { from: governor }),
-          'Cannot set arbitrator to empty address',
-        )
-      })
-
       it('reject set `arbitrator` if not allowed', async function() {
         await expectRevert(
           this.disputeManager.setArbitrator(arbitrator, { from: other }),

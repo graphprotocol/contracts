@@ -56,17 +56,17 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
       expect(await this.staking.token()).to.eq(this.graphToken.address)
     })
 
-    describe('channelDisputePeriod', function() {
-      it('should set `channelDisputePeriod`', async function() {
+    describe('channelDisputeEpochs', function() {
+      it('should set `channelDisputeEpochs`', async function() {
         const newValue = new BN(5)
-        await this.staking.setChannelDisputePeriod(newValue, { from: governor })
-        expect(await this.staking.channelDisputePeriod()).to.be.bignumber.eq(newValue)
+        await this.staking.setChannelDisputeEpochs(newValue, { from: governor })
+        expect(await this.staking.channelDisputeEpochs()).to.be.bignumber.eq(newValue)
       })
 
-      it('reject set `channelDisputePeriod` if not allowed', async function() {
+      it('reject set `channelDisputeEpochs` if not allowed', async function() {
         const newValue = new BN(5)
         await expectRevert(
-          this.staking.setChannelDisputePeriod(newValue, { from: other }),
+          this.staking.setChannelDisputeEpochs(newValue, { from: other }),
           'Only Governor can call',
         )
       })
@@ -83,7 +83,7 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
 
       it('reject set `curation` if not allowed', async function() {
         await expectRevert(
-          this.staking.setChannelDisputePeriod(ZERO_ADDRESS, { from: other }),
+          this.staking.setChannelDisputeEpochs(ZERO_ADDRESS, { from: other }),
           'Only Governor can call',
         )
       })
@@ -113,17 +113,17 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
       })
     })
 
-    describe('maxSettlementDuration', function() {
-      it('should set `maxSettlementDuration`', async function() {
+    describe('maxSettlementEpochs', function() {
+      it('should set `maxSettlementEpochs`', async function() {
         const newValue = new BN(5)
-        await this.staking.setMaxSettlementDuration(newValue, { from: governor })
-        expect(await this.staking.maxSettlementDuration()).to.be.bignumber.eq(newValue)
+        await this.staking.setMaxSettlementEpochs(newValue, { from: governor })
+        expect(await this.staking.maxSettlementEpochs()).to.be.bignumber.eq(newValue)
       })
 
-      it('reject set `maxSettlementDuration` if not allowed', async function() {
+      it('reject set `maxSettlementEpochs` if not allowed', async function() {
         const newValue = new BN(5)
         await expectRevert(
-          this.staking.setMaxSettlementDuration(newValue, { from: other }),
+          this.staking.setMaxSettlementEpochs(newValue, { from: other }),
           'Only Governor can call',
         )
       })

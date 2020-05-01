@@ -48,7 +48,7 @@ contract Curation is Governed, BancorFormula {
     // Total staked tokens across all subgraphs
     uint256 public totalTokens;
 
-    // Subgraphs and curators mapping
+    // Subgraphs and curators mapping : subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
     // Address of a party that will distribute fees to subgraph reserves
@@ -137,7 +137,7 @@ contract Curation is Governed, BancorFormula {
      * @param _from Token holder's address
      * @param _value Amount of Graph Tokens
      * @param _data Extra data payload
-     * @return True token transfer is processed
+     * @return true if token transfer is processed
      */
     function tokensReceived(address _from, uint256 _value, bytes calldata _data)
         external
@@ -162,7 +162,7 @@ contract Curation is Governed, BancorFormula {
 
     /**
      * @dev Return any amount of shares to get tokens back (above the minimum)
-     * @notice Unstake _share shares from the _subgraphID subgraph
+     * @notice Unstake _shares from the subgraph with _subgraphID
      * @param _subgraphID Subgraph ID the Curator is returning shares for
      * @param _shares Amount of shares to return
      */
@@ -347,19 +347,18 @@ contract Curation is Governed, BancorFormula {
      * @param _tokens Amount of Graph Tokens to be staked
      */
     function _stake(address _curator, bytes32 _subgraphID, uint256 _tokens) private {
-        uint256 tokens = _tokens;
         Subgraph storage subgraph = subgraphs[_subgraphID];
 
         // If this subgraph hasn't been curated before then initialize the curve
         if (!isSubgraphCurated(_subgraphID)) {
-            require(tokens >= minimumCurationStake, "Curation stake is below minimum required");
+            require(_tokens >= minimumCurationStake, "Curation stake is below minimum required");
 
             // Initialize subgraph
             subgraph.reserveRatio = defaultReserveRatio;
         }
 
         // Update subgraph balances
-        _buyShares(_curator, _subgraphID, tokens);
+        _buyShares(_curator, _subgraphID, _tokens);
 
         emit CuratorStakeUpdated(_curator, _subgraphID, subgraph.curatorShares[_curator]);
         emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);

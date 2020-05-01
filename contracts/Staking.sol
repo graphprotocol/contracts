@@ -41,10 +41,10 @@ contract Staking is Governed {
     uint256 public curationPercentage;
 
     // Need to pass this period to claim fees in rebate pool
-    uint256 public channelDisputePeriod; // in epochs
+    uint256 public channelDisputeEpochs;
 
     // Need to pass this period for delegators to settle
-    uint256 public maxSettlementDuration; // in epochs
+    uint256 public maxSettlementEpochs;
 
     // Time in blocks to unstake
     uint256 public thawingPeriod; // in blocks
@@ -55,13 +55,13 @@ contract Staking is Governed {
     // Total fees collected outstanding in the protocol
     uint256 public totalFees;
 
-    // IndexNode stake tracking
+    // IndexNode stake tracking : indexNode => Stake
     mapping(address => Stakes.IndexNode) public stakes;
 
-    // Payment channels
+    // Payment channels : channelID => Channel
     mapping(address => Channel) public channels;
 
-    // Rebate pool
+    // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
 
     // List of addresses allowed to slash stakes
@@ -145,18 +145,18 @@ contract Staking is Governed {
 
     /**
      * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
-     * @param _channelDisputePeriod Period in epochs
+     * @param _channelDisputeEpochs Period in epochs
      */
-    function setChannelDisputePeriod(uint256 _channelDisputePeriod) external onlyGovernor {
-        channelDisputePeriod = _channelDisputePeriod;
+    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
+        channelDisputeEpochs = _channelDisputeEpochs;
     }
 
     /**
      * @dev Set the max settlement time allowed for index nodes
-     * @param _maxSettlementDuration Settlement duration limit in epochs
+     * @param _maxSettlementEpochs Settlement duration limit in epochs
      */
-    function setMaxSettlementDuration(uint256 _maxSettlementDuration) external onlyGovernor {
-        maxSettlementDuration = _maxSettlementDuration;
+    function setMaxSettlementEpochs(uint256 _maxSettlementEpochs) external onlyGovernor {
+        maxSettlementEpochs = _maxSettlementEpochs;
     }
 
     /**
@@ -187,7 +187,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Get if an index node has any stake
+     * @dev Getter that returns if an index node has any stake
      * @param _indexNode Address of the index node
      * @return True if index node has staked tokens
      */
@@ -238,7 +238,7 @@ contract Staking is Governed {
         require(tokensToSlash <= stake.tokens, "Slashing: cannot slash more than available stake");
 
         // Slash stake
-        stake.releaseTokens(tokensToSlash);
+        stake.release(tokensToSlash);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
         uint256 tokensToBurn = tokensToSlash.sub(_reward);
@@ -322,7 +322,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Unstake tokens from the index node stake, lock them until thawning period expires
+     * @dev Unstake tokens from the index node stake, lock them until thawing period expires
      * @param _tokens Amount of tokens to unstake
      */
     function unstake(uint256 _tokens) external {
@@ -341,7 +341,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Withdraw tokens once the thawning period has passed
+     * @dev Withdraw tokens once the thawing period has passed
      */
     function withdraw() external {
         address indexNode = msg.sender;
@@ -371,18 +371,19 @@ contract Staking is Governed {
         (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
 
         require(
-            epochsSinceSettlement >= channelDisputePeriod,
+            epochsSinceSettlement >= channelDisputeEpochs,
             "Rebate: need to wait channel dispute period"
         );
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Process rebate
-        uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
+        uint256 tokensToClaim = pool.redeem(indexNode, _subgraphID);
         require(tokensToClaim > 0, "Rebate: no tokens available to claim");
 
         // All settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
             delete rebates[_epoch];
+            // TODO: emit that a rebate pool was pruned (PoolSettled)
         }
 
         // Update global counter of collected fees
@@ -408,7 +409,7 @@ contract Staking is Governed {
     function _stake(address _indexNode, uint256 _tokens) private {
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
-        stake.depositTokens(_tokens);
+        stake.deposit(_tokens);
         totalTokens = totalTokens.add(_tokens);
 
         emit StakeUpdate(_indexNode, _tokens, stake.tokens);
@@ -433,18 +434,17 @@ contract Staking is Governed {
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
         // Calculate curation fees
-        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
-        uint256 curationFees = (isCurationEnabled && curation.isSubgraphCurated(subgraphID))
+        uint256 curationFees = (isCurationEnabled() && curation.isSubgraphCurated(subgraphID))
             ? curationPercentage.mul(_tokens).div(MAX_PPM)
             : 0;
 
         // Set apart fees into a rebate pool
         uint256 rebateFees = _tokens.sub(curationFees);
-        rebates[currentEpoch].depositTokens(
+        rebates[currentEpoch].add(
             indexNode,
             subgraphID,
             rebateFees,
-            alloc.getTokensEffectiveAllocation(epochs, maxSettlementDuration)
+            alloc.getTokensEffectiveAllocation(epochs, maxSettlementEpochs)
         );
 
         // Update global counter of collected fees
@@ -481,5 +481,13 @@ contract Staking is Governed {
             id := chainid()
         }
         return id;
+    }
+
+    /**
+     * @dev Get whether curation rewards are active or not
+     * @return true if curation fees are enabled
+     */
+    function isCurationEnabled() private view returns (bool) {
+        return curationPercentage > 0 && address(curation) != address(0);
     }
 }

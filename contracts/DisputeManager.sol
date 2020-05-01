@@ -77,8 +77,8 @@ contract DisputeManager is Governed {
 
     bytes32 private DOMAIN_SEPARATOR;
 
-    // Disputes created by the Fisherman or other authorized entites
-    // @key _disputeID - Hash of readIndex data + disputer data
+    // Disputes created : disputeID => Dispute
+    // disputeID is the hash of attestation data
     mapping(bytes32 => Dispute) public disputes;
 
     // The arbitrator is solely in control of arbitrating disputes
@@ -159,7 +159,7 @@ contract DisputeManager is Governed {
         uint256 _rewardPercentage,
         uint256 _slashingPercentage
     ) public Governed(_governor) {
-        _setArbitrator(_arbitrator);
+        arbitrator = _arbitrator;
         token = GraphToken(_token);
         staking = Staking(_staking);
         minimumDeposit = _minimumDeposit;
@@ -234,16 +234,6 @@ contract DisputeManager is Governed {
      * @param _arbitrator The address of the arbitration contract or party
      */
     function setArbitrator(address _arbitrator) external onlyGovernor {
-        _setArbitrator(_arbitrator);
-    }
-
-    /**
-     * @dev Set the arbitrator address
-     * @notice Update the arbitrator to `_arbitrator`
-     * @param _arbitrator The address of the arbitration contract or party
-     */
-    function _setArbitrator(address _arbitrator) private {
-        require(_arbitrator != address(0), "Cannot set arbitrator to empty address");
         arbitrator = _arbitrator;
     }
 
@@ -398,8 +388,7 @@ contract DisputeManager is Governed {
      * @dev Create a dispute for the arbitrator to resolve
      * @param _attestation Attestation message
      * @param _sig Attestation signature
-     * @param _subgraphID subgraphID that Attestation message
-     *                                contains (in request raw object at CID)
+     * @param _subgraphID subgraphID for the attestation message
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      */
@@ -417,7 +406,7 @@ contract DisputeManager is Governed {
         // Note: The signer of the attestation is the indexNode that served it
         address indexNode = disputeID.recover(_sig);
 
-        // This also validates that index node node exists
+        // This also validates that index node exists
         require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
 
         // Ensure that fisherman has staked at least the minimum amount

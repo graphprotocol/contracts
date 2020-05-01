@@ -25,8 +25,9 @@ library Stakes {
         uint256 tokensDelegated; // Tokens on the Delegated stake
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
-        uint256 tokensLockedUntil; // Date where locked tokens can be withdrawn
-        mapping(bytes32 => Allocation) allocations; // Subgraph stake tracking
+        uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
+        // Subgraph stake allocation tracking : subgraphID => Allocation
+        mapping(bytes32 => Allocation) allocations;
     }
 
     /**
@@ -66,7 +67,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
-    function depositTokens(Stakes.IndexNode storage stake, uint256 _tokens) internal {
+    function deposit(Stakes.IndexNode storage stake, uint256 _tokens) internal {
         stake.tokens = stake.tokens.add(_tokens);
     }
 
@@ -75,7 +76,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
-    function releaseTokens(Stakes.IndexNode storage stake, uint256 _tokens) internal {
+    function release(Stakes.IndexNode storage stake, uint256 _tokens) internal {
         stake.tokens = stake.tokens.sub(_tokens);
     }
 
@@ -114,7 +115,7 @@ library Stakes {
             stake.tokensLockedUntil = 0;
 
             // Decrease index node stake
-            stake.releaseTokens(tokensToWithdraw);
+            stake.release(tokensToWithdraw);
         }
 
         return tokensToWithdraw;
@@ -137,9 +138,9 @@ library Stakes {
             ? stake.tokensLockedUntil.sub(blockNum)
             : 0;
         uint256 periodB = _thawingPeriod;
-        uint256 valueA = stake.tokensLocked;
-        uint256 valueB = _tokens;
-        return periodA.mul(valueA).add(periodB.mul(valueB)).div(valueA.add(valueB));
+        uint256 stakeA = stake.tokensLocked;
+        uint256 stakeB = _tokens;
+        return periodA.mul(stakeA).add(periodB.mul(stakeB)).div(stakeA.add(stakeB));
     }
 
     /**
@@ -199,7 +200,7 @@ library Stakes {
      */
     function tokensWithdrawable(Stakes.IndexNode storage stake) internal view returns (uint256) {
         // No tokens to withdraw before locking period
-        if (block.number < stake.tokensLockedUntil) {
+        if (stake.tokensLockedUntil == 0 || block.number < stake.tokensLockedUntil) {
             return 0;
         }
         // Cannot withdraw more than currently staked

@@ -5,42 +5,6 @@ import "./Governed.sol";
 
 
 contract GNS is Governed {
-    /*
-     * @title Graph Name Service (GNS) contract
-     *
-     * @author Bryant Eisenbach
-     * @author Reuven Etzion
-     * @author Ashoka Finley
-     * @notice Contract Specification:
-     *
-     * Subgraph IDs : Subgraph definitions are immutable, even though the actual
-     * data ingested may grow -- each subgraph manifest is hashed in its IPLD
-     * canonical serialized form, to produce a unique Id. Nodes in the peer-to-peer
-     * network use this Id to communicate who is indexing and caching what data, as
-     * well as route queries through the network. The self-certifying nature of
-     * subgraph IDs also make them useful for providing attestations and filing disputes.
-     *
-     * Domains : Subgraph IDs can also be associated with a domain name in the Graph
-     * Name Service (GNS) to provide a mutable reference to a subgraph. This can be
-     * useful for writing more human readable queries, always querying the latest version
-     * of a subgraph, specifying relationships between subgraphs or mutably referencing a
-     * subgraph in smart contracts. A domain can be registered with registerDomain(),
-     * and can be considered as a top level domain, where subdomains can be registered
-     * under.
-     *
-     * Subdomains : An owner of a domain in the GNS may wish to deploy multiple subgraphs
-     * to a single domain, and have them exist in separate namespaces. Sub-domains enable
-     * this use case, and add an optional additional layer of namespacing beyond that
-     * already provided by the top level domains. Subdomains and Domains are both stored
-     * in the domains mapping under the hash of their strings.
-     *
-     * Account metadata and subgraph metadata : Data that doesn't need to be stored on
-     * chain, such as descriptions of subgraphs or account images are stored on IPFS.
-     * This data can be retrieved from the IPFS hashes that are emitted through the
-     * metadata events.
-     *
-     */
-
     /* Events */
     event DomainAdded(bytes32 indexed topLevelDomainHash, address indexed owner, string domainName);
     event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);

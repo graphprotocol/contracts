@@ -24,6 +24,7 @@ library Rebates {
         uint256 fees;
         uint256 allocation;
         uint256 settlementsCount;
+        // Settlements in this pool : indexNode => subgraphID => Settlement
         mapping(address => mapping(bytes32 => Settlement)) settlements;
     }
 
@@ -35,7 +36,7 @@ library Rebates {
      * @param _allocation Effective stake allocated by the index node for a period of epochs
      * @return A settlement struct created after adding to rebate pool
      */
-    function depositTokens(
+    function add(
         Rebates.Pool storage pool,
         address _indexNode,
         bytes32 _subgraphID,
@@ -51,12 +52,12 @@ library Rebates {
     }
 
     /**
-     * @dev Release tokens from the rebate pool
+     * @dev Redeem tokens from the rebate pool
      * @param _indexNode Address of the index node claiming a rebate
      * @param _subgraphID ID of the claimed subgraph rebate
      * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
      */
-    function releaseTokens(Rebates.Pool storage pool, address _indexNode, bytes32 _subgraphID)
+    function redeem(Rebates.Pool storage pool, address _indexNode, bytes32 _subgraphID)
         internal
         returns (uint256)
     {

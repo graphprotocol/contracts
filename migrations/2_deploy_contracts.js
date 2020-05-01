@@ -60,16 +60,16 @@ module.exports = async (deployer, network, accounts) => {
       log('   Configuring Contracts')
       log('   ---------------------')
       await executeAndLog(
-        staking.setMaxSettlementDuration(config.staking.maxSettlementDuration),
-        '   > Staking -> Set maxSettlementDuration: ',
+        staking.setMaxSettlementEpochs(config.staking.maxSettlementEpochs),
+        '   > Staking -> Set maxSettlementEpochs: ',
       )
       await executeAndLog(
         staking.setThawingPeriod(config.staking.thawingPeriod),
         '   > Staking -> Set thawingPeriod: ',
       )
       await executeAndLog(
-        staking.setChannelDisputePeriod(config.staking.channelDisputePeriod),
-        '   > Staking -> Set channelDisputePeriod: ',
+        staking.setChannelDisputeEpochs(config.staking.channelDisputeEpochs),
+        '   > Staking -> Set channelDisputeEpochs: ',
       )
       await executeAndLog(
         curation.setDistributor(staking.address),
