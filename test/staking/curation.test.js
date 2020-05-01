@@ -248,13 +248,19 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
         from: governor,
       })
 
-      // Curate a subgraph
+      // Curate a subgraph using all funds
       await this.graphToken.transferToTokenReceiver(
         this.curation.address,
         curatorTokens,
         this.subgraphId,
         { from: curator },
       )
+    })
+
+    it('should create subgraph curation with default reserve ratio', async function() {
+      const defaultReserveRatio = await this.curation.defaultReserveRatio()
+      const subgraph = await this.curation.subgraphs(this.subgraphId)
+      expect(subgraph.reserveRatio).to.be.bignumber.eq(defaultReserveRatio)
     })
 
     it('reject redeem zero shares from a subgraph', async function() {
@@ -269,35 +275,40 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
 
     it('should allow to redeem *partially* on a subgraph', async function() {
       // Before balances
-      const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
+      const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
       const totalTokensBefore = await this.graphToken.balanceOf(this.curation.address)
 
       // Redeem
-      const sharesToSell = new BN(1) // Curator want to sell 1 share
-      const tokensToReceive = await this.curation.sharesToTokens(this.subgraphId, sharesToSell)
-      const { tx } = await this.curation.redeem(this.subgraphId, sharesToSell, { from: curator })
-
-      // After balances
-      const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
-      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
-      const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
-      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
-
-      // State properly updated
-      expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(tokensToReceive))
-      expect(curatorSharesAfter).to.be.bignumber.eq(curatorSharesBefore.sub(sharesToSell))
-      expect(subgraphAfter.shares).to.be.bignumber.eq(subgraphBefore.shares.sub(sharesToSell))
-      expect(totalTokensAfter).to.be.bignumber.eq(totalTokensBefore.sub(tokensToReceive))
-
-      // Event emitted
-      expectEvent.inTransaction(tx, this.curation.constructor, 'Redeemed', {
+      const sharesToRedeem = new BN(1) // Curator want to sell 1 share
+      const tokensToReceive = await this.curation.sharesToTokens(this.subgraphId, sharesToRedeem)
+      const { logs } = await this.curation.redeem(this.subgraphId, sharesToRedeem, {
+        from: curator,
+      })
+      expectEvent.inLogs(logs, 'Redeemed', {
         curator: curator,
         subgraphID: this.subgraphId,
         tokens: tokensToReceive,
-        shares: sharesToSell,
+        shares: sharesToRedeem,
       })
+
+      // After balances
+      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
+      const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
+      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
+
+      // Curator balance updated
+      expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(tokensToReceive))
+      expect(curatorSharesAfter).to.be.bignumber.eq(curatorSharesBefore.sub(sharesToRedeem))
+
+      // Subgraph balance updated
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.sub(tokensToReceive))
+      expect(subgraphAfter.shares).to.be.bignumber.eq(subgraphBefore.shares.sub(sharesToRedeem))
+
+      // Contract balance updated
+      expect(totalTokensAfter).to.be.bignumber.eq(totalTokensBefore.sub(tokensToReceive))
     })
 
     it('should allow to redeem *fully* on a subgraph', async function() {
@@ -305,38 +316,41 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
 
       // Redeem all shares
-      const sharesToSell = subgraphBefore.shares // we are selling all shares in the subgraph
+      const sharesToRedeem = subgraphBefore.shares // we are selling all shares in the subgraph
       const tokensToReceive = subgraphBefore.tokens // we are withdrawing all funds
-      const { tx } = await this.curation.redeem(this.subgraphId, sharesToSell, {
+      const { logs } = await this.curation.redeem(this.subgraphId, sharesToRedeem, {
         from: curator,
       })
-
-      // After balances
-      const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
-      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
-      const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
-      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
-
-      // State properly updated
-      expect(curatorTokensAfter).to.be.bignumber.eq(tokensToReceive)
-      expect(curatorSharesAfter).to.be.bignumber.eq(new BN(0))
-      expect(subgraphAfter.tokens).to.be.bignumber.eq(new BN(0))
-      expect(subgraphAfter.shares).to.be.bignumber.eq(new BN(0))
-      expect(totalTokensAfter).to.be.bignumber.eq(new BN(0))
-
-      // Event emitted
-      expectEvent.inTransaction(tx, this.curation.constructor, 'Redeemed', {
+      expectEvent.inLogs(logs, 'Redeemed', {
         curator: curator,
         subgraphID: this.subgraphId,
         tokens: tokensToReceive,
-        shares: sharesToSell,
+        shares: sharesToRedeem,
       })
+
+      // After balances
+      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
+      const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
+      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
+
+      // Curator balance updated
+      expect(curatorTokensAfter).to.be.bignumber.eq(tokensToReceive)
+      expect(curatorSharesAfter).to.be.bignumber.eq(new BN(0))
+
+      // Subgraph deallocated
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(new BN(0))
+      expect(subgraphAfter.shares).to.be.bignumber.eq(new BN(0))
+      expect(subgraphAfter.reserveRatio).to.be.bignumber.eq(new BN(0))
+
+      // Contract balance updated
+      expect(totalTokensAfter).to.be.bignumber.eq(new BN(0))
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
       // Give some funds to the distributor
-      const tokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(distributor, tokens, {
+      const tokensToReward = web3.utils.toWei(new BN('1000'))
+      await this.graphToken.mint(distributor, tokensToReward, {
         from: governor,
       })
 
@@ -347,25 +361,24 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       // Source of tokens must be the distributor for this to work
       const { tx } = await this.graphToken.transferToTokenReceiver(
         this.curation.address,
-        tokens,
+        tokensToReward,
         this.subgraphId,
         { from: distributor },
       )
+      expectEvent.inTransaction(tx, this.curation.constructor, 'Rewarded', {
+        subgraphID: this.subgraphId,
+        tokens: tokensToReward,
+      })
 
       // After balances
       const totalBalanceAfter = await this.graphToken.balanceOf(this.curation.address)
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
 
-      // State properly updated
-      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokens))
-      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokens))
+      // Subgraph balance updated
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokensToReward))
 
-      // Event emitted
-      expectEvent.inTransaction(tx, this.curation.constructor, 'SubgraphStakeUpdated', {
-        subgraphID: this.subgraphId,
-        shares: subgraphAfter.shares,
-        tokens: subgraphAfter.tokens,
-      })
+      // Contract balance updated
+      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokensToReward))
     })
   })
 })

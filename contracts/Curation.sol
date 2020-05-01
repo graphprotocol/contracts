@@ -189,14 +189,8 @@ contract Curation is Governed, BancorFormula {
         // Update balance and get the amount of tokens to refund based on returned shares
         uint256 tokens = _sellShares(curator, _subgraphID, _shares);
 
-        // Ensure we are not under minimum required stake
-        require(
-            subgraph.tokens >= minimumCurationStake || subgraph.tokens == 0,
-            "Cannot redeem below minimum required stake for subgraph"
-        );
-
-        // Delete if left without stakes
-        if (subgraph.tokens == 0) {
+        // If all shares redeemed delete subgraph
+        if (subgraph.shares == 0) {
             delete subgraphs[_subgraphID];
         }
 
@@ -337,7 +331,7 @@ contract Curation is Governed, BancorFormula {
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
 
-        emit Rewarded(_subgraphID, subgraph.tokens);
+        emit Rewarded(_subgraphID, _tokens);
     }
 
     /**
