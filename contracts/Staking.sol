@@ -49,12 +49,6 @@ contract Staking is Governed {
     // Time in blocks to unstake
     uint256 public thawingPeriod; // in blocks
 
-    // Total tokens staked in the protocol
-    uint256 public totalTokens;
-
-    // Total fees collected outstanding in the protocol
-    uint256 public totalFees;
-
     // IndexNode stake tracking : indexNode => Stake
     mapping(address => Stakes.IndexNode) public stakes;
 
@@ -353,8 +347,6 @@ contract Staking is Governed {
         uint256 tokensToWithdraw = stake.withdrawTokens();
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
-        totalTokens = totalTokens.sub(tokensToWithdraw);
-
         require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
 
         emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokensIndexNode);
@@ -389,9 +381,6 @@ contract Staking is Governed {
             // TODO: emit that a rebate pool was pruned (PoolSettled)
         }
 
-        // Update global counter of collected fees
-        totalFees = totalFees.sub(tokensToClaim);
-
         // Assign claimed tokens
         if (_restake) {
             // Restake to place fees into the index node stake
@@ -411,9 +400,7 @@ contract Staking is Governed {
      */
     function _stake(address _indexNode, uint256 _tokens) private {
         Stakes.IndexNode storage stake = stakes[_indexNode];
-
         stake.deposit(_tokens);
-        totalTokens = totalTokens.add(_tokens);
 
         emit StakeUpdate(_indexNode, _tokens, stake.tokensIndexNode);
     }
@@ -449,9 +436,6 @@ contract Staking is Governed {
             rebateFees,
             alloc.getTokensEffectiveAllocation(epochs, maxSettlementEpochs)
         );
-
-        // Update global counter of collected fees
-        totalFees = totalFees.add(rebateFees);
 
         // Close channel
         stake.unallocateTokens(subgraphID, alloc.tokens);
