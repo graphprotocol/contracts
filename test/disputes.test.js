@@ -302,6 +302,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             subgraphID: this.subgraphId,
             indexNode: indexNode,
             fisherman: fisherman,
+            tokens: this.tokensForFisherman,
             attestation: this.dispute.attestation,
           })
         })
@@ -429,7 +430,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: deposit.add(reward),
+              tokens: deposit.add(reward),
             })
           })
         })
@@ -477,7 +478,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: this.tokensForFisherman,
+              tokens: this.tokensForFisherman,
             })
           })
         })
@@ -520,7 +521,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: this.tokensForFisherman,
+              tokens: this.tokensForFisherman,
             })
           })
         })

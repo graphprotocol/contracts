@@ -108,6 +108,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
+        uint256 tokens,
         bytes attestation
     );
 
@@ -116,7 +117,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     event DisputeRejected(
@@ -124,7 +125,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     event DisputeIgnored(
@@ -132,7 +133,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     modifier onlyArbitrator {
@@ -418,7 +419,7 @@ contract DisputeManager is Governed {
         // Store dispute
         disputes[disputeID] = Dispute(_subgraphID, indexNode, _fisherman, _deposit);
 
-        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _attestation);
+        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _deposit, _attestation);
     }
 
     /**
