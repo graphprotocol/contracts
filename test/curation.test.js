@@ -32,7 +32,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     this.subgraphId = helpers.randomSubgraphIdHex0x()
   })
 
-  describe('state variables functions', function() {
+  describe('configuration', function() {
     it('should set `governor`', async function() {
       // Set right in the constructor
       expect(await this.curation.governor()).to.eq(governor)
