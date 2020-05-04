@@ -6,42 +6,31 @@ const GraphToken = artifacts.require('./GraphToken.sol')
 const Staking = artifacts.require('./Staking.sol')
 
 // helpers
-const helpers = require('./testHelpers')
 const { defaults } = require('./testHelpers')
 
 function deployGraphToken(owner, params) {
   return GraphToken.new(owner, defaults.token.initialSupply, params)
 }
 
-function deployCurationContract(owner, graphToken, distributor, params) {
+function deployCurationContract(owner, graphToken, params) {
   return Curation.new(
     owner,
     graphToken,
-    distributor,
     defaults.curation.reserveRatio,
     defaults.curation.minimumCurationStake,
     params,
   )
 }
 
-function deployDisputeManagerContract(
-  owner,
-  graphToken,
-  arbitrator,
-  staking,
-  params,
-) {
-  const slashingPercentage = helpers.stakingConstants.slashingPercentage
-  const minimumDisputeDepositAmount =
-    helpers.stakingConstants.minimumDisputeDepositAmount
-
+function deployDisputeManagerContract(owner, graphToken, arbitrator, staking, params) {
   return DisputeManager.new(
     owner,
-    graphToken,
     arbitrator,
+    graphToken,
     staking,
-    slashingPercentage,
-    minimumDisputeDepositAmount,
+    defaults.dispute.minimumDeposit,
+    defaults.dispute.rewardPercentage,
+    defaults.dispute.slashingPercentage,
     params,
   )
 }
@@ -50,20 +39,12 @@ function deployEpochManagerContract(owner, params) {
   return EpochManager.new(owner, defaults.epochs.lengthInBlocks, params)
 }
 
-function deployStakingContract(owner, graphToken, params) {
-  const minimumIndexingStakingAmount =
-    helpers.stakingConstants.minimumIndexingStakingAmount
-  const maximumIndexers = helpers.stakingConstants.maximumIndexers
-  const thawingPeriod = helpers.stakingConstants.thawingPeriod
-
-  return Staking.new(
-    owner, // <address> governor
-    minimumIndexingStakingAmount, // <uint256> minimumIndexingStakingAmount
-    maximumIndexers, // <uint256> maximumIndexers
-    thawingPeriod, // <uint256> thawingPeriod
-    graphToken, // <address> token
-    params,
-  )
+async function deployStakingContract(owner, graphToken, epochManager, curation, params) {
+  const contract = await Staking.new(owner, graphToken, epochManager, curation, params)
+  await contract.setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs, { from: owner })
+  await contract.setMaxSettlementEpochs(defaults.staking.maxSettlementEpochs, { from: owner })
+  await contract.setThawingPeriod(defaults.staking.thawingPeriod, { from: owner })
+  return contract
 }
 
 module.exports = {

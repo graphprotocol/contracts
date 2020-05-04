@@ -28,7 +28,7 @@
     "generator-star-spacing": ["error", "before"],
     "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
-    "max-len": ["warn", 120, 2],
+    "max-len": ["warn", 100, 2],
     "no-debugger": "off",
     "no-dupe-args": "error",
     "no-dupe-keys": "error",

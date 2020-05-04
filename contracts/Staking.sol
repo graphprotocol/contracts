@@ -3,96 +3,100 @@ pragma experimental ABIEncoderV2;
 
 /*
  * @title Staking contract
- *
  */
 
+import "./Curation.sol";
+import "./EpochManager.sol";
 import "./Governed.sol";
 import "./GraphToken.sol";
+import "./libs/Rebates.sol";
+import "./libs/Stakes.sol";
 import "./bytes/BytesLib.sol";
 
 
 contract Staking is Governed {
     using BytesLib for bytes;
+    using SafeMath for uint256;
+    using Stakes for Stakes.IndexNode;
+    using Stakes for Stakes.Allocation;
+    using Rebates for Rebates.Pool;
 
-    event IndexNodeStaked(
-        address indexed staker,
-        uint256 amountStaked,
-        bytes32 subgraphID,
-        uint256 subgraphTotalIndexingStake
-    );
+    // -- Stakes --
 
-    event IndexNodeBeginLogout(
-        address indexed staker,
-        bytes32 subgraphID,
-        uint256 unstakedAmount,
-        uint256 fees
-    );
-
-    event IndexNodeFinalizeLogout(address indexed staker, bytes32 subgraphID);
-
-    event SlasherUpdated(
-        address indexed caller,
-        address indexed slasher,
-        bool enabled
-    );
-
-    struct IndexNode {
-        uint256 amountStaked;
-        uint256 feesAccrued;
-        uint256 logoutStarted;
-        uint256 lockedTokens;
+    struct Channel {
+        address indexNode;
+        bytes32 subgraphID;
     }
 
-    struct Subgraph {
-        uint256 totalIndexingStake;
-        uint256 totalIndexers;
-    }
+    // 100% in parts per million
+    uint256 private constant MAX_PPM = 1000000;
 
-    enum TokenReceiptAction { Staking, Settlement }
+    // 1 basis point (0.01%) is 100 parts per million (PPM)
+    uint256 private constant BASIS_PT = 100;
 
-    // Minimum amount allowed to be staked by Indexing Nodes
-    uint256 public minimumIndexingStakingAmount;
+    // -- State --
 
-    // Maximum number of Indexing Nodes staked higher than stake to consider
-    uint256 public maximumIndexers;
+    // Percentage of fees going to curators
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public curationPercentage;
 
-    // Amount of seconds to wait until indexer can finish stake logout
-    // @dev Thawing Period allows disputes to be processed during logout
-    uint256 public thawingPeriod;
+    // Need to pass this period to claim fees in rebate pool
+    uint256 public channelDisputeEpochs;
 
-    // Mapping subgraphId to list of addresses to Indexing Nodes
-    mapping(bytes32 => mapping(address => IndexNode)) public indexNodes;
+    // Need to pass this period for delegators to settle
+    uint256 public maxSettlementEpochs;
 
-    // A dynamic array of index node addresses that bootstrap the graph subgraph
-    // Note: The graph subgraph bootstraps the network. It has no way to retrieve
-    //       the list of all indexers at the start of indexing. The indexingNodes
-    //       mapping can be retrieved for all other subgraphs, since they can
-    //       depend on the existing graph subgraph. Therefore, a single dynamic
-    //       array exists as its own variable graphIndexingNodeAddresses, along with the
-    //       graphSubgraphID public variable. The graphIndexing nodes are still stored
-    //       in indexingNodes, but with this array, and the graphSubgraphID as public
-    //       variables, the bootstrap indexing nodes can be retrieved without a subgraph.
+    // Time in blocks to unstake
+    uint256 public thawingPeriod; // in blocks
 
-    // TODO - potentially implement a upper limit, say 100 indexers, for simplification
-    address[] public graphIndexNodeAddresses;
+    // IndexNode stake tracking : indexNode => Stake
+    mapping(address => Stakes.IndexNode) public stakes;
 
-    // The graph subgraph ID
-    bytes32 public graphSubgraphID;
+    // Payment channels : channelID => Channel
+    mapping(address => Channel) public channels;
 
-    // Subgraphs mapping
-    mapping(bytes32 => Subgraph) public subgraphs;
+    // Rebate pools : epoch => Pool
+    mapping(uint256 => Rebates.Pool) public rebates;
 
-    // List of addresses allowed to slash
+    // List of addresses allowed to slash stakes
     mapping(address => bool) public slashers;
 
     // Related contracts
     GraphToken public token;
+    EpochManager public epochManager;
+    Curation public curation;
 
-    // @dev 100% in parts per million.
-    uint256 private constant MAX_PPM = 1000000;
+    // -- Events --
 
-    // @dev 1 basis point (0.01%) is 100 parts per million (PPM).
-    uint256 private constant BASIS_PT = 100;
+    event StakeUpdate(address indexed indexNode, uint256 tokens, uint256 total);
+    event StakeLocked(address indexed indexNode, uint256 tokens, uint256 until);
+
+    event AllocationUpdated(
+        address indexed indexNode,
+        bytes32 indexed subgraphID,
+        uint256 epoch,
+        uint256 tokens,
+        address channelID
+    );
+    // TODO: consider adding curation reward
+    event AllocationSettled(
+        address indexed indexNode,
+        bytes32 indexed subgraphID,
+        uint256 epoch,
+        uint256 tokens,
+        address channelID,
+        address from
+    );
+
+    event RebateClaimed(
+        address indexed indexNode,
+        bytes32 indexed subgraphID,
+        uint256 epoch,
+        uint256 forEpoch,
+        uint256 tokens
+    );
+
+    event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     modifier onlySlasher {
         require(slashers[msg.sender] == true, "Caller is not a Slasher");
@@ -101,358 +105,376 @@ contract Staking is Governed {
 
     /**
      * @dev Staking Contract Constructor
-     * @param _governor <address> - Address of the multisig contract as Governor of this contract
-     * @param _token <address> - Address of the Graph Protocol token
+     * @param _governor Address of the multisig contract as Governor of this contract
+     * @param _token Address of the Graph Protocol token
+     * @param _epochManager Address of the EpochManager contract
+     * @param _curation Address of the Curation contract
      */
-    constructor(
-        address _governor,
-        uint256 _minimumIndexingStakingAmount,
-        uint256 _maximumIndexers,
-        uint256 _thawingPeriod,
-        address _token
-    ) public Governed(_governor) {
-        // Governance Parameter Defaults
-        minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
-        maximumIndexers = _maximumIndexers;
-        thawingPeriod = _thawingPeriod;
-        token = GraphToken(_token); // Question - do we need a function to upgrade this?
-    }
-
-    function addSlasher(address _slasher) external onlyGovernor {
-        slashers[_slasher] = true;
-        emit SlasherUpdated(msg.sender, _slasher, true);
-    }
-
-    function removeSlasher(address _slasher) external onlyGovernor {
-        slashers[_slasher] = false;
-        emit SlasherUpdated(msg.sender, _slasher, false);
-    }
-
-    /**
-     * @dev Set the Minimum Staking Amount for Indexing Nodes
-     * @param _minimumIndexingStakingAmount <uint256> - Minimum amount allowed to be staked
-     * for Indexing Nodes
-     */
-    function setMinimumIndexingStakingAmount(
-        uint256 _minimumIndexingStakingAmount
-    ) external onlyGovernor returns (bool success) {
-        minimumIndexingStakingAmount = _minimumIndexingStakingAmount; // @imp i03
-        return true;
-    }
-
-    /**
-     * @dev Set the maximum number of Indexing Nodes
-     * @param _maximumIndexers <uint256> - Maximum number of Indexing Nodes allowed
-     */
-    function setMaximumIndexers(uint256 _maximumIndexers)
-        external
-        onlyGovernor
-        returns (bool success)
+    constructor(address _governor, address _token, address _epochManager, address _curation)
+        public
+        Governed(_governor)
     {
-        maximumIndexers = _maximumIndexers;
-        return true;
+        token = GraphToken(_token);
+        epochManager = EpochManager(_epochManager);
+        curation = Curation(_curation);
     }
 
     /**
-     * @dev Set the thawing period for indexer logout
-     * @param _thawingPeriod <uint256> - Number of seconds for thawing period
+     * @dev Set the curation contract where to send curation fees
+     * @param _curation Address of the curation contract
      */
-    function updateThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
+    function setCuration(Curation _curation) external onlyGovernor {
+        curation = _curation;
+    }
+
+    /**
+     * @dev Set the curation percentage of index node fees sent to curators
+     * @param _percentage Percentage of index node fees sent to curators
+     */
+    function setCurationPercentage(uint256 _percentage) external onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
+        curationPercentage = _percentage;
+    }
+
+    /**
+     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
+     * @param _channelDisputeEpochs Period in epochs
+     */
+    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
+        channelDisputeEpochs = _channelDisputeEpochs;
+    }
+
+    /**
+     * @dev Set the max settlement time allowed for index nodes
+     * @param _maxSettlementEpochs Settlement duration limit in epochs
+     */
+    function setMaxSettlementEpochs(uint256 _maxSettlementEpochs) external onlyGovernor {
+        maxSettlementEpochs = _maxSettlementEpochs;
+    }
+
+    /**
+     * @dev Set an address as allowed slasher
+     * @param _slasher Address of the party allowed to slash index nodes
+     * @param _allowed True if slasher is allowed
+     */
+    function setSlasher(address _slasher, bool _allowed) external onlyGovernor {
+        slashers[_slasher] = _allowed;
+        emit SlasherUpdate(msg.sender, _slasher, _allowed);
+    }
+
+    /**
+     * @dev Set the thawing period for unstaking
+     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
+     */
+    function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
         thawingPeriod = _thawingPeriod;
     }
 
-    function removeGraphIndexNode(address _indexNode) private returns (bool) {
-        (bool found, uint256 userIndex) = findGraphIndexerIndex(_indexNode);
-        if (found) {
-            delete graphIndexNodeAddresses[userIndex];
-            return true;
-        }
-        return false;
+    /**
+     * @dev Return if channelID (address) is already used
+     * @param _channelID Address used as signer for index node in payment channel
+     * @return True if channelID already used
+     */
+    function isChannel(address _channelID) public view returns (bool) {
+        return channels[_channelID].indexNode != address(0);
     }
 
-    function getIndexNodeStake(bytes32 _subgraphId, address _indexNode)
+    /**
+     * @dev Getter that returns if an index node has any stake
+     * @param _indexNode Address of the index node
+     * @return True if index node has staked tokens
+     */
+    function hasStake(address _indexNode) public view returns (bool) {
+        return stakes[_indexNode].hasTokens();
+    }
+
+    /**
+     * @dev Get the total amount of tokens staked by the index node
+     * @param _indexNode Address of the index node
+     * @return Amount of tokens staked by the index node
+     */
+    function getIndexNodeStakeTokens(address _indexNode) public view returns (uint256) {
+        return stakes[_indexNode].tokensIndexNode;
+    }
+
+    /**
+     * @dev Get an allocation of tokens to a subgraph
+     * @param _indexNode Address of the index node
+     * @param _subgraphID ID of the subgraph to query
+     * @return Allocation data
+     */
+    function getAllocation(address _indexNode, bytes32 _subgraphID)
         public
         view
-        returns (uint256)
+        returns (Stakes.Allocation memory)
     {
-        return indexNodes[_subgraphId][_indexNode].amountStaked;
+        return stakes[_indexNode].allocations[_subgraphID];
     }
 
-    function slash(
-        bytes32 _subgraphId,
-        address _indexNode,
-        uint256 _reward,
-        address _beneficiary
-    ) external onlySlasher {
+    /**
+     * @dev Slash the index node stake
+     * @param _indexNode Address of index node to slash
+     * @param _tokens Amount of tokens to slash from the index node stake
+     * @param _reward Amount of reward tokens to send to a beneficiary
+     * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
+     */
+    function slash(address _indexNode, uint256 _tokens, uint256 _reward, address _beneficiary)
+        external
+        onlySlasher
+    {
+        uint256 tokensToSlash = _tokens;
+        Stakes.IndexNode storage stake = stakes[_indexNode];
+
+        require(stake.hasTokens(), "Slashing: index node has no stakes");
+        require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
+        require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(
-            _beneficiary != address(0),
-            "Beneficiary must not be an empty address"
-        );
-        require(_reward > 0, "Slashing reward must be greater than 0");
-
-        // Get indexer to be slashed
-
-
-            IndexNode memory _slashedIndexNode
-         = indexNodes[_subgraphId][_indexNode];
-
-        // Remove indexer from the stakes
-        delete indexNodes[_subgraphId][_indexNode]; // Re-entrancy protection
-
-        // Indexer needs to exist and have stakes
-        require(
-            _slashedIndexNode.amountStaked > 0,
-            "Indexer has no stake on the subgraph"
+            tokensToSlash <= stake.tokensIndexNode,
+            "Slashing: cannot slash more than available stake"
         );
 
-        // Handle special case for bootstrap nodes
-        if (_subgraphId == graphSubgraphID) {
+        // Slash stake
+        stake.release(tokensToSlash);
+
+        // Set apart the reward for the beneficiary and burn remaining slashed stake
+        uint256 tokensToBurn = tokensToSlash.sub(_reward);
+        if (tokensToBurn > 0) {
+            token.burn(tokensToBurn);
+        }
+
+        // Give the beneficiary a reward for slashing
+        if (_reward > 0) {
             require(
-                removeGraphIndexNode(_indexNode),
-                "Bootstrap indexer not found"
+                token.transfer(_beneficiary, _reward),
+                "Slashing: error sending dispute reward"
             );
         }
 
-        // Remove Indexing Node for subgraph
-        subgraphs[_subgraphId].totalIndexingStake -= _slashedIndexNode
-            .amountStaked;
-        subgraphs[_subgraphId].totalIndexers -= 1;
-
-        // Burn index node stake and fees setting apart a reward for the beneficiary
-        uint256 tokensToBurn = (_slashedIndexNode.amountStaked - _reward) +
-            _slashedIndexNode.feesAccrued;
-        token.burn(tokensToBurn);
-
-        // Give the beneficiary a reward for the slashing
-        require(
-            token.transfer(_beneficiary, _reward),
-            "Error sending dispute deposit"
-        );
-
-        emit IndexNodeBeginLogout(
-            _indexNode,
-            _subgraphId,
-            _slashedIndexNode.amountStaked,
-            _slashedIndexNode.feesAccrued
-        );
-        emit IndexNodeFinalizeLogout(_indexNode, _subgraphId);
-    }
-
-    /**
-     * @dev Set the graph subgraph ID
-     * @param _subgraphID <bytes32> - The subgraph ID of the bootstrapping subgraph ID
-     * @param _newIndexers <Array<address>> - Array of new indexers that have coordinated outside
-     *        of the protocol, and pre-index the new subgraph before the switch happens
-     */
-    // TODO - Need to add in a check to make sure the indexers are already staked, i.e. they
-    // TODO - exist in indexNodes for this subgraph (60% sure we need this...)
-    function setGraphSubgraphID(
-        bytes32 _subgraphID,
-        address[] calldata _newIndexers
-    ) external onlyGovernor returns (bool success) {
-        graphSubgraphID = _subgraphID;
-        graphIndexNodeAddresses = _newIndexers;
-        return true;
-    }
-
-    /**
-     * @dev Get the number of graph indexing nodes in the dynamic array
-     */
-    function numberOfGraphIndexNodeAddresses()
-        public
-        view
-        returns (uint256 count)
-    {
-        return graphIndexNodeAddresses.length;
+        emit StakeUpdate(_indexNode, tokensToSlash, stake.tokensIndexNode);
     }
 
     /**
      * @dev Accept tokens and handle staking registration functions
-     * @param _from <address> - Token holder's address
-     * @param _value <uint256> - Amount of Graph Tokens
+     * @param _from Token holder's address
+     * @param _value Amount of Graph Tokens
      */
     function tokensReceived(address _from, uint256 _value, bytes calldata _data)
         external
-        returns (bool success)
+        returns (bool)
     {
         // Make sure the token is the caller of this function
-        require(msg.sender == address(token));
+        require(msg.sender == address(token), "Caller is not the GRT token contract");
 
-        // Process _data to figure out the action to take (and which subgraph is involved)
-        require(_data.length >= 1 + 32);
-        // Must be at least 33 bytes (Header)
-        TokenReceiptAction option = TokenReceiptAction(
-            _data.slice(0, 1).toUint8(0)
+        // If we receive funds from a channel multisig it is a settle
+        // TODO: review with how funds are sent from multisig
+        if (_data.length == 20) {
+            address channelID = _data.toAddress(0);
+            if (isChannel(channelID)) {
+                _settle(channelID, _from, _value);
+                return true;
+            }
+        }
+
+        // Any other case is a staking of funds
+        _stake(_from, _value);
+        return true;
+    }
+
+    /**
+     * @dev Allocate available tokens to a subgraph
+     * @param _subgraphID ID of the subgraph where tokens will be allocated
+     * @param _tokens Amount of tokens to allocate
+     * @param _channelID The signer address used by the IndexNode to setup the off-chain payment channel
+     */
+    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelID) external {
+        address indexNode = msg.sender;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+
+        require(_tokens > 0, "Allocation: cannot allocate zero tokens");
+        require(stake.hasTokens(), "Allocation: index node has no stakes");
+        require(
+            stake.tokensAvailable() >= _tokens,
+            "Allocation: not enough tokens available to allocate"
         );
-        bytes32 _subgraphId = _data.slice(1, 32).toBytes32(0);
-        // In subgraph factory, not necessary
+        require(
+            stake.hasAllocation(_subgraphID) == false,
+            "Allocation: cannot allocate if already allocated"
+        );
+        require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
 
-        if (option == TokenReceiptAction.Staking) {
-            stakeForIndexing(_subgraphId, _from, _value);
-        } else if (option == TokenReceiptAction.Settlement) {
-            require(_data.length >= 33 + 20);
-            // Header + _indexNode
-            // address _indexNode = _data.slice(65, 20).toAddress(0);
-            // distributeChannelFees(_subgraphId, _indexNode, _value);
+        // Allocate and setup channel
+        Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
+        alloc.channelID = _channelID;
+        alloc.createdAtEpoch = epochManager.currentEpoch();
+        channels[_channelID] = Channel(indexNode, _subgraphID);
+
+        emit AllocationUpdated(
+            indexNode,
+            _subgraphID,
+            alloc.createdAtEpoch,
+            alloc.tokens,
+            _channelID
+        );
+    }
+
+    /**
+     * @dev Unstake tokens from the index node stake, lock them until thawing period expires
+     * @param _tokens Amount of tokens to unstake
+     */
+    function unstake(uint256 _tokens) external {
+        address indexNode = msg.sender;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+
+        require(stake.hasTokens(), "Staking: index node has no stakes");
+        require(
+            stake.tokensAvailable() >= _tokens,
+            "Staking: not enough tokens available to unstake"
+        );
+
+        stake.lockTokens(_tokens, thawingPeriod);
+
+        emit StakeLocked(indexNode, stake.tokensLocked, stake.tokensLockedUntil);
+    }
+
+    /**
+     * @dev Withdraw tokens once the thawing period has passed
+     */
+    function withdraw() external {
+        address indexNode = msg.sender;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+
+        uint256 tokensToWithdraw = stake.withdrawTokens();
+        require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
+
+        require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
+
+        emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokensIndexNode);
+    }
+
+    /**
+     * @dev Claim tokens from the rebate pool
+     * @param _epoch Epoch of the rebate pool we are claiming tokens from
+     * @param _subgraphID Subgraph we are claiming tokens from
+     * @param _restake True if restake fees instead of transfer to index node
+     */
+    function claim(uint256 _epoch, bytes32 _subgraphID, bool _restake) external {
+        address indexNode = msg.sender;
+        Rebates.Pool storage pool = rebates[_epoch];
+        Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
+
+        (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
+
+        require(
+            epochsSinceSettlement >= channelDisputeEpochs,
+            "Rebate: need to wait channel dispute period"
+        );
+        require(settlement.allocation > 0, "Rebate: settlement does not exist");
+
+        // Process rebate
+        uint256 tokensToClaim = pool.redeem(indexNode, _subgraphID);
+        require(tokensToClaim > 0, "Rebate: no tokens available to claim");
+
+        // All settlements processed then prune rebate pool
+        if (pool.settlementsCount == 0) {
+            delete rebates[_epoch];
+            // TODO: emit that a rebate pool was pruned (PoolSettled)
+        }
+
+        // Assign claimed tokens
+        if (_restake) {
+            // Restake to place fees into the index node stake
+            _stake(indexNode, tokensToClaim);
         } else {
-            revert("Token received option must be 0 or 1");
+            // Transfer funds back to the index node
+            require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
         }
-        success = true;
+
+        emit RebateClaimed(indexNode, _subgraphID, currentEpoch, _epoch, tokensToClaim);
     }
 
     /**
-     * @dev Stake Graph Tokens for Indexing Node data retrieval by subgraphId
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node is staking Graph Tokens for
-     * @param _indexer <address> - Address of Staking party
-     * @param _value <uint256> - Amount of Graph Tokens to be staked
+     * @dev Stake tokens on the index node
+     * @param _indexNode Address of staking party
+     * @param _tokens Amount of tokens to stake
      */
-    function stakeForIndexing(
-        bytes32 _subgraphId,
-        address _indexer,
-        uint256 _value
-    ) private {
-        // If we are dealing with the graph subgraph bootstrap index nodes
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, ) = findGraphIndexerIndex(_indexer);
-            // If the user was never found, we must push them into the array
-            if (found == false) {
-                graphIndexNodeAddresses.push(_indexer);
-            }
-        }
-        require(indexNodes[_subgraphId][_indexer].logoutStarted == 0);
-        require(
-            indexNodes[_subgraphId][_indexer].amountStaked + _value >=
-                minimumIndexingStakingAmount
-        ); // @imp i02
-        if (indexNodes[_subgraphId][_indexer].amountStaked == 0)
-            subgraphs[_subgraphId].totalIndexers += 1; // has not staked before
-        indexNodes[_subgraphId][_indexer].amountStaked += _value;
-        subgraphs[_subgraphId].totalIndexingStake += _value;
+    function _stake(address _indexNode, uint256 _tokens) private {
+        Stakes.IndexNode storage stake = stakes[_indexNode];
+        stake.deposit(_tokens);
 
-        emit IndexNodeStaked(
-            _indexer,
-            indexNodes[_subgraphId][_indexer].amountStaked,
-            _subgraphId,
-            subgraphs[_subgraphId].totalIndexingStake
-        );
-    }
-
-    // TODO - implement partial logouts for these two functions
-    /**
-     * @dev Indexing node can start logout process
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
-     */
-    function beginLogout(bytes32 _subgraphId) external {
-        require(indexNodes[_subgraphId][msg.sender].amountStaked > 0);
-        require(indexNodes[_subgraphId][msg.sender].logoutStarted == 0);
-        indexNodes[_subgraphId][msg.sender].logoutStarted = block.timestamp;
-
-        // Return the amount the Indexing Node has staked
-        uint256 _stake = indexNodes[_subgraphId][msg.sender].amountStaked;
-        indexNodes[_subgraphId][msg.sender].amountStaked = 0;
-        // Return any outstanding fees accrued the Indexing Node does not have yet
-        uint256 _fees = indexNodes[_subgraphId][msg.sender].feesAccrued;
-        indexNodes[_subgraphId][msg.sender].feesAccrued = 0;
-        // If we are dealing with the graph subgraph bootstrap index nodes
-        if (_subgraphId == graphSubgraphID) {
-            (bool found, uint256 userIndex) = findGraphIndexerIndex(msg.sender);
-            assert(found == true);
-            // Note, this does not decrease the length of the array
-            // It just sets this index to 0x0000...
-            // TODO - does the above statement introduce risk of this list getting too long? And creating a denial of service? I believe it will. To investigate in BETA
-            delete graphIndexNodeAddresses[userIndex];
-        }
-        // Decrement the total amount staked by the amount being returned
-        subgraphs[_subgraphId].totalIndexingStake -= _stake;
-
-        // Increase thawingTokens to begin thawing
-        indexNodes[_subgraphId][msg.sender].lockedTokens += (_stake + _fees);
-
-        emit IndexNodeBeginLogout(msg.sender, _subgraphId, _stake, _fees);
+        emit StakeUpdate(_indexNode, _tokens, stake.tokensIndexNode);
     }
 
     /**
-     * @dev Indexing node can finish the logout process after a thawing off period
-     * @param _subgraphId <bytes32> - Subgraph ID the Indexing Node has staked Graph Tokens for
+     * @dev Settle a channel after receiving collected query fees from it
+     * @param _channelID ChannelID - address of the index node in the channel
+     * @param _from Multisig channel address that triggered settlement
+     * @param _tokens Amount of tokens to settle
      */
-    function finalizeLogout(bytes32 _subgraphId) external {
-        // TODO - BUG, you can call finalize logout here, without ever calling beginLogout, and it will work
-        require(
-            indexNodes[_subgraphId][msg.sender].logoutStarted + thawingPeriod <=
-                block.timestamp
+    function _settle(address _channelID, address _from, uint256 _tokens) private {
+        address indexNode = channels[_channelID].indexNode;
+        bytes32 subgraphID = channels[_channelID].subgraphID;
+        Stakes.IndexNode storage stake = stakes[indexNode];
+        Stakes.Allocation storage alloc = stake.allocations[subgraphID];
+
+        require(alloc.hasChannel(), "Channel: Must be active for settlement");
+
+        // Time conditions
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
+        require(epochs > 0, "Channel: Can only settle after one epoch passed");
+
+        // Calculate curation fees
+        uint256 curationFees = (isCurationEnabled() && curation.isSubgraphCurated(subgraphID))
+            ? curationPercentage.mul(_tokens).div(MAX_PPM)
+            : 0;
+
+        // Set apart fees into a rebate pool
+        uint256 rebateFees = _tokens.sub(curationFees);
+        rebates[currentEpoch].add(
+            indexNode,
+            subgraphID,
+            rebateFees,
+            alloc.getTokensEffectiveAllocation(epochs, maxSettlementEpochs)
         );
 
-        uint256 _amount = indexNodes[_subgraphId][msg.sender].lockedTokens;
-        // Reset the index node
-        delete indexNodes[_subgraphId][msg.sender];
+        // Close channel
+        stake.unallocateTokens(subgraphID, alloc.tokens);
+        alloc.channelID = address(0);
+        alloc.createdAtEpoch = 0;
+        delete channels[_channelID]; //TODO: send multisig one-shot invalidation
 
-        // Remove an indexer from the subgraph
-        subgraphs[_subgraphId].totalIndexers -= 1;
-
-        assert(token.transfer(msg.sender, _amount));
-
-        emit IndexNodeFinalizeLogout(msg.sender, _subgraphId);
-    }
-
-    /**
-     * @dev Distribute the channel fees to the given Indexing Node and all the Curators
-     *      for that subgraph. Curator fees are applied through reserve balance increase
-     *      so every Curator logout will earn back more coins back per share, and shares
-     *      cost more to buy.
-     * @param _subgraphId <bytes32> - Subgraph that the fees were accrued for.
-     * @param _indexingNode <address> - Indexing Node that earned the fees.
-     * @param _feesEarned <uint256> - Total amount of fees earned.
-     */
-    // function distributeChannelFees(
-    //     bytes32 _subgraphId,
-    //     address _indexingNode,
-    //     uint256 _feesEarned
-    // ) private {
-    //     // Each share minted gives basis point (0.01%) of the fee collected in that subgraph.
-    //     uint256 _curatorRewardBasisPts = subgraphs[_subgraphId]
-    //         .totalCurationShares *
-    //         BASIS_PT;
-    //     assert(_curatorRewardBasisPts < MAX_PPM); // should be less than 100%
-    //     uint256 _curatorPortion = (_curatorRewardBasisPts * _feesEarned) /
-    //         MAX_PPM;
-    //     // Give the indexing node their part of the fees
-    //     indexingNodes[_subgraphId][msg.sender].feesAccrued += (_feesEarned -
-    //         _curatorPortion);
-    //     // Increase the token balance for the subgraph (each share gets more tokens when sold)
-    //     subgraphs[_subgraphId].totalCurationStake += _curatorPortion;
-    // }
-
-    /**
-     * @dev The Indexing Node can get all of their accrued fees for a subgraph at once.
-     *      Indexing Node would be able to log out all the fees they earned during a dispute.
-     * @param _subgraphId <bytes32> - Subgraph the Indexing Node wishes to withdraw for.
-     */
-    function withdrawFees(bytes32 _subgraphId) external {
-        uint256 _feesAccrued;
-        _feesAccrued = indexNodes[_subgraphId][msg.sender].feesAccrued;
-        require(_feesAccrued > 0);
-        indexNodes[_subgraphId][msg.sender].feesAccrued = 0; // Re-entrancy protection
-        token.transfer(msg.sender, _feesAccrued);
-    }
-
-    /**
-     * @dev A function to help find the location of the indexer in the dynamic array. Note that
-            it must return a bool if the value was found, because an index of 0 can be literally the
-            index of 0, or else it refers to an address that was not found.
-     * @param _indexer <address> - The address of the indexer to look up.
-    */
-    function findGraphIndexerIndex(address _indexer)
-        private
-        view
-        returns (bool found, uint256 userIndex)
-    {
-        // We must find the indexers location in the array first
-        for (uint256 i; i < graphIndexNodeAddresses.length; i++) {
-            if (graphIndexNodeAddresses[i] == _indexer) {
-                userIndex = i;
-                found = true;
-                break;
-            }
+        // Send curation fees to the curator subgraph reserve
+        if (curationFees > 0) {
+            require(
+                token.transferToTokenReceiver(
+                    address(curation),
+                    curationFees,
+                    abi.encodePacked(subgraphID)
+                ),
+                "Channel: Could not transfer tokens to Curators"
+            );
         }
+
+        emit AllocationSettled(indexNode, subgraphID, currentEpoch, _tokens, _channelID, _from);
+    }
+
+    /**
+     * @dev Get the running network chain ID
+     * @return The chain ID
+     */
+    function _getChainID() private pure returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
+    /**
+     * @dev Get whether curation rewards are active or not
+     * @return true if curation fees are enabled
+     */
+    function isCurationEnabled() private view returns (bool) {
+        return curationPercentage > 0 && address(curation) != address(0);
     }
 }

@@ -3,72 +3,21 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 
-contract GNS is Governed {
-    /*
-     * @title Graph Name Service (GNS) contract
-     *
-     * @author Bryant Eisenbach
-     * @author Reuven Etzion
-     * @author Ashoka Finley
-     * @notice Contract Specification:
-     *
-     * Subgraph IDs : Subgraph definitions are immutable, even though the actual
-     * data ingested may grow -- each subgraph manifest is hashed in its IPLD
-     * canonical serialized form, to produce a unique Id. Nodes in the peer-to-peer
-     * network use this Id to communicate who is indexing and caching what data, as
-     * well as route queries through the network. The self-certifying nature of
-     * subgraph IDs also make them useful for providing attestations and filing disputes.
-     *
-     * Domains : Subgraph IDs can also be associated with a domain name in the Graph
-     * Name Service (GNS) to provide a mutable reference to a subgraph. This can be
-     * useful for writing more human readable queries, always querying the latest version
-     * of a subgraph, specifying relationships between subgraphs or mutably referencing a
-     * subgraph in smart contracts. A domain can be registered with registerDomain(),
-     * and can be considered as a top level domain, where subdomains can be registered
-     * under.
-     *
-     * Subdomains : An owner of a domain in the GNS may wish to deploy multiple subgraphs
-     * to a single domain, and have them exist in separate namespaces. Sub-domains enable
-     * this use case, and add an optional additional layer of namespacing beyond that
-     * already provided by the top level domains. Subdomains and Domains are both stored
-     * in the domains mapping under the hash of their strings.
-     *
-     * Account metadata and subgraph metadata : Data that doesn't need to be stored on
-     * chain, such as descriptions of subgraphs or account images are stored on IPFS.
-     * This data can be retrieved from the IPFS hashes that are emitted through the
-     * metadata events.
-     *
-     */
 
+contract GNS is Governed {
     /* Events */
-    event DomainAdded(
-        bytes32 indexed topLevelDomainHash,
-        address indexed owner,
-        string domainName
-    );
-    event DomainTransferred(
-        bytes32 indexed domainHash,
-        address indexed newOwner
-    );
+    event DomainAdded(bytes32 indexed topLevelDomainHash, address indexed owner, string domainName);
+    event DomainTransferred(bytes32 indexed domainHash, address indexed newOwner);
     event SubgraphCreated(
         bytes32 indexed topLevelDomainHash,
         bytes32 indexed registeredHash,
         string subdomainName,
         address indexed owner
     );
-    event SubgraphIDUpdated(
-        bytes32 indexed domainHash,
-        bytes32 indexed subgraphID
-    );
+    event SubgraphIDUpdated(bytes32 indexed domainHash, bytes32 indexed subgraphID);
     event DomainDeleted(bytes32 indexed domainHash);
-    event AccountMetadataChanged(
-        address indexed account,
-        bytes32 indexed ipfsHash
-    );
-    event SubgraphMetadataChanged(
-        bytes32 indexed domainHash,
-        bytes32 indexed ipfsHash
-    );
+    event AccountMetadataChanged(address indexed account, bytes32 indexed ipfsHash);
+    event SubgraphMetadataChanged(bytes32 indexed domainHash, bytes32 indexed ipfsHash);
 
     /* TYPES */
     struct Domain {
@@ -87,10 +36,7 @@ contract GNS is Governed {
     /* Graph Protocol Functions */
 
     modifier onlyDomainOwner(bytes32 _domainHash) {
-        require(
-            msg.sender == domains[_domainHash].owner,
-            "Only domain owner can call."
-        );
+        require(msg.sender == domains[_domainHash].owner, "Only domain owner can call.");
         _;
     }
 
@@ -101,10 +47,7 @@ contract GNS is Governed {
     function registerDomain(string calldata _domainName) external {
         bytes32 hashedName = keccak256(abi.encodePacked(_domainName));
         // Require that this domain is not yet owned by anyone.
-        require(
-            domains[hashedName].owner == address(0),
-            "Domain is already owned."
-        );
+        require(domains[hashedName].owner == address(0), "Domain is already owned.");
         domains[hashedName].owner = msg.sender;
         emit DomainAdded(hashedName, msg.sender, _domainName);
     }
@@ -134,9 +77,7 @@ contract GNS is Governed {
             domainHash = _topLevelDomainHash;
         } else {
             // The domain hash becomes the subdomain concatenated with the top level domain hash.
-            domainHash = keccak256(
-                abi.encodePacked(subdomainHash, _topLevelDomainHash)
-            );
+            domainHash = keccak256(abi.encodePacked(subdomainHash, _topLevelDomainHash));
             require(
                 domains[domainHash].owner == address(0),
                 "Someone already owns this subdomain."
@@ -147,12 +88,7 @@ contract GNS is Governed {
         // Note - subdomain name and IPFS hash are only emitted through the events.
         // Note - if the subdomain is blank, the domain hash ends up being the top level
         // domain hash, not the hash of a blank string.
-        emit SubgraphCreated(
-            _topLevelDomainHash,
-            domainHash,
-            _subdomainName,
-            msg.sender
-        );
+        emit SubgraphCreated(_topLevelDomainHash, domainHash, _subdomainName, msg.sender);
         emit SubgraphMetadataChanged(domainHash, _ipfsHash);
     }
 
@@ -181,10 +117,7 @@ contract GNS is Governed {
      *
      * @param _domainHash <bytes32> - Hash of the domain name.
      */
-    function deleteSubdomain(bytes32 _domainHash)
-        external
-        onlyDomainOwner(_domainHash)
-    {
+    function deleteSubdomain(bytes32 _domainHash) external onlyDomainOwner(_domainHash) {
         delete domains[_domainHash];
         emit DomainDeleted(_domainHash);
     }
@@ -200,10 +133,7 @@ contract GNS is Governed {
         external
         onlyDomainOwner(_domainHash)
     {
-        require(
-            _newOwner != address(0),
-            "If you want to reset the owner, call deleteSubdomain."
-        );
+        require(_newOwner != address(0), "If you want to reset the owner, call deleteSubdomain.");
         domains[_domainHash].owner = _newOwner;
         emit DomainTransferred(_domainHash, _newOwner);
     }

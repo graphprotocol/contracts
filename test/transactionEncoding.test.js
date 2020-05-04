@@ -31,22 +31,13 @@ contract('NPM Module', ([deployment, governor, ...accounts]) => {
         urlToRegister, // <bytes> url
       )
       .encodeABI()
-    assert(
-      directlyEncodedAbiTxData.length,
-      'Transaction data was not encoded via encodeABI.',
-    )
+    assert(directlyEncodedAbiTxData.length, 'Transaction data was not encoded via encodeABI.')
 
     // encode transaction data using graphProtocol.js
-    const moduleEncodedTxData = gp.abiEncode(
-      deployedServiceRegistry.contract.methods.setUrl,
-      [
-        urlToRegister, // <bytes> url
-      ],
-    )
-    assert(
-      moduleEncodedTxData.length,
-      'Transaction data  was not encoded via gp.abiEncode.',
-    )
+    const moduleEncodedTxData = gp.abiEncode(deployedServiceRegistry.contract.methods.setUrl, [
+      urlToRegister, // <bytes> url
+    ])
+    assert(moduleEncodedTxData.length, 'Transaction data  was not encoded via gp.abiEncode.')
 
     // both methods should return the same data
     assert(

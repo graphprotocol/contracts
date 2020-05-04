@@ -1,9 +1,5 @@
 const { expect } = require('chai')
-const {
-  expectEvent,
-  expectRevert,
-  time,
-} = require('@openzeppelin/test-helpers')
+const { expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers')
 const BN = web3.utils.BN
 
 // helpers
@@ -21,16 +17,12 @@ contract('EpochManager', ([me, other, governor]) => {
   describe('state variables functions', () => {
     it('should set `governor`', async function() {
       // Set right in the constructor
-      expect(await this.epochManager.governor()).to.equal(governor)
-
-      // Can set if allowed
-      await this.epochManager.transferOwnership(other, { from: governor })
-      expect(await this.epochManager.governor()).to.equal(other)
+      expect(await this.epochManager.governor()).to.eq(governor)
     })
 
     it('should set `epochLength', async function() {
       // Set right in the constructor
-      expect(await this.epochManager.epochLength()).to.be.bignumber.equal(
+      expect(await this.epochManager.epochLength()).to.be.bignumber.eq(
         defaults.epochs.lengthInBlocks,
       )
 
@@ -40,9 +32,7 @@ contract('EpochManager', ([me, other, governor]) => {
       const { logs } = await this.epochManager.setEpochLength(newEpochLength, {
         from: governor,
       })
-      expect(await this.epochManager.epochLength()).to.be.bignumber.equal(
-        newEpochLength,
-      )
+      expect(await this.epochManager.epochLength()).to.be.bignumber.eq(newEpochLength)
 
       // Event emitted
       expectEvent.inLogs(logs, 'EpochLengthUpdate', {
@@ -75,21 +65,7 @@ contract('EpochManager', ([me, other, governor]) => {
     describe('calculations', () => {
       it('should return correct block number', async function() {
         const currentBlock = await time.latestBlock()
-        expect(await this.epochManager.blockNum()).to.be.bignumber.equal(
-          currentBlock,
-        )
-      })
-
-      it('should return same starting block if we stay on the same epoch', async function() {
-        const currentEpochBlockBefore = await this.epochManager.currentEpochBlock()
-
-        // Advance blocks to stay on the same epoch
-        await time.advanceBlock()
-
-        const currentEpochBlockAfter = await this.epochManager.currentEpochBlock()
-        expect(currentEpochBlockAfter).to.be.bignumber.equal(
-          currentEpochBlockBefore,
-        )
+        expect(await this.epochManager.blockNum()).to.be.bignumber.eq(currentBlock)
       })
 
       it('should return next starting block if we move to the next epoch', async function() {
@@ -99,22 +75,18 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlockBefore.add(this.epochLength))
 
         const currentEpochBlockAfter = await this.epochManager.currentEpochBlock()
-        expect(currentEpochBlockAfter).to.be.bignumber.not.equal(
-          currentEpochBlockBefore,
-        )
+        expect(currentEpochBlockAfter).to.be.bignumber.not.eq(currentEpochBlockBefore)
       })
 
       it('should return next epoch if advance > epochLength', async function() {
-        const nextEpoch = (await this.epochManager.currentEpoch()).add(
-          new BN(1),
-        )
+        const nextEpoch = (await this.epochManager.currentEpoch()).add(new BN(1))
 
         // Advance blocks and move to the next epoch
         const currentEpochBlock = await this.epochManager.currentEpochBlock()
         await time.advanceBlockTo(currentEpochBlock.add(this.epochLength))
 
         const currentEpochAfter = await this.epochManager.currentEpoch()
-        expect(currentEpochAfter).to.be.bignumber.equal(nextEpoch)
+        expect(currentEpochAfter).to.be.bignumber.eq(nextEpoch)
       })
     })
 
@@ -133,16 +105,14 @@ contract('EpochManager', ([me, other, governor]) => {
           // Run epoch
           const currentEpoch = await this.epochManager.currentEpoch()
           const { logs } = await this.epochManager.runEpoch({ from: me })
-          const currentBlock = await time.latestBlock()
 
           // State
           const lastRunEpoch = await this.epochManager.lastRunEpoch()
-          expect(lastRunEpoch).to.be.bignumber.equal(currentEpoch)
+          expect(lastRunEpoch).to.be.bignumber.eq(currentEpoch)
 
           // Event emitted
-          expectEvent.inLogs(logs, 'NewEpoch', {
+          expectEvent.inLogs(logs, 'EpochRun', {
             epoch: currentEpoch,
-            blockNumber: currentBlock,
             caller: me,
           })
         })
@@ -158,10 +128,7 @@ contract('EpochManager', ([me, other, governor]) => {
         })
 
         it('reject run new epoch', async function() {
-          await expectRevert(
-            this.epochManager.runEpoch(),
-            'Current epoch already run',
-          )
+          await expectRevert(this.epochManager.runEpoch(), 'Current epoch already run')
         })
       })
     })
