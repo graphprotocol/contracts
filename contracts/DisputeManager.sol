@@ -270,6 +270,15 @@ contract DisputeManager is Governed {
     }
 
     /**
+     * @dev Set the staking contract used for slashing
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
+     */
+    function setStaking(Staking _staking) external onlyGovernor {
+        staking = _staking;
+    }
+
+    /**
      * @dev Accept tokens
      * @notice Receive Graph tokens
      * @param _from Token holder's address
