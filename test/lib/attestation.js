@@ -46,12 +46,13 @@ function createDomainSeparatorHash(contractAddress) {
   )
   const domainNameHash = web3.utils.sha3('Graph Protocol')
   const domainVersionHash = web3.utils.sha3('0.1')
+  const domainSalt = '0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2'
 
   // ABI encoded
   return web3.utils.sha3(
     web3.eth.abi.encodeParameters(
-      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
-      [domainTypeHash, domainNameHash, domainVersionHash, chainId, contractAddress],
+      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address', 'bytes32'],
+      [domainTypeHash, domainNameHash, domainVersionHash, chainId, contractAddress, domainSalt],
     ),
   )
 }
