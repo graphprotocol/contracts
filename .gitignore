@@ -4,6 +4,9 @@ node_modules/
 # Ignore truffle stuff
 build/
 
+# Docs build
+docs/modules/api/
+
 .privkey.txt
 .infurakey.txt
 .DS_Store
