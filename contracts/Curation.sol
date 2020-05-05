@@ -76,8 +76,8 @@ contract Curation is Governed, BancorFormula {
      * @dev Contract Constructor
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
-     * @param _defaultReserveRatio Address of the staking contract used for slashing
-     * @param _minimumCurationStake Percent of stake the fisherman gets on slashing (in PPM)
+     * @param _defaultReserveRatio Reserve ratio used for the bonding curves of subgraphs
+     * @param _minimumCurationStake Minimum amount of tokens that curators can stake on subgraphs
      */
     constructor(
         address _governor,
