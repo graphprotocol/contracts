@@ -68,17 +68,50 @@ contract Staking is Governed {
 
     // -- Events --
 
-    event StakeUpdate(address indexed indexNode, uint256 tokens, uint256 total);
+    /**
+     * @dev Emitted when `indexNode` deposited `tokens` amount as stake.
+     */
+    event StakeDeposited(address indexed indexNode, uint256 tokens);
+
+    /**
+     * @dev Emitted when `indexNode` unstaked and locked `tokens` amount `until` block.
+     */
     event StakeLocked(address indexed indexNode, uint256 tokens, uint256 until);
 
-    event AllocationUpdated(
+    /**
+     * @dev Emitted when `indexNode` was slashed for a total of `tokens` amount.
+     * Tracks `reward` amount of tokens given to `beneficiary`.
+     */
+    event StakeSlashed(
+        address indexed indexNode,
+        uint256 tokens,
+        uint256 reward,
+        address beneficiary
+    );
+
+    /**
+     * @dev Emitted when `indexNode` withdrew `tokens` amount from the stake.
+     */
+    event StakeWithdrawn(address indexed indexNode, uint256 tokens);
+
+    /**
+     * @dev Emitted when `indexNode` allocated `tokens` amount to `subgraphID`
+     * during `epoch` and registered `channelID` as payment channel.
+     */
+    event AllocationCreated(
         address indexed indexNode,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 tokens,
         address channelID
     );
-    // TODO: consider adding curation reward
+
+    /**
+     * @dev Emitted when `indexNode` settled an allocation of `tokens` amount to `subgraphID`
+     * during `epoch` using `channelID` as payment channel.
+     *
+     * NOTE: `from` tracks the multisig contract from where it was settled.
+     */
     event AllocationSettled(
         address indexed indexNode,
         bytes32 indexed subgraphID,
@@ -88,6 +121,11 @@ contract Staking is Governed {
         address from
     );
 
+    /**
+     * @dev Emitted when `indexNode` claimed a rebate on `subgraphID` during `epoch`
+     * related to the `forEpoch` rebate pool.
+     * The rebate is equivalent to `tokens` amount.
+     */
     event RebateClaimed(
         address indexed indexNode,
         bytes32 indexed subgraphID,
@@ -96,6 +134,9 @@ contract Staking is Governed {
         uint256 tokens
     );
 
+    /**
+     * @dev Emitted when `caller` set `slasher` address as `enabled` to slash stakes.
+     */
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     modifier onlySlasher {
@@ -251,7 +292,7 @@ contract Staking is Governed {
             );
         }
 
-        emit StakeUpdate(_indexNode, tokensToSlash, stake.tokensIndexNode);
+        emit StakeSlashed(_indexNode, tokensToBurn, _reward, _beneficiary);
     }
 
     /**
@@ -309,7 +350,7 @@ contract Staking is Governed {
         alloc.createdAtEpoch = epochManager.currentEpoch();
         channels[_channelID] = Channel(indexNode, _subgraphID);
 
-        emit AllocationUpdated(
+        emit AllocationCreated(
             indexNode,
             _subgraphID,
             alloc.createdAtEpoch,
@@ -349,7 +390,7 @@ contract Staking is Governed {
 
         require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
 
-        emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokensIndexNode);
+        emit StakeWithdrawn(indexNode, tokensToWithdraw);
     }
 
     /**
@@ -402,7 +443,7 @@ contract Staking is Governed {
         Stakes.IndexNode storage stake = stakes[_indexNode];
         stake.deposit(_tokens);
 
-        emit StakeUpdate(_indexNode, _tokens, stake.tokensIndexNode);
+        emit StakeDeposited(_indexNode, _tokens);
     }
 
     /**
