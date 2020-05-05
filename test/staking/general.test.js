@@ -200,10 +200,9 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
         const { tx } = await this.stake(indexNodeStake)
         const tokens2 = await this.staking.getIndexNodeStakeTokens(indexNode)
         expect(tokens2).to.be.bignumber.eq(indexNodeStake.add(indexNodeStake))
-        expectEvent.inTransaction(tx, this.staking.constructor, 'StakeUpdate', {
+        expectEvent.inTransaction(tx, this.staking.constructor, 'StakeDeposited', {
           indexNode: indexNode,
           tokens: indexNodeStake,
-          total: tokens2,
         })
       })
 
@@ -314,7 +313,7 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
         context('when subgraph NOT allocated', function() {
           it('should allocate to subgraph', async function() {
             const { logs } = await this.allocate(this.indexNodeStake)
-            expectEvent.inLogs(logs, 'AllocationUpdated', {
+            expectEvent.inLogs(logs, 'AllocationCreated', {
               indexNode: indexNode,
               subgraphID: this.subgraphId,
               epoch: await this.epochManager.currentEpoch(),
