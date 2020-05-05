@@ -1,11 +1,6 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-/*
- * @title Dispute management
- * @notice Provides a way to align the incentives of participants ensuring that Query Results are trustful.
- */
-
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./Staking.sol";
@@ -13,6 +8,10 @@ import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 
+/*
+ * @title DisputeManager
+ * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
+ */
 contract DisputeManager is Governed {
     using BytesLib for bytes;
     using ECDSA for bytes32;
@@ -63,6 +62,7 @@ contract DisputeManager is Governed {
     );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
+    bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
         "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
     );
@@ -108,6 +108,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
+        uint256 tokens,
         bytes attestation
     );
 
@@ -116,7 +117,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     event DisputeRejected(
@@ -124,7 +125,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     event DisputeIgnored(
@@ -132,7 +133,7 @@ contract DisputeManager is Governed {
         bytes32 indexed subgraphID,
         address indexed indexNode,
         address indexed fisherman,
-        uint256 deposit
+        uint256 tokens
     );
 
     modifier onlyArbitrator {
@@ -173,7 +174,8 @@ contract DisputeManager is Governed {
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
                 _getChainID(),
-                address(this)
+                address(this),
+                DOMAIN_SALT
             )
         );
     }
@@ -265,6 +267,15 @@ contract DisputeManager is Governed {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
+    }
+
+    /**
+     * @dev Set the staking contract used for slashing
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
+     */
+    function setStaking(Staking _staking) external onlyGovernor {
+        staking = _staking;
     }
 
     /**
@@ -418,7 +429,7 @@ contract DisputeManager is Governed {
         // Store dispute
         disputes[disputeID] = Dispute(_subgraphID, indexNode, _fisherman, _deposit);
 
-        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _attestation);
+        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _deposit, _attestation);
     }
 
     /**

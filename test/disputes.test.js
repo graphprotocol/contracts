@@ -72,6 +72,31 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       })
     })
 
+    describe('minimumDeposit', function() {
+      it('should set `minimumDeposit`', async function() {
+        const minimumDeposit = defaults.dispute.minimumDeposit
+        const newMinimumDeposit = web3.utils.toBN(1)
+
+        // Set right in the constructor
+        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(minimumDeposit)
+
+        // Set new value
+        await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
+          from: governor,
+        })
+        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(newMinimumDeposit)
+      })
+
+      it('reject set `minimumDeposit` if not allowed', async function() {
+        await expectRevert(
+          this.disputeManager.setMinimumDeposit(defaults.dispute.minimumDeposit, {
+            from: other,
+          }),
+          'Only Governor can call',
+        )
+      })
+    })
+
     describe('rewardPercentage', function() {
       it('should set `rewardPercentage`', async function() {
         const rewardPercentage = defaults.dispute.rewardPercentage
@@ -140,24 +165,19 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       })
     })
 
-    describe('minimumDeposit', function() {
-      it('should set `minimumDeposit`', async function() {
-        const minimumDeposit = defaults.dispute.minimumDeposit
-        const newMinimumDeposit = web3.utils.toBN(1)
-
+    describe('staking', function() {
+      it('should set `staking`', async function() {
         // Set right in the constructor
-        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(minimumDeposit)
+        expect(await this.disputeManager.staking()).to.eq(this.staking.address)
 
-        // Set new value
-        await this.disputeManager.setMinimumDeposit(newMinimumDeposit, {
-          from: governor,
-        })
-        expect(await this.disputeManager.minimumDeposit()).to.be.bignumber.eq(newMinimumDeposit)
+        // Can set if allowed
+        await this.disputeManager.setStaking(this.graphToken.address, { from: governor })
+        expect(await this.disputeManager.staking()).to.eq(this.graphToken.address)
       })
 
-      it('reject set `minimumDeposit` if not allowed', async function() {
+      it('reject set `staking` if not allowed', async function() {
         await expectRevert(
-          this.disputeManager.setMinimumDeposit(defaults.dispute.minimumDeposit, {
+          this.disputeManager.setStaking(this.graphToken.address, {
             from: other,
           }),
           'Only Governor can call',
@@ -302,6 +322,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             subgraphID: this.subgraphId,
             indexNode: indexNode,
             fisherman: fisherman,
+            tokens: this.tokensForFisherman,
             attestation: this.dispute.attestation,
           })
         })
@@ -429,7 +450,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: deposit.add(reward),
+              tokens: deposit.add(reward),
             })
           })
         })
@@ -477,7 +498,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: this.tokensForFisherman,
+              tokens: this.tokensForFisherman,
             })
           })
         })
@@ -520,7 +541,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
               subgraphID: this.subgraphId,
               indexNode: indexNode,
               fisherman: fisherman,
-              deposit: this.tokensForFisherman,
+              tokens: this.tokensForFisherman,
             })
           })
         })
