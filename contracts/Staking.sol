@@ -124,14 +124,16 @@ contract Staking is Governed {
     /**
      * @dev Emitted when `indexNode` claimed a rebate on `subgraphID` during `epoch`
      * related to the `forEpoch` rebate pool.
-     * The rebate is equivalent to `tokens` amount.
+     * The rebate is for `tokens` amount and an outstanding `settlements` count are
+     * left for claim in the rebate pool.
      */
     event RebateClaimed(
         address indexed indexNode,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 forEpoch,
-        uint256 tokens
+        uint256 tokens,
+        uint256 settlements
     );
 
     /**
@@ -419,7 +421,6 @@ contract Staking is Governed {
         // All settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
             delete rebates[_epoch];
-            // TODO: emit that a rebate pool was pruned (PoolSettled)
         }
 
         // Assign claimed tokens
@@ -431,7 +432,14 @@ contract Staking is Governed {
             require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
         }
 
-        emit RebateClaimed(indexNode, _subgraphID, currentEpoch, _epoch, tokensToClaim);
+        emit RebateClaimed(
+            indexNode,
+            _subgraphID,
+            currentEpoch,
+            _epoch,
+            tokensToClaim,
+            pool.settlementsCount
+        );
     }
 
     /**
