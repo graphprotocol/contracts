@@ -4,6 +4,9 @@ node_modules/
 # Ignore truffle stuff
 build/
 
+# Coverage tests
+coverage/
+
 .privkey.txt
 .infurakey.txt
 .DS_Store
