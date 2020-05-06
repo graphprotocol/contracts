@@ -48,8 +48,8 @@ contract Curation is Governed, BancorFormula {
     // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
-    // Address of a party that will distribute fees to subgraph reserves
-    address public distributor;
+    // Address of a staking contract that will distribute fees to subgraph reserves
+    address public staking;
 
     // Token used for staking
     GraphToken public token;
@@ -127,12 +127,12 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the address of party in charge of fee distributions into reserves
-     * @notice Update the distributor address to `_distributor`
-     * @param _distributor Address of the party doing fee distributions
+     * @dev Set the staking contract used for fees distribution
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
      */
-    function setDistributor(address _distributor) external onlyGovernor {
-        distributor = _distributor;
+    function setStaking(address _staking) external onlyGovernor {
+        staking = _staking;
     }
 
     /**
@@ -171,8 +171,8 @@ contract Curation is Governed, BancorFormula {
         // Decode subgraphID
         bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
 
-        // Transfers from distributor means we are assigning fees to reserves
-        if (_from == distributor) {
+        // Transfers from staking means we are assigning fees to reserves
+        if (_from == staking) {
             _collect(subgraphID, _value);
             return true;
         }
@@ -332,14 +332,14 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Assign Graph Tokens received from distributor to the subgraph reserve
+     * @dev Assign Graph Tokens received from staking to the subgraph reserve
      * @param _subgraphID Subgraph where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function _collect(bytes32 _subgraphID, uint256 _tokens) private {
         require(isSubgraphCurated(_subgraphID), "Subgraph must be curated to collect fees");
 
-        // Collect new funds to into a subgraph reserve
+        // Collect new funds into a subgraph reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
 

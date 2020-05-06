@@ -9,7 +9,7 @@ const { defaults } = require('./lib/testHelpers')
 
 const MAX_PPM = 1000000
 
-contract('Curation', ([me, other, governor, curator, distributor]) => {
+contract('Curation', ([me, other, governor, curator, staking]) => {
   beforeEach(async function() {
     // Deploy graph token
     this.graphToken = await deployment.deployGraphToken(governor, {
@@ -20,7 +20,7 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     this.curation = await deployment.deployCurationContract(governor, this.graphToken.address, {
       from: me,
     })
-    await this.curation.setDistributor(distributor, { from: governor })
+    await this.curation.setStaking(staking, { from: governor })
 
     // Give some funds to the curator
     this.curatorTokens = web3.utils.toWei(new BN('1000'))
@@ -43,19 +43,19 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       expect(await this.curation.token()).to.eq(this.graphToken.address)
     })
 
-    describe('distributor', function() {
-      it('should set `distributor`', async function() {
+    describe('staking', function() {
+      it('should set `staking`', async function() {
         // Set right in the constructor
-        expect(await this.curation.distributor()).to.eq(distributor)
+        expect(await this.curation.staking()).to.eq(staking)
 
         // Can set if allowed
-        await this.curation.setDistributor(other, { from: governor })
-        expect(await this.curation.distributor()).to.eq(other)
+        await this.curation.setStaking(other, { from: governor })
+        expect(await this.curation.staking()).to.eq(other)
       })
 
-      it('reject set `distributor` if not allowed', async function() {
+      it('reject set `staking` if not allowed', async function() {
         await expectRevert(
-          this.curation.setDistributor(distributor, { from: other }),
+          this.curation.setStaking(staking, { from: other }),
           'Only Governor can call',
         )
       })
@@ -227,16 +227,16 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
 
     it('reject collect tokens distributed as fees for the subgraph', async function() {
-      // Give some funds to the distributor
+      // Give some funds to the staking
       const tokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(distributor, tokens, {
+      await this.graphToken.mint(staking, tokens, {
         from: governor,
       })
 
-      // Source of tokens must be the distributor for this to work
+      // Source of tokens must be the staking for this to work
       await expectRevert(
         this.graphToken.transferToTokenReceiver(this.curation.address, tokens, this.subgraphId, {
-          from: distributor,
+          from: staking,
         }),
         'Subgraph must be curated to collect fees',
       )
@@ -345,9 +345,9 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
-      // Give some funds to the distributor
+      // Give some funds to the staking
       const tokensToCollect = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(distributor, tokensToCollect, {
+      await this.graphToken.mint(staking, tokensToCollect, {
         from: governor,
       })
 
@@ -355,12 +355,12 @@ contract('Curation', ([me, other, governor, curator, distributor]) => {
       const totalBalanceBefore = await this.graphToken.balanceOf(this.curation.address)
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
 
-      // Source of tokens must be the distributor for this to work
+      // Source of tokens must be the staking for this to work
       const { tx } = await this.graphToken.transferToTokenReceiver(
         this.curation.address,
         tokensToCollect,
         this.subgraphId,
-        { from: distributor },
+        { from: staking },
       )
       expectEvent.inTransaction(tx, this.curation.constructor, 'Collected', {
         subgraphID: this.subgraphId,
