@@ -56,6 +56,10 @@ contract Curation is Governed, BancorFormula {
 
     // -- Events --
 
+    /**
+     * @dev Emitted when `curator` staked `tokens` on `subgraphID` as curation signal.
+     * The `curator` receives `shares` amount according to the subgraph bonding curve.
+     */
     event Staked(
         address indexed curator,
         bytes32 indexed subgraphID,
@@ -63,6 +67,10 @@ contract Curation is Governed, BancorFormula {
         uint256 shares
     );
 
+    /**
+     * @dev Emitted when `curator` redeemed `shares` for a `subgraphID`.
+     * The curator will receive `tokens` according to the value of the bonding curve.
+     */
     event Redeemed(
         address indexed curator,
         bytes32 indexed subgraphID,
@@ -70,6 +78,10 @@ contract Curation is Governed, BancorFormula {
         uint256 shares
     );
 
+    /**
+     * @dev Emitted when `tokens` amount were collected for `subgraphID` as part of fees
+     * distributed by index node from the settlement of query fees on the subgraph.
+     */
     event Collected(bytes32 indexed subgraphID, uint256 tokens);
 
     /**
