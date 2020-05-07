@@ -487,10 +487,11 @@ contract Staking is Governed {
         );
 
         // Close channel
+        // NOTE: Channels used are never deleted from state tracked in `channels` var
         stake.unallocateTokens(subgraphID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
-        delete channels[_channelID]; //TODO: send multisig one-shot invalidation
+        //TODO: send multisig one-shot invalidation
 
         // Send curation fees to the curator subgraph reserve
         if (curationFees > 0) {
