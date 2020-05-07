@@ -27,44 +27,34 @@ contract DisputeManager is Governed {
 
     // -- Attestation --
 
-    // Store IPFS hash as 32 byte hash and 2 byte hash function
-    // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
-    // Note: hashFunction - 0x1220 is 'Qm', or SHA256 with 32 byte length
-    struct IpfsHash {
-        bytes32 hash;
-        uint16 hashFunction;
+    // Attestation data
+    struct Attestation {
+        bytes32 requestCID;
+        bytes32 responseCID;
+        bytes32 subgraphID;
     }
 
     // Signed message sent from IndexNode in response to a request
-    // Note: Message is located at the given IPFS content address
-    struct Attestation {
-        // Content Identifier for request message sent from user to indexing node
-        IpfsHash requestCID;
-        // Content Identifier for signed response message from indexing node
-        IpfsHash responseCID;
-        // Amount of computational account units (gas) used to process query
-        uint256 gasUsed;
-        // Amount of data sent in the response
-        uint256 responseNumBytes;
-        // ECDSA vrs signature (using secp256k1)
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
+    struct SignedAttestation {
+        Attestation data;
+        bytes sig;
     }
 
-    uint256 private constant ATTESTATION_SIZE_BYTES = 192;
+    // Includes attestation + signature (96 + 65)
+    uint256 private constant ATTESTATION_SIZE_BYTES = 96;
     uint256 private constant SIGNATURE_SIZE_BYTES = 65;
+    uint256 private constant PAYLOAD_SIZE_BYTES = ATTESTATION_SIZE_BYTES + SIGNATURE_SIZE_BYTES;
 
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
     );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
+    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-        "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
+        "Attestation(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
     );
 
     // 100% in parts per million
@@ -281,7 +271,7 @@ contract DisputeManager is Governed {
     /**
      * @dev Accept tokens
      * @notice Receive Graph tokens
-     * @param _from Token holder's address
+     * @param _from Token sender address
      * @param _value Amount of Graph Tokens
      * @param _data Extra data payload
      */
@@ -292,18 +282,8 @@ contract DisputeManager is Governed {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
-        // Decode subgraphID
-        bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
-
-        // Decode attestation
-        bytes memory attestation = _data.slice(32, ATTESTATION_SIZE_BYTES);
-        require(attestation.length == ATTESTATION_SIZE_BYTES, "Signature must be 192 bytes long");
-
-        // Decode attestation signature
-        bytes memory sig = _data.slice(32 + ATTESTATION_SIZE_BYTES, SIGNATURE_SIZE_BYTES);
-        require(sig.length == SIGNATURE_SIZE_BYTES, "Signature must be 65 bytes long");
-
-        _createDispute(attestation, sig, subgraphID, _from, _value);
+        // Create a dispute using the received payload
+        _createDispute(_data, _from, _value);
 
         return true;
     }
@@ -396,26 +376,47 @@ contract DisputeManager is Governed {
     }
 
     /**
+     * @dev Parse a bytes payload into an Attestation struct
+     * @param _payload Byte string with the attestation and signature data
+     * @return The Attestation struct for the parsed payload
+     */
+    function parseAttestation(bytes memory _payload) private returns (SignedAttestation memory) {
+        // Check attestation + signature total payload size
+        require(_payload.length == PAYLOAD_SIZE_BYTES, "Signed attestation must be 161 bytes long");
+
+        // Decode attestation
+        bytes32 requestCID = _payload.slice(0, 32).toBytes32(0);
+        bytes32 responseCID = _payload.slice(32, 32).toBytes32(0);
+        bytes32 subgraphID = _payload.slice(64, 32).toBytes32(0);
+
+        // Decode attestation signature
+        bytes memory sig = _payload.slice(ATTESTATION_SIZE_BYTES, SIGNATURE_SIZE_BYTES);
+
+        return SignedAttestation(Attestation(requestCID, responseCID, subgraphID), sig);
+    }
+
+    /**
      * @dev Create a dispute for the arbitrator to resolve
-     * @param _attestation Attestation message
-     * @param _sig Attestation signature
-     * @param _subgraphID subgraphID for the attestation message
+     * @param _payload Payload including attestation and signed message by index node
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      */
-    function _createDispute(
-        bytes memory _attestation,
-        bytes memory _sig,
-        bytes32 _subgraphID,
-        address _fisherman,
-        uint256 _deposit
-    ) private {
+    function _createDispute(bytes memory _payload, address _fisherman, uint256 _deposit) private {
+        // Decode the attestation data
+        SignedAttestation memory attestation = parseAttestation(_payload);
+
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 disputeID = getDisputeID(_attestation);
+        bytes32 disputeID = getDisputeID(
+            abi.encode(
+                attestation.data.requestCID,
+                attestation.data.responseCID,
+                attestation.data.subgraphID
+            )
+        );
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
-        // Note: The signer of the attestation is the indexNode that served it
-        address indexNode = disputeID.recover(_sig);
+        // NOTE: The signer of the attestation is the indexNode that served it
+        address indexNode = disputeID.recover(attestation.sig);
 
         // This also validates that index node exists
         require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
@@ -427,9 +428,16 @@ contract DisputeManager is Governed {
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[disputeID] = Dispute(_subgraphID, indexNode, _fisherman, _deposit);
+        disputes[disputeID] = Dispute(attestation.data.subgraphID, indexNode, _fisherman, _deposit);
 
-        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _deposit, _attestation);
+        emit DisputeCreated(
+            disputeID,
+            attestation.data.subgraphID,
+            indexNode,
+            _fisherman,
+            _deposit,
+            _payload
+        );
     }
 
     /**

@@ -323,7 +323,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             indexNode: indexNode,
             fisherman: fisherman,
             tokens: this.tokensForFisherman,
-            attestation: this.dispute.attestation,
+            attestation: this.dispute.payload,
           })
         })
 
