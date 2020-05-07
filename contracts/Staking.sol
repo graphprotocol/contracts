@@ -96,14 +96,17 @@ contract Staking is Governed {
 
     /**
      * @dev Emitted when `indexNode` allocated `tokens` amount to `subgraphID`
-     * during `epoch` and registered `channelID` as payment channel.
+     * during `epoch`.
+     * `channelID` is the address of the index node in the payment channel multisig.
+     * `channelPubKey` is the public key used for routing payments to the index node channel.
      */
     event AllocationCreated(
         address indexed indexNode,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 tokens,
-        address channelID
+        address channelID,
+        bytes channelPubKey
     );
 
     /**
@@ -328,36 +331,46 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelID The signer address used by the IndexNode to setup the off-chain payment channel
+     * @param _channelPubKey The public key used by the IndexNode to setup the off-chain payment channel
      */
-    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelID) external {
+    function allocate(bytes32 _subgraphID, uint256 _tokens, bytes calldata _channelPubKey)
+        external
+    {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
+        // Only allocations with a token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
+        // Need to have tokens in our stake to be able to allocate
         require(stake.hasTokens(), "Allocation: index node has no stakes");
+        // Need to have free tokens not used for other purposes to allocate
         require(
             stake.tokensAvailable() >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
+        // Only can allocate tokens to a subgraph if not currently allocated
         require(
             stake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
         );
-        require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
+        // Cannot reuse a channelID that has been used in the past
+        /* prettier-ignore */
+        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:]));
+        require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
         Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
-        alloc.channelID = _channelID;
+        alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[_channelID] = Channel(indexNode, _subgraphID);
+        channels[channelID] = Channel(indexNode, _subgraphID);
 
         emit AllocationCreated(
             indexNode,
             _subgraphID,
             alloc.createdAtEpoch,
             alloc.tokens,
-            _channelID
+            channelID,
+            _channelPubKey
         );
     }
 
@@ -509,6 +522,14 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get whether curation rewards are active or not
+     * @return true if curation fees are enabled
+     */
+    function isCurationEnabled() private view returns (bool) {
+        return curationPercentage > 0 && address(curation) != address(0);
+    }
+
+    /**
      * @dev Get the running network chain ID
      * @return The chain ID
      */
@@ -521,10 +542,13 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Get whether curation rewards are active or not
-     * @return true if curation fees are enabled
+     * @dev Convert an uncompressed public key to an Ethereum address
+     * @param _publicKey Public key in uncompressed format without the 1 byte prefix
+     * @return An Ethereum address corresponding to the public key
      */
-    function isCurationEnabled() private view returns (bool) {
-        return curationPercentage > 0 && address(curation) != address(0);
+    function publicKeyToAddress(bytes memory _publicKey) private pure returns (address) {
+        uint256 mask = 2**(8 * 21) - 1;
+        uint256 value = uint256(keccak256(_publicKey));
+        return address(value & mask);
     }
 }

@@ -16,7 +16,7 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
-contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
+contract('Staking', ([me, other, governor, indexNode]) => {
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -159,6 +159,9 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
   describe('staking', function() {
     beforeEach(async function() {
       this.subgraphId = helpers.randomSubgraphIdHex0x()
+      this.channelPubKey =
+        '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+      this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
 
       // Give some funds to the index node
       this.indexNodeTokens = web3.utils.toWei(new BN('1000'))
@@ -177,7 +180,7 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
         )
       }
       this.allocate = function(tokens) {
-        return this.staking.allocate(this.subgraphId, tokens, channelOwner, {
+        return this.staking.allocate(this.subgraphId, tokens, this.channelPubKey, {
           from: indexNode,
         })
       }
@@ -318,6 +321,8 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
               subgraphID: this.subgraphId,
               epoch: await this.epochManager.currentEpoch(),
               tokens: this.indexNodeStake,
+              channelID: this.channelID,
+              channelPubKey: this.channelPubKey,
             })
           })
 
