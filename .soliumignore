@@ -1,4 +1,5 @@
 node_modules
+contracts/Staking.sol
 contracts/Migrations.sol
 contracts/bancor
 contracts/openzeppelin

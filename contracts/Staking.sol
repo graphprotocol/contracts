@@ -156,10 +156,12 @@ contract Staking is Governed {
      * @param _epochManager Address of the EpochManager contract
      * @param _curation Address of the Curation contract
      */
-    constructor(address _governor, address _token, address _epochManager, address _curation)
-        public
-        Governed(_governor)
-    {
+    constructor(
+        address _governor,
+        address _token,
+        address _epochManager,
+        address _curation
+    ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
         curation = Curation(_curation);
@@ -265,10 +267,12 @@ contract Staking is Governed {
      * @param _reward Amount of reward tokens to send to a beneficiary
      * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(address _indexNode, uint256 _tokens, uint256 _reward, address _beneficiary)
-        external
-        onlySlasher
-    {
+    function slash(
+        address _indexNode,
+        uint256 _tokens,
+        uint256 _reward,
+        address _beneficiary
+    ) external onlySlasher {
         uint256 tokensToSlash = _tokens;
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
@@ -305,10 +309,11 @@ contract Staking is Governed {
      * @param _from Token holder's address
      * @param _value Amount of Graph Tokens
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
-    {
+    function tokensReceived(
+        address _from,
+        uint256 _value,
+        bytes calldata _data
+    ) external returns (bool) {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
@@ -333,9 +338,11 @@ contract Staking is Governed {
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the IndexNode to setup the off-chain payment channel
      */
-    function allocate(bytes32 _subgraphID, uint256 _tokens, bytes calldata _channelPubKey)
-        external
-    {
+    function allocate(
+        bytes32 _subgraphID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey
+    ) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
@@ -355,7 +362,7 @@ contract Staking is Governed {
         );
         // Cannot reuse a channelID that has been used in the past
         /* prettier-ignore */
-        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:]));
+        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
         require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
@@ -414,7 +421,11 @@ contract Staking is Governed {
      * @param _subgraphID Subgraph we are claiming tokens from
      * @param _restake True if restake fees instead of transfer to index node
      */
-    function claim(uint256 _epoch, bytes32 _subgraphID, bool _restake) external {
+    function claim(
+        uint256 _epoch,
+        bytes32 _subgraphID,
+        bool _restake
+    ) external {
         address indexNode = msg.sender;
         Rebates.Pool storage pool = rebates[_epoch];
         Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
@@ -473,7 +484,11 @@ contract Staking is Governed {
      * @param _from Multisig channel address that triggered settlement
      * @param _tokens Amount of tokens to settle
      */
-    function _settle(address _channelID, address _from, uint256 _tokens) private {
+    function _settle(
+        address _channelID,
+        address _from,
+        uint256 _tokens
+    ) private {
         address indexNode = channels[_channelID].indexNode;
         bytes32 subgraphID = channels[_channelID].subgraphID;
         Stakes.IndexNode storage stake = stakes[indexNode];
