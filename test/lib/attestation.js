@@ -1,7 +1,7 @@
 const Account = require('eth-lib/lib/account')
 
 function createReceipt(subgraphId) {
-  const attestation = {
+  const receipt = {
     requestCID: web3.utils.randomHex(32),
     responseCID: web3.utils.randomHex(32),
     subgraphId: subgraphId,
@@ -10,7 +10,7 @@ function createReceipt(subgraphId) {
   // ABI encoded
   return web3.eth.abi.encodeParameters(
     ['bytes32', 'bytes32', 'bytes32'],
-    [attestation.requestCID, attestation.responseCID, attestation.subgraphId],
+    [receipt.requestCID, receipt.responseCID, receipt.subgraphId],
   )
 }
 
