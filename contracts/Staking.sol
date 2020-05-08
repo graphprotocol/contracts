@@ -355,7 +355,7 @@ contract Staking is Governed {
             stake.tokensAvailable() >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
-        // Only can allocate tokens to a subgraph if not currently allocated
+        // Can only allocate tokens to a subgraph if not currently allocated
         require(
             stake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
