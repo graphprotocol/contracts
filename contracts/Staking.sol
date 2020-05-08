@@ -361,7 +361,6 @@ contract Staking is Governed {
             "Allocation: cannot allocate if already allocated"
         );
         // Cannot reuse a channelID that has been used in the past
-        /* prettier-ignore */
         address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
         require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
