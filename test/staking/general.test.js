@@ -41,7 +41,7 @@ contract('Staking', ([me, other, governor, indexNode, channelOwner]) => {
     )
 
     // Set staking as distributor of funds to curation
-    await this.curation.setDistributor(this.staking.address, { from: governor })
+    await this.curation.setStaking(this.staking.address, { from: governor })
   })
 
   describe('configuration', function() {

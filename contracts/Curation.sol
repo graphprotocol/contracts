@@ -23,7 +23,7 @@ contract Curation is Governed, BancorFormula {
         uint256 reserveRatio; // Ratio for the bonding curve
         uint256 tokens; // Tokens that constitute the subgraph reserve
         uint256 shares; // Shares issued for this subgraph
-        mapping(address => uint256) curatorShares;
+        mapping(address => uint256) curatorShares; // Mapping of curator => shares
     }
 
     // 100% in parts per million
@@ -41,33 +41,55 @@ contract Curation is Governed, BancorFormula {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public defaultReserveRatio;
 
-    // Minimum amount allowed to be staked by Market Curators
+    // Minimum amount allowed to be staked by curators
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
-    // Total staked tokens across all subgraphs
-    uint256 public totalTokens;
-
-    // Subgraphs and curators mapping : subgraphID => Subgraph
+    // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
-    // Address of a party that will distribute fees to subgraph reserves
-    address public distributor;
+    // Address of a staking contract that will distribute fees to subgraph reserves
+    address public staking;
 
     // Token used for staking
     GraphToken public token;
 
     // -- Events --
 
-    event CuratorStakeUpdated(address indexed curator, bytes32 indexed subgraphID, uint256 shares);
-    event SubgraphStakeUpdated(bytes32 indexed subgraphID, uint256 shares, uint256 tokens);
+    /**
+     * @dev Emitted when `curator` staked `tokens` on `subgraphID` as curation signal.
+     * The `curator` receives `shares` amount according to the subgraph bonding curve.
+     */
+    event Staked(
+        address indexed curator,
+        bytes32 indexed subgraphID,
+        uint256 tokens,
+        uint256 shares
+    );
+
+    /**
+     * @dev Emitted when `curator` redeemed `shares` for a `subgraphID`.
+     * The curator will receive `tokens` according to the value of the bonding curve.
+     */
+    event Redeemed(
+        address indexed curator,
+        bytes32 indexed subgraphID,
+        uint256 tokens,
+        uint256 shares
+    );
+
+    /**
+     * @dev Emitted when `tokens` amount were collected for `subgraphID` as part of fees
+     * distributed by index node from the settlement of query fees on the subgraph.
+     */
+    event Collected(bytes32 indexed subgraphID, uint256 tokens);
 
     /**
      * @dev Contract Constructor
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
-     * @param _defaultReserveRatio Address of the staking contract used for slashing
-     * @param _minimumCurationStake Percent of stake the fisherman gets on slashing (in PPM)
+     * @param _defaultReserveRatio Reserve ratio used for the bonding curves of subgraphs
+     * @param _minimumCurationStake Minimum amount of tokens that curators can stake on subgraphs
      */
     constructor(
         address _governor,
@@ -105,12 +127,12 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the address of party in charge of fee distributions into reserves
-     * @notice Update the distributor address to `_distributor`
-     * @param _distributor Address of the party doing fee distributions
+     * @dev Set the staking contract used for fees distribution
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
      */
-    function setDistributor(address _distributor) external onlyGovernor {
-        distributor = _distributor;
+    function setStaking(address _staking) external onlyGovernor {
+        staking = _staking;
     }
 
     /**
@@ -149,52 +171,45 @@ contract Curation is Governed, BancorFormula {
         // Decode subgraphID
         bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
 
-        // Transfers from distributor means we are assigning fees to reserves
-        if (_from == distributor) {
+        // Transfers from staking means we are assigning fees to reserves
+        if (_from == staking) {
             _collect(subgraphID, _value);
             return true;
         }
 
-        // Any other source address means they are staking
+        // Any other source address means they are staking tokens for shares
         _stake(_from, subgraphID, _value);
         return true;
     }
 
     /**
-     * @dev Return any amount of shares to get tokens back (above the minimum)
-     * @notice Unstake _shares from the subgraph with _subgraphID
+     * @dev Return an amount of shares to get tokens back
+     * @notice Redeem _shares from the subgraph with _subgraphID
      * @param _subgraphID Subgraph ID the Curator is returning shares for
      * @param _shares Amount of shares to return
      */
-    function unstake(bytes32 _subgraphID, uint256 _shares) external {
+    function redeem(bytes32 _subgraphID, uint256 _shares) external {
         address curator = msg.sender;
         Subgraph storage subgraph = subgraphs[_subgraphID];
 
-        require(_shares > 0, "Cannot unstake zero shares");
+        require(_shares > 0, "Cannot redeem zero shares");
         require(
             subgraph.curatorShares[curator] >= _shares,
-            "Cannot unstake more shares than you own"
+            "Cannot redeem more shares than you own"
         );
 
         // Update balance and get the amount of tokens to refund based on returned shares
-        uint256 tokensToRefund = _sellShares(curator, _subgraphID, _shares);
+        uint256 tokens = _sellShares(curator, _subgraphID, _shares);
 
-        // Ensure we are not under minimum required stake
-        require(
-            subgraph.tokens >= minimumCurationStake || subgraph.tokens == 0,
-            "Cannot unstake below minimum required stake for subgraph"
-        );
-
-        // Delete if left without stakes
-        if (subgraph.tokens == 0) {
+        // If all shares redeemed delete subgraph
+        if (subgraph.shares == 0) {
             delete subgraphs[_subgraphID];
         }
 
         // Return the tokens to the curator
-        require(token.transfer(curator, tokensToRefund), "Error sending curator tokens");
+        require(token.transfer(curator, tokens), "Error sending curator tokens");
 
-        emit CuratorStakeUpdated(curator, _subgraphID, subgraph.curatorShares[curator]);
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Redeemed(curator, _subgraphID, tokens, _shares);
     }
 
     /**
@@ -289,9 +304,6 @@ contract Curation is Governed, BancorFormula {
         subgraph.shares = subgraph.shares.add(shares);
         subgraph.curatorShares[_curator] = subgraph.curatorShares[_curator].add(shares);
 
-        // Update global balance
-        totalTokens = totalTokens.add(_tokens);
-
         return shares;
     }
 
@@ -316,35 +328,29 @@ contract Curation is Governed, BancorFormula {
         subgraph.shares = subgraph.shares.sub(_shares);
         subgraph.curatorShares[_curator] = subgraph.curatorShares[_curator].sub(_shares);
 
-        // Update global balance
-        totalTokens = totalTokens.sub(tokens);
-
         return tokens;
     }
 
     /**
-     * @dev Assign Graph Tokens received from distributor to the subgraph reserve
+     * @dev Assign Graph Tokens received from staking to the subgraph reserve
      * @param _subgraphID Subgraph where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function _collect(bytes32 _subgraphID, uint256 _tokens) private {
         require(isSubgraphCurated(_subgraphID), "Subgraph must be curated to collect fees");
 
-        // Collect new funds to reserve
+        // Collect new funds into a subgraph reserve
         Subgraph storage subgraph = subgraphs[_subgraphID];
         subgraph.tokens = subgraph.tokens.add(_tokens);
 
-        // Update global tokens balance
-        totalTokens = totalTokens.add(_tokens);
-
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Collected(_subgraphID, _tokens);
     }
 
     /**
-     * @dev Stake Graph Tokens for Market Curation by subgraphID
-     * @param _subgraphID Subgraph ID the Curator is staking Graph Tokens for
-     * @param _curator Address of Staking party
-     * @param _tokens Amount of Graph Tokens to be staked
+     * @dev Deposit Graph Tokens in exchange for shares of a subgraph
+     * @param _subgraphID Subgraph ID where the curator is staking Graph Tokens
+     * @param _curator Address of staking party
+     * @param _tokens Amount of Graph Tokens to stake
      */
     function _stake(address _curator, bytes32 _subgraphID, uint256 _tokens) private {
         Subgraph storage subgraph = subgraphs[_subgraphID];
@@ -358,9 +364,8 @@ contract Curation is Governed, BancorFormula {
         }
 
         // Update subgraph balances
-        _buyShares(_curator, _subgraphID, _tokens);
+        uint256 shares = _buyShares(_curator, _subgraphID, _tokens);
 
-        emit CuratorStakeUpdated(_curator, _subgraphID, subgraph.curatorShares[_curator]);
-        emit SubgraphStakeUpdated(_subgraphID, subgraph.shares, subgraph.tokens);
+        emit Staked(_curator, _subgraphID, _tokens, shares);
     }
 }

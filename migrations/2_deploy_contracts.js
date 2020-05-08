@@ -71,10 +71,7 @@ module.exports = async (deployer, network, accounts) => {
         staking.setChannelDisputeEpochs(config.staking.channelDisputeEpochs),
         '   > Staking -> Set channelDisputeEpochs: ',
       )
-      await executeAndLog(
-        curation.setDistributor(staking.address),
-        '   > Curation -> Set distributor: ',
-      )
+      await executeAndLog(curation.setStaking(staking.address), '   > Curation -> Set staking: ')
 
       // Summary
       log('\n')
