@@ -227,7 +227,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            dispute.payload,
+            dispute.attestation,
             { from: fisherman },
           ),
           'Dispute has no stake by the index node',
@@ -295,7 +295,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             this.graphToken.transferToTokenReceiver(
               this.disputeManager.address,
               belowMinimumDeposit,
-              this.dispute.payload,
+              this.dispute.attestation,
               { from: fisherman },
             ),
             'Dispute deposit under minimum required',
@@ -312,7 +312,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           const { tx } = await this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            this.dispute.payload,
+            this.dispute.attestation,
             { from: fisherman },
           )
 
@@ -323,7 +323,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             indexNode: indexNode,
             fisherman: fisherman,
             tokens: this.tokensForFisherman,
-            attestation: this.dispute.payload,
+            attestation: this.dispute.attestation,
           })
         })
 
@@ -337,7 +337,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           await this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            this.dispute.payload,
+            this.dispute.attestation,
             { from: fisherman },
           )
 
@@ -351,7 +351,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             this.graphToken.transferToTokenReceiver(
               this.disputeManager.address,
               this.tokensForFisherman,
-              this.dispute.payload,
+              this.dispute.attestation,
               { from: fisherman },
             ),
             'Dispute already created',
@@ -377,7 +377,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           await this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            this.dispute.payload,
+            this.dispute.attestation,
             { from: fisherman },
           )
         })

@@ -1,6 +1,6 @@
 const Account = require('eth-lib/lib/account')
 
-function createAttestation(subgraphId) {
+function createReceipt(subgraphId) {
   const attestation = {
     requestCID: web3.utils.randomHex(32),
     responseCID: web3.utils.randomHex(32),
@@ -14,7 +14,7 @@ function createAttestation(subgraphId) {
   )
 }
 
-function createAttestationHash(attestation) {
+function createReceiptHash(attestation) {
   const attestationTypeHash = web3.utils.sha3(
     'Attestation(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)',
   )
@@ -47,28 +47,28 @@ function createMessage(domainSeparatorHash, attestationHash) {
   return '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
 }
 
-function createPayload(attestation, messageSig) {
+function createAttestation(receipt, messageSig) {
   return (
     '0x' +
-    attestation.substring(2) + // Attestation
+    receipt.substring(2) + // Attestation
     messageSig.substring(2) // Signature
-  ) // raw attestation data + signed attestation in EIP712 format
+  ) // receipt + signature = attestation in EIP712 format
 }
 
 async function createDisputePayload(subgraphId, contractAddress, signer) {
   // Attestation
-  const attestation = createAttestation(subgraphId)
+  const receipt = createReceipt(subgraphId)
 
   // Attestation signing wrapped in EIP721 format
   const message = createMessage(
     createDomainSeparatorHash(contractAddress),
-    createAttestationHash(attestation),
+    createReceiptHash(receipt),
   )
   const messageHash = web3.utils.sha3(message)
   const messageSig = Account.sign(messageHash, signer)
 
-  // Payload bytes: 96 + 65 = 161
-  const payload = createPayload(attestation, messageSig)
+  // Attestation bytes: 96 (receipt) + 65 (signature) = 161
+  const attestation = createAttestation(receipt, messageSig)
 
   return {
     signer,
@@ -77,7 +77,6 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
     message,
     messageHash,
     messageSig,
-    payload,
   }
 }
 
