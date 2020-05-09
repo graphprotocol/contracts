@@ -301,7 +301,7 @@ contract Staking is Governed {
             );
         }
 
-        emit StakeSlashed(_indexNode, tokensToBurn, _reward, _beneficiary);
+        emit StakeSlashed(_indexNode, _tokens, _reward, _beneficiary);
     }
 
     /**
