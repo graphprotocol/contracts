@@ -63,7 +63,7 @@ library Stakes {
     }
 
     /**
-     * @dev Deposit tokens to the index node stake balance
+     * @dev Deposit tokens to the index node stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
@@ -72,7 +72,7 @@ library Stakes {
     }
 
     /**
-     * @dev Release tokens from the index node stake balance
+     * @dev Release tokens from the index node stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
@@ -101,6 +101,18 @@ library Stakes {
     }
 
     /**
+     * @dev Unlock tokens
+     * @param stake Stake data
+     * @param _tokens Amount of tokens to unkock
+     */
+    function unlockTokens(Stakes.IndexNode storage stake, uint256 _tokens) internal {
+        stake.tokensLocked = stake.tokensLocked.sub(_tokens);
+        if (stake.tokensLocked == 0) {
+            stake.tokensLockedUntil = 0;
+        }
+    }
+
+    /**
      * @dev Take all tokens out from the locked stack for withdrawal
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
@@ -111,8 +123,7 @@ library Stakes {
 
         if (tokensToWithdraw > 0) {
             // Reset locked tokens
-            stake.tokensLocked = 0;
-            stake.tokensLockedUntil = 0;
+            stake.unlockTokens(tokensToWithdraw);
 
             // Decrease index node stake
             stake.release(tokensToWithdraw);
@@ -182,7 +193,13 @@ library Stakes {
      * @return Token amount
      */
     function tokensAvailable(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensStaked().sub(stake.tokensAllocated).sub(stake.tokensLocked);
+        uint256 _tokensStaked = stake.tokensStaked();
+        uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
+        // Stake is over allocated
+        if (tokensUsed > _tokensStaked) {
+            return 0;
+        }
+        return _tokensStaked.sub(tokensUsed);
     }
 
     /**

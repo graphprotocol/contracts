@@ -273,22 +273,31 @@ contract Staking is Governed {
         uint256 _reward,
         address _beneficiary
     ) external onlySlasher {
-        uint256 tokensToSlash = _tokens;
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
         require(stake.hasTokens(), "Slashing: index node has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
-        require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
+        require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(
-            tokensToSlash <= stake.tokensIndexNode,
-            "Slashing: cannot slash more than available stake"
+            _tokens <= stake.tokensSlashable(),
+            "Slashing: cannot slash more than staked amount"
         );
 
-        // Slash stake
-        stake.release(tokensToSlash);
+        // Slashing more tokens than freely available (over allocation condition)
+        // Unlock locked tokens to avoid the indexer to withdraw them
+        if (_tokens > stake.tokensAvailable() && stake.tokensLocked > 0) {
+            uint256 tokensOverAllocated = _tokens.sub(stake.tokensAvailable());
+            uint256 tokensToUnlock = (tokensOverAllocated > stake.tokensLocked)
+                ? stake.tokensLocked
+                : tokensOverAllocated;
+            stake.unlockTokens(tokensToUnlock);
+        }
+
+        // Remove tokens to slash from the stake
+        stake.release(_tokens);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        uint256 tokensToBurn = tokensToSlash.sub(_reward);
+        uint256 tokensToBurn = _tokens.sub(_reward);
         if (tokensToBurn > 0) {
             token.burn(tokensToBurn);
         }
