@@ -16,10 +16,6 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
-function logStakes(stakes) {
-  Object.entries(stakes).map(([k, v]) => console.log(k, ':', web3.utils.fromWei(v)))
-}
-
 contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
   beforeEach(async function() {
     // Deploy epoch contract
@@ -430,7 +426,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToAllocate = web3.utils.toWei(new BN('70'))
           await this.allocate(tokensToAllocate)
 
-          // logStakes(await this.staking.stakes(indexNode))
+          // helpers.logStakes(await this.staking.stakes(indexNode))
           // > Current state:
           // = Staked 100
           // = Locked: 10
@@ -442,7 +438,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToReward = web3.utils.toWei(new BN('0'))
           await this.shouldSlash(indexNode, tokensToSlash, tokensToReward, fisherman)
 
-          // logStakes(await this.staking.stakes(indexNode))
+          // helpers.logStakes(await this.staking.stakes(indexNode))
           // > Current state:
           // = Staked 20
           // = Locked: 0
