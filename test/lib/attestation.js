@@ -50,16 +50,16 @@ function createMessage(domainSeparatorHash, receiptHash) {
 function createAttestation(receipt, messageSig) {
   return (
     '0x' +
-    receipt.substring(2) + // Attestation
+    receipt.substring(2) + // Receipt
     messageSig.substring(2) // Signature
-  ) // receipt + signature = attestation in EIP712 format
+  )
 }
 
 async function createDisputePayload(subgraphId, contractAddress, signer) {
   // Receipt
   const receipt = createReceipt(subgraphId)
 
-  // Attestation signing wrapped in EIP721 format
+  // Receipt signing to create the attestation
   const message = createMessage(
     createDomainSeparatorHash(contractAddress),
     createReceiptHash(receipt),
