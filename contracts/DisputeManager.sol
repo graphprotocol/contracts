@@ -23,7 +23,7 @@ contract DisputeManager is Governed {
 
     // -- Attestation --
 
-    // Signed Attestation sent from IndexNode in response to a request
+    // Attestation sent from IndexNode in response to a request
     struct Attestation {
         bytes32 requestCID;
         bytes32 responseCID;
@@ -43,8 +43,8 @@ contract DisputeManager is Governed {
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-    bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-        "Attestation(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
+    bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
+        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
     );
 
     // 100% in parts per million
@@ -204,7 +204,7 @@ contract DisputeManager is Governed {
                     "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
                     DOMAIN_SEPARATOR,
                     keccak256(
-                        abi.encode(ATTESTATION_TYPE_HASH, _receipt) // EIP 712-encoded message hash
+                        abi.encode(RECEIPT_TYPE_HASH, _receipt) // EIP 712-encoded message hash
                     )
                 )
             );

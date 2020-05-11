@@ -14,14 +14,14 @@ function createReceipt(subgraphId) {
   )
 }
 
-function createReceiptHash(attestation) {
-  const attestationTypeHash = web3.utils.sha3(
-    'Attestation(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)',
+function createReceiptHash(receipt) {
+  const receiptTypeHash = web3.utils.sha3(
+    'Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)',
   )
 
   // ABI encoded
   return web3.utils.sha3(
-    web3.eth.abi.encodeParameters(['bytes32', 'bytes'], [attestationTypeHash, attestation]),
+    web3.eth.abi.encodeParameters(['bytes32', 'bytes'], [receiptTypeHash, receipt]),
   )
 }
 
@@ -43,8 +43,8 @@ function createDomainSeparatorHash(contractAddress) {
   )
 }
 
-function createMessage(domainSeparatorHash, attestationHash) {
-  return '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
+function createMessage(domainSeparatorHash, receiptHash) {
+  return '0x1901' + domainSeparatorHash.substring(2) + receiptHash.substring(2)
 }
 
 function createAttestation(receipt, messageSig) {
@@ -56,7 +56,7 @@ function createAttestation(receipt, messageSig) {
 }
 
 async function createDisputePayload(subgraphId, contractAddress, signer) {
-  // Attestation
+  // Receipt
   const receipt = createReceipt(subgraphId)
 
   // Attestation signing wrapped in EIP721 format
