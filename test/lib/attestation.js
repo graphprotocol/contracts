@@ -1,16 +1,10 @@
 const ethers = require('ethers')
 
-function createReceipt(subgraphId) {
-  const receipt = {
-    requestCID: web3.utils.randomHex(32),
-    responseCID: web3.utils.randomHex(32),
-    subgraphId: subgraphId,
-  }
-
+function encodeReceipt(receipt) {
   // ABI encoded
   return web3.eth.abi.encodeParameters(
     ['bytes32', 'bytes32', 'bytes32'],
-    [receipt.requestCID, receipt.responseCID, receipt.subgraphId],
+    [receipt.requestCID, receipt.responseCID, receipt.subgraphID],
   )
 }
 
@@ -47,22 +41,29 @@ function createMessage(domainSeparatorHash, receiptHash) {
   return '0x1901' + domainSeparatorHash.substring(2) + receiptHash.substring(2)
 }
 
-function createAttestation(receipt, messageSig) {
+function createAttestation(encodedReceipt, messageSig) {
   return (
     '0x' +
-    receipt.substring(2) + // Receipt
+    encodedReceipt.substring(2) + // Receipt
     messageSig.substring(2) // Signature
   )
 }
 
-async function createDisputePayload(subgraphId, contractAddress, signer) {
+function createDisputeID(receipt, indexer) {
+  return ethers.utils.solidityKeccak256(
+    ['bytes32', 'bytes32', 'bytes32', 'address'],
+    [receipt.requestCID, receipt.responseCID, receipt.subgraphID, indexer],
+  )
+}
+
+async function createDispute(receipt, contractAddress, signer) {
   // Receipt
-  const receipt = createReceipt(subgraphId)
+  const encodedReceipt = encodeReceipt(receipt)
 
   // Receipt signing to create the attestation
   const message = createMessage(
     createDomainSeparatorHash(contractAddress),
-    createReceiptHash(receipt),
+    createReceiptHash(encodedReceipt),
   )
 
   const signingKey = new ethers.utils.SigningKey(signer)
@@ -75,18 +76,18 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
     signature.s.substring(2)
 
   // Attestation bytes: 96 (receipt) + 65 (signature) = 161
-  const attestation = createAttestation(receipt, messageSig)
+  const attestation = createAttestation(encodedReceipt, messageSig)
 
   return {
+    id: createDisputeID(receipt, ethers.utils.computeAddress(signingKey.publicKey)),
     signer,
-    subgraphId,
     attestation,
+    receipt,
     message,
-    messageHash,
     messageSig,
   }
 }
 
 module.exports = {
-  createDisputePayload: createDisputePayload,
+  createDispute: createDispute,
 }

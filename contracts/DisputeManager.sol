@@ -211,12 +211,14 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the hash of encoded message to use as disputeID
-     * @notice Return the disputeID for a particular receipt
-     * @param _receipt Receipt returned by index node and submitted by fisherman
-     * @return Hash of encoded message used as disputeID
+     * @dev Get the message hash that an indexer used to sign the receipt.
+     * Encodes a receipt using a domain separator, as described on
+     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
+     * @notice Return the message hash used to sign the receipt
+     * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @return Message hash used to sign the receipt
      */
-    function getDisputeID(bytes memory _receipt) public view returns (bytes32) {
+    function encodeHashReceipt(bytes memory _receipt) public view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -291,7 +293,7 @@ contract DisputeManager is Governed {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
-        // Create a dispute using the received payload
+        // Create a dispute using the received attestation
         _createDispute(_data, _from, _value);
 
         return true;
@@ -397,17 +399,18 @@ contract DisputeManager is Governed {
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
 
-        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes memory receipt = abi.encode(
-            attestation.requestCID,
-            attestation.responseCID,
-            attestation.subgraphID
-        );
-        bytes32 disputeID = getDisputeID(receipt);
+        // Get attestation signer
+        address indexNode = _recoverAttestationSigner(attestation);
 
-        // Obtain the signer of the fully-encoded EIP-712 message hash
-        // NOTE: The signer of the attestation is the indexNode that served the request
-        address indexNode = _recover(disputeID, attestation.v, attestation.r, attestation.s);
+        // Create a disputeID
+        bytes32 disputeID = keccak256(
+            abi.encodePacked(
+                attestation.requestCID,
+                attestation.responseCID,
+                attestation.subgraphID,
+                indexNode
+            )
+        );
 
         // This also validates that index node exists
         require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
@@ -429,6 +432,25 @@ contract DisputeManager is Governed {
             _deposit,
             _attestationData
         );
+    }
+
+    /**
+     * @dev Recover the signer address of the `_attestation`
+     * @param _attestation The attestation struct
+     * @return Signer address
+     */
+    function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
+        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
+        bytes memory receipt = abi.encode(
+            _attestation.requestCID,
+            _attestation.responseCID,
+            _attestation.subgraphID
+        );
+        bytes32 messageHash = encodeHashReceipt(receipt);
+
+        // Obtain the signer of the fully-encoded EIP-712 message hash
+        // NOTE: The signer of the attestation is the indexer that served the request
+        return _recover(messageHash, _attestation.v, _attestation.r, _attestation.s);
     }
 
     /**
@@ -455,9 +477,9 @@ contract DisputeManager is Governed {
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct
-        uint8 v = toUint8(_data, RECEIPT_SIZE_BYTES);
-        bytes32 r = toBytes32(_data, RECEIPT_SIZE_BYTES + 1);
-        bytes32 s = toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
+        uint8 v = _toUint8(_data, RECEIPT_SIZE_BYTES);
+        bytes32 r = _toBytes32(_data, RECEIPT_SIZE_BYTES + 1);
+        bytes32 s = _toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
 
         return Attestation(requestCID, responseCID, subgraphID, v, r, s);
     }
@@ -496,7 +518,7 @@ contract DisputeManager is Governed {
      * @dev Parse a uint8 from `_bytes` starting at offset `_start`
      * @return uint8 value
      */
-    function toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
+    function _toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
         require(_bytes.length >= (_start + 1), "Bytes: out of bounds");
         uint8 tempUint;
 
@@ -511,7 +533,7 @@ contract DisputeManager is Governed {
      * @dev Parse a bytes32 from `_bytes` starting at offset `_start`
      * @return bytes32 value
      */
-    function toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
+    function _toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
         require(_bytes.length >= (_start + 32), "Bytes: out of bounds");
         bytes32 tempBytes32;
 
