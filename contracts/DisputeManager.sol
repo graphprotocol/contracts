@@ -16,14 +16,14 @@ contract DisputeManager is Governed {
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
     struct Dispute {
         bytes32 subgraphID;
-        address indexNode;
+        address indexer;
         address fisherman;
         uint256 deposit;
     }
 
     // -- Attestation --
 
-    // Attestation sent from IndexNode in response to a request
+    // Attestation sent from indexer in response to a request
     struct Attestation {
         bytes32 requestCID;
         bytes32 responseCID;
@@ -85,53 +85,53 @@ contract DisputeManager is Governed {
     // -- Events --
 
     /**
-     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexNode` by `fisherman`.
+     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexer` by `fisherman`.
      * The event emits the amount `tokens` deposited by the fisherman and `attestation` submitted.
      */
     event DisputeCreated(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
         bytes attestation
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
-    event DisputeIgnored(
+    event DisputeDrawn(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
@@ -191,22 +191,22 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Get the fisherman reward for a given index node stake
-     * @notice Return the fisherman reward based on the `_indexNode` stake
-     * @param _indexNode IndexNode to be slashed
+     * @notice Return the fisherman reward based on the `_indexer` stake
+     * @param _indexer Indexer to be slashed
      * @return Reward calculated as percentage of the index node slashed funds
      */
-    function getTokensToReward(address _indexNode) public view returns (uint256) {
-        uint256 value = getTokensToSlash(_indexNode);
+    function getTokensToReward(address _indexer) public view returns (uint256) {
+        uint256 value = getTokensToSlash(_indexer);
         return rewardPercentage.mul(value).div(MAX_PPM); // rewardPercentage is in PPM
     }
 
     /**
      * @dev Get the amount of tokens to slash for an index node based on the stake
-     * @param _indexNode Address of the index node
+     * @param _indexer Address of the index node
      * @return Amount of tokens to slash
      */
-    function getTokensToSlash(address _indexNode) public view returns (uint256) {
-        uint256 tokens = staking.getIndexNodeStakeTokens(_indexNode); // slashable tokens
+    function getTokensToSlash(address _indexer) public view returns (uint256) {
+        uint256 tokens = staking.getIndexNodeStakeTokens(_indexer); // slashable tokens
         return slashingPercentage.mul(tokens).div(MAX_PPM); // slashingPercentage is in PPM
     }
 
@@ -314,9 +314,9 @@ contract DisputeManager is Governed {
 
         // Have staking contract slash the index node and reward the fisherman
         // Give the fisherman a reward equal to the rewardPercentage of the index node slashed amount
-        uint256 tokensToReward = getTokensToReward(dispute.indexNode);
-        uint256 tokensToSlash = getTokensToSlash(dispute.indexNode);
-        staking.slash(dispute.indexNode, tokensToSlash, tokensToReward, dispute.fisherman);
+        uint256 tokensToReward = getTokensToReward(dispute.indexer);
+        uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
+        staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
         require(
@@ -327,7 +327,7 @@ contract DisputeManager is Governed {
         emit DisputeAccepted(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit.add(tokensToReward)
         );
@@ -352,18 +352,18 @@ contract DisputeManager is Governed {
         emit DisputeRejected(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit
         );
     }
 
     /**
-     * @dev The arbitrator can disregard a dispute
+     * @dev The arbitrator can draw dispute
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
-    function ignoreDispute(bytes32 _disputeID) external onlyArbitrator {
+    function drawDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         Dispute memory dispute = disputes[_disputeID];
@@ -377,10 +377,10 @@ contract DisputeManager is Governed {
             "Error sending dispute deposit"
         );
 
-        emit DisputeIgnored(
+        emit DisputeDrawn(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit
         );
@@ -400,7 +400,7 @@ contract DisputeManager is Governed {
         Attestation memory attestation = _parseAttestation(_attestationData);
 
         // Get attestation signer
-        address indexNode = _recoverAttestationSigner(attestation);
+        address indexer = _recoverAttestationSigner(attestation);
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
@@ -408,12 +408,12 @@ contract DisputeManager is Governed {
                 attestation.requestCID,
                 attestation.responseCID,
                 attestation.subgraphID,
-                indexNode
+                indexer
             )
         );
 
         // This also validates that index node exists
-        require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
+        require(staking.hasStake(indexer), "Dispute has no stake by the index node");
 
         // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
@@ -422,12 +422,12 @@ contract DisputeManager is Governed {
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[disputeID] = Dispute(attestation.subgraphID, indexNode, _fisherman, _deposit);
+        disputes[disputeID] = Dispute(attestation.subgraphID, indexer, _fisherman, _deposit);
 
         emit DisputeCreated(
             disputeID,
             attestation.subgraphID,
-            indexNode,
+            indexer,
             _fisherman,
             _deposit,
             _attestationData

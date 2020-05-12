@@ -12,13 +12,12 @@ const { defaults } = require('./lib/testHelpers')
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = '0x0'
 
-contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, otherIndexNode]) => {
+contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, otherIndexer]) => {
   beforeEach(async function() {
     // Private key for account #4
-    this.indexNodePrivKey = '0xadd53f9a7e588d003326d1cbf9e4a43c061aadd9bc938c843a79e7b4fd2ad743'
+    this.indexerPrivKey = '0xadd53f9a7e588d003326d1cbf9e4a43c061aadd9bc938c843a79e7b4fd2ad743'
     // Private key for account #6
-    this.otherIndexNodePrivKey =
-      '0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52'
+    this.otherIndexerPrivKey = '0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52'
 
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -204,9 +203,9 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
   describe('dispute lifecycle', function() {
     beforeEach(async function() {
       // Defaults
-      this.tokensForIndexNode = helpers.graphTokenConstants.tokensMintedForStaker
+      this.tokensForIndexer = helpers.graphTokenConstants.tokensMintedForStaker
       this.tokensForFisherman = helpers.graphTokenConstants.tokensMintedForStaker
-      this.indexNodeStake = this.tokensForIndexNode
+      this.indexerStake = this.tokensForIndexer
 
       // Create a dispute
       const receipt = {
@@ -217,7 +216,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
       this.dispute = await attestation.createDispute(
         receipt,
         this.disputeManager.address,
-        this.indexNodePrivKey,
+        this.indexerPrivKey,
       )
     })
 
@@ -249,31 +248,31 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
         })
 
         // Stake
-        for (const indexer of [indexNode, otherIndexNode]) {
+        for (const indexerAddress of [indexer, otherIndexer]) {
           // Give some funds to the indexer
-          await this.graphToken.mint(indexer, this.tokensForIndexNode, {
+          await this.graphToken.mint(indexerAddress, this.tokensForIndexer, {
             from: governor,
           })
 
           // Indexer stake funds
           await this.graphToken.transferToTokenReceiver(
             this.staking.address,
-            this.indexNodeStake,
+            this.indexerStake,
             '0x0',
-            { from: indexer },
+            { from: indexerAddress },
           )
         }
       })
 
       describe('reward calculation', function() {
         it('should calculate the reward for a stake', async function() {
-          const stakedAmount = this.indexNodeStake
+          const stakedAmount = this.indexerStake
           const trueReward = stakedAmount
             .mul(defaults.dispute.slashingPercentage)
             .div(new BN(MAX_PPM))
             .mul(defaults.dispute.rewardPercentage)
             .div(new BN(MAX_PPM))
-          const funcReward = await this.disputeManager.getTokensToReward(indexNode)
+          const funcReward = await this.disputeManager.getTokensToReward(indexer)
           expect(funcReward).to.be.bignumber.eq(trueReward.toString())
         })
       })
@@ -320,7 +319,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeCreated', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
-              indexNode: indexNode,
+              indexer: indexer,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,
               attestation: this.dispute.attestation,
@@ -356,7 +355,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             const newDispute = await attestation.createDispute(
               this.dispute.receipt,
               this.disputeManager.address,
-              this.otherIndexNodePrivKey,
+              this.otherIndexerPrivKey,
             )
             const { tx } = await this.graphToken.transferToTokenReceiver(
               this.disputeManager.address,
@@ -369,7 +368,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeCreated', {
               disputeID: newDispute.id,
               subgraphID: newDispute.receipt.subgraphID,
-              indexNode: otherIndexNode,
+              indexer: otherIndexer,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,
               attestation: newDispute.attestation,
@@ -430,11 +429,11 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
           })
 
           it('should resolve dispute, slash indexer and reward the fisherman', async function() {
-            const indexNodeStakeBefore = await this.staking.getIndexNodeStakeTokens(indexNode)
-            const tokensToSlash = await this.disputeManager.getTokensToSlash(indexNode)
+            const indexerStakeBefore = await this.staking.getIndexNodeStakeTokens(indexer)
+            const tokensToSlash = await this.disputeManager.getTokensToSlash(indexer)
             const fishermanBalanceBefore = await this.graphToken.balanceOf(fisherman)
             const totalSupplyBefore = await this.graphToken.totalSupply()
-            const reward = await this.disputeManager.getTokensToReward(indexNode)
+            const reward = await this.disputeManager.getTokensToReward(indexer)
 
             // Perform transaction (accept)
             const { tx } = await this.disputeManager.acceptDispute(this.dispute.id, {
@@ -449,8 +448,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             )
 
             // Index node slashed
-            const indexNodeStakeAfter = await this.staking.getIndexNodeStakeTokens(indexNode)
-            expect(indexNodeStakeAfter).to.be.bignumber.eq(indexNodeStakeBefore.sub(tokensToSlash))
+            const indexerStakeAfter = await this.staking.getIndexNodeStakeTokens(indexer)
+            expect(indexerStakeAfter).to.be.bignumber.eq(indexerStakeBefore.sub(tokensToSlash))
 
             // Slashed funds burned
             const tokensToBurn = tokensToSlash.sub(reward)
@@ -461,7 +460,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeAccepted', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
-              indexNode: indexNode,
+              indexer: indexer,
               fisherman: fisherman,
               tokens: deposit.add(reward),
             })
@@ -509,37 +508,37 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeRejected', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
-              indexNode: indexNode,
+              indexer: indexer,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,
             })
           })
         })
 
-        describe('ignore a dispute', async function() {
-          it('reject to ignore a non-existing dispute', async function() {
+        describe('draw a dispute', async function() {
+          it('reject to draw a non-existing dispute', async function() {
             await expectRevert(
-              this.disputeManager.ignoreDispute(NON_EXISTING_DISPUTE_ID, {
+              this.disputeManager.drawDispute(NON_EXISTING_DISPUTE_ID, {
                 from: arbitrator,
               }),
               'Dispute does not exist',
             )
           })
 
-          it('reject to ignore a dispute if not the arbitrator', async function() {
+          it('reject to draw a dispute if not the arbitrator', async function() {
             await expectRevert(
-              this.disputeManager.ignoreDispute(this.dispute.id, {
+              this.disputeManager.drawDispute(this.dispute.id, {
                 from: me,
               }),
               'Caller is not the Arbitrator',
             )
           })
 
-          it('should ignore a dispute and return deposit', async function() {
+          it('should draw a dispute and return deposit', async function() {
             const fishermanBalanceBefore = await this.graphToken.balanceOf(fisherman)
 
-            // Perform transaction (ignore)
-            const { tx } = await this.disputeManager.ignoreDispute(this.dispute.id, {
+            // Perform transaction (draw)
+            const { tx } = await this.disputeManager.drawDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -549,10 +548,10 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, ot
             expect(fishermanBalanceAfter).to.be.bignumber.eq(fishermanBalanceBefore.add(deposit))
 
             // Event emitted
-            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeIgnored', {
+            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeDrawn', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
-              indexNode: indexNode,
+              indexer: indexer,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,
             })
