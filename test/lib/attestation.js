@@ -1,4 +1,4 @@
-const Account = require('eth-lib/lib/account')
+const ethers = require('ethers')
 
 function createReceipt(subgraphId) {
   const receipt = {
@@ -64,8 +64,15 @@ async function createDisputePayload(subgraphId, contractAddress, signer) {
     createDomainSeparatorHash(contractAddress),
     createReceiptHash(receipt),
   )
-  const messageHash = web3.utils.sha3(message)
-  const messageSig = Account.sign(messageHash, signer)
+
+  const signingKey = new ethers.utils.SigningKey(signer)
+  const messageHash = ethers.utils.keccak256(message)
+  const signature = signingKey.signDigest(messageHash)
+  const messageSig =
+    '0x' +
+    ethers.utils.hexlify(signature.v).substring(2) +
+    signature.r.substring(2) +
+    signature.s.substring(2)
 
   // Attestation bytes: 96 (receipt) + 65 (signature) = 161
   const attestation = createAttestation(receipt, messageSig)
