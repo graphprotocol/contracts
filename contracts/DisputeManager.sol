@@ -68,11 +68,11 @@ contract DisputeManager is Governed {
     // Minimum deposit required to create a Dispute
     uint256 public minimumDeposit;
 
-    // Percentage of index node slashed funds to assign as a reward to fisherman in successful dispute
+    // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public rewardPercentage;
 
-    // Percentage of index node stake to slash on disputes
+    // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercentage;
 
@@ -149,7 +149,7 @@ contract DisputeManager is Governed {
      * @param _staking Address of the staking contract used for slashing
      * @param _minimumDeposit Minimum deposit required to create a Dispute
      * @param _rewardPercentage Percent of slashed funds the fisherman gets (in PPM)
-     * @param _slashingPercentage Percentage of index node stake slashed after a dispute
+     * @param _slashingPercentage Percentage of indexer stake slashed after a dispute
      */
     constructor(
         address _governor,
@@ -190,10 +190,10 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the fisherman reward for a given index node stake
+     * @dev Get the fisherman reward for a given indexer stake
      * @notice Return the fisherman reward based on the `_indexer` stake
      * @param _indexer Indexer to be slashed
-     * @return Reward calculated as percentage of the index node slashed funds
+     * @return Reward calculated as percentage of the indexer slashed funds
      */
     function getTokensToReward(address _indexer) public view returns (uint256) {
         uint256 value = getTokensToSlash(_indexer);
@@ -201,8 +201,8 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the amount of tokens to slash for an index node based on the stake
-     * @param _indexer Address of the index node
+     * @dev Get the amount of tokens to slash for an indexer based on the stake
+     * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
@@ -252,7 +252,7 @@ contract DisputeManager is Governed {
     /**
      * @dev Set the percent reward that the fisherman gets when slashing occurs
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of index node stake
+     * @param _percentage Reward as a percentage of indexer stake
      */
     function setRewardPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
@@ -261,7 +261,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the percentage used for slashing index nodes
+     * @dev Set the percentage used for slashing indexers
      * @param _percentage Percentage used for slashing
      */
     function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
@@ -312,8 +312,8 @@ contract DisputeManager is Governed {
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy protection
 
-        // Have staking contract slash the index node and reward the fisherman
-        // Give the fisherman a reward equal to the rewardPercentage of the index node slashed amount
+        // Have staking contract slash the indexer and reward the fisherman
+        // Give the fisherman a reward equal to the rewardPercentage of the indexer slashed amount
         uint256 tokensToReward = getTokensToReward(dispute.indexer);
         uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
         staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
@@ -412,13 +412,13 @@ contract DisputeManager is Governed {
             )
         );
 
-        // This also validates that index node exists
-        require(staking.hasStake(indexer), "Dispute has no stake by the index node");
+        // This also validates that indexer exists
+        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
         // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
 
-        // A fisherman can only open one dispute for a given index node / subgraphID at a time
+        // A fisherman can only open one dispute for a given indexer / subgraphID at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute

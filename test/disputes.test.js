@@ -235,7 +235,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             this.dispute.attestation,
             { from: fisherman },
           ),
-          'Dispute has no stake by the index node',
+          'Dispute has no stake by the indexer',
         )
       })
     })
@@ -447,7 +447,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
               fishermanBalanceBefore.add(deposit).add(reward),
             )
 
-            // Index node slashed
+            // Indexer slashed
             const indexerStakeAfter = await this.staking.getIndexNodeStakeTokens(indexer)
             expect(indexerStakeAfter).to.be.bignumber.eq(indexerStakeBefore.sub(tokensToSlash))
 
