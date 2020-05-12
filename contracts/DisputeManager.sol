@@ -70,7 +70,7 @@ contract DisputeManager is Governed {
 
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public rewardPercentage;
+    uint256 public fishermanRewardPercentage;
 
     // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
@@ -148,7 +148,7 @@ contract DisputeManager is Governed {
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
      * @param _minimumDeposit Minimum deposit required to create a Dispute
-     * @param _rewardPercentage Percent of slashed funds the fisherman gets (in PPM)
+     * @param _fishermanRewardPercentage Percent of slashed funds the fisherman gets (in PPM)
      * @param _slashingPercentage Percentage of indexer stake slashed after a dispute
      */
     constructor(
@@ -157,14 +157,14 @@ contract DisputeManager is Governed {
         address _token,
         address _staking,
         uint256 _minimumDeposit,
-        uint256 _rewardPercentage,
+        uint256 _fishermanRewardPercentage,
         uint256 _slashingPercentage
     ) public Governed(_governor) {
         arbitrator = _arbitrator;
         token = GraphToken(_token);
         staking = Staking(_staking);
         minimumDeposit = _minimumDeposit;
-        rewardPercentage = _rewardPercentage;
+        fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
 
         // EIP-712 domain separator
@@ -197,7 +197,7 @@ contract DisputeManager is Governed {
      */
     function getTokensToReward(address _indexer) public view returns (uint256) {
         uint256 value = getTokensToSlash(_indexer);
-        return rewardPercentage.mul(value).div(MAX_PPM); // rewardPercentage is in PPM
+        return fishermanRewardPercentage.mul(value).div(MAX_PPM);
     }
 
     /**
@@ -207,7 +207,7 @@ contract DisputeManager is Governed {
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
         uint256 tokens = staking.getIndexNodeStakeTokens(_indexer); // slashable tokens
-        return slashingPercentage.mul(tokens).div(MAX_PPM); // slashingPercentage is in PPM
+        return slashingPercentage.mul(tokens).div(MAX_PPM);
     }
 
     /**
@@ -254,10 +254,10 @@ contract DisputeManager is Governed {
      * @notice Update the reward percentage to `_percentage`
      * @param _percentage Reward as a percentage of indexer stake
      */
-    function setRewardPercentage(uint256 _percentage) external onlyGovernor {
+    function setFishermanRewardPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
-        rewardPercentage = _percentage;
+        fishermanRewardPercentage = _percentage;
     }
 
     /**
@@ -313,7 +313,7 @@ contract DisputeManager is Governed {
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Have staking contract slash the indexer and reward the fisherman
-        // Give the fisherman a reward equal to the rewardPercentage of the indexer slashed amount
+        // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
         uint256 tokensToReward = getTokensToReward(dispute.indexer);
         uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
         staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);

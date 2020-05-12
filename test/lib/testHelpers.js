@@ -286,7 +286,7 @@ module.exports = {
     },
     dispute: {
       minimumDeposit: web3.utils.toWei(new BN('100')),
-      rewardPercentage: new BN(1000), // in basis points
+      fishermanRewardPercentage: new BN(1000), // in basis points
       slashingPercentage: new BN(1000), // in basis points
     },
     epochs: {

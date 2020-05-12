@@ -100,35 +100,35 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
       })
     })
 
-    describe('rewardPercentage', function() {
-      it('should set `rewardPercentage`', async function() {
-        const rewardPercentage = defaults.dispute.rewardPercentage
+    describe('fishermanRewardPercentage', function() {
+      it('should set `fishermanRewardPercentage`', async function() {
+        const fishermanRewardPercentage = defaults.dispute.fishermanRewardPercentage
 
         // Set right in the constructor
-        expect(await this.disputeManager.rewardPercentage()).to.be.bignumber.eq(
-          rewardPercentage.toString(),
+        expect(await this.disputeManager.fishermanRewardPercentage()).to.be.bignumber.eq(
+          fishermanRewardPercentage.toString(),
         )
 
         // Set new value
-        await this.disputeManager.setRewardPercentage(0, { from: governor })
-        await this.disputeManager.setRewardPercentage(1, { from: governor })
-        await this.disputeManager.setRewardPercentage(rewardPercentage, {
+        await this.disputeManager.setFishermanRewardPercentage(0, { from: governor })
+        await this.disputeManager.setFishermanRewardPercentage(1, { from: governor })
+        await this.disputeManager.setFishermanRewardPercentage(fishermanRewardPercentage, {
           from: governor,
         })
       })
 
-      it('reject set `rewardPercentage` if out of bounds', async function() {
+      it('reject set `fishermanRewardPercentage` if out of bounds', async function() {
         await expectRevert(
-          this.disputeManager.setRewardPercentage(MAX_PPM + 1, {
+          this.disputeManager.setFishermanRewardPercentage(MAX_PPM + 1, {
             from: governor,
           }),
           'Reward percentage must be below or equal to MAX_PPM',
         )
       })
 
-      it('reject set `rewardPercentage` if not allowed', async function() {
+      it('reject set `fishermanRewardPercentage` if not allowed', async function() {
         await expectRevert(
-          this.disputeManager.setRewardPercentage(50, { from: other }),
+          this.disputeManager.setFishermanRewardPercentage(50, { from: other }),
           'Only Governor can call',
         )
       })
@@ -136,7 +136,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
 
     describe('slashingPercentage', function() {
       it('should set `slashingPercentage`', async function() {
-        const slashingPercentage = defaults.dispute.rewardPercentage
+        const slashingPercentage = defaults.dispute.slashingPercentage
 
         // Set right in the constructor
         expect(await this.disputeManager.slashingPercentage()).to.be.bignumber.eq(
@@ -270,7 +270,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
           const trueReward = stakedAmount
             .mul(defaults.dispute.slashingPercentage)
             .div(new BN(MAX_PPM))
-            .mul(defaults.dispute.rewardPercentage)
+            .mul(defaults.dispute.fishermanRewardPercentage)
             .div(new BN(MAX_PPM))
           const funcReward = await this.disputeManager.getTokensToReward(indexer)
           expect(funcReward).to.be.bignumber.eq(trueReward.toString())
