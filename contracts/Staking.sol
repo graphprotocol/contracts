@@ -52,7 +52,7 @@ contract Staking is Governed {
     // IndexNode stake tracking : indexNode => Stake
     mapping(address => Stakes.IndexNode) public stakes;
 
-    // Payment channels : channelID => Channel
+    // Channels : channelID => Channel
     mapping(address => Channel) public channels;
 
     // Rebate pools : epoch => Pool
@@ -97,7 +97,7 @@ contract Staking is Governed {
     /**
      * @dev Emitted when `indexNode` allocated `tokens` amount to `subgraphID`
      * during `epoch`.
-     * `channelID` is the address of the index node in the payment channel multisig.
+     * `channelID` is the address of the index node in the channel multisig.
      * `channelPubKey` is the public key used for routing payments to the index node channel.
      */
     event AllocationCreated(
@@ -111,7 +111,7 @@ contract Staking is Governed {
 
     /**
      * @dev Emitted when `indexNode` settled an allocation of `tokens` amount to `subgraphID`
-     * during `epoch` using `channelID` as payment channel.
+     * during `epoch` using `channelID` as channel.
      *
      * NOTE: `from` tracks the multisig contract from where it was settled.
      */
@@ -221,7 +221,7 @@ contract Staking is Governed {
 
     /**
      * @dev Return if channelID (address) is already used
-     * @param _channelID Address used as signer for index node in payment channel
+     * @param _channelID Address used as signer for index node in channel
      * @return True if channelID already used
      */
     function isChannel(address _channelID) public view returns (bool) {
@@ -345,7 +345,7 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelPubKey The public key used by the IndexNode to setup the off-chain payment channel
+     * @param _channelPubKey The public key used by the IndexNode to setup the off-chain channel
      */
     function allocate(
         bytes32 _subgraphID,

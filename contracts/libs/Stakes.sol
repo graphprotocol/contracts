@@ -17,12 +17,11 @@ library Stakes {
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
-        address channelID; // IndexNode payment channel ID used off chain
+        address channelID; // IndexNode channel ID used off chain
     }
 
     struct IndexNode {
         uint256 tokensIndexNode; // Tokens on the IndexNode stake (staked by the index node)
-        uint256 tokensDelegated; // Tokens on the Delegated stake (staked by the delegators)
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
@@ -178,17 +177,17 @@ library Stakes {
     }
 
     /**
-     * @dev Total tokens staked both from IndexNode and Delegators
+     * @dev Total tokens staked from IndexNode
      * @param stake Stake data
      * @return Token amount
      */
     function tokensStaked(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensIndexNode.add(stake.tokensDelegated);
+        return stake.tokensIndexNode;
     }
 
     /**
      * @dev Tokens available for use in allocations
-     * @dev tokensIndexNode + tokensDelegated - tokensAllocated - tokensLocked
+     * @dev tokensIndexNode - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
@@ -233,7 +232,7 @@ library Stakes {
     /**
      * @dev Return if channel for an allocation is active
      * @param alloc Allocation data
-     * @return True if payment channel related to allocation is active
+     * @return True if channel related to allocation is active
      */
     function hasChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
         return alloc.channelID != address(0);
