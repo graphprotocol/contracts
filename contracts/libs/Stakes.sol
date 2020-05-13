@@ -194,7 +194,8 @@ library Stakes {
     function tokensAvailable(Stakes.IndexNode storage stake) internal view returns (uint256) {
         uint256 _tokensStaked = stake.tokensStaked();
         uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
-        // Stake is over allocated
+        // Stake is over allocated: return 0 to avoid stake to be used until the overallocation
+        // is restored by staking more tokens or unallocating tokens
         if (tokensUsed > _tokensStaked) {
             return 0;
         }

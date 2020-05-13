@@ -418,7 +418,10 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
         })
 
         it('should slash indexer even if it gets overallocated to subgraphs', async function() {
-          // Unstake partially
+          // Initial stake
+          const beforeTokensStaked = await this.staking.getIndexNodeStakeTokens(indexNode)
+
+          // Unstake partially, these tokens will be locked
           const tokensToUnstake = web3.utils.toWei(new BN('10'))
           await this.staking.unstake(tokensToUnstake, { from: indexNode })
 
@@ -426,9 +429,10 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToAllocate = web3.utils.toWei(new BN('70'))
           await this.allocate(tokensToAllocate)
 
-          // helpers.logStakes(await this.staking.stakes(indexNode))
+          // State pre-slashing
+          // helpers.logStake(await this.staking.stakes(indexNode))
           // > Current state:
-          // = Staked 100
+          // = Staked: 100
           // = Locked: 10
           // = Allocated: 70
           // = Available: 20 (staked - allocated - locked)
@@ -438,12 +442,29 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToReward = web3.utils.toWei(new BN('0'))
           await this.shouldSlash(indexNode, tokensToSlash, tokensToReward, fisherman)
 
-          // helpers.logStakes(await this.staking.stakes(indexNode))
+          // State post-slashing
+          // helpers.logStake(await this.staking.stakes(indexNode))
           // > Current state:
-          // = Staked 20
+          // = Staked: 20
           // = Locked: 0
           // = Allocated: 70
-          // = Available: -50 (staked - allocated - locked) => 0
+          // = Available: -50 (staked - allocated - locked) => when tokens available becomes negative
+          // we are overallocated, the staking contract will prevent unstaking or allocating until
+          // the balance is restored by staking or unallocating
+
+          const stakes = await this.staking.stakes(indexNode)
+          // Stake should be reduced by the amount slashed
+          expect(stakes.tokensIndexNode).to.be.bignumber.eq(beforeTokensStaked.sub(tokensToSlash))
+          // All allocated tokens should be untouched
+          expect(stakes.tokensAllocated).to.be.bignumber.eq(tokensToAllocate)
+          // All locked tokens need to be consumed from the stake
+          expect(stakes.tokensLocked).to.be.bignumber.eq(new BN('0'))
+          expect(stakes.tokensLockedUntil).to.be.bignumber.eq(new BN('0'))
+          // Tokens available when negative means over allocation
+          const tokensAvailable = stakes.tokensIndexNode
+            .sub(stakes.tokensAllocated)
+            .sub(stakes.tokensLocked)
+          expect(tokensAvailable).to.be.bignumber.eq(web3.utils.toWei(new BN('-50')))
 
           await expectRevert(
             this.staking.unstake(tokensToUnstake, { from: indexNode }),
