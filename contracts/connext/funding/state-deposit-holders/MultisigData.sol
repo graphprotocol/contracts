@@ -10,7 +10,7 @@ contract MultisigData {
     // The masterCopy address must occupy the first slot,
     // because we're using the multisig as a proxy.
     // Don't move or remove the following line!
-    address masterCopy;
+    address payable masterCopy;
 
     mapping (address => uint256) public totalAmountWithdrawn;
 }
