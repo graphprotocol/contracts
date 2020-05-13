@@ -28,17 +28,13 @@ contract ConditionalTransactionDelegateTarget is MultisigTransfer {
 
     function executeWithdraw(
         address interpreterAddress,
-        bytes32 nonce,
+        bytes32 /* nonce */,
         bytes memory encodedOutput,
         bytes memory encodedParams
     )
         public
     {
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = interpreterAddress.delegatecall(
+        (bool success, ) = interpreterAddress.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 encodedOutput,

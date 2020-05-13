@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "./state-deposit-holders/MinimumViableMultisig.sol";
@@ -26,18 +26,14 @@ contract IndexerCTDT is MultisigTransfer {
 
     function executeWithdraw(
         address interpreterAddress,
-        bytes32 nonce,
+        bytes32 /* nonce */,
         bytes memory encodedOutput,
         bytes memory encodedParams
     )
         public
     {
         address payable withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = withdrawInterpreter.delegatecall(
+        (bool success, ) = withdrawInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 encodedOutput,
@@ -77,11 +73,7 @@ contract IndexerCTDT is MultisigTransfer {
             limits[i] = MAX_UINT256;
         }
 
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = multiAssetInterpreter.delegatecall(
+        (bool success, ) = multiAssetInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 abi.encode(freeBalanceAppState.balances),
@@ -130,11 +122,7 @@ contract IndexerCTDT is MultisigTransfer {
 
         bytes memory outcome = challengeRegistry.getOutcome(appIdentityHash);
 
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = singleAssetInterpreter.delegatecall(
+        (bool success, ) = singleAssetInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 outcome,
