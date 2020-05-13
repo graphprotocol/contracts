@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "./MultisigData.sol";
 import "../../shared/libs/LibCommitment.sol";
 import "../../shared/libs/LibChannelCrypto.sol";
-import "../../../Staking.sol"
+import "../../../Staking.sol";
 
 
 /// @title MinimumViableMultisig - A multisig wallet supporting the minimum

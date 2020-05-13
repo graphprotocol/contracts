@@ -32,7 +32,7 @@ contract IndexerCTDT is MultisigTransfer {
     )
         public
     {
-        address payable withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
+        address withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
         (bool success, ) = withdrawInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
@@ -63,7 +63,7 @@ contract IndexerCTDT is MultisigTransfer {
             freeBalanceAppState.tokenAddresses.length
         );
 
-        address payable multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS();
+        address multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < freeBalanceAppState.tokenAddresses.length; i++) {
             // The transaction's interpreter parameters are determined at the time
@@ -110,7 +110,7 @@ contract IndexerCTDT is MultisigTransfer {
 
         bool appIsFunded = false;
 
-        address payable singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS();
+        address singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < activeApps.length; i++) {
             if (activeApps[i] == appIdentityHash) {

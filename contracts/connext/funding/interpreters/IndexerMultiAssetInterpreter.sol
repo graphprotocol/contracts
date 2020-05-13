@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "./state-deposit-holders/MinimumViableMultisig.sol";
+import "../state-deposit-holders/MinimumViableMultisig.sol";
 import "../state-deposit-holders/MultisigTransfer.sol";
 import "../libs/LibOutcome.sol";
 import "../Interpreter.sol";
