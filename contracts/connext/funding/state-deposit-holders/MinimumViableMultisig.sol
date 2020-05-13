@@ -82,8 +82,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         public
     {
         address parsedTo;
-        if( Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[0]) ||
-            Staking(INDEXER_STAKING_ADDRESS).isIndexer(_owners[1]) )
+        if( Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[0]) ||
+            Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[1]) )
         {
             parsedTo = INDEXER_CTDT_ADDRESS;
         } else {
