@@ -52,7 +52,7 @@ contract Staking is Governed {
     // IndexNode stake tracking : indexNode => Stake
     mapping(address => Stakes.IndexNode) public stakes;
 
-    // Payment channels : channelID => Channel
+    // Channels : channelID => Channel
     mapping(address => Channel) public channels;
 
     // Rebate pools : epoch => Pool
@@ -96,19 +96,22 @@ contract Staking is Governed {
 
     /**
      * @dev Emitted when `indexNode` allocated `tokens` amount to `subgraphID`
-     * during `epoch` and registered `channelID` as payment channel.
+     * during `epoch`.
+     * `channelID` is the address of the index node in the channel multisig.
+     * `channelPubKey` is the public key used for routing payments to the index node channel.
      */
     event AllocationCreated(
         address indexed indexNode,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 tokens,
-        address channelID
+        address channelID,
+        bytes channelPubKey
     );
 
     /**
      * @dev Emitted when `indexNode` settled an allocation of `tokens` amount to `subgraphID`
-     * during `epoch` using `channelID` as payment channel.
+     * during `epoch` using `channelID` as channel.
      *
      * NOTE: `from` tracks the multisig contract from where it was settled.
      */
@@ -153,10 +156,12 @@ contract Staking is Governed {
      * @param _epochManager Address of the EpochManager contract
      * @param _curation Address of the Curation contract
      */
-    constructor(address _governor, address _token, address _epochManager, address _curation)
-        public
-        Governed(_governor)
-    {
+    constructor(
+        address _governor,
+        address _token,
+        address _epochManager,
+        address _curation
+    ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
         curation = Curation(_curation);
@@ -216,7 +221,7 @@ contract Staking is Governed {
 
     /**
      * @dev Return if channelID (address) is already used
-     * @param _channelID Address used as signer for index node in payment channel
+     * @param _channelID Address used as signer for index node in channel
      * @return True if channelID already used
      */
     function isChannel(address _channelID) public view returns (bool) {
@@ -262,26 +267,37 @@ contract Staking is Governed {
      * @param _reward Amount of reward tokens to send to a beneficiary
      * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(address _indexNode, uint256 _tokens, uint256 _reward, address _beneficiary)
-        external
-        onlySlasher
-    {
-        uint256 tokensToSlash = _tokens;
+    function slash(
+        address _indexNode,
+        uint256 _tokens,
+        uint256 _reward,
+        address _beneficiary
+    ) external onlySlasher {
         Stakes.IndexNode storage stake = stakes[_indexNode];
 
         require(stake.hasTokens(), "Slashing: index node has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
-        require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
+        require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(
-            tokensToSlash <= stake.tokensIndexNode,
-            "Slashing: cannot slash more than available stake"
+            _tokens <= stake.tokensSlashable(),
+            "Slashing: cannot slash more than staked amount"
         );
 
-        // Slash stake
-        stake.release(tokensToSlash);
+        // Slashing more tokens than freely available (over allocation condition)
+        // Unlock locked tokens to avoid the indexer to withdraw them
+        if (_tokens > stake.tokensAvailable() && stake.tokensLocked > 0) {
+            uint256 tokensOverAllocated = _tokens.sub(stake.tokensAvailable());
+            uint256 tokensToUnlock = (tokensOverAllocated > stake.tokensLocked)
+                ? stake.tokensLocked
+                : tokensOverAllocated;
+            stake.unlockTokens(tokensToUnlock);
+        }
+
+        // Remove tokens to slash from the stake
+        stake.release(_tokens);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        uint256 tokensToBurn = tokensToSlash.sub(_reward);
+        uint256 tokensToBurn = _tokens.sub(_reward);
         if (tokensToBurn > 0) {
             token.burn(tokensToBurn);
         }
@@ -294,7 +310,7 @@ contract Staking is Governed {
             );
         }
 
-        emit StakeSlashed(_indexNode, tokensToBurn, _reward, _beneficiary);
+        emit StakeSlashed(_indexNode, _tokens, _reward, _beneficiary);
     }
 
     /**
@@ -302,10 +318,11 @@ contract Staking is Governed {
      * @param _from Token holder's address
      * @param _value Amount of Graph Tokens
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
-    {
+    function tokensReceived(
+        address _from,
+        uint256 _value,
+        bytes calldata _data
+    ) external returns (bool) {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
@@ -328,36 +345,47 @@ contract Staking is Governed {
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelID The signer address used by the IndexNode to setup the off-chain payment channel
+     * @param _channelPubKey The public key used by the IndexNode to setup the off-chain channel
      */
-    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelID) external {
+    function allocate(
+        bytes32 _subgraphID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey
+    ) external {
         address indexNode = msg.sender;
         Stakes.IndexNode storage stake = stakes[indexNode];
 
+        // Only allocations with a token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
+        // Need to have tokens in our stake to be able to allocate
         require(stake.hasTokens(), "Allocation: index node has no stakes");
+        // Need to have free tokens not used for other purposes to allocate
         require(
             stake.tokensAvailable() >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
+        // Can only allocate tokens to a subgraph if not currently allocated
         require(
             stake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
         );
-        require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
+        // Cannot reuse a channelID that has been used in the past
+        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
+        require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
         Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
-        alloc.channelID = _channelID;
+        alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[_channelID] = Channel(indexNode, _subgraphID);
+        channels[channelID] = Channel(indexNode, _subgraphID);
 
         emit AllocationCreated(
             indexNode,
             _subgraphID,
             alloc.createdAtEpoch,
             alloc.tokens,
-            _channelID
+            channelID,
+            _channelPubKey
         );
     }
 
@@ -401,7 +429,11 @@ contract Staking is Governed {
      * @param _subgraphID Subgraph we are claiming tokens from
      * @param _restake True if restake fees instead of transfer to index node
      */
-    function claim(uint256 _epoch, bytes32 _subgraphID, bool _restake) external {
+    function claim(
+        uint256 _epoch,
+        bytes32 _subgraphID,
+        bool _restake
+    ) external {
         address indexNode = msg.sender;
         Rebates.Pool storage pool = rebates[_epoch];
         Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
@@ -460,7 +492,11 @@ contract Staking is Governed {
      * @param _from Multisig channel address that triggered settlement
      * @param _tokens Amount of tokens to settle
      */
-    function _settle(address _channelID, address _from, uint256 _tokens) private {
+    function _settle(
+        address _channelID,
+        address _from,
+        uint256 _tokens
+    ) private {
         address indexNode = channels[_channelID].indexNode;
         bytes32 subgraphID = channels[_channelID].subgraphID;
         Stakes.IndexNode storage stake = stakes[indexNode];
@@ -509,6 +545,14 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get whether curation rewards are active or not
+     * @return true if curation fees are enabled
+     */
+    function isCurationEnabled() private view returns (bool) {
+        return curationPercentage > 0 && address(curation) != address(0);
+    }
+
+    /**
      * @dev Get the running network chain ID
      * @return The chain ID
      */
@@ -521,10 +565,13 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Get whether curation rewards are active or not
-     * @return true if curation fees are enabled
+     * @dev Convert an uncompressed public key to an Ethereum address
+     * @param _publicKey Public key in uncompressed format without the 1 byte prefix
+     * @return An Ethereum address corresponding to the public key
      */
-    function isCurationEnabled() private view returns (bool) {
-        return curationPercentage > 0 && address(curation) != address(0);
+    function publicKeyToAddress(bytes memory _publicKey) private pure returns (address) {
+        uint256 mask = 2**(8 * 21) - 1;
+        uint256 value = uint256(keccak256(_publicKey));
+        return address(value & mask);
     }
 }

@@ -17,12 +17,11 @@ library Stakes {
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
-        address channelID; // IndexNode payment channel ID used off chain
+        address channelID; // IndexNode channel ID used off chain
     }
 
     struct IndexNode {
         uint256 tokensIndexNode; // Tokens on the IndexNode stake (staked by the index node)
-        uint256 tokensDelegated; // Tokens on the Delegated stake (staked by the delegators)
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
@@ -63,7 +62,7 @@ library Stakes {
     }
 
     /**
-     * @dev Deposit tokens to the index node stake balance
+     * @dev Deposit tokens to the index node stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
@@ -72,7 +71,7 @@ library Stakes {
     }
 
     /**
-     * @dev Release tokens from the index node stake balance
+     * @dev Release tokens from the index node stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
@@ -101,6 +100,18 @@ library Stakes {
     }
 
     /**
+     * @dev Unlock tokens
+     * @param stake Stake data
+     * @param _tokens Amount of tokens to unkock
+     */
+    function unlockTokens(Stakes.IndexNode storage stake, uint256 _tokens) internal {
+        stake.tokensLocked = stake.tokensLocked.sub(_tokens);
+        if (stake.tokensLocked == 0) {
+            stake.tokensLockedUntil = 0;
+        }
+    }
+
+    /**
      * @dev Take all tokens out from the locked stack for withdrawal
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
@@ -111,8 +122,7 @@ library Stakes {
 
         if (tokensToWithdraw > 0) {
             // Reset locked tokens
-            stake.tokensLocked = 0;
-            stake.tokensLockedUntil = 0;
+            stake.unlockTokens(tokensToWithdraw);
 
             // Decrease index node stake
             stake.release(tokensToWithdraw);
@@ -167,22 +177,29 @@ library Stakes {
     }
 
     /**
-     * @dev Total tokens staked both from IndexNode and Delegators
+     * @dev Total tokens staked from IndexNode
      * @param stake Stake data
      * @return Token amount
      */
     function tokensStaked(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensIndexNode.add(stake.tokensDelegated);
+        return stake.tokensIndexNode;
     }
 
     /**
      * @dev Tokens available for use in allocations
-     * @dev tokensIndexNode + tokensDelegated - tokensAllocated - tokensLocked
+     * @dev tokensIndexNode - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
     function tokensAvailable(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensStaked().sub(stake.tokensAllocated).sub(stake.tokensLocked);
+        uint256 _tokensStaked = stake.tokensStaked();
+        uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
+        // Stake is over allocated: return 0 to avoid stake to be used until the overallocation
+        // is restored by staking more tokens or unallocating tokens
+        if (tokensUsed > _tokensStaked) {
+            return 0;
+        }
+        return _tokensStaked.sub(tokensUsed);
     }
 
     /**
@@ -216,7 +233,7 @@ library Stakes {
     /**
      * @dev Return if channel for an allocation is active
      * @param alloc Allocation data
-     * @return True if payment channel related to allocation is active
+     * @return True if channel related to allocation is active
      */
     function hasChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
         return alloc.channelID != address(0);
