@@ -219,15 +219,6 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           await this.stake(indexNodeStake)
           const tokens1 = await this.staking.getIndexNodeStakeTokens(indexNode)
           expect(tokens1).to.be.bignumber.eq(indexNodeStake)
-
-          // Re-stake
-          const { tx } = await this.stake(indexNodeStake)
-          const tokens2 = await this.staking.getIndexNodeStakeTokens(indexNode)
-          expect(tokens2).to.be.bignumber.eq(indexNodeStake.add(indexNodeStake))
-          expectEvent.inTransaction(tx, this.staking.constructor, 'StakeDeposited', {
-            indexNode: indexNode,
-            tokens: indexNodeStake,
-          })
         })
       })
 
@@ -273,6 +264,19 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
       describe('hasStake()', function() {
         it('should have stakes', async function() {
           expect(await this.staking.hasStake(indexNode)).to.be.eq(true)
+        })
+      })
+
+      describe('stake()', function() {
+        it('should allow re-staking', async function() {
+          // Re-stake
+          const { tx } = await this.stake(this.indexNodeStake)
+          const tokens2 = await this.staking.getIndexNodeStakeTokens(indexNode)
+          expect(tokens2).to.be.bignumber.eq(this.indexNodeStake.add(this.indexNodeStake))
+          expectEvent.inTransaction(tx, this.staking.constructor, 'StakeDeposited', {
+            indexNode: indexNode,
+            tokens: this.indexNodeStake,
+          })
         })
       })
 
