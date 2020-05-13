@@ -25,14 +25,14 @@ contract IndexerCTDT is MultisigTransfer {
     }
 
     function executeWithdraw(
-        address interpreterAddress
-        bytes32 nonce
-        bytes memory encodedOutput
+        address interpreterAddress,
+        bytes32 nonce,
+        bytes memory encodedOutput,
         bytes memory encodedParams
     )
         public
     {
-        address payable withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS;
+        address payable withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
         (
             bool success,
             // solium-disable-next-line no-unused-vars
@@ -67,7 +67,7 @@ contract IndexerCTDT is MultisigTransfer {
             freeBalanceAppState.tokenAddresses.length
         );
 
-        address payable multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
+        address payable multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < freeBalanceAppState.tokenAddresses.length; i++) {
             // The transaction's interpreter parameters are determined at the time
@@ -118,7 +118,7 @@ contract IndexerCTDT is MultisigTransfer {
 
         bool appIsFunded = false;
 
-        address payable singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
+        address payable singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < activeApps.length; i++) {
             if (activeApps[i] == appIdentityHash) {

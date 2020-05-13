@@ -27,9 +27,9 @@ contract ConditionalTransactionDelegateTarget is MultisigTransfer {
     }
 
     function executeWithdraw(
-        address interpreterAddress
-        bytes32 nonce
-        bytes memory encodedOutput
+        address interpreterAddress,
+        bytes32 nonce,
+        bytes memory encodedOutput,
         bytes memory encodedParams
     )
         public

@@ -37,7 +37,7 @@ contract IndexerMultiAssetInterpreter is MultisigTransfer, Interpreter {
             (LibOutcome.CoinTransfer[][])
         );
 
-        address payable stakingAddress = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS;
+        address payable stakingAddress = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
 
         for (uint256 i = 0; i < coinTransferListOfLists.length; i++) {
 
