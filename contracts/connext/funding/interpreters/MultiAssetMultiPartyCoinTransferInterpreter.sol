@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "../state-deposit-holders/MultisigTransfer.sol";
@@ -18,12 +18,13 @@ contract MultiAssetMultiPartyCoinTransferInterpreter is MultisigTransfer, Interp
     // NOTE: This is useful for writing tests, but is bad practice
     // to have in the contract when deploying it. We do not want people
     // to send funds to this contract in any scenario.
-    function () external payable { }
+    receive() external payable { }
 
     function interpretOutcomeAndExecuteEffect(
         bytes calldata encodedOutcome,
         bytes calldata encodedParams
     )
+        override
         external
     {
         MultiAssetMultiPartyCoinTransferInterpreterParams memory params = abi.decode(

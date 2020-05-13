@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "./state-deposit-holders/MultisigTransfer.sol";
@@ -76,11 +76,7 @@ contract ConditionalTransactionDelegateTarget is MultisigTransfer {
             limits[i] = MAX_UINT256;
         }
 
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = multiAssetMultiPartyCoinTransferInterpreterAddress.delegatecall(
+        (bool success, ) = multiAssetMultiPartyCoinTransferInterpreterAddress.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 abi.encode(freeBalanceAppState.balances),
@@ -127,11 +123,7 @@ contract ConditionalTransactionDelegateTarget is MultisigTransfer {
 
         bytes memory outcome = challengeRegistry.getOutcome(appIdentityHash);
 
-        (
-            bool success,
-            // solium-disable-next-line no-unused-vars
-            bytes memory returnData
-        ) = interpreterAddress.delegatecall(
+        (bool success, ) = interpreterAddress.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
                 outcome,

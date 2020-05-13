@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -66,7 +66,7 @@ contract LibStateChannelApp is LibDispute {
         AppChallenge memory appChallenge
     )
         public
-        view
+        pure
         returns (bool)
     {
         return appChallenge.status == ChallengeStatus.OUTCOME_SET;

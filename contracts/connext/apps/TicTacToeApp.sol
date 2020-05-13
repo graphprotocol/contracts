@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "../adjudicator/interfaces/CounterfactualApp.sol";
@@ -51,6 +51,7 @@ contract TicTacToeApp is CounterfactualApp {
     }
 
     function isStateTerminal(bytes calldata encodedState)
+        override
         external
         view
         returns (bool)
@@ -64,6 +65,7 @@ contract TicTacToeApp is CounterfactualApp {
         bytes calldata encodedState,
         address[] calldata participants
     )
+        override
         external
         view
         returns (address)
@@ -75,6 +77,7 @@ contract TicTacToeApp is CounterfactualApp {
     function applyAction(
         bytes calldata encodedState, bytes calldata encodedAction
     )
+        override
         external
         view
         returns (bytes memory)
@@ -120,6 +123,7 @@ contract TicTacToeApp is CounterfactualApp {
     }
 
     function computeOutcome(bytes calldata encodedState)
+      override
       external
       view
       returns (bytes memory)
@@ -148,7 +152,7 @@ contract TicTacToeApp is CounterfactualApp {
         uint256 y
     )
         internal
-        view
+        pure
         returns (AppState memory)
     {
         require(state.board[x][y] == 0, "playMove: square is not empty");
@@ -163,7 +167,7 @@ contract TicTacToeApp is CounterfactualApp {
 
     function assertBoardIsFull(AppState memory preState)
         internal
-        view
+        pure
     {
         for (uint256 i = 0; i < 3; i++) {
             for (uint256 j = 0; j < 3; j++) {
@@ -180,7 +184,7 @@ contract TicTacToeApp is CounterfactualApp {
         WinClaim memory winClaim
     )
         internal
-        view
+        pure
     {
         uint256 expectedSquareState = playerId + 1;
         if (winClaim.winClaimType == WinClaimType.COL) {

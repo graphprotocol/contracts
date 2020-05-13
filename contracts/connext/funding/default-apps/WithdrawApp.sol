@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "../../shared/libs/LibChannelCrypto.sol";
@@ -31,6 +31,7 @@ contract WithdrawApp is CounterfactualApp {
     }
 
     function isStateTerminal(bytes calldata encodedState)
+        override
         external
         view
         returns (bool)
@@ -41,8 +42,9 @@ contract WithdrawApp is CounterfactualApp {
 
     function getTurnTaker(
         bytes calldata encodedState,
-        address[] calldata participants
+        address[] calldata /* participants */
     )
+        override
         external
         view
         returns (address)
@@ -58,6 +60,7 @@ contract WithdrawApp is CounterfactualApp {
         bytes calldata encodedState,
         bytes calldata encodedAction
     )
+        override
         external
         view
         returns (bytes memory)
@@ -76,6 +79,7 @@ contract WithdrawApp is CounterfactualApp {
     }
 
     function computeOutcome(bytes calldata encodedState)
+        override
         external
         view
         returns (bytes memory)
