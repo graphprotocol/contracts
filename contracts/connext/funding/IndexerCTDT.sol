@@ -25,7 +25,7 @@ contract IndexerCTDT is MultisigTransfer {
     }
 
     function executeWithdraw(
-        address interpreterAddress,
+        address /* interpreterAddress */,
         bytes32 /* nonce */,
         bytes memory encodedOutput,
         bytes memory encodedParams
@@ -50,7 +50,7 @@ contract IndexerCTDT is MultisigTransfer {
     function executeEffectOfFreeBalance(
         ChallengeRegistry challengeRegistry,
         bytes32 freeBalanceAppIdentityHash,
-        address multiAssetMultiPartyCoinTransferInterpreterAddress
+        address /* multiAssetMultiPartyCoinTransferInterpreterAddress */
     )
         public
     {
@@ -98,7 +98,7 @@ contract IndexerCTDT is MultisigTransfer {
         ChallengeRegistry challengeRegistry,
         bytes32 freeBalanceAppIdentityHash,
         bytes32 appIdentityHash,
-        address interpreterAddress,
+        address /* interpreterAddress */,
         bytes memory interpreterParams
     )
         public
