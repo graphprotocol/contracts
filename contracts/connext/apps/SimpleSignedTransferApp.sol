@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -31,6 +31,7 @@ contract SimpleSignedTransferApp is CounterfactualApp {
         bytes calldata encodedState,
         bytes calldata encodedAction
     )
+        override
         external
         view
         returns (bytes memory)
@@ -50,6 +51,7 @@ contract SimpleSignedTransferApp is CounterfactualApp {
     }
 
     function computeOutcome(bytes calldata encodedState)
+        override
         external
         view
         returns (bytes memory)
@@ -60,9 +62,10 @@ contract SimpleSignedTransferApp is CounterfactualApp {
     }
 
     function getTurnTaker(
-        bytes calldata encodedState,
+        bytes calldata /* encodedState */,
         address[] calldata participants
     )
+        override
         external
         view
         returns (address)
@@ -71,6 +74,7 @@ contract SimpleSignedTransferApp is CounterfactualApp {
     }
 
     function isStateTerminal(bytes calldata encodedState)
+        override
         external
         view
         returns (bool)

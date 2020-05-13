@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental ABIEncoderV2;
 
 import "./MultisigData.sol";
@@ -27,10 +27,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         DelegateCall
     }
 
-    function ()
-        external
-        payable
-    {}
+    receive() external payable { }
 
     /// @notice Contract constructor
     /// @param owners An array of unique addresses representing the multisig owners
@@ -138,7 +135,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     }
 
     /// @notice Execute a CALL on behalf of the multisignature wallet
-    /// @return A boolean indicating if the transaction was successful or not
+    /// @return success A boolean indicating if the transaction was successful or not
     function executeCall(address to, uint256 value, bytes memory data)
         internal
         returns (bool success)
@@ -149,7 +146,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     }
 
     /// @notice Execute a DELEGATECALL on behalf of the multisignature wallet
-    /// @return A boolean indicating if the transaction was successful or not
+    /// @return success A boolean indicating if the transaction was successful or not
     function executeDelegateCall(address to, bytes memory data)
         internal
         returns (bool success)

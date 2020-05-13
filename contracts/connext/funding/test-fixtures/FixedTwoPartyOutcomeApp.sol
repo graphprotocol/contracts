@@ -1,12 +1,14 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
+import "../../adjudicator/interfaces/CounterfactualApp.sol";
 import "../libs/LibOutcome.sol";
 
 
-contract TwoPartyFixedOutcomeApp {
+contract TwoPartyFixedOutcomeApp is CounterfactualApp {
 
-    function computeOutcome(bytes calldata)
+    function computeOutcome(bytes calldata /* encodedState */)
+        override
         external
         view
         returns (bytes memory)

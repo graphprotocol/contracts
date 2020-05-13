@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 
 
 /// @title Proxy - Generic proxy contract allows to execute all transactions applying the code of a master contract.
@@ -20,15 +20,15 @@ contract Proxy {
     }
 
     /// @dev Fallback function forwards all transactions and returns all received return data.
-    function ()
+    fallback()
         external
         payable
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let masterCopy := and(sload(0), 0xffffffffffffffffffffffffffffffffffffffff)
+            let _masterCopy := and(sload(0), 0xffffffffffffffffffffffffffffffffffffffff)
             calldatacopy(0, 0, calldatasize())
-            let success := delegatecall(gas, masterCopy, 0, calldatasize(), 0, 0)
+            let success := delegatecall(gas(), _masterCopy, 0, calldatasize(), 0, 0)
             returndatacopy(0, 0, returndatasize())
             if eq(success, 0) { revert(0, returndatasize()) }
             return(0, returndatasize())

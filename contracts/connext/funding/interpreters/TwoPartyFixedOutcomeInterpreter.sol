@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.7;
 pragma experimental "ABIEncoderV2";
 
 import "../state-deposit-holders/MultisigTransfer.sol";
@@ -23,6 +23,7 @@ contract TwoPartyFixedOutcomeInterpreter is MultisigTransfer, Interpreter {
         bytes calldata encodedOutcome,
         bytes calldata encodedParams
     )
+        override
         external
     {
         LibOutcome.TwoPartyFixedOutcome outcome = abi.decode(
