@@ -23,6 +23,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     address[] private _owners;
 
+    address payable public NODE_ADDRESS;
     address payable public INDEXER_STAKING_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;
     address public INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
@@ -42,12 +43,14 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     /// @param singleAssetInterpreter Address of indexer-specific singleAssetInterpreter contract
     /// @param multiAssetInterpreter Address of indexer-specific multiAssetInterpreter contract
     constructor(
+        address payable node,
         address payable staking,
         address CTDT,
         address singleAssetInterpreter,
         address multiAssetInterpreter,
         address withdrawInterpreter
     ) public {
+        NODE_ADDRESS = node;
         INDEXER_STAKING_ADDRESS = staking;
         INDEXER_CTDT_ADDRESS = CTDT;
         INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
