@@ -21,8 +21,6 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     mapping(bytes32 => bool) isExecuted;
 
-    address[] private _owners;
-
     address payable public NODE_ADDRESS;
     address payable public INDEXER_STAKING_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;

@@ -13,4 +13,7 @@ contract MultisigData {
     address payable masterCopy;
 
     mapping (address => uint256) public totalAmountWithdrawn;
+
+    address[] internal _owners;
+
 }
