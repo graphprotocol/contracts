@@ -1,34 +1,57 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./Governed.sol";
 
+/**
+ * @title ServiceRegistry contract
+ * @dev This contract supports the service discovery process by allowing indexers to
+ * register their service url and any other relevant information.
+ */
+contract ServiceRegistry {
+    // -- State --
 
-contract ServiceRegistry is Governed {
+    struct IndexerService {
+        string url;
+        string geohash;
+    }
+
+    mapping(address => IndexerService) public services;
+
     // -- Events --
 
-    event ServiceRegistered(address indexed indexer, string host, string geohash);
+    event ServiceRegistered(address indexed indexer, string url, string geohash);
     event ServiceUnregistered(address indexed indexer);
 
     /**
-     * @dev Contract Constructor
-     * @param _governor Address governing this contract
+     * @dev Register an indexer service
+     * @param _url URL of the indexer service
+     * @param _geohash Geohash of the indexer service location
      */
-    constructor(address _governor) public Governed(_governor) {}
+    function register(string calldata _url, string calldata _geohash) external {
+        address indexer = msg.sender;
+        require(bytes(_url).length > 0, "Service must specify a URL");
 
-    /*
-     * @dev Set service provider url from their address
-     * @param _url <string> - URL of the service provider
-     */
-    function register(string calldata _host, string calldata _geohash) external {
-        emit ServiceRegistered(msg.sender, _host, _geohash);
+        services[indexer] = IndexerService(_url, _geohash);
+
+        emit ServiceRegistered(indexer, _url, _geohash);
     }
 
-    /*
-     * @dev Set service provider url from their address
-     * @param _url <string> - URL of the service provider
+    /**
+     * @dev Unregister an indexer service
      */
     function unregister() external {
-        emit ServiceUnregistered(msg.sender);
+        address indexer = msg.sender;
+        require(isRegistered(indexer), "Service already unregistered");
+
+        delete services[indexer];
+        emit ServiceUnregistered(indexer);
+    }
+
+    /**
+     * @dev Return the registration status of an indexer service
+     * @return True if the indexer service is registered
+     */
+    function isRegistered(address _indexer) public view returns (bool) {
+        return bytes(services[_indexer].url).length > 0;
     }
 }

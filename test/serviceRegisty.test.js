@@ -1,70 +1,84 @@
-// const { expectEvent } = require('@openzeppelin/test-helpers')
+const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 
-// // contracts
-// const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')
+// contracts
+const deployment = require('./lib/deployment')
 
-// contract('Service Registry', accounts => {
-//   let deployedServiceRegistry
-//   const governor = accounts[0]
-//   const indexer = accounts[1]
+contract('Service Registry', ([governor, indexer]) => {
+  beforeEach(async function() {
+    this.serviceRegisty = await deployment.deployServiceRegistry(governor)
+    this.geohash = '69y7hdrhm6mp'
 
-//   before(async () => {
-//     // deploy ServiceRegistry contract
-//     deployedServiceRegistry = await ServiceRegisty.new(
-//       governor, // governor
-//       { from: governor },
-//     )
-//   })
+    this.shouldRegister = async function(url, geohash) {
+      // Register the indexer service
+      const { logs } = await this.serviceRegisty.register(url, geohash, {
+        from: indexer,
+      })
 
-//   it('...should allow setting URL with arbitrary length string', async () => {
-//     const url = 'https://192.168.2.1/'
+      // Updated state
+      const indexerService = await this.serviceRegisty.services(indexer)
+      expect(indexerService.url).to.be.eq(url)
+      expect(indexerService.geohash).to.be.eq(geohash)
 
-//     // Set the url
-//     const { logs } = await deployedServiceRegistry.setUrl(url, {
-//       from: indexer,
-//     })
+      // Event emitted
+      expectEvent.inLogs(logs, 'ServiceRegistered', {
+        indexer: indexer,
+        url: url,
+        geohash: geohash,
+      })
+    }
+  })
 
-//     expectEvent.inLogs(logs, 'ServiceUrlSet', {
-//       serviceProvider: indexer,
-//       urlString: url,
-//     })
-//   })
+  describe('register()', function() {
+    it('should allow registering', async function() {
+      const url = 'https://192.168.2.1/'
+      await this.shouldRegister(url, this.geohash)
+    })
 
-//   it('...should allow setting URL with a very long string', async () => {
-//     const url = 'https://' + 'a'.repeat(125) + '.com'
+    it('should allow registering with a very long string', async function() {
+      const url = 'https://' + 'a'.repeat(125) + '.com'
+      await this.shouldRegister(url, this.geohash)
+    })
 
-//     // Set the url
-//     const { logs } = await deployedServiceRegistry.setUrl(url, {
-//       from: indexer,
-//     })
+    it('should allow updating a registration', async function() {
+      const [url1, geohash1] = ['https://thegraph.com', '69y7hdrhm6mp']
+      const [url2, geohash2] = ['https://192.168.0.1', 'dr5regw2z6y']
+      await this.shouldRegister(url1, geohash1)
+      await this.shouldRegister(url2, geohash2)
+    })
 
-//     expectEvent.inLogs(logs, 'ServiceUrlSet', {
-//       serviceProvider: indexer,
-//       urlString: url,
-//     })
-//   })
+    it('reject registering empty URL', async function() {
+      await expectRevert(
+        this.serviceRegisty.register('', '', {
+          from: indexer,
+        }),
+        'Service must specify a URL',
+      )
+    })
+  })
 
-//   it('...should allow setting multiple graph bootstrap indexer URLs', async () => {
-//     const url = 'https://192.168.2.1/'
-//     const urlBytes = web3.utils.utf8ToHex(url)
+  describe('unregister()', function() {
+    it('should unregister existing registration', async function() {
+      const url = 'https://thegraph.com'
 
-//     const indexers = accounts.slice(5, 8)
+      // Register the indexer service
+      await this.serviceRegisty.register(url, this.geohash, {
+        from: indexer,
+      })
 
-//     for (let i = 0; i < 3; i++) {
-//       // Set the url, only governor can
-//       const { logs } = await deployedServiceRegistry.setBootstrapIndexerURL(indexers[i], url, {
-//         from: governor,
-//       })
+      // Unregister the indexer service
+      const { logs } = await this.serviceRegisty.unregister({ from: indexer })
 
-//       // Verify that the the ServiceUrlSet event is emitted
-//       expectEvent.inLogs(logs, 'ServiceUrlSet', {
-//         serviceProvider: indexers[i],
-//         urlString: url,
-//       })
+      // Event emitted
+      expectEvent.inLogs(logs, 'ServiceUnregistered', {
+        indexer: indexer,
+      })
+    })
 
-//       // Verify that the indexer URL has been updated
-//       const indexerUrlBytes = await deployedServiceRegistry.bootstrapIndexerURLs(indexers[i])
-//       assert(indexerUrlBytes === urlBytes, `Indexer ${i} URL was not set to ${url}`)
-//     }
-//   })
-// })
+    it('reject unregister non-existing registration', async function() {
+      await expectRevert(
+        this.serviceRegisty.unregister({ from: indexer }),
+        'Service already unregistered',
+      )
+    })
+  })
+})
