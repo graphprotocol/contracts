@@ -2,11 +2,10 @@ pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
 import "./state-deposit-holders/MinimumViableMultisig.sol";
-import "./state-deposit-holders/MultisigTransfer.sol";
 import "../adjudicator/ChallengeRegistry.sol";
 import "./libs/LibOutcome.sol";
 
-contract IndexerCTDT is MultisigTransfer {
+contract IndexerCTDT {
 
     uint256 constant MAX_UINT256 = 2 ** 256 - 1;
 

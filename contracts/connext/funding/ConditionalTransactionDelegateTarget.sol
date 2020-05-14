@@ -1,14 +1,13 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "./state-deposit-holders/MultisigTransfer.sol";
 import "../adjudicator/ChallengeRegistry.sol";
 import "./libs/LibOutcome.sol";
 
 
 /// @title ConditionalTransactionDelegateTarget
 /// @author Liam Horne - <liam@l4v.io>
-contract ConditionalTransactionDelegateTarget is MultisigTransfer {
+contract ConditionalTransactionDelegateTarget {
 
     uint256 constant MAX_UINT256 = 2 ** 256 - 1;
 
