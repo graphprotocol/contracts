@@ -29,7 +29,7 @@ function deployDisputeManagerContract(owner, graphToken, arbitrator, staking, pa
     graphToken,
     staking,
     defaults.dispute.minimumDeposit,
-    defaults.dispute.rewardPercentage,
+    defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
     params,
   )

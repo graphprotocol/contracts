@@ -16,14 +16,14 @@ contract DisputeManager is Governed {
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
     struct Dispute {
         bytes32 subgraphID;
-        address indexNode;
+        address indexer;
         address fisherman;
         uint256 deposit;
     }
 
     // -- Attestation --
 
-    // Attestation sent from IndexNode in response to a request
+    // Attestation sent from indexer in response to a request
     struct Attestation {
         bytes32 requestCID;
         bytes32 responseCID;
@@ -68,11 +68,11 @@ contract DisputeManager is Governed {
     // Minimum deposit required to create a Dispute
     uint256 public minimumDeposit;
 
-    // Percentage of index node slashed funds to assign as a reward to fisherman in successful dispute
+    // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public rewardPercentage;
+    uint256 public fishermanRewardPercentage;
 
-    // Percentage of index node stake to slash on disputes
+    // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public slashingPercentage;
 
@@ -85,53 +85,53 @@ contract DisputeManager is Governed {
     // -- Events --
 
     /**
-     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexNode` by `fisherman`.
+     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexer` by `fisherman`.
      * The event emits the amount `tokens` deposited by the fisherman and `attestation` submitted.
      */
     event DisputeCreated(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
         bytes attestation
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexNode`
+     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
-    event DisputeIgnored(
+    event DisputeDrawn(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
-        address indexed indexNode,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
@@ -148,8 +148,8 @@ contract DisputeManager is Governed {
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
      * @param _minimumDeposit Minimum deposit required to create a Dispute
-     * @param _rewardPercentage Percent of slashed funds the fisherman gets (in PPM)
-     * @param _slashingPercentage Percentage of index node stake slashed after a dispute
+     * @param _fishermanRewardPercentage Percent of slashed funds the fisherman gets (in PPM)
+     * @param _slashingPercentage Percentage of indexer stake slashed after a dispute
      */
     constructor(
         address _governor,
@@ -157,14 +157,14 @@ contract DisputeManager is Governed {
         address _token,
         address _staking,
         uint256 _minimumDeposit,
-        uint256 _rewardPercentage,
+        uint256 _fishermanRewardPercentage,
         uint256 _slashingPercentage
     ) public Governed(_governor) {
         arbitrator = _arbitrator;
         token = GraphToken(_token);
         staking = Staking(_staking);
         minimumDeposit = _minimumDeposit;
-        rewardPercentage = _rewardPercentage;
+        fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
 
         // EIP-712 domain separator
@@ -190,24 +190,24 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the fisherman reward for a given index node stake
-     * @notice Return the fisherman reward based on the `_indexNode` stake
-     * @param _indexNode IndexNode to be slashed
-     * @return Reward calculated as percentage of the index node slashed funds
+     * @dev Get the fisherman reward for a given indexer stake
+     * @notice Return the fisherman reward based on the `_indexer` stake
+     * @param _indexer Indexer to be slashed
+     * @return Reward calculated as percentage of the indexer slashed funds
      */
-    function getTokensToReward(address _indexNode) public view returns (uint256) {
-        uint256 value = getTokensToSlash(_indexNode);
-        return rewardPercentage.mul(value).div(MAX_PPM); // rewardPercentage is in PPM
+    function getTokensToReward(address _indexer) public view returns (uint256) {
+        uint256 value = getTokensToSlash(_indexer);
+        return fishermanRewardPercentage.mul(value).div(MAX_PPM);
     }
 
     /**
-     * @dev Get the amount of tokens to slash for an index node based on the stake
-     * @param _indexNode Address of the index node
+     * @dev Get the amount of tokens to slash for an indexer based on the stake
+     * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
-    function getTokensToSlash(address _indexNode) public view returns (uint256) {
-        uint256 tokens = staking.getIndexNodeStakeTokens(_indexNode); // slashable tokens
-        return slashingPercentage.mul(tokens).div(MAX_PPM); // slashingPercentage is in PPM
+    function getTokensToSlash(address _indexer) public view returns (uint256) {
+        uint256 tokens = staking.getIndexNodeStakeTokens(_indexer); // slashable tokens
+        return slashingPercentage.mul(tokens).div(MAX_PPM);
     }
 
     /**
@@ -252,16 +252,16 @@ contract DisputeManager is Governed {
     /**
      * @dev Set the percent reward that the fisherman gets when slashing occurs
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of index node stake
+     * @param _percentage Reward as a percentage of indexer stake
      */
-    function setRewardPercentage(uint256 _percentage) external onlyGovernor {
+    function setFishermanRewardPercentage(uint256 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
-        rewardPercentage = _percentage;
+        fishermanRewardPercentage = _percentage;
     }
 
     /**
-     * @dev Set the percentage used for slashing index nodes
+     * @dev Set the percentage used for slashing indexers
      * @param _percentage Percentage used for slashing
      */
     function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
@@ -312,11 +312,11 @@ contract DisputeManager is Governed {
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy protection
 
-        // Have staking contract slash the index node and reward the fisherman
-        // Give the fisherman a reward equal to the rewardPercentage of the index node slashed amount
-        uint256 tokensToReward = getTokensToReward(dispute.indexNode);
-        uint256 tokensToSlash = getTokensToSlash(dispute.indexNode);
-        staking.slash(dispute.indexNode, tokensToSlash, tokensToReward, dispute.fisherman);
+        // Have staking contract slash the indexer and reward the fisherman
+        // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
+        uint256 tokensToReward = getTokensToReward(dispute.indexer);
+        uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
+        staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
         require(
@@ -327,7 +327,7 @@ contract DisputeManager is Governed {
         emit DisputeAccepted(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit.add(tokensToReward)
         );
@@ -352,18 +352,18 @@ contract DisputeManager is Governed {
         emit DisputeRejected(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit
         );
     }
 
     /**
-     * @dev The arbitrator can disregard a dispute
+     * @dev The arbitrator can draw dispute
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
-    function ignoreDispute(bytes32 _disputeID) external onlyArbitrator {
+    function drawDispute(bytes32 _disputeID) external onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         Dispute memory dispute = disputes[_disputeID];
@@ -377,10 +377,10 @@ contract DisputeManager is Governed {
             "Error sending dispute deposit"
         );
 
-        emit DisputeIgnored(
+        emit DisputeDrawn(
             _disputeID,
             dispute.subgraphID,
-            dispute.indexNode,
+            dispute.indexer,
             dispute.fisherman,
             dispute.deposit
         );
@@ -400,7 +400,7 @@ contract DisputeManager is Governed {
         Attestation memory attestation = _parseAttestation(_attestationData);
 
         // Get attestation signer
-        address indexNode = _recoverAttestationSigner(attestation);
+        address indexer = _recoverAttestationSigner(attestation);
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
@@ -408,26 +408,26 @@ contract DisputeManager is Governed {
                 attestation.requestCID,
                 attestation.responseCID,
                 attestation.subgraphID,
-                indexNode
+                indexer
             )
         );
 
-        // This also validates that index node exists
-        require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
+        // This also validates that indexer exists
+        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
         // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
 
-        // A fisherman can only open one dispute for a given index node / subgraphID at a time
+        // A fisherman can only open one dispute for a given indexer / subgraphID at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[disputeID] = Dispute(attestation.subgraphID, indexNode, _fisherman, _deposit);
+        disputes[disputeID] = Dispute(attestation.subgraphID, indexer, _fisherman, _deposit);
 
         emit DisputeCreated(
             disputeID,
             attestation.subgraphID,
-            indexNode,
+            indexer,
             _fisherman,
             _deposit,
             _attestationData

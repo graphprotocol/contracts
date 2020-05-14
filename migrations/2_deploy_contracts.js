@@ -50,7 +50,7 @@ module.exports = async (deployer, network, accounts) => {
         graphToken.address,
         staking.address,
         config.dispute.minimumDeposit,
-        config.dispute.rewardPercentage,
+        config.dispute.fishermanRewardPercentage,
         config.dispute.slashingPercentage,
       )
       const serviceRegistry = await deployer.deploy(ServiceRegistry, governor)
