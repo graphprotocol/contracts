@@ -134,7 +134,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
   })
 
-  context('bonding curve', function() {
+  context('> bonding curve', function() {
     beforeEach(function() {
       this.subgraphId = helpers.randomSubgraphIdHex0x()
     })
@@ -162,7 +162,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
   })
 
-  context('when subgraph is not curated', function() {
+  context('> when subgraph is not curated', function() {
     it('should stake on a subgraph', async function() {
       // Before balances
       const curatorTokensBefore = await this.graphToken.balanceOf(curator)
@@ -243,7 +243,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
   })
 
-  context('when subgraph is curated', function() {
+  context('> when subgraph is curated', function() {
     beforeEach(async function() {
       // Curate a subgraph using all funds
       await this.graphToken.transferToTokenReceiver(
