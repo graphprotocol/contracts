@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "../state-deposit-holders/MultisigTransfer.sol";
+import "../state-deposit-holders/IndexerMultisigTransfer.sol";
 import "../libs/LibOutcome.sol";
 import "../Interpreter.sol";
 
@@ -10,7 +10,7 @@ import "../Interpreter.sol";
  * This file is excluded from ethlint/solium because of this issue:
  * https://github.com/duaraghav8/Ethlint/issues/261
  */
-contract SingleAssetTwoPartyCoinTransferInterpreter is MultisigTransfer, Interpreter {
+contract IndexerWithdrawInterpreter is IndexerMultisigTransfer, Interpreter {
 
     struct Params {
         uint256 limit;
@@ -30,13 +30,12 @@ contract SingleAssetTwoPartyCoinTransferInterpreter is MultisigTransfer, Interpr
     {
         Params memory params = abi.decode(encodedParams, (Params));
 
-        LibOutcome.CoinTransfer[2] memory outcome = abi.decode(
+        LibOutcome.CoinTransfer memory outcome = abi.decode(
             encodedOutput,
-            (LibOutcome.CoinTransfer[2])
+            (LibOutcome.CoinTransfer)
         );
 
-        multisigTransfer(outcome[0].to, params.tokenAddress, outcome[0].amount);
-        multisigTransfer(outcome[1].to, params.tokenAddress, outcome[1].amount);
+        multisigTransfer(outcome.to, params.tokenAddress, outcome.amount);
     }
 
 }

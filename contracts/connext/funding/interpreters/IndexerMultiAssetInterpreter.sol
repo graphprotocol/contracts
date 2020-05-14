@@ -1,12 +1,12 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "../state-deposit-holders/MultisigTransfer.sol";
+import "../state-deposit-holders/IndexerMultisigTransfer.sol";
 import "../libs/LibOutcome.sol";
 import "../Interpreter.sol";
 
 
-contract MultiAssetMultiPartyCoinTransferInterpreter is MultisigTransfer, Interpreter {
+contract IndexerMultiAssetInterpreter is IndexerMultisigTransfer, Interpreter {
 
     uint256 constant MAX_UINT256 = 2 ** 256 - 1;
 
