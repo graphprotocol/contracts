@@ -12,9 +12,13 @@ const { defaults } = require('./lib/testHelpers')
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = '0x0'
 
-contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) => {
+contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman, otherIndexNode]) => {
   beforeEach(async function() {
+    // Private key for account #4
     this.indexNodePrivKey = '0xadd53f9a7e588d003326d1cbf9e4a43c061aadd9bc938c843a79e7b4fd2ad743'
+    // Private key for account #6
+    this.otherIndexNodePrivKey =
+      '0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52'
 
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -198,36 +202,38 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
   })
 
   describe('dispute lifecycle', function() {
-    before(async function() {
+    beforeEach(async function() {
       // Defaults
       this.tokensForIndexNode = helpers.graphTokenConstants.tokensMintedForStaker
       this.tokensForFisherman = helpers.graphTokenConstants.tokensMintedForStaker
       this.indexNodeStake = this.tokensForIndexNode
 
-      // Create a subgraphId
-      this.subgraphId = helpers.randomSubgraphIdHex0x()
+      // Create a dispute
+      const receipt = {
+        requestCID: web3.utils.randomHex(32),
+        responseCID: web3.utils.randomHex(32),
+        subgraphID: helpers.randomSubgraphIdHex0x(),
+      }
+      this.dispute = await attestation.createDispute(
+        receipt,
+        this.disputeManager.address,
+        this.indexNodePrivKey,
+      )
     })
 
-    context('when stake does not exist', function() {
+    context('> when stake does not exist', function() {
       it('reject create a dispute', async function() {
         // Give some funds to the fisherman
         await this.graphToken.mint(fisherman, this.tokensForFisherman, {
           from: governor,
         })
 
-        // Get index node signed attestation
-        const dispute = await attestation.createDisputePayload(
-          this.subgraphId,
-          this.disputeManager.address,
-          this.indexNodePrivKey,
-        )
-
         // Create dispute
         await expectRevert(
           this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            dispute.payload,
+            this.dispute.attestation,
             { from: fisherman },
           ),
           'Dispute has no stake by the index node',
@@ -235,26 +241,28 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
       })
     })
 
-    context('when stake does exist', function() {
+    context('> when stake does exist', function() {
       beforeEach(async function() {
         // Dispute manager is allowed to slash
         await this.staking.setSlasher(this.disputeManager.address, true, {
           from: governor,
         })
 
-        // Give some funds to the indexNode
-        await this.graphToken.mint(indexNode, this.tokensForIndexNode, {
-          from: governor,
-        })
+        // Stake
+        for (const indexer of [indexNode, otherIndexNode]) {
+          // Give some funds to the indexer
+          await this.graphToken.mint(indexer, this.tokensForIndexNode, {
+            from: governor,
+          })
 
-        // Index node stake funds
-        const data = '0x00' + this.subgraphId.substring(2)
-        await this.graphToken.transferToTokenReceiver(
-          this.staking.address,
-          this.indexNodeStake,
-          data,
-          { from: indexNode },
-        )
+          // Indexer stake funds
+          await this.graphToken.transferToTokenReceiver(
+            this.staking.address,
+            this.indexNodeStake,
+            '0x0',
+            { from: indexer },
+          )
+        }
       })
 
       describe('reward calculation', function() {
@@ -270,104 +278,59 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
         })
       })
 
-      describe('create dispute', function() {
-        beforeEach(async function() {
-          // Get index node signed attestation
-          this.dispute = await attestation.createDisputePayload(
-            this.subgraphId,
-            this.disputeManager.address,
-            this.indexNodePrivKey,
-          )
-        })
+      context('> when dispute is not created', function() {
+        describe('create dispute', function() {
+          it('reject fisherman deposit below minimum required', async function() {
+            // Give some funds to the fisherman
+            await this.graphToken.mint(fisherman, this.tokensForFisherman, {
+              from: governor,
+            })
 
-        it('reject fisherman deposit below minimum required', async function() {
-          // Give some funds to the fisherman
-          await this.graphToken.mint(fisherman, this.tokensForFisherman, {
-            from: governor,
+            // Minimum deposit a fisherman is required to do should be >= reward
+            const minimumDeposit = await this.disputeManager.minimumDeposit()
+            const belowMinimumDeposit = minimumDeposit.sub(web3.utils.toBN(1))
+
+            // Create invalid dispute as deposit is below minimum
+            await expectRevert(
+              this.graphToken.transferToTokenReceiver(
+                this.disputeManager.address,
+                belowMinimumDeposit,
+                this.dispute.attestation,
+                { from: fisherman },
+              ),
+              'Dispute deposit under minimum required',
+            )
           })
 
-          // Minimum deposit a fisherman is required to do should be >= reward
-          const minimumDeposit = await this.disputeManager.minimumDeposit()
-          const belowMinimumDeposit = minimumDeposit.sub(web3.utils.toBN(1))
+          it('should create a dispute', async function() {
+            // Give some funds to the fisherman
+            await this.graphToken.mint(fisherman, this.tokensForFisherman, {
+              from: governor,
+            })
 
-          // Create invalid dispute as deposit is below minimum
-          await expectRevert(
-            this.graphToken.transferToTokenReceiver(
-              this.disputeManager.address,
-              belowMinimumDeposit,
-              this.dispute.payload,
-              { from: fisherman },
-            ),
-            'Dispute deposit under minimum required',
-          )
-        })
-
-        it('should create a dispute', async function() {
-          // Give some funds to the fisherman
-          await this.graphToken.mint(fisherman, this.tokensForFisherman, {
-            from: governor,
-          })
-
-          // Create dispute
-          const { tx } = await this.graphToken.transferToTokenReceiver(
-            this.disputeManager.address,
-            this.tokensForFisherman,
-            this.dispute.payload,
-            { from: fisherman },
-          )
-
-          // Event emitted
-          expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeCreated', {
-            disputeID: this.dispute.messageHash,
-            subgraphID: this.subgraphId,
-            indexNode: indexNode,
-            fisherman: fisherman,
-            tokens: this.tokensForFisherman,
-            attestation: this.dispute.attestation,
-          })
-        })
-
-        it('reject create duplicated dispute', async function() {
-          // Give some funds to the fisherman
-          await this.graphToken.mint(fisherman, this.tokensForFisherman, {
-            from: governor,
-          })
-
-          // Create dispute
-          await this.graphToken.transferToTokenReceiver(
-            this.disputeManager.address,
-            this.tokensForFisherman,
-            this.dispute.payload,
-            { from: fisherman },
-          )
-
-          // Give some funds to the fisherman
-          await this.graphToken.mint(fisherman, this.tokensForFisherman, {
-            from: governor,
-          })
-
-          // Create dispute (duplicated)
-          await expectRevert(
-            this.graphToken.transferToTokenReceiver(
+            // Create dispute
+            const { tx } = await this.graphToken.transferToTokenReceiver(
               this.disputeManager.address,
               this.tokensForFisherman,
-              this.dispute.payload,
+              this.dispute.attestation,
               { from: fisherman },
-            ),
-            'Dispute already created',
-          )
+            )
+
+            // Event emitted
+            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeCreated', {
+              disputeID: this.dispute.id,
+              subgraphID: this.dispute.receipt.subgraphID,
+              indexNode: indexNode,
+              fisherman: fisherman,
+              tokens: this.tokensForFisherman,
+              attestation: this.dispute.attestation,
+            })
+          })
         })
       })
 
-      context('when dispute is created', function() {
+      context('> when dispute is created', function() {
         beforeEach(async function() {
-          // Get index node signed attestation
-          this.dispute = await attestation.createDisputePayload(
-            this.subgraphId,
-            this.disputeManager.address,
-            this.indexNodePrivKey,
-          )
-
           // Give some funds to the fisherman
           await this.graphToken.mint(fisherman, this.tokensForFisherman, {
             from: governor,
@@ -377,9 +340,59 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
           await this.graphToken.transferToTokenReceiver(
             this.disputeManager.address,
             this.tokensForFisherman,
-            this.dispute.payload,
+            this.dispute.attestation,
             { from: fisherman },
           )
+        })
+
+        describe('create a dispute', function() {
+          it('should create dispute if receipt is equal but for different indexer', async function() {
+            // Give some funds to the fisherman
+            await this.graphToken.mint(fisherman, this.tokensForFisherman, {
+              from: governor,
+            })
+
+            // Create dispute (same receipt but different indexer)
+            const newDispute = await attestation.createDispute(
+              this.dispute.receipt,
+              this.disputeManager.address,
+              this.otherIndexNodePrivKey,
+            )
+            const { tx } = await this.graphToken.transferToTokenReceiver(
+              this.disputeManager.address,
+              this.tokensForFisherman,
+              newDispute.attestation,
+              { from: fisherman },
+            )
+
+            // Event emitted
+            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeCreated', {
+              disputeID: newDispute.id,
+              subgraphID: newDispute.receipt.subgraphID,
+              indexNode: otherIndexNode,
+              fisherman: fisherman,
+              tokens: this.tokensForFisherman,
+              attestation: newDispute.attestation,
+            })
+          })
+
+          it('reject create duplicated dispute', async function() {
+            // Give some funds to the fisherman
+            await this.graphToken.mint(fisherman, this.tokensForFisherman, {
+              from: governor,
+            })
+
+            // Create dispute (duplicated)
+            await expectRevert(
+              this.graphToken.transferToTokenReceiver(
+                this.disputeManager.address,
+                this.tokensForFisherman,
+                this.dispute.attestation,
+                { from: fisherman },
+              ),
+              'Dispute already created',
+            )
+          })
         })
 
         describe('accept a dispute', function() {
@@ -394,7 +407,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
           it('reject to accept a dispute if not the arbitrator', async function() {
             await expectRevert(
-              this.disputeManager.acceptDispute(this.dispute.messageHash, {
+              this.disputeManager.acceptDispute(this.dispute.id, {
                 from: me,
               }),
               'Caller is not the Arbitrator',
@@ -409,7 +422,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
             // Perform transaction (accept)
             await expectRevert(
-              this.disputeManager.acceptDispute(this.dispute.messageHash, {
+              this.disputeManager.acceptDispute(this.dispute.id, {
                 from: arbitrator,
               }),
               'Caller is not a Slasher',
@@ -424,7 +437,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             const reward = await this.disputeManager.getTokensToReward(indexNode)
 
             // Perform transaction (accept)
-            const { tx } = await this.disputeManager.acceptDispute(this.dispute.messageHash, {
+            const { tx } = await this.disputeManager.acceptDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -446,8 +459,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeAccepted', {
-              disputeID: this.dispute.messageHash,
-              subgraphID: this.subgraphId,
+              disputeID: this.dispute.id,
+              subgraphID: this.dispute.receipt.subgraphID,
               indexNode: indexNode,
               fisherman: fisherman,
               tokens: deposit.add(reward),
@@ -467,7 +480,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
           it('reject to reject a dispute if not the arbitrator', async function() {
             await expectRevert(
-              this.disputeManager.rejectDispute(this.dispute.messageHash, {
+              this.disputeManager.rejectDispute(this.dispute.id, {
                 from: me,
               }),
               'Caller is not the Arbitrator',
@@ -479,7 +492,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             const totalSupplyBefore = await this.graphToken.totalSupply()
 
             // Perform transaction (reject)
-            const { tx } = await this.disputeManager.rejectDispute(this.dispute.messageHash, {
+            const { tx } = await this.disputeManager.rejectDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -494,8 +507,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeRejected', {
-              disputeID: this.dispute.messageHash,
-              subgraphID: this.subgraphId,
+              disputeID: this.dispute.id,
+              subgraphID: this.dispute.receipt.subgraphID,
               indexNode: indexNode,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,
@@ -515,7 +528,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
           it('reject to ignore a dispute if not the arbitrator', async function() {
             await expectRevert(
-              this.disputeManager.ignoreDispute(this.dispute.messageHash, {
+              this.disputeManager.ignoreDispute(this.dispute.id, {
                 from: me,
               }),
               'Caller is not the Arbitrator',
@@ -526,7 +539,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
             const fishermanBalanceBefore = await this.graphToken.balanceOf(fisherman)
 
             // Perform transaction (ignore)
-            const { tx } = await this.disputeManager.ignoreDispute(this.dispute.messageHash, {
+            const { tx } = await this.disputeManager.ignoreDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -537,8 +550,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexNode, fisherman]) =
 
             // Event emitted
             expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeIgnored', {
-              disputeID: this.dispute.messageHash,
-              subgraphID: this.subgraphId,
+              disputeID: this.dispute.id,
+              subgraphID: this.dispute.receipt.subgraphID,
               indexNode: indexNode,
               fisherman: fisherman,
               tokens: this.tokensForFisherman,

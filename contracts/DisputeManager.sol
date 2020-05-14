@@ -4,8 +4,6 @@ pragma experimental ABIEncoderV2;
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./Staking.sol";
-import "./bytes/BytesLib.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 
 /*
@@ -13,8 +11,6 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
  * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
  */
 contract DisputeManager is Governed {
-    using BytesLib for bytes;
-    using ECDSA for bytes32;
     using SafeMath for uint256;
 
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
@@ -27,44 +23,29 @@ contract DisputeManager is Governed {
 
     // -- Attestation --
 
-    // Store IPFS hash as 32 byte hash and 2 byte hash function
-    // Note: Not future proof against IPFS planned updates to support multihash, which would require a len field
-    // Note: hashFunction - 0x1220 is 'Qm', or SHA256 with 32 byte length
-    struct IpfsHash {
-        bytes32 hash;
-        uint16 hashFunction;
-    }
-
-    // Signed message sent from IndexNode in response to a request
-    // Note: Message is located at the given IPFS content address
+    // Attestation sent from IndexNode in response to a request
     struct Attestation {
-        // Content Identifier for request message sent from user to indexing node
-        IpfsHash requestCID;
-        // Content Identifier for signed response message from indexing node
-        IpfsHash responseCID;
-        // Amount of computational account units (gas) used to process query
-        uint256 gasUsed;
-        // Amount of data sent in the response
-        uint256 responseNumBytes;
-        // ECDSA vrs signature (using secp256k1)
+        bytes32 requestCID;
+        bytes32 responseCID;
+        bytes32 subgraphID;
         uint8 v;
         bytes32 r;
         bytes32 s;
     }
 
-    uint256 private constant ATTESTATION_SIZE_BYTES = 192;
-    uint256 private constant SIGNATURE_SIZE_BYTES = 65;
+    uint256 private constant ATTESTATION_SIZE_BYTES = 161;
+    uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
     );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0.1");
+    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-    bytes32 private constant ATTESTATION_TYPE_HASH = keccak256(
-        "Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)"
+    bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
+        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
     );
 
     // 100% in parts per million
@@ -103,6 +84,10 @@ contract DisputeManager is Governed {
 
     // -- Events --
 
+    /**
+     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexNode` by `fisherman`.
+     * The event emits the amount `tokens` deposited by the fisherman and `attestation` submitted.
+     */
     event DisputeCreated(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
@@ -112,6 +97,11 @@ contract DisputeManager is Governed {
         bytes attestation
     );
 
+    /**
+     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexNode`
+     * created by `fisherman`.
+     * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
+     */
     event DisputeAccepted(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
@@ -120,6 +110,11 @@ contract DisputeManager is Governed {
         uint256 tokens
     );
 
+    /**
+     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexNode`
+     * created by `fisherman`.
+     * The event emits the amount `tokens` burned from the fisherman deposit.
+     */
     event DisputeRejected(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
@@ -128,6 +123,11 @@ contract DisputeManager is Governed {
         uint256 tokens
     );
 
+    /**
+     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexNode`
+     * created by `fisherman`.
+     * The event emits the amount `tokens` used as deposit and returned to the fisherman.
+     */
     event DisputeIgnored(
         bytes32 disputeID,
         bytes32 indexed subgraphID,
@@ -211,20 +211,21 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the hash of encoded message to use as disputeID
-     * @notice Return the disputeID for a particular attestation
-     * @param _attestation Signed Attestation message
-     * @return Hash of encoded message used as disputeID
+     * @dev Get the message hash that an indexer used to sign the receipt.
+     * Encodes a receipt using a domain separator, as described on
+     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
+     * @notice Return the message hash used to sign the receipt
+     * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @return Message hash used to sign the receipt
      */
-    function getDisputeID(bytes memory _attestation) public view returns (bytes32) {
-        // TODO: add a nonce?
+    function encodeHashReceipt(bytes memory _receipt) public view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
                     "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
                     DOMAIN_SEPARATOR,
                     keccak256(
-                        abi.encode(ATTESTATION_TYPE_HASH, _attestation) // EIP 712-encoded message hash
+                        abi.encode(RECEIPT_TYPE_HASH, _receipt) // EIP 712-encoded message hash
                     )
                 )
             );
@@ -281,7 +282,7 @@ contract DisputeManager is Governed {
     /**
      * @dev Accept tokens
      * @notice Receive Graph tokens
-     * @param _from Token holder's address
+     * @param _from Token sender address
      * @param _value Amount of Graph Tokens
      * @param _data Extra data payload
      */
@@ -292,18 +293,8 @@ contract DisputeManager is Governed {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
-        // Decode subgraphID
-        bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
-
-        // Decode attestation
-        bytes memory attestation = _data.slice(32, ATTESTATION_SIZE_BYTES);
-        require(attestation.length == ATTESTATION_SIZE_BYTES, "Signature must be 192 bytes long");
-
-        // Decode attestation signature
-        bytes memory sig = _data.slice(32 + ATTESTATION_SIZE_BYTES, SIGNATURE_SIZE_BYTES);
-        require(sig.length == SIGNATURE_SIZE_BYTES, "Signature must be 65 bytes long");
-
-        _createDispute(attestation, sig, subgraphID, _from, _value);
+        // Create a dispute using the received attestation
+        _createDispute(_data, _from, _value);
 
         return true;
     }
@@ -397,25 +388,29 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Create a dispute for the arbitrator to resolve
-     * @param _attestation Attestation message
-     * @param _sig Attestation signature
-     * @param _subgraphID subgraphID for the attestation message
+     * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      */
-    function _createDispute(
-        bytes memory _attestation,
-        bytes memory _sig,
-        bytes32 _subgraphID,
-        address _fisherman,
-        uint256 _deposit
-    ) private {
-        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes32 disputeID = getDisputeID(_attestation);
+    function _createDispute(bytes memory _attestationData, address _fisherman, uint256 _deposit) private {
+        // Check attestation data length
+        require(_attestationData.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
-        // Obtain the signer of the fully-encoded EIP-712 message hash
-        // Note: The signer of the attestation is the indexNode that served it
-        address indexNode = disputeID.recover(_sig);
+        // Decode attestation
+        Attestation memory attestation = _parseAttestation(_attestationData);
+
+        // Get attestation signer
+        address indexNode = _recoverAttestationSigner(attestation);
+
+        // Create a disputeID
+        bytes32 disputeID = keccak256(
+            abi.encodePacked(
+                attestation.requestCID,
+                attestation.responseCID,
+                attestation.subgraphID,
+                indexNode
+            )
+        );
 
         // This also validates that index node exists
         require(staking.hasStake(indexNode), "Dispute has no stake by the index node");
@@ -427,9 +422,35 @@ contract DisputeManager is Governed {
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[disputeID] = Dispute(_subgraphID, indexNode, _fisherman, _deposit);
+        disputes[disputeID] = Dispute(attestation.subgraphID, indexNode, _fisherman, _deposit);
 
-        emit DisputeCreated(disputeID, _subgraphID, indexNode, _fisherman, _deposit, _attestation);
+        emit DisputeCreated(
+            disputeID,
+            attestation.subgraphID,
+            indexNode,
+            _fisherman,
+            _deposit,
+            _attestationData
+        );
+    }
+
+    /**
+     * @dev Recover the signer address of the `_attestation`
+     * @param _attestation The attestation struct
+     * @return Signer address
+     */
+    function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
+        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
+        bytes memory receipt = abi.encode(
+            _attestation.requestCID,
+            _attestation.responseCID,
+            _attestation.subgraphID
+        );
+        bytes32 messageHash = encodeHashReceipt(receipt);
+
+        // Obtain the signer of the fully-encoded EIP-712 message hash
+        // NOTE: The signer of the attestation is the indexer that served the request
+        return _recover(messageHash, _attestation.v, _attestation.r, _attestation.s);
     }
 
     /**
@@ -442,5 +463,84 @@ contract DisputeManager is Governed {
             id := chainid()
         }
         return id;
+    }
+
+    /**
+     * @dev Parse the bytes attestation into a struct from `_data`
+     * @return Attestation struct
+     */
+    function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
+        // Decode receipt
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphID) = abi.decode(
+            _data, (bytes32, bytes32, bytes32)
+        );
+
+        // Decode signature
+        // Signature is expected to be in the order defined in the Attestation struct
+        uint8 v = _toUint8(_data, RECEIPT_SIZE_BYTES);
+        bytes32 r = _toBytes32(_data, RECEIPT_SIZE_BYTES + 1);
+        bytes32 s = _toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
+
+        return Attestation(requestCID, responseCID, subgraphID, v, r, s);
+    }
+
+    /**
+     * @dev Returns the address that signed a hashed message (`hash`) with
+     * signature `v`, `r', `s`. This address can then be used for verification purposes.
+     * @return The address recovered from the hash and signature.
+     */
+    function _recover(bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s) private pure returns (address) {
+        // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
+        // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
+        // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
+        // signatures from current libraries generate a unique signature with an s-value in the lower half order.
+        //
+        // If your library generates malleable signatures, such as s-values in the upper range, calculate a new s-value
+        // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
+        // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
+        // these malleable signatures as well.
+        if (uint256(_s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+            revert("ECDSA: invalid signature 's' value");
+        }
+
+        if (_v != 27 && _v != 28) {
+            revert("ECDSA: invalid signature 'v' value");
+        }
+
+        // If the signature is valid (and not malleable), return the signer address
+        address signer = ecrecover(_hash, _v, _r, _s);
+        require(signer != address(0), "ECDSA: invalid signature");
+
+        return signer;
+    }
+
+    /**
+     * @dev Parse a uint8 from `_bytes` starting at offset `_start`
+     * @return uint8 value
+     */
+    function _toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
+        require(_bytes.length >= (_start + 1), "Bytes: out of bounds");
+        uint8 tempUint;
+
+        assembly {
+            tempUint := mload(add(add(_bytes, 0x1), _start))
+        }
+
+        return tempUint;
+    }
+
+    /**
+     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`
+     * @return bytes32 value
+     */
+    function _toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
+        require(_bytes.length >= (_start + 32), "Bytes: out of bounds");
+        bytes32 tempBytes32;
+
+        assembly {
+            tempBytes32 := mload(add(add(_bytes, 0x20), _start))
+        }
+
+        return tempBytes32;
     }
 }

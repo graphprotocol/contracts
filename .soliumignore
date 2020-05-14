@@ -1,6 +1,7 @@
 node_modules
 contracts/Staking.sol
 contracts/Migrations.sol
+contracts/DisputeManager.sol
 contracts/bancor
 contracts/openzeppelin
 contracts/MultiSigWallet.sol

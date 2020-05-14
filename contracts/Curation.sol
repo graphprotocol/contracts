@@ -48,7 +48,7 @@ contract Curation is Governed, BancorFormula {
     // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
-    // Address of a staking contract that will distribute fees to subgraph reserves
+    // Address of the staking contract that will distribute fees to subgraph reserves
     address public staking;
 
     // Token used for staking

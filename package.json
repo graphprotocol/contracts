@@ -24,6 +24,7 @@
     "web3": "^1.2.7"
   },
   "devDependencies": {
+    "ethers": "^4.0.47",
     "ethlint": "^1.2.5",
     "husky": "^4.2.5",
     "ipfs-http-client": "34.0.0",
