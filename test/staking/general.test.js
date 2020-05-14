@@ -16,7 +16,7 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
-contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
+contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -166,7 +166,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
   describe('token transfer', function() {
     it('reject calls to token received hook if not the GRT token contract', async function() {
       await expectRevert(
-        this.staking.tokensReceived(indexNode, 10000, '0x0', {
+        this.staking.tokensReceived(indexer, 10000, '0x0', {
           from: me,
         }),
         'Caller is not the GRT token contract',
@@ -181,9 +181,9 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
       this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
 
-      // Give some funds to the index node
-      this.indexNodeTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(indexNode, this.indexNodeTokens, {
+      // Give some funds to the indexer
+      this.indexerTokens = web3.utils.toWei(new BN('1000'))
+      await this.graphToken.mint(indexer, this.indexerTokens, {
         from: governor,
       })
 
@@ -194,12 +194,12 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           this.staking.address,
           tokens,
           PAYMENT_PAYLOAD,
-          { from: indexNode },
+          { from: indexer },
         )
       }
       this.allocate = function(tokens) {
         return this.staking.allocate(this.subgraphId, tokens, this.channelPubKey, {
-          from: indexNode,
+          from: indexer,
         })
       }
     })
@@ -207,18 +207,18 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
     context('> when not staked', function() {
       describe('hasStake()', function() {
         it('should not have stakes', async function() {
-          expect(await this.staking.hasStake(indexNode)).to.be.eq(false)
+          expect(await this.staking.hasStake(indexer)).to.be.eq(false)
         })
       })
 
       describe('stake()', function() {
         it('should stake tokens', async function() {
-          const indexNodeStake = web3.utils.toWei(new BN('100'))
+          const indexerStake = web3.utils.toWei(new BN('100'))
 
           // Stake
-          await this.stake(indexNodeStake)
-          const tokens1 = await this.staking.getIndexNodeStakeTokens(indexNode)
-          expect(tokens1).to.be.bignumber.eq(indexNodeStake)
+          await this.stake(indexerStake)
+          const tokens1 = await this.staking.getIndexerStakeTokens(indexer)
+          expect(tokens1).to.be.bignumber.eq(indexerStake)
         })
       })
 
@@ -226,16 +226,16 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
         it('reject unstake tokens', async function() {
           const tokensToUnstake = web3.utils.toWei(new BN('2'))
           await expectRevert(
-            this.staking.unstake(tokensToUnstake, { from: indexNode }),
-            'Staking: index node has no stakes',
+            this.staking.unstake(tokensToUnstake, { from: indexer }),
+            'Staking: indexer has no stakes',
           )
         })
       })
 
       describe('allocate()', function() {
         it('reject allocate to subgraph', async function() {
-          const indexNodeStake = web3.utils.toWei(new BN('100'))
-          await expectRevert(this.allocate(indexNodeStake), 'Allocation: index node has no stakes')
+          const indexerStake = web3.utils.toWei(new BN('100'))
+          await expectRevert(this.allocate(indexerStake), 'Allocation: indexer has no stakes')
         })
       })
 
@@ -245,10 +245,10 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToReward = web3.utils.toWei(new BN('10'))
 
           await expectRevert(
-            this.staking.slash(indexNode, tokensToSlash, tokensToReward, fisherman, {
+            this.staking.slash(indexer, tokensToSlash, tokensToReward, fisherman, {
               from: slasher,
             }),
-            'Slashing: index node has no stakes',
+            'Slashing: indexer has no stakes',
           )
         })
       })
@@ -257,25 +257,25 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
     context('> when staked', function() {
       beforeEach(async function() {
         // Stake
-        this.indexNodeStake = web3.utils.toWei(new BN('100'))
-        await this.stake(this.indexNodeStake)
+        this.indexerStake = web3.utils.toWei(new BN('100'))
+        await this.stake(this.indexerStake)
       })
 
       describe('hasStake()', function() {
         it('should have stakes', async function() {
-          expect(await this.staking.hasStake(indexNode)).to.be.eq(true)
+          expect(await this.staking.hasStake(indexer)).to.be.eq(true)
         })
       })
 
       describe('stake()', function() {
         it('should allow re-staking', async function() {
           // Re-stake
-          const { tx } = await this.stake(this.indexNodeStake)
-          const tokens2 = await this.staking.getIndexNodeStakeTokens(indexNode)
-          expect(tokens2).to.be.bignumber.eq(this.indexNodeStake.add(this.indexNodeStake))
+          const { tx } = await this.stake(this.indexerStake)
+          const tokens2 = await this.staking.getIndexerStakeTokens(indexer)
+          expect(tokens2).to.be.bignumber.eq(this.indexerStake.add(this.indexerStake))
           expectEvent.inTransaction(tx, this.staking.constructor, 'StakeDeposited', {
-            indexNode: indexNode,
-            tokens: this.indexNodeStake,
+            indexer: indexer,
+            tokens: this.indexerStake,
           })
         })
       })
@@ -287,9 +287,9 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const currentBlock = await time.latestBlock()
           const until = currentBlock.add(thawingPeriod).add(new BN(1))
 
-          const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+          const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexer })
           expectEvent.inLogs(logs, 'StakeLocked', {
-            indexNode: indexNode,
+            indexer: indexer,
             tokens: tokensToUnstake,
             until: until,
           })
@@ -300,7 +300,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const thawingPeriod = await this.staking.thawingPeriod()
 
           // Unstake (1)
-          let r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+          let r = await this.staking.unstake(tokensToUnstake, { from: indexer })
           const tokensLockedUntil1 = r.logs[0].args.until
 
           // Move forward
@@ -317,15 +317,15 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const expectedLockedUntil = currentBlock.add(lockingPeriod).add(new BN(1))
 
           // Unstake (2)
-          r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+          r = await this.staking.unstake(tokensToUnstake, { from: indexer })
           const tokensLockedUntil2 = r.logs[0].args.until
           expect(expectedLockedUntil).to.be.bignumber.eq(tokensLockedUntil2)
         })
 
         it('reject unstake more than available tokens', async function() {
-          const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
+          const tokensOverCapacity = this.indexerStake.add(new BN(1))
           await expectRevert(
-            this.staking.unstake(tokensOverCapacity, { from: indexNode }),
+            this.staking.unstake(tokensOverCapacity, { from: indexer }),
             'Staking: not enough tokens available to unstake',
           )
         })
@@ -335,12 +335,12 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
         it('should withdraw if tokens available', async function() {
           // Unstake
           const tokensToUnstake = web3.utils.toWei(new BN('10'))
-          const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexNode })
+          const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexer })
           const tokensLockedUntil = logs[0].args.until
 
           // Withdraw on locking period (should fail)
           await expectRevert(
-            this.staking.withdraw({ from: indexNode }),
+            this.staking.withdraw({ from: indexer }),
             'Staking: no tokens available to withdraw',
           )
 
@@ -348,15 +348,15 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           await time.advanceBlockTo(tokensLockedUntil)
 
           // Withdraw after locking period (all good)
-          const balanceBefore = await this.graphToken.balanceOf(indexNode)
-          await this.staking.withdraw({ from: indexNode })
-          const balanceAfter = await this.graphToken.balanceOf(indexNode)
+          const balanceBefore = await this.graphToken.balanceOf(indexer)
+          await this.staking.withdraw({ from: indexer })
+          const balanceAfter = await this.graphToken.balanceOf(indexer)
           expect(balanceAfter).to.be.bignumber.eq(balanceBefore.add(tokensToUnstake))
         })
 
         it('reject withdraw if no tokens available', async function() {
           await expectRevert(
-            this.staking.withdraw({ from: indexNode }),
+            this.staking.withdraw({ from: indexer }),
             'Staking: no tokens available to withdraw',
           )
         })
@@ -365,16 +365,16 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
       describe('slash()', function() {
         before(function() {
           // This function tests slashing behaviour under different conditions
-          this.shouldSlash = async function(indexNode, tokensToSlash, tokensToReward, fisherman) {
+          this.shouldSlash = async function(indexer, tokensToSlash, tokensToReward, fisherman) {
             // Before
             const beforeTotalSupply = await this.graphToken.totalSupply()
             const beforeFishermanTokens = await this.graphToken.balanceOf(fisherman)
-            const beforeIndexerStake = await this.staking.getIndexNodeStakeTokens(indexNode)
+            const beforeIndexerStake = await this.staking.getIndexerStakeTokens(indexer)
 
             // Slash indexer
             const tokensToBurn = tokensToSlash.sub(tokensToReward)
             const { logs } = await this.staking.slash(
-              indexNode,
+              indexer,
               tokensToSlash,
               tokensToReward,
               fisherman,
@@ -384,7 +384,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
             // After
             const afterTotalSupply = await this.graphToken.totalSupply()
             const afterFishermanTokens = await this.graphToken.balanceOf(fisherman)
-            const afterIndexerStake = await this.staking.getIndexNodeStakeTokens(indexNode)
+            const afterIndexerStake = await this.staking.getIndexerStakeTokens(indexer)
 
             // Check slashed tokens has been burned
             expect(afterTotalSupply).to.be.bignumber.eq(beforeTotalSupply.sub(tokensToBurn))
@@ -397,7 +397,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
 
             // Event emitted
             expectEvent.inLogs(logs, 'StakeSlashed', {
-              indexNode: indexNode,
+              indexer: indexer,
               tokens: tokensToSlash,
               reward: tokensToReward,
               beneficiary: fisherman,
@@ -410,7 +410,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToSlash = web3.utils.toWei(new BN('100'))
           const tokensToReward = web3.utils.toWei(new BN('10'))
 
-          await this.shouldSlash(indexNode, tokensToSlash, tokensToReward, fisherman)
+          await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
         it('should slash indexer and give reward to beneficiary slash=reward', async function() {
@@ -418,23 +418,23 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToSlash = web3.utils.toWei(new BN('10'))
           const tokensToReward = web3.utils.toWei(new BN('10'))
 
-          await this.shouldSlash(indexNode, tokensToSlash, tokensToReward, fisherman)
+          await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
         it('should slash indexer even if it gets overallocated to subgraphs', async function() {
           // Initial stake
-          const beforeTokensStaked = await this.staking.getIndexNodeStakeTokens(indexNode)
+          const beforeTokensStaked = await this.staking.getIndexerStakeTokens(indexer)
 
           // Unstake partially, these tokens will be locked
           const tokensToUnstake = web3.utils.toWei(new BN('10'))
-          await this.staking.unstake(tokensToUnstake, { from: indexNode })
+          await this.staking.unstake(tokensToUnstake, { from: indexer })
 
           // Allocate indexer stake
           const tokensToAllocate = web3.utils.toWei(new BN('70'))
           await this.allocate(tokensToAllocate)
 
           // State pre-slashing
-          // helpers.logStake(await this.staking.stakes(indexNode))
+          // helpers.logStake(await this.staking.stakes(indexer))
           // > Current state:
           // = Staked: 100
           // = Locked: 10
@@ -444,10 +444,10 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           // Even if all stake is allocated to subgraphs it should slash the indexer
           const tokensToSlash = web3.utils.toWei(new BN('80'))
           const tokensToReward = web3.utils.toWei(new BN('0'))
-          await this.shouldSlash(indexNode, tokensToSlash, tokensToReward, fisherman)
+          await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
 
           // State post-slashing
-          // helpers.logStake(await this.staking.stakes(indexNode))
+          // helpers.logStake(await this.staking.stakes(indexer))
           // > Current state:
           // = Staked: 20
           // = Locked: 0
@@ -456,22 +456,22 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           // we are overallocated, the staking contract will prevent unstaking or allocating until
           // the balance is restored by staking or unallocating
 
-          const stakes = await this.staking.stakes(indexNode)
+          const stakes = await this.staking.stakes(indexer)
           // Stake should be reduced by the amount slashed
-          expect(stakes.tokensIndexNode).to.be.bignumber.eq(beforeTokensStaked.sub(tokensToSlash))
+          expect(stakes.tokensIndexer).to.be.bignumber.eq(beforeTokensStaked.sub(tokensToSlash))
           // All allocated tokens should be untouched
           expect(stakes.tokensAllocated).to.be.bignumber.eq(tokensToAllocate)
           // All locked tokens need to be consumed from the stake
           expect(stakes.tokensLocked).to.be.bignumber.eq(new BN('0'))
           expect(stakes.tokensLockedUntil).to.be.bignumber.eq(new BN('0'))
           // Tokens available when negative means over allocation
-          const tokensAvailable = stakes.tokensIndexNode
+          const tokensAvailable = stakes.tokensIndexer
             .sub(stakes.tokensAllocated)
             .sub(stakes.tokensLocked)
           expect(tokensAvailable).to.be.bignumber.eq(web3.utils.toWei(new BN('-50')))
 
           await expectRevert(
-            this.staking.unstake(tokensToUnstake, { from: indexNode }),
+            this.staking.unstake(tokensToUnstake, { from: indexer }),
             'Staking: not enough tokens available to unstake',
           )
         })
@@ -480,7 +480,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToSlash = web3.utils.toWei(new BN('100'))
           const tokensToReward = web3.utils.toWei(new BN('10'))
           await expectRevert(
-            this.staking.slash(indexNode, tokensToSlash, tokensToReward, me, { from: me }),
+            this.staking.slash(indexer, tokensToSlash, tokensToReward, me, { from: me }),
             'Caller is not a Slasher',
           )
         })
@@ -489,7 +489,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToSlash = web3.utils.toWei(new BN('100'))
           const tokensToReward = web3.utils.toWei(new BN('10'))
           await expectRevert(
-            this.staking.slash(indexNode, tokensToSlash, tokensToReward, ZERO_ADDRESS, {
+            this.staking.slash(indexer, tokensToSlash, tokensToReward, ZERO_ADDRESS, {
               from: slasher,
             }),
             'Slashing: beneficiary must not be an empty address',
@@ -500,7 +500,7 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
           const tokensToSlash = web3.utils.toWei(new BN('100'))
           const tokensToReward = web3.utils.toWei(new BN('200'))
           await expectRevert(
-            this.staking.slash(indexNode, tokensToSlash, tokensToReward, fisherman, {
+            this.staking.slash(indexer, tokensToSlash, tokensToReward, fisherman, {
               from: slasher,
             }),
             'Slashing: reward cannot be higher than slashed amoun',
@@ -511,19 +511,19 @@ contract('Staking', ([me, other, governor, indexNode, slasher, fisherman]) => {
       describe('allocate()', function() {
         context('> when subgraph not allocated', function() {
           it('should allocate to subgraph', async function() {
-            const { logs } = await this.allocate(this.indexNodeStake)
+            const { logs } = await this.allocate(this.indexerStake)
             expectEvent.inLogs(logs, 'AllocationCreated', {
-              indexNode: indexNode,
+              indexer: indexer,
               subgraphID: this.subgraphId,
               epoch: await this.epochManager.currentEpoch(),
-              tokens: this.indexNodeStake,
+              tokens: this.indexerStake,
               channelID: this.channelID,
               channelPubKey: this.channelPubKey,
             })
           })
 
           it('reject allocate more than available tokens', async function() {
-            const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
+            const tokensOverCapacity = this.indexerStake.add(new BN(1))
             await expectRevert(
               this.allocate(tokensOverCapacity),
               'Allocation: not enough tokens available to allocate',

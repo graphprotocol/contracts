@@ -429,7 +429,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
           })
 
           it('should resolve dispute, slash indexer and reward the fisherman', async function() {
-            const indexerStakeBefore = await this.staking.getIndexNodeStakeTokens(indexer)
+            const indexerStakeBefore = await this.staking.getIndexerStakeTokens(indexer)
             const tokensToSlash = await this.disputeManager.getTokensToSlash(indexer)
             const fishermanBalanceBefore = await this.graphToken.balanceOf(fisherman)
             const totalSupplyBefore = await this.graphToken.totalSupply()
@@ -448,7 +448,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             )
 
             // Indexer slashed
-            const indexerStakeAfter = await this.staking.getIndexNodeStakeTokens(indexer)
+            const indexerStakeAfter = await this.staking.getIndexerStakeTokens(indexer)
             expect(indexerStakeAfter).to.be.bignumber.eq(indexerStakeBefore.sub(tokensToSlash))
 
             // Slashed funds burned
