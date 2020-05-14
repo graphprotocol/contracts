@@ -84,17 +84,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     )
         public
     {
-        address parsedTo;
-        if( Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[0]) ||
-            Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[1]) )
-        {
-            parsedTo = INDEXER_CTDT_ADDRESS;
-        } else {
-            parsedTo = to;
-        }
-
         bytes32 transactionHash = getTransactionHash(
-            parsedTo,
+            to,
             value,
             data,
             operation
@@ -113,8 +104,13 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             );
         }
 
+        bool isNodeIndexerMultisig = _owners.length == 2 && (
+            _owners[0] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[1]) ||
+            _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[0])
+        );
+
         execute(
-            parsedTo,
+            isNodeIndexerMultisig ? INDEXER_CTDT_ADDRESS : to,
             value,
             data,
             operation
