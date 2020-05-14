@@ -80,7 +80,7 @@ contract Curation is Governed, BancorFormula {
 
     /**
      * @dev Emitted when `tokens` amount were collected for `subgraphID` as part of fees
-     * distributed by index node from the settlement of query fees on the subgraph.
+     * distributed by indexer from the settlement of query fees on the subgraph.
      */
     event Collected(bytes32 indexed subgraphID, uint256 tokens);
 
@@ -161,10 +161,11 @@ contract Curation is Governed, BancorFormula {
      * @param _data Extra data payload
      * @return true if token transfer is processed
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
-    {
+    function tokensReceived(
+        address _from,
+        uint256 _value,
+        bytes calldata _data
+    ) external returns (bool) {
         // Make sure the token is the caller of this function
         require(msg.sender == address(token), "Caller is not the GRT token contract");
 
@@ -290,10 +291,11 @@ contract Curation is Governed, BancorFormula {
      * @param _tokens Amount of tokens
      * @return Number of shares bought
      */
-    function _buyShares(address _curator, bytes32 _subgraphID, uint256 _tokens)
-        private
-        returns (uint256)
-    {
+    function _buyShares(
+        address _curator,
+        bytes32 _subgraphID,
+        uint256 _tokens
+    ) private returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphID];
         uint256 shares = tokensToShares(_subgraphID, _tokens);
 
@@ -314,10 +316,11 @@ contract Curation is Governed, BancorFormula {
      * @param _shares Amount of shares
      * @return Number of tokens received
      */
-    function _sellShares(address _curator, bytes32 _subgraphID, uint256 _shares)
-        private
-        returns (uint256)
-    {
+    function _sellShares(
+        address _curator,
+        bytes32 _subgraphID,
+        uint256 _shares
+    ) private returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphID];
         uint256 tokens = sharesToTokens(_subgraphID, _shares);
 
@@ -352,7 +355,11 @@ contract Curation is Governed, BancorFormula {
      * @param _curator Address of staking party
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function _stake(address _curator, bytes32 _subgraphID, uint256 _tokens) private {
+    function _stake(
+        address _curator,
+        bytes32 _subgraphID,
+        uint256 _tokens
+    ) private {
         Subgraph storage subgraph = subgraphs[_subgraphID];
 
         // If this subgraph hasn't been curated before then initialize the curve

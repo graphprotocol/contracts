@@ -206,7 +206,7 @@ contract DisputeManager is Governed {
      * @return Amount of tokens to slash
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
-        uint256 tokens = staking.getIndexNodeStakeTokens(_indexer); // slashable tokens
+        uint256 tokens = staking.getIndexerStakeTokens(_indexer); // slashable tokens
         return slashingPercentage.mul(tokens).div(MAX_PPM);
     }
 

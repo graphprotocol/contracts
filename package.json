@@ -1,8 +1,7 @@
 {
-  "name": "graph-protocol",
-  "version": "1.0.0",
-  "description": "",
-  "main": "graphProtocol.js",
+  "name": "@graphprotocol/contracts",
+  "version": "0.1.0",
+  "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
   },

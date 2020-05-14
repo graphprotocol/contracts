@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 library Rebates {
     using SafeMath for uint256;
 
-    // Tracks per indexNode/subgraphID settlement
+    // Tracks per indexer/subgraphID settlement
     struct Settlement {
         uint256 fees;
         uint256 allocation;
@@ -24,44 +24,44 @@ library Rebates {
         uint256 fees;
         uint256 allocation;
         uint256 settlementsCount;
-        // Settlements in this pool : indexNode => subgraphID => Settlement
+        // Settlements in this pool : indexer => subgraphID => Settlement
         mapping(address => mapping(bytes32 => Settlement)) settlements;
     }
 
     /**
      * @dev Deposit tokens into the rebate pool
-     * @param _indexNode Address of the index node settling a channel
+     * @param _indexer Address of the indexer settling a channel
      * @param _subgraphID ID of the settled subgraph
      * @param _tokens Amount of fees collected in tokens
-     * @param _allocation Effective stake allocated by the index node for a period of epochs
+     * @param _allocation Effective stake allocated by the indexer for a period of epochs
      * @return A settlement struct created after adding to rebate pool
      */
     function add(
         Rebates.Pool storage pool,
-        address _indexNode,
+        address _indexer,
         bytes32 _subgraphID,
         uint256 _tokens,
         uint256 _allocation
     ) internal returns (Rebates.Settlement storage) {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
-        pool.settlements[_indexNode][_subgraphID] = Settlement(_tokens, _allocation);
+        pool.settlements[_indexer][_subgraphID] = Settlement(_tokens, _allocation);
         pool.settlementsCount += 1;
 
-        return pool.settlements[_indexNode][_subgraphID];
+        return pool.settlements[_indexer][_subgraphID];
     }
 
     /**
      * @dev Redeem tokens from the rebate pool
-     * @param _indexNode Address of the index node claiming a rebate
+     * @param _indexer Address of the indexer claiming a rebate
      * @param _subgraphID ID of the claimed subgraph rebate
      * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
      */
-    function redeem(Rebates.Pool storage pool, address _indexNode, bytes32 _subgraphID)
+    function redeem(Rebates.Pool storage pool, address _indexer, bytes32 _subgraphID)
         internal
         returns (uint256)
     {
-        Rebates.Settlement storage settlement = pool.settlements[_indexNode][_subgraphID];
+        Rebates.Settlement storage settlement = pool.settlements[_indexer][_subgraphID];
 
         // Production function reward calculation
         // TODO: exponential calculation when alpha < 1...
@@ -71,7 +71,7 @@ library Rebates {
         uint256 tokens = termA.mul(termB);
 
         // Redeem settlement
-        delete pool.settlements[_indexNode][_subgraphID];
+        delete pool.settlements[_indexer][_subgraphID];
         pool.settlementsCount -= 1;
 
         return tokens;

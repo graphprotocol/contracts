@@ -12,16 +12,16 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 library Stakes {
     using SafeMath for uint256;
-    using Stakes for Stakes.IndexNode;
+    using Stakes for Stakes.Indexer;
 
     struct Allocation {
         uint256 tokens; // Tokens allocated to a subgraph
         uint256 createdAtEpoch; // Epoch when it was created
-        address channelID; // IndexNode channel ID used off chain
+        address channelID; // Indexer channel ID used off chain
     }
 
-    struct IndexNode {
-        uint256 tokensIndexNode; // Tokens on the IndexNode stake (staked by the index node)
+    struct Indexer {
+        uint256 tokensIndexer; // Tokens on the indexer stake (staked by the indexer)
         uint256 tokensAllocated; // Tokens used in subgraph allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
@@ -35,7 +35,7 @@ library Stakes {
      * @param _subgraphID Subgraph where to allocate tokens
      * @param _tokens Amount of tokens to allocate
      */
-    function allocateTokens(Stakes.IndexNode storage stake, bytes32 _subgraphID, uint256 _tokens)
+    function allocateTokens(Stakes.Indexer storage stake, bytes32 _subgraphID, uint256 _tokens)
         internal
         returns (Allocation storage)
     {
@@ -51,7 +51,7 @@ library Stakes {
      * @param _subgraphID Subgraph from where to unallocate tokens
      * @param _tokens Amount of tokens to unallocate
      */
-    function unallocateTokens(Stakes.IndexNode storage stake, bytes32 _subgraphID, uint256 _tokens)
+    function unallocateTokens(Stakes.Indexer storage stake, bytes32 _subgraphID, uint256 _tokens)
         internal
         returns (Allocation storage)
     {
@@ -62,21 +62,21 @@ library Stakes {
     }
 
     /**
-     * @dev Deposit tokens to the index node stake
+     * @dev Deposit tokens to the indexer stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
-    function deposit(Stakes.IndexNode storage stake, uint256 _tokens) internal {
-        stake.tokensIndexNode = stake.tokensIndexNode.add(_tokens);
+    function deposit(Stakes.Indexer storage stake, uint256 _tokens) internal {
+        stake.tokensIndexer = stake.tokensIndexer.add(_tokens);
     }
 
     /**
-     * @dev Release tokens from the index node stake
+     * @dev Release tokens from the indexer stake
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
-    function release(Stakes.IndexNode storage stake, uint256 _tokens) internal {
-        stake.tokensIndexNode = stake.tokensIndexNode.sub(_tokens);
+    function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
+        stake.tokensIndexer = stake.tokensIndexer.sub(_tokens);
     }
 
     /**
@@ -85,7 +85,7 @@ library Stakes {
      * @param _tokens Amount of tokens to unstake
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
      */
-    function lockTokens(Stakes.IndexNode storage stake, uint256 _tokens, uint256 _thawingPeriod)
+    function lockTokens(Stakes.Indexer storage stake, uint256 _tokens, uint256 _thawingPeriod)
         internal
     {
         // Take into account period averaging for multiple unstake requests
@@ -104,7 +104,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to unkock
      */
-    function unlockTokens(Stakes.IndexNode storage stake, uint256 _tokens) internal {
+    function unlockTokens(Stakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensLocked = stake.tokensLocked.sub(_tokens);
         if (stake.tokensLocked == 0) {
             stake.tokensLockedUntil = 0;
@@ -116,7 +116,7 @@ library Stakes {
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
      */
-    function withdrawTokens(Stakes.IndexNode storage stake) internal returns (uint256) {
+    function withdrawTokens(Stakes.Indexer storage stake) internal returns (uint256) {
         // Calculate tokens that can be released
         uint256 tokensToWithdraw = stake.tokensWithdrawable();
 
@@ -124,7 +124,7 @@ library Stakes {
             // Reset locked tokens
             stake.unlockTokens(tokensToWithdraw);
 
-            // Decrease index node stake
+            // Decrease indexer stake
             stake.release(tokensToWithdraw);
         }
 
@@ -138,11 +138,11 @@ library Stakes {
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
      * @return True if staked
      */
-    function getLockingPeriod(
-        Stakes.IndexNode storage stake,
-        uint256 _tokens,
-        uint256 _thawingPeriod
-    ) internal view returns (uint256) {
+    function getLockingPeriod(Stakes.Indexer storage stake, uint256 _tokens, uint256 _thawingPeriod)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 blockNum = block.number;
         uint256 periodA = (stake.tokensLockedUntil > blockNum)
             ? stake.tokensLockedUntil.sub(blockNum)
@@ -154,21 +154,21 @@ library Stakes {
     }
 
     /**
-     * @dev Return true if there are tokens staked by the IndexNode
+     * @dev Return true if there are tokens staked by the Indexer
      * @param stake Stake data
      * @return True if staked
      */
-    function hasTokens(Stakes.IndexNode storage stake) internal view returns (bool) {
-        return stake.tokensIndexNode > 0;
+    function hasTokens(Stakes.Indexer storage stake) internal view returns (bool) {
+        return stake.tokensIndexer > 0;
     }
 
     /**
-     * @dev Return true if the IndexNode has allocated stake on the subgraph
+     * @dev Return true if the indexer has allocated stake on the subgraph
      * @param stake Stake data
      * @param _subgraphID Subgraph for the allocation
      * @return True if allocated
      */
-    function hasAllocation(Stakes.IndexNode storage stake, bytes32 _subgraphID)
+    function hasAllocation(Stakes.Indexer storage stake, bytes32 _subgraphID)
         internal
         view
         returns (bool)
@@ -177,21 +177,21 @@ library Stakes {
     }
 
     /**
-     * @dev Total tokens staked from IndexNode
+     * @dev Total tokens staked from indexer
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensStaked(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensIndexNode;
+    function tokensStaked(Stakes.Indexer storage stake) internal view returns (uint256) {
+        return stake.tokensIndexer;
     }
 
     /**
      * @dev Tokens available for use in allocations
-     * @dev tokensIndexNode - tokensAllocated - tokensLocked
+     * @dev tokensIndexer - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensAvailable(Stakes.IndexNode storage stake) internal view returns (uint256) {
+    function tokensAvailable(Stakes.Indexer storage stake) internal view returns (uint256) {
         uint256 _tokensStaked = stake.tokensStaked();
         uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
         // Stake is over allocated: return 0 to avoid stake to be used until the overallocation
@@ -207,8 +207,8 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensSlashable(Stakes.IndexNode storage stake) internal view returns (uint256) {
-        return stake.tokensIndexNode;
+    function tokensSlashable(Stakes.Indexer storage stake) internal view returns (uint256) {
+        return stake.tokensIndexer;
     }
 
     /**
@@ -216,7 +216,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensWithdrawable(Stakes.IndexNode storage stake) internal view returns (uint256) {
+    function tokensWithdrawable(Stakes.Indexer storage stake) internal view returns (uint256) {
         // No tokens to withdraw before locking period
         if (stake.tokensLockedUntil == 0 || block.number < stake.tokensLockedUntil) {
             return 0;
@@ -224,8 +224,8 @@ library Stakes {
         // Cannot withdraw more than currently staked
         // This condition can happen if while tokens are locked for withdrawal a slash condition happens
         // In that case the total staked tokens could be below the amount to be withdrawn
-        if (stake.tokensLocked > stake.tokensIndexNode) {
-            return stake.tokensIndexNode;
+        if (stake.tokensLocked > stake.tokensIndexer) {
+            return stake.tokensIndexer;
         }
         return stake.tokensLocked;
     }
