@@ -103,8 +103,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         }
 
         bool isNodeIndexerMultisig = _owners.length == 2 && (
-            _owners[0] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[1]) ||
-            _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).hasStake(_owners[0])
+            _owners[0] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1]) ||
+            _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])
         );
 
         execute(
