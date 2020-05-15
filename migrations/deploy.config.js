@@ -19,7 +19,7 @@ module.exports = {
   },
   staking: {
     channelDisputeEpochs: 1,
-    maxSettlementEpochs: 5,
+    maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
   },
   token: {

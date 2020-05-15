@@ -130,17 +130,17 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
       })
     })
 
-    describe('maxSettlementEpochs', function() {
-      it('should set `maxSettlementEpochs`', async function() {
+    describe('maxAllocationEpochs', function() {
+      it('should set `maxAllocationEpochs`', async function() {
         const newValue = new BN(5)
-        await this.staking.setMaxSettlementEpochs(newValue, { from: governor })
-        expect(await this.staking.maxSettlementEpochs()).to.be.bignumber.eq(newValue)
+        await this.staking.setMaxAllocationEpochs(newValue, { from: governor })
+        expect(await this.staking.maxAllocationEpochs()).to.be.bignumber.eq(newValue)
       })
 
-      it('reject set `maxSettlementEpochs` if not allowed', async function() {
+      it('reject set `maxAllocationEpochs` if not allowed', async function() {
         const newValue = new BN(5)
         await expectRevert(
-          this.staking.setMaxSettlementEpochs(newValue, { from: other }),
+          this.staking.setMaxAllocationEpochs(newValue, { from: other }),
           'Only Governor can call',
         )
       })

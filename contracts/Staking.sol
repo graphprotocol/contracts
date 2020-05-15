@@ -43,8 +43,8 @@ contract Staking is Governed {
     // Need to pass this period to claim fees in rebate pool
     uint256 public channelDisputeEpochs;
 
-    // Need to pass this period for delegators to settle
-    uint256 public maxSettlementEpochs;
+    // Maximum allocation time
+    uint256 public maxAllocationEpochs;
 
     // Time in blocks to unstake
     uint256 public thawingPeriod; // in blocks
@@ -173,6 +173,7 @@ contract Staking is Governed {
      */
     function setCuration(Curation _curation) external onlyGovernor {
         curation = _curation;
+        emit ParameterUpdated("curation");
     }
 
     /**
@@ -183,6 +184,7 @@ contract Staking is Governed {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
         curationPercentage = _percentage;
+        emit ParameterUpdated("curationPercentage");
     }
 
     /**
@@ -191,14 +193,16 @@ contract Staking is Governed {
      */
     function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
         channelDisputeEpochs = _channelDisputeEpochs;
+        emit ParameterUpdated("curationPercentage");
     }
 
     /**
-     * @dev Set the max settlement time allowed for indexers
-     * @param _maxSettlementEpochs Settlement duration limit in epochs
+     * @dev Set the max allocation time allowed for indexers
+     * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
-    function setMaxSettlementEpochs(uint256 _maxSettlementEpochs) external onlyGovernor {
-        maxSettlementEpochs = _maxSettlementEpochs;
+    function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external onlyGovernor {
+        maxAllocationEpochs = _maxAllocationEpochs;
+        emit ParameterUpdated("maxAllocationEpochs");
     }
 
     /**
@@ -217,6 +221,7 @@ contract Staking is Governed {
      */
     function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
         thawingPeriod = _thawingPeriod;
+        emit ParameterUpdated("thawingPeriod");
     }
 
     /**
@@ -313,6 +318,10 @@ contract Staking is Governed {
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
     }
 
+    /**
+     * @dev Deposit tokens on the indexer stake
+     * @param _tokens Amount of tokens to stake
+     */
     function stake(uint256 _tokens) external {
         address indexer = msg.sender;
 
@@ -523,7 +532,7 @@ contract Staking is Governed {
             indexer,
             subgraphID,
             rebateFees,
-            alloc.getTokensEffectiveAllocation(epochs, maxSettlementEpochs)
+            alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs)
         );
 
         // Close channel

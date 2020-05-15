@@ -47,7 +47,7 @@ function deployServiceRegistry(owner) {
 async function deployStakingContract(owner, graphToken, epochManager, curation, params) {
   const contract = await Staking.new(owner, graphToken, epochManager, curation, params)
   await contract.setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs, { from: owner })
-  await contract.setMaxSettlementEpochs(defaults.staking.maxSettlementEpochs, { from: owner })
+  await contract.setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs, { from: owner })
   await contract.setThawingPeriod(defaults.staking.thawingPeriod, { from: owner })
   return contract
 }

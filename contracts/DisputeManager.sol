@@ -238,6 +238,7 @@ contract DisputeManager is Governed {
      */
     function setArbitrator(address _arbitrator) external onlyGovernor {
         arbitrator = _arbitrator;
+        emit ParameterUpdated("arbitrator");
     }
 
     /**
@@ -247,6 +248,7 @@ contract DisputeManager is Governed {
      */
     function setMinimumDeposit(uint256 _minimumDeposit) external onlyGovernor {
         minimumDeposit = _minimumDeposit;
+        emit ParameterUpdated("minimumDeposit");
     }
 
     /**
@@ -258,6 +260,7 @@ contract DisputeManager is Governed {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
         fishermanRewardPercentage = _percentage;
+        emit ParameterUpdated("fishermanRewardPercentage");
     }
 
     /**
@@ -268,6 +271,7 @@ contract DisputeManager is Governed {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
+        emit ParameterUpdated("slashingPercentage");
     }
 
     /**
@@ -277,6 +281,7 @@ contract DisputeManager is Governed {
      */
     function setStaking(Staking _staking) external onlyGovernor {
         staking = _staking;
+        emit ParameterUpdated("staking");
     }
 
     /**

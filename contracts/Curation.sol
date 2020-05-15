@@ -124,6 +124,7 @@ contract Curation is Governed, BancorFormula {
         );
 
         defaultReserveRatio = _defaultReserveRatio;
+        emit ParameterUpdated("defaultReserveRatio");
     }
 
     /**
@@ -133,6 +134,7 @@ contract Curation is Governed, BancorFormula {
      */
     function setStaking(address _staking) external onlyGovernor {
         staking = _staking;
+        emit ParameterUpdated("staking");
     }
 
     /**
@@ -151,6 +153,7 @@ contract Curation is Governed, BancorFormula {
     function _setMinimumCurationStake(uint256 _minimumCurationStake) private {
         require(_minimumCurationStake > 0, "Minimum curation stake cannot be 0");
         minimumCurationStake = _minimumCurationStake;
+        emit ParameterUpdated("minimumCurationStake");
     }
 
     /**
