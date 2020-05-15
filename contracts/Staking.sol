@@ -193,7 +193,7 @@ contract Staking is Governed {
      */
     function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
         channelDisputeEpochs = _channelDisputeEpochs;
-        emit ParameterUpdated("curationPercentage");
+        emit ParameterUpdated("channelDisputeEpochs");
     }
 
     /**
