@@ -6,7 +6,7 @@
     "test": "test"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "3.0.0-rc.0",
+    "@openzeppelin/contracts": "3.0.1",
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
     "eslint": "^6.8.0",

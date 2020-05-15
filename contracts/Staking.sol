@@ -69,7 +69,7 @@ contract Staking is Governed {
     // -- Events --
 
     /**
-     * @dev Emitted when `indexer` deposited `tokens` amount as stake.
+     * @dev Emitted when `indexer` stake `tokens` amount.
      */
     event StakeDeposited(address indexed indexer, uint256 tokens);
 
@@ -90,7 +90,7 @@ contract Staking is Governed {
     );
 
     /**
-     * @dev Emitted when `indexer` withdrew `tokens` amount from the stake.
+     * @dev Emitted when `indexer` withdrew `tokens` staked amount
      */
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
 
@@ -151,7 +151,7 @@ contract Staking is Governed {
 
     /**
      * @dev Staking Contract Constructor
-     * @param _governor Address of the multisig contract as Governor of this contract
+     * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      * @param _curation Address of the Curation contract
@@ -273,28 +273,28 @@ contract Staking is Governed {
         uint256 _reward,
         address _beneficiary
     ) external onlySlasher {
-        Stakes.Indexer storage stake = stakes[_indexer];
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
 
-        require(stake.hasTokens(), "Slashing: indexer has no stakes");
+        require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
         require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(
-            _tokens <= stake.tokensSlashable(),
+            _tokens <= indexerStake.tokensSlashable(),
             "Slashing: cannot slash more than staked amount"
         );
 
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
-        if (_tokens > stake.tokensAvailable() && stake.tokensLocked > 0) {
-            uint256 tokensOverAllocated = _tokens.sub(stake.tokensAvailable());
-            uint256 tokensToUnlock = (tokensOverAllocated > stake.tokensLocked)
-                ? stake.tokensLocked
+        if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
+            uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
+            uint256 tokensToUnlock = (tokensOverAllocated > indexerStake.tokensLocked)
+                ? indexerStake.tokensLocked
                 : tokensOverAllocated;
-            stake.unlockTokens(tokensToUnlock);
+            indexerStake.unlockTokens(tokensToUnlock);
         }
 
         // Remove tokens to slash from the stake
-        stake.release(_tokens);
+        indexerStake.release(_tokens);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
         uint256 tokensToBurn = _tokens.sub(_reward);
@@ -313,32 +313,35 @@ contract Staking is Governed {
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
     }
 
+    function stake(uint256 _tokens) external {
+        address indexer = msg.sender;
+
+        // Transfer tokens to stake from indexer to this contract
+        require(
+            token.transferFrom(indexer, address(this), _tokens),
+            "Staking: Cannot transfer tokens to stake"
+        );
+        // Stake the transferred tokens
+        _stake(indexer, _tokens);
+    }
+
     /**
-     * @dev Accept tokens and handle staking registration functions
-     * @param _from Token holder's address
-     * @param _value Amount of Graph Tokens
+     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires
+     * @param _tokens Amount of tokens to unstake
      */
-    function tokensReceived(
-        address _from,
-        uint256 _value,
-        bytes calldata _data
-    ) external returns (bool) {
-        // Make sure the token is the caller of this function
-        require(msg.sender == address(token), "Caller is not the GRT token contract");
+    function unstake(uint256 _tokens) external {
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        // If we receive funds from a channel multisig it is a settle
-        // TODO: review with how funds are sent from multisig
-        if (_data.length == 20) {
-            address channelID = _data.toAddress(0);
-            if (isChannel(channelID)) {
-                _settle(channelID, _from, _value);
-                return true;
-            }
-        }
+        require(indexerStake.hasTokens(), "Staking: indexer has no stakes");
+        require(
+            indexerStake.tokensAvailable() >= _tokens,
+            "Staking: not enough tokens available to unstake"
+        );
 
-        // Any other case is a staking of funds
-        _stake(_from, _value);
-        return true;
+        indexerStake.lockTokens(_tokens, thawingPeriod);
+
+        emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
     }
 
     /**
@@ -353,20 +356,20 @@ contract Staking is Governed {
         bytes calldata _channelPubKey
     ) external {
         address indexer = msg.sender;
-        Stakes.Indexer storage stake = stakes[indexer];
+        Stakes.Indexer storage indexerStake = stakes[indexer];
 
         // Only allocations with a token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
         // Need to have tokens in our stake to be able to allocate
-        require(stake.hasTokens(), "Allocation: indexer has no stakes");
+        require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
         // Need to have free tokens not used for other purposes to allocate
         require(
-            stake.tokensAvailable() >= _tokens,
+            indexerStake.tokensAvailable() >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
         // Can only allocate tokens to a subgraph if not currently allocated
         require(
-            stake.hasAllocation(_subgraphID) == false,
+            indexerStake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
         );
         // Cannot reuse a channelID that has been used in the past
@@ -374,7 +377,7 @@ contract Staking is Governed {
         require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
-        Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
+        Stakes.Allocation storage alloc = indexerStake.allocateTokens(_subgraphID, _tokens);
         alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
         channels[channelID] = Channel(indexer, _subgraphID);
@@ -390,22 +393,23 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires
-     * @param _tokens Amount of tokens to unstake
+     * @dev Settle a channel after receiving collected query fees from it
+     * @param _channelID Address of the indexer in the channel
+     * @param _tokens Amount of tokens to settle
      */
-    function unstake(uint256 _tokens) external {
-        address indexer = msg.sender;
-        Stakes.Indexer storage stake = stakes[indexer];
+    function settle(address _channelID, uint256 _tokens) external {
+        address channelMultisig = msg.sender;
 
-        require(stake.hasTokens(), "Staking: indexer has no stakes");
+        // Receive funds from the channel multisig
+        // We use channelID to find the indexer owner of the channel
+        require(isChannel(_channelID), "Channel: does not exist");
+
+        // Transfer tokens to settle from multisig to this contract
         require(
-            stake.tokensAvailable() >= _tokens,
-            "Staking: not enough tokens available to unstake"
+            token.transferFrom(channelMultisig, address(this), _tokens),
+            "Channel: Cannot transfer tokens to settle"
         );
-
-        stake.lockTokens(_tokens, thawingPeriod);
-
-        emit StakeLocked(indexer, stake.tokensLocked, stake.tokensLockedUntil);
+        _settle(_channelID, channelMultisig, _tokens);
     }
 
     /**
@@ -413,9 +417,9 @@ contract Staking is Governed {
      */
     function withdraw() external {
         address indexer = msg.sender;
-        Stakes.Indexer storage stake = stakes[indexer];
+        Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        uint256 tokensToWithdraw = stake.withdrawTokens();
+        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
         require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
@@ -480,8 +484,8 @@ contract Staking is Governed {
      * @param _tokens Amount of tokens to stake
      */
     function _stake(address _indexer, uint256 _tokens) private {
-        Stakes.Indexer storage stake = stakes[_indexer];
-        stake.deposit(_tokens);
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+        indexerStake.deposit(_tokens);
 
         emit StakeDeposited(_indexer, _tokens);
     }
@@ -499,8 +503,8 @@ contract Staking is Governed {
     ) private {
         address indexer = channels[_channelID].indexer;
         bytes32 subgraphID = channels[_channelID].subgraphID;
-        Stakes.Indexer storage stake = stakes[indexer];
-        Stakes.Allocation storage alloc = stake.allocations[subgraphID];
+        Stakes.Indexer storage indexerStake = stakes[indexer];
+        Stakes.Allocation storage alloc = indexerStake.allocations[subgraphID];
 
         require(alloc.hasChannel(), "Channel: Must be active for settlement");
 
@@ -524,21 +528,17 @@ contract Staking is Governed {
 
         // Close channel
         // NOTE: Channels used are never deleted from state tracked in `channels` var
-        stake.unallocateTokens(subgraphID, alloc.tokens);
+        indexerStake.unallocateTokens(subgraphID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
-        //TODO: send multisig one-shot invalidation
+        // TODO: send multisig one-shot invalidation
 
         // Send curation fees to the curator subgraph reserve
         if (curationFees > 0) {
-            require(
-                token.transferToTokenReceiver(
-                    address(curation),
-                    curationFees,
-                    abi.encodePacked(subgraphID)
-                ),
-                "Channel: Could not transfer tokens to Curators"
-            );
+            // TODO: the approve call can be optimized by approving the curation contract to fetch
+            // funds from the Staking contract for infinity funds just once for a security tradeoff
+            require(token.approve(address(curation), curationFees));
+            curation.collect(subgraphID, curationFees);
         }
 
         emit AllocationSettled(indexer, subgraphID, currentEpoch, _tokens, _channelID, _from);

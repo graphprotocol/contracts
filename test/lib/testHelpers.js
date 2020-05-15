@@ -267,14 +267,6 @@ module.exports = {
       return contract
     } else return param
   },
-  graphTokenConstants: {
-    // 10,000,000 (in wei) total supply of Graph Tokens at time of deployment
-    initialTokenSupply: web3.utils.toWei(new BN('10000000')),
-    // 10000 (in wei) minimum amount allowed to be staked by Market Curators
-    stakingAmount: web3.utils.toWei(new BN('10000')),
-    // 100000 (in wei) minimum amount allowed to be staked by Market Curators
-    tokensMintedForStaker: web3.utils.toWei(new BN('100000')),
-  },
   defaults: {
     curation: {
       // Reserve ratio to set bonding curve for curation (in PPM)

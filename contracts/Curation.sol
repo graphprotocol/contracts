@@ -154,33 +154,37 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Accept tokens
-     * @notice Receive Graph tokens
-     * @param _from Token holder's address
-     * @param _value Amount of Graph Tokens
-     * @param _data Extra data payload
-     * @return true if token transfer is processed
+     * @dev Assign Graph Tokens received from staking to the subgraph reserve
+     * @param _subgraphID Subgraph where funds should be allocated as reserves
+     * @param _tokens Amount of Graph Tokens to add to reserves
      */
-    function tokensReceived(
-        address _from,
-        uint256 _value,
-        bytes calldata _data
-    ) external returns (bool) {
-        // Make sure the token is the caller of this function
-        require(msg.sender == address(token), "Caller is not the GRT token contract");
+    function collect(bytes32 _subgraphID, uint256 _tokens) external {
+        require(msg.sender == staking, "Caller must be the staking contract");
 
-        // Decode subgraphID
-        bytes32 subgraphID = _data.slice(0, 32).toBytes32(0);
+        // Transfer tokens to collect from staking to this contract
+        require(
+            token.transferFrom(staking, address(this), _tokens),
+            "Cannot transfer tokens to collect"
+        );
+        // Collect tranferred tokens and assign to subgraph reserves
+        _collect(_subgraphID, _tokens);
+    }
 
-        // Transfers from staking means we are assigning fees to reserves
-        if (_from == staking) {
-            _collect(subgraphID, _value);
-            return true;
-        }
+    /**
+     * @dev Called by a curator to deposit Graph Tokens in exchange for shares of a subgraph
+     * @param _subgraphID Subgraph ID where the curator is staking Graph Tokens
+     * @param _tokens Amount of Graph Tokens to stake
+     */
+    function stake(bytes32 _subgraphID, uint256 _tokens) external {
+        address curator = msg.sender;
 
-        // Any other source address means they are staking tokens for shares
-        _stake(_from, subgraphID, _value);
-        return true;
+        // Transfer tokens from the curator to this contract
+        require(
+            token.transferFrom(curator, address(this), _tokens),
+            "Cannot transfer tokens to stake"
+        );
+        // Stake transferred tokens to subgraph
+        _stake(curator, _subgraphID, _tokens);
     }
 
     /**
@@ -351,8 +355,8 @@ contract Curation is Governed, BancorFormula {
 
     /**
      * @dev Deposit Graph Tokens in exchange for shares of a subgraph
-     * @param _subgraphID Subgraph ID where the curator is staking Graph Tokens
      * @param _curator Address of staking party
+     * @param _subgraphID Subgraph ID where the curator is staking Graph Tokens
      * @param _tokens Amount of Graph Tokens to stake
      */
     function _stake(

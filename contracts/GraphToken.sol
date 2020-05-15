@@ -1,94 +1,100 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-/*
- * @title GraphToken contract
- *
- */
-
 import "./Governed.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
 
-// NOTE: This is based off of ERC777TokensRecipient interface, but does not fully implement it
-interface TokenReceiver {
-    function tokensReceived(address _from, uint256 _amount, bytes calldata _data)
-        external
-        returns (bool);
-}
+/**
+ * @title GraphToken contract
+ * @dev This is the implementation of the ERC20 Graph Token.
+ */
+contract GraphToken is Governed, ERC20, ERC20Burnable {
+    // -- State --
 
-
-contract GraphToken is Governed, ERC20Detailed, ERC20Burnable {
     mapping(address => bool) private _minters;
 
     // -- Events --
+
     event MinterAdded(address indexed account);
     event MinterRemoved(address indexed account);
 
     modifier onlyMinter() {
-        require(isMinter(msg.sender) || msg.sender == governor, "Only minter can call");
+        require(isMinter(msg.sender), "Only minter can call");
         _;
     }
 
-    /*
-     * @dev Init Graph Token contract
-     * @param _governor <address> Address of the multisig contract as Governor of this contract
-     * @param _initialSupply <uint256> Initial supply of Graph Tokens
+    /**
+     * @dev Graph Token Contract Constructor
+     * @param _governor Owner address of this contract
+     * @param _initialSupply Initial supply of GRT
      */
     constructor(address _governor, uint256 _initialSupply)
         public
-        ERC20Detailed("Graph Token", "GRT", 18)
+        ERC20("Graph Token", "GRT")
         Governed(_governor)
     {
-        // Governor is initially the sole treasurer
-        _addMinter(_governor);
-
         // The Governor has the initial supply of tokens
         _mint(_governor, _initialSupply);
+        // The Governor is the default minter
+        _addMinter(_governor);
     }
 
+    /**
+     * @dev Add a new minter
+     * @param _account Address of the minter
+     */
     function addMinter(address _account) external onlyGovernor {
         _addMinter(_account);
     }
 
+    /**
+     * @dev Remove a minter
+     * @param _account Address of the minter
+     */
     function removeMinter(address _account) external onlyGovernor {
         _removeMinter(_account);
     }
 
-    function isMinter(address _account) public view returns (bool) {
-        return _minters[_account];
-    }
-
+    /**
+     * @dev Renounce to be a minter
+     */
     function renounceMinter() external {
         _removeMinter(msg.sender);
     }
 
-    function mint(address _account, uint256 _amount) external onlyMinter returns (bool) {
-        _mint(_account, _amount);
-        return true;
-    }
-
-    /*
-     * @dev Transfer Graph tokens to the Staking interface
-     * @notice Interacts with Staking contract
-     * @notice Overriding `transfer` was not working with web3.js so we renamed to `transferToTokenReceiver`
+    /**
+     * @dev Mint new tokens
+     * @param _to Address to send the newly minted tokens
+     * @param _amount Amount of tokens to mint
      */
-    function transferToTokenReceiver(address _to, uint256 _amount, bytes memory _data)
-        public
-        returns (bool success)
-    {
-        assert(super.transfer(_to, _amount)); // Handle basic transfer functionality
-        // @imp 08 Have staking contract receive the token and handle the data
-        assert(TokenReceiver(_to).tokensReceived(msg.sender, _amount, _data));
-        success = true;
+    function mint(address _to, uint256 _amount) external onlyMinter {
+        _mint(_to, _amount);
     }
 
+    /**
+     * @dev Return if the `_account` is a minter or not
+     * @param _account Address to check
+     * @return True if the `_account` is minter
+     */
+    function isMinter(address _account) public view returns (bool) {
+        return _minters[_account];
+    }
+
+    /**
+     * @dev Add a new minter
+     * @param _account Address of the minter
+     */
     function _addMinter(address _account) internal {
         _minters[_account] = true;
         emit MinterAdded(_account);
     }
 
+    /**
+     * @dev Remove a minter
+     * @param _account Address of the minter
+     */
     function _removeMinter(address _account) internal {
         _minters[_account] = false;
         emit MinterRemoved(_account);
