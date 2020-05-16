@@ -121,7 +121,9 @@ contract Staking is Governed {
         uint256 epoch,
         uint256 tokens,
         address channelID,
-        address from
+        address from,
+        uint256 curationFees,
+        uint256 rebateFees
     );
 
     /**
@@ -550,7 +552,16 @@ contract Staking is Governed {
             curation.collect(subgraphID, curationFees);
         }
 
-        emit AllocationSettled(indexer, subgraphID, currentEpoch, _tokens, _channelID, _from);
+        emit AllocationSettled(
+            indexer,
+            subgraphID,
+            currentEpoch,
+            _tokens,
+            _channelID,
+            _from,
+            rebateFees,
+            curationFees
+        );
     }
 
     /**
