@@ -3,6 +3,7 @@ const Curation = artifacts.require('./Curation.sol')
 const DisputeManager = artifacts.require('./DisputeManager')
 const EpochManager = artifacts.require('./EpochManager')
 const GraphToken = artifacts.require('./GraphToken.sol')
+const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')
 const Staking = artifacts.require('./Staking.sol')
 
 // helpers
@@ -39,6 +40,10 @@ function deployEpochManagerContract(owner, params) {
   return EpochManager.new(owner, defaults.epochs.lengthInBlocks, params)
 }
 
+function deployServiceRegistry(owner) {
+  return ServiceRegisty.new({ from: owner })
+}
+
 async function deployStakingContract(owner, graphToken, epochManager, curation, params) {
   const contract = await Staking.new(owner, graphToken, epochManager, curation, params)
   await contract.setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs, { from: owner })
@@ -52,5 +57,6 @@ module.exports = {
   deployDisputeManagerContract,
   deployEpochManagerContract,
   deployGraphToken,
+  deployServiceRegistry,
   deployStakingContract,
 }
