@@ -23,7 +23,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
 
     // Deploy graph token
-    this.grt = await deployment.deployGraphToken(governor, {
+    this.grt = await deployment.deployGRT(governor, {
       from: me,
     })
 

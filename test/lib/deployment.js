@@ -9,7 +9,7 @@ const Staking = artifacts.require('./Staking.sol')
 // helpers
 const { defaults } = require('./testHelpers')
 
-function deployGraphToken(owner, params) {
+function deployGRT(owner, params) {
   return GraphToken.new(owner, defaults.token.initialSupply, params)
 }
 
@@ -56,7 +56,7 @@ module.exports = {
   deployCurationContract,
   deployDisputeManagerContract,
   deployEpochManagerContract,
-  deployGraphToken,
+  deployGRT,
   deployServiceRegistry,
   deployStakingContract,
 }

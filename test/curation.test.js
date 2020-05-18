@@ -12,7 +12,7 @@ const MAX_PPM = 1000000
 contract('Curation', ([me, other, governor, curator, staking]) => {
   beforeEach(async function() {
     // Deploy graph token
-    this.grt = await deployment.deployGraphToken(governor, {
+    this.grt = await deployment.deployGRT(governor, {
       from: me,
     })
 
