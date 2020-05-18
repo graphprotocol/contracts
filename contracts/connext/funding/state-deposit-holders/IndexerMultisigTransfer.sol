@@ -10,12 +10,11 @@ import "../../../Staking.sol";
 /// of the regular MultisigTransfer.
 contract IndexerMultisigTransfer is MultisigData {
 
-    address constant CONVENTION_FOR_ETH_TOKEN_ADDRESS = address(0x0);
-
     /// @notice Use this function for transfers of assets out of
-    /// the multisig. It does some necessary internal bookkeeping.
-    /// @param recipient the recipient of the transfer
-    /// @param assetId the asset to be transferred; token address for ERC20, 0 for Ether
+    /// the multisig.
+    /// @param recipient the recipient of the transfer -- unless this is the node's
+    /// address, the funds will be transferred to the staking contract on the indexer's behalf
+    /// @param assetId the asset to be transferred; must be the Graph token
     /// @param amount the amount to be transferred
 
     function multisigTransfer(
@@ -23,6 +22,11 @@ contract IndexerMultisigTransfer is MultisigData {
         address assetId,
         uint256 amount
     ) public {
+        address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
+        address token = address(Staking(staking).token());
+
+        if (assetId != token) { return; }
+
         // Note, explicitly do NOT use safemath here. See discussion in: TODO
         totalAmountWithdrawn[assetId] += amount;
 
@@ -30,21 +34,13 @@ contract IndexerMultisigTransfer is MultisigData {
 
         if (recipient == node) {
 
-            if (assetId == CONVENTION_FOR_ETH_TOKEN_ADDRESS) {
-                // note: send() is deliberately used instead of transfer() here
-                // so that a revert does not stop the rest of the sends
-                // solium-disable-next-line security/no-send
-                recipient.send(amount);
-            } else {
-                IERC20(assetId).transfer(recipient, amount);
-            }
+            IERC20(token).transfer(node, amount);
 
         } else {
 
             // transfer to staking contract
-            address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
             require(
-                IERC20(assetId).approve(staking, amount),
+                IERC20(token).approve(staking, amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
             Staking(staking).settle(indexer, amount);
