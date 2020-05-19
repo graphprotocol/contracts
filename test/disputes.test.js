@@ -205,7 +205,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
       const receipt = {
         requestCID: web3.utils.randomHex(32),
         responseCID: web3.utils.randomHex(32),
-        subgraphID: helpers.randomSubgraphIdHex0x(),
+        subgraphID: helpers.randomSubgraphId(),
       }
       this.dispute = await attestation.createDispute(
         receipt,

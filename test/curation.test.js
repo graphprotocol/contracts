@@ -39,7 +39,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     await this.grt.approve(this.curation.address, this.curatorTokens, { from: staking })
 
     // Randomize a subgraphId
-    this.subgraphId = helpers.randomSubgraphIdHex0x()
+    this.subgraphId = helpers.randomSubgraphId()
   })
 
   describe('configuration', function() {
@@ -146,7 +146,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
 
   context('> bonding curve', function() {
     beforeEach(function() {
-      this.subgraphId = helpers.randomSubgraphIdHex0x()
+      this.subgraphId = helpers.randomSubgraphId()
     })
 
     it('convert shares to tokens', async function() {

@@ -2,6 +2,7 @@
 const Curation = artifacts.require('./Curation.sol')
 const DisputeManager = artifacts.require('./DisputeManager')
 const EpochManager = artifacts.require('./EpochManager')
+const GNS = artifacts.require('./GNS')
 const GraphToken = artifacts.require('./GraphToken.sol')
 const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')
 const Staking = artifacts.require('./Staking.sol')
@@ -40,6 +41,10 @@ function deployEpochManagerContract(owner, params) {
   return EpochManager.new(owner, defaults.epochs.lengthInBlocks, params)
 }
 
+function deployGNS(owner, params) {
+  return GNS.new(owner, params)
+}
+
 function deployServiceRegistry(owner) {
   return ServiceRegisty.new({ from: owner })
 }
@@ -56,6 +61,7 @@ module.exports = {
   deployCurationContract,
   deployDisputeManagerContract,
   deployEpochManagerContract,
+  deployGNS,
   deployGRT,
   deployServiceRegistry,
   deployStakingContract,

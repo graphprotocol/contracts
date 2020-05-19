@@ -44,7 +44,7 @@ contract GNS is Governed {
     event SubgraphTransferred(bytes32 nameHash, address from, address to);
 
     modifier onlyRecordOwner(bytes32 _nameHash) {
-        require(msg.sender == records[_nameHash].owner, "Only record owner can call");
+        require(msg.sender == records[_nameHash].owner, "GNS: Only record owner can call");
         _;
     }
 
@@ -69,7 +69,7 @@ contract GNS is Governed {
         bytes32 nameHash = keccak256(bytes(_name));
         require(
             !isReserved(nameHash) || records[nameHash].owner == owner,
-            "Record reserved, only owner can publish"
+            "GNS: Record reserved, only record owner can publish"
         );
 
         records[nameHash] = Record(owner, _subgraphID, RecordType.GNS);
@@ -91,7 +91,8 @@ contract GNS is Governed {
      * @param _to Address of the new owner
      */
     function transfer(bytes32 _nameHash, address _to) external onlyRecordOwner(_nameHash) {
-        require(records[_nameHash].owner != _to, "Cannot transfer to itself");
+        require(_to != address(0), "GNS: Cannot transfer to empty address");
+        require(records[_nameHash].owner != _to, "GNS: Cannot transfer to itself");
         records[_nameHash].owner = _to;
         emit SubgraphTransferred(_nameHash, msg.sender, _to);
     }
