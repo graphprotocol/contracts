@@ -2,6 +2,7 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+
 contract BancorFormula {
     using SafeMath for uint256;
 
@@ -55,6 +56,7 @@ contract BancorFormula {
         Auto-generated via 'PrintFunctionConstructor.py'
     */
     uint256[128] private maxExpArray;
+
     constructor() public {
         //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
         //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
@@ -218,18 +220,12 @@ contract BancorFormula {
         if (_depositAmount == 0) return 0;
 
         // special case if the weight = 100%
-        if (_connectorWeight == MAX_WEIGHT)
-            return _supply.mul(_depositAmount) / _connectorBalance;
+        if (_connectorWeight == MAX_WEIGHT) return _supply.mul(_depositAmount) / _connectorBalance;
 
         uint256 result;
         uint8 precision;
         uint256 baseN = _depositAmount.add(_connectorBalance);
-        (result, precision) = power(
-            baseN,
-            _connectorBalance,
-            _connectorWeight,
-            MAX_WEIGHT
-        );
+        (result, precision) = power(baseN, _connectorBalance, _connectorWeight, MAX_WEIGHT);
         uint256 temp = _supply.mul(result) >> precision;
         return temp - _supply;
     }
@@ -270,18 +266,12 @@ contract BancorFormula {
         if (_sellAmount == _supply) return _connectorBalance;
 
         // special case if the weight = 100%
-        if (_connectorWeight == MAX_WEIGHT)
-            return _connectorBalance.mul(_sellAmount) / _supply;
+        if (_connectorWeight == MAX_WEIGHT) return _connectorBalance.mul(_sellAmount) / _supply;
 
         uint256 result;
         uint8 precision;
         uint256 baseD = _supply - _sellAmount;
-        (result, precision) = power(
-            _supply,
-            baseD,
-            MAX_WEIGHT,
-            _connectorWeight
-        );
+        (result, precision) = power(_supply, baseD, MAX_WEIGHT, _connectorWeight);
         uint256 temp1 = _connectorBalance.mul(result);
         uint256 temp2 = _connectorBalance << precision;
         return (temp1 - temp2) / result;
@@ -325,10 +315,7 @@ contract BancorFormula {
         } else {
             uint8 precision = findPositionInMaxExpArray(baseLogTimesExp);
             return (
-                generalExp(
-                    baseLogTimesExp >> (MAX_PRECISION - precision),
-                    precision
-                ),
+                generalExp(baseLogTimesExp >> (MAX_PRECISION - precision), precision),
                 precision
             );
         }
@@ -392,11 +379,7 @@ contract BancorFormula {
         - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
         - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
     */
-    function findPositionInMaxExpArray(uint256 _x)
-        internal
-        view
-        returns (uint8)
-    {
+    function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8) {
         uint8 lo = MIN_PRECISION;
         uint8 hi = MAX_PRECISION;
 
@@ -420,11 +403,7 @@ contract BancorFormula {
         The global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
         The maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
     */
-    function generalExp(uint256 _x, uint8 _precision)
-        internal
-        pure
-        returns (uint256)
-    {
+    function generalExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {
         uint256 xi = _x;
         uint256 res = 0;
 
@@ -493,8 +472,7 @@ contract BancorFormula {
         xi = (xi * _x) >> _precision;
         res += xi * 0x0000000000000000000000000000001; // add x^33 * (33! / 33!)
 
-        return
-            res / 0x688589cc0e9505e2f2fee5580000000 + _x + (ONE << _precision); // divide by 33! and then add x^1 / 1! + x^0 / 0!
+        return res / 0x688589cc0e9505e2f2fee5580000000 + _x + (ONE << _precision); // divide by 33! and then add x^1 / 1! + x^0 / 0!
     }
 
     /**
@@ -644,33 +622,19 @@ contract BancorFormula {
         res = res / 0x21c3677c82b40000 + y + FIXED_1; // divide by 20! and then add y^1 / 1! + y^0 / 0!
 
         if ((x & 0x010000000000000000000000000000000) != 0)
-            res =
-                (res * 0x1c3d6a24ed82218787d624d3e5eba95f9) /
-                0x18ebef9eac820ae8682b9793ac6d1e776; // multiply by e^2^(-3)
+            res = (res * 0x1c3d6a24ed82218787d624d3e5eba95f9) / 0x18ebef9eac820ae8682b9793ac6d1e776; // multiply by e^2^(-3)
         if ((x & 0x020000000000000000000000000000000) != 0)
-            res =
-                (res * 0x18ebef9eac820ae8682b9793ac6d1e778) /
-                0x1368b2fc6f9609fe7aceb46aa619baed4; // multiply by e^2^(-2)
+            res = (res * 0x18ebef9eac820ae8682b9793ac6d1e778) / 0x1368b2fc6f9609fe7aceb46aa619baed4; // multiply by e^2^(-2)
         if ((x & 0x040000000000000000000000000000000) != 0)
-            res =
-                (res * 0x1368b2fc6f9609fe7aceb46aa619baed5) /
-                0x0bc5ab1b16779be3575bd8f0520a9f21f; // multiply by e^2^(-1)
+            res = (res * 0x1368b2fc6f9609fe7aceb46aa619baed5) / 0x0bc5ab1b16779be3575bd8f0520a9f21f; // multiply by e^2^(-1)
         if ((x & 0x080000000000000000000000000000000) != 0)
-            res =
-                (res * 0x0bc5ab1b16779be3575bd8f0520a9f21e) /
-                0x0454aaa8efe072e7f6ddbab84b40a55c9; // multiply by e^2^(+0)
+            res = (res * 0x0bc5ab1b16779be3575bd8f0520a9f21e) / 0x0454aaa8efe072e7f6ddbab84b40a55c9; // multiply by e^2^(+0)
         if ((x & 0x100000000000000000000000000000000) != 0)
-            res =
-                (res * 0x0454aaa8efe072e7f6ddbab84b40a55c5) /
-                0x00960aadc109e7a3bf4578099615711ea; // multiply by e^2^(+1)
+            res = (res * 0x0454aaa8efe072e7f6ddbab84b40a55c5) / 0x00960aadc109e7a3bf4578099615711ea; // multiply by e^2^(+1)
         if ((x & 0x200000000000000000000000000000000) != 0)
-            res =
-                (res * 0x00960aadc109e7a3bf4578099615711d7) /
-                0x0002bf84208204f5977f9a8cf01fdce3d; // multiply by e^2^(+2)
+            res = (res * 0x00960aadc109e7a3bf4578099615711d7) / 0x0002bf84208204f5977f9a8cf01fdce3d; // multiply by e^2^(+2)
         if ((x & 0x400000000000000000000000000000000) != 0)
-            res =
-                (res * 0x0002bf84208204f5977f9a8cf01fdc307) /
-                0x0000003c6ab775dd0b95b4cbee7e65d11; // multiply by e^2^(+3)
+            res = (res * 0x0002bf84208204f5977f9a8cf01fdc307) / 0x0000003c6ab775dd0b95b4cbee7e65d11; // multiply by e^2^(+3)
 
         return res;
     }

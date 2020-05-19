@@ -22,19 +22,19 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
 
     // Deploy graph token
-    this.graphToken = await deployment.deployGraphToken(governor, {
+    this.grt = await deployment.deployGRT(governor, {
       from: me,
     })
 
     // Deploy curation contract
-    this.curation = await deployment.deployCurationContract(governor, this.graphToken.address, {
+    this.curation = await deployment.deployCurationContract(governor, this.grt.address, {
       from: me,
     })
 
     // Deploy staking contract
     this.staking = await deployment.deployStakingContract(
       governor,
-      this.graphToken.address,
+      this.grt.address,
       this.epochManager.address,
       this.curation.address,
       { from: me },
@@ -55,7 +55,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     it('should set `graphToken`', async function() {
       // Set right in the constructor
-      expect(await this.staking.token()).to.eq(this.graphToken.address)
+      expect(await this.staking.token()).to.eq(this.grt.address)
     })
 
     describe('setSlasher', function() {
@@ -163,17 +163,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
     })
   })
 
-  describe('token transfer', function() {
-    it('reject calls to token received hook if not the GRT token contract', async function() {
-      await expectRevert(
-        this.staking.tokensReceived(indexer, 10000, '0x0', {
-          from: me,
-        }),
-        'Caller is not the GRT token contract',
-      )
-    })
-  })
-
   describe('staking', function() {
     beforeEach(async function() {
       this.subgraphId = helpers.randomSubgraphIdHex0x()
@@ -183,19 +172,15 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
       // Give some funds to the indexer
       this.indexerTokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(indexer, this.indexerTokens, {
+      await this.grt.mint(indexer, this.indexerTokens, {
         from: governor,
       })
+      // Approve staking contract to use funds on indexer behalf
+      await this.grt.approve(this.staking.address, this.indexerTokens, { from: indexer })
 
       // Helpers
       this.stake = async function(tokens) {
-        const PAYMENT_PAYLOAD = '0x0'
-        return this.graphToken.transferToTokenReceiver(
-          this.staking.address,
-          tokens,
-          PAYMENT_PAYLOAD,
-          { from: indexer },
-        )
+        return this.staking.stake(tokens, { from: indexer })
       }
       this.allocate = function(tokens) {
         return this.staking.allocate(this.subgraphId, tokens, this.channelPubKey, {
@@ -348,9 +333,9 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await time.advanceBlockTo(tokensLockedUntil)
 
           // Withdraw after locking period (all good)
-          const balanceBefore = await this.graphToken.balanceOf(indexer)
+          const balanceBefore = await this.grt.balanceOf(indexer)
           await this.staking.withdraw({ from: indexer })
-          const balanceAfter = await this.graphToken.balanceOf(indexer)
+          const balanceAfter = await this.grt.balanceOf(indexer)
           expect(balanceAfter).to.be.bignumber.eq(balanceBefore.add(tokensToUnstake))
         })
 
@@ -367,8 +352,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           // This function tests slashing behaviour under different conditions
           this.shouldSlash = async function(indexer, tokensToSlash, tokensToReward, fisherman) {
             // Before
-            const beforeTotalSupply = await this.graphToken.totalSupply()
-            const beforeFishermanTokens = await this.graphToken.balanceOf(fisherman)
+            const beforeTotalSupply = await this.grt.totalSupply()
+            const beforeFishermanTokens = await this.grt.balanceOf(fisherman)
             const beforeIndexerStake = await this.staking.getIndexerStakeTokens(indexer)
 
             // Slash indexer
@@ -382,8 +367,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             )
 
             // After
-            const afterTotalSupply = await this.graphToken.totalSupply()
-            const afterFishermanTokens = await this.graphToken.balanceOf(fisherman)
+            const afterTotalSupply = await this.grt.totalSupply()
+            const afterFishermanTokens = await this.grt.balanceOf(fisherman)
             const afterIndexerStake = await this.staking.getIndexerStakeTokens(indexer)
 
             // Check slashed tokens has been burned

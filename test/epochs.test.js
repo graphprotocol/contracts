@@ -111,7 +111,7 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlock.add(this.epochLength))
       })
 
-      context('epoch not run', function() {
+      context('> epoch not run', function() {
         it('should return that current epoch is not run', async function() {
           expect(await this.epochManager.isCurrentEpochRun(), false)
         })
@@ -133,7 +133,7 @@ contract('EpochManager', ([me, other, governor]) => {
         })
       })
 
-      context('epoch run', function() {
+      context('> epoch run', function() {
         beforeEach(async function() {
           await this.epochManager.runEpoch()
         })

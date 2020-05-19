@@ -280,23 +280,23 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Accept tokens
-     * @notice Receive Graph tokens
-     * @param _from Token sender address
-     * @param _value Amount of Graph Tokens
-     * @param _data Extra data payload
+     * @dev Create a dispute for the arbitrator to resolve.
+     * This function is called by a fisherman and will need to `_deposit` at
+     * least `minimumDeposit` GRT tokens.
+     * @param _attestationData Attestation bytes submitted by the fisherman
+     * @param _deposit Amount of tokens staked as deposit
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
+    function createDispute(bytes calldata _attestationData, uint256 _deposit) external
     {
-        // Make sure the token is the caller of this function
-        require(msg.sender == address(token), "Caller is not the GRT token contract");
+        address fisherman = msg.sender;
 
-        // Create a dispute using the received attestation
-        _createDispute(_data, _from, _value);
-
-        return true;
+        // Transfer tokens to deposit from fisherman to this contract
+        require(
+            token.transferFrom(fisherman, address(this), _deposit),
+            "Cannot transfer tokens to deposit"
+        );
+        // Create a dispute using the received attestation and deposit
+        _createDispute(fisherman, _deposit, _attestationData);
     }
 
     /**
@@ -392,7 +392,7 @@ contract DisputeManager is Governed {
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      */
-    function _createDispute(bytes memory _attestationData, address _fisherman, uint256 _deposit) private {
+    function _createDispute(address _fisherman, uint256 _deposit, bytes memory _attestationData) private {
         // Check attestation data length
         require(_attestationData.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 

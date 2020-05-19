@@ -12,21 +12,31 @@ const MAX_PPM = 1000000
 contract('Curation', ([me, other, governor, curator, staking]) => {
   beforeEach(async function() {
     // Deploy graph token
-    this.graphToken = await deployment.deployGraphToken(governor, {
+    this.grt = await deployment.deployGRT(governor, {
       from: me,
     })
 
     // Deploy curation contract
-    this.curation = await deployment.deployCurationContract(governor, this.graphToken.address, {
+    this.curation = await deployment.deployCurationContract(governor, this.grt.address, {
       from: me,
     })
     await this.curation.setStaking(staking, { from: governor })
 
     // Give some funds to the curator
     this.curatorTokens = web3.utils.toWei(new BN('1000'))
-    await this.graphToken.mint(curator, this.curatorTokens, {
+    await this.grt.mint(curator, this.curatorTokens, {
       from: governor,
     })
+    // Approve all curator's funds to be used in the curation contract
+    await this.grt.approve(this.curation.address, this.curatorTokens, { from: curator })
+
+    // Give some funds to the staking contract
+    this.tokensToCollect = web3.utils.toWei(new BN('1000'))
+    await this.grt.mint(staking, this.tokensToCollect, {
+      from: governor,
+    })
+    // Approve staking contract funds to be used in the curation contract
+    await this.grt.approve(this.curation.address, this.curatorTokens, { from: staking })
 
     // Randomize a subgraphId
     this.subgraphId = helpers.randomSubgraphIdHex0x()
@@ -40,7 +50,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
 
     it('should set `graphToken`', async function() {
       // Set right in the constructor
-      expect(await this.curation.token()).to.eq(this.graphToken.address)
+      expect(await this.curation.token()).to.eq(this.grt.address)
     })
 
     describe('staking', function() {
@@ -134,19 +144,14 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
   })
 
-  context('bonding curve', function() {
+  context('> bonding curve', function() {
     beforeEach(function() {
       this.subgraphId = helpers.randomSubgraphIdHex0x()
     })
 
     it('convert shares to tokens', async function() {
       // Curate a subgraph
-      await this.graphToken.transferToTokenReceiver(
-        this.curation.address,
-        this.curatorTokens,
-        this.subgraphId,
-        { from: curator },
-      )
+      await this.curation.stake(this.subgraphId, this.curatorTokens, { from: curator })
 
       // Conversion
       const shares = (await this.curation.subgraphs(this.subgraphId)).shares
@@ -162,25 +167,20 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
   })
 
-  context('when subgraph is not curated', function() {
+  context('> when subgraph is not curated', function() {
     it('should stake on a subgraph', async function() {
       // Before balances
-      const curatorTokensBefore = await this.graphToken.balanceOf(curator)
+      const curatorTokensBefore = await this.grt.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
-      const totalBalanceBefore = await this.graphToken.balanceOf(this.curation.address)
+      const totalBalanceBefore = await this.grt.balanceOf(this.curation.address)
 
       // Curate a subgraph
       // Staking the minimum required = 1 share
       const tokensToStake = defaults.curation.minimumCurationStake
       const sharesToReceive = new BN(1)
-      const { tx } = await this.graphToken.transferToTokenReceiver(
-        this.curation.address,
-        tokensToStake,
-        this.subgraphId,
-        { from: curator },
-      )
-      expectEvent.inTransaction(tx, this.curation.constructor, 'Staked', {
+      const { logs } = await this.curation.stake(this.subgraphId, tokensToStake, { from: curator })
+      expectEvent.inLogs(logs, 'Staked', {
         curator: curator,
         subgraphID: this.subgraphId,
         tokens: tokensToStake,
@@ -188,10 +188,10 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
       })
 
       // After balances
-      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorTokensAfter = await this.grt.balanceOf(curator)
       const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
-      const totalBalanceAfter = await this.graphToken.balanceOf(this.curation.address)
+      const totalBalanceAfter = await this.grt.balanceOf(this.curation.address)
 
       // Tokens transferred properly
       expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.sub(tokensToStake))
@@ -209,12 +209,7 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     it('reject stake below minimum tokens required', async function() {
       const tokensToStake = defaults.curation.minimumCurationStake.sub(new BN(1))
       await expectRevert(
-        this.graphToken.transferToTokenReceiver(
-          this.curation.address,
-          tokensToStake,
-          this.subgraphId,
-          { from: curator },
-        ),
+        this.curation.stake(this.subgraphId, tokensToStake, { from: curator }),
         'Curation stake is below minimum required',
       )
     })
@@ -227,31 +222,17 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
 
     it('reject collect tokens distributed as fees for the subgraph', async function() {
-      // Give some funds to the staking
-      const tokens = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(staking, tokens, {
-        from: governor,
-      })
-
       // Source of tokens must be the staking for this to work
       await expectRevert(
-        this.graphToken.transferToTokenReceiver(this.curation.address, tokens, this.subgraphId, {
-          from: staking,
-        }),
+        this.curation.collect(this.subgraphId, this.tokensToCollect, { from: staking }),
         'Subgraph must be curated to collect fees',
       )
     })
   })
 
-  context('when subgraph is curated', function() {
+  context('> when subgraph is curated', function() {
     beforeEach(async function() {
-      // Curate a subgraph using all funds
-      await this.graphToken.transferToTokenReceiver(
-        this.curation.address,
-        this.curatorTokens,
-        this.subgraphId,
-        { from: curator },
-      )
+      await this.curation.stake(this.subgraphId, this.curatorTokens, { from: curator })
     })
 
     it('should create subgraph curation with default reserve ratio', async function() {
@@ -265,17 +246,17 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
 
     it('should assign the right amount of shares according to bonding curve', async function() {
-      // Shares should be curatorShares bought with minimum stake (1) + newShares with rest of tokens
+      // Shares should be the ones bought with minimum stake (1) + more shares
       const curatorShares = await this.curation.getCuratorShares(curator, this.subgraphId)
       expect(curatorShares).to.be.bignumber.eq(defaults.curation.shareAmountFor1000Tokens)
     })
 
     it('should allow to redeem *partially* on a subgraph', async function() {
       // Before balances
-      const curatorTokensBefore = await this.graphToken.balanceOf(curator)
+      const curatorTokensBefore = await this.grt.balanceOf(curator)
       const curatorSharesBefore = await this.curation.getCuratorShares(curator, this.subgraphId)
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
-      const totalTokensBefore = await this.graphToken.balanceOf(this.curation.address)
+      const totalTokensBefore = await this.grt.balanceOf(this.curation.address)
 
       // Redeem
       const sharesToRedeem = new BN(1) // Curator want to sell 1 share
@@ -291,10 +272,10 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
       })
 
       // After balances
-      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorTokensAfter = await this.grt.balanceOf(curator)
       const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
-      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
+      const totalTokensAfter = await this.grt.balanceOf(this.curation.address)
 
       // Curator balance updated
       expect(curatorTokensAfter).to.be.bignumber.eq(curatorTokensBefore.add(tokensToReceive))
@@ -326,10 +307,10 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
       })
 
       // After balances
-      const curatorTokensAfter = await this.graphToken.balanceOf(curator)
+      const curatorTokensAfter = await this.grt.balanceOf(curator)
       const curatorSharesAfter = await this.curation.getCuratorShares(curator, this.subgraphId)
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
-      const totalTokensAfter = await this.graphToken.balanceOf(this.curation.address)
+      const totalTokensAfter = await this.grt.balanceOf(this.curation.address)
 
       // Curator balance updated
       expect(curatorTokensAfter).to.be.bignumber.eq(tokensToReceive)
@@ -345,37 +326,30 @@ contract('Curation', ([me, other, governor, curator, staking]) => {
     })
 
     it('should collect tokens distributed as reserves for a subgraph', async function() {
-      // Give some funds to the staking
-      const tokensToCollect = web3.utils.toWei(new BN('1000'))
-      await this.graphToken.mint(staking, tokensToCollect, {
-        from: governor,
-      })
-
       // Before balances
-      const totalBalanceBefore = await this.graphToken.balanceOf(this.curation.address)
+      const totalBalanceBefore = await this.grt.balanceOf(this.curation.address)
       const subgraphBefore = await this.curation.subgraphs(this.subgraphId)
 
       // Source of tokens must be the staking for this to work
-      const { tx } = await this.graphToken.transferToTokenReceiver(
-        this.curation.address,
-        tokensToCollect,
-        this.subgraphId,
-        { from: staking },
-      )
-      expectEvent.inTransaction(tx, this.curation.constructor, 'Collected', {
+      const { logs } = await this.curation.collect(this.subgraphId, this.tokensToCollect, {
+        from: staking,
+      })
+      expectEvent.inLogs(logs, 'Collected', {
         subgraphID: this.subgraphId,
-        tokens: tokensToCollect,
+        tokens: this.tokensToCollect,
       })
 
       // After balances
-      const totalBalanceAfter = await this.graphToken.balanceOf(this.curation.address)
+      const totalBalanceAfter = await this.grt.balanceOf(this.curation.address)
       const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
 
       // Subgraph balance updated
-      expect(subgraphAfter.tokens).to.be.bignumber.eq(subgraphBefore.tokens.add(tokensToCollect))
+      expect(subgraphAfter.tokens).to.be.bignumber.eq(
+        subgraphBefore.tokens.add(this.tokensToCollect),
+      )
 
       // Contract balance updated
-      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(tokensToCollect))
+      expect(totalBalanceAfter).to.be.bignumber.eq(totalBalanceBefore.add(this.tokensToCollect))
     })
   })
 })
