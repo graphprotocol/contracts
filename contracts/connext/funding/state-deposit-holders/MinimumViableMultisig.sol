@@ -107,12 +107,11 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])
         );
 
-        execute(
-            isNodeIndexerMultisig ? INDEXER_CTDT_ADDRESS : to,
-            value,
-            data,
-            operation
-        );
+        if (isNodeIndexerMultisig) {
+            execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
+        } else {
+            execute(to, value, data, operation);
+        }
     }
 
     /// @notice Compute a unique transaction hash for a particular (to, value, data, op) tuple
