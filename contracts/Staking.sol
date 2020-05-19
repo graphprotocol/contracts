@@ -123,7 +123,8 @@ contract Staking is Governed {
         address channelID,
         address from,
         uint256 curationFees,
-        uint256 rebateFees
+        uint256 rebateFees,
+        uint256 effectiveAllocation
     );
 
     /**
@@ -514,8 +515,7 @@ contract Staking is Governed {
     ) private {
         address indexer = channels[_channelID].indexer;
         bytes32 subgraphID = channels[_channelID].subgraphID;
-        Stakes.Indexer storage indexerStake = stakes[indexer];
-        Stakes.Allocation storage alloc = indexerStake.allocations[subgraphID];
+        Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphID];
 
         require(alloc.hasChannel(), "Channel: Must be active for settlement");
 
@@ -530,16 +530,15 @@ contract Staking is Governed {
 
         // Set apart fees into a rebate pool
         uint256 rebateFees = _tokens.sub(curationFees);
-        rebates[currentEpoch].add(
-            indexer,
-            subgraphID,
-            rebateFees,
-            alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs)
+        uint256 effectiveAllocation = alloc.getTokensEffectiveAllocation(
+            epochs,
+            maxAllocationEpochs
         );
+        rebates[currentEpoch].add(indexer, subgraphID, rebateFees, effectiveAllocation);
 
         // Close channel
         // NOTE: Channels used are never deleted from state tracked in `channels` var
-        indexerStake.unallocateTokens(subgraphID, alloc.tokens);
+        stakes[indexer].unallocateTokens(subgraphID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
         // TODO: send multisig one-shot invalidation
@@ -560,7 +559,8 @@ contract Staking is Governed {
             _channelID,
             _from,
             rebateFees,
-            curationFees
+            curationFees,
+            effectiveAllocation
         );
     }
 
