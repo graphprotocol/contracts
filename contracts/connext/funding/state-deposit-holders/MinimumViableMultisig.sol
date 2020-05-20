@@ -21,6 +21,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     mapping(bytes32 => bool) isExecuted;
 
+    bool public locked = false;
+
     address payable public NODE_ADDRESS;
     address payable public INDEXER_STAKING_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;
@@ -62,6 +64,24 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     function setup(address[] memory owners) public {
         require(_owners.length == 0, "Contract has been set up before");
         _owners = owners;
+    }
+
+    modifier onlyStaking {
+        require(
+            msg.sender == INDEXER_STAKING_ADDRESS,
+            "Caller must be the staking contract"
+        );
+        _;
+    }
+
+    function lock() external onlyStaking {
+        require(!locked, "Multisig must be unlocked to lock");
+        locked = true;
+    }
+
+    function unlock() external onlyStaking {
+        require(locked, "Multisig must be locked to unlock");
+        locked = false;
     }
 
     /// @notice Execute an n-of-n signed transaction specified by a (to, value, data, op) tuple
@@ -108,6 +128,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         );
 
         if (isNodeIndexerMultisig) {
+            require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
             execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
         } else {
             execute(to, value, data, operation);
