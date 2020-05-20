@@ -1,177 +1,123 @@
+const { utils } = require('ethers')
 const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
 
-// contracts
-const GNS = artifacts.require('./GNS.sol')
+const deployment = require('./lib/deployment')
 const helpers = require('./lib/testHelpers')
 
-contract('GNS', accounts => {
-  let deployedGNS
-  const topLevelDomainName = 'thegraph'
-  const topLevelDomainHash = web3.utils.soliditySha3(topLevelDomainName)
-  const subdomainName = 'david'
-  const hashedSubdomain = web3.utils.soliditySha3(
-    web3.utils.soliditySha3(subdomainName),
-    topLevelDomainHash,
-  ) // NOTE: There is a bug with web3.utils.keccak256() when using multiple inputs. soliditySha3() must be used
-  const subgraphID = helpers.randomSubgraphIdBytes()
-  const ipfsHash = helpers.randomSubgraphIdBytes()
+contract('GNS', ([me, other, governor]) => {
+  beforeEach(async function() {
+    this.gns = await deployment.deployGNS(governor, { from: me })
+    this.record = {
+      name: 'graph',
+      nameHash: utils.id('graph'),
+      subgraphID: helpers.randomSubgraphId(),
+      metadataHash: '0xeb50d096ba95573ae31640e38e4ef64fd02eec174f586624a37ea04e7bd8c751',
+    }
 
-  before(async () => {
-    // deploy GNS contract
-    deployedGNS = await GNS.new(
-      accounts[0], // governor
-      { from: accounts[0] },
-    )
+    this.publish = params =>
+      this.gns.publish(this.record.name, this.record.subgraphID, this.record.metadataHash, params)
+    this.unpublish = params => this.gns.unpublish(this.record.nameHash, params)
   })
 
-  it('...should allow a user to register a domain. And then prevent another user from being able to', async () => {
-    const { logs } = await deployedGNS.registerDomain(topLevelDomainName, {
-      from: accounts[1],
+  describe('isReserved()', function() {
+    it('should return if the name is reserved', async function() {
+      expect(await this.gns.isReserved(this.record.nameHash)).to.be.eq(false)
+      await this.publish({ from: me })
+      expect(await this.gns.isReserved(this.record.nameHash)).to.be.eq(true)
     })
-    const domain = await deployedGNS.domains(topLevelDomainHash)
-    assert((await domain.owner) === accounts[1], 'Name was not registered properly.')
-
-    expectEvent.inLogs(logs, 'DomainAdded', {
-      topLevelDomainHash: topLevelDomainHash,
-      owner: accounts[1],
-      domainName: topLevelDomainName,
-    })
-
-    // Confirm another user cannot register this name
-    await expectRevert(
-      deployedGNS.registerDomain(topLevelDomainName, {
-        from: accounts[3],
-      }),
-      'Domain is already owned.',
-    )
   })
 
-  it('...should allow a user to create a subgraph only once, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, {
-      from: accounts[1],
+  describe('publish()', async function() {
+    it('should publish a version', async function() {
+      const { logs } = await this.publish({ from: me })
+
+      // State updated
+      const record = await this.gns.records(this.record.nameHash)
+      expect(record.owner).to.be.eq(me)
+      expect(record.subgraphID).to.be.eq(this.record.subgraphID)
+
+      // Event emitted
+      expectEvent.inLogs(logs, 'SubgraphPublished', {
+        name: this.record.name,
+        owner: me,
+        subgraphID: this.record.subgraphID,
+        metadataHash: this.record.metadataHash,
+      })
     })
-    const domain = await deployedGNS.domains(hashedSubdomain)
-    assert((await domain.owner) === accounts[1], 'Subdomain was not created properly.')
 
-    expectEvent.inLogs(logs, 'SubgraphCreated', {
-      topLevelDomainHash: topLevelDomainHash,
-      registeredHash: hashedSubdomain,
-      subdomainName: subdomainName,
+    it('should allow re-publish', async function() {
+      await this.publish({ from: me })
+      await this.publish({ from: me })
     })
 
-    expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
-      domainHash: hashedSubdomain,
-      ipfsHash: web3.utils.bytesToHex(ipfsHash),
+    it('reject publish if overwritting with different account', async function() {
+      await this.publish({ from: me })
+      await expectRevert(
+        this.publish({ from: other }),
+        'GNS: Record reserved, only record owner can publish',
+      )
     })
-
-    // Check that another user can't create
-    await expectRevert(
-      deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, {
-        from: accounts[3],
-      }),
-      'Only domain owner can call.',
-    )
-
-    // Check that the owner can't call createSubgraph() twice
-    await expectRevert(
-      deployedGNS.createSubgraph(topLevelDomainHash, subdomainName, ipfsHash, {
-        from: accounts[1],
-      }),
-      'Someone already owns this subdomain.',
-    )
   })
 
-  it('...should allow a user to update a subgraphID, and not allow a different user to do so. ', async () => {
-    const { logs } = await deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, {
-      from: accounts[1],
-    })
-    const domain = await deployedGNS.domains(hashedSubdomain)
-    assert(
-      (await domain.subgraphID) === web3.utils.bytesToHex(subgraphID),
-      'Subdomain was not registered properly.',
-    )
+  describe('unpublish()', async function() {
+    it('should unpublish a name', async function() {
+      await this.publish({ from: me })
+      const { logs } = await this.unpublish({ from: me })
 
-    expectEvent.inLogs(logs, 'SubgraphIDUpdated', {
-      domainHash: hashedSubdomain,
-      subgraphID: web3.utils.bytesToHex(subgraphID),
+      // State updated
+      const record = await this.gns.records(this.record.nameHash)
+      expect(record.owner).to.be.eq(helpers.zeroAddress())
+
+      // Event emitted
+      expectEvent.inLogs(logs, 'SubgraphUnpublished', {
+        nameHash: this.record.nameHash,
+      })
     })
 
-    // Check that another user can't register
-    await expectRevert(
-      deployedGNS.updateDomainSubgraphID(hashedSubdomain, subgraphID, {
-        from: accounts[3],
-      }),
-      'Only domain owner can call.',
-    )
+    it('reject unpublish if not the owner', async function() {
+      await expectRevert(this.unpublish({ from: other }), 'GNS: Only record owner can call')
+    })
   })
 
-  it('...should allow subgraph metadata to be updated', async () => {
-    const { logs } = await deployedGNS.changeSubgraphMetadata(hashedSubdomain, ipfsHash, {
-      from: accounts[1],
+  describe('transfer()', function() {
+    beforeEach(async function() {
+      await this.publish({ from: me })
     })
 
-    expectEvent.inLogs(logs, 'SubgraphMetadataChanged', {
-      domainHash: hashedSubdomain,
-      ipfsHash: web3.utils.bytesToHex(ipfsHash),
+    it('should transfer to new owner', async function() {
+      const { logs } = await this.gns.transfer(this.record.nameHash, other, { from: me })
+
+      // State updated
+      const record = await this.gns.records(this.record.nameHash)
+      expect(record.owner).to.be.eq(other)
+
+      // Event emitted
+      expectEvent.inLogs(logs, 'SubgraphTransferred', {
+        nameHash: this.record.nameHash,
+        from: me,
+        to: other,
+      })
     })
 
-    // Check that a different owner can't call
-    await expectRevert(
-      deployedGNS.changeSubgraphMetadata(ipfsHash, hashedSubdomain, {
-        from: accounts[3],
-      }),
-      'Only domain owner can call.',
-    )
-  })
-
-  it('...should allow a user to transfer a domain', async () => {
-    const { logs } = await deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[2], {
-      from: accounts[1],
+    it('reject transfer if not owner', async function() {
+      await expectRevert(
+        this.gns.transfer(this.record.nameHash, other, { from: other }),
+        'GNS: Only record owner can call',
+      )
     })
 
-    expectEvent.inLogs(logs, 'DomainTransferred', {
-      domainHash: hashedSubdomain,
-      newOwner: accounts[2],
+    it('reject transfer to empty address', async function() {
+      await expectRevert(
+        this.gns.transfer(this.record.nameHash, helpers.zeroAddress(), { from: me }),
+        'GNS: Cannot transfer to empty address',
+      )
     })
 
-    // Check that a different owner can't call
-    await expectRevert(
-      deployedGNS.transferDomainOwnership(hashedSubdomain, accounts[4], {
-        from: accounts[3],
-      }),
-      'Only domain owner can call.',
-    )
-  })
-
-  it('...should allow a domain and subgraphID to be deleted', async () => {
-    await expectRevert(
-      deployedGNS.deleteSubdomain(hashedSubdomain, { from: accounts[3] }),
-      'Only domain owner can call.',
-    )
-
-    const { logs } = await deployedGNS.deleteSubdomain(hashedSubdomain, {
-      from: accounts[2],
-    })
-
-    expectEvent.inLogs(logs, 'DomainDeleted', {
-      domainHash: hashedSubdomain,
-    })
-
-    const deletedDomain = await deployedGNS.domains(hashedSubdomain)
-    assert(deletedDomain.subgraphID === helpers.zeroHex(), 'SubgraphID was not deleted')
-    assert(deletedDomain.owner === helpers.zeroAddress(), 'Owner was not removed')
-  })
-
-  it('...should allow account metadata event to be emitted  ', async () => {
-    const accountIPFSHash = helpers.randomSubgraphIdBytes()
-
-    const { logs } = await deployedGNS.changeAccountMetadata(accountIPFSHash, {
-      from: accounts[2],
-    })
-
-    expectEvent.inLogs(logs, 'AccountMetadataChanged', {
-      account: accounts[2],
-      ipfsHash: web3.utils.bytesToHex(accountIPFSHash),
+    it('reject transfer to itself', async function() {
+      await expectRevert(
+        this.gns.transfer(this.record.nameHash, me, { from: me }),
+        'GNS: Cannot transfer to itself',
+      )
     })
   })
 })

@@ -1,9 +1,7 @@
 const BN = web3.utils.BN
 
 module.exports = {
-  randomSubgraphIdHex0x: () => web3.utils.randomHex(32),
-  randomSubgraphIdHex: hex => hex.substring(2),
-  randomSubgraphIdBytes: (hex = web3.utils.randomHex(32)) => web3.utils.hexToBytes(hex),
+  randomSubgraphId: () => web3.utils.randomHex(32),
   logStake: stakes =>
     Object.entries(stakes).map(([k, v]) => console.log(k, ':', web3.utils.fromWei(v))),
   zerobytes: () =>

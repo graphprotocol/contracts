@@ -16,6 +16,10 @@ function weightedAverage(valueA, valueB, periodA, periodB) {
     .div(valueA.add(valueB))
 }
 
+function toGRT(value) {
+  return web3.utils.toWei(new BN(value))
+}
+
 contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
   beforeEach(async function() {
     // Deploy epoch contract
@@ -165,13 +169,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
   describe('staking', function() {
     beforeEach(async function() {
-      this.subgraphId = helpers.randomSubgraphIdHex0x()
+      this.subgraphId = helpers.randomSubgraphId()
       this.channelPubKey =
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
       this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
 
       // Give some funds to the indexer
-      this.indexerTokens = web3.utils.toWei(new BN('1000'))
+      this.indexerTokens = toGRT('1000')
       await this.grt.mint(indexer, this.indexerTokens, {
         from: governor,
       })
@@ -198,7 +202,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
       describe('stake()', function() {
         it('should stake tokens', async function() {
-          const indexerStake = web3.utils.toWei(new BN('100'))
+          const indexerStake = toGRT('100')
 
           // Stake
           await this.stake(indexerStake)
@@ -209,7 +213,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
       describe('unstake()', function() {
         it('reject unstake tokens', async function() {
-          const tokensToUnstake = web3.utils.toWei(new BN('2'))
+          const tokensToUnstake = toGRT('2')
           await expectRevert(
             this.staking.unstake(tokensToUnstake, { from: indexer }),
             'Staking: indexer has no stakes',
@@ -219,15 +223,15 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
       describe('allocate()', function() {
         it('reject allocate to subgraph', async function() {
-          const indexerStake = web3.utils.toWei(new BN('100'))
+          const indexerStake = toGRT('100')
           await expectRevert(this.allocate(indexerStake), 'Allocation: indexer has no stakes')
         })
       })
 
       describe('slash()', function() {
         it('reject slash indexer', async function() {
-          const tokensToSlash = web3.utils.toWei(new BN('10'))
-          const tokensToReward = web3.utils.toWei(new BN('10'))
+          const tokensToSlash = toGRT('10')
+          const tokensToReward = toGRT('10')
 
           await expectRevert(
             this.staking.slash(indexer, tokensToSlash, tokensToReward, fisherman, {
@@ -242,7 +246,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
     context('> when staked', function() {
       beforeEach(async function() {
         // Stake
-        this.indexerStake = web3.utils.toWei(new BN('100'))
+        this.indexerStake = toGRT('100')
         await this.stake(this.indexerStake)
       })
 
@@ -267,7 +271,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
       describe('unstake()', function() {
         it('should unstake and lock tokens for thawing period', async function() {
-          const tokensToUnstake = web3.utils.toWei(new BN('2'))
+          const tokensToUnstake = toGRT('2')
           const thawingPeriod = await this.staking.thawingPeriod()
           const currentBlock = await time.latestBlock()
           const until = currentBlock.add(thawingPeriod).add(new BN(1))
@@ -281,7 +285,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('should unstake and lock tokens for (weighted avg) thawing period if repeated', async function() {
-          const tokensToUnstake = web3.utils.toWei(new BN('10'))
+          const tokensToUnstake = toGRT('10')
           const thawingPeriod = await this.staking.thawingPeriod()
 
           // Unstake (1)
@@ -319,7 +323,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
       describe('withdraw()', function() {
         it('should withdraw if tokens available', async function() {
           // Unstake
-          const tokensToUnstake = web3.utils.toWei(new BN('10'))
+          const tokensToUnstake = toGRT('10')
           const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexer })
           const tokensLockedUntil = logs[0].args.until
 
@@ -392,16 +396,16 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
         it('should slash indexer and give reward to beneficiary slash>reward', async function() {
           // Slash indexer
-          const tokensToSlash = web3.utils.toWei(new BN('100'))
-          const tokensToReward = web3.utils.toWei(new BN('10'))
+          const tokensToSlash = toGRT('100')
+          const tokensToReward = toGRT('10')
 
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
         it('should slash indexer and give reward to beneficiary slash=reward', async function() {
           // Slash indexer
-          const tokensToSlash = web3.utils.toWei(new BN('10'))
-          const tokensToReward = web3.utils.toWei(new BN('10'))
+          const tokensToSlash = toGRT('10')
+          const tokensToReward = toGRT('10')
 
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
@@ -411,11 +415,11 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const beforeTokensStaked = await this.staking.getIndexerStakeTokens(indexer)
 
           // Unstake partially, these tokens will be locked
-          const tokensToUnstake = web3.utils.toWei(new BN('10'))
+          const tokensToUnstake = toGRT('10')
           await this.staking.unstake(tokensToUnstake, { from: indexer })
 
           // Allocate indexer stake
-          const tokensToAllocate = web3.utils.toWei(new BN('70'))
+          const tokensToAllocate = toGRT('70')
           await this.allocate(tokensToAllocate)
 
           // State pre-slashing
@@ -427,8 +431,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           // = Available: 20 (staked - allocated - locked)
 
           // Even if all stake is allocated to subgraphs it should slash the indexer
-          const tokensToSlash = web3.utils.toWei(new BN('80'))
-          const tokensToReward = web3.utils.toWei(new BN('0'))
+          const tokensToSlash = toGRT('80')
+          const tokensToReward = toGRT('0')
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
 
           // State post-slashing
@@ -453,7 +457,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const tokensAvailable = stakes.tokensIndexer
             .sub(stakes.tokensAllocated)
             .sub(stakes.tokensLocked)
-          expect(tokensAvailable).to.be.bignumber.eq(web3.utils.toWei(new BN('-50')))
+          expect(tokensAvailable).to.be.bignumber.eq(toGRT('-50'))
 
           await expectRevert(
             this.staking.unstake(tokensToUnstake, { from: indexer }),
@@ -462,8 +466,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('reject to slash indexer if sender is not slasher', async function() {
-          const tokensToSlash = web3.utils.toWei(new BN('100'))
-          const tokensToReward = web3.utils.toWei(new BN('10'))
+          const tokensToSlash = toGRT('100')
+          const tokensToReward = toGRT('10')
           await expectRevert(
             this.staking.slash(indexer, tokensToSlash, tokensToReward, me, { from: me }),
             'Caller is not a Slasher',
@@ -471,8 +475,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('reject to slash indexer if beneficiary is zero address', async function() {
-          const tokensToSlash = web3.utils.toWei(new BN('100'))
-          const tokensToReward = web3.utils.toWei(new BN('10'))
+          const tokensToSlash = toGRT('100')
+          const tokensToReward = toGRT('10')
           await expectRevert(
             this.staking.slash(indexer, tokensToSlash, tokensToReward, ZERO_ADDRESS, {
               from: slasher,
@@ -482,8 +486,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('reject to slash indexer if reward is greater than slash amount', async function() {
-          const tokensToSlash = web3.utils.toWei(new BN('100'))
-          const tokensToReward = web3.utils.toWei(new BN('200'))
+          const tokensToSlash = toGRT('100')
+          const tokensToReward = toGRT('200')
           await expectRevert(
             this.staking.slash(indexer, tokensToSlash, tokensToReward, fisherman, {
               from: slasher,
@@ -516,19 +520,19 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           })
 
           it('reject allocate zero tokens', async function() {
-            const zeroTokens = web3.utils.toWei(new BN('0'))
+            const zeroTokens = toGRT('0')
             await expectRevert(this.allocate(zeroTokens), 'Allocation: cannot allocate zero tokens')
           })
         })
 
         context('> when subgraph allocated', function() {
           beforeEach(async function() {
-            this.tokensAllocated = web3.utils.toWei(new BN('10'))
+            this.tokensAllocated = toGRT('10')
             await this.allocate(this.tokensAllocated)
           })
 
           it('reject allocate again if not settled', async function() {
-            const tokensToAllocate = web3.utils.toWei(new BN('10'))
+            const tokensToAllocate = toGRT('10')
             await expectRevert(
               this.allocate(tokensToAllocate),
               'Allocation: cannot allocate if already allocated',
