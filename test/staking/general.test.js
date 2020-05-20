@@ -177,7 +177,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
   describe('staking', function() {
     beforeEach(async function() {
-      this.subgraphId = helpers.randomSubgraphId()
+      this.subgraphID = helpers.randomSubgraphId()
       this.channelPubKey =
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
       this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
@@ -195,7 +195,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         return this.staking.stake(tokens, { from: indexer })
       }
       this.allocate = function(tokens) {
-        return this.staking.allocate(this.subgraphId, tokens, this.channelPubKey, {
+        return this.staking.allocate(this.subgraphID, tokens, this.channelPubKey, {
           from: indexer,
         })
       }
@@ -509,7 +509,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             const { logs } = await this.allocate(this.indexerStake)
             expectEvent.inLogs(logs, 'AllocationCreated', {
               indexer: indexer,
-              subgraphID: this.subgraphId,
+              subgraphID: this.subgraphID,
               epoch: await this.epochManager.currentEpoch(),
               tokens: this.indexerStake,
               channelID: this.channelID,
@@ -547,9 +547,9 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
           it('reject allocate reusing a channel', async function() {
             const tokensToAllocate = toGRT('10')
-            const subgraphId = helpers.randomSubgraphId()
+            const subgraphID = helpers.randomSubgraphId()
             await expectRevert(
-              this.staking.allocate(subgraphId, tokensToAllocate, this.channelPubKey, {
+              this.staking.allocate(subgraphID, tokensToAllocate, this.channelPubKey, {
                 from: indexer,
               }),
               'Allocation: channel ID already in use',
@@ -568,13 +568,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('should settle and distribute funds', async function() {
-          const alloc = await this.staking.getAllocation(indexer, this.subgraphId)
+          const alloc = await this.staking.getAllocation(indexer, this.subgraphID)
 
           // Curate the subgraph to be settled to get curation fees distributed
           const tokensToSignal = toGRT('100')
           await this.grt.mint(me, tokensToSignal, { from: governor })
           await this.grt.approve(this.curation.address, tokensToSignal, { from: me })
-          await this.curation.stake(this.subgraphId, tokensToSignal, { from: me })
+          await this.curation.stake(this.subgraphID, tokensToSignal, { from: me })
 
           // Curation parameters
           const curationPercentage = new BN('200000') // 20%
@@ -599,13 +599,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const effectiveAlloc = this.tokensAllocated.mul(epochs)
 
           // Check that curation reserves increased for that subgraph
-          const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
+          const subgraphAfter = await this.curation.subgraphs(this.subgraphID)
           expect(subgraphAfter.tokens).to.be.bignumber.eq(tokensToSignal.add(curationFees))
 
           // Event emitted
           expectEvent.inLogs(logs, 'AllocationSettled', {
             indexer: indexer,
-            subgraphID: this.subgraphId,
+            subgraphID: this.subgraphID,
             epoch: currentEpoch,
             tokens: this.tokensToSettle,
             channelID: this.channelID,
@@ -623,7 +623,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           )
         })
 
-        it('reject settle if channel is not active anymore', async function() {
+        it('reject settle if allocation does not have an active channel', async function() {
           // Advance blocks to get the channel in epoch where it can be settled
           await this.advanceToNextEpoch()
 
@@ -634,6 +634,33 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await expectRevert(
             this.staking.settle(this.channelID, this.tokensToSettle.div(new BN('2'))),
             'Channel: Must be active for settlement',
+          )
+        })
+
+        it('reject settle using an already settled channel', async function() {
+          const newChannelPubKey =
+            '0x04f2ba8222e1dbe3ebe6a72bac637cfe7eb9ea282c6f3319fd239ca3c69a088aabcbbf2a4484c49fe86b3165c61b13922376435961cf83e7e756b1d3fe3ead0206'
+          const channelID1 = this.channelID
+          // const channelID2 = '0x564Ef40551c936Fa05B5dA63562F25cE99F88111'
+
+          // Advance blocks to get the channel in epoch where it can be settled
+          await this.advanceToNextEpoch()
+
+          // Settle the channel
+          await this.staking.settle(channelID1, this.tokensToSettle.div(new BN('2')))
+
+          // We allocate to the same subgraph with different new channel
+          await this.staking.allocate(this.subgraphID, this.tokensAllocated, newChannelPubKey, {
+            from: indexer,
+          })
+
+          // Advance blocks to get the channel in epoch where it can be settled
+          await this.advanceToNextEpoch()
+
+          // Settle the channel using the old channel should be invalid
+          await expectRevert(
+            this.staking.settle(channelID1, this.tokensToSettle.div(new BN('2'))),
+            'Channel: Cannot settle an already closed channel',
           )
         })
 

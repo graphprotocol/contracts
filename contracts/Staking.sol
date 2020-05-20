@@ -512,6 +512,7 @@ contract Staking is Governed {
         Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphID];
 
         require(alloc.hasChannel(), "Channel: Must be active for settlement");
+        require(alloc.channelID == _channelID, "Channel: Cannot settle an already closed channel");
 
         // Time conditions
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
