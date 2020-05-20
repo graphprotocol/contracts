@@ -701,9 +701,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           // Advance blocks to get the channel in epoch where the rebate can be claimed
           await this.advanceToNextEpoch()
 
-          console.log(await this.staking.rebates(rebateEpoch))
-          console.log(await this.staking.getSettlement(rebateEpoch, indexer, this.subgraphID))
-
           // Claim rebates
           const currentEpoch = await this.epochManager.currentEpoch()
           const { logs } = await this.staking.claim(rebateEpoch, this.subgraphID, false, {
