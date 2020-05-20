@@ -263,6 +263,21 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get an outstanding unclaimed settlement
+     * @param _epoch Epoch when the settlement ocurred
+     * @param _indexer Address of the indexer
+     * @param _subgraphID ID of the subgraph settled
+     * @return Settlement data
+     */
+    function getSettlement(
+        uint256 _epoch,
+        address _indexer,
+        bytes32 _subgraphID
+    ) public view returns (Rebates.Settlement memory) {
+        return rebates[_epoch].settlements[_indexer][_subgraphID];
+    }
+
+    /**
      * @dev Slash the indexer stake
      * @param _indexer Address of indexer to slash
      * @param _tokens Amount of tokens to slash from the indexer stake
@@ -454,6 +469,7 @@ contract Staking is Governed {
             epochsSinceSettlement >= channelDisputeEpochs,
             "Rebate: need to wait channel dispute period"
         );
+
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Process rebate

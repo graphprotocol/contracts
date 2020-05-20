@@ -139,7 +139,7 @@ contract EpochManager is Governed {
      */
     function epochsSince(uint256 _epoch) public view returns (uint256, uint256) {
         uint256 epoch = currentEpoch();
-        return (epoch.sub(_epoch), epoch);
+        return (_epoch < epoch ? epoch.sub(_epoch) : 0, epoch);
     }
 
     /**

@@ -2,6 +2,7 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../abdk-libraries-solidity/ABDKMath64x64.sol";
 
 
 /*
@@ -12,6 +13,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 library Rebates {
     using SafeMath for uint256;
+    using ABDKMath64x64 for uint256;
+    using ABDKMath64x64 for int128;
 
     // Tracks per indexer/subgraphID settlement
     struct Settlement {
@@ -63,17 +66,45 @@ library Rebates {
     {
         Rebates.Settlement storage settlement = pool.settlements[_indexer][_subgraphID];
 
-        // Production function reward calculation
-        // TODO: exponential calculation when alpha < 1...
-        uint256 alpha = 1;
-        uint256 termA = settlement.allocation.div(pool.allocation)**(alpha);
-        uint256 termB = settlement.fees.div(pool.fees)**(1 - alpha);
-        uint256 tokens = termA.mul(termB);
+        uint256 tokens = calcRebateReward(
+            2, // TODO: Fixed to do the sqrt()
+            settlement.allocation,
+            settlement.fees,
+            pool.allocation,
+            pool.fees
+        );
 
         // Redeem settlement
         delete pool.settlements[_indexer][_subgraphID];
         pool.settlementsCount -= 1;
 
         return tokens;
+    }
+
+    /**
+     * @dev Calculate rebate using production function
+     * @param _indexerAlloc Effective allocation for (epoch,indexer,subgraphID)
+     * @param _indexerFees Fees collected on (epoch,indexer,subgraphID)
+     * @param _poolAlloc Pooled effective allocation for epoch
+     * @param _poolFees Pooled collected fees for epoch
+     * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
+     */
+    function calcRebateReward(
+        uint256, /*_invAlpha*/
+        uint256 _indexerAlloc,
+        uint256 _indexerFees,
+        uint256 _poolAlloc,
+        uint256 _poolFees
+    ) public pure returns (uint256) {
+        // NOTE: We sqrt() because alpha is fractional so we expect the inverse of alpha
+
+        // Here we use ABDKMath64x64 to do the square root of terms
+        // We have to covert it to a 64.64 fixed point number, do sqrt(), then convert it
+        // back to uint256. uint256 wraps the result of toUInt(), since it returns uint64
+        uint256 allocRatio = _indexerAlloc.div(_poolAlloc);
+        uint256 feesRatio = _indexerFees.div(_poolFees);
+        uint256 termA = uint256(allocRatio.fromUInt().sqrt().toUInt());
+        uint256 termB = uint256(feesRatio.fromUInt().sqrt().toUInt());
+        return _poolFees.mul(termA.mul(termB));
     }
 }

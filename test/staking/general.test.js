@@ -602,6 +602,15 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const subgraphAfter = await this.curation.subgraphs(this.subgraphID)
           expect(subgraphAfter.tokens).to.be.bignumber.eq(tokensToSignal.add(curationFees))
 
+          // Verify rebate information is stored
+          const settlement = await this.staking.getSettlement(
+            currentEpoch,
+            indexer,
+            this.subgraphID,
+          )
+          expect(settlement.fees).to.be.bignumber.eq(rebateFees)
+          expect(settlement.allocation).to.be.bignumber.eq(effectiveAlloc)
+
           // Event emitted
           expectEvent.inLogs(logs, 'AllocationSettled', {
             indexer: indexer,
@@ -668,6 +677,67 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await expectRevert(
             this.staking.settle(this.channelID, this.tokensToSettle),
             'Channel: Can only settle after one epoch passed',
+          )
+        })
+      })
+
+      describe('claim()', function() {
+        beforeEach(async function() {
+          this.tokensAllocated = toGRT('10')
+          this.tokensToSettle = toGRT('100')
+          await this.allocate(this.tokensAllocated)
+          await this.grt.mint(me, this.tokensToSettle, { from: governor })
+          await this.grt.approve(this.staking.address, this.tokensToSettle, { from: me })
+        })
+
+        it('should claim rebates', async function() {
+          // Advance blocks to get the channel in epoch where it can be settled
+          await this.advanceToNextEpoch()
+
+          // Settle
+          await this.staking.settle(this.channelID, this.tokensToSettle, { from: me })
+          const rebateEpoch = await this.epochManager.currentEpoch()
+
+          // Advance blocks to get the channel in epoch where the rebate can be claimed
+          await this.advanceToNextEpoch()
+
+          console.log(await this.staking.rebates(rebateEpoch))
+          console.log(await this.staking.getSettlement(rebateEpoch, indexer, this.subgraphID))
+
+          // Claim rebates
+          const currentEpoch = await this.epochManager.currentEpoch()
+          const { logs } = await this.staking.claim(rebateEpoch, this.subgraphID, false, {
+            from: indexer,
+          })
+
+          // Event emitted
+          expectEvent.inLogs(logs, 'RebateClaimed', {
+            indexer: indexer,
+            subgraphID: this.subgraphID,
+            epoch: currentEpoch,
+            forEpoch: rebateEpoch,
+            tokens: this.tokensToSettle,
+            settlements: new BN('0'),
+          })
+        })
+
+        it('reject claim if channelDisputeEpoch has not passed', async function() {
+          const rebateEpoch = await this.epochManager.currentEpoch()
+          await expectRevert(
+            this.staking.claim(rebateEpoch, this.subgraphID, { from: indexer }),
+            'Rebate: need to wait channel dispute period',
+          )
+        })
+
+        it('reject claim when no settlement available for that epoch', async function() {
+          const rebateEpoch = await this.epochManager.currentEpoch()
+
+          // Advance blocks to get the channel in epoch where it can be claimed
+          await this.advanceToNextEpoch()
+
+          await expectRevert(
+            this.staking.claim(rebateEpoch, this.subgraphID, { from: indexer }),
+            'Rebate: settlement does not exist',
           )
         })
       })
