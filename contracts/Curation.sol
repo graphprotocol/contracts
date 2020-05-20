@@ -9,12 +9,10 @@ pragma experimental ABIEncoderV2;
 import "./Governed.sol";
 import "./GraphToken.sol";
 import "./bancor/BancorFormula.sol";
-import "./bytes/BytesLib.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 
 contract Curation is Governed, BancorFormula {
-    using BytesLib for bytes;
     using SafeMath for uint256;
 
     // -- Curation --
@@ -28,9 +26,6 @@ contract Curation is Governed, BancorFormula {
 
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
-
-    // 1 basis point (0.01%) is 100 parts per million (PPM)
-    uint256 private constant BASIS_PT = 100;
 
     // Amount of shares you get with your minimum token stake
     uint256 private constant SHARES_PER_MINIMUM_STAKE = 1;

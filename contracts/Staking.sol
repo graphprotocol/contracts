@@ -31,9 +31,6 @@ contract Staking is Governed {
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
-    // 1 basis point (0.01%) is 100 parts per million (PPM)
-    uint256 private constant BASIS_PT = 100;
-
     // -- State --
 
     // Percentage of fees going to curators
@@ -157,17 +154,14 @@ contract Staking is Governed {
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
-     * @param _curation Address of the Curation contract
      */
     constructor(
         address _governor,
         address _token,
-        address _epochManager,
-        address _curation
+        address _epochManager
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
-        curation = Curation(_curation);
     }
 
     /**
@@ -558,8 +552,8 @@ contract Staking is Governed {
             _tokens,
             _channelID,
             _from,
-            rebateFees,
             curationFees,
+            rebateFees,
             effectiveAllocation
         );
     }

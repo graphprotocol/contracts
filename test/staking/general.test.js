@@ -7,7 +7,7 @@ const { ZERO_ADDRESS } = constants
 const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
 
-const MAX_PPM = 1000000
+const MAX_PPM = new BN('1000000')
 
 function weightedAverage(valueA, valueB, periodA, periodB) {
   return periodA
@@ -49,6 +49,14 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     // Set staking as distributor of funds to curation
     await this.curation.setStaking(this.staking.address, { from: governor })
+
+    // Helpers
+    this.advanceToNextEpoch = async () => {
+      const currentBlock = await time.latestBlock()
+      const epochLength = await this.epochManager.epochLength()
+      const nextEpochBlock = currentBlock.add(epochLength)
+      await time.advanceBlockTo(nextEpochBlock)
+    }
   })
 
   describe('configuration', function() {
@@ -79,13 +87,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     describe('channelDisputeEpochs', function() {
       it('should set `channelDisputeEpochs`', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await this.staking.setChannelDisputeEpochs(newValue, { from: governor })
         expect(await this.staking.channelDisputeEpochs()).to.be.bignumber.eq(newValue)
       })
 
       it('reject set `channelDisputeEpochs` if not allowed', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await expectRevert(
           this.staking.setChannelDisputeEpochs(newValue, { from: other }),
           'Only Governor can call',
@@ -112,14 +120,14 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     describe('curationPercentage', function() {
       it('should set `curationPercentage`', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await this.staking.setCurationPercentage(newValue, { from: governor })
         expect(await this.staking.curationPercentage()).to.be.bignumber.eq(newValue)
       })
 
       it('reject set `curationPercentage` if out of bounds', async function() {
         await expectRevert(
-          this.staking.setCurationPercentage(MAX_PPM + 1, {
+          this.staking.setCurationPercentage(MAX_PPM.add(new BN('1')), {
             from: governor,
           }),
           'Curation percentage must be below or equal to MAX_PPM',
@@ -136,13 +144,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     describe('maxAllocationEpochs', function() {
       it('should set `maxAllocationEpochs`', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await this.staking.setMaxAllocationEpochs(newValue, { from: governor })
         expect(await this.staking.maxAllocationEpochs()).to.be.bignumber.eq(newValue)
       })
 
       it('reject set `maxAllocationEpochs` if not allowed', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await expectRevert(
           this.staking.setMaxAllocationEpochs(newValue, { from: other }),
           'Only Governor can call',
@@ -152,13 +160,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     describe('thawingPeriod', function() {
       it('should set `thawingPeriod`', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await this.staking.setThawingPeriod(newValue, { from: governor })
         expect(await this.staking.thawingPeriod()).to.be.bignumber.eq(newValue)
       })
 
       it('reject set `thawingPeriod` if not allowed', async function() {
-        const newValue = new BN(5)
+        const newValue = new BN('5')
         await expectRevert(
           this.staking.setThawingPeriod(newValue, { from: other }),
           'Only Governor can call',
@@ -274,7 +282,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const tokensToUnstake = toGRT('2')
           const thawingPeriod = await this.staking.thawingPeriod()
           const currentBlock = await time.latestBlock()
-          const until = currentBlock.add(thawingPeriod).add(new BN(1))
+          const until = currentBlock.add(thawingPeriod).add(new BN('1'))
 
           const { logs } = await this.staking.unstake(tokensToUnstake, { from: indexer })
           expectEvent.inLogs(logs, 'StakeLocked', {
@@ -303,7 +311,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             tokensLockedUntil1.sub(currentBlock),
             thawingPeriod,
           )
-          const expectedLockedUntil = currentBlock.add(lockingPeriod).add(new BN(1))
+          const expectedLockedUntil = currentBlock.add(lockingPeriod).add(new BN('1'))
 
           // Unstake (2)
           r = await this.staking.unstake(tokensToUnstake, { from: indexer })
@@ -312,7 +320,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('reject unstake more than available tokens', async function() {
-          const tokensOverCapacity = this.indexerStake.add(new BN(1))
+          const tokensOverCapacity = this.indexerStake.add(new BN('1'))
           await expectRevert(
             this.staking.unstake(tokensOverCapacity, { from: indexer }),
             'Staking: not enough tokens available to unstake',
@@ -398,7 +406,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           // Slash indexer
           const tokensToSlash = toGRT('100')
           const tokensToReward = toGRT('10')
-
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
@@ -406,7 +413,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           // Slash indexer
           const tokensToSlash = toGRT('10')
           const tokensToReward = toGRT('10')
-
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
@@ -512,7 +518,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           })
 
           it('reject allocate more than available tokens', async function() {
-            const tokensOverCapacity = this.indexerStake.add(new BN(1))
+            const tokensOverCapacity = this.indexerStake.add(new BN('1'))
             await expectRevert(
               this.allocate(tokensOverCapacity),
               'Allocation: not enough tokens available to allocate',
@@ -538,6 +544,104 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
               'Allocation: cannot allocate if already allocated',
             )
           })
+
+          it('reject allocate reusing a channel', async function() {
+            const tokensToAllocate = toGRT('10')
+            const subgraphId = helpers.randomSubgraphId()
+            await expectRevert(
+              this.staking.allocate(subgraphId, tokensToAllocate, this.channelPubKey, {
+                from: indexer,
+              }),
+              'Allocation: channel ID already in use',
+            )
+          })
+        })
+      })
+
+      describe('settle()', function() {
+        beforeEach(async function() {
+          this.tokensAllocated = toGRT('10')
+          this.tokensToSettle = toGRT('100')
+          await this.allocate(this.tokensAllocated)
+          await this.grt.mint(me, this.tokensToSettle, { from: governor })
+          await this.grt.approve(this.staking.address, this.tokensToSettle, { from: me })
+        })
+
+        it('should settle and distribute funds', async function() {
+          const alloc = await this.staking.getAllocation(indexer, this.subgraphId)
+
+          // Curate the subgraph to be settled to get curation fees distributed
+          const tokensToSignal = toGRT('100')
+          await this.grt.mint(me, tokensToSignal, { from: governor })
+          await this.grt.approve(this.curation.address, tokensToSignal, { from: me })
+          await this.curation.stake(this.subgraphId, tokensToSignal, { from: me })
+
+          // Curation parameters
+          const curationPercentage = new BN('200000') // 20%
+          await this.staking.setCurationPercentage(curationPercentage, { from: governor })
+
+          // Advance blocks to get the channel in epoch where it can be settled
+          await this.advanceToNextEpoch()
+
+          // Settle
+          const { logs } = await this.staking.settle(this.channelID, this.tokensToSettle)
+
+          // Get epoch information
+          const result = await this.epochManager.epochsSince(alloc.createdAtEpoch)
+          const epochs = result[0]
+          const currentEpoch = result[1]
+
+          // Calculate expected fees
+          const curationFees = this.tokensToSettle.mul(curationPercentage).div(MAX_PPM)
+          const rebateFees = this.tokensToSettle.sub(curationFees)
+
+          // Calculate expected effective allocation
+          const effectiveAlloc = this.tokensAllocated.mul(epochs)
+
+          // Check that curation reserves increased for that subgraph
+          const subgraphAfter = await this.curation.subgraphs(this.subgraphId)
+          expect(subgraphAfter.tokens).to.be.bignumber.eq(tokensToSignal.add(curationFees))
+
+          // Event emitted
+          expectEvent.inLogs(logs, 'AllocationSettled', {
+            indexer: indexer,
+            subgraphID: this.subgraphId,
+            epoch: currentEpoch,
+            tokens: this.tokensToSettle,
+            channelID: this.channelID,
+            from: me,
+            curationFees: curationFees,
+            rebateFees: rebateFees,
+            effectiveAllocation: effectiveAlloc,
+          })
+        })
+
+        it('reject settle if channel does not exist', async function() {
+          await expectRevert(
+            this.staking.settle(ZERO_ADDRESS, this.tokensToSettle),
+            'Channel: does not exist',
+          )
+        })
+
+        it('reject settle if channel is not active anymore', async function() {
+          // Advance blocks to get the channel in epoch where it can be settled
+          await this.advanceToNextEpoch()
+
+          // Settle the channel
+          await this.staking.settle(this.channelID, this.tokensToSettle.div(new BN('2')))
+
+          // Settle the same channel to force an error
+          await expectRevert(
+            this.staking.settle(this.channelID, this.tokensToSettle.div(new BN('2'))),
+            'Channel: Must be active for settlement',
+          )
+        })
+
+        it('reject settle if an epoch has not passed', async function() {
+          await expectRevert(
+            this.staking.settle(this.channelID, this.tokensToSettle),
+            'Channel: Can only settle after one epoch passed',
+          )
         })
       })
     })

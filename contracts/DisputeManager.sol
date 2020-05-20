@@ -51,9 +51,6 @@ contract DisputeManager is Governed {
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
-    // 1 basis point (0.01%) is 100 parts per million (PPM)
-    uint256 private constant BASIS_PT = 100;
-
     // -- State --
 
     bytes32 private DOMAIN_SEPARATOR;
