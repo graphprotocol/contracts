@@ -14,10 +14,16 @@ const NON_EXISTING_DISPUTE_ID = '0x0'
 
 contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, otherIndexer]) => {
   beforeEach(async function() {
-    // Private key for account #4
-    this.indexerPrivKey = '0xadd53f9a7e588d003326d1cbf9e4a43c061aadd9bc938c843a79e7b4fd2ad743'
-    // Private key for account #6
-    this.otherIndexerPrivKey = '0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52'
+    // Channel keys for account #4
+    this.indexerChannelPrivKey =
+      '0xe9696cbe81b09b796be29055c8694eb422710940b44934b3a1d21c1ca0a03e9a'
+    this.indexerChannelPubKey =
+      '0x04417b6be970480e74a55182ee04279fdffa7431002af2150750d367999a59abead903fbd23c0da7bb4233fdbccd732a2f561e66460718b4c50084e736c1601555'
+    // Channel keys for account #6
+    this.otherIndexerChannelPrivKey =
+      '0xb560ebb22d7369c8ffeb9aec92930adfab16054542eadc76de826bc7db6390c2'
+    this.otherIndexerChannelPubKey =
+      '0x0447b5891c07679d40d6dfd3c4f8e1974e068da36ac76a6507dbaf5e432b879b3d4cd8c950b0df035e621f5a55b91a224ecdaef8cc8e6bb8cd8afff4a74c1904cd'
 
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -210,7 +216,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
       this.dispute = await attestation.createDispute(
         receipt,
         this.disputeManager.address,
-        this.indexerPrivKey,
+        this.indexerChannelPrivKey,
+        indexer,
       )
     })
 
@@ -221,7 +228,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
           this.disputeManager.createDispute(this.dispute.attestation, this.fishermanDeposit, {
             from: fisherman,
           }),
-          'Dispute has no stake by the indexer',
+          'Indexer cannot be found with the attestation',
         )
       })
     })
@@ -235,7 +242,14 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
 
         // Stake
         this.indexerTokens = web3.utils.toWei(new BN('100000'))
-        for (const indexerAddress of [indexer, otherIndexer]) {
+        this.indexerAllocatedTokens = web3.utils.toWei(new BN('10000'))
+        const indexerList = [
+          [indexer, this.indexerChannelPubKey],
+          [otherIndexer, this.otherIndexerChannelPubKey],
+        ]
+        for (const activeIndexer of indexerList) {
+          const [indexerAddress, indexerPubKey] = activeIndexer
+
           // Give some funds to the indexer
           await this.grt.mint(indexerAddress, this.indexerTokens, {
             from: governor,
@@ -246,6 +260,12 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
 
           // Indexer stake funds
           await this.staking.stake(this.indexerTokens, { from: indexerAddress })
+          await this.staking.allocate(
+            this.dispute.receipt.subgraphID,
+            this.indexerAllocatedTokens,
+            indexerPubKey,
+            { from: indexerAddress },
+          )
         }
       })
 
@@ -274,7 +294,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
               this.disputeManager.createDispute(this.dispute.attestation, belowMinimumDeposit, {
                 from: fisherman,
               }),
-              'Dispute deposit under minimum required',
+              'Dispute deposit is under minimum required',
             )
           })
 
@@ -313,7 +333,8 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             const newDispute = await attestation.createDispute(
               this.dispute.receipt,
               this.disputeManager.address,
-              this.otherIndexerPrivKey,
+              this.otherIndexerChannelPrivKey,
+              otherIndexer,
             )
             const { logs } = await this.disputeManager.createDispute(
               newDispute.attestation,
@@ -384,7 +405,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             const reward = await this.disputeManager.getTokensToReward(indexer)
 
             // Perform transaction (accept)
-            const { tx } = await this.disputeManager.acceptDispute(this.dispute.id, {
+            const { logs } = await this.disputeManager.acceptDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -404,7 +425,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             expect(totalSupplyAfter).to.be.bignumber.eq(totalSupplyBefore.sub(tokensToBurn))
 
             // Event emitted
-            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeAccepted', {
+            expectEvent.inLogs(logs, 'DisputeAccepted', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
               indexer: indexer,
@@ -438,7 +459,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             const totalSupplyBefore = await this.grt.totalSupply()
 
             // Perform transaction (reject)
-            const { tx } = await this.disputeManager.rejectDispute(this.dispute.id, {
+            const { logs } = await this.disputeManager.rejectDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -452,7 +473,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             expect(totalSupplyAfter).to.be.bignumber.eq(totalSupplyBefore.sub(burnedTokens))
 
             // Event emitted
-            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeRejected', {
+            expectEvent.inLogs(logs, 'DisputeRejected', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
               indexer: indexer,
@@ -485,7 +506,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             const fishermanBalanceBefore = await this.grt.balanceOf(fisherman)
 
             // Perform transaction (draw)
-            const { tx } = await this.disputeManager.drawDispute(this.dispute.id, {
+            const { logs } = await this.disputeManager.drawDispute(this.dispute.id, {
               from: arbitrator,
             })
 
@@ -496,7 +517,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             )
 
             // Event emitted
-            expectEvent.inTransaction(tx, this.disputeManager.constructor, 'DisputeDrawn', {
+            expectEvent.inLogs(logs, 'DisputeDrawn', {
               disputeID: this.dispute.id,
               subgraphID: this.dispute.receipt.subgraphID,
               indexer: indexer,

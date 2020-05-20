@@ -56,7 +56,7 @@ function createDisputeID(receipt, indexer) {
   )
 }
 
-async function createDispute(receipt, contractAddress, signer) {
+async function createDispute(receipt, contractAddress, signer, indexer) {
   // Receipt
   const encodedReceipt = encodeReceipt(receipt)
 
@@ -79,7 +79,7 @@ async function createDispute(receipt, contractAddress, signer) {
   const attestation = createAttestation(encodedReceipt, messageSig)
 
   return {
-    id: createDisputeID(receipt, ethers.utils.computeAddress(signingKey.publicKey)),
+    id: createDisputeID(receipt, indexer),
     signer,
     attestation,
     receipt,

@@ -404,8 +404,13 @@ contract DisputeManager is Governed {
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
 
-        // Get attestation signer
-        address indexer = _recoverAttestationSigner(attestation);
+        // Get attestation signer, channelID
+        address channelID = _recoverAttestationSigner(attestation);
+
+        // Get the indexer that created the channel and signed the attestation
+        (address indexer, bytes32 subgraphID) = staking.channels(channelID);
+        require(indexer != address(0), "Indexer cannot be found with the attestation");
+        require(subgraphID == attestation.subgraphID, "Channel and attestation subgraph must match");
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
@@ -421,7 +426,7 @@ contract DisputeManager is Governed {
         require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
         // Ensure that fisherman has staked at least the minimum amount
-        require(_deposit >= minimumDeposit, "Dispute deposit under minimum required");
+        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
 
         // A fisherman can only open one dispute for a given indexer / subgraphID at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
