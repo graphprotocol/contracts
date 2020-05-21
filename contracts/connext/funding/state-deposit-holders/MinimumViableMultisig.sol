@@ -21,8 +21,9 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     mapping(bytes32 => bool) isExecuted;
 
-    bool public locked = false;
+    bool public locked;
 
+    // Graph-specific constants
     address payable public NODE_ADDRESS;
     address payable public INDEXER_STAKING_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;
@@ -38,10 +39,12 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     receive() external payable { }
 
     /// @notice Contract constructor (mastercopy)
-    /// @param CTDT Address of indexer-specific CTDT contract
+    /// @param node Node signing address
     /// @param staking Address of indexer staking contract
+    /// @param CTDT Address of indexer-specific CTDT contract
     /// @param singleAssetInterpreter Address of indexer-specific singleAssetInterpreter contract
     /// @param multiAssetInterpreter Address of indexer-specific multiAssetInterpreter contract
+    /// @param withdrawInterpreter Address of indexer-specific withdrawInterpreter contract
     constructor(
         address payable node,
         address payable staking,
@@ -66,6 +69,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         _owners = owners;
     }
 
+    /// @notice Modifier to revert if caller is not staking contract
     modifier onlyStaking {
         require(
             msg.sender == INDEXER_STAKING_ADDRESS,
@@ -74,13 +78,23 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         _;
     }
 
+    /// @notice Lock the multisig; only the staking contract can do that.
+    /// Locked node-indexer multisigs cannot execute transactions anymore
+    /// until unlocked. Regular multisigs are not affected by locking.
     function lock() external onlyStaking {
+        // The following requirement can be removed if that is more suitable
         require(!locked, "Multisig must be unlocked to lock");
+
         locked = true;
     }
 
+    /// @notice Unlock the multisig; only the staking contract can do that.
+    /// Locked node-indexer multisigs cannot execute transactions anymore
+    /// until unlocked. Regular multisigs are not affected by locking.
     function unlock() external onlyStaking {
+        // The following requirement can be removed if that is more suitable
         require(locked, "Multisig must be locked to unlock");
+
         locked = false;
     }
 
@@ -128,10 +142,16 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         );
 
         if (isNodeIndexerMultisig) {
+
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
+
+            // Transactions from node-indexer multisigs get redirected to special CTDT contract
             execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
+
         } else {
+
             execute(to, value, data, operation);
+
         }
     }
 
