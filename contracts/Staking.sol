@@ -49,11 +49,13 @@ contract Staking is Governed {
     // Indexer stake tracking : indexer => Stake
     mapping(address => Stakes.Indexer) public stakes;
 
-    // Channels : channelID => Channel
-    mapping(address => Channel) public channels;
-
     // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
+
+    // Channels : channelID => Channel
+    mapping(address => Channel) public channels;
+    // Channels Proxy : Channel Multisig Proxy => channelID
+    mapping(address => address) public channelsProxy;
 
     // List of addresses allowed to slash stakes
     mapping(address => bool) public slashers;
@@ -376,12 +378,14 @@ contract Staking is Governed {
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
+     * @param _channelProxy Address of the multisig proxy used to hold channel funds
      * @param _price Price the `indexer` will charge for serving queries of the `subgraphID`
      */
     function allocate(
         bytes32 _subgraphID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
+        address _channelProxy,
         uint256 _price
     ) external {
         address indexer = msg.sender;
@@ -410,6 +414,7 @@ contract Staking is Governed {
         alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
         channels[channelID] = Channel(indexer, _subgraphID);
+        channelsProxy[_channelProxy] = channelID;
 
         emit AllocationCreated(
             indexer,
@@ -424,22 +429,24 @@ contract Staking is Governed {
 
     /**
      * @dev Settle a channel after receiving collected query fees from it
-     * @param _channelID Address of the indexer in the channel
+     * Funds are received from a channel multisig proxy contract
      * @param _tokens Amount of tokens to settle
      */
-    function settle(address _channelID, uint256 _tokens) external {
-        address channelMultisig = msg.sender;
+    function settle(uint256 _tokens) external {
+        // Get the channelID the caller is related
+        address channelID = channelsProxy[msg.sender];
+        delete channelsProxy[msg.sender]; // Remove to avoid re-entrancy
 
         // Receive funds from the channel multisig
         // We use channelID to find the indexer owner of the channel
-        require(isChannel(_channelID), "Channel: does not exist");
+        require(isChannel(channelID), "Channel: does not exist");
 
         // Transfer tokens to settle from multisig to this contract
         require(
-            token.transferFrom(channelMultisig, address(this), _tokens),
+            token.transferFrom(msg.sender, address(this), _tokens),
             "Channel: Cannot transfer tokens to settle"
         );
-        _settle(_channelID, channelMultisig, _tokens);
+        _settle(channelID, msg.sender, _tokens);
     }
 
     /**
