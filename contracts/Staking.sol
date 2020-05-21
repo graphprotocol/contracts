@@ -96,6 +96,7 @@ contract Staking is Governed {
      * during `epoch`.
      * `channelID` is the address of the indexer in the channel multisig.
      * `channelPubKey` is the public key used for routing payments to the indexer channel.
+     * `price` price the `indexer` will charge for serving queries of the `subgraphID`.
      */
     event AllocationCreated(
         address indexed indexer,
@@ -103,7 +104,8 @@ contract Staking is Governed {
         uint256 epoch,
         uint256 tokens,
         address channelID,
-        bytes channelPubKey
+        bytes channelPubKey,
+        uint256 price
     );
 
     /**
@@ -374,11 +376,13 @@ contract Staking is Governed {
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
+     * @param _price Price the `indexer` will charge for serving queries of the `subgraphID`
      */
     function allocate(
         bytes32 _subgraphID,
         uint256 _tokens,
-        bytes calldata _channelPubKey
+        bytes calldata _channelPubKey,
+        uint256 _price
     ) external {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
@@ -413,7 +417,8 @@ contract Staking is Governed {
             alloc.createdAtEpoch,
             alloc.tokens,
             channelID,
-            _channelPubKey
+            _channelPubKey,
+            _price
         );
     }
 

@@ -182,7 +182,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         return this.staking.stake(tokens, { from: indexer })
       }
       this.allocate = function(tokens) {
-        return this.staking.allocate(this.subgraphID, tokens, this.channelPubKey, {
+        return this.staking.allocate(this.subgraphID, tokens, this.channelPubKey, this.price, {
           from: indexer,
         })
       }
@@ -212,6 +212,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
       this.channelPubKey =
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
       this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
+      this.price = toGRT('0.01')
 
       // Give some funds to the indexer
       this.indexerTokens = toGRT('1000')
@@ -537,6 +538,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             tokens: this.indexerStake,
             channelID: this.channelID,
             channelPubKey: this.channelPubKey,
+            price: this.price,
           })
         })
 
@@ -571,7 +573,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             const tokensToAllocate = toGRT('10')
             const subgraphID = helpers.randomSubgraphId()
             await expectRevert(
-              this.staking.allocate(subgraphID, tokensToAllocate, this.channelPubKey, {
+              this.staking.allocate(subgraphID, tokensToAllocate, this.channelPubKey, this.price, {
                 from: indexer,
               }),
               'Allocation: channel ID already in use',
@@ -701,9 +703,13 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await this.staking.settle(channelID1, this.tokensToSettle.div(new BN('2')))
 
           // We allocate to the same subgraph with new channel
-          await this.staking.allocate(this.subgraphID, this.tokensAllocated, newChannelPubKey, {
-            from: indexer,
-          })
+          await this.staking.allocate(
+            this.subgraphID,
+            this.tokensAllocated,
+            newChannelPubKey,
+            this.price,
+            { from: indexer },
+          )
 
           // Advance blocks to get the channel in epoch where it can be settled
           await this.advanceToNextEpoch()

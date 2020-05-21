@@ -264,6 +264,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             this.dispute.receipt.subgraphID,
             this.indexerAllocatedTokens,
             indexerPubKey,
+            new BN(0),
             { from: indexerAddress },
           )
         }
