@@ -14,14 +14,18 @@ function deployGRT(owner, params) {
   return GraphToken.new(owner, defaults.token.initialSupply, params)
 }
 
-function deployCurationContract(owner, graphToken, params) {
-  return Curation.new(
+async function deployCurationContract(owner, graphToken, params) {
+  const contract = await Curation.new(
     owner,
     graphToken,
     defaults.curation.reserveRatio,
     defaults.curation.minimumCurationStake,
     params,
   )
+  await contract.setWithdrawalFeePercentage(defaults.curation.withdrawalFeePercentage, {
+    from: owner,
+  })
+  return contract
 }
 
 function deployDisputeManagerContract(owner, graphToken, arbitrator, staking, params) {

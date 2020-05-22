@@ -4,10 +4,9 @@ const TOKEN_UNIT = new BN('10').pow(new BN('18'))
 
 module.exports = {
   curation: {
-    // Reserve ratio to set bonding curve for curation (in PPM)
     reserveRatio: 500000,
-    // Minimum amount required to be staked by Curators
     minimumCurationStake: new BN('100').mul(TOKEN_UNIT),
+    withdrawalFeePercentage: 50000,
   },
   dispute: {
     minimumDeposit: new BN('100').mul(TOKEN_UNIT),
