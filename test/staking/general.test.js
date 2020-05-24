@@ -568,7 +568,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         })
 
         it('should settle and distribute funds', async function() {
-          const alloc = await this.staking.getAllocation(indexer, this.subgraphID)
+          const stakeBefore = await this.staking.stakes(indexer)
+          const allocBefore = await this.staking.getAllocation(indexer, this.subgraphID)
 
           // Curate the subgraph to be settled to get curation fees distributed
           const tokensToSignal = toGRT('100')
@@ -587,22 +588,30 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           const { logs } = await this.staking.settle(this.channelID, this.tokensToSettle)
 
           // Get epoch information
-          const result = await this.epochManager.epochsSince(alloc.createdAtEpoch)
+          const result = await this.epochManager.epochsSince(allocBefore.createdAtEpoch)
           const epochs = result[0]
           const currentEpoch = result[1]
 
-          // Calculate expected fees
-          const curationFees = this.tokensToSettle.mul(curationPercentage).div(MAX_PPM)
-          const rebateFees = this.tokensToSettle.sub(curationFees)
-
-          // Calculate expected effective allocation
-          const effectiveAlloc = this.tokensAllocated.mul(epochs)
-
           // Check that curation reserves increased for that subgraph
+          const curationFees = this.tokensToSettle.mul(curationPercentage).div(MAX_PPM)
           const subgraphAfter = await this.curation.subgraphs(this.subgraphID)
           expect(subgraphAfter.tokens).to.be.bignumber.eq(tokensToSignal.add(curationFees))
 
+          // Verify stake is updated
+          const stakeAfter = await this.staking.stakes(indexer)
+          expect(stakeAfter.tokensAllocated).to.be.bignumber.eq(
+            stakeBefore.tokensAllocated.sub(new BN(allocBefore.tokens)),
+          )
+
+          // Verify allocation is updated and channel closed
+          const allocAfter = await this.staking.getAllocation(indexer, this.subgraphID)
+          expect(allocAfter.tokens).to.be.bignumber.eq(new BN('0'))
+          expect(allocAfter.createdAtEpoch).to.be.bignumber.eq(new BN('0'))
+          expect(allocAfter.channelID).to.be.eq(ZERO_ADDRESS)
+
           // Verify rebate information is stored
+          const rebateFees = this.tokensToSettle.sub(curationFees) // calculate expected fees
+          const effectiveAlloc = this.tokensAllocated.mul(epochs) // effective allocation
           const settlement = await this.staking.getSettlement(
             currentEpoch,
             indexer,
