@@ -78,7 +78,7 @@ module.exports = {
       slashingPercentage: new BN(1000), // in basis points
     },
     epochs: {
-      lengthInBlocks: new BN((5 * 60) / 15), // One day in blocks
+      lengthInBlocks: new BN((5 * 60) / 15), // 5 minutes in blocks
     },
     staking: {
       channelDisputeEpochs: 1,

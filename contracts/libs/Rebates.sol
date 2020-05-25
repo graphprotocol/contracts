@@ -97,6 +97,9 @@ library Rebates {
         uint256 _poolFees
     ) public pure returns (uint256) {
         // NOTE: We sqrt() because alpha is fractional so we expect the inverse of alpha
+        if (_poolAlloc == 0 || _poolFees == 0) {
+            return 0;
+        }
 
         // Here we use ABDKMath64x64 to do the square root of terms
         // We have to covert it to a 64.64 fixed point number, do sqrt(), then convert it

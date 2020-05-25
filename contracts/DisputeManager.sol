@@ -203,7 +203,7 @@ contract DisputeManager is Governed {
      * @return Amount of tokens to slash
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
-        uint256 tokens = staking.getIndexerStakeTokens(_indexer); // slashable tokens
+        uint256 tokens = staking.getIndexerStakedTokens(_indexer); // slashable tokens
         return slashingPercentage.mul(tokens).div(MAX_PPM);
     }
 
@@ -316,8 +316,10 @@ contract DisputeManager is Governed {
 
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
-        uint256 tokensToReward = getTokensToReward(dispute.indexer);
         uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
+        uint256 tokensToReward = getTokensToReward(dispute.indexer);
+
+        require(tokensToSlash > 0, "Dispute has zero tokens to slash");
         staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
