@@ -38,7 +38,7 @@
     "typechain-target-ethers": "^1.0.4"
   },
   "scripts": {
-    "prepare": "npm run build && npm run typechain && cp -R build dist",
+    "prepublishOnly": "npm run build && npm run typechain && cp -R build dist",
     "build": "npm run compile && npm run flatten && npm run abi:extract",
     "clean": "rm -rf build/contracts",
     "compile": "truffle compile --all",
