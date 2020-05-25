@@ -40,7 +40,6 @@ module.exports = async (deployer, network, accounts) => {
         governor,
         graphToken.address,
         epochManager.address,
-        curation.address,
       )
       const rewardsManager = await deployer.deploy(RewardsManager, governor)
       const disputeManager = await deployer.deploy(
@@ -59,19 +58,20 @@ module.exports = async (deployer, network, accounts) => {
       // Set Curation parameters
       log('   Configuring Contracts')
       log('   ---------------------')
+      await executeAndLog(staking.setCuration(curation.address), '\t> Staking -> Set curation: ')
       await executeAndLog(
         staking.setMaxAllocationEpochs(config.staking.maxAllocationEpochs),
-        '   > Staking -> Set maxAllocationEpochs: ',
+        '\t> Staking -> Set maxAllocationEpochs: ',
       )
       await executeAndLog(
         staking.setThawingPeriod(config.staking.thawingPeriod),
-        '   > Staking -> Set thawingPeriod: ',
+        '\t> Staking -> Set thawingPeriod: ',
       )
       await executeAndLog(
         staking.setChannelDisputeEpochs(config.staking.channelDisputeEpochs),
-        '   > Staking -> Set channelDisputeEpochs: ',
+        '\t> Staking -> Set channelDisputeEpochs: ',
       )
-      await executeAndLog(curation.setStaking(staking.address), '   > Curation -> Set staking: ')
+      await executeAndLog(curation.setStaking(staking.address), '\t> Curation -> Set staking: ')
 
       // Summary
       log('\n')

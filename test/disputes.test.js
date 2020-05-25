@@ -397,8 +397,18 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             )
           })
 
+          it('reject to accept a dispute if zero tokens to slash', async function() {
+            await this.disputeManager.setSlashingPercentage(new BN(0), { from: governor })
+            await expectRevert(
+              this.disputeManager.acceptDispute(this.dispute.id, {
+                from: arbitrator,
+              }),
+              'Dispute has zero tokens to slash',
+            )
+          })
+
           it('should resolve dispute, slash indexer and reward the fisherman', async function() {
-            const indexerStakeBefore = await this.staking.getIndexerStakeTokens(indexer)
+            const indexerStakeBefore = await this.staking.getIndexerStakedTokens(indexer)
             const tokensToSlash = await this.disputeManager.getTokensToSlash(indexer)
             const fishermanBalanceBefore = await this.grt.balanceOf(fisherman)
             const totalSupplyBefore = await this.grt.totalSupply()
@@ -416,7 +426,7 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
             )
 
             // Indexer slashed
-            const indexerStakeAfter = await this.staking.getIndexerStakeTokens(indexer)
+            const indexerStakeAfter = await this.staking.getIndexerStakedTokens(indexer)
             expect(indexerStakeAfter).to.be.bignumber.eq(indexerStakeBefore.sub(tokensToSlash))
 
             // Slashed funds burned

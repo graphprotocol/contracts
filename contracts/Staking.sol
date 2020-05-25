@@ -31,9 +31,6 @@ contract Staking is Governed {
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
-    // 1 basis point (0.01%) is 100 parts per million (PPM)
-    uint256 private constant BASIS_PT = 100;
-
     // -- State --
 
     // Percentage of fees going to curators
@@ -157,17 +154,14 @@ contract Staking is Governed {
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
-     * @param _curation Address of the Curation contract
      */
     constructor(
         address _governor,
         address _token,
-        address _epochManager,
-        address _curation
+        address _epochManager
     ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
-        curation = Curation(_curation);
     }
 
     /**
@@ -250,7 +244,7 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakeTokens(address _indexer) public view returns (uint256) {
+    function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
         return stakes[_indexer].tokensIndexer;
     }
 
@@ -269,6 +263,21 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get an outstanding unclaimed settlement
+     * @param _epoch Epoch when the settlement ocurred
+     * @param _indexer Address of the indexer
+     * @param _subgraphID ID of the subgraph settled
+     * @return Settlement data
+     */
+    function getSettlement(
+        uint256 _epoch,
+        address _indexer,
+        bytes32 _subgraphID
+    ) public view returns (Rebates.Settlement memory) {
+        return rebates[_epoch].settlements[_indexer][_subgraphID];
+    }
+
+    /**
      * @dev Slash the indexer stake
      * @param _indexer Address of indexer to slash
      * @param _tokens Amount of tokens to slash from the indexer stake
@@ -283,9 +292,10 @@ contract Staking is Governed {
     ) external onlySlasher {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
+        require(_tokens > 0, "Slashing: cannot slash zero tokens");
+        require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
-        require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(
             _tokens <= indexerStake.tokensSlashable(),
             "Slashing: cannot slash more than staked amount"
@@ -328,11 +338,14 @@ contract Staking is Governed {
     function stake(uint256 _tokens) external {
         address indexer = msg.sender;
 
+        require(_tokens > 0, "Staking: cannot stake zero tokens");
+
         // Transfer tokens to stake from indexer to this contract
         require(
             token.transferFrom(indexer, address(this), _tokens),
             "Staking: Cannot transfer tokens to stake"
         );
+
         // Stake the transferred tokens
         _stake(indexer, _tokens);
     }
@@ -460,24 +473,27 @@ contract Staking is Governed {
             epochsSinceSettlement >= channelDisputeEpochs,
             "Rebate: need to wait channel dispute period"
         );
+
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Process rebate
         uint256 tokensToClaim = pool.redeem(indexer, _subgraphID);
-        require(tokensToClaim > 0, "Rebate: no tokens available to claim");
 
-        // All settlements processed then prune rebate pool
+        // When all settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
             delete rebates[_epoch];
         }
 
-        // Assign claimed tokens
-        if (_restake) {
-            // Restake to place fees into the indexer stake
-            _stake(indexer, tokensToClaim);
-        } else {
-            // Transfer funds back to the indexer
-            require(token.transfer(indexer, tokensToClaim), "Rebate: cannot transfer tokens");
+        // When there are tokens to claim from the rebate pool, transfer or restake
+        if (tokensToClaim > 0) {
+            // Assign claimed tokens
+            if (_restake) {
+                // Restake to place fees into the indexer stake
+                _stake(indexer, tokensToClaim);
+            } else {
+                // Transfer funds back to the indexer
+                require(token.transfer(indexer, tokensToClaim), "Rebate: cannot transfer tokens");
+            }
         }
 
         emit RebateClaimed(
@@ -517,7 +533,11 @@ contract Staking is Governed {
         bytes32 subgraphID = channels[_channelID].subgraphID;
         Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphID];
 
-        require(alloc.hasChannel(), "Channel: Must be active for settlement");
+        require(_channelID != address(0), "Channel: ChannelID cannot be empty address");
+        require(
+            alloc.channelID == _channelID,
+            "Channel: The allocation has no channel, or the channel was already settled"
+        );
 
         // Time conditions
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
@@ -558,8 +578,8 @@ contract Staking is Governed {
             _tokens,
             _channelID,
             _from,
-            rebateFees,
             curationFees,
+            rebateFees,
             effectiveAllocation
         );
     }
