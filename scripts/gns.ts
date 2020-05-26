@@ -10,9 +10,12 @@ import { contracts, executeTransaction, overrides, IPFS } from "./helpers";
 // Set up the script //
 ///////////////////////
 
-let { func, subgraphName, ipfs, subgraphID, metadataPath, newOwner } = minimist(process.argv.slice(2), {
-  string: ["func", "subgraphName", "ipfs", "subgraphID", "metadataPath", "newOwner"]
-});
+let { func, subgraphName, ipfs, subgraphID, metadataPath, newOwner } = minimist(
+  process.argv.slice(2),
+  {
+    string: ["func", "subgraphName", "ipfs", "subgraphID", "metadataPath", "newOwner"]
+  }
+);
 
 if (!func || !subgraphName) {
   console.error(

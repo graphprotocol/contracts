@@ -50,5 +50,28 @@ ts-node ./gns.ts
 Run the script without arguments for more usage info.
 
 ## Graph Token
+**Mint**
+```sh
+ts-node ./graph-token.ts 
+    --func          mint
+    --account       0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
+    --amount        100
+```
 
-TODO
+**Transfer**
+```sh
+ts-node ./graph-token.ts 
+    --func          transfer
+    --account       0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
+    --amount        100
+```
+
+**Approve**
+```sh
+ts-node ./graph-token.ts 
+    --func          approve
+    --account       0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
+    --amount        100
+```
+
+Run the script without arguments for more usage info.

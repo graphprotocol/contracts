@@ -4,106 +4,52 @@ import { utils } from "ethers";
 import * as path from "path";
 import * as minimist from "minimist";
 
-import { contracts, executeTransaction, overrides, IPFS } from "./helpers";
+import { contracts, executeTransaction, overrides } from "./helpers";
 
 ///////////////////////
 // Set up the script //
 ///////////////////////
 
-let { func, subgraphName, ipfs, subgraphID, metadataPath, newOwner } = minimist(process.argv.slice(2), {
-  string: ["func", "subgraphName", "ipfs", "subgraphID", "metadataPath", "newOwner"]
+let { func, account, amount } = minimist(process.argv.slice(2), {
+  string: ["func", "account", "amount"]
 });
 
-if (!func || !subgraphName) {
+if (!func || !account || !amount) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <text> - options: publish, unpublish, transfer
+  --func <text> - options: mint, transfer, approve
 
 Function arguments:
-    publish
-      --ipfs <url>            - ex. https://api.thegraph.com/ipfs/
-      --subgraphName <text>   - name of the subgraph
-      --subgraphID <base58>   - subgraphID in bas358
-      --metadata <path>       - filepath to metadata. JSON format:
-                                  {
-                                    "displayName": "",
-                                    "image": "",
-                                    "description": "",
-                                    "codeRepository": "",
-                                    "websiteURL": ""
-                                  }
-    
-    unpublish
-      --subgraphName <text>  - name of the subgraph
+  mint
+    --account <address> - Ethereum account to transfer to
+    --amount <number>   - Amount of GRT to mint
 
-    transfer
-      --subgraphName <text>  - name of the subgraph
-      --new-owner <address>   - address of the new owner
+  transfer
+    --account <address> - Ethereum account to transfer to
+    --amount <number>   - Amount of GRT to transfer
+
+  approve
+    --account <address> - Ethereum account being approved to spend on behalf of
+    --amount <number>   - Amount of GRT to approve
 `
   );
   process.exit(1);
 }
 
+// GRT has 18 decimals
+const amountBN = utils.parseUnits(amount, 18);
+console.log("Account: ", account);
+console.log("Amount:  ", amount);
+
 ///////////////////////
 // functions //////////
 ///////////////////////
 
-const publish = async () => {
-  if (!ipfs || !subgraphID || !metadataPath) {
-    console.error(`ERROR: publish must be provided an ipfs endpoint and a subgraphID`);
-    process.exit(1);
-  }
-  console.log("Subgraph:      ", subgraphName);
-  console.log("Subgraph ID:   ", subgraphID);
-  console.log("IPFS:          ", ipfs);
-  console.log("Metadata path: ", metadataPath);
-
-  const metadata = require(metadataPath);
-  console.log("Meta data:");
-  console.log("  Display name:     ", metadata.displayName || "");
-  console.log("  Image:            ", metadata.image || "");
-  console.log("  Subtitle:         ", metadata.subtitle || "");
-  console.log("  Description:      ", metadata.description || "");
-  console.log("  Code Repository:  ", metadata.codeRepository || "");
-  console.log("  Website:          ", metadata.websiteURL || "");
-
-  let ipfsClient = IPFS.createIpfsClient(ipfs);
-
-  console.log("\nUpload JSON meta data to IPFS...");
-  let result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)));
-  let metaHash = result[0].hash;
-  let metaHashBytes = IPFS.ipfsHashToBytes32(metaHash);
+const mint = async () => {
+  const gnsOverrides = await overrides("graphToken", "mint");
   try {
-    let data = JSON.parse(await ipfsClient.cat(metaHash));
-    if (JSON.stringify(data) !== JSON.stringify(metadata)) {
-      throw new Error(`Original meta data and uploaded data are not identical`);
-    }
-  } catch (e) {
-    throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`);
-  }
-  console.log("Upload metadata successful!\n");
-
-  let subgraphIDBytes = IPFS.ipfsHashToBytes32(subgraphID);
-  const gnsOverrides = await overrides("gns", "publish");
-  try {
-    await executeTransaction(
-      contracts.gns.functions.publish(subgraphName, subgraphIDBytes, metaHashBytes, gnsOverrides)
-    );
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
-};
-
-const unpublish = async () => {
-  console.log("Subgraph:           ", subgraphName);
-  let nameHash = utils.id(subgraphName);
-  console.log("Subgraph name hash: ", nameHash);
-  console.log("\n");
-  const gnsOverrides = await overrides("gns", "unpublish");
-  try {
-    await executeTransaction(contracts.gns.functions.unpublish(nameHash, gnsOverrides));
+    await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, gnsOverrides));
   } catch (e) {
     console.log(`  ..failed: ${e.message}`);
     process.exit(1);
@@ -111,18 +57,19 @@ const unpublish = async () => {
 };
 
 const transfer = async () => {
-  if (!newOwner) {
-    console.error(`ERROR: transfer must be provided a new owner`);
+  const gnsOverrides = await overrides("graphToken", "transfer");
+  try {
+    await executeTransaction(contracts.graphToken.functions.transfer(account, amountBN, gnsOverrides));
+  } catch (e) {
+    console.log(`  ..failed: ${e.message}`);
     process.exit(1);
   }
-  console.log("Subgraph:           ", subgraphName);
-  let nameHash = utils.id(subgraphName);
-  console.log("Subgraph name hash: ", nameHash);
-  console.log("New owner:          ", newOwner);
-  console.log("\n");
-  const gnsOverrides = await overrides("gns", "unpublish");
+};
+
+const approve = async () => {
+  const gnsOverrides = await overrides("graphToken", "approve");
   try {
-    await executeTransaction(contracts.gns.functions.transfer(nameHash, newOwner, gnsOverrides));
+    await executeTransaction(contracts.graphToken.functions.approve(account, amountBN, gnsOverrides));
   } catch (e) {
     console.log(`  ..failed: ${e.message}`);
     process.exit(1);
@@ -135,15 +82,15 @@ const transfer = async () => {
 
 const main = async () => {
   try {
-    if (func == "publish") {
-      console.log(`Publishing subgraph ${subgraphName} ...`);
-      publish();
-    } else if (func == "unpublish") {
-      console.log(`Unpublishing subgraph ${subgraphName} ...`);
-      unpublish();
+    if (func == "mint") {
+      console.log(`Minting ${amount} tokens to user ${account}...`);
+      mint();
     } else if (func == "transfer") {
-      console.log(`Transferring ownership of subgraph ${subgraphName} to ${newOwner}`);
+      console.log(`Transferring ${amount} tokens to user ${account}...`);
       transfer();
+    } else if (func == "approve") {
+      console.log(`Approving ${amount} tokens to spend by ${account}...`);
+      approve();
     }
   } catch (e) {
     console.log(`  ..failed: ${e.message}`);
