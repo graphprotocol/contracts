@@ -21,6 +21,16 @@ function toGRT(value) {
 }
 
 contract('Staking', ([me, other, governor, indexer, slasher, fisherman, channelProxy]) => {
+  before(async function() {
+    // Helpers
+    this.advanceToNextEpoch = async () => {
+      const currentBlock = await time.latestBlock()
+      const epochLength = await this.epochManager.epochLength()
+      const nextEpochBlock = currentBlock.add(epochLength)
+      await time.advanceBlockTo(nextEpochBlock)
+    }
+  })
+
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -49,14 +59,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman, channelP
 
     // Set staking as distributor of funds to curation
     await this.curation.setStaking(this.staking.address, { from: governor })
-
-    // Helpers
-    this.advanceToNextEpoch = async () => {
-      const currentBlock = await time.latestBlock()
-      const epochLength = await this.epochManager.epochLength()
-      const nextEpochBlock = currentBlock.add(epochLength)
-      await time.advanceBlockTo(nextEpochBlock)
-    }
   })
 
   describe('configuration', function() {

@@ -1,6 +1,6 @@
 const BN = web3.utils.BN
 const { expect } = require('chai')
-const { constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers')
+const { constants, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers')
 const { ZERO_ADDRESS } = constants
 
 // helpers
@@ -12,9 +12,23 @@ const { defaults } = require('./lib/testHelpers')
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = '0x0'
 
+function toGRT(value) {
+  return new BN(web3.utils.toWei(value))
+}
+
 contract(
   'Disputes',
   ([me, other, governor, arbitrator, indexer, fisherman, otherIndexer, channelProxy]) => {
+    before(async function() {
+      // Helpers
+      this.advanceToNextEpoch = async () => {
+        const currentBlock = await time.latestBlock()
+        const epochLength = await this.epochManager.epochLength()
+        const nextEpochBlock = currentBlock.add(epochLength)
+        await time.advanceBlockTo(nextEpochBlock)
+      }
+    })
+
     beforeEach(async function() {
       // Channel keys for account #4
       this.indexerChannelPrivKey =
@@ -200,8 +214,8 @@ contract(
     describe('dispute lifecycle', function() {
       beforeEach(async function() {
         // Give some funds to the fisherman
-        this.fishermanTokens = web3.utils.toWei(new BN('100000'))
-        this.fishermanDeposit = web3.utils.toWei(new BN('1000'))
+        this.fishermanTokens = toGRT('100000')
+        this.fishermanDeposit = toGRT('1000')
         await this.grt.mint(fisherman, this.fishermanTokens, {
           from: governor,
         })
@@ -223,17 +237,68 @@ contract(
         )
       })
 
-      it('reject create a dispute', async function() {
+      it('reject create a dispute if attestation does not refer to valid indexer', async function() {
         // Create dispute
         await expectRevert(
           this.disputeManager.createDispute(this.dispute.attestation, this.fishermanDeposit, {
             from: fisherman,
           }),
-          'Indexer cannot be found with the attestation',
+          'Indexer cannot be found for the attestation',
         )
       })
 
-      context('> when stake does exist', function() {
+      it('reject create a dispute if indexer has no stake', async function() {
+        // This tests reproduce the case when someones present a dispute after
+        // an indexer removed his stake completely and find nothing to slash
+
+        const indexerTokens = toGRT('100000')
+        const indexerAllocatedTokens = toGRT('10000')
+        const indexerSettledTokens = toGRT('10')
+
+        // Give some funds to the indexer
+        await this.grt.mint(indexer, indexerTokens, {
+          from: governor,
+        })
+        await this.grt.approve(this.staking.address, indexerTokens, {
+          from: indexer,
+        })
+
+        // Give some funds to the channel
+        await this.grt.mint(channelProxy, indexerSettledTokens, {
+          from: governor,
+        })
+        await this.grt.approve(this.staking.address, indexerSettledTokens, {
+          from: channelProxy,
+        })
+
+        // Set the thawing period to zero to make the test easier
+        await this.staking.setThawingPeriod(new BN('0'), { from: governor })
+
+        // Indexer stake funds, allocate, settle, unstake and withdraw the stake fully
+        await this.staking.stake(indexerTokens, { from: indexer })
+        await this.staking.allocate(
+          this.dispute.receipt.subgraphID,
+          indexerAllocatedTokens,
+          this.indexerChannelPubKey,
+          channelProxy,
+          new BN('0'),
+          { from: indexer },
+        )
+        await this.advanceToNextEpoch() // wait the required one epoch to settle
+        await this.staking.settle(indexerSettledTokens, { from: channelProxy })
+        await this.staking.unstake(indexerTokens, { from: indexer })
+        await this.staking.withdraw({ from: indexer }) // no thawing period so we are good
+
+        // Create dispute
+        await expectRevert(
+          this.disputeManager.createDispute(this.dispute.attestation, this.fishermanDeposit, {
+            from: fisherman,
+          }),
+          'Dispute has no stake by the indexer',
+        )
+      })
+
+      context('> when indexer has staked', function() {
         beforeEach(async function() {
           // Dispute manager is allowed to slash
           await this.staking.setSlasher(this.disputeManager.address, true, {
@@ -241,8 +306,8 @@ contract(
           })
 
           // Stake
-          this.indexerTokens = web3.utils.toWei(new BN('100000'))
-          this.indexerAllocatedTokens = web3.utils.toWei(new BN('10000'))
+          this.indexerTokens = toGRT('100000')
+          this.indexerAllocatedTokens = toGRT('10000')
           const indexerList = [
             [indexer, this.indexerChannelPubKey],
             [otherIndexer, this.otherIndexerChannelPubKey],
@@ -319,6 +384,39 @@ contract(
           })
         })
 
+        describe('accept a dispute', function() {
+          it('reject to accept a non-existing dispute', async function() {
+            await expectRevert(
+              this.disputeManager.acceptDispute(NON_EXISTING_DISPUTE_ID, {
+                from: arbitrator,
+              }),
+              'Dispute does not exist',
+            )
+          })
+        })
+
+        describe('reject a dispute', function() {
+          it('reject to reject a non-existing dispute', async function() {
+            await expectRevert(
+              this.disputeManager.rejectDispute(NON_EXISTING_DISPUTE_ID, {
+                from: arbitrator,
+              }),
+              'Dispute does not exist',
+            )
+          })
+        })
+
+        describe('draw a dispute', function() {
+          it('reject to draw a non-existing dispute', async function() {
+            await expectRevert(
+              this.disputeManager.drawDispute(NON_EXISTING_DISPUTE_ID, {
+                from: arbitrator,
+              }),
+              'Dispute does not exist',
+            )
+          })
+        })
+
         context('> when dispute is created', function() {
           beforeEach(async function() {
             // Create dispute
@@ -330,7 +428,7 @@ contract(
           })
 
           describe('create a dispute', function() {
-            it('should create dispute if receipt is equal but for different indexer', async function() {
+            it('should create dispute if receipt is equal but for other indexer', async function() {
               // Create dispute (same receipt but different indexer)
               const newDispute = await attestation.createDispute(
                 this.dispute.receipt,
@@ -366,15 +464,6 @@ contract(
           })
 
           describe('accept a dispute', function() {
-            it('reject to accept a non-existing dispute', async function() {
-              await expectRevert(
-                this.disputeManager.acceptDispute(NON_EXISTING_DISPUTE_ID, {
-                  from: arbitrator,
-                }),
-                'Dispute does not exist',
-              )
-            })
-
             it('reject to accept a dispute if not the arbitrator', async function() {
               await expectRevert(
                 this.disputeManager.acceptDispute(this.dispute.id, {
@@ -448,15 +537,6 @@ contract(
           })
 
           describe('reject a dispute', async function() {
-            it('reject to reject a non-existing dispute', async function() {
-              await expectRevert(
-                this.disputeManager.rejectDispute(NON_EXISTING_DISPUTE_ID, {
-                  from: arbitrator,
-                }),
-                'Dispute does not exist',
-              )
-            })
-
             it('reject to reject a dispute if not the arbitrator', async function() {
               await expectRevert(
                 this.disputeManager.rejectDispute(this.dispute.id, {
@@ -481,7 +561,7 @@ contract(
 
               // Burn fisherman deposit
               const totalSupplyAfter = await this.grt.totalSupply()
-              const burnedTokens = web3.utils.toBN(this.fishermanDeposit)
+              const burnedTokens = new BN(this.fishermanDeposit)
               expect(totalSupplyAfter).to.be.bignumber.eq(totalSupplyBefore.sub(burnedTokens))
 
               // Event emitted
@@ -496,15 +576,6 @@ contract(
           })
 
           describe('draw a dispute', async function() {
-            it('reject to draw a non-existing dispute', async function() {
-              await expectRevert(
-                this.disputeManager.drawDispute(NON_EXISTING_DISPUTE_ID, {
-                  from: arbitrator,
-                }),
-                'Dispute does not exist',
-              )
-            })
-
             it('reject to draw a dispute if not the arbitrator', async function() {
               await expectRevert(
                 this.disputeManager.drawDispute(this.dispute.id, {
