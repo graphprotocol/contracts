@@ -19,76 +19,36 @@ The scripts expect the following:
   following at the root of the repository:
 
   ```sh
-  yarn contracts && yarn typechain
+  yarn build && yarn typechain
   ```
 
-## Set the Graph subgraph ID and bootstrap indexers
-
+## GNS
+**Publishing a subgraph**
 ```sh
-./set-graph-subgraph-id.ts          \
-    --subgraph-id <ipfs-hash>       \
-    --indexers <addr1>[,<addr2>,...]
+ts-node ./gns.ts 
+    --func          publish
+    --ipfs          https://api.thegraph.com/ipfs/
+    --subgraphName  davesSubgraph  
+    --subgraphID    QmdiX6GsbFaz7HDzNxmWCh1oi3bmy19C4te8YSkHbvLbQQ 
+    --metadataPath  ./data/metadata.json
+```
+**Unpublishing a subgraph**
+```sh
+ts-node ./gns.ts 
+    --func          unpublish
+    --subgraphName  davesSubgraph
+```
+
+**Transferring ownership of a subgraph**
+```sh
+ts-node ./gns.ts 
+    --func          transfer
+    --subgraphName  davesSubgraph
+    --newOwner      0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
 ```
 
 Run the script without arguments for more usage info.
 
-## Set bootstrap index node URLs
+## Graph Token
 
-```sh
-./set-bootstrap-indexer-url.ts   \
-    --indexer <ethereum-address> \
-    --url <index-node>
-```
-
-Run the script without arguments for more usage info.
-
-## Register a top-level domain
-
-```sh
-./register-domain.ts --domain <name>
-```
-
-Run the script without arguments for more usage info.
-
-## Create a subgraph (with meta data)
-
-```sh
-./create-subgraph.ts           \
-    --ipfs <ipfs-node>         \
-    --subgraph <subgraph-name> \
-    --display-name "..."       \
-    ...
-```
-
-Run the script without arguments for more usage info.
-
-## Update a subgraph to a new ID
-
-```sh
-./update-subgraph-id.ts        \
-    --subgraph <subgraph-name> \
-    --id <ipfs-hash>
-```
-
-Run the script without arguments for more usage info.
-
-## Stake for indexing on a subgraph ID
-
-```sh
-./stake-for-indexing.ts       \
-    --subgraph-id <ipfs-hash> \
-    --amount <number>         # minimum: 100
-```
-
-Run the script without arguments for more usage info.
-
-## Update an indexer's node URL
-
-This sets the current Ethereum account's index node URL in the service registry.
-
-```sh
-./set-url.ts \
-    --url <index-node-url>
-```
-
-Run the script without arguments for more usage info.
+TODO
