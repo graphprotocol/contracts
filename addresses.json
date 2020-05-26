@@ -1,25 +1,16 @@
 {
-  "updated-on": "September 17th 2019",
-  "ropsten": {
-    "GNS": "0x2b0FB3a066D3676B392B318Bda633aD373F99506",
-    "GraphToken": "0xF94B27eBA87C7982E7e92322B6f7717F2f5e64f4",
-    "MultisigWallet": "Not a contract, currently daves metamask",
-    "ServiceRegistry": "0x6e4De1886Ffd8908cfe4CD12560465CcaB0F5409",
-    "Staking": "0x2B7F343cD8933c94A1666AdB9d309798F5F74812"
-  },
-  "ganache": {
-    "GNS": "0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7",
-    "GraphToken": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
-    "MultisigWallet": "Not a contract, currently ganache account[1]",
-    "ServiceRegistry": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
-    "Staking": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
-  },
+  "updated-on": "May 25th, 2020",
   "kovan": {
-    "GNS": "0x9B20eD2d1e9F52C787f8C41e3419771822a2FEe1",
-    "GraphToken": "0x85bcdBf4d77f33625C4a88CB4BB80C726865dD25",
-    "MultisigWallet": "Not a contract, currently daves metamask",
-    "ServiceRegistry": "0xD8530C664521919B65D6378146EfAaD2eB4E6852",
-    "Staking": "0x33AF9a8CAcae99b439F20E8c9Fe8Ed488FBEbBa2"
+    "blockNumber": "18628084",
+    "governor": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
+    "graphToken": "0x20AbE3B457e510EEF66D2518212A6f862E1ebfA9",
+    "epochManager": "0x8d3086840fd075697E590fB6B5A8f0C44fB45176",
+    "disputeManager": "0x7c812124D432dB9C3BAF23e751D704d82ed09e1D",
+    "staking": "0x66F940145995EC6033F5804eDC2041F606e755B5",
+    "curation": "0xFC6CCBa00ceA43512cC50f6f8CC029E782c5AC96",
+    "rewardsManager": "0x449B394836881CA995d4db4313064a66aF5Ca0b0",
+    "serviceRegistry": "0x3caC355B211DbBF593DCb2F806deaEdF070a35D5",
+    "gns": "0xADFc64E984655d67B23Df88D3B608C2770BB60b6"
   },
   "mainnet": {}
 }
