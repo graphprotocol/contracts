@@ -20,7 +20,7 @@ import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 // helpers
-const { defaults } = require('./testHelpers')
+import { defaults } from './testHelpers'
 
 const deployGasLimit = 9000000
 
@@ -44,7 +44,7 @@ export function deployCuration(
   ) as Promise<Curation>
 }
 
-export function deployDisputeManagerContract(
+export function deployDisputeManager(
   owner: string,
   graphToken: string,
   arbitrator: string,
@@ -62,13 +62,10 @@ export function deployDisputeManagerContract(
   ]) as Promise<DisputeManager>
 }
 
-export function deployEpochManagerContract(
-  owner: string,
-  wallet: ethers.Wallet,
-): Promise<EpochManager> {
+export function deployEpochManager(owner: string, wallet: ethers.Wallet): Promise<EpochManager> {
   return deployContract(wallet, EpochManagerArtifact, [
     owner,
-    defaults.epochs.lengthInBlock,
+    defaults.epochs.lengthInBlocks,
   ]) as Promise<EpochManager>
 }
 
@@ -80,7 +77,7 @@ export function deployServiceRegistry(wallet: ethers.Wallet): Promise<ServiceReg
   return deployContract(wallet, ServiceRegistyArtifact) as Promise<ServiceRegistry>
 }
 
-export async function deployStakingContract(
+export async function deployStaking(
   owner: string,
   graphToken: string,
   epochManager: string,

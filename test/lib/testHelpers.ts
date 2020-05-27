@@ -1,3 +1,4 @@
+import { waffle as buidler } from '@nomiclabs/buidler'
 import { BigNumber, bigNumberify, hexlify, randomBytes, parseEther, parseUnits } from 'ethers/utils'
 
 export const toBN = (value: string | number) => bigNumberify(value)
@@ -7,7 +8,38 @@ export const logStake = (stakes: any) =>
   Object.entries(stakes).map(([k, v]) => {
     console.log(k, ':', parseEther(v as string))
   })
-export const zeroAddress = () => '0x0000000000000000000000000000000000000000'
+
+export const provider = () => buidler.provider
+
+// Blocks
+
+export const latestBlock = () =>
+  provider()
+    .getBlockNumber()
+    .then(toBN)
+
+export const advanceBlock = () => {
+  return provider().send('evm_mine', [])
+}
+
+export const advanceBlockTo = async (blockNumber: string | number | BigNumber) => {
+  const target =
+    typeof blockNumber === 'number' || typeof blockNumber === 'string'
+      ? toBN(blockNumber)
+      : blockNumber
+  const currentBlock = await latestBlock()
+  const start = Date.now()
+  let notified
+  if (target.lt(currentBlock))
+    throw Error(`Target block #(${target}) is lower than current block #(${currentBlock})`)
+  while ((await latestBlock()).lt(target)) {
+    if (!notified && Date.now() - start >= 5000) {
+      notified = true
+      console.log(`advanceBlockTo: Advancing too ` + 'many blocks is causing this test to be slow.')
+    }
+    await advanceBlock()
+  }
+}
 
 // Default configuration used in tests
 export const defaults = {
