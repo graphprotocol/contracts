@@ -18,11 +18,13 @@ contract('Disputes', ([me, other, governor, arbitrator, indexer, fisherman, othe
     this.indexerChannelPrivKey =
       '0xe9696cbe81b09b796be29055c8694eb422710940b44934b3a1d21c1ca0a03e9a'
     this.indexerChannelPubKey =
+      // eslint-disable-next-line max-len
       '0x04417b6be970480e74a55182ee04279fdffa7431002af2150750d367999a59abead903fbd23c0da7bb4233fdbccd732a2f561e66460718b4c50084e736c1601555'
     // Channel keys for account #6
     this.otherIndexerChannelPrivKey =
       '0xb560ebb22d7369c8ffeb9aec92930adfab16054542eadc76de826bc7db6390c2'
     this.otherIndexerChannelPubKey =
+      // eslint-disable-next-line max-len
       '0x0447b5891c07679d40d6dfd3c4f8e1974e068da36ac76a6507dbaf5e432b879b3d4cd8c950b0df035e621f5a55b91a224ecdaef8cc8e6bb8cd8afff4a74c1904cd'
 
     // Deploy epoch contract
