@@ -11,17 +11,24 @@ import ServiceRegistyArtifact from '../../build/contracts/ServiceRegistry.json'
 import StakingArtifact from '../../build/contracts/Staking.json'
 
 // contracts definitions
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Curation } from '../../build/typechain/contracts/Curation'
+import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
+import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+import { GNS } from '../../build/typechain/contracts/GNS'
+import { GraphToken } from '../../build/typechain/contracts/GraphToken'
+import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 // helpers
 const { defaults } = require('./testHelpers')
 
+const deployGasLimit = 9000000
+
 export function deployGRT(owner: string, wallet: ethers.Wallet): Promise<GraphToken> {
-  return deployContract(wallet, GraphTokenArtifact, [owner, defaults.token.initialSupply]).then(
-    contract => contract as GraphToken,
-  )
+  return deployContract(wallet, GraphTokenArtifact, [
+    owner,
+    defaults.token.initialSupply,
+  ]) as Promise<GraphToken>
 }
 
 export function deployCuration(
@@ -33,8 +40,8 @@ export function deployCuration(
     wallet,
     CurationArtifact,
     [owner, graphToken, defaults.curation.reserveRatio, defaults.curation.minimumCurationStake],
-    { gasLimit: 9000000 },
-  ).then(contract => contract as Curation)
+    { gasLimit: deployGasLimit },
+  ) as Promise<Curation>
 }
 
 export function deployDisputeManagerContract(
@@ -43,7 +50,7 @@ export function deployDisputeManagerContract(
   arbitrator: string,
   staking: string,
   wallet: ethers.Wallet,
-) {
+): Promise<DisputeManager> {
   return deployContract(wallet, DisputeManagerArtifact, [
     owner,
     arbitrator,
@@ -52,19 +59,28 @@ export function deployDisputeManagerContract(
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
-  ])
+  ]) as Promise<DisputeManager>
 }
 
-export function deployEpochManagerContract(owner: string, wallet: ethers.Wallet) {
-  return deployContract(wallet, EpochManagerArtifact, [owner, defaults.epochs.lengthInBlock])
+export function deployEpochManagerContract(
+  owner: string,
+  wallet: ethers.Wallet,
+): Promise<EpochManager> {
+  return deployContract(wallet, EpochManagerArtifact, [
+    owner,
+    defaults.epochs.lengthInBlock,
+  ]) as Promise<EpochManager>
 }
 
-export function deployGNS(owner: string, wallet: ethers.Wallet) {
-  return deployContract(wallet, GNSArtifact, [owner])
+export function deployGNS(owner: string, wallet: ethers.Wallet): Promise<GNS> {
+  return deployContract(wallet, GNSArtifact, [owner]) as Promise<GNS>
 }
 
-export function deployServiceRegistry(owner: string, wallet: ethers.Wallet) {
-  return deployContract(wallet, ServiceRegistyArtifact)
+export function deployServiceRegistry(
+  owner: string,
+  wallet: ethers.Wallet,
+): Promise<ServiceRegistry> {
+  return deployContract(wallet, ServiceRegistyArtifact) as Promise<ServiceRegistry>
 }
 
 export async function deployStakingContract(
@@ -73,7 +89,7 @@ export async function deployStakingContract(
   epochManager: string,
   curation: string,
   wallet: ethers.Wallet,
-) {
+): Promise<Staking> {
   const contract: Staking = (await deployContract(wallet, StakingArtifact, [
     owner,
     graphToken,

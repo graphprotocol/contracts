@@ -33,7 +33,7 @@ const config: BuidlerConfig = {
   networks: {
     buidlerevm: {
       chainId: 31337,
-      loggingEnabled: true,
+      loggingEnabled: false,
       gas: 'auto',
       gasPrice: 'auto',
       blockGasLimit: 9500000,
