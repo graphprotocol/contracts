@@ -13,6 +13,7 @@
     "assert": false,
     "web3": false
   },
+  "ignorePatterns": ["./cache", "./build"],
   "rules": {
     // Strict mode
     "strict": ["error", "global"],
