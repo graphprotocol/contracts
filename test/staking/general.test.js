@@ -6,7 +6,6 @@ const { ZERO_ADDRESS } = constants
 // helpers
 const deployment = require('../lib/deployment')
 const helpers = require('../lib/testHelpers')
-const { defaults } = require('../lib/testHelpers')
 
 const MAX_PPM = new BN('1000000')
 
@@ -99,12 +98,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           this.staking.setChannelDisputeEpochs(newValue, { from: other }),
           'Only Governor can call',
         )
-        const expectedLockedUntil = currentBlock.add(lockingPeriod).add(new BN(1))
-
-        // Unstake (2)
-        r = await this.staking.unstake(tokensToUnstake, { from: indexNode })
-        const tokensLockedUntil2 = r.logs[0].args.until
-        expect(expectedLockedUntil).to.be.bignumber.eq(tokensLockedUntil2)
       })
     })
 
@@ -252,15 +245,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           this.staking.unstake(tokensToUnstake, { from: indexer }),
           'Staking: indexer has no stakes',
         )
-
-        // Move forward
-        await time.advanceBlockTo(tokensLockedUntil)
-
-        // Withdraw after locking period (all good)
-        const balanceBefore = await this.graphToken.balanceOf(indexNode)
-        await this.staking.withdraw({ from: indexNode })
-        const balanceAfter = await this.graphToken.balanceOf(indexNode)
-        expect(balanceAfter).to.be.bignumber.eq(balanceBefore.add(tokensToUnstake))
       })
     })
 
@@ -282,43 +266,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           }),
           'Slashing: indexer has no stakes',
         )
-      })
-
-      describe('allocation', function() {
-        context('when subgraph NOT allocated', function() {
-          it('should allocate to subgraph', async function() {
-            const { logs } = await this.allocate(this.indexNodeStake)
-            expectEvent.inLogs(logs, 'AllocationUpdated', {
-              indexNode: indexNode,
-              subgraphID: this.subgraphId,
-              epoch: await this.epochManager.currentEpoch(),
-              tokens: this.indexNodeStake,
-            })
-          })
-
-          it('reject allocate more than available tokens', async function() {
-            const tokensOverCapacity = this.indexNodeStake.add(new BN(1))
-            await expectRevert(
-              this.allocate(tokensOverCapacity),
-              'Allocation: not enough tokens available to allocate',
-            )
-          })
-        })
-
-        context('when subgraph allocated', function() {
-          beforeEach(async function() {
-            this.tokensAllocated = web3.utils.toWei(new BN('10'))
-            await this.allocate(this.tokensAllocated)
-          })
-
-          it('reject allocate again', async function() {
-            const tokensToAllocate = web3.utils.toWei(new BN('10'))
-            await expectRevert(
-              this.allocate(tokensToAllocate),
-              'Allocation: cannot allocate if already allocated',
-            )
-          })
-        })
       })
     })
 
