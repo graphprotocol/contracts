@@ -1,20 +1,17 @@
 import { expect } from 'chai'
-import { waffle as buidler, ethers } from '@nomiclabs/buidler'
+import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { Curation } from '../build/typechain/contracts/Curation'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
-import { defaults, randomSubgraphId, toBN } from './lib/testHelpers'
+import { defaults, randomSubgraphId, toBN, toGRT } from './lib/testHelpers'
 
 const MAX_PPM = 1000000
 
-function toGRT(value: string) {
-  return ethers.utils.parseEther(value)
-}
-
 describe('Curation', () => {
   const [me, other, governor, curator, staking] = buidler.provider.getWallets()
+
   let curation: Curation
   let grt: GraphToken
 

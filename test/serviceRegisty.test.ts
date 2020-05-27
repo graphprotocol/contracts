@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { waffle as buidler, ethers } from '@nomiclabs/buidler'
+import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
 
