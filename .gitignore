@@ -5,6 +5,9 @@ node_modules/
 build/
 dist/
 
+# Ignore buidler stuff
+cache/
+
 # Coverage tests
 coverage/
 
