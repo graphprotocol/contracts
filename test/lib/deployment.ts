@@ -76,10 +76,7 @@ export function deployGNS(owner: string, wallet: ethers.Wallet): Promise<GNS> {
   return deployContract(wallet, GNSArtifact, [owner]) as Promise<GNS>
 }
 
-export function deployServiceRegistry(
-  owner: string,
-  wallet: ethers.Wallet,
-): Promise<ServiceRegistry> {
+export function deployServiceRegistry(wallet: ethers.Wallet): Promise<ServiceRegistry> {
   return deployContract(wallet, ServiceRegistyArtifact) as Promise<ServiceRegistry>
 }
 

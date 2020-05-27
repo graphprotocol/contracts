@@ -1,11 +1,9 @@
 import { expect } from 'chai'
 import { waffle as buidler, ethers } from '@nomiclabs/buidler'
 
-// contracts
 import { Curation } from '../build/typechain/contracts/Curation'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
-// helpers
 import * as deployment from './lib/deployment'
 import { defaults, randomSubgraphId, toBN } from './lib/testHelpers'
 
