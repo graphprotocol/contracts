@@ -1,63 +1,57 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./Governed.sol";
 
+/**
+ * @title ServiceRegistry contract
+ * @dev This contract supports the service discovery process by allowing indexers to
+ * register their service url and any other relevant information.
+ */
+contract ServiceRegistry {
+    // -- State --
 
-contract ServiceRegistry is Governed {
-    /*
-     * @title Graph Protocol Service Registry contract
-     *
-     * @author Bryant Eisenbach
-     * @author Reuven Etzion
-     *
-     * @notice Contract Specification:
-     *
-     * Requirements ("Service Registry" contract):
-     * req 01 Maps Ethereum Addresses to URLs
-     * req 02 No other contracts depend on this, rather is consumed by users of The Graph.
-     * ...
-     * @question - Who sets registeredUrls? Staking? (need interface)
-     */
-
-    /* EVENTS */
-    event ServiceUrlSet(address indexed serviceProvider, string urlString);
-
-    /* Contract Constructor */
-    /* @param _governor <address> - Address of the multisig contract as Governor of this contract */
-    constructor(address _governor) public Governed(_governor) {}
-
-    /*  A dynamic array of URLs that bootstrap the graph subgraph
-        Note: The graph subgraph bootstraps the network. It has no way to retrieve
-        the list of all indexers at the start of indexing. Therefore a single
-        dynamic array bootstrapIndexerURLs is used to store the URLS of the Graph
-        Network indexing nodes for the query node to obtain */
-
-    // TODO - Who should be able to set this? Right now it is only governance. It needed to more robust, and we need to consider the out of protocol coordination
-    mapping(address => bytes) public bootstrapIndexerURLs;
-
-    /* Graph Protocol Functions */
-
-    /*
-     * @notice Set graph network subgraph indexer URL
-     * @dev Only governance can do this. Indexers added are arranged out of protocol
-     *
-     * @param _indexer <address> - Address of the indexer
-     * @param _url <string> - URL of the service provider
-     */
-    function setBootstrapIndexerURL(address _indexer, string calldata _url) external onlyGovernor {
-        bytes memory url = bytes(_url);
-        bootstrapIndexerURLs[_indexer] = url;
-        emit ServiceUrlSet(_indexer, _url);
+    struct IndexerService {
+        string url;
+        string geohash;
     }
 
-    /*
-     * @notice Set service provider url from their address
-     * @dev Only msg.sender may do this
-     *
-     * @param _url <string> - URL of the service provider
+    mapping(address => IndexerService) public services;
+
+    // -- Events --
+
+    event ServiceRegistered(address indexed indexer, string url, string geohash);
+    event ServiceUnregistered(address indexed indexer);
+
+    /**
+     * @dev Register an indexer service
+     * @param _url URL of the indexer service
+     * @param _geohash Geohash of the indexer service location
      */
-    function setUrl(string calldata _url) external {
-        emit ServiceUrlSet(msg.sender, _url);
+    function register(string calldata _url, string calldata _geohash) external {
+        address indexer = msg.sender;
+        require(bytes(_url).length > 0, "Service must specify a URL");
+
+        services[indexer] = IndexerService(_url, _geohash);
+
+        emit ServiceRegistered(indexer, _url, _geohash);
+    }
+
+    /**
+     * @dev Unregister an indexer service
+     */
+    function unregister() external {
+        address indexer = msg.sender;
+        require(isRegistered(indexer), "Service already unregistered");
+
+        delete services[indexer];
+        emit ServiceUnregistered(indexer);
+    }
+
+    /**
+     * @dev Return the registration status of an indexer service
+     * @return True if the indexer service is registered
+     */
+    function isRegistered(address _indexer) public view returns (bool) {
+        return bytes(services[_indexer].url).length > 0;
     }
 }

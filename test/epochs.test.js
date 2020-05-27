@@ -68,6 +68,21 @@ contract('EpochManager', ([me, other, governor]) => {
         expect(await this.epochManager.blockNum()).to.be.bignumber.eq(currentBlock)
       })
 
+      it('should return same starting block if we stay on the same epoch', async function() {
+        // Move right to the start of a new epoch
+        const blocksSinceEpochStart = await this.epochManager.currentEpochBlockSinceStart()
+        const blocksToNextEpoch = this.epochLength.sub(blocksSinceEpochStart)
+        await time.advanceBlockTo((await this.epochManager.blockNum()).add(blocksToNextEpoch))
+
+        const currentEpochBlockBefore = await this.epochManager.currentEpochBlock()
+
+        // Advance block - will not jump to next epoch
+        await time.advanceBlock()
+
+        const currentEpochBlockAfter = await this.epochManager.currentEpochBlock()
+        expect(currentEpochBlockAfter).to.be.bignumber.equal(currentEpochBlockBefore)
+      })
+
       it('should return next starting block if we move to the next epoch', async function() {
         const currentEpochBlockBefore = await this.epochManager.currentEpochBlock()
 
@@ -96,7 +111,7 @@ contract('EpochManager', ([me, other, governor]) => {
         await time.advanceBlockTo(currentEpochBlock.add(this.epochLength))
       })
 
-      context('epoch not run', function() {
+      context('> epoch not run', function() {
         it('should return that current epoch is not run', async function() {
           expect(await this.epochManager.isCurrentEpochRun(), false)
         })
@@ -118,7 +133,7 @@ contract('EpochManager', ([me, other, governor]) => {
         })
       })
 
-      context('epoch run', function() {
+      context('> epoch run', function() {
         beforeEach(async function() {
           await this.epochManager.runEpoch()
         })

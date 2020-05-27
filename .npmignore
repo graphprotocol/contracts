@@ -3,7 +3,6 @@ node_modules/
 
 # Ignore truffle stuff
 build/
-dist/
 
 # Coverage tests
 coverage/

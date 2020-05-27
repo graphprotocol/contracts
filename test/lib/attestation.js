@@ -1,113 +1,93 @@
-const Account = require('eth-lib/lib/account')
+const ethers = require('ethers')
 
-function createAttestation() {
-  const attestation = {
-    requestCID: {
-      hash: web3.utils.randomHex(32),
-      hashFunction: '0x1220',
-    },
-    responseCID: {
-      hash: web3.utils.randomHex(32),
-      hashFunction: '0x1220',
-    },
-    gasUsed: 123000, // Math.floor(Math.random() * 100000) + 100000,
-    responseBytes: 4500, // Math.floor(Math.random() * 3000) + 1000
-  }
-
+function encodeReceipt(receipt) {
   // ABI encoded
   return web3.eth.abi.encodeParameters(
-    ['bytes32', 'uint16', 'bytes32', 'uint16', 'uint256', 'uint256'],
-    [
-      attestation.requestCID.hash,
-      attestation.requestCID.hashFunction,
-      attestation.responseCID.hash,
-      attestation.responseCID.hashFunction,
-      attestation.gasUsed,
-      attestation.responseBytes,
-    ],
+    ['bytes32', 'bytes32', 'bytes32'],
+    [receipt.requestCID, receipt.responseCID, receipt.subgraphID],
   )
 }
 
-function createAttestationHash(attestation) {
-  const attestationTypeHash = web3.utils.sha3(
-    'Attestation(IpfsHash requestCID,IpfsHash responseCID,uint256 gasUsed,uint256 responseNumBytes)IpfsHash(bytes32 hash,uint16 hashFunction)',
+function createReceiptHash(receipt) {
+  const receiptTypeHash = web3.utils.sha3(
+    'Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)',
   )
 
   // ABI encoded
   return web3.utils.sha3(
-    web3.eth.abi.encodeParameters(['bytes32', 'bytes'], [attestationTypeHash, attestation]),
+    web3.eth.abi.encodeParameters(['bytes32', 'bytes'], [receiptTypeHash, receipt]),
   )
 }
 
 function createDomainSeparatorHash(contractAddress) {
   const chainId = 1
   const domainTypeHash = web3.utils.sha3(
-    'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)',
+    'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)',
   )
   const domainNameHash = web3.utils.sha3('Graph Protocol')
-  const domainVersionHash = web3.utils.sha3('0.1')
+  const domainVersionHash = web3.utils.sha3('0')
+  const domainSalt = '0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2'
 
   // ABI encoded
   return web3.utils.sha3(
     web3.eth.abi.encodeParameters(
-      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
-      [domainTypeHash, domainNameHash, domainVersionHash, chainId, contractAddress],
+      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address', 'bytes32'],
+      [domainTypeHash, domainNameHash, domainVersionHash, chainId, contractAddress, domainSalt],
     ),
   )
 }
 
-function createMessage(domainSeparatorHash, attestationHash) {
-  return '0x1901' + domainSeparatorHash.substring(2) + attestationHash.substring(2)
+function createMessage(domainSeparatorHash, receiptHash) {
+  return '0x1901' + domainSeparatorHash.substring(2) + receiptHash.substring(2)
 }
 
-function createPayload(subgraphId, attestation, messageSig) {
+function createAttestation(encodedReceipt, messageSig) {
   return (
     '0x' +
-    subgraphId.substring(2) + // Subgraph ID without `0x` (32 bytes)
-    attestation.substring(2) + // Attestation
-    messageSig.substring(2)
-  ) // IEP712 : domain separator + signed attestation
+    encodedReceipt.substring(2) + // Receipt
+    messageSig.substring(2) // Signature
+  )
 }
 
-async function createDisputePayload(subgraphId, contractAddress, signer) {
-  // Attestation
-  const attestation = createAttestation()
-  const attestationHash = createAttestationHash(attestation)
+function createDisputeID(receipt, indexer) {
+  return ethers.utils.solidityKeccak256(
+    ['bytes32', 'bytes32', 'bytes32', 'address'],
+    [receipt.requestCID, receipt.responseCID, receipt.subgraphID, indexer],
+  )
+}
 
-  // Domain (EIP-712)
-  const domainSeparatorHash = createDomainSeparatorHash(contractAddress)
+async function createDispute(receipt, contractAddress, signer, indexer) {
+  // Receipt
+  const encodedReceipt = encodeReceipt(receipt)
 
-  // Message
-  const message = createMessage(domainSeparatorHash, attestationHash)
-  const messageHash = web3.utils.sha3(message)
-  const messageSig = Account.sign(messageHash, signer)
+  // Receipt signing to create the attestation
+  const message = createMessage(
+    createDomainSeparatorHash(contractAddress),
+    createReceiptHash(encodedReceipt),
+  )
 
-  // required bytes: 32 + 192 + 65 = 289
-  const payload = createPayload(subgraphId, attestation, messageSig)
+  const signingKey = new ethers.utils.SigningKey(signer)
+  const messageHash = ethers.utils.keccak256(message)
+  const signature = signingKey.signDigest(messageHash)
+  const messageSig =
+    '0x' +
+    ethers.utils.hexlify(signature.v).substring(2) +
+    signature.r.substring(2) +
+    signature.s.substring(2)
+
+  // Attestation bytes: 96 (receipt) + 65 (signature) = 161
+  const attestation = createAttestation(encodedReceipt, messageSig)
 
   return {
+    id: createDisputeID(receipt, indexer),
     signer,
-
-    // domain
-    domainSeparatorHash: domainSeparatorHash,
-
-    // subgraphId
-    subgraphId,
-
-    // attestation
     attestation,
-    attestationHash,
-
-    // message
+    receipt,
     message,
-    messageHash,
     messageSig,
-
-    // payload
-    payload,
   }
 }
 
 module.exports = {
-  createDisputePayload: createDisputePayload,
+  createDispute: createDispute,
 }

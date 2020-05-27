@@ -11,15 +11,15 @@ module.exports = {
   },
   dispute: {
     minimumDeposit: new BN('100').mul(TOKEN_UNIT),
-    rewardPercentage: 1000, // in basis points
+    fishermanRewardPercentage: 1000, // in basis points
     slashingPercentage: 1000, // in basis points
   },
   epochs: {
     lengthInBlocks: (24 * 60 * 60) / 15, // One day in blocks
   },
   staking: {
-    channelDisputePeriod: 1, // in epochs
-    maxSettlementDuration: 5, // in epochs
+    channelDisputeEpochs: 1,
+    maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
   },
   token: {

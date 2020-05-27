@@ -40,7 +40,6 @@ module.exports = async (deployer, network, accounts) => {
         governor,
         graphToken.address,
         epochManager.address,
-        curation.address,
       )
       const rewardsManager = await deployer.deploy(RewardsManager, governor)
       const disputeManager = await deployer.deploy(
@@ -50,7 +49,7 @@ module.exports = async (deployer, network, accounts) => {
         graphToken.address,
         staking.address,
         config.dispute.minimumDeposit,
-        config.dispute.rewardPercentage,
+        config.dispute.fishermanRewardPercentage,
         config.dispute.slashingPercentage,
       )
       const serviceRegistry = await deployer.deploy(ServiceRegistry, governor)
@@ -59,22 +58,20 @@ module.exports = async (deployer, network, accounts) => {
       // Set Curation parameters
       log('   Configuring Contracts')
       log('   ---------------------')
+      await executeAndLog(staking.setCuration(curation.address), '\t> Staking -> Set curation: ')
       await executeAndLog(
-        staking.setMaxSettlementDuration(config.staking.maxSettlementDuration),
-        '   > Staking -> Set maxSettlementDuration: ',
+        staking.setMaxAllocationEpochs(config.staking.maxAllocationEpochs),
+        '\t> Staking -> Set maxAllocationEpochs: ',
       )
       await executeAndLog(
         staking.setThawingPeriod(config.staking.thawingPeriod),
-        '   > Staking -> Set thawingPeriod: ',
+        '\t> Staking -> Set thawingPeriod: ',
       )
       await executeAndLog(
-        staking.setChannelDisputePeriod(config.staking.channelDisputePeriod),
-        '   > Staking -> Set channelDisputePeriod: ',
+        staking.setChannelDisputeEpochs(config.staking.channelDisputeEpochs),
+        '\t> Staking -> Set channelDisputeEpochs: ',
       )
-      await executeAndLog(
-        curation.setDistributor(staking.address),
-        '   > Curation -> Set distributor: ',
-      )
+      await executeAndLog(curation.setStaking(staking.address), '\t> Curation -> Set staking: ')
 
       // Summary
       log('\n')

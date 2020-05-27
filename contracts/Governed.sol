@@ -11,6 +11,7 @@ contract Governed {
     address public governor;
 
     event OwnershipTransferred(address indexed from, address indexed to);
+    event ParameterUpdated(string param);
 
     modifier onlyGovernor {
         require(msg.sender == governor, "Only Governor can call");

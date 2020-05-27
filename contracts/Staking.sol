@@ -17,22 +17,19 @@ import "./bytes/BytesLib.sol";
 contract Staking is Governed {
     using BytesLib for bytes;
     using SafeMath for uint256;
-    using Stakes for Stakes.IndexNode;
+    using Stakes for Stakes.Indexer;
     using Stakes for Stakes.Allocation;
     using Rebates for Rebates.Pool;
 
     // -- Stakes --
 
     struct Channel {
-        address indexNode;
+        address indexer;
         bytes32 subgraphID;
     }
 
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
-
-    // 1 basis point (0.01%) is 100 parts per million (PPM)
-    uint256 private constant BASIS_PT = 100;
 
     // -- State --
 
@@ -41,27 +38,21 @@ contract Staking is Governed {
     uint256 public curationPercentage;
 
     // Need to pass this period to claim fees in rebate pool
-    uint256 public channelDisputePeriod; // in epochs
+    uint256 public channelDisputeEpochs;
 
-    // Need to pass this period for delegators to settle
-    uint256 public maxSettlementDuration; // in epochs
+    // Maximum allocation time
+    uint256 public maxAllocationEpochs;
 
     // Time in blocks to unstake
     uint256 public thawingPeriod; // in blocks
 
-    // Total tokens staked in the protocol
-    uint256 public totalTokens;
+    // Indexer stake tracking : indexer => Stake
+    mapping(address => Stakes.Indexer) public stakes;
 
-    // Total fees collected outstanding in the protocol
-    uint256 public totalFees;
-
-    // IndexNode stake tracking
-    mapping(address => Stakes.IndexNode) public stakes;
-
-    // Payment channels
+    // Channels : channelID => Channel
     mapping(address => Channel) public channels;
 
-    // Rebate pool
+    // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
 
     // List of addresses allowed to slash stakes
@@ -74,34 +65,83 @@ contract Staking is Governed {
 
     // -- Events --
 
-    event StakeUpdate(address indexed indexNode, uint256 tokens, uint256 total);
-    event StakeLocked(address indexed indexNode, uint256 tokens, uint256 until);
+    /**
+     * @dev Emitted when `indexer` stake `tokens` amount.
+     */
+    event StakeDeposited(address indexed indexer, uint256 tokens);
 
-    event AllocationUpdated(
-        address indexed indexNode,
-        bytes32 indexed subgraphID,
-        uint256 epoch,
+    /**
+     * @dev Emitted when `indexer` unstaked and locked `tokens` amount `until` block.
+     */
+    event StakeLocked(address indexed indexer, uint256 tokens, uint256 until);
+
+    /**
+     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
+     * Tracks `reward` amount of tokens given to `beneficiary`.
+     */
+    event StakeSlashed(
+        address indexed indexer,
         uint256 tokens,
-        address channelID
+        uint256 reward,
+        address beneficiary
     );
-    // TODO: consider adding curation reward
-    event AllocationSettled(
-        address indexed indexNode,
+
+    /**
+     * @dev Emitted when `indexer` withdrew `tokens` staked amount
+     */
+    event StakeWithdrawn(address indexed indexer, uint256 tokens);
+
+    /**
+     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphID`
+     * during `epoch`.
+     * `channelID` is the address of the indexer in the channel multisig.
+     * `channelPubKey` is the public key used for routing payments to the indexer channel.
+     */
+    event AllocationCreated(
+        address indexed indexer,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 tokens,
         address channelID,
-        address from
+        bytes channelPubKey
     );
 
+    /**
+     * @dev Emitted when `indexer` settled an allocation of `tokens` amount to `subgraphID`
+     * during `epoch` using `channelID` as channel.
+     *
+     * NOTE: `from` tracks the multisig contract from where it was settled.
+     */
+    event AllocationSettled(
+        address indexed indexer,
+        bytes32 indexed subgraphID,
+        uint256 epoch,
+        uint256 tokens,
+        address channelID,
+        address from,
+        uint256 curationFees,
+        uint256 rebateFees,
+        uint256 effectiveAllocation
+    );
+
+    /**
+     * @dev Emitted when `indexer` claimed a rebate on `subgraphID` during `epoch`
+     * related to the `forEpoch` rebate pool.
+     * The rebate is for `tokens` amount and an outstanding `settlements` count are
+     * left for claim in the rebate pool.
+     */
     event RebateClaimed(
-        address indexed indexNode,
+        address indexed indexer,
         bytes32 indexed subgraphID,
         uint256 epoch,
         uint256 forEpoch,
-        uint256 tokens
+        uint256 tokens,
+        uint256 settlements
     );
 
+    /**
+     * @dev Emitted when `caller` set `slasher` address as `enabled` to slash stakes.
+     */
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     modifier onlySlasher {
@@ -111,18 +151,17 @@ contract Staking is Governed {
 
     /**
      * @dev Staking Contract Constructor
-     * @param _governor Address of the multisig contract as Governor of this contract
+     * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
-     * @param _curation Address of the Curation contract
      */
-    constructor(address _governor, address _token, address _epochManager, address _curation)
-        public
-        Governed(_governor)
-    {
+    constructor(
+        address _governor,
+        address _token,
+        address _epochManager
+    ) public Governed(_governor) {
         token = GraphToken(_token);
         epochManager = EpochManager(_epochManager);
-        curation = Curation(_curation);
     }
 
     /**
@@ -131,27 +170,41 @@ contract Staking is Governed {
      */
     function setCuration(Curation _curation) external onlyGovernor {
         curation = _curation;
+        emit ParameterUpdated("curation");
+    }
+
+    /**
+     * @dev Set the curation percentage of indexer fees sent to curators
+     * @param _percentage Percentage of indexer fees sent to curators
+     */
+    function setCurationPercentage(uint256 _percentage) external onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
+        curationPercentage = _percentage;
+        emit ParameterUpdated("curationPercentage");
     }
 
     /**
      * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
-     * @param _channelDisputePeriod Period in epochs
+     * @param _channelDisputeEpochs Period in epochs
      */
-    function setChannelDisputePeriod(uint256 _channelDisputePeriod) external onlyGovernor {
-        channelDisputePeriod = _channelDisputePeriod;
+    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
+        channelDisputeEpochs = _channelDisputeEpochs;
+        emit ParameterUpdated("channelDisputeEpochs");
     }
 
     /**
-     * @dev Set the max settlement time allowed for index nodes
-     * @param _maxSettlementDuration Settlement duration limit in epochs
+     * @dev Set the max allocation time allowed for indexers
+     * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
-    function setMaxSettlementDuration(uint256 _maxSettlementDuration) external onlyGovernor {
-        maxSettlementDuration = _maxSettlementDuration;
+    function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external onlyGovernor {
+        maxAllocationEpochs = _maxAllocationEpochs;
+        emit ParameterUpdated("maxAllocationEpochs");
     }
 
     /**
      * @dev Set an address as allowed slasher
-     * @param _slasher Address of the party allowed to slash index nodes
+     * @param _slasher Address of the party allowed to slash indexers
      * @param _allowed True if slasher is allowed
      */
     function setSlasher(address _slasher, bool _allowed) external onlyGovernor {
@@ -165,73 +218,104 @@ contract Staking is Governed {
      */
     function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
         thawingPeriod = _thawingPeriod;
+        emit ParameterUpdated("thawingPeriod");
     }
 
     /**
      * @dev Return if channelID (address) is already used
-     * @param _channelID Address used as signer for index node in payment channel
+     * @param _channelID Address used as signer for indexer in channel
      * @return True if channelID already used
      */
     function isChannel(address _channelID) public view returns (bool) {
-        return channels[_channelID].indexNode != address(0);
+        return channels[_channelID].indexer != address(0);
     }
 
     /**
-     * @dev Get if an index node has any stake
-     * @param _indexNode Address of the index node
-     * @return True if index node has staked tokens
+     * @dev Getter that returns if an indexer has any stake
+     * @param _indexer Address of the indexer
+     * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexNode) public view returns (bool) {
-        return stakes[_indexNode].hasTokens();
+    function hasStake(address _indexer) public view returns (bool) {
+        return stakes[_indexer].hasTokens();
     }
 
     /**
-     * @dev Get the total amount of tokens staked by the index node
-     * @param _indexNode Address of the index node
-     * @return Amount of tokens staked by the index node
+     * @dev Get the total amount of tokens staked by the indexer
+     * @param _indexer Address of the indexer
+     * @return Amount of tokens staked by the indexer
      */
-    function getIndexNodeStakeTokens(address _indexNode) public view returns (uint256) {
-        return stakes[_indexNode].tokens;
+    function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
+        return stakes[_indexer].tokensIndexer;
     }
 
     /**
      * @dev Get an allocation of tokens to a subgraph
-     * @param _indexNode Address of the index node
+     * @param _indexer Address of the indexer
      * @param _subgraphID ID of the subgraph to query
      * @return Allocation data
      */
-    function getAllocation(address _indexNode, bytes32 _subgraphID)
+    function getAllocation(address _indexer, bytes32 _subgraphID)
         public
         view
         returns (Stakes.Allocation memory)
     {
-        return stakes[_indexNode].allocations[_subgraphID];
+        return stakes[_indexer].allocations[_subgraphID];
     }
 
     /**
-     * @dev Slash the index node stake
-     * @param _indexNode Address of index node to slash
-     * @param _tokens Amount of tokens to slash from the index node stake
+     * @dev Get an outstanding unclaimed settlement
+     * @param _epoch Epoch when the settlement ocurred
+     * @param _indexer Address of the indexer
+     * @param _subgraphID ID of the subgraph settled
+     * @return Settlement data
+     */
+    function getSettlement(
+        uint256 _epoch,
+        address _indexer,
+        bytes32 _subgraphID
+    ) public view returns (Rebates.Settlement memory) {
+        return rebates[_epoch].settlements[_indexer][_subgraphID];
+    }
+
+    /**
+     * @dev Slash the indexer stake
+     * @param _indexer Address of indexer to slash
+     * @param _tokens Amount of tokens to slash from the indexer stake
      * @param _reward Amount of reward tokens to send to a beneficiary
      * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(address _indexNode, uint256 _tokens, uint256 _reward, address _beneficiary)
-        external
-        onlySlasher
-    {
-        uint256 tokensToSlash = _tokens;
-        Stakes.IndexNode storage stake = stakes[_indexNode];
+    function slash(
+        address _indexer,
+        uint256 _tokens,
+        uint256 _reward,
+        address _beneficiary
+    ) external onlySlasher {
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
 
-        require(stake.hasTokens(), "Slashing: index node has no stakes");
+        require(_tokens > 0, "Slashing: cannot slash zero tokens");
+        require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
+        require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
-        require(tokensToSlash >= _reward, "Slashing: reward cannot be higher than slashed amount");
-        require(tokensToSlash <= stake.tokens, "Slashing: cannot slash more than available stake");
+        require(
+            _tokens <= indexerStake.tokensSlashable(),
+            "Slashing: cannot slash more than staked amount"
+        );
 
-        // Slash stake
-        stake.releaseTokens(tokensToSlash);
+        // Slashing more tokens than freely available (over allocation condition)
+        // Unlock locked tokens to avoid the indexer to withdraw them
+        if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
+            uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
+            uint256 tokensToUnlock = (tokensOverAllocated > indexerStake.tokensLocked)
+                ? indexerStake.tokensLocked
+                : tokensOverAllocated;
+            indexerStake.unlockTokens(tokensToUnlock);
+        }
+
+        // Remove tokens to slash from the stake
+        indexerStake.release(_tokens);
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        uint256 tokensToBurn = tokensToSlash.sub(_reward);
+        uint256 tokensToBurn = _tokens.sub(_reward);
         if (tokensToBurn > 0) {
             token.burn(tokensToBurn);
         }
@@ -244,220 +328,269 @@ contract Staking is Governed {
             );
         }
 
-        emit StakeUpdate(_indexNode, tokensToSlash, stake.tokens);
+        emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
     }
 
     /**
-     * @dev Accept tokens and handle staking registration functions
-     * @param _from Token holder's address
-     * @param _value Amount of Graph Tokens
+     * @dev Deposit tokens on the indexer stake
+     * @param _tokens Amount of tokens to stake
      */
-    function tokensReceived(address _from, uint256 _value, bytes calldata _data)
-        external
-        returns (bool)
-    {
-        // Make sure the token is the caller of this function
-        require(msg.sender == address(token), "Caller is not the GRT token contract");
+    function stake(uint256 _tokens) external {
+        address indexer = msg.sender;
 
-        // If we receive funds from a channel multisig it is a settle
-        // TODO: review with how funds are sent from multisig
-        if (_data.length == 20) {
-            address channelID = _data.toAddress(0);
-            if (isChannel(channelID)) {
-                _settle(channelID, _from, _value);
-                return true;
-            }
-        }
+        require(_tokens > 0, "Staking: cannot stake zero tokens");
 
-        // Any other case is a staking of funds
-        _stake(_from, _value);
-        return true;
+        // Transfer tokens to stake from indexer to this contract
+        require(
+            token.transferFrom(indexer, address(this), _tokens),
+            "Staking: Cannot transfer tokens to stake"
+        );
+
+        // Stake the transferred tokens
+        _stake(indexer, _tokens);
+    }
+
+    /**
+     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires
+     * @param _tokens Amount of tokens to unstake
+     */
+    function unstake(uint256 _tokens) external {
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
+
+        require(indexerStake.hasTokens(), "Staking: indexer has no stakes");
+        require(
+            indexerStake.tokensAvailable() >= _tokens,
+            "Staking: not enough tokens available to unstake"
+        );
+
+        indexerStake.lockTokens(_tokens, thawingPeriod);
+
+        emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
     }
 
     /**
      * @dev Allocate available tokens to a subgraph
      * @param _subgraphID ID of the subgraph where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelID The signer address used by the IndexNode to setup the off-chain payment channel
+     * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
      */
-    function allocate(bytes32 _subgraphID, uint256 _tokens, address _channelID) external {
-        address indexNode = msg.sender;
-        Stakes.IndexNode storage stake = stakes[indexNode];
+    function allocate(
+        bytes32 _subgraphID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey
+    ) external {
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
 
+        // Only allocations with a token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
-        require(stake.hasTokens(), "Allocation: index node has no stakes");
+        // Need to have tokens in our stake to be able to allocate
+        require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
+        // Need to have free tokens not used for other purposes to allocate
         require(
-            stake.tokensAvailable() >= _tokens,
+            indexerStake.tokensAvailable() >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
+        // Can only allocate tokens to a subgraph if not currently allocated
         require(
-            stake.hasAllocation(_subgraphID) == false,
+            indexerStake.hasAllocation(_subgraphID) == false,
             "Allocation: cannot allocate if already allocated"
         );
-        require(isChannel(_channelID) == false, "Allocation: channel ID already in use");
+        // Cannot reuse a channelID that has been used in the past
+        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
+        require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
-        Stakes.Allocation storage alloc = stake.allocateTokens(_subgraphID, _tokens);
-        alloc.channelID = _channelID;
+        Stakes.Allocation storage alloc = indexerStake.allocateTokens(_subgraphID, _tokens);
+        alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[_channelID] = Channel(indexNode, _subgraphID);
+        channels[channelID] = Channel(indexer, _subgraphID);
 
-        emit AllocationUpdated(
-            indexNode,
+        emit AllocationCreated(
+            indexer,
             _subgraphID,
             alloc.createdAtEpoch,
             alloc.tokens,
-            _channelID
+            channelID,
+            _channelPubKey
         );
     }
 
     /**
-     * @dev Unstake tokens from the index node stake, lock them until thawning period expires
-     * @param _tokens Amount of tokens to unstake
+     * @dev Settle a channel after receiving collected query fees from it
+     * @param _channelID Address of the indexer in the channel
+     * @param _tokens Amount of tokens to settle
      */
-    function unstake(uint256 _tokens) external {
-        address indexNode = msg.sender;
-        Stakes.IndexNode storage stake = stakes[indexNode];
+    function settle(address _channelID, uint256 _tokens) external {
+        address channelMultisig = msg.sender;
 
-        require(stake.hasTokens(), "Staking: index node has no stakes");
+        // Receive funds from the channel multisig
+        // We use channelID to find the indexer owner of the channel
+        require(isChannel(_channelID), "Channel: does not exist");
+
+        // Transfer tokens to settle from multisig to this contract
         require(
-            stake.tokensAvailable() >= _tokens,
-            "Staking: not enough tokens available to unstake"
+            token.transferFrom(channelMultisig, address(this), _tokens),
+            "Channel: Cannot transfer tokens to settle"
         );
-
-        stake.lockTokens(_tokens, thawingPeriod);
-
-        emit StakeLocked(indexNode, stake.tokensLocked, stake.tokensLockedUntil);
+        _settle(_channelID, channelMultisig, _tokens);
     }
 
     /**
-     * @dev Withdraw tokens once the thawning period has passed
+     * @dev Withdraw tokens once the thawing period has passed
      */
     function withdraw() external {
-        address indexNode = msg.sender;
-        Stakes.IndexNode storage stake = stakes[indexNode];
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        uint256 tokensToWithdraw = stake.withdrawTokens();
+        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
-        totalTokens = totalTokens.sub(tokensToWithdraw);
+        require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
 
-        require(token.transfer(indexNode, tokensToWithdraw), "Staking: cannot transfer tokens");
-
-        emit StakeUpdate(indexNode, tokensToWithdraw, stake.tokens);
+        emit StakeWithdrawn(indexer, tokensToWithdraw);
     }
 
     /**
      * @dev Claim tokens from the rebate pool
      * @param _epoch Epoch of the rebate pool we are claiming tokens from
      * @param _subgraphID Subgraph we are claiming tokens from
-     * @param _restake True if restake fees instead of transfer to index node
+     * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claim(uint256 _epoch, bytes32 _subgraphID, bool _restake) external {
-        address indexNode = msg.sender;
+    function claim(
+        uint256 _epoch,
+        bytes32 _subgraphID,
+        bool _restake
+    ) external {
+        address indexer = msg.sender;
         Rebates.Pool storage pool = rebates[_epoch];
-        Rebates.Settlement storage settlement = pool.settlements[indexNode][_subgraphID];
+        Rebates.Settlement storage settlement = pool.settlements[indexer][_subgraphID];
 
         (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
 
         require(
-            epochsSinceSettlement >= channelDisputePeriod,
+            epochsSinceSettlement >= channelDisputeEpochs,
             "Rebate: need to wait channel dispute period"
         );
+
         require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Process rebate
-        uint256 tokensToClaim = pool.releaseTokens(indexNode, _subgraphID);
-        require(tokensToClaim > 0, "Rebate: no tokens available to claim");
+        uint256 tokensToClaim = pool.redeem(indexer, _subgraphID);
 
-        // All settlements processed then prune rebate pool
+        // When all settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
             delete rebates[_epoch];
         }
 
-        // Update global counter of collected fees
-        totalFees = totalFees.sub(tokensToClaim);
-
-        // Assign claimed tokens
-        if (_restake) {
-            // Restake to place fees into the index node stake
-            _stake(indexNode, tokensToClaim);
-        } else {
-            // Transfer funds back to the index node
-            require(token.transfer(indexNode, tokensToClaim), "Rebate: cannot transfer tokens");
+        // When there are tokens to claim from the rebate pool, transfer or restake
+        if (tokensToClaim > 0) {
+            // Assign claimed tokens
+            if (_restake) {
+                // Restake to place fees into the indexer stake
+                _stake(indexer, tokensToClaim);
+            } else {
+                // Transfer funds back to the indexer
+                require(token.transfer(indexer, tokensToClaim), "Rebate: cannot transfer tokens");
+            }
         }
 
-        emit RebateClaimed(indexNode, _subgraphID, currentEpoch, _epoch, tokensToClaim);
+        emit RebateClaimed(
+            indexer,
+            _subgraphID,
+            currentEpoch,
+            _epoch,
+            tokensToClaim,
+            pool.settlementsCount
+        );
     }
 
     /**
-     * @dev Stake tokens on the index node
-     * @param _indexNode Address of staking party
+     * @dev Stake tokens on the indexer
+     * @param _indexer Address of staking party
      * @param _tokens Amount of tokens to stake
      */
-    function _stake(address _indexNode, uint256 _tokens) private {
-        Stakes.IndexNode storage stake = stakes[_indexNode];
+    function _stake(address _indexer, uint256 _tokens) private {
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+        indexerStake.deposit(_tokens);
 
-        stake.depositTokens(_tokens);
-        totalTokens = totalTokens.add(_tokens);
-
-        emit StakeUpdate(_indexNode, _tokens, stake.tokens);
+        emit StakeDeposited(_indexer, _tokens);
     }
 
     /**
      * @dev Settle a channel after receiving collected query fees from it
-     * @param _channelID ChannelID - address of the index node in the channel
+     * @param _channelID ChannelID - address of the indexer in the channel
      * @param _from Multisig channel address that triggered settlement
      * @param _tokens Amount of tokens to settle
      */
-    function _settle(address _channelID, address _from, uint256 _tokens) private {
-        address indexNode = channels[_channelID].indexNode;
+    function _settle(
+        address _channelID,
+        address _from,
+        uint256 _tokens
+    ) private {
+        address indexer = channels[_channelID].indexer;
         bytes32 subgraphID = channels[_channelID].subgraphID;
-        Stakes.IndexNode storage stake = stakes[indexNode];
-        Stakes.Allocation storage alloc = stake.allocations[subgraphID];
+        Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphID];
 
-        require(alloc.hasChannel(), "Channel: Must be active for settlement");
+        require(_channelID != address(0), "Channel: ChannelID cannot be empty address");
+        require(
+            alloc.channelID == _channelID,
+            "Channel: The allocation has no channel, or the channel was already settled"
+        );
+        require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Time conditions
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
         // Calculate curation fees
-        uint256 curationFees = (curation.isSubgraphCurated(subgraphID))
+        uint256 curationFees = (isCurationEnabled() && curation.isSubgraphCurated(subgraphID))
             ? curationPercentage.mul(_tokens).div(MAX_PPM)
             : 0;
 
         // Set apart fees into a rebate pool
         uint256 rebateFees = _tokens.sub(curationFees);
-        rebates[currentEpoch].depositTokens(
-            indexNode,
-            subgraphID,
-            rebateFees,
-            alloc.getTokensEffectiveAllocation(epochs, maxSettlementDuration)
+        uint256 effectiveAllocation = alloc.getTokensEffectiveAllocation(
+            epochs,
+            maxAllocationEpochs
         );
-
-        // Update global counter of collected fees
-        totalFees = totalFees.add(rebateFees);
+        rebates[currentEpoch].add(indexer, subgraphID, rebateFees, effectiveAllocation);
 
         // Close channel
-        stake.unallocateTokens(subgraphID, alloc.tokens);
+        // NOTE: Channels used are never deleted from state tracked in `channels` var
+        stakes[indexer].unallocateTokens(subgraphID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
-        delete channels[_channelID]; //TODO: send multisig one-shot invalidation
+        // TODO: send multisig one-shot invalidation
 
         // Send curation fees to the curator subgraph reserve
         if (curationFees > 0) {
-            require(
-                token.transferToTokenReceiver(
-                    address(curation),
-                    curationFees,
-                    abi.encodePacked(subgraphID)
-                ),
-                "Channel: Could not transfer tokens to Curators"
-            );
+            // TODO: the approve call can be optimized by approving the curation contract to fetch
+            // funds from the Staking contract for infinity funds just once for a security tradeoff
+            require(token.approve(address(curation), curationFees));
+            curation.collect(subgraphID, curationFees);
         }
 
-        emit AllocationSettled(indexNode, subgraphID, currentEpoch, _tokens, _channelID, _from);
+        emit AllocationSettled(
+            indexer,
+            subgraphID,
+            currentEpoch,
+            _tokens,
+            _channelID,
+            _from,
+            curationFees,
+            rebateFees,
+            effectiveAllocation
+        );
+    }
+
+    /**
+     * @dev Get whether curation rewards are active or not
+     * @return true if curation fees are enabled
+     */
+    function isCurationEnabled() private view returns (bool) {
+        return curationPercentage > 0 && address(curation) != address(0);
     }
 
     /**
@@ -470,5 +603,16 @@ contract Staking is Governed {
             id := chainid()
         }
         return id;
+    }
+
+    /**
+     * @dev Convert an uncompressed public key to an Ethereum address
+     * @param _publicKey Public key in uncompressed format without the 1 byte prefix
+     * @return An Ethereum address corresponding to the public key
+     */
+    function publicKeyToAddress(bytes memory _publicKey) private pure returns (address) {
+        uint256 mask = 2**(8 * 21) - 1;
+        uint256 value = uint256(keccak256(_publicKey));
+        return address(value & mask);
     }
 }

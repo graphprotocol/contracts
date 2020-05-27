@@ -1,16 +1,8 @@
 {
-    "package_name": "graphprotocol",
-    "version": "0.0.1",
-    "description": "Contracts for the Graph Protocol (https://thegraph.com/)",
-    "authors": [
-        "Bryant Eisenbach (@fubuloubu)",
-        "Reuven Etzion (@retzion)",
-        "Ashoka Finley (@shkfnly)"
-    ],
-    "keywords": [
-        "graphQL",
-        "dapp",
-        "query"
-    ],
-    "license": "MIT"
+  "package_name": "graphprotocol",
+  "version": "0.1.0",
+  "description": "Contracts for the Graph Protocol",
+  "authors": [],
+  "keywords": ["graphQL", "dapp", "query"],
+  "license": "MIT"
 }
