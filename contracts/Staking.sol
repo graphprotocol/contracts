@@ -538,7 +538,6 @@ contract Staking is Governed {
             alloc.channelID == _channelID,
             "Channel: The allocation has no channel, or the channel was already settled"
         );
-        require(settlement.allocation > 0, "Rebate: settlement does not exist");
 
         // Time conditions
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
