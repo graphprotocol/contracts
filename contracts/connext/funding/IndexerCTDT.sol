@@ -6,9 +6,9 @@ import "./state-deposit-holders/MinimumViableMultisig.sol";
 import "../adjudicator/ChallengeRegistry.sol";
 import "./libs/LibOutcome.sol";
 
-contract IndexerCTDT is MultisigData {
 
-    uint256 constant MAX_UINT256 = 2 ** 256 - 1;
+contract IndexerCTDT is MultisigData {
+    uint256 constant MAX_UINT256 = 2**256 - 1;
 
     struct FreeBalanceAppState {
         address[] tokenAddresses;
@@ -25,14 +25,14 @@ contract IndexerCTDT is MultisigData {
     }
 
     function executeWithdraw(
-        address /* interpreterAddress */,
-        bytes32 /* nonce */,
+        address, /* interpreterAddress */
+        bytes32, /* nonce */
         bytes memory encodedOutput,
         bytes memory encodedParams
-    )
-        public
-    {
-        address withdrawInterpreter = MinimumViableMultisig(masterCopy).INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
+    ) public {
+        require(false == true, "IndexerCTDT::executeWithdraw");
+        address withdrawInterpreter = MinimumViableMultisig(masterCopy)
+            .INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
         (bool success, ) = withdrawInterpreter.delegatecall(
             abi.encodeWithSignature(
                 "interpretOutcomeAndExecuteEffect(bytes,bytes)",
@@ -41,29 +41,23 @@ contract IndexerCTDT is MultisigData {
             )
         );
 
-        require(
-            success,
-            "Execution of executeWithdraw failed"
-        );
+        require(success, "Execution of executeWithdraw failed");
     }
 
     function executeEffectOfFreeBalance(
         ChallengeRegistry challengeRegistry,
         bytes32 freeBalanceAppIdentityHash,
         address /* multiAssetMultiPartyCoinTransferInterpreterAddress */
-    )
-        public
-    {
+    ) public {
         FreeBalanceAppState memory freeBalanceAppState = abi.decode(
             challengeRegistry.getOutcome(freeBalanceAppIdentityHash),
             (FreeBalanceAppState)
         );
 
-        uint256[] memory limits = new uint256[](
-            freeBalanceAppState.tokenAddresses.length
-        );
+        uint256[] memory limits = new uint256[](freeBalanceAppState.tokenAddresses.length);
 
-        address multiAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS();
+        address multiAssetInterpreter = MinimumViableMultisig(masterCopy)
+            .INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < freeBalanceAppState.tokenAddresses.length; i++) {
             // The transaction's interpreter parameters are determined at the time
@@ -86,10 +80,7 @@ contract IndexerCTDT is MultisigData {
             )
         );
 
-        require(
-            success,
-            "Execution of executeEffectOfFreeBalance failed"
-        );
+        require(success, "Execution of executeEffectOfFreeBalance failed");
     }
 
     /// @notice Execute a fund transfer for a state channel app in a finalized state
@@ -98,19 +89,17 @@ contract IndexerCTDT is MultisigData {
         ChallengeRegistry challengeRegistry,
         bytes32 freeBalanceAppIdentityHash,
         bytes32 appIdentityHash,
-        address /* interpreterAddress */,
+        address, /* interpreterAddress */
         bytes memory interpreterParams
-    )
-        public
-    {
-        bytes32[] memory activeApps = abi.decode(
-            challengeRegistry.getOutcome(freeBalanceAppIdentityHash),
-            (FreeBalanceAppState)
-        ).activeApps;
+    ) public {
+        bytes32[] memory activeApps = abi
+            .decode(challengeRegistry.getOutcome(freeBalanceAppIdentityHash), (FreeBalanceAppState))
+            .activeApps;
 
         bool appIsFunded = false;
 
-        address singleAssetInterpreter = MinimumViableMultisig(masterCopy).INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS();
+        address singleAssetInterpreter = MinimumViableMultisig(masterCopy)
+            .INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS();
 
         for (uint256 i = 0; i < activeApps.length; i++) {
             if (activeApps[i] == appIdentityHash) {
@@ -130,9 +119,6 @@ contract IndexerCTDT is MultisigData {
             )
         );
 
-        require(
-            success,
-            "Execution of executeEffectOfInterpretedAppOutcome failed"
-        );
+        require(success, "Execution of executeEffectOfInterpretedAppOutcome failed");
     }
 }
