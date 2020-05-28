@@ -1,4 +1,5 @@
 const BN = web3.utils.BN
+const { utils } = require('ethers')
 const { MultisigOperation, CommitmentTarget } = require('@connext/types')
 const { getRandomPrivateKey, ChannelSigner } = require('@connext/utils')
 const WithdrawInterpreter = require('../../build/IndexerWithdrawInterpreter.json')
@@ -91,14 +92,25 @@ class MiniCommitment {
     switch (commitmentType) {
       case 'withdraw': {
         // Destructure withdrawal commitment params
-        const { withdrawInterpreter, amount, assetId, recipient } = params
+        const { withdrawInterpreterAddress, amount, assetId, recipient, ctdt } = params
 
         // Return properly encoded transaction values
-        const interpreter = new web3.eth.Contract(WithdrawInterpreter.abi, withdrawInterpreter)
+        const ctdtInterface = new utils.Interface(ctdt.abi)
         return {
-          to: withdrawInterpreter,
+          to: ctdt.address,
           value: 0,
-          data: interpreter.methods.multisigTransfer(recipient, assetId, amount).encodeABI(),
+          data: ctdtInterface.functions.executeWithdraw.encode([
+            withdrawInterpreterAddress,
+            utils.randomBytes(32), // nonce
+            utils.solidityKeccak256(
+              ["address", "uint256"],
+              [recipient, utils.bigNumberify(amount)]
+            ),
+            utils.solidityKeccak256(
+              ["uint256", "address"],
+              [utils.bigNumberify(amount), assetId]
+            )
+          ]),
           operation: MultisigOperation.DelegateCall,
         }
       }
@@ -114,18 +126,18 @@ class MiniCommitment {
     const { to, value, data, operation } = details
 
     // Generate properly hashed digest from tx details
-    const dataHash = web3.utils.soliditySha3({ type: 'bytes', value: data })
-    const digest = web3.utils.keccak256(
-      web3.utils.soliditySha3(
-        { type: 'uint8', value: CommitmentTarget.MULTISIG },
-        { type: 'address', value: this.multisigAddress },
-        { type: 'address', value: to },
-        { type: 'uint256', value },
-        { type: 'bytes32', value: dataHash },
-        { type: 'uint8', value: operation },
-      ),
-    )
-    return digest
+    const encoded = utils.solidityPack(
+      ["uint8", "address", "address", "uint256", "bytes32", "uint8"],
+      [
+        "0",
+        this.multisigAddress,
+        to,
+        value,
+        utils.solidityKeccak256(["bytes"], [data]),
+        operation,
+      ],
+    );
+    return utils.keccak256(encoded)
   }
 
   async getSignedTransaction(commitmentType, params) {
@@ -138,10 +150,14 @@ class MiniCommitment {
     const signatures = await Promise.all(this.owners.map(owner => owner.signMessage(digest)))
 
     // Encode call to execute transaction
-    const multisig = new web3.eth.Contract(Multisig.abi, this.multisigAddress)
-    const txData = multisig.methods
-      .execTransaction(details.to, details.value, details.data, details.operation, signatures)
-      .encodeABI()
+    const multisig = new utils.Interface(Multisig.abi)
+    const txData = multisig.functions.execTransaction.encode([
+      details.to,
+      details.value,
+      details.data,
+      details.operation,
+      signatures
+    ]);
 
     return { to: this.multisigAddress, value: 0, data: txData }
   }
