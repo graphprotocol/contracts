@@ -1,14 +1,13 @@
 import { expect } from 'chai'
 import { AddressZero } from 'ethers/constants'
-import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
-import { toGRT } from './lib/testHelpers'
+import { provider, toGRT } from './lib/testHelpers'
 
 describe('GraphToken', () => {
-  const [me, governor] = buidler.provider.getWallets()
+  const [me, governor] = provider().getWallets()
 
   let grt: GraphToken
 

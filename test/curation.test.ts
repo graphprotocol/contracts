@@ -1,16 +1,15 @@
 import { expect } from 'chai'
-import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { Curation } from '../build/typechain/contracts/Curation'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
-import { defaults, randomSubgraphId, toBN, toGRT } from './lib/testHelpers'
+import { defaults, provider, randomHexBytes, toBN, toGRT } from './lib/testHelpers'
 
 const MAX_PPM = 1000000
 
 describe('Curation', () => {
-  const [me, other, governor, curator, staking] = buidler.provider.getWallets()
+  const [me, other, governor, curator, staking] = provider().getWallets()
 
   let curation: Curation
   let grt: GraphToken
@@ -34,7 +33,7 @@ describe('Curation', () => {
     await grt.connect(staking).approve(curation.address, this.curatorTokens)
 
     // Randomize a subgraphId
-    this.subgraphID = randomSubgraphId()
+    this.subgraphID = randomHexBytes()
   })
 
   describe('configuration', function() {
@@ -116,7 +115,7 @@ describe('Curation', () => {
 
   context('> bonding curve', function() {
     beforeEach(function() {
-      this.subgraphID = randomSubgraphId()
+      this.subgraphID = randomHexBytes()
     })
 
     it('convert shares to tokens', async function() {

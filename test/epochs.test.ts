@@ -5,10 +5,17 @@ import { waffle as buidler } from '@nomiclabs/buidler'
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 
 import * as deployment from './lib/deployment'
-import { advanceBlock, advanceBlockTo, defaults, latestBlock, toBN } from './lib/testHelpers'
+import {
+  advanceBlock,
+  advanceBlockTo,
+  defaults,
+  latestBlock,
+  provider,
+  toBN,
+} from './lib/testHelpers'
 
 describe('EpochManager', () => {
-  const [me, governor] = buidler.provider.getWallets()
+  const [me, governor] = provider().getWallets()
 
   let epochManager: EpochManager
 

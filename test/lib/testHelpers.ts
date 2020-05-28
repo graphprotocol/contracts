@@ -3,15 +3,20 @@ import { BigNumber, bigNumberify, hexlify, randomBytes, parseEther, parseUnits }
 
 export const toBN = (value: string | number) => bigNumberify(value)
 export const toGRT = (value: string): BigNumber => parseUnits(value, '18')
-export const randomSubgraphId = () => hexlify(randomBytes(32))
+export const randomHexBytes = (n: number = 32) => hexlify(randomBytes(n))
 export const logStake = (stakes: any) =>
   Object.entries(stakes).map(([k, v]) => {
     console.log(k, ':', parseEther(v as string))
   })
 
+// Network
+
 export const provider = () => buidler.provider
 
-// Blocks
+export const getChainID = (): Promise<string | number> =>
+  provider()
+    .getNetwork()
+    .then(r => r.chainId)
 
 export const latestBlock = () =>
   provider()

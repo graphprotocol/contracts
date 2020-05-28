@@ -14,7 +14,7 @@ import StakingArtifact from '../../build/contracts/Staking.json'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GNS } from '../../build/typechain/contracts/GNS'
+import { Gns } from '../../build/typechain/contracts/GNS'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
@@ -69,8 +69,8 @@ export function deployEpochManager(owner: string, wallet: ethers.Wallet): Promis
   ]) as Promise<EpochManager>
 }
 
-export function deployGNS(owner: string, wallet: ethers.Wallet): Promise<GNS> {
-  return deployContract(wallet, GNSArtifact, [owner]) as Promise<GNS>
+export function deployGNS(owner: string, wallet: ethers.Wallet): Promise<Gns> {
+  return deployContract(wallet, GNSArtifact, [owner]) as Promise<Gns>
 }
 
 export function deployServiceRegistry(wallet: ethers.Wallet): Promise<ServiceRegistry> {
@@ -78,21 +78,21 @@ export function deployServiceRegistry(wallet: ethers.Wallet): Promise<ServiceReg
 }
 
 export async function deployStaking(
-  owner: string,
+  owner: ethers.Wallet,
   graphToken: string,
   epochManager: string,
   curation: string,
   wallet: ethers.Wallet,
 ): Promise<Staking> {
   const contract: Staking = (await deployContract(wallet, StakingArtifact, [
-    owner,
+    owner.address,
     graphToken,
     epochManager,
   ])) as Staking
 
-  await contract.setCuration(curation)
-  await contract.setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
-  await contract.setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
-  await contract.setThawingPeriod(defaults.staking.thawingPeriod)
+  await contract.connect(owner).setCuration(curation)
+  await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
+  await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
+  await contract.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
   return contract
 }

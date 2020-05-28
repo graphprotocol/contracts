@@ -1,12 +1,12 @@
 import { expect } from 'chai'
-import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
 
 import * as deployment from './lib/deployment'
+import { provider } from './lib/testHelpers'
 
 describe('ServiceRegistry', () => {
-  const [governor, indexer] = buidler.provider.getWallets()
+  const [governor, indexer] = provider().getWallets()
 
   let serviceRegistry: ServiceRegistry
   let geohash: string = '69y7hdrhm6mp'
