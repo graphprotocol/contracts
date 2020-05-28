@@ -72,6 +72,10 @@ module.exports = async (deployer, network, accounts) => {
         '\t> Staking -> Set channelDisputeEpochs: ',
       )
       await executeAndLog(curation.setStaking(staking.address), '\t> Curation -> Set staking: ')
+      await executeAndLog(
+        curation.setWithdrawalFeePercentage(config.curation.withdrawalFeePercentage),
+        '\t> Curation -> Set withdrawalFeePercentage: ',
+      )
 
       // Summary
       log('\n')
