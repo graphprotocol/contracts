@@ -11,11 +11,9 @@ import "./Governed.sol";
 import "./GraphToken.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
-import "./bytes/BytesLib.sol";
 
 
 contract Staking is Governed {
-    using BytesLib for bytes;
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Stakes for Stakes.Allocation;
