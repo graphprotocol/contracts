@@ -15,20 +15,6 @@ contract('Indexer Channel Operations', ([governor]) => {
     // Deploy graph token
     this.token = await deployment.deployGRT(governor, { from: governor })
 
-    // Deploy epoch contract
-    this.epochManager = await deployment.deployEpochManagerContract(governor, {
-      from: governor,
-    })
-
-    // Deploy staking contract
-    this.staking = await deployment.deployStakingContract(
-      governor,
-      this.token.address,
-      this.epochManager.address,
-      ZERO_ADDRESS,
-      { from: governor },
-    )
-
     // Get channel signers
     const [node, indexer] = await channel.getRandomFundedChannelSigners(
       2,
@@ -39,20 +25,24 @@ contract('Indexer Channel Operations', ([governor]) => {
     this.node = node
     this.indexer = indexer
 
-    // Deploy indexer multisig + interpreters
+    // Deploy indexer multisig + CTDT + interpreters
     const channelContracts = await deployment.deployIndexerMultisigWithContext(
-      this.node.address,
-      this.node.address,
+      this.node.address
     )
     this.multisig = channelContracts.multisig
+    this.indexerCTDT = channelContracts.ctdt
     this.interpreters = {
       singleAsset: channelContracts.singleAssetInterpreter,
       multiAsset: channelContracts.multiAssetInterpreter,
       withdraw: channelContracts.withdrawInterpreter,
     }
+    this.mockStaking = channelContracts.mockStaking
 
     // Setup the multisig
     await this.multisig.setup([this.node.address, this.indexer.address])
+
+    // Add channel to mock staking contract
+    await this.mockStaking.setChannel(this.indexer.address)  
 
     // Helpers
   })
@@ -93,9 +83,10 @@ contract('Indexer Channel Operations', ([governor]) => {
       const commitmentType = 'withdraw'
       const params = {
         assetId: this.token.address,
-        amount: new BN(5),
+        amount: 5,
         recipient: this.node.address,
-        withdrawInterpreter: this.interpreters.withdraw.address,
+        withdrawInterpreterAddress: this.interpreters.withdraw.address,
+        ctdt: this.indexerCTDT
       }
       const tx = await commitment.getSignedTransaction(commitmentType, params)
 
