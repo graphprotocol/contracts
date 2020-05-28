@@ -103,13 +103,10 @@ class MiniCommitment {
             withdrawInterpreterAddress,
             utils.randomBytes(32), // nonce
             utils.solidityKeccak256(
-              ["address", "uint256"],
-              [recipient, utils.bigNumberify(amount)]
+              ['address', 'uint256'],
+              [recipient, utils.bigNumberify(amount)],
             ),
-            utils.solidityKeccak256(
-              ["uint256", "address"],
-              [utils.bigNumberify(amount), assetId]
-            )
+            utils.solidityKeccak256(['uint256', 'address'], [utils.bigNumberify(amount), assetId]),
           ]),
           operation: MultisigOperation.DelegateCall,
         }
@@ -127,16 +124,9 @@ class MiniCommitment {
 
     // Generate properly hashed digest from tx details
     const encoded = utils.solidityPack(
-      ["uint8", "address", "address", "uint256", "bytes32", "uint8"],
-      [
-        "0",
-        this.multisigAddress,
-        to,
-        value,
-        utils.solidityKeccak256(["bytes"], [data]),
-        operation,
-      ],
-    );
+      ['uint8', 'address', 'address', 'uint256', 'bytes32', 'uint8'],
+      ['0', this.multisigAddress, to, value, utils.solidityKeccak256(['bytes'], [data]), operation],
+    )
     return utils.keccak256(encoded)
   }
 
@@ -156,8 +146,8 @@ class MiniCommitment {
       details.value,
       details.data,
       details.operation,
-      signatures
-    ]);
+      signatures,
+    ])
 
     return { to: this.multisigAddress, value: 0, data: txData }
   }

@@ -26,9 +26,7 @@ contract('Indexer Channel Operations', ([governor]) => {
     this.indexer = indexer
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployment.deployIndexerMultisigWithContext(
-      this.node.address
-    )
+    const channelContracts = await deployment.deployIndexerMultisigWithContext(this.node.address)
     this.multisig = channelContracts.multisig
     this.indexerCTDT = channelContracts.ctdt
     this.interpreters = {
@@ -42,7 +40,7 @@ contract('Indexer Channel Operations', ([governor]) => {
     await this.multisig.setup([this.node.address, this.indexer.address])
 
     // Add channel to mock staking contract
-    await this.mockStaking.setChannel(this.indexer.address)  
+    await this.mockStaking.setChannel(this.indexer.address)
 
     // Helpers
   })
@@ -86,7 +84,7 @@ contract('Indexer Channel Operations', ([governor]) => {
         amount: 5,
         recipient: this.node.address,
         withdrawInterpreterAddress: this.interpreters.withdraw.address,
-        ctdt: this.indexerCTDT
+        ctdt: this.indexerCTDT,
       }
       const tx = await commitment.getSignedTransaction(commitmentType, params)
 
