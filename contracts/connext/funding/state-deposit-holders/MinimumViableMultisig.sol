@@ -129,12 +129,9 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         if (isNodeIndexerMultisig) {
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
 
-            require(false == true, "isNodeIndexerMultisig");
-
             // Transactions from node-indexer multisigs get redirected to special CTDT contract
             execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
         } else {
-            require(false == true, "!isNodeIndexerMultisig");
             execute(to, value, data, operation);
         }
     }
@@ -178,7 +175,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         if (operation == Operation.Call) {
             require(executeCall(to, value, data), "executeCall failed");
         } else if (operation == Operation.DelegateCall) {
-            require(executeDelegateCall(to, data), "executeDelegateCall failed");
+            executeDelegateCall(to, data);
         }
     }
 
