@@ -175,7 +175,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         if (operation == Operation.Call) {
             require(executeCall(to, value, data), "executeCall failed");
         } else if (operation == Operation.DelegateCall) {
-            executeDelegateCall(to, data);
+            require(executeDelegateCall(to, data), "executeDelegateCall failed");
         }
     }
 
