@@ -6,7 +6,6 @@ import "../../shared/libs/LibCommitment.sol";
 import "../../shared/libs/LibChannelCrypto.sol";
 import "../../../Staking.sol";
 
-
 /// @title MinimumViableMultisig - A multisig wallet supporting the minimum
 /// features required for state channels support
 /// @author Liam Horne - <liam@l4v.io>
@@ -140,10 +139,13 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             _owners[0] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1]) ||
             _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])
         );
+        // require( false == true, "af HEREE!");
 
         if (isNodeIndexerMultisig) {
 
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
+
+            require( false == true, "GOT HEREE!");
 
             // Transactions from node-indexer multisigs get redirected to special CTDT contract
             execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
