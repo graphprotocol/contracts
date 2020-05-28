@@ -6,6 +6,7 @@ import "../../shared/libs/LibCommitment.sol";
 import "../../shared/libs/LibChannelCrypto.sol";
 import "../../../Staking.sol";
 
+
 /// @title MinimumViableMultisig - A multisig wallet supporting the minimum
 /// features required for state channels support
 /// @author Liam Horne - <liam@l4v.io>
@@ -15,7 +16,6 @@ import "../../../Staking.sol";
 /// (c) Does not use on-chain address for signature verification
 /// (d) Uses hash-based instead of nonce-based replay protection
 contract MinimumViableMultisig is MultisigData, LibCommitment {
-
     using LibChannelCrypto for bytes32;
 
     mapping(bytes32 => bool) isExecuted;
@@ -30,12 +30,9 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     address public INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
     address public INDEXER_WITHDRAW_INTERPRETER_ADDRESS;
 
-    enum Operation {
-        Call,
-        DelegateCall
-    }
+    enum Operation { Call, DelegateCall }
 
-    receive() external payable { }
+    receive() external payable {}
 
     /// @notice Contract constructor (mastercopy)
     /// @param node Node signing address
@@ -60,7 +57,6 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         INDEXER_WITHDRAW_INTERPRETER_ADDRESS = withdrawInterpreter;
     }
 
-
     /// @notice Contract constructor (proxy instance)
     /// @param owners An array of unique addresses representing the multisig owners
     function setup(address[] memory owners) public {
@@ -70,10 +66,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Modifier to revert if caller is not staking contract
     modifier onlyStaking {
-        require(
-            msg.sender == INDEXER_STAKING_ADDRESS,
-            "Caller must be the staking contract"
-        );
+        require(msg.sender == INDEXER_STAKING_ADDRESS, "Caller must be the staking contract");
         _;
     }
 
@@ -112,19 +105,9 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         bytes memory data,
         Operation operation,
         bytes[] memory signatures
-    )
-        public
-    {
-        bytes32 transactionHash = getTransactionHash(
-            to,
-            value,
-            data,
-            operation
-        );
-        require(
-            !isExecuted[transactionHash],
-            "Transacation has already been executed"
-        );
+    ) public {
+        bytes32 transactionHash = getTransactionHash(to, value, data, operation);
+        require(!isExecuted[transactionHash], "Transacation has already been executed");
 
         isExecuted[transactionHash] = true;
 
@@ -135,25 +118,24 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             );
         }
 
-        bool isNodeIndexerMultisig = _owners.length == 2 && (
-            _owners[0] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1]) ||
-            _owners[1] == NODE_ADDRESS && Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])
-        );
+        bool isNodeIndexerMultisig = _owners.length == 2 &&
+            ((_owners[0] == NODE_ADDRESS &&
+                Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1])) ||
+                (_owners[1] == NODE_ADDRESS &&
+                    Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])));
+
         // require( false == true, "af HEREE!");
 
         if (isNodeIndexerMultisig) {
-
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
 
-            require( false == true, "GOT HEREE!");
+            require(false == true, "isNodeIndexerMultisig");
 
             // Transactions from node-indexer multisigs get redirected to special CTDT contract
             execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
-
         } else {
-
+            require(false == true, "!isNodeIndexerMultisig");
             execute(to, value, data, operation);
-
         }
     }
 
@@ -166,30 +148,23 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         uint256 value,
         bytes memory data,
         Operation operation
-    )
-        public
-        view
-        returns (bytes32)
-    {
-        return keccak256(
-            abi.encodePacked(
-                uint8(CommitmentTarget.MULTISIG),
-                address(this),
-                to,
-                value,
-                keccak256(data),
-                uint8(operation)
-            )
-        );
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    uint8(CommitmentTarget.MULTISIG),
+                    address(this),
+                    to,
+                    value,
+                    keccak256(data),
+                    uint8(operation)
+                )
+            );
     }
 
     /// @notice A getter function for the owners of the multisig
     /// @return An array of addresses representing the owners
-    function getOwners()
-        public
-        view
-        returns (address[] memory)
-    {
+    function getOwners() public view returns (address[] memory) {
         return _owners;
     }
 
@@ -199,9 +174,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
         uint256 value,
         bytes memory data,
         Operation operation
-    )
-        internal
-    {
+    ) internal {
         if (operation == Operation.Call) {
             require(executeCall(to, value, data), "executeCall failed");
         } else if (operation == Operation.DelegateCall) {
@@ -211,10 +184,11 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Execute a CALL on behalf of the multisignature wallet
     /// @return success A boolean indicating if the transaction was successful or not
-    function executeCall(address to, uint256 value, bytes memory data)
-        internal
-        returns (bool success)
-    {
+    function executeCall(
+        address to,
+        uint256 value,
+        bytes memory data
+    ) internal returns (bool success) {
         assembly {
             success := call(not(0), to, value, add(data, 0x20), mload(data), 0, 0)
         }
@@ -222,13 +196,9 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Execute a DELEGATECALL on behalf of the multisignature wallet
     /// @return success A boolean indicating if the transaction was successful or not
-    function executeDelegateCall(address to, bytes memory data)
-        internal
-        returns (bool success)
-    {
+    function executeDelegateCall(address to, bytes memory data) internal returns (bool success) {
         assembly {
             success := delegatecall(not(0), to, add(data, 0x20), mload(data), 0, 0)
         }
     }
-
 }
