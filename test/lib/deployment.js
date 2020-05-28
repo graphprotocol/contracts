@@ -12,6 +12,7 @@ const SingleAssetInterpreter = artifacts.require('./IndexerSingleAssetInterprete
 const MultiAssetInterpreter = artifacts.require('./IndexerMultiAssetInterpreter.sol')
 const WithdrawInterpreter = artifacts.require('./IndexerWithdrawInterpreter.sol')
 const MockStaking = artifacts.require('./MockStaking.sol')
+const Proxy = artifacts.require('./Proxy.sol')
 
 // helpers
 const { defaults } = require('./testHelpers')
@@ -32,6 +33,10 @@ function deployIndexerMultisig(
     multiAssetInterpreter,
     withdrawInterpreter,
   )
+}
+
+function deployProxy(masterCopy) {
+  return Proxy.new(masterCopy)
 }
 
 function deployIndexerCTDT() {
@@ -61,7 +66,6 @@ async function deployIndexerMultisigWithContext(node) {
   const withdrawInterpreter = await deployWithdrawInterpreter()
   const mockStaking = await deployMockStaking()
 
-  // deploy multisig
   const multisig = await deployIndexerMultisig(
     node,
     mockStaking.address,
@@ -71,13 +75,16 @@ async function deployIndexerMultisigWithContext(node) {
     withdrawInterpreter.address,
   )
 
+  const proxy = await deployProxy(multisig.address)
+
   return {
     ctdt,
     singleAssetInterpreter,
     multiAssetInterpreter,
     withdrawInterpreter,
     mockStaking,
-    multisig,
+    multisig: proxy,
+    masterCopy: multisig,
   }
 }
 

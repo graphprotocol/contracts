@@ -26,6 +26,7 @@ contract('Indexer Channel Operations', ([governor]) => {
     // Deploy indexer multisig + CTDT + interpreters
     const channelContracts = await deployment.deployIndexerMultisigWithContext(this.node.address)
     this.multisig = channelContracts.multisig
+    this.masterCopy = channelContracts.masterCopy
     this.indexerCTDT = channelContracts.ctdt
     this.interpreters = {
       singleAsset: channelContracts.singleAssetInterpreter,
@@ -35,7 +36,7 @@ contract('Indexer Channel Operations', ([governor]) => {
     this.mockStaking = channelContracts.mockStaking
 
     // Setup the multisig
-    await this.multisig.setup([this.node.address, this.indexer.address])
+    await this.masterCopy.setup([this.node.address, this.indexer.address])
 
     // Add channel to mock staking contract
     await this.mockStaking.setChannel(this.indexer.address)
@@ -68,7 +69,7 @@ contract('Indexer Channel Operations', ([governor]) => {
 
     it('node should be able to withdraw eth', async function() {})
 
-    it('node should be able to withdraw tokens', async function() {
+    it.only('node should be able to withdraw tokens', async function() {
       // Generate withdrawal commitment for node
       const commitment = new channel.MiniCommitment(this.multisig.address, [
         this.node,
@@ -90,8 +91,23 @@ contract('Indexer Channel Operations', ([governor]) => {
         commitmentType,
         params,
       )
-      const hash = await this.multisig.getTransactionHash(to, value, data, operation)
+      const hash = await this.masterCopy.getTransactionHash(to, value, data, operation)
       console.log('contract generated hash', hash)
+
+      // TODO: remove this. trying to send directly to ctdt to debug where tx is failing
+      const recipt = await new Promise((resolve, reject) => {
+        web3.eth
+          .sendTransaction({
+            to: params.ctdt.address,
+            value: 0,
+            data,
+            from: this.node.address,
+            gas: DEFAULT_GAS * 10,
+          })
+          .on('error', reject)
+          .on('receipt', resolve)
+      })
+      console.log('recipt: ', recipt)
 
       // Send transaction
       await new Promise((resolve, reject) => {

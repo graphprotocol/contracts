@@ -30,7 +30,7 @@ contract IndexerCTDT is MultisigData {
         bytes memory encodedOutput,
         bytes memory encodedParams
     ) public {
-        require(false == true, "IndexerCTDT::executeWithdraw");
+        require(masterCopy != address(0), "Mastercopy is address 0");
         address withdrawInterpreter = MinimumViableMultisig(masterCopy)
             .INDEXER_WITHDRAW_INTERPRETER_ADDRESS();
         (bool success, ) = withdrawInterpreter.delegatecall(
