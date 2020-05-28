@@ -43,7 +43,7 @@
   "scripts": {
     "prepublishOnly": "npm run build && cp -R build dist",
     "build": "npm run compile && npm run flatten && npm run abi:extract && npm run typechain",
-    "clean": "rm -rf build/",
+    "clean": "rm -rf build/ cache/",
     "compile": "buidler compile",
     "migrate": "truffle migrate",
     "test": "buidler test",
