@@ -1,8 +1,7 @@
 const BN = web3.utils.BN
 const { utils } = require('ethers')
-const { MultisigOperation, CommitmentTarget } = require('@connext/types')
+const { MultisigOperation } = require('@connext/types')
 const { getRandomPrivateKey, ChannelSigner } = require('@connext/utils')
-const WithdrawInterpreter = require('../../build/IndexerWithdrawInterpreter.json')
 const Multisig = require('../../build/MinimumViableMultisig.json')
 
 async function getRandomFundedChannelSigners(
@@ -15,6 +14,7 @@ async function getRandomFundedChannelSigners(
   const signers = []
 
   // Fund all signers with eth + tokens
+  // eslint-disable-next-line no-unused-vars
   for (const _ of Array(numSigners).fill(0)) {
     // Create random signer
     const privKey = getRandomPrivateKey()

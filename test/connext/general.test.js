@@ -1,7 +1,5 @@
 const BN = web3.utils.BN
 const { expect } = require('chai')
-const { constants } = require('@openzeppelin/test-helpers')
-const { ZERO_ADDRESS } = constants
 
 // helpers
 const deployment = require('../lib/deployment')
@@ -45,7 +43,7 @@ contract('Indexer Channel Operations', ([governor]) => {
     // Helpers
   })
 
-  describe.only('funding + withdrawal', function() {
+  describe('funding + withdrawal', function() {
     // Establish test constants
     const ETH_DEPOSIT = new BN(175)
     const TOKEN_DEPOSIT = web3.utils.toWei(new BN(4))
@@ -70,7 +68,7 @@ contract('Indexer Channel Operations', ([governor]) => {
 
     it('node should be able to withdraw eth', async function() {})
 
-    it.only('node should be able to withdraw tokens', async function() {
+    it('node should be able to withdraw tokens', async function() {
       // Generate withdrawal commitment for node
       const commitment = new channel.MiniCommitment(this.multisig.address, [
         this.node,
