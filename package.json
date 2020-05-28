@@ -14,7 +14,6 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "solidity-bytes-utils": "0.0.8",
     "truffle-hdwallet-provider": "^1.0.14"
   },
   "devDependencies": {
@@ -44,9 +43,9 @@
   "scripts": {
     "prepublishOnly": "npm run build && cp -R build dist",
     "build": "npm run compile && npm run flatten && npm run abi:extract && npm run typechain",
-    "clean": "rm -rf build/contracts",
+    "clean": "rm -rf build/",
     "compile": "buidler compile",
-    "migrate": "buidler migrate",
+    "migrate": "truffle migrate",
     "test": "buidler test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm.sh",

@@ -1,4 +1,6 @@
 import { expect } from 'chai'
+import { Wallet } from 'ethers'
+import { BigNumber } from 'ethers/utils'
 import { AddressZero } from 'ethers/constants'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -17,8 +19,6 @@ import {
   toBN,
   toGRT,
 } from '../lib/testHelpers'
-import { BigNumber } from 'ethers/utils'
-import { ethers } from 'ethers'
 
 const MAX_PPM = toBN('1000000')
 
@@ -366,10 +366,10 @@ describe('Staking', () => {
 
           // This function tests slashing behaviour under different conditions
           this.shouldSlash = async function(
-            indexer: ethers.Wallet,
+            indexer: Wallet,
             tokensToSlash: BigNumber,
             tokensToReward: BigNumber,
-            fisherman: ethers.Wallet,
+            fisherman: Wallet,
           ) {
             // Before
             const beforeTotalSupply = await grt.totalSupply()

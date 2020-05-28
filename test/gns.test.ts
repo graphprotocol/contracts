@@ -1,8 +1,8 @@
-import { ethers } from 'ethers'
+import { ethers, Wallet } from 'ethers'
 import { expect } from 'chai'
 import { AddressZero } from 'ethers/constants'
 
-import { Gns } from '../build/typechain/contracts/GNS'
+import { Gns } from '../build/typechain/contracts/Gns'
 
 import * as deployment from './lib/deployment'
 import { randomHexBytes, provider } from './lib/testHelpers'
@@ -22,9 +22,9 @@ describe('GNS', () => {
   beforeEach(async function() {
     gns = await deployment.deployGNS(governor.address, me)
 
-    this.publish = (signer: ethers.Wallet) =>
+    this.publish = (signer: Wallet) =>
       gns.connect(signer).publish(record.name, record.subgraphID, record.metadataHash)
-    this.unpublish = (signer: ethers.Wallet) => gns.connect(signer).unpublish(record.nameHash)
+    this.unpublish = (signer: Wallet) => gns.connect(signer).unpublish(record.nameHash)
   })
 
   describe('isReserved()', function() {

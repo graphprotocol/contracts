@@ -1,5 +1,5 @@
-import { ethers } from 'ethers'
-import { deployContract, getWallets, solidity } from 'ethereum-waffle'
+import { Wallet } from 'ethers'
+import { deployContract } from 'ethereum-waffle'
 
 // contracts artifacts
 import CurationArtifact from '../../build/contracts/Curation.json'
@@ -14,7 +14,7 @@ import StakingArtifact from '../../build/contracts/Staking.json'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { Gns } from '../../build/typechain/contracts/GNS'
+import { Gns } from '../../build/typechain/contracts/Gns'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
@@ -24,7 +24,7 @@ import { defaults } from './testHelpers'
 
 const deployGasLimit = 9000000
 
-export function deployGRT(owner: string, wallet: ethers.Wallet): Promise<GraphToken> {
+export function deployGRT(owner: string, wallet: Wallet): Promise<GraphToken> {
   return deployContract(wallet, GraphTokenArtifact, [
     owner,
     defaults.token.initialSupply,
@@ -34,7 +34,7 @@ export function deployGRT(owner: string, wallet: ethers.Wallet): Promise<GraphTo
 export function deployCuration(
   owner: string,
   graphToken: string,
-  wallet: ethers.Wallet,
+  wallet: Wallet,
 ): Promise<Curation> {
   return deployContract(
     wallet,
@@ -49,7 +49,7 @@ export function deployDisputeManager(
   graphToken: string,
   arbitrator: string,
   staking: string,
-  wallet: ethers.Wallet,
+  wallet: Wallet,
 ): Promise<DisputeManager> {
   return deployContract(wallet, DisputeManagerArtifact, [
     owner,
@@ -62,27 +62,27 @@ export function deployDisputeManager(
   ]) as Promise<DisputeManager>
 }
 
-export function deployEpochManager(owner: string, wallet: ethers.Wallet): Promise<EpochManager> {
+export function deployEpochManager(owner: string, wallet: Wallet): Promise<EpochManager> {
   return deployContract(wallet, EpochManagerArtifact, [
     owner,
     defaults.epochs.lengthInBlocks,
   ]) as Promise<EpochManager>
 }
 
-export function deployGNS(owner: string, wallet: ethers.Wallet): Promise<Gns> {
+export function deployGNS(owner: string, wallet: Wallet): Promise<Gns> {
   return deployContract(wallet, GNSArtifact, [owner]) as Promise<Gns>
 }
 
-export function deployServiceRegistry(wallet: ethers.Wallet): Promise<ServiceRegistry> {
+export function deployServiceRegistry(wallet: Wallet): Promise<ServiceRegistry> {
   return deployContract(wallet, ServiceRegistyArtifact) as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(
-  owner: ethers.Wallet,
+  owner: Wallet,
   graphToken: string,
   epochManager: string,
   curation: string,
-  wallet: ethers.Wallet,
+  wallet: Wallet,
 ): Promise<Staking> {
   const contract: Staking = (await deployContract(wallet, StakingArtifact, [
     owner.address,
