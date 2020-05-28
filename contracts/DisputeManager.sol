@@ -408,7 +408,7 @@ contract DisputeManager is Governed {
 
         // Get the indexer that created the channel and signed the attestation
         (address indexer, bytes32 subgraphID) = staking.channels(channelID);
-        require(indexer != address(0), "Indexer cannot be found with the attestation");
+        require(indexer != address(0), "Indexer cannot be found for the attestation");
         require(subgraphID == attestation.subgraphID, "Channel and attestation subgraph must match");
 
         // Create a disputeID
