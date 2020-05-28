@@ -6,9 +6,73 @@ const GNS = artifacts.require('./GNS')
 const GraphToken = artifacts.require('./GraphToken.sol')
 const ServiceRegisty = artifacts.require('./ServiceRegistry.sol')
 const Staking = artifacts.require('./Staking.sol')
+const Multisig = artifacts.require('./MinimumViableMultisig.sol')
+const IndexerCTDT = artifacts.require('./IndexerCTDT.sol')
+const SingleAssetInterpreter = artifacts.require('./IndexerSingleAssetInterpreter.sol')
+const MultiAssetInterpreter = artifacts.require('./IndexerMultiAssetInterpreter.sol')
+const WithdrawInterpreter = artifacts.require('./IndexerWithdrawInterpreter.sol')
 
 // helpers
 const { defaults } = require('./testHelpers')
+
+function deployIndexerMultisig(
+  node,
+  staking,
+  ctdt,
+  singleAssetInterpreter,
+  multiAssetInterpreter,
+  withdrawInterpreter,
+) {
+  return Multisig.new(
+    node,
+    staking,
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+  )
+}
+
+function deployIndexerCTDT() {
+  return IndexerCTDT.new()
+}
+
+function deploySingleAssetInterpreter() {
+  return SingleAssetInterpreter.new()
+}
+
+function deployMultiAssetInterpreter() {
+  return MultiAssetInterpreter.new()
+}
+
+function deployWithdrawInterpreter() {
+  return WithdrawInterpreter.new()
+}
+
+async function deployIndexerMultisigWithContext(node, staking) {
+  const ctdt = await deployIndexerCTDT()
+  const singleAssetInterpreter = await deploySingleAssetInterpreter()
+  const multiAssetInterpreter = await deployMultiAssetInterpreter()
+  const withdrawInterpreter = await deployWithdrawInterpreter()
+
+  // deploy multisig
+  const multisig = await deployIndexerMultisig(
+    node,
+    staking,
+    ctdt.address,
+    singleAssetInterpreter.address,
+    multiAssetInterpreter.address,
+    withdrawInterpreter.address,
+  )
+
+  return {
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+    multisig,
+  }
+}
 
 function deployGRT(owner, params) {
   return GraphToken.new(owner, defaults.token.initialSupply, params)
@@ -66,4 +130,5 @@ module.exports = {
   deployGRT,
   deployServiceRegistry,
   deployStakingContract,
+  deployIndexerMultisigWithContext,
 }
