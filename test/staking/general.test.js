@@ -20,7 +20,17 @@ function toGRT(value) {
   return new BN(web3.utils.toWei(value))
 }
 
-contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
+contract('Staking', ([me, other, governor, indexer, slasher, fisherman, channelProxy]) => {
+  before(async function() {
+    // Helpers
+    this.advanceToNextEpoch = async () => {
+      const currentBlock = await time.latestBlock()
+      const epochLength = await this.epochManager.epochLength()
+      const nextEpochBlock = currentBlock.add(epochLength)
+      await time.advanceBlockTo(nextEpochBlock)
+    }
+  })
+
   beforeEach(async function() {
     // Deploy epoch contract
     this.epochManager = await deployment.deployEpochManagerContract(governor, { from: me })
@@ -49,14 +59,6 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
     // Set staking as distributor of funds to curation
     await this.curation.setStaking(this.staking.address, { from: governor })
-
-    // Helpers
-    this.advanceToNextEpoch = async () => {
-      const currentBlock = await time.latestBlock()
-      const epochLength = await this.epochManager.epochLength()
-      const nextEpochBlock = currentBlock.add(epochLength)
-      await time.advanceBlockTo(nextEpochBlock)
-    }
   })
 
   describe('configuration', function() {
@@ -182,9 +184,14 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         return this.staking.stake(tokens, { from: indexer })
       }
       this.allocate = function(tokens) {
-        return this.staking.allocate(this.subgraphID, tokens, this.channelPubKey, this.price, {
-          from: indexer,
-        })
+        return this.staking.allocate(
+          this.subgraphID,
+          tokens,
+          this.channelPubKey,
+          channelProxy,
+          this.price,
+          { from: indexer },
+        )
       }
       this.shouldStake = async function(indexerStake) {
         // Setup
@@ -209,9 +216,9 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
       // Setup
       this.indexerStake = toGRT('100')
       this.subgraphID = helpers.randomSubgraphId()
+      this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
       this.channelPubKey =
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
-      this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
       this.price = toGRT('0.01')
 
       // Give some funds to the indexer
@@ -573,9 +580,16 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             const tokensToAllocate = toGRT('10')
             const subgraphID = helpers.randomSubgraphId()
             await expectRevert(
-              this.staking.allocate(subgraphID, tokensToAllocate, this.channelPubKey, this.price, {
-                from: indexer,
-              }),
+              this.staking.allocate(
+                subgraphID,
+                tokensToAllocate,
+                this.channelPubKey,
+                channelProxy,
+                this.price,
+                {
+                  from: indexer,
+                },
+              ),
               'Allocation: channel ID already in use',
             )
           })
@@ -589,10 +603,10 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
           // Create the allocation to be settled
           await this.allocate(this.tokensAllocated)
-
-          // Give some funds to the settlor
-          await this.grt.mint(me, this.tokensToSettle, { from: governor })
-          await this.grt.approve(this.staking.address, this.tokensToSettle, { from: me })
+          await this.grt.mint(channelProxy, this.tokensToSettle, { from: governor })
+          await this.grt.approve(this.staking.address, this.tokensToSettle, {
+            from: channelProxy,
+          })
         })
 
         it('should settle and distribute funds', async function() {
@@ -613,7 +627,9 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await this.advanceToNextEpoch()
 
           // Settle
-          const { logs } = await this.staking.settle(this.channelID, this.tokensToSettle)
+          const { logs } = await this.staking.settle(this.tokensToSettle, {
+            from: channelProxy,
+          })
 
           // Get epoch information
           const result = await this.epochManager.epochsSince(allocBefore.createdAtEpoch)
@@ -655,7 +671,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
             epoch: currentEpoch,
             tokens: this.tokensToSettle,
             channelID: this.channelID,
-            from: me,
+            from: channelProxy,
             curationFees: curationFees,
             rebateFees: rebateFees,
             effectiveAllocation: effectiveAlloc,
@@ -667,63 +683,35 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
           await this.advanceToNextEpoch()
 
           // Settle zero tokens
-          await this.staking.settle(this.channelID, new BN('0'))
+          await this.staking.settle(new BN('0'), { from: channelProxy })
         })
 
         it('reject settle if channel does not exist', async function() {
           await expectRevert(
-            this.staking.settle(ZERO_ADDRESS, this.tokensToSettle),
+            this.staking.settle(this.tokensToSettle, { from: other }),
             'Channel: does not exist',
           )
         })
 
-        it('reject settle if allocation does not have an active channel', async function() {
+        it('reject settle from an already settled channel', async function() {
           // Advance blocks to get the channel in epoch where it can be settled
           await this.advanceToNextEpoch()
 
           // Settle the channel
-          await this.staking.settle(this.channelID, this.tokensToSettle.div(new BN('2')))
+          await this.staking.settle(this.tokensToSettle.div(new BN('2')), {
+            from: channelProxy,
+          })
 
           // Settle the same channel to force an error
           await expectRevert(
-            this.staking.settle(this.channelID, this.tokensToSettle.div(new BN('2'))),
-            'Channel: The allocation has no channel, or the channel was already settled',
-          )
-        })
-
-        it('reject settle using an already settled channel', async function() {
-          const newChannelPubKey =
-            '0x04f2ba8222e1dbe3ebe6a72bac637cfe7eb9ea282c6f3319fd239ca3c69a088aabcbbf2a4484c49fe86b3165c61b13922376435961cf83e7e756b1d3fe3ead0206'
-          const channelID1 = this.channelID
-
-          // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
-
-          // Settle the channel
-          await this.staking.settle(channelID1, this.tokensToSettle.div(new BN('2')))
-
-          // We allocate to the same subgraph with new channel
-          await this.staking.allocate(
-            this.subgraphID,
-            this.tokensAllocated,
-            newChannelPubKey,
-            this.price,
-            { from: indexer },
-          )
-
-          // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
-
-          // Settle the channel using the old channel should be invalid
-          await expectRevert(
-            this.staking.settle(channelID1, this.tokensToSettle.div(new BN('2'))),
-            'Channel: The allocation has no channel, or the channel was already settled',
+            this.staking.settle(this.tokensToSettle.div(new BN('2')), { from: channelProxy }),
+            'Channel: does not exist',
           )
         })
 
         it('reject settle if an epoch has not passed', async function() {
           await expectRevert(
-            this.staking.settle(this.channelID, this.tokensToSettle),
+            this.staking.settle(this.tokensToSettle, { from: channelProxy }),
             'Channel: Can only settle after one epoch passed',
           )
         })
@@ -776,10 +764,8 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
           // Create the allocation to be settled
           await this.allocate(this.tokensAllocated)
-
-          // Give some tokens to the settlor
-          await this.grt.mint(me, this.tokensToSettle, { from: governor })
-          await this.grt.approve(this.staking.address, this.tokensToSettle, { from: me })
+          await this.grt.mint(channelProxy, this.tokensToSettle, { from: governor })
+          await this.grt.approve(this.staking.address, this.tokensToSettle, { from: channelProxy })
 
           // Advance blocks to get the channel in epoch where it can be settled
           await this.advanceToNextEpoch()
@@ -813,7 +799,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
 
           // Settle zero tokens
           this.tokensToSettle = new BN('0')
-          await this.staking.settle(this.channelID, this.tokensToSettle)
+          await this.staking.settle(this.tokensToSettle, { from: channelProxy })
           this.rebateEpoch = await this.epochManager.currentEpoch()
 
           // Advance blocks to get the channel in epoch where it can be claimed
@@ -832,7 +818,7 @@ contract('Staking', ([me, other, governor, indexer, slasher, fisherman]) => {
         context('> when settled', function() {
           beforeEach(async function() {
             // Settle
-            await this.staking.settle(this.channelID, this.tokensToSettle, { from: me })
+            await this.staking.settle(this.tokensToSettle, { from: channelProxy })
             this.rebateEpoch = await this.epochManager.currentEpoch()
 
             // Advance blocks to get the channel in epoch where it can be claimed
