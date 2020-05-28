@@ -96,7 +96,7 @@ contract('Indexer Channel Operations', ([governor]) => {
       // Send transaction
       await new Promise((resolve, reject) => {
         web3.eth
-          .sendTransaction({ ...tx, from: this.node.address, gas: DEFAULT_GAS })
+          .sendTransaction({ ...tx, from: this.node.address, gas: DEFAULT_GAS * 10 })
           .on('error', reject)
           .on('receipt', resolve)
       })
@@ -105,7 +105,9 @@ contract('Indexer Channel Operations', ([governor]) => {
       const postWithdrawalEth = await web3.eth.getBalance(this.multisig.address)
       expect(postWithdrawalEth).to.be.eq(ETH_DEPOSIT.toString())
       const postWithdrawalToken = await this.token.balanceOf(this.multisig.address)
-      expect(postWithdrawalToken.toString()).to.be.eq(TOKEN_DEPOSIT.sub(params.amount).toString())
+      expect(postWithdrawalToken.toString()).to.be.eq(
+        TOKEN_DEPOSIT.sub(new BN(params.amount)).toString(),
+      )
     })
 
     it.skip('node should be able to withdraw eth', async function() {})
