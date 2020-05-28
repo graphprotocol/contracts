@@ -11,6 +11,7 @@ const IndexerCTDT = artifacts.require('./IndexerCTDT.sol')
 const SingleAssetInterpreter = artifacts.require('./IndexerSingleAssetInterpreter.sol')
 const MultiAssetInterpreter = artifacts.require('./IndexerMultiAssetInterpreter.sol')
 const WithdrawInterpreter = artifacts.require('./IndexerWithdrawInterpreter.sol')
+const MockStaking = artifacts.require('./MockStaking.sol')
 
 // helpers
 const { defaults } = require('./testHelpers')
@@ -49,16 +50,21 @@ function deployWithdrawInterpreter() {
   return WithdrawInterpreter.new()
 }
 
-async function deployIndexerMultisigWithContext(node, staking) {
+function deployMockStaking() {
+  return MockStaking.new()
+}
+
+async function deployIndexerMultisigWithContext(node) {
   const ctdt = await deployIndexerCTDT()
   const singleAssetInterpreter = await deploySingleAssetInterpreter()
   const multiAssetInterpreter = await deployMultiAssetInterpreter()
   const withdrawInterpreter = await deployWithdrawInterpreter()
+  const mockStaking = await deployMockStaking()
 
   // deploy multisig
   const multisig = await deployIndexerMultisig(
     node,
-    staking,
+    mockStaking.address,
     ctdt.address,
     singleAssetInterpreter.address,
     multiAssetInterpreter.address,
@@ -70,6 +76,7 @@ async function deployIndexerMultisigWithContext(node, staking) {
     singleAssetInterpreter,
     multiAssetInterpreter,
     withdrawInterpreter,
+    mockStaking,
     multisig,
   }
 }
