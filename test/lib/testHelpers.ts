@@ -49,12 +49,9 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber) =
 // Default configuration used in tests
 export const defaults = {
   curation: {
-    // Reserve ratio to set bonding curve for curation (in PPM)
     reserveRatio: toBN('500000'),
-    // Minimum amount required to be staked by Curators
     minimumCurationStake: toGRT('100'),
-    // When one user stakes 1000, they will get 3 shares returned, as per the Bancor formula
-    shareAmountFor1000Tokens: toBN('3'),
+    withdrawalFeePercentage: 50000,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
