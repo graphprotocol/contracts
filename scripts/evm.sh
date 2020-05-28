@@ -33,11 +33,11 @@ result=0
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
   # Solidity-coverage runs its own testrpc
-  npx truffle run coverage "$@"
+  npx buidler coverage --network localhost "$@"
   result=$?
 else
   # Run tests using testrpc started in this script
-  npx truffle test --network development "$@"
+  npx buidler test --network localhost "$@"
   result=$?
 fi
 

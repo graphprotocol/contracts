@@ -6,6 +6,7 @@ import { EpochManager } from '../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 import { Staking } from '../build/typechain/contracts/Staking'
 
+import createDispute from './lib/attestation'
 import * as deployment from './lib/deployment'
 import {
   advanceBlockTo,
@@ -17,8 +18,6 @@ import {
   toBN,
   toGRT,
 } from './lib/testHelpers'
-
-const attestation = require('./lib/attestation')
 
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
@@ -94,7 +93,7 @@ describe('Disputes', async () => {
     )
 
     // Create a dispute
-    dispute = await attestation.createDispute(
+    dispute = await createDispute(
       receipt,
       disputeManager.address,
       indexerChannelPrivKey,
@@ -386,7 +385,7 @@ describe('Disputes', async () => {
         describe('create a dispute', function() {
           it('should create dispute if receipt is equal but for other indexer', async function() {
             // Create dispute (same receipt but different indexer)
-            const newDispute = await attestation.createDispute(
+            const newDispute = await createDispute(
               dispute.receipt,
               disputeManager.address,
               otherIndexerChannelPrivKey,

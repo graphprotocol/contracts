@@ -30,7 +30,7 @@ function createReceiptHash(encodedReceipt: string) {
   return keccak256(abi.encode(['bytes32', 'bytes'], [receiptTypeHash, encodedReceipt]))
 }
 
-function createDomainSeparatorHash(contractAddress: string, chainID: string) {
+function createDomainSeparatorHash(contractAddress: string, chainID: string | number) {
   const domainTypeHash = keccak256(
     toUtf8Bytes(
       'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)',
@@ -68,12 +68,12 @@ function createDisputeID(receipt: Receipt, indexer: string) {
   )
 }
 
-async function createDispute(
+export default async function createDispute(
   receipt: Receipt,
   contractAddress: string,
   signer: string,
   indexer: string,
-  chainID: string,
+  chainID: string | number,
 ) {
   // Receipt
   const encodedReceipt = encodeReceipt(receipt)
@@ -101,8 +101,4 @@ async function createDispute(
     message,
     messageSig,
   }
-}
-
-module.exports = {
-  createDispute: createDispute,
 }
