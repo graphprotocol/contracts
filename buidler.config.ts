@@ -2,6 +2,7 @@ import { BuidlerConfig, task, usePlugin } from '@nomiclabs/buidler/config'
 
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('solidity-coverage')
+usePlugin('buidler-typechain')
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -43,6 +44,10 @@ const config: BuidlerConfig = {
       chainId: 1337,
       url: 'http://localhost:8545',
     },
+  },
+  typechain: {
+    outDir: './build/typechain/contracts',
+    target: 'ethers-v4',
   },
 }
 

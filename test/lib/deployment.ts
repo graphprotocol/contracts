@@ -9,6 +9,13 @@ import GNSArtifact from '../../build/contracts/GNS.json'
 import GraphTokenArtifact from '../../build/contracts/GraphToken.json'
 import ServiceRegistyArtifact from '../../build/contracts/ServiceRegistry.json'
 import StakingArtifact from '../../build/contracts/Staking.json'
+import MultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
+import IndexerCTDTArtifact from '../../build/contracts/IndexerCTDT.json'
+import SingleAssetInterpreterArtifact from '../../build/contracts/IndexerSingleAssetInterpreter.json'
+import MultiAssetInterpreterArtifact from '../../build/contracts/IndexerMultiAssetInterpreter.json'
+import WithdrawInterpreterArtifact from '../../build/contracts/IndexerWithdrawInterpreter.json'
+import MockStakingArtifact from '../../build/contracts/MockStaking.json'
+import ProxyArtifact from '../../build/contracts/Proxy.json'
 
 // contracts definitions
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -18,6 +25,13 @@ import { Gns } from '../../build/typechain/contracts/Gns'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
+import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
+import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
+import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
+import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
+import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
+import { MockStaking } from '../../build/typechain/contracts/MockStaking'
+import { Proxy } from '../../build/typechain/contracts/Proxy'
 
 // helpers
 import { defaults } from './testHelpers'
@@ -95,4 +109,81 @@ export async function deployStaking(
   await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
   await contract.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
   return contract
+}
+
+export function deployIndexerMultisig(
+  node: string,
+  staking: string,
+  ctdt: string,
+  singleAssetInterpreter: string,
+  multiAssetInterpreter: string,
+  withdrawInterpreter: string,
+  wallet: Wallet,
+): Promise<MinimumViableMultisig> {
+  return deployContract(wallet, MultisigArtifact, [
+    node,
+    staking,
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+  ]) as Promise<MinimumViableMultisig>
+}
+
+function deployProxy(masterCopy: string, wallet: Wallet): Promise<Proxy> {
+  return deployContract(wallet, ProxyArtifact, [masterCopy]) as Promise<Proxy>
+}
+
+function deployIndexerCTDT(wallet: Wallet): Promise<IndexerCtdt> {
+  return deployContract(wallet, IndexerCTDTArtifact) as Promise<IndexerCtdt>
+}
+
+function deploySingleAssetInterpreter(wallet: Wallet): Promise<IndexerSingleAssetInterpreter> {
+  return deployContract(wallet, SingleAssetInterpreterArtifact) as Promise<
+    IndexerSingleAssetInterpreter
+  >
+}
+
+function deployMultiAssetInterpreter(wallet: Wallet): Promise<IndexerMultiAssetInterpreter> {
+  return deployContract(wallet, MultiAssetInterpreterArtifact) as Promise<
+    IndexerMultiAssetInterpreter
+  >
+}
+
+function deployWithdrawInterpreter(wallet: Wallet): Promise<IndexerWithdrawInterpreter> {
+  return deployContract(wallet, WithdrawInterpreterArtifact) as Promise<IndexerWithdrawInterpreter>
+}
+
+function deployMockStaking(wallet: Wallet): Promise<MockStaking> {
+  return deployContract(wallet, MockStakingArtifact) as Promise<MockStaking>
+}
+
+export async function deployIndexerMultisigWithContext(node: string, wallet: Wallet) {
+  const ctdt = await deployIndexerCTDT(wallet)
+  const singleAssetInterpreter = await deploySingleAssetInterpreter(wallet)
+  const multiAssetInterpreter = await deployMultiAssetInterpreter(wallet)
+  const withdrawInterpreter = await deployWithdrawInterpreter(wallet)
+  const mockStaking = await deployMockStaking(wallet)
+
+  const multisig = await deployIndexerMultisig(
+    node,
+    mockStaking.address,
+    ctdt.address,
+    singleAssetInterpreter.address,
+    multiAssetInterpreter.address,
+    withdrawInterpreter.address,
+    wallet,
+  )
+
+  const proxy = await deployProxy(multisig.address, wallet)
+
+  return {
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+    mockStaking,
+    multisig: proxy,
+    masterCopy: multisig,
+  }
 }

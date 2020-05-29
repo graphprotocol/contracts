@@ -6,10 +6,10 @@ import "./MinimumViableMultisig.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../../Staking.sol";
 
+
 /// @title IndexerMultisigTransfer - Indexer variant
 /// of the regular MultisigTransfer.
 contract IndexerMultisigTransfer is MultisigData {
-
     /// @notice Use this function for transfers of assets out of
     /// the multisig.
     /// @param recipient the recipient of the transfer -- unless this is the node's
@@ -25,26 +25,22 @@ contract IndexerMultisigTransfer is MultisigData {
         address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
         address token = address(Staking(staking).token());
 
-        if (assetId != token) { return; }
+        if (assetId != token) {
+            return;
+        }
 
         // Note, explicitly do NOT use safemath here. See discussion in: TODO
         totalAmountWithdrawn[assetId] += amount;
 
-        (address node, address indexer) = getNodeAndIndexer();
-
-        if (recipient == node) {
-
-            IERC20(token).transfer(node, amount);
-
+        if (recipient == MinimumViableMultisig(masterCopy).NODE_ADDRESS()) {
+            IERC20(token).transfer(MinimumViableMultisig(masterCopy).NODE_ADDRESS(), amount);
         } else {
-
             // transfer to staking contract
             require(
                 IERC20(token).approve(staking, amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
-            Staking(staking).settle(indexer, amount);
-
+            Staking(staking).settle(amount);
         }
     }
 
@@ -55,5 +51,4 @@ contract IndexerMultisigTransfer is MultisigData {
             return (_owners[1], _owners[0]);
         }
     }
-
 }

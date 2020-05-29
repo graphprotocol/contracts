@@ -7,6 +7,10 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.0.1",
+    "@typechain/truffle-v4": "^2.0.2",
+    "@typechain/truffle-v5": "^2.0.2",
+    "@typechain/web3-v1": "^1.0.0",
+    "buidler-typechain": "^0.1.1",
     "eslint": "^6.8.0",
     "eslint-config-standard": "^14.1.1",
     "eslint-plugin-import": "^2.20.2",
@@ -14,7 +18,8 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "truffle-hdwallet-provider": "^1.0.14"
+    "truffle-hdwallet-provider": "^1.0.14",
+    "ts-generator": "0.0.8"
   },
   "devDependencies": {
     "@connext/utils": "6.6.2",
