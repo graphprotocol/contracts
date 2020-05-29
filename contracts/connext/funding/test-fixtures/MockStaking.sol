@@ -20,7 +20,7 @@ contract MockStaking {
         channels[channelID] = true;
     }
 
-    function settle(address indexer, uint256 amount) public {
+    function settle(uint256 amount) public {
         // TODO
         token.transferFrom(msg.sender, address(this), amount);
     }
