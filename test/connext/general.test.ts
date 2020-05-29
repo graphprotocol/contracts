@@ -106,6 +106,7 @@ describe('Indexer Channel Operations', () => {
       expect(postWithdrawalEth).to.be.eq(ETH_DEPOSIT)
       const postWithdrawalToken = await token.balanceOf(multisig.address)
       expect(postWithdrawalToken.toString()).to.be.eq(TOKEN_DEPOSIT.sub(params.amount).toString())
+      // TODO: CHECK NODE BALANCE
     })
 
     it.skip('node should be able to withdraw eth', async function() {})
