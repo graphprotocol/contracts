@@ -98,10 +98,6 @@ describe('Indexer Channel Operations', () => {
         ctdt: indexerCTDT,
       }
       const tx = await commitment.getSignedTransaction(commitmentType, params)
-      const { to, value, data, operation } = commitment.getTransactionDetails(
-        commitmentType,
-        params,
-      )
 
       // Send transaction
       await governer.sendTransaction(tx)
