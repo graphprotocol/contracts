@@ -1,6 +1,6 @@
 {
   "package_name": "graphprotocol",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Contracts for the Graph Protocol",
   "authors": [],
   "keywords": ["graphQL", "dapp", "query"],

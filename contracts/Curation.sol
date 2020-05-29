@@ -3,7 +3,8 @@ pragma experimental ABIEncoderV2;
 
 /*
  * @title Curation contract
- * @notice Allows Curators to signal Subgraphs that are relevant for indexers and earn fees from the Query Market
+ * @notice Allows Curators to signal Subgraphs that are relevant for indexers and earn
+ * fees from the Query Market
  */
 
 import "./Governed.sol";
@@ -40,6 +41,10 @@ contract Curation is Governed, BancorFormula {
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
+    // Fee charged when curator withdraw stake
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint256 public withdrawalFeePercentage;
+
     // Mapping of subgraphID => Subgraph
     mapping(bytes32 => Subgraph) public subgraphs;
 
@@ -65,12 +70,14 @@ contract Curation is Governed, BancorFormula {
     /**
      * @dev Emitted when `curator` redeemed `shares` for a `subgraphID`.
      * The curator will receive `tokens` according to the value of the bonding curve.
+     * An amount of `withdrawalFees` will be collected and burned.
      */
     event Redeemed(
         address indexed curator,
         bytes32 indexed subgraphID,
         uint256 tokens,
-        uint256 shares
+        uint256 shares,
+        uint256 withdrawalFees
     );
 
     /**
@@ -152,6 +159,20 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
+     * @dev Set the fee percentage to charge when a curator withdraws stake
+     * @param _percentage Percentage fee charged when withdrawing stake
+     */
+    function setWithdrawalFeePercentage(uint256 _percentage) external onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(
+            _percentage <= MAX_PPM,
+            "Withdrawal fee percentage must be below or equal to MAX_PPM"
+        );
+        withdrawalFeePercentage = _percentage;
+        emit ParameterUpdated("withdrawalFeePercentage");
+    }
+
+    /**
      * @dev Assign Graph Tokens received from staking to the subgraph reserve
      * @param _subgraphID Subgraph where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
@@ -209,10 +230,17 @@ contract Curation is Governed, BancorFormula {
             delete subgraphs[_subgraphID];
         }
 
+        // Calculate withdrawal fees and burn the tokens
+        uint256 withdrawalFees = percentageOf(withdrawalFeePercentage, tokens);
+        if (withdrawalFees > 0) {
+            tokens = tokens.sub(withdrawalFees);
+            token.burn(withdrawalFees);
+        }
+
         // Return the tokens to the curator
         require(token.transfer(curator, tokens), "Error sending curator tokens");
 
-        emit Redeemed(curator, _subgraphID, tokens, _shares);
+        emit Redeemed(curator, _subgraphID, tokens, _shares, withdrawalFees);
     }
 
     /**
@@ -376,5 +404,15 @@ contract Curation is Governed, BancorFormula {
         uint256 shares = _buyShares(_curator, _subgraphID, _tokens);
 
         emit Staked(_curator, _subgraphID, _tokens, shares);
+    }
+
+    /**
+     * @dev Calculate the percentage for value in parts per million (PPM)
+     * @param _ppm Parts per million
+     * @param _value Value to calculate percentage of
+     * @return Percentage of value
+     */
+    function percentageOf(uint256 _ppm, uint256 _value) private pure returns (uint256) {
+        return _ppm.mul(_value).div(MAX_PPM);
     }
 }

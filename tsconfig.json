@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["./scripts", "./test"],
+  "files": [
+    "./buidler.config.ts",
+    "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
+    "node_modules/@nomiclabs/buidler-etherscan/src/type-extensions.d.ts",
+    "node_modules/@nomiclabs/buidler-waffle/src/type-extensions.d.ts"
+  ]
+}
