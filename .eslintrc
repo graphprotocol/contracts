@@ -10,8 +10,7 @@
   "globals": {
     "artifacts": false,
     "contract": false,
-    "assert": false,
-    "web3": false
+    "assert": false
   },
   "rules": {
     // Strict mode

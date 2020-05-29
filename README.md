@@ -16,9 +16,7 @@ change whenever there are updates to the contract, and we need to redeploy. This
 done in sync with deploying a new subgraph. The new GNS should point `thegraph` domain to the
 latest subgraph.
 
-We want to also run some test scripts to populate data each time new contracts are deployed (WIP,
-Jorge has something that will work for this. Also, running the tests in this repo will populate
-data.
+We want to also run some test scripts to populate data each time new contracts are deployed.
 
 You will need two files to deploy anything and run `truffle`, they are `.privkey.txt` and
 `.infurakey.txt`. Privkey is a 12 word mneumonic, you should grab you 12 words from metamask, so
@@ -72,14 +70,14 @@ which will allow the subgraph to store data.
 to create and deploy subgraphs. It can be found [here](https://staging.thegraph.com/explorer/subgraph/graphprotocol/explorer-dapp)
 ]. The subgraph is already created, so we will only mention how to update the subgraph here.
 
-1. Deploy new contracts to Ropsten with `truffle deploy --network ropsten`. Truffle stores the
+1. Deploy new contracts to Ropsten with `npm run deploy -- --network ropsten`. Truffle stores the
    addresses for networks, so if you are trying to re-deploy you may have to run
-   `truffle networks —clean`, and then deploy
+   `truffle networks —clean`, and then deploy.
 2. Get the new contract addresses from the deployment. They are logged in the terminal output from
    deploying. Put these contract addresses into the subgraph manifest
 3. Make sure you are a member of `graphprotocol` for the staging explorer application
 4. Then make sure you have the right access token for `graphprotocol`. You can set this up with
-   `graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`. You can get it from the dashbaord in the
+   `graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`. You can get it from the dashboard in the
    UI, just pick `graphprotocol` instead of your own account, and you will see the token.
 5. Then in the `graph-network-subgraph` repository, just run `yarn deploy` to update a new version
 6. You will also have to update information in the `graph-explorer-dapp` repo. You must update
@@ -92,18 +90,15 @@ on ropsten, so we can better test.
 
 ## Installation &amp; Deployment of Contracts
 
-1. Install Node.js `^11.0.0`
-1. Run `npm install` at project root directory
-1. Install and run `testrpc`, `ganache-cli`, or similar blockchain emulator
-   - Configure to run on port `8545` or edit `truffle.js` to change the port used by Truffle
-1. Install Truffle 5.0.0
-   - `npm install -g truffle`
-1. Truffle project commands
-   - `truffle install` (installs ethPM dependencies)
-   - `truffle compile` (compiles without deploying, local blockchain emulator not neccessary)
-   - `truffle migrate [--reset] [--compile-all]` (deploys contracts to your local emulator or specified blockchain)
-   - `truffle test` (runs tests)
-1. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
+1. Install Node.js `v10.15.1`.
+2. Run `npm install` at project root directory.
+3. Install and run `testrpc`, `ganache-cli`, or similar blockchain emulator.
+   - Configure to run on port `8545` or edit `truffle.js` to change the port used by Truffle.
+4. Build
+   - `npm run build` (compile contracts, flatten code, export ABIs and create Typescript bindings)
+   - `npm run deploy` (deploy contracts to local blockchain emulator)
+   - `npm run test` (runs tests)
+5. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
 
 ## Abstract
 
@@ -112,30 +107,20 @@ This repository will contain the Solidity smart contracts needed to facilitate t
 
 ![Imgur](https://i.imgur.com/9uwiie1.png)
 
-## Graph Protocol Solidity Contracts
+## Graph Protocol Contracts
 
-1. [Graph Token Contract](./contracts/GraphToken.sol)
-1. [Staking / Dispute Resolution Contract](./contracts/Staking.sol)
-1. [Graph Name Service (GNS) Registry Contract](./contracts/GNS.sol)
-1. [Rewards Manager Contract](./contracts/RewardsManager.sol)
-1. [Service Registry Contract](./contracts/ServiceRegistry.sol)
-1. [Governance Contract](./contracts/Governed.sol)
+1. [Graph Token](./contracts/GraphToken.sol)
+2. [Staking](./contracts/Staking.sol)
+3. [Dispute Resolution](./contracts/DisputeManager.sol)
+4. [Graph Name Service (GNS)](./contracts/GNS.sol)
+5. [Rewards Manager](./contracts/RewardsManager.sol)
+6. [Service Registry](./contracts/ServiceRegistry.sol)
+7. [Governance](./contracts/Governed.sol)
 
 ### Supporting Contracts
 
 1. [MultiSig Contract](./contracts/MultiSigWallet.sol) (by Gnosis)
-1. [Detailed, Mintable, Burnable ERC20 Token](./contracts/openzeppelin/) (by Open Zeppelin)
-1. [Bonding Curve Formulas](./contracts/bancor/) (by Bancor)
-1. [Solidity-Bytes-Utils Library](./installed_contracts/bytes/) (by ConsenSys)
+2. [Detailed, Mintable, Burnable ERC20 Token](./contracts/openzeppelin/) (by Open Zeppelin)
+3. [Bonding Curve Formulas](./contracts/bancor/) (by Bancor)
 
 _[See ./contracts/README.md for full list of contracts](./contracts/)_
-
-## Requirement and Implementation Annotations
-
-Each contract includes docstring-like comments with requirements listed at the top of the file.
-
-Example: `@req c01 Any User can stake Graph Tokens to be included as a Curator for a given subgraphId.`
-
-Explanation: The `c01` denotes a section and number for the requirement. `c` in this case stands for `curation` and later in the contract we see `@req s01` used for a `staking` requirement.
-
-Farther down in the code you should see annotations for the implementation of each requirement written as `@imp c01` (and so on). This is meant to be a simple way of defining and matching requirements and their implementations.
