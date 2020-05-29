@@ -1,4 +1,5 @@
 build/
+cache/
 coverage/
 node_modules/
 truffle.js
