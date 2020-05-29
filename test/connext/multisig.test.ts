@@ -1,9 +1,13 @@
 import { expect } from 'chai'
+import { ethers } from '@nomiclabs/buidler'
 import { ChannelSigner } from '@connext/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { provider } from '../lib/testHelpers'
-import { deployGRT, deployEpochManager, deployIndexerMultisigWithContext } from '../lib/deployment'
+import {
+  deployIndexerMultisigWithContext,
+  deployGRTWithFactory,
+  deployEpochManagerWithFactory,
+} from '../lib/deployment'
 import { getRandomFundedChannelSigners } from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
@@ -13,9 +17,10 @@ import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/Inde
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { Proxy } from '../../build/typechain/contracts/Proxy'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+import { Signer } from 'ethers'
 
-describe('MinimumViableMultisig.sol', () => {
-  let multisig: Proxy
+describe.only('MinimumViableMultisig.sol', () => {
+  let multisig: MinimumViableMultisig
   let masterCopy: MinimumViableMultisig
   let indexerCTDT: IndexerCtdt
   let singleAssetInterpreter: IndexerSingleAssetInterpreter
@@ -26,11 +31,15 @@ describe('MinimumViableMultisig.sol', () => {
   let indexer: ChannelSigner
   let token: GraphToken
   let epochManager: EpochManager
+  let governor: Signer
+  let staking: Signer
 
-  const [me, other, governor, curator, staking] = provider().getWallets()
   beforeEach(async function() {
+    const accounts = await ethers.getSigners()
+    governor = accounts[0]
+    staking = accounts[1]
     // Deploy graph token
-    token = await deployGRT(governor.address, me)
+    token = await deployGRTWithFactory(await governor.getAddress())
 
     // Get channel signers
     const [_node, _indexer] = await getRandomFundedChannelSigners(2, governor, token)
@@ -38,46 +47,46 @@ describe('MinimumViableMultisig.sol', () => {
     indexer = _indexer
 
     // Deploy epoch contract
-    epochManager = await deployEpochManager(governor.address, me)
+    epochManager = await deployEpochManagerWithFactory(await governor.getAddress())
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address)
-    multisig = channelContracts.multisig.connect(me)
-    masterCopy = channelContracts.masterCopy.connect(me)
+    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address)
     indexerCTDT = channelContracts.ctdt
     singleAssetInterpreter = channelContracts.singleAssetInterpreter
     multiAssetInterpreter = channelContracts.multiAssetInterpreter
     withdrawInterpreter = channelContracts.withdrawInterpreter
     mockStaking = channelContracts.mockStaking
+    masterCopy = channelContracts.masterCopy
+    multisig = channelContracts.multisig
   })
 
   describe('constructor', function() {
     it('correct node address', async function() {
-      expect(await multisig.NODE_ADDRESS()).to.be.eq(node)
+      expect(await masterCopy.NODE_ADDRESS()).to.be.eq(node.address)
     })
 
     it('correct indexer staking address', async function() {
-      expect(await multisig.INDEXER_STAKING_ADDRESS()).to.be.eq(staking.address)
+      expect(await masterCopy.INDEXER_STAKING_ADDRESS()).to.be.eq(await staking.getAddress())
     })
 
     it('correct indexer conditional transaction delegate target (ctdt) address', async function() {
-      expect(await multisig.INDEXER_CTDT_ADDRESS()).to.be.eq(indexerCTDT.address)
+      expect(await masterCopy.INDEXER_CTDT_ADDRESS()).to.be.eq(indexerCTDT.address)
     })
 
     it('correct indexer single asset interpreter', async function() {
-      expect(await multisig.INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
+      expect(await masterCopy.INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
         singleAssetInterpreter.address,
       )
     })
 
     it('correct indexer multi asset interpreter', async function() {
-      expect(await multisig.INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
+      expect(await masterCopy.INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
         multiAssetInterpreter.address,
       )
     })
 
     it('correct indexer withdrawal interpreter', async function() {
-      expect(await multisig.INDEXER_WITHDRAW_INTERPRETER_ADDRESS()).to.be.eq(
+      expect(await masterCopy.INDEXER_WITHDRAW_INTERPRETER_ADDRESS()).to.be.eq(
         withdrawInterpreter.address,
       )
     })
@@ -85,71 +94,64 @@ describe('MinimumViableMultisig.sol', () => {
 
   describe('setup', function() {
     it('should be able to setup', async function() {
-      const owners = [node, indexer]
-      await this.multisig.setup(owners)
-      const retrieved = await this.multisig.getOwners()
+      const owners = [node.address, indexer.address]
+      await masterCopy.setup(owners)
+      const retrieved = await masterCopy.getOwners()
       expect(retrieved).to.be.deep.eq(owners)
     })
 
     it('should fail if already setup', async function() {
-      const owners = [node, indexer]
-      await this.multisig.setup(owners)
-      await expect(this.multisig.setup(owners)).to.be.revertedWith(
-        'Contract has been set up before',
-      )
+      const owners = [node.address, indexer.address]
+      await masterCopy.setup(owners)
+      await expect(masterCopy.setup(owners)).to.be.revertedWith('Contract has been set up before')
     })
   })
 
   describe('lock', function() {
     beforeEach(async function() {
       // Set the multisig owners
-      await this.multisig.setup([node, indexer])
+      await masterCopy.setup([node.address, indexer.address])
     })
 
     it('should lock', async function() {
-      await this.multisig.lock({ from: indexer })
-      expect(this.multisig.locked()).to.be.eq(true)
+      masterCopy.connect(staking)
+      await masterCopy.lock()
+      expect(masterCopy.locked()).to.be.eq(true)
     })
 
     it('should fail if not called by staking address', async function() {
-      await expect(this.multisig.lock({ from: node })).to.be.revertedWith(
-        'Contract has been set up before',
-      )
+      await expect(masterCopy.lock()).to.be.revertedWith('Caller must be the staking contract')
     })
 
     it('should fail if already locked', async function() {
-      await this.multisig.lock({ from: indexer })
-      await expect(this.multisig.lock({ from: indexer })).to.be.revertedWith(
-        'Multisig must be unlocked to lock',
-      )
+      masterCopy.connect(staking)
+      await masterCopy.lock()
+      await expect(masterCopy.lock()).to.be.revertedWith('Multisig must be unlocked to lock')
     })
   })
 
   describe('unlock', function() {
     beforeEach(async function() {
       // Set the multisig owners
-      await this.multisig.setup([node, indexer])
+      await masterCopy.setup([node.address, indexer.address])
 
       // Lock the multisig
-      await this.multisig.lock({ from: indexer })
+      masterCopy.connect(staking)
+      await masterCopy.lock()
     })
 
     it('should unlock', async function() {
-      await this.multisig.unlock({ from: indexer })
-      expect(await this.multisig.locked()).to.be.eq(false)
+      await masterCopy.unlock()
+      expect(await masterCopy.locked()).to.be.eq(false)
     })
 
     it('should fail if not called by staking address', async function() {
-      await expect(this.multisig.lock({ from: node })).to.be.revertedWith(
-        'Caller must be the staking contract',
-      )
+      await expect(masterCopy.lock()).to.be.revertedWith('Caller must be the staking contract')
     })
 
     it('should fail if already unlocked', async function() {
-      await this.multisig.unlock({ from: indexer })
-      await expect(this.multisig.unlock({ from: indexer })).to.be.revertedWith(
-        'Multisig must be locked to unlock',
-      )
+      await masterCopy.unlock()
+      await expect(masterCopy.unlock()).to.be.revertedWith('Multisig must be locked to unlock')
     })
   })
 })

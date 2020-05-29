@@ -4,6 +4,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract MockStaking {
+    IERC20 public token;
+
+    constructor(IERC20 _token) public {
+        token = _token;
+    }
+
     mapping(address => bool) channels;
 
     function isChannel(address channelID) public view returns (bool) {
@@ -16,6 +22,6 @@ contract MockStaking {
 
     function settle(address indexer, uint256 amount) public {
         // TODO
-        require(false == true, "Got to settle!");
+        token.transferFrom(msg.sender, address(this), amount);
     }
 }

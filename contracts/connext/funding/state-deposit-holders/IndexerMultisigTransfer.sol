@@ -24,12 +24,13 @@ contract IndexerMultisigTransfer is MultisigData {
     ) public {
         address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
         address token = address(Staking(staking).token());
+        require(staking != address(0), "multisigTransfer");
 
         if (assetId != token) {
             return;
         }
 
-        // Note, explicitly do NOT use safemath here. See discussion in: TODO
+        // // Note, explicitly do NOT use safemath here. See discussion in: TODO
         totalAmountWithdrawn[assetId] += amount;
 
         if (recipient == MinimumViableMultisig(masterCopy).NODE_ADDRESS()) {

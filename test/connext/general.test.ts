@@ -4,7 +4,6 @@ import { Signer } from 'ethers'
 
 import { deployGRTWithFactory, deployIndexerMultisigWithContext } from '../lib/deployment'
 import { getRandomFundedChannelSigners, fundMultisig, MiniCommitment } from '../lib/channel'
-import { Proxy } from '../../build/typechain/contracts/Proxy'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
@@ -13,7 +12,7 @@ import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/Inde
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { ChannelSigner } from '@connext/utils'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { bigNumberify, parseEther, BigNumber } from 'ethers/utils'
+import { bigNumberify, parseEther } from 'ethers/utils'
 
 // helpers
 
@@ -21,7 +20,7 @@ import { bigNumberify, parseEther, BigNumber } from 'ethers/utils'
 const DEFAULT_GAS = 80000
 
 describe('Indexer Channel Operations', () => {
-  let multisig: Proxy
+  let multisig: MinimumViableMultisig
   let masterCopy: MinimumViableMultisig
   let indexerCTDT: IndexerCtdt
   let singleAssetInterpreter: IndexerSingleAssetInterpreter
@@ -31,21 +30,21 @@ describe('Indexer Channel Operations', () => {
   let node: ChannelSigner
   let indexer: ChannelSigner
   let token: GraphToken
-  let owner: Signer
+  let governer: Signer
 
   beforeEach(async function() {
     const accounts = await ethers.getSigners()
-    owner = accounts[0]
+    governer = accounts[0]
     // Deploy graph token
-    token = await deployGRTWithFactory(await owner.getAddress())
+    token = await deployGRTWithFactory(await governer.getAddress())
 
     // Get channel signers
-    const [_node, _indexer] = await getRandomFundedChannelSigners(2, owner, token)
+    const [_node, _indexer] = await getRandomFundedChannelSigners(2, governer, token)
     node = _node
     indexer = _indexer
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address)
+    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address)
     indexerCTDT = channelContracts.ctdt
     singleAssetInterpreter = channelContracts.singleAssetInterpreter
     multiAssetInterpreter = channelContracts.multiAssetInterpreter
@@ -55,7 +54,7 @@ describe('Indexer Channel Operations', () => {
     multisig = channelContracts.multisig
 
     // Setup the multisig
-    await masterCopy.setup([node.address, indexer.address])
+    // await masterCopy.setup([node.address, indexer.address])
 
     // Add channel to mock staking contract
     await mockStaking.setChannel(indexer.address)
@@ -70,15 +69,15 @@ describe('Indexer Channel Operations', () => {
 
     beforeEach(async function() {
       // Verify pre-deposit balances
-      const preDepositEth = await owner.provider.getBalance(multisig.address)
+      const preDepositEth = await governer.provider.getBalance(multisig.address)
       expect(preDepositEth).to.be.eq('0')
       const preDepositToken = await token.balanceOf(multisig.address)
       expect(preDepositToken.toString()).to.be.eq('0')
       // Fund multisig with eth and tokens
-      await fundMultisig(ETH_DEPOSIT, multisig.address, owner)
-      await fundMultisig(TOKEN_DEPOSIT, multisig.address, owner, token)
+      await fundMultisig(ETH_DEPOSIT, multisig.address, governer)
+      await fundMultisig(TOKEN_DEPOSIT, multisig.address, governer, token)
       // Verify post-deposit balances
-      const postDepositEth = await owner.provider.getBalance(multisig.address)
+      const postDepositEth = await governer.provider.getBalance(multisig.address)
       expect(postDepositEth).to.be.eq(ETH_DEPOSIT.toString())
       const postDepositToken = await token.balanceOf(multisig.address)
       expect(postDepositToken.toString()).to.be.eq(TOKEN_DEPOSIT.toString())
@@ -86,7 +85,7 @@ describe('Indexer Channel Operations', () => {
 
     it('node should be able to withdraw eth', async function() {})
 
-    it.only('node should be able to withdraw tokens', async function() {
+    it('node should be able to withdraw tokens', async function() {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(multisig.address, [node, indexer])
       // Get signed multisig transaction to withdraw tokens
@@ -99,25 +98,15 @@ describe('Indexer Channel Operations', () => {
         ctdt: indexerCTDT,
       }
       const tx = await commitment.getSignedTransaction(commitmentType, params)
-      console.log('tx: ', tx)
       const { to, value, data, operation } = commitment.getTransactionDetails(
         commitmentType,
         params,
       )
-      const hash = await masterCopy.getTransactionHash(to, value, data, operation)
-      console.log('contract generated hash', hash)
-      // TODO: remove  trying to send directly to ctdt to debug where tx is failing
-      const recipt = await owner.sendTransaction({
-        to: params.ctdt.address,
-        value: 0,
-        data,
-        from: node.address,
-      })
-      console.log('recipt: ', recipt)
+
       // Send transaction
-      await owner.sendTransaction({ ...tx, from: node.address })
+      await governer.sendTransaction(tx)
       // Verify post withdrawal balances
-      const postWithdrawalEth = await owner.provider.getBalance(multisig.address)
+      const postWithdrawalEth = await governer.provider.getBalance(multisig.address)
       expect(postWithdrawalEth).to.be.eq(ETH_DEPOSIT)
       const postWithdrawalToken = await token.balanceOf(multisig.address)
       expect(postWithdrawalToken.toString()).to.be.eq(TOKEN_DEPOSIT.sub(params.amount).toString())

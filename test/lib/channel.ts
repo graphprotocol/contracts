@@ -1,6 +1,6 @@
 import { getRandomPrivateKey, ChannelSigner } from '@connext/utils'
-import { MultisigOperation } from '@connext/types'
-import { Wallet, Signer } from 'ethers'
+import { MultisigOperation, tidy } from '@connext/types'
+import { Signer } from 'ethers'
 import {
   parseEther,
   BigNumber,
@@ -11,6 +11,7 @@ import {
   solidityPack,
   keccak256,
   BigNumberish,
+  defaultAbiCoder,
 } from 'ethers/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
@@ -72,6 +73,16 @@ export function fundMultisig(
   })
 }
 
+export const outcomeEncoding = tidy(`tuple(
+  address to,
+  uint256 amount
+)`)
+
+export const withdrawOutcomeInterpreterParamsEncoding = tidy(`tuple(
+  uint256 limit,
+  address tokenAddress
+)`)
+
 export class MiniCommitment {
   constructor(
     readonly multisigAddress: string, // Address
@@ -100,8 +111,14 @@ export class MiniCommitment {
           data: ctdt.interface.functions.executeWithdraw.encode([
             withdrawInterpreterAddress,
             randomBytes(32), // nonce
-            solidityKeccak256(['address', 'uint256'], [recipient, bigNumberify(amount)]),
-            solidityKeccak256(['uint256', 'address'], [bigNumberify(amount), assetId]),
+            defaultAbiCoder.encode(
+              [outcomeEncoding],
+              [{ to: recipient, amount: bigNumberify(amount) }],
+            ),
+            defaultAbiCoder.encode(
+              [withdrawOutcomeInterpreterParamsEncoding],
+              [{ limit: bigNumberify(amount), tokenAddress: assetId }],
+            ),
           ]),
           operation: MultisigOperation.DelegateCall,
         }

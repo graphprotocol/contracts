@@ -25,7 +25,6 @@ contract IndexerWithdrawInterpreter is IndexerMultisigTransfer, Interpreter {
         bytes calldata encodedOutput,
         bytes calldata encodedParams
     ) external override {
-        require(false == true, "interpretOutcomeAndExecuteEffect");
         Params memory params = abi.decode(encodedParams, (Params));
 
         LibOutcome.CoinTransfer memory outcome = abi.decode(
