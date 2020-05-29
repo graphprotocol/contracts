@@ -33,12 +33,7 @@ describe('MinimumViableMultisig.sol', () => {
     token = await deployGRT(governor.address, me)
 
     // Get channel signers
-    const [_node, _indexer] = await getRandomFundedChannelSigners(
-      2,
-      'http://localhost:8545',
-      governor,
-      token,
-    )
+    const [_node, _indexer] = await getRandomFundedChannelSigners(2, governor, token)
     node = _node
     indexer = _indexer
 
@@ -46,7 +41,7 @@ describe('MinimumViableMultisig.sol', () => {
     epochManager = await deployEpochManager(governor.address, me)
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address, me)
+    const channelContracts = await deployIndexerMultisigWithContext(node.address)
     multisig = channelContracts.multisig.connect(me)
     masterCopy = channelContracts.masterCopy.connect(me)
     indexerCTDT = channelContracts.ctdt

@@ -1,6 +1,6 @@
 import { getRandomPrivateKey, ChannelSigner } from '@connext/utils'
 import { MultisigOperation } from '@connext/types'
-import { Wallet } from 'ethers'
+import { Wallet, Signer } from 'ethers'
 import {
   parseEther,
   BigNumber,
@@ -10,15 +10,17 @@ import {
   bigNumberify,
   solidityPack,
   keccak256,
+  BigNumberish,
 } from 'ethers/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import MultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
+import IndexerCTDTArtifact from '../../build/contracts/IndexerCTDT.json'
+import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 
 export async function getRandomFundedChannelSigners(
   numSigners: number,
-  ethProviderUrl: string,
-  wallet: Wallet,
+  wallet: Signer,
   graphContract?: GraphToken,
 ) {
   // Create signer array
@@ -29,7 +31,7 @@ export async function getRandomFundedChannelSigners(
   for (const _ of Array(numSigners).fill(0)) {
     // Create random signer
     const privKey = getRandomPrivateKey()
-    const signer = new ChannelSigner(privKey, ethProviderUrl)
+    const signer = new ChannelSigner(privKey)
     const addr = await signer.getAddress()
 
     // Add signer to array
@@ -58,7 +60,7 @@ export async function getRandomFundedChannelSigners(
 export function fundMultisig(
   amount: BigNumber,
   multisigAddr: string,
-  wallet?: Wallet,
+  wallet?: Signer,
   tokenContract?: GraphToken,
 ) {
   if (tokenContract) {
@@ -76,18 +78,26 @@ export class MiniCommitment {
     readonly owners: ChannelSigner[], // ChannelSigner[]
   ) {}
 
-  getTransactionDetails(commitmentType: 'withdraw', params: any) {
+  getTransactionDetails(
+    commitmentType: 'withdraw',
+    params: {
+      assetId: string
+      amount: BigNumberish
+      recipient: string
+      withdrawInterpreterAddress: string
+      ctdt: IndexerCtdt
+    },
+  ) {
     switch (commitmentType) {
       case 'withdraw': {
         // Destructure withdrawal commitment params
         const { withdrawInterpreterAddress, amount, assetId, recipient, ctdt } = params
 
         // Return properly encoded transaction values
-        const ctdtInterface = new Interface(ctdt.abi)
         return {
           to: ctdt.address,
           value: 0,
-          data: ctdtInterface.functions.executeWithdraw.encode([
+          data: ctdt.interface.functions.executeWithdraw.encode([
             withdrawInterpreterAddress,
             randomBytes(32), // nonce
             solidityKeccak256(['address', 'uint256'], [recipient, bigNumberify(amount)]),
@@ -115,7 +125,16 @@ export class MiniCommitment {
     return keccak256(encoded)
   }
 
-  async getSignedTransaction(commitmentType: 'withdraw', params: any) {
+  async getSignedTransaction(
+    commitmentType: 'withdraw',
+    params: {
+      assetId: string
+      amount: BigNumberish
+      recipient: string
+      withdrawInterpreterAddress: string
+      ctdt: IndexerCtdt
+    },
+  ) {
     // Generate transaction details
     const details = this.getTransactionDetails(commitmentType, params)
 
