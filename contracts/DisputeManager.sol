@@ -5,7 +5,6 @@ import "./Governed.sol";
 import "./GraphToken.sol";
 import "./Staking.sol";
 
-
 /*
  * @title DisputeManager
  * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
@@ -22,6 +21,13 @@ contract DisputeManager is Governed {
     }
 
     // -- Attestation --
+
+    // Receipt content sent from indexer in response to request
+    struct Receipt {
+        bytes32 requestCID;
+        bytes32 responseCID;
+        bytes32 subgraphID;
+    }
 
     // Attestation sent from indexer in response to a request
     struct Attestation {
@@ -215,14 +221,19 @@ contract DisputeManager is Governed {
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(bytes memory _receipt) public view returns (bytes32) {
+    function encodeHashReceipt(Receipt memory _receipt) public view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
                     "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
                     DOMAIN_SEPARATOR,
                     keccak256(
-                        abi.encode(RECEIPT_TYPE_HASH, _receipt) // EIP 712-encoded message hash
+                        abi.encode(
+                            RECEIPT_TYPE_HASH,
+                            _receipt.requestCID,
+                            _receipt.responseCID,
+                            _receipt.subgraphID
+                        ) // EIP 712-encoded message hash
                     )
                 )
             );
@@ -292,11 +303,15 @@ contract DisputeManager is Governed {
     {
         address fisherman = msg.sender;
 
+        // Ensure that fisherman has staked at least the minimum amount
+        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
+
         // Transfer tokens to deposit from fisherman to this contract
         require(
             token.transferFrom(fisherman, address(this), _deposit),
             "Cannot transfer tokens to deposit"
         );
+
         // Create a dispute using the received attestation and deposit
         _createDispute(fisherman, _deposit, _attestationData);
     }
@@ -424,9 +439,6 @@ contract DisputeManager is Governed {
         // This also validates that indexer exists
         require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
-        // Ensure that fisherman has staked at least the minimum amount
-        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
-
         // A fisherman can only open one dispute for a given indexer / subgraphID at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
@@ -450,7 +462,7 @@ contract DisputeManager is Governed {
      */
     function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        bytes memory receipt = abi.encode(
+        Receipt memory receipt = Receipt(
             _attestation.requestCID,
             _attestation.responseCID,
             _attestation.subgraphID

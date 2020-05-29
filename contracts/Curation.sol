@@ -197,11 +197,15 @@ contract Curation is Governed, BancorFormula {
     function stake(bytes32 _subgraphID, uint256 _tokens) external {
         address curator = msg.sender;
 
+        // Need to stake some funds
+        require(_tokens > 0, "Cannot stake zero tokens");
+
         // Transfer tokens from the curator to this contract
         require(
             token.transferFrom(curator, address(this), _tokens),
             "Cannot transfer tokens to stake"
         );
+
         // Stake transferred tokens to subgraph
         _stake(curator, _subgraphID, _tokens);
     }
