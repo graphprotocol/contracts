@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockStaking {
     IERC20 public token;
 
+    event SettleCalled(uint256 amount, address sender);
+
     constructor(IERC20 _token) public {
         token = _token;
     }
@@ -23,5 +25,6 @@ contract MockStaking {
     function settle(uint256 amount) public {
         // TODO
         token.transferFrom(msg.sender, address(this), amount);
+        emit SettleCalled(amount, msg.sender);
     }
 }
