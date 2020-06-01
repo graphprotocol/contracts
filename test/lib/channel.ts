@@ -1,4 +1,5 @@
 import { getRandomPrivateKey, ChannelSigner, getRandomBytes32 } from '@connext/utils'
+import { waffle as buidler } from '@nomiclabs/buidler'
 import { MultisigOperation, tidy } from '@connext/types'
 import { Signer } from 'ethers'
 import {
@@ -28,8 +29,7 @@ export async function getRandomFundedChannelSigners(
   // Create signer array
   const signers = []
 
-  // TODO: properly connect signers to providers
-  const provider = 'http:localhost:8545'
+  const provider = buidler.provider
 
   // Fund all signers with eth + tokens
   // eslint-disable-next-line no-unused-vars
@@ -107,7 +107,6 @@ export const computeAppIdentityHash = (identity: any /* AppIdentity*/) => {
 }
 
 export const encodeAppState = (encoding: string, state: any) => {
-  console.log(`encoding: ${encoding}, state:`, state)
   return defaultAbiCoder.encode([encoding], [state])
 }
 
@@ -250,7 +249,6 @@ export class MiniCommitment {
 
     // Generate owner signatures
     const digest = this.getDigestFromDetails(details)
-    console.log('owners are signing', digest)
     const signatures = await Promise.all(this.owners.map(owner => owner.signMessage(digest)))
 
     // Encode call to execute transaction
