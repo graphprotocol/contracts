@@ -37,9 +37,9 @@ export const executeTransaction = async (
 ): Promise<ContractReceipt> => {
   try {
     let tx = await transaction;
-    console.log(`Transaction pending: 'https://kovan.etherscan.io/tx/${tx.hash}'`);
+    console.log(`  Transaction pending: 'https://kovan.etherscan.io/tx/${tx.hash}'`);
     let receipt = await tx.wait(1);
-    console.log(`Transaction successfully included in block #${receipt.blockNumber}`);
+    console.log(`  Transaction successfully included in block #${receipt.blockNumber}`);
     return receipt;
   } catch (e) {
     console.log(`  ..executeTransaction failed: ${e.message}`);

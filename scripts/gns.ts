@@ -134,7 +134,7 @@ const main = async () => {
       transfer();
     }
   } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
+    console.log(`  ..failed within main: ${e.message}`);
     process.exit(1);
   }
 };

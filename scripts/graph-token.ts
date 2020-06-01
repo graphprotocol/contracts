@@ -39,8 +39,6 @@ Function arguments:
 
 // GRT has 18 decimals
 const amountBN = utils.parseUnits(amount, 18);
-console.log("Account: ", account);
-console.log("Amount:  ", amount);
 
 ///////////////////////
 // functions //////////

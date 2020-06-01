@@ -25,18 +25,23 @@ Function arguments:
 
   unregister (no arguments passed with this function)
 
-  );
-  process.exit(1);
   `
   );
+  process.exit(1);
 }
 ///////////////////////
 // functions //////////
 ///////////////////////
 
 const register = async () => {
+  if (!url || !geohash) {
+    console.error(`ERROR: register must be provided a url or geohash`);
+    process.exit(1);
+  }
   const registerOverrides = await overrides("serviceRegistry", "register");
-  await executeTransaction(contracts.serviceRegistry.register(url, geohash, registerOverrides));
+  await executeTransaction(
+    contracts.serviceRegistry.functions.register(url, geohash, registerOverrides)
+  );
 };
 
 const unregister = async () => {
