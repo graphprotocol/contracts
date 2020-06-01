@@ -47,33 +47,20 @@ console.log("Amount:  ", amount);
 ///////////////////////
 
 const mint = async () => {
-  const gnsOverrides = await overrides("graphToken", "mint");
-  try {
-    await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, gnsOverrides));
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  const mintOverrides = await overrides("graphToken", "mint");
+  await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, mintOverrides));
 };
 
 const transfer = async () => {
-  const gnsOverrides = await overrides("graphToken", "transfer");
-  try {
-    await executeTransaction(contracts.graphToken.functions.transfer(account, amountBN, gnsOverrides));
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  const transferOverrides = await overrides("graphToken", "transfer");
+  await executeTransaction(
+    contracts.graphToken.functions.transfer(account, amountBN, transferOverrides)
+  );
 };
 
 const approve = async () => {
-  const gnsOverrides = await overrides("graphToken", "approve");
-  try {
-    await executeTransaction(contracts.graphToken.functions.approve(account, amountBN, gnsOverrides));
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  const approveOverrides = await overrides("graphToken", "approve");
+  await executeTransaction(contracts.graphToken.functions.approve(account, amountBN, approveOverrides));
 };
 
 ///////////////////////

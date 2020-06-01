@@ -24,8 +24,6 @@ let eth = new ethers.providers.JsonRpcProvider(ethereum);
 let wallet = Wallet.fromMnemonic(privateKey);
 wallet = wallet.connect(eth);
 
-
-
 export const contracts = {
   gns: GnsFactory.connect(addresses.gns, wallet),
   staking: StakingFactory.connect(addresses.staking, wallet),
@@ -34,26 +32,31 @@ export const contracts = {
   curation: CurationFactory.connect(addresses.curation, wallet)
 };
 
-export const  executeTransaction = async (
-    transaction: Promise<ContractTransaction>
-      ): Promise<ContractReceipt> => {
+export const executeTransaction = async (
+  transaction: Promise<ContractTransaction>
+): Promise<ContractReceipt> => {
+  try {
     let tx = await transaction;
     console.log(`Transaction pending: 'https://kovan.etherscan.io/tx/${tx.hash}'`);
     let receipt = await tx.wait(1);
     console.log(`Transaction successfully included in block #${receipt.blockNumber}`);
     return receipt;
+  } catch (e) {
+    console.log(`  ..executeTransaction failed: ${e.message}`);
+    process.exit(1);
   }
+};
 
 export const overrides = async (contract: string, func: string) => {
-  const gasPrice = utils.parseUnits('25', 'gwei')
-  const gasLimit = 1000000
+  const gasPrice = utils.parseUnits("25", "gwei");
+  const gasLimit = 1000000;
   // console.log(`\ntx gas price: '${gasPrice}'`);
   // console.log(`tx gas limit: ${gasLimit}`);
 
   return {
     gasPrice: gasPrice,
     gasLimit: gasLimit
-  }
+  };
 
   // TODO - make this unique to each function, but for now just passing 1,000,000
   // const multiplier = utils.bigNumberify(1.5)
@@ -66,8 +69,7 @@ export const overrides = async (contract: string, func: string) => {
   //       }
   //     }
   // }
-}
-
+};
 
 export class IPFS {
   static createIpfsClient(node: string): ipfsHttpClient {
@@ -92,6 +94,6 @@ export class IPFS {
   static ipfsHashToBytes32(hash: string): Buffer {
     let hashBytes = bs58.decode(hash).slice(2);
     // console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`);
-    return hashBytes
+    return hashBytes;
   }
 }

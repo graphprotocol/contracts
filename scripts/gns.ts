@@ -89,14 +89,9 @@ const publish = async () => {
 
   let subgraphIDBytes = IPFS.ipfsHashToBytes32(subgraphID);
   const gnsOverrides = await overrides("gns", "publish");
-  try {
-    await executeTransaction(
-      contracts.gns.functions.publish(subgraphName, subgraphIDBytes, metaHashBytes, gnsOverrides)
-    );
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  await executeTransaction(
+    contracts.gns.functions.publish(subgraphName, subgraphIDBytes, metaHashBytes, gnsOverrides)
+  );
 };
 
 const unpublish = async () => {
@@ -105,12 +100,7 @@ const unpublish = async () => {
   console.log("Subgraph name hash: ", nameHash);
   console.log("\n");
   const gnsOverrides = await overrides("gns", "unpublish");
-  try {
-    await executeTransaction(contracts.gns.functions.unpublish(nameHash, gnsOverrides));
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  await executeTransaction(contracts.gns.functions.unpublish(nameHash, gnsOverrides));
 };
 
 const transfer = async () => {
@@ -124,12 +114,7 @@ const transfer = async () => {
   console.log("New owner:          ", newOwner);
   console.log("\n");
   const gnsOverrides = await overrides("gns", "unpublish");
-  try {
-    await executeTransaction(contracts.gns.functions.transfer(nameHash, newOwner, gnsOverrides));
-  } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
-  }
+  await executeTransaction(contracts.gns.functions.transfer(nameHash, newOwner, gnsOverrides));
 };
 
 ///////////////////////
