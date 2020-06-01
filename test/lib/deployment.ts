@@ -25,7 +25,10 @@ import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/I
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
+import { MockDispute } from '../../build/typechain/contracts/MockDispute'
+import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { Proxy } from '../../build/typechain/contracts/Proxy'
+import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
 // helpers
 import { defaults } from './testHelpers'
@@ -195,12 +198,36 @@ async function deployMockStaking(tokenAddress: string): Promise<MockStaking> {
   return contract as MockStaking
 }
 
+async function deployMockDispute(): Promise<MockDispute> {
+  const MockDispute = await ethers.getContractFactory('MockDispute')
+  const contract = await MockDispute.deploy()
+  await contract.deployed()
+  return contract as MockDispute
+}
+
+async function deployAppWithAction(): Promise<AppWithAction> {
+  const AppWithAction = await ethers.getContractFactory('AppWithAction')
+  const contract = await AppWithAction.deploy()
+  await contract.deployed()
+  return contract as AppWithAction
+}
+
+async function deployIdentityApp(): Promise<IdentityApp> {
+  const IdentityApp = await ethers.getContractFactory('IdentityApp')
+  const contract = await IdentityApp.deploy()
+  await contract.deployed()
+  return contract as IdentityApp
+}
+
 export async function deployIndexerMultisigWithContext(node: string, tokenAddress: string) {
   const ctdt = await deployIndexerCTDT()
   const singleAssetInterpreter = await deploySingleAssetInterpreter()
   const multiAssetInterpreter = await deployMultiAssetInterpreter()
   const withdrawInterpreter = await deployWithdrawInterpreter()
   const mockStaking = await deployMockStaking(tokenAddress)
+  const mockDispute = await deployMockDispute()
+  const app = await deployAppWithAction()
+  const identity = await deployIdentityApp()
 
   const multisig = await deployIndexerMultisig(
     node,
@@ -221,5 +248,8 @@ export async function deployIndexerMultisigWithContext(node: string, tokenAddres
     mockStaking,
     multisig: proxy as MinimumViableMultisig,
     masterCopy: multisig,
+    mockDispute,
+    app,
+    identity,
   }
 }
