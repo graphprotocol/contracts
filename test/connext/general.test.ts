@@ -1,11 +1,19 @@
 import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
-import { Signer } from 'ethers'
+import { Signer, Wallet } from 'ethers'
 import { bigNumberify, parseEther, BigNumberish, BigNumber } from 'ethers/utils'
+import { ChallengeStatus } from '@connext/types'
 import { ChannelSigner } from '@connext/utils'
 
 import { deployGRTWithFactory, deployIndexerMultisigWithContext } from '../lib/deployment'
-import { getRandomFundedChannelSigners, fundMultisig, MiniCommitment } from '../lib/channel'
+import {
+  getRandomFundedChannelSigners,
+  fundMultisig,
+  MiniCommitment,
+  CommitmentType,
+  getInitialDisputeTx,
+  freeBalanceStateEncoding,
+} from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
@@ -14,6 +22,9 @@ import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/Inde
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { AddressZero } from 'ethers/constants'
+import { MockDispute } from '../../build/typechain/contracts/MockDispute'
+import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
+import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
 describe('Indexer Channel Operations', () => {
   let multisig: MinimumViableMultisig
@@ -23,6 +34,9 @@ describe('Indexer Channel Operations', () => {
   let multiAssetInterpreter: IndexerMultiAssetInterpreter
   let withdrawInterpreter: IndexerWithdrawInterpreter
   let mockStaking: MockStaking
+  let mockDispute: MockDispute
+  let identity: IdentityApp
+  let app: AppWithAction
   let node: ChannelSigner
   let indexer: ChannelSigner
   let token: GraphToken
@@ -34,6 +48,7 @@ describe('Indexer Channel Operations', () => {
   beforeEach(async function() {
     const accounts = await ethers.getSigners()
     governer = accounts[0]
+
     // Deploy graph token
     token = await deployGRTWithFactory(await governer.getAddress())
 
@@ -49,8 +64,11 @@ describe('Indexer Channel Operations', () => {
     multiAssetInterpreter = channelContracts.multiAssetInterpreter
     withdrawInterpreter = channelContracts.withdrawInterpreter
     mockStaking = channelContracts.mockStaking
+    mockDispute = channelContracts.mockDispute
     masterCopy = channelContracts.masterCopy
     multisig = channelContracts.multisig
+    app = channelContracts.app
+    identity = channelContracts.identity
 
     // Setup the multisig
     // await masterCopy.setup([node.address, indexer.address])
@@ -93,7 +111,7 @@ describe('Indexer Channel Operations', () => {
 
       // Helper
       sendWithdrawalCommitment = async (commitment: MiniCommitment, params: any) => {
-        const commitmentType = 'withdraw'
+        const commitmentType = CommitmentType.Withdraw
 
         // Get recipient address pre withdraw balance
         const isEth = params.assetId === AddressZero
@@ -200,5 +218,83 @@ describe('Indexer Channel Operations', () => {
       expect(amount).to.be.eq(params.amount)
       expect(sender).to.be.eq(multisig.address)
     })
+  })
+
+  describe('disputes', function() {
+    // Establish test constants
+    const ETH_DEPOSIT = bigNumberify(175)
+    const TOKEN_DEPOSIT = parseEther('4')
+
+    let appInitialDisputeTx: any
+    let freeBalanceDisputeTx: any
+
+    // Helpers
+    let initiateAndVerifyDispute: (disputer: ChannelSigner, isApp?: boolean) => Promise<void>
+
+    beforeEach(async function() {
+      // fund multisig and staking contract
+      const tx = await token.transfer(mockStaking.address, TOKEN_DEPOSIT)
+      await tx.wait()
+      await fundMultisigAndAssert(ETH_DEPOSIT)
+      await fundMultisigAndAssert(TOKEN_DEPOSIT, token)
+
+      // Get the app initial dispute tx + identity hash
+      const { identityHash, transaction } = await getInitialDisputeTx(
+        mockDispute.address,
+        app.address,
+        multisig.address,
+        [node.address, indexer.address],
+      )
+      appInitialDisputeTx = transaction
+
+      // Create free balance state to dispute
+      const fbState = {
+        activeApps: [identityHash],
+        tokenAddresses: [AddressZero, token.address],
+        balances: [
+          [
+            { to: node.address, amount: ETH_DEPOSIT.div(2) },
+            { to: indexer.address, amount: ETH_DEPOSIT.div(2) },
+          ],
+          [
+            { to: node.address, amount: TOKEN_DEPOSIT.div(2) },
+            { to: indexer.address, amount: TOKEN_DEPOSIT.div(2) },
+          ],
+        ],
+      }
+
+      // Get the db initial dispute tx + identity hash
+      const fbInfo = await getInitialDisputeTx(
+        mockDispute.address,
+        identity.address,
+        multisig.address,
+        [node.address, indexer.address],
+        fbState,
+        freeBalanceStateEncoding,
+      )
+      freeBalanceDisputeTx = fbInfo.transaction
+
+      // Helpers
+      initiateAndVerifyDispute = async (disputer: ChannelSigner, isApp: boolean = true) => {
+        // Initiate dispute onchain/
+        const tx = await disputer.sendTransaction(
+          isApp ? appInitialDisputeTx : freeBalanceDisputeTx,
+        )
+        await tx.wait()
+        const disputeId = isApp ? identityHash : fbInfo.identityHash
+        const challenge = await mockDispute.functions.appChallenges(disputeId)
+        expect(challenge.status).to.be.eq(ChallengeStatus.OUTCOME_SET)
+      }
+    })
+
+    it('indexer can execute a channel dispute (1 app, free balance)', async function() {
+      // Have indexer initiate both free balance and app dispute
+
+      // FIXME: see TODO in channel.ts#getRandomFundedChannelSigners
+      await initiateAndVerifyDispute(indexer)
+      await initiateAndVerifyDispute(indexer, false)
+    })
+
+    it.skip('node can execute a channel dispute (1 app, free balance)', async function() {})
   })
 })
