@@ -19,7 +19,7 @@ import { Proxy } from '../../build/typechain/contracts/Proxy'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { Signer } from 'ethers'
 
-describe.only('MinimumViableMultisig.sol', () => {
+describe('MinimumViableMultisig.sol', () => {
   let multisig: MinimumViableMultisig
   let masterCopy: MinimumViableMultisig
   let indexerCTDT: IndexerCtdt
