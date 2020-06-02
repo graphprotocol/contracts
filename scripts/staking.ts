@@ -8,7 +8,7 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, amount, channelPubKey, channelProxy, price } = minimist(process.argv.slice(2), {
+let { func, amount, channelPubKey, channelProxy, price } = minimist.default(process.argv.slice(2), {
   string: ['func', 'amount', 'channelPubKey', 'channelProxy', 'price'],
 })
 
@@ -57,7 +57,6 @@ const stake = async () => {
   await executeTransaction(
     contracts.graphToken.functions.approve(contracts.staking.address, amountBN, approveOverrides),
   )
-  console.log('\n')
 
   console.log('  Now calling stake() on staking...')
   const stakeOverrides = await overrides('staking', 'stake')
@@ -108,7 +107,7 @@ const main = async () => {
     if (func == 'stake') {
       console.log(`Staking ${amount} tokens in the staking contract...`)
       stake()
-    } else if (func == 'redeem') {
+    } else if (func == 'unstake') {
       console.log(`Unstaking ${amount} tokens. Tokens will be locked...`)
       unstake()
     } else if (func == 'withdraw') {
@@ -120,6 +119,9 @@ const main = async () => {
     } else if (func == 'settle') {
       console.log(`TODO - settle must be called from a channel proxy, not the normal user`)
       // settle()
+    } else {
+      console.log(`Wrong func name provided`)
+      process.exit(1)
     }
   } catch (e) {
     console.log(`  ..failed within main: ${e.message}`)

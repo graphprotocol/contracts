@@ -132,6 +132,9 @@ const main = async () => {
     } else if (func == 'transfer') {
       console.log(`Transferring ownership of subgraph ${subgraphName} to ${newOwner}`)
       transfer()
+    } else {
+      console.log(`Wrong func name provided`)
+      process.exit(1)
     }
   } catch (e) {
     console.log(`  ..failed within main: ${e.message}`)

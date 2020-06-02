@@ -1,16 +1,16 @@
 #!/usr/bin/env ts-node
-import * as path from "path";
-import * as minimist from "minimist";
+import * as path from 'path'
+import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from "./helpers";
+import { contracts, executeTransaction, overrides } from './helpers'
 
 ///////////////////////
 // Set up the script //
 ///////////////////////
 
-let { func, url, geohash } = minimist(process.argv.slice(2), {
-  string: ["func", "url", "geohash"]
-});
+let { func, url, geohash } = minimist.default(process.argv.slice(2), {
+  string: ['func', 'url', 'geohash'],
+})
 
 if (!func) {
   console.error(
@@ -25,9 +25,9 @@ Function arguments:
 
   unregister (no arguments passed with this function)
 
-  `
-  );
-  process.exit(1);
+  `,
+  )
+  process.exit(1)
 }
 ///////////////////////
 // functions //////////
@@ -35,19 +35,19 @@ Function arguments:
 
 const register = async () => {
   if (!url || !geohash) {
-    console.error(`ERROR: register must be provided a url or geohash`);
-    process.exit(1);
+    console.error(`ERROR: register must be provided a url or geohash`)
+    process.exit(1)
   }
-  const registerOverrides = await overrides("serviceRegistry", "register");
+  const registerOverrides = await overrides('serviceRegistry', 'register')
   await executeTransaction(
-    contracts.serviceRegistry.functions.register(url, geohash, registerOverrides)
-  );
-};
+    contracts.serviceRegistry.functions.register(url, geohash, registerOverrides),
+  )
+}
 
 const unregister = async () => {
-  const unregisterOverrides = await overrides("graphToken", "transfer");
-  await executeTransaction(contracts.serviceRegistry.functions.unregister(unregisterOverrides));
-};
+  const unregisterOverrides = await overrides('graphToken', 'transfer')
+  await executeTransaction(contracts.serviceRegistry.functions.unregister(unregisterOverrides))
+}
 
 ///////////////////////
 // main ///////////////
@@ -55,19 +55,22 @@ const unregister = async () => {
 
 const main = async () => {
   try {
-    if (func == "register") {
+    if (func == 'register') {
       console.log(
-        `Registering ${await contracts.serviceRegistry.signer.getAddress()} with url ${url} and geohash ${geohash}...`
-      );
-      register();
-    } else if (func == "unregister") {
-      console.log(`Unregistering ${await contracts.serviceRegistry.signer.getAddress()}...`);
-      unregister();
+        `Registering ${await contracts.serviceRegistry.signer.getAddress()} with url ${url} and geohash ${geohash}...`,
+      )
+      register()
+    } else if (func == 'unregister') {
+      console.log(`Unregistering ${await contracts.serviceRegistry.signer.getAddress()}...`)
+      unregister()
+    } else {
+      console.log(`Wrong func name provided`)
+      process.exit(1)
     }
   } catch (e) {
-    console.log(`  ..failed within main: ${e.message}`);
-    process.exit(1);
+    console.log(`  ..failed within main: ${e.message}`)
+    process.exit(1)
   }
-};
+}
 
-main();
+main()

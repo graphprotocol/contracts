@@ -78,6 +78,9 @@ const main = async () => {
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
       approve()
+    } else {
+      console.log(`Wrong func name provided`)
+      process.exit(1)
     }
   } catch (e) {
     console.log(`  ..failed: ${e.message}`)
