@@ -626,8 +626,8 @@ describe('Staking', () => {
             )
 
           // Check that curation reserves increased for that SubgraphDeployment
-          const subgraphAfter = await curation.subgraphDeployments(this.subgraphDeploymentID)
-          expect(subgraphAfter.tokens).to.eq(tokensToSignal.add(curationFees))
+          const poolAfter = await curation.pools(this.subgraphDeploymentID)
+          expect(poolAfter.tokens).to.eq(tokensToSignal.add(curationFees))
 
           // Verify stake is updated
           const stakeAfter = await staking.stakes(indexer.address)

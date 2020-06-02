@@ -8,6 +8,7 @@ import "./GraphToken.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
+
 /**
  * @title Staking contract
  */
@@ -555,8 +556,7 @@ contract Staking is Governed {
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
         // Calculate curation fees
-        uint256 curationFees = (isCurationEnabled() &&
-            curation.isSubgraphDeploymentCurated(subgraphDeploymentID))
+        uint256 curationFees = (isCurationEnabled() && curation.isCurated(subgraphDeploymentID))
             ? curationPercentage.mul(_tokens).div(MAX_PPM)
             : 0;
 

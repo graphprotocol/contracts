@@ -6,20 +6,24 @@ import "./GraphToken.sol";
 import "./bancor/BancorFormula.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+
 /**
  * @title Curation contract
- * @notice Allows Curators to signal SubgraphDeployments that are relevant for indexers and earn
- * fees from the Query Market
+ * @dev Allows curators to signal on subgraph deployments that might be relevant to indexers by
+ * staking Graph Tokens. Additionally, curators earn fees from the Query Market related to the
+ * subgraph deployment they curate.
+ * A curators stake goes to a curation pool along with the stakes of other curators,
+ * only one pool exists for each subgraph deployment.
  */
 contract Curation is Governed, BancorFormula {
     using SafeMath for uint256;
 
     // -- Curation --
 
-    struct SubgraphDeployment {
+    struct CurationPool {
         uint256 reserveRatio; // Ratio for the bonding curve
-        uint256 tokens; // Tokens that constitute the SubgraphDeployment reserve
-        uint256 shares; // Shares issued for this SubgraphDeployment
+        uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
+        uint256 shares; // Shares issued for the SubgraphDeployment
         mapping(address => uint256) curatorShares; // Mapping of curator => shares
     }
 
@@ -43,10 +47,11 @@ contract Curation is Governed, BancorFormula {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public withdrawalFeePercentage;
 
-    // Mapping of subgraphDeploymentID => SubgraphDeployment
-    mapping(bytes32 => SubgraphDeployment) public subgraphDeployments;
+    // Mapping of subgraphDeploymentID => CurationPool
+    // There is only one CurationPool per SubgraphDeployment
+    mapping(bytes32 => CurationPool) public pools;
 
-    // Address of the staking contract that will distribute fees to SubgraphDeployment reserves
+    // Address of the staking contract that will distribute fees to reserves
     address public staking;
 
     // Token used for staking
@@ -56,7 +61,7 @@ contract Curation is Governed, BancorFormula {
 
     /**
      * @dev Emitted when `curator` staked `tokens` on `subgraphDeploymentID` as curation signal.
-     * The `curator` receives `shares` amount according to the SubgraphDeployment bonding curve.
+     * The `curator` receives `shares` amount according to the curation pool bonding curve.
      */
     event Staked(
         address indexed curator,
@@ -80,15 +85,15 @@ contract Curation is Governed, BancorFormula {
 
     /**
      * @dev Emitted when `tokens` amount were collected for `subgraphDeploymentID` as part of fees
-     * distributed by indexer from the settlement of query fees on the SubgraphDeployment.
+     * distributed by an indexer from the settlement of query fees.
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @dev Contract Constructor
+     * @dev Contract Constructor.
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
-     * @param _defaultReserveRatio Reserve ratio used for bonding curves of SubgraphDeployments
+     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationStake Minimum amount of tokens that curators can stake
      */
     constructor(
@@ -103,7 +108,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the default reserve ratio percentage for new SubgraphDeployments
+     * @dev Set the default reserve ratio percentage for a curation pool.
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
@@ -112,7 +117,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the default reserve ratio percentage for new SubgraphDeployments
+     * @dev Set the default reserve ratio percentage for a curation pool.
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
     function _setDefaultReserveRatio(uint256 _defaultReserveRatio) private {
@@ -128,7 +133,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the staking contract used for fees distribution
+     * @dev Set the staking contract used for fees distribution.
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
@@ -138,7 +143,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the minimum stake amount for curators
+     * @dev Set the minimum stake amount for curators.
      * @notice Update the minimum stake amount to `_minimumCurationStake`
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
@@ -147,7 +152,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the minimum stake amount for curators
+     * @dev Set the minimum stake amount for curators.
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
     function _setMinimumCurationStake(uint256 _minimumCurationStake) private {
@@ -157,7 +162,7 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Set the fee percentage to charge when a curator withdraws stake
+     * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
     function setWithdrawalFeePercentage(uint256 _percentage) external onlyGovernor {
@@ -171,25 +176,25 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Assign Graph Tokens received from staking to the SubgraphDeployment reserve
+     * @dev Assign Graph Tokens collected as curation fees to the curation pool reserve.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external {
         require(msg.sender == staking, "Caller must be the staking contract");
 
-        // Transfer tokens to be collected from staking to this contract
+        // Transfer tokens collected from the staking contract to this contract
         require(
             token.transferFrom(staking, address(this), _tokens),
             "Cannot transfer tokens to collect"
         );
 
-        // Collect transferred tokens and assign them to the reserves
+        // Collect tokens and assign them to the reserves
         _collect(_subgraphDeploymentID, _tokens);
     }
 
     /**
-     * @dev Curator stake Graph Tokens in exchange for shares of a SubgraphDeployment
+     * @dev Stake Graph Tokens in exchange for shares of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking Graph Tokens
      * @param _tokens Amount of Graph Tokens to stake
      */
@@ -205,32 +210,32 @@ contract Curation is Governed, BancorFormula {
             "Cannot transfer tokens to stake"
         );
 
-        // Stake transferred tokens to the SubgraphDeployment
+        // Stake tokens to a curation pool reserve
         _stake(curator, _subgraphDeploymentID, _tokens);
     }
 
     /**
-     * @dev Return an amount of shares to get tokens back
-     * @notice Redeem _shares from the SubgraphDeployment
-     * @param _subgraphDeploymentID SubgraphDeployment the curator is returning shares for
+     * @dev Return an amount of shares to get tokens back.
+     * @notice Redeem _shares from the SubgraphDeployment curation pool
+     * @param _subgraphDeploymentID SubgraphDeployment the curator is returning shares
      * @param _shares Amount of shares to return
      */
     function redeem(bytes32 _subgraphDeploymentID, uint256 _shares) external {
         address curator = msg.sender;
-        SubgraphDeployment storage subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         require(_shares > 0, "Cannot redeem zero shares");
         require(
-            subgraphDeployment.curatorShares[curator] >= _shares,
+            curationPool.curatorShares[curator] >= _shares,
             "Cannot redeem more shares than you own"
         );
 
         // Update balance and get the amount of tokens to refund based on returned shares
         uint256 tokens = _sellShares(curator, _subgraphDeploymentID, _shares);
 
-        // If all shares redeemed delete the curated SubgraphDeployment
-        if (subgraphDeployment.shares == 0) {
-            delete subgraphDeployments[_subgraphDeploymentID];
+        // If all shares redeemed delete the curation pool
+        if (curationPool.shares == 0) {
+            delete pools[_subgraphDeploymentID];
         }
 
         // Calculate withdrawal fees and burn the tokens
@@ -247,31 +252,31 @@ contract Curation is Governed, BancorFormula {
     }
 
     /**
-     * @dev Check if any Graph tokens are staked for a particular SubgraphDeployment
-     * @param _subgraphDeploymentID SubgraphDeployment to check if tokens are staked
-     * @return True if the SubgraphDeployment is curated
+     * @dev Check if any Graph tokens are staked for a SubgraphDeployment.
+     * @param _subgraphDeploymentID SubgraphDeployment to check if curated
+     * @return True if curated
      */
-    function isSubgraphDeploymentCurated(bytes32 _subgraphDeploymentID) public view returns (bool) {
-        return subgraphDeployments[_subgraphDeploymentID].tokens > 0;
+    function isCurated(bytes32 _subgraphDeploymentID) public view returns (bool) {
+        return pools[_subgraphDeploymentID].tokens > 0;
     }
 
     /**
-     * @dev Get the number of shares a curator has on a particular SubgraphDeployment
+     * @dev Get the number of shares a curator has on a curation pool.
      * @param _curator Curator owning the shares
      * @param _subgraphDeploymentID SubgraphDeployment of issued shares
-     * @return Number of SubgraphDeployment shares issued for a curator
+     * @return Number of shares owned by a curator for the SubgraphDeployment
      */
     function getCuratorShares(address _curator, bytes32 _subgraphDeploymentID)
         public
         view
         returns (uint256)
     {
-        return subgraphDeployments[_subgraphDeploymentID].curatorShares[_curator];
+        return pools[_subgraphDeploymentID].curatorShares[_curator];
     }
 
     /**
-     * @dev Calculate number of SubgraphDeployment shares that can be bought with tokens
-     * @param _subgraphDeploymentID SubgraphDeployment from where to buy shares
+     * @dev Calculate number of shares that can be bought with tokens in a curation pool.
+     * @param _subgraphDeploymentID SubgraphDeployment to buy shares
      * @param _tokens Amount of tokens used to buy shares
      * @return Amount of shares that can be bought
      */
@@ -283,29 +288,29 @@ contract Curation is Governed, BancorFormula {
         // Handle initialization of bonding curve
         uint256 tokens = _tokens;
         uint256 shares = 0;
-        SubgraphDeployment memory subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
-        if (subgraphDeployment.tokens == 0) {
-            subgraphDeployment = SubgraphDeployment(
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        if (curationPool.tokens == 0) {
+            curationPool = CurationPool(
                 defaultReserveRatio,
                 minimumCurationStake,
                 SHARES_PER_MINIMUM_STAKE
             );
-            tokens = tokens.sub(subgraphDeployment.tokens);
-            shares = subgraphDeployment.shares;
+            tokens = tokens.sub(curationPool.tokens);
+            shares = curationPool.shares;
         }
 
         return
             calculatePurchaseReturn(
-                subgraphDeployment.shares,
-                subgraphDeployment.tokens,
-                uint32(subgraphDeployment.reserveRatio),
+                curationPool.shares,
+                curationPool.tokens,
+                uint32(curationPool.reserveRatio),
                 tokens
             ) + shares;
     }
 
     /**
-     * @dev Calculate number of tokens to get when selling SubgraphDeployment shares
-     * @param _subgraphDeploymentID SubgraphDeployment from where to sell shares
+     * @dev Calculate number of tokens to get when selling shares from a curation pool.
+     * @param _subgraphDeploymentID SubgraphDeployment to sell shares
      * @param _shares Amount of shares to sell
      * @return Amount of tokens to get after selling shares
      */
@@ -314,26 +319,26 @@ contract Curation is Governed, BancorFormula {
         view
         returns (uint256)
     {
-        SubgraphDeployment memory subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
         require(
-            subgraphDeployment.tokens > 0,
+            curationPool.tokens > 0,
             "SubgraphDeployment must be curated to perform calculations"
         );
         require(
-            subgraphDeployment.shares >= _shares,
-            "Shares must be above or equal to shares issued for the SubgraphDeployment"
+            curationPool.shares >= _shares,
+            "Shares must be above or equal to shares issued in the curation pool"
         );
         return
             calculateSaleReturn(
-                subgraphDeployment.shares,
-                subgraphDeployment.tokens,
-                uint32(subgraphDeployment.reserveRatio),
+                curationPool.shares,
+                curationPool.tokens,
+                uint32(curationPool.reserveRatio),
                 _shares
             );
     }
 
     /**
-     * @dev Update balances after buy of shares and deposit of tokens
+     * @dev Update balances after buy of shares and deposit of tokens.
      * @param _curator Curator
      * @param _subgraphDeploymentID SubgraphDeployment
      * @param _tokens Amount of tokens
@@ -344,23 +349,21 @@ contract Curation is Governed, BancorFormula {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
     ) private returns (uint256) {
-        SubgraphDeployment storage subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         uint256 shares = tokensToShares(_subgraphDeploymentID, _tokens);
 
         // Update tokens
-        subgraphDeployment.tokens = subgraphDeployment.tokens.add(_tokens);
+        curationPool.tokens = curationPool.tokens.add(_tokens);
 
         // Update shares
-        subgraphDeployment.shares = subgraphDeployment.shares.add(shares);
-        subgraphDeployment.curatorShares[_curator] = subgraphDeployment.curatorShares[_curator].add(
-            shares
-        );
+        curationPool.shares = curationPool.shares.add(shares);
+        curationPool.curatorShares[_curator] = curationPool.curatorShares[_curator].add(shares);
 
         return shares;
     }
 
     /**
-     * @dev Update balances after sell of shares and return of tokens
+     * @dev Update balances after sell of shares and return of tokens.
      * @param _curator Curator
      * @param _subgraphDeploymentID SubgraphDeployment
      * @param _shares Amount of shares
@@ -371,43 +374,41 @@ contract Curation is Governed, BancorFormula {
         bytes32 _subgraphDeploymentID,
         uint256 _shares
     ) private returns (uint256) {
-        SubgraphDeployment storage subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         uint256 tokens = sharesToTokens(_subgraphDeploymentID, _shares);
 
         // Update tokens
-        subgraphDeployment.tokens = subgraphDeployment.tokens.sub(tokens);
+        curationPool.tokens = curationPool.tokens.sub(tokens);
 
         // Update shares
-        subgraphDeployment.shares = subgraphDeployment.shares.sub(_shares);
-        subgraphDeployment.curatorShares[_curator] = subgraphDeployment.curatorShares[_curator].sub(
-            _shares
-        );
+        curationPool.shares = curationPool.shares.sub(_shares);
+        curationPool.curatorShares[_curator] = curationPool.curatorShares[_curator].sub(_shares);
 
         return tokens;
     }
 
     /**
-     * @dev Assign Graph Tokens received from staking to the SubgraphDeployment reserve
+     * @dev Assign Graph Tokens received from staking to the curation pool reserve.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
         require(
-            isSubgraphDeploymentCurated(_subgraphDeploymentID),
+            isCurated(_subgraphDeploymentID),
             "SubgraphDeployment must be curated to collect fees"
         );
 
         // Collect new funds into reserve
-        SubgraphDeployment storage subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
-        subgraphDeployment.tokens = subgraphDeployment.tokens.add(_tokens);
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        curationPool.tokens = curationPool.tokens.add(_tokens);
 
         emit Collected(_subgraphDeploymentID, _tokens);
     }
 
     /**
-     * @dev Deposit Graph Tokens in exchange for shares of a SubgraphDeployment
-     * @param _curator Address of staking party
-     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking Graph Tokens
+     * @dev Deposit Graph Tokens in exchange for shares of a curation pool.
+     * @param _curator Address of the staking party
+     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking tokens
      * @param _tokens Amount of Graph Tokens to stake
      */
     function _stake(
@@ -415,14 +416,14 @@ contract Curation is Governed, BancorFormula {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
     ) private {
-        SubgraphDeployment storage subgraphDeployment = subgraphDeployments[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
-        if (!isSubgraphDeploymentCurated(_subgraphDeploymentID)) {
+        if (!isCurated(_subgraphDeploymentID)) {
             require(_tokens >= minimumCurationStake, "Curation stake is below minimum required");
 
             // Initialize
-            subgraphDeployment.reserveRatio = defaultReserveRatio;
+            curationPool.reserveRatio = defaultReserveRatio;
         }
 
         // Update balances
