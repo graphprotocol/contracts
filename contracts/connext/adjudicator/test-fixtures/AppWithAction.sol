@@ -2,6 +2,7 @@ pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
 import "../interfaces/CounterfactualApp.sol";
+import "../../funding/libs/LibOutcome.sol";
 
 
 /*
@@ -9,17 +10,11 @@ import "../interfaces/CounterfactualApp.sol";
  * Only participants[1] is allowed to increment it
  */
 contract AppWithAction is CounterfactualApp {
-
-    enum TwoPartyFixedOutcome {
-        SEND_TO_ADDR_ONE,
-        SEND_TO_ADDR_TWO,
-        SPLIT_AND_SEND_TO_BOTH_ADDRS
-    }
-
     enum ActionType { SUBMIT_COUNTER_INCREMENT, ACCEPT_INCREMENT }
 
     struct State {
         uint256 counter;
+        LibOutcome.CoinTransfer[2] transfers;
     }
 
     struct Action {
@@ -31,12 +26,9 @@ contract AppWithAction is CounterfactualApp {
      * The 0th signer is allowed to make one nonzero increment at turnNum = 0,
      * after which time the 1st signer may finalize the outcome.
      */
-    function getTurnTaker(
-        bytes calldata encodedState,
-        address[] calldata participants
-    )
-        override
+    function getTurnTaker(bytes calldata encodedState, address[] calldata participants)
         external
+        override
         view
         returns (address)
     {
@@ -44,23 +36,25 @@ contract AppWithAction is CounterfactualApp {
         return participants[state.counter > 0 ? 0 : 1];
     }
 
-    function computeOutcome(bytes calldata)
-        override
-        virtual
+    /// @dev NOTE: there is a slight difference here vs. the connext
+    ///      AppWithCounter contract. Specifically, we want this app to
+    ///      use the SingleAssetTwoPartyCoinTransferInterpreter
+    function computeOutcome(bytes calldata encodedState)
         external
+        virtual
+        override
         view
         returns (bytes memory)
     {
-        return abi.encode(TwoPartyFixedOutcome.SEND_TO_ADDR_ONE);
+        State memory state = abi.decode(encodedState, (State));
+
+        return abi.encode(state.transfers);
     }
 
-    function applyAction(
-        bytes calldata encodedState,
-        bytes calldata encodedAction
-    )
-        override
-        virtual
+    function applyAction(bytes calldata encodedState, bytes calldata encodedAction)
         external
+        virtual
+        override
         view
         returns (bytes memory ret)
     {
@@ -77,14 +71,8 @@ contract AppWithAction is CounterfactualApp {
         return abi.encode(state);
     }
 
-    function isStateTerminal(bytes calldata encodedState)
-        override
-        external
-        view
-        returns (bool)
-    {
+    function isStateTerminal(bytes calldata encodedState) external override view returns (bool) {
         State memory state = abi.decode(encodedState, (State));
         return state.counter > 5;
     }
-
 }
