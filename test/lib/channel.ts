@@ -1,6 +1,10 @@
-import { getRandomPrivateKey, ChannelSigner, getRandomBytes32 } from '@connext/utils'
+import { getRandomPrivateKey, ChannelSigner, getRandomBytes32, stringify } from '@connext/utils'
 import { waffle as buidler } from '@nomiclabs/buidler'
-import { MultisigOperation, tidy } from '@connext/types'
+import {
+  MultisigOperation,
+  tidy,
+  singleAssetTwoPartyCoinTransferInterpreterParamsEncoding,
+} from '@connext/types'
 import { Signer } from 'ethers'
 import {
   parseEther,
@@ -20,6 +24,8 @@ import MockDisputeArtifact from '../../build/contracts/MockDispute.json'
 import IndexerCTDTArtifact from '../../build/contracts/IndexerCTDT.json'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 import { toBN } from './testHelpers'
+import { MockDispute } from '../../build/typechain/contracts/MockDispute'
+import { Zero } from 'ethers/constants'
 
 export async function getRandomFundedChannelSigners(
   numSigners: number,
@@ -91,6 +97,10 @@ export const freeBalanceStateEncoding = tidy(
   `tuple(address[] tokenAddresses, tuple(address to, uint256 amount)[][] balances, bytes32[] activeApps)`,
 )
 
+export const appWithCounterStateEncoding = tidy(
+  `tuple(uint256 counter, tuple(address to, uint256 amount)[2] transfers)`,
+)
+
 export const computeAppIdentityHash = (identity: any /* AppIdentity*/) => {
   return keccak256(
     solidityPack(
@@ -106,7 +116,7 @@ export const computeAppIdentityHash = (identity: any /* AppIdentity*/) => {
   )
 }
 
-export const encodeAppState = (encoding: string, state: any) => {
+export const encode = (encoding: string, state: any) => {
   return defaultAbiCoder.encode([encoding], [state])
 }
 
@@ -116,9 +126,22 @@ export async function getInitialDisputeTx(
   appDefinition: string,
   multisigAddress: string,
   multisigOwners: string[],
-  appState: any = { counter: toBN(1) },
-  stateEncoding: string = `tuple(uint256 counter)`,
+  stateEncoding: string = appWithCounterStateEncoding,
+  initialState?: any,
 ) {
+  const appState = initialState || {
+    counter: toBN(1),
+    transfers: [
+      {
+        to: multisigOwners[0],
+        amount: toBN(15), // total app deposit
+      },
+      {
+        to: multisigOwners[1],
+        amount: Zero,
+      },
+    ],
+  }
   // Create app-instance constants
   const identity = {
     multisigAddress,
@@ -128,7 +151,7 @@ export async function getInitialDisputeTx(
     appDefinition,
     defaultTimeout: toBN(0),
   }
-  const encoded = encodeAppState(stateEncoding, appState)
+  const encoded = encode(stateEncoding, appState)
   const appStateHash = keccak256(encoded)
 
   // Create inputs for dispute
@@ -149,10 +172,38 @@ export async function getInitialDisputeTx(
   }
 }
 
-export enum CommitmentType {
-  Withdraw = 'withdraw',
-  App = 'app',
-  FreeBalance = 'freebalance',
+export const CommitmentTypes = {
+  withdraw: 'withdraw',
+  app: 'app',
+  freebalance: 'freebalance',
+} as const
+export type CommitmentType = keyof typeof CommitmentTypes
+
+type WithdrawParams = {
+  assetId: string
+  amount: BigNumberish
+  recipient: string
+  withdrawInterpreterAddress: string
+  ctdt: IndexerCtdt
+}
+
+type AppParams = {
+  ctdt: IndexerCtdt
+  assetId: string
+  amount: BigNumberish
+  freeBalanceIdentityHash: string
+  appIdentityHash: string
+  interpreterAddr: string
+  mockDispute: MockDispute
+}
+
+interface CommitmentInputMap {
+  [CommitmentTypes.withdraw]: WithdrawParams
+  [CommitmentTypes.app]: AppParams
+  [CommitmentTypes.freebalance]: AppParams
+}
+export type CommitmentInputs = {
+  [P in keyof CommitmentInputMap]: CommitmentInputMap[P]
 }
 
 // This class helps create commitments for testing the multisig
@@ -163,20 +214,17 @@ export enum CommitmentType {
 export class MiniCommitment {
   constructor(readonly multisigAddress: string, readonly owners: ChannelSigner[]) {}
 
-  getTransactionDetails(
-    commitmentType: CommitmentType,
-    params: {
-      assetId: string
-      amount: BigNumberish
-      recipient: string
-      withdrawInterpreterAddress: string
-      ctdt: IndexerCtdt
-    },
-  ) {
+  getTransactionDetails<T extends CommitmentType>(commitmentType: T, params: CommitmentInputs[T]) {
     switch (commitmentType) {
-      case CommitmentType.Withdraw: {
+      case CommitmentTypes.withdraw: {
         // Destructure withdrawal commitment params
-        const { withdrawInterpreterAddress, amount, assetId, recipient, ctdt } = params
+        const {
+          withdrawInterpreterAddress,
+          amount,
+          assetId,
+          recipient,
+          ctdt,
+        } = params as WithdrawParams
 
         // Return properly encoded transaction values
         return {
@@ -185,29 +233,50 @@ export class MiniCommitment {
           data: ctdt.interface.functions.executeWithdraw.encode([
             withdrawInterpreterAddress,
             randomBytes(32), // nonce
-            defaultAbiCoder.encode(
-              [outcomeEncoding],
-              [{ to: recipient, amount: bigNumberify(amount) }],
-            ),
-            defaultAbiCoder.encode(
-              [withdrawOutcomeInterpreterParamsEncoding],
-              [{ limit: bigNumberify(amount), tokenAddress: assetId }],
-            ),
+            encode(outcomeEncoding, { to: recipient, amount: bigNumberify(amount) }),
+            encode(withdrawOutcomeInterpreterParamsEncoding, {
+              limit: bigNumberify(amount),
+              tokenAddress: assetId,
+            }),
+          ]),
+          operation: MultisigOperation.DelegateCall,
+        }
+      }
+      case CommitmentTypes.app: {
+        const {
+          ctdt,
+          freeBalanceIdentityHash,
+          appIdentityHash,
+          interpreterAddr,
+          amount,
+          assetId,
+          mockDispute,
+        } = params as AppParams
+
+        // Uses single asset interpreter addr
+        const interpreterParams = {
+          limit: amount,
+          tokenAddress: assetId,
+        }
+        const encodedParams = encode(
+          singleAssetTwoPartyCoinTransferInterpreterParamsEncoding,
+          interpreterParams,
+        )
+        return {
+          to: ctdt.address,
+          value: 0,
+          data: ctdt.interface.functions.executeEffectOfInterpretedAppOutcome.encode([
+            mockDispute.address,
+            freeBalanceIdentityHash,
+            appIdentityHash,
+            interpreterAddr,
+            encodedParams,
           ]),
           operation: MultisigOperation.DelegateCall,
         }
       }
       // TODO: returns signed app execute effect tx
-      case CommitmentType.App: {
-        const {} = params
-        return {
-          to: '',
-          value: 0,
-          data: '',
-        }
-      }
-      // TODO: returns signed app execute effect tx
-      case CommitmentType.FreeBalance: {
+      case CommitmentTypes.freebalance: {
         const {} = params
         return {
           to: '',
@@ -234,21 +303,16 @@ export class MiniCommitment {
     return keccak256(encoded)
   }
 
-  async getSignedTransaction(
-    commitmentType: CommitmentType,
-    params: {
-      assetId: string
-      amount: BigNumberish
-      recipient: string
-      withdrawInterpreterAddress: string
-      ctdt: IndexerCtdt
-    },
+  async getSignedTransaction<T extends CommitmentType>(
+    commitmentType: T,
+    params: CommitmentInputs[T],
   ) {
     // Generate transaction details
     const details = this.getTransactionDetails(commitmentType, params)
 
     // Generate owner signatures
     const digest = this.getDigestFromDetails(details)
+    console.log(`owners signing: ${digest}`)
     const signatures = await Promise.all(this.owners.map(owner => owner.signMessage(digest)))
 
     // Encode call to execute transaction

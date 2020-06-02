@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
-import { Signer, Wallet } from 'ethers'
-import { bigNumberify, parseEther, BigNumberish, BigNumber } from 'ethers/utils'
-import { ChallengeStatus } from '@connext/types'
-import { ChannelSigner } from '@connext/utils'
+import { Signer } from 'ethers'
+import { bigNumberify, parseEther, BigNumberish, BigNumber, defaultAbiCoder } from 'ethers/utils'
+import { ChallengeStatus, CoinTransfer } from '@connext/types'
+import { ChannelSigner, toBN } from '@connext/utils'
 
 import { deployGRTWithFactory, deployIndexerMultisigWithContext } from '../lib/deployment'
 import {
@@ -13,6 +13,7 @@ import {
   CommitmentType,
   getInitialDisputeTx,
   freeBalanceStateEncoding,
+  CommitmentTypes,
 } from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
@@ -26,13 +27,14 @@ import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
-describe('Indexer Channel Operations', () => {
+describe.only('Indexer Channel Operations', () => {
   let multisig: MinimumViableMultisig
   let masterCopy: MinimumViableMultisig
   let indexerCTDT: IndexerCtdt
   let singleAssetInterpreter: IndexerSingleAssetInterpreter
   let multiAssetInterpreter: IndexerMultiAssetInterpreter
   let withdrawInterpreter: IndexerWithdrawInterpreter
+  let proxy: MinimumViableMultisig
   let mockStaking: MockStaking
   let mockDispute: MockDispute
   let identity: IdentityApp
@@ -58,7 +60,10 @@ describe('Indexer Channel Operations', () => {
     indexer = _indexer
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address)
+    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address, [
+      node,
+      indexer,
+    ])
     indexerCTDT = channelContracts.ctdt
     singleAssetInterpreter = channelContracts.singleAssetInterpreter
     multiAssetInterpreter = channelContracts.multiAssetInterpreter
@@ -69,6 +74,7 @@ describe('Indexer Channel Operations', () => {
     multisig = channelContracts.multisig
     app = channelContracts.app
     identity = channelContracts.identity
+    proxy = channelContracts.proxy
 
     // Setup the multisig
     // await masterCopy.setup([node.address, indexer.address])
@@ -111,7 +117,7 @@ describe('Indexer Channel Operations', () => {
 
       // Helper
       sendWithdrawalCommitment = async (commitment: MiniCommitment, params: any) => {
-        const commitmentType = CommitmentType.Withdraw
+        const commitmentType = CommitmentTypes.withdraw
 
         // Get recipient address pre withdraw balance
         const isEth = params.assetId === AddressZero
@@ -224,9 +230,12 @@ describe('Indexer Channel Operations', () => {
     // Establish test constants
     const ETH_DEPOSIT = bigNumberify(175)
     const TOKEN_DEPOSIT = parseEther('4')
+    const APP_DEPOSIT = toBN(15)
 
     let appInitialDisputeTx: any
     let freeBalanceDisputeTx: any
+    let appIdentityHash: string
+    let freeBalanceIdentityHash: string
 
     // Helpers
     let initiateAndVerifyDispute: (disputer: ChannelSigner, isApp?: boolean) => Promise<void>
@@ -235,6 +244,9 @@ describe('Indexer Channel Operations', () => {
       // fund multisig and staking contract
       const tx = await token.transfer(mockStaking.address, TOKEN_DEPOSIT)
       await tx.wait()
+
+      expect(await multisig.functions.INDEXER_CTDT_ADDRESS()).to.be.eq(indexerCTDT.address)
+
       await fundMultisigAndAssert(ETH_DEPOSIT)
       await fundMultisigAndAssert(TOKEN_DEPOSIT, token)
 
@@ -246,21 +258,23 @@ describe('Indexer Channel Operations', () => {
         [node.address, indexer.address],
       )
       appInitialDisputeTx = transaction
+      appIdentityHash = identityHash
 
       // Create free balance state to dispute
+      const balances: CoinTransfer[][] = [
+        [
+          { to: node.address, amount: ETH_DEPOSIT.div(2) },
+          { to: indexer.address, amount: ETH_DEPOSIT.div(2) },
+        ],
+        [
+          { to: node.address, amount: TOKEN_DEPOSIT.div(2).sub(APP_DEPOSIT) },
+          { to: indexer.address, amount: TOKEN_DEPOSIT.div(2) },
+        ],
+      ]
       const fbState = {
         activeApps: [identityHash],
         tokenAddresses: [AddressZero, token.address],
-        balances: [
-          [
-            { to: node.address, amount: ETH_DEPOSIT.div(2) },
-            { to: indexer.address, amount: ETH_DEPOSIT.div(2) },
-          ],
-          [
-            { to: node.address, amount: TOKEN_DEPOSIT.div(2) },
-            { to: indexer.address, amount: TOKEN_DEPOSIT.div(2) },
-          ],
-        ],
+        balances,
       }
 
       // Get the db initial dispute tx + identity hash
@@ -269,10 +283,11 @@ describe('Indexer Channel Operations', () => {
         identity.address,
         multisig.address,
         [node.address, indexer.address],
-        fbState,
         freeBalanceStateEncoding,
+        fbState,
       )
       freeBalanceDisputeTx = fbInfo.transaction
+      freeBalanceIdentityHash = fbInfo.identityHash
 
       // Helpers
       initiateAndVerifyDispute = async (disputer: ChannelSigner, isApp: boolean = true) => {
@@ -281,18 +296,81 @@ describe('Indexer Channel Operations', () => {
           isApp ? appInitialDisputeTx : freeBalanceDisputeTx,
         )
         await tx.wait()
-        const disputeId = isApp ? identityHash : fbInfo.identityHash
+        const disputeId = isApp ? appIdentityHash : freeBalanceIdentityHash
         const challenge = await mockDispute.functions.appChallenges(disputeId)
         expect(challenge.status).to.be.eq(ChallengeStatus.OUTCOME_SET)
       }
     })
 
-    it('indexer can execute a channel dispute (1 app, free balance)', async function() {
+    it.only('indexer can execute a channel dispute (1 app, free balance)', async function() {
       // Have indexer initiate both free balance and app dispute
-
-      // FIXME: see TODO in channel.ts#getRandomFundedChannelSigners
       await initiateAndVerifyDispute(indexer)
       await initiateAndVerifyDispute(indexer, false)
+
+      // Generate parameters
+      const params = {
+        ctdt: indexerCTDT,
+        freeBalanceIdentityHash,
+        appIdentityHash,
+        interpreterAddr: singleAssetInterpreter.address,
+        amount: APP_DEPOSIT,
+        assetId: token.address,
+        mockDispute,
+      }
+
+      // Execute effect of app dispute
+      const provider = governer.provider
+      const preDisputeBalances = {
+        [AddressZero]: {
+          [multisig.address]: await provider.getBalance(multisig.address),
+          [indexer.address]: await provider.getBalance(indexer.address),
+          [node.address]: await provider.getBalance(node.address),
+        },
+        [token.address]: {
+          [multisig.address]: await token.balanceOf(multisig.address),
+          [indexer.address]: await token.balanceOf(indexer.address),
+          [node.address]: await token.balanceOf(node.address),
+        },
+      }
+      const commitment = new MiniCommitment(multisig.address, [node, indexer])
+      const minTx = await commitment.getSignedTransaction(CommitmentTypes.app, params)
+      const tx = await indexer.sendTransaction(minTx)
+      await tx.wait()
+
+      const postDisputeBalances = {
+        [AddressZero]: {
+          [multisig.address]: await provider.getBalance(multisig.address),
+          [indexer.address]: await provider.getBalance(indexer.address),
+          [node.address]: await provider.getBalance(node.address),
+        },
+        [token.address]: {
+          [multisig.address]: await token.balanceOf(multisig.address),
+          [indexer.address]: await token.balanceOf(indexer.address),
+          [node.address]: await token.balanceOf(node.address),
+        },
+      }
+
+      // All eth balance should be unchanged (minus gas)
+      expect(postDisputeBalances[AddressZero][multisig.address]).to.be.eq(
+        preDisputeBalances[AddressZero][multisig.address],
+      )
+      expect(postDisputeBalances[AddressZero][indexer.address]).to.be.lt(
+        preDisputeBalances[AddressZero][indexer.address],
+      )
+      expect(postDisputeBalances[AddressZero][node.address]).to.be.eq(
+        preDisputeBalances[AddressZero][node.address],
+      )
+
+      // Token balance should decrease
+      expect(postDisputeBalances[token.address][multisig.address]).to.be.eq(
+        preDisputeBalances[token.address][multisig.address].sub(APP_DEPOSIT),
+      )
+      expect(postDisputeBalances[token.address][indexer.address]).to.be.eq(
+        preDisputeBalances[token.address][indexer.address],
+      )
+      expect(postDisputeBalances[token.address][node.address]).to.be.eq(
+        preDisputeBalances[token.address][node.address].add(APP_DEPOSIT),
+      )
     })
 
     it.skip('node can execute a channel dispute (1 app, free balance)', async function() {})
