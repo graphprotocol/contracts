@@ -14,7 +14,7 @@ contract DisputeManager is Governed {
 
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
     struct Dispute {
-        bytes32 subgraphID;
+        bytes32 subgraphDeploymentID;
         address indexer;
         address fisherman;
         uint256 deposit;
@@ -26,14 +26,14 @@ contract DisputeManager is Governed {
     struct Receipt {
         bytes32 requestCID;
         bytes32 responseCID;
-        bytes32 subgraphID;
+        bytes32 subgraphDeploymentID;
     }
 
     // Attestation sent from indexer in response to a request
     struct Attestation {
         bytes32 requestCID;
         bytes32 responseCID;
-        bytes32 subgraphID;
+        bytes32 subgraphDeploymentID;
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -51,7 +51,7 @@ contract DisputeManager is Governed {
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
-        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
+        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
     );
 
     // 100% in parts per million
@@ -88,12 +88,13 @@ contract DisputeManager is Governed {
     // -- Events --
 
     /**
-     * @dev Emitted when `disputeID` is created for `subgraphID` and `indexer` by `fisherman`.
+     * @dev Emitted when `disputeID` is created for `subgraphDeploymentID` and `indexer`
+     * by `fisherman`.
      * The event emits the amount `tokens` deposited by the fisherman and `attestation` submitted.
      */
     event DisputeCreated(
         bytes32 disputeID,
-        bytes32 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
@@ -101,39 +102,39 @@ contract DisputeManager is Governed {
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphID` and `indexer`
+     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphDeploymentID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
         bytes32 disputeID,
-        bytes32 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphID` and `indexer`
+     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphDeploymentID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
         bytes32 disputeID,
-        bytes32 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphID` and `indexer`
+     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphDeploymentID` and `indexer`
      * created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
     event DisputeDrawn(
         bytes32 disputeID,
-        bytes32 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
@@ -232,7 +233,7 @@ contract DisputeManager is Governed {
                             RECEIPT_TYPE_HASH,
                             _receipt.requestCID,
                             _receipt.responseCID,
-                            _receipt.subgraphID
+                            _receipt.subgraphDeploymentID
                         ) // EIP 712-encoded message hash
                     )
                 )
@@ -345,7 +346,7 @@ contract DisputeManager is Governed {
 
         emit DisputeAccepted(
             _disputeID,
-            dispute.subgraphID,
+            dispute.subgraphDeploymentID,
             dispute.indexer,
             dispute.fisherman,
             dispute.deposit.add(tokensToReward)
@@ -370,7 +371,7 @@ contract DisputeManager is Governed {
 
         emit DisputeRejected(
             _disputeID,
-            dispute.subgraphID,
+            dispute.subgraphDeploymentID,
             dispute.indexer,
             dispute.fisherman,
             dispute.deposit
@@ -398,7 +399,7 @@ contract DisputeManager is Governed {
 
         emit DisputeDrawn(
             _disputeID,
-            dispute.subgraphID,
+            dispute.subgraphDeploymentID,
             dispute.indexer,
             dispute.fisherman,
             dispute.deposit
@@ -422,16 +423,19 @@ contract DisputeManager is Governed {
         address channelID = _recoverAttestationSigner(attestation);
 
         // Get the indexer that created the channel and signed the attestation
-        (address indexer, bytes32 subgraphID) = staking.channels(channelID);
+        (address indexer, bytes32 subgraphDeploymentID) = staking.channels(channelID);
         require(indexer != address(0), "Indexer cannot be found for the attestation");
-        require(subgraphID == attestation.subgraphID, "Channel and attestation subgraph must match");
+        require(
+            subgraphDeploymentID == attestation.subgraphDeploymentID,
+            "Channel and attestation subgraphDeploymentID must match"
+        );
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
             abi.encodePacked(
                 attestation.requestCID,
                 attestation.responseCID,
-                attestation.subgraphID,
+                attestation.subgraphDeploymentID,
                 indexer
             )
         );
@@ -439,15 +443,20 @@ contract DisputeManager is Governed {
         // This also validates that indexer exists
         require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
-        // A fisherman can only open one dispute for a given indexer / subgraphID at a time
+        // A fisherman can only open one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
-        disputes[disputeID] = Dispute(attestation.subgraphID, indexer, _fisherman, _deposit);
+        disputes[disputeID] = Dispute(
+            attestation.subgraphDeploymentID,
+            indexer,
+            _fisherman,
+            _deposit
+        );
 
         emit DisputeCreated(
             disputeID,
-            attestation.subgraphID,
+            attestation.subgraphDeploymentID,
             indexer,
             _fisherman,
             _deposit,
@@ -465,7 +474,7 @@ contract DisputeManager is Governed {
         Receipt memory receipt = Receipt(
             _attestation.requestCID,
             _attestation.responseCID,
-            _attestation.subgraphID
+            _attestation.subgraphDeploymentID
         );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
@@ -492,7 +501,7 @@ contract DisputeManager is Governed {
      */
     function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphID) = abi.decode(
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
             _data, (bytes32, bytes32, bytes32)
         );
 
@@ -502,7 +511,7 @@ contract DisputeManager is Governed {
         bytes32 r = _toBytes32(_data, RECEIPT_SIZE_BYTES + 1);
         bytes32 s = _toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
 
-        return Attestation(requestCID, responseCID, subgraphID, v, r, s);
+        return Attestation(requestCID, responseCID, subgraphDeploymentID, v, r, s);
     }
 
     /**
