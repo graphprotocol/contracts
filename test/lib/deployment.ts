@@ -1,6 +1,6 @@
 import { Wallet, Contract } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
-import { ethers } from '@nomiclabs/buidler'
+import { ethers, waffle } from '@nomiclabs/buidler'
 
 // contracts artifacts
 import CurationArtifact from '../../build/contracts/Curation.json'
@@ -10,6 +10,7 @@ import GNSArtifact from '../../build/contracts/GNS.json'
 import GraphTokenArtifact from '../../build/contracts/GraphToken.json'
 import ServiceRegistyArtifact from '../../build/contracts/ServiceRegistry.json'
 import StakingArtifact from '../../build/contracts/Staking.json'
+import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
 
 // contracts definitions
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -28,11 +29,13 @@ import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { Proxy } from '../../build/typechain/contracts/Proxy'
+import { ProxyFactory } from '../../build/typechain/contracts/ProxyFactory'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
 // helpers
 import { defaults } from './testHelpers'
-import { solidityKeccak256 } from 'ethers/utils'
+import { solidityKeccak256, Interface, keccak256 } from 'ethers/utils'
+import { ChannelSigner } from '@connext/utils'
 
 const deployGasLimit = 9000000
 
@@ -219,7 +222,67 @@ async function deployIdentityApp(): Promise<IdentityApp> {
   return contract as IdentityApp
 }
 
-export async function deployIndexerMultisigWithContext(node: string, tokenAddress: string) {
+export const getCreate2Address = async (
+  owners: ChannelSigner[],
+  proxy: Contract,
+  multisigMaster: MinimumViableMultisig,
+  channelContext: {
+    node: string
+    staking: string
+    indexerCTDT: string
+    singleAssetInterpreter: string
+    multiAssetInterpreter: string
+    withdrawInterpreter: string
+  },
+): Promise<string> => {
+  const proxyBytecode = await proxy.functions.proxyCreationCode()
+
+  const {
+    node,
+    staking,
+    indexerCTDT,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+  } = channelContext
+
+  return `0x${solidityKeccak256(
+    ['bytes1', 'address', 'uint256', 'bytes32'],
+    [
+      '0xff',
+      proxy.address,
+      solidityKeccak256(
+        ['bytes32', 'uint256'],
+        [
+          keccak256(
+            // see encoding notes
+            multisigMaster.interface.functions.setup.encode([
+              owners.map(owner => owner.address),
+              node,
+              staking,
+              indexerCTDT,
+              singleAssetInterpreter,
+              multiAssetInterpreter,
+              withdrawInterpreter,
+            ]),
+          ),
+          // hash chainId + saltNonce to ensure multisig addresses are *always* unique
+          solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
+        ],
+      ),
+      solidityKeccak256(
+        ['bytes', 'uint256'],
+        [`0x${proxyBytecode.replace(/^0x/, '')}`, multisigMaster.address],
+      ),
+    ],
+  ).slice(-40)}`
+}
+
+export async function deployIndexerMultisigWithContext(
+  node: string,
+  tokenAddress: string,
+  owners: ChannelSigner[],
+) {
   const ctdt = await deployIndexerCTDT()
   const singleAssetInterpreter = await deploySingleAssetInterpreter()
   const multiAssetInterpreter = await deployMultiAssetInterpreter()
@@ -229,7 +292,7 @@ export async function deployIndexerMultisigWithContext(node: string, tokenAddres
   const app = await deployAppWithAction()
   const identity = await deployIdentityApp()
 
-  const multisig = await deployIndexerMultisig(
+  const multisigMaster = await deployIndexerMultisig(
     node,
     mockStaking.address,
     ctdt.address,
@@ -238,7 +301,44 @@ export async function deployIndexerMultisigWithContext(node: string, tokenAddres
     withdrawInterpreter.address,
   )
 
-  const proxy = await deployProxy(multisig.address)
+  const multisigContext = {
+    node,
+    staking: mockStaking.address,
+    indexerCTDT: ctdt.address,
+    singleAssetInterpreter: singleAssetInterpreter.address,
+    multiAssetInterpreter: multiAssetInterpreter.address,
+    withdrawInterpreter: withdrawInterpreter.address,
+  }
+
+  const proxy = await deployProxy(multisigMaster.address)
+  const proxyFactory = await deployProxyFactory()
+  const tx = await proxyFactory.functions.createProxyWithNonce(
+    multisigMaster.address,
+    multisigMaster.interface.functions.setup.encode([
+      owners.map(owner => owner.address),
+      node,
+      mockStaking.address,
+      ctdt.address,
+      singleAssetInterpreter.address,
+      multiAssetInterpreter.address,
+      withdrawInterpreter.address,
+    ]),
+    // hardcode ganache chain-id
+    solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
+  )
+  await tx.wait()
+
+  const multisigAddr = await getCreate2Address(
+    owners,
+    proxyFactory,
+    multisigMaster,
+    multisigContext,
+  )
+  const multisig = new Contract(
+    multisigAddr,
+    MinimumViableMultisigArtifact.abi,
+    waffle.provider,
+  ) as MinimumViableMultisig
 
   return {
     ctdt,
@@ -246,8 +346,9 @@ export async function deployIndexerMultisigWithContext(node: string, tokenAddres
     multiAssetInterpreter,
     withdrawInterpreter,
     mockStaking,
-    multisig: proxy as MinimumViableMultisig,
-    masterCopy: multisig,
+    multisig,
+    masterCopy: multisigMaster,
+    proxy: proxy as MinimumViableMultisig,
     mockDispute,
     app,
     identity,
