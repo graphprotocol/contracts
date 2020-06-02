@@ -51,7 +51,7 @@ contract DisputeManager is Governed {
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
-        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
+        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphID)"
     );
 
     // 100% in parts per million
