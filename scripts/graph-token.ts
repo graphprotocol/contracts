@@ -1,18 +1,18 @@
 #!/usr/bin/env ts-node
 
-import { utils } from "ethers";
-import * as path from "path";
-import * as minimist from "minimist";
+import { utils } from 'ethers'
+import * as path from 'path'
+import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from "./helpers";
+import { contracts, executeTransaction, overrides } from './helpers'
 
 ///////////////////////
 // Set up the script //
 ///////////////////////
 
-let { func, account, amount } = minimist(process.argv.slice(2), {
-  string: ["func", "account", "amount"]
-});
+let { func, account, amount } = minimist.default(process.argv.slice(2), {
+  string: ['func', 'account', 'amount'],
+})
 
 if (!func || !account || !amount) {
   console.error(
@@ -32,34 +32,36 @@ Function arguments:
   approve
     --account <address> - Ethereum account being approved to spend on behalf of
     --amount <number>   - Amount of GRT to approve
-`
-  );
-  process.exit(1);
+`,
+  )
+  process.exit(1)
 }
 
 // GRT has 18 decimals
-const amountBN = utils.parseUnits(amount, 18);
+const amountBN = utils.parseUnits(amount, 18)
 
 ///////////////////////
 // functions //////////
 ///////////////////////
 
 const mint = async () => {
-  const mintOverrides = await overrides("graphToken", "mint");
-  await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, mintOverrides));
-};
+  const mintOverrides = await overrides('graphToken', 'mint')
+  await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, mintOverrides))
+}
 
 const transfer = async () => {
-  const transferOverrides = await overrides("graphToken", "transfer");
+  const transferOverrides = await overrides('graphToken', 'transfer')
   await executeTransaction(
-    contracts.graphToken.functions.transfer(account, amountBN, transferOverrides)
-  );
-};
+    contracts.graphToken.functions.transfer(account, amountBN, transferOverrides),
+  )
+}
 
 const approve = async () => {
-  const approveOverrides = await overrides("graphToken", "approve");
-  await executeTransaction(contracts.graphToken.functions.approve(account, amountBN, approveOverrides));
-};
+  const approveOverrides = await overrides('graphToken', 'approve')
+  await executeTransaction(
+    contracts.graphToken.functions.approve(account, amountBN, approveOverrides),
+  )
+}
 
 ///////////////////////
 // main ///////////////
@@ -67,20 +69,20 @@ const approve = async () => {
 
 const main = async () => {
   try {
-    if (func == "mint") {
-      console.log(`Minting ${amount} tokens to user ${account}...`);
-      mint();
-    } else if (func == "transfer") {
-      console.log(`Transferring ${amount} tokens to user ${account}...`);
-      transfer();
-    } else if (func == "approve") {
-      console.log(`Approving ${amount} tokens to spend by ${account}...`);
-      approve();
+    if (func == 'mint') {
+      console.log(`Minting ${amount} tokens to user ${account}...`)
+      mint()
+    } else if (func == 'transfer') {
+      console.log(`Transferring ${amount} tokens to user ${account}...`)
+      transfer()
+    } else if (func == 'approve') {
+      console.log(`Approving ${amount} tokens to spend by ${account}...`)
+      approve()
     }
   } catch (e) {
-    console.log(`  ..failed: ${e.message}`);
-    process.exit(1);
+    console.log(`  ..failed: ${e.message}`)
+    process.exit(1)
   }
-};
+}
 
-main();
+main()
