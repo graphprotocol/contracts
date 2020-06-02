@@ -15,7 +15,7 @@ describe('GNS', () => {
   const record = {
     name: 'graph',
     nameHash: ethers.utils.id('graph'),
-    subgraphID: randomHexBytes(),
+    subgraphDeploymentID: randomHexBytes(),
     metadataHash: '0xeb50d096ba95573ae31640e38e4ef64fd02eec174f586624a37ea04e7bd8c751',
   }
 
@@ -23,7 +23,7 @@ describe('GNS', () => {
     gns = await deployment.deployGNS(governor.address, me)
 
     this.publish = (signer: Wallet) =>
-      gns.connect(signer).publish(record.name, record.subgraphID, record.metadataHash)
+      gns.connect(signer).publish(record.name, record.subgraphDeploymentID, record.metadataHash)
     this.unpublish = (signer: Wallet) => gns.connect(signer).unpublish(record.nameHash)
   })
 
@@ -40,12 +40,12 @@ describe('GNS', () => {
       const tx = this.publish(me)
       await expect(tx)
         .to.emit(gns, 'SubgraphPublished')
-        .withArgs(record.name, me.address, record.subgraphID, record.metadataHash)
+        .withArgs(record.name, me.address, record.subgraphDeploymentID, record.metadataHash)
 
       // State updated
       const newRecord = await gns.records(record.nameHash)
       expect(newRecord.owner).to.be.eq(me.address)
-      expect(newRecord.subgraphID).to.be.eq(record.subgraphID)
+      expect(newRecord.subgraphDeploymentID).to.be.eq(record.subgraphDeploymentID)
     })
 
     it('should allow re-publish', async function() {
