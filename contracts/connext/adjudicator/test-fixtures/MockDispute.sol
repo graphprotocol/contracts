@@ -10,10 +10,10 @@ pragma experimental "ABIEncoderV2";
 
 import "../libs/LibStateChannelApp.sol";
 import "../libs/LibAppCaller.sol";
-import "../mixins/MChallengeRegistryCore.sol";
+import "../mixins/MixinChallengeRegistryCore.sol";
 
 
-contract MockDispute is LibStateChannelApp, LibAppCaller, MChallengeRegistryCore {
+contract MockDispute is LibStateChannelApp, LibAppCaller, MixinChallengeRegistryCore {
     event SetStateAndOutcomeCalled(
         AppIdentity appIdentity,
         SignedAppChallengeUpdate req,
