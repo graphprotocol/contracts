@@ -48,7 +48,8 @@
     "truffle-flattener": "^1.4.4",
     "ts-node": "^8.10.1",
     "typechain": "^2.0.0",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.3",
+    "minimist": "^1.2.5"
   },
   "scripts": {
     "prepublishOnly": "npm run build && cp -R build dist",

@@ -9,7 +9,7 @@ import { contracts, executeTransaction, overrides } from "./helpers";
 ///////////////////////
 
 let { func, id, amount } = minimist(process.argv.slice(2), {
-  string: ["id", "amount"]
+  string: ["func", "id", "amount"]
 });
 
 if (!func || !id || !amount) {
