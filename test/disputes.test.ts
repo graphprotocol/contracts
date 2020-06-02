@@ -34,7 +34,12 @@ interface Dispute {
 function createDisputeID(attestation: attestations.Attestation, indexerAddress: string) {
   return solidityKeccak256(
     ['bytes32', 'bytes32', 'bytes32', 'address'],
-    [attestation.requestCID, attestation.responseCID, attestation.subgraphID, indexerAddress],
+    [
+      attestation.requestCID,
+      attestation.responseCID,
+      attestation.subgraphDeploymentID,
+      indexerAddress,
+    ],
   )
 }
 
@@ -42,7 +47,7 @@ function encodeAttestation(attestation: attestations.Attestation): string {
   const data = arrayify(
     abi.encode(
       ['bytes32', 'bytes32', 'bytes32'],
-      [attestation.requestCID, attestation.responseCID, attestation.subgraphID],
+      [attestation.requestCID, attestation.responseCID, attestation.subgraphDeploymentID],
     ),
   )
   const sig = concat([
@@ -84,7 +89,7 @@ describe('Disputes', async () => {
   const receipt: attestations.Receipt = {
     requestCID: randomHexBytes(),
     responseCID: randomHexBytes(),
-    subgraphID: randomHexBytes(),
+    subgraphDeploymentID: randomHexBytes(),
   }
   let dispute: Dispute
 
@@ -292,7 +297,7 @@ describe('Disputes', async () => {
       await staking
         .connect(indexer)
         .allocate(
-          dispute.receipt.subgraphID,
+          dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           indexerChannelPubKey,
           channelProxy.address,
@@ -335,7 +340,7 @@ describe('Disputes', async () => {
           await staking
             .connect(indexerWallet)
             .allocate(
-              dispute.receipt.subgraphID,
+              dispute.receipt.subgraphDeploymentID,
               this.indexerAllocatedTokens,
               indexerPubKey,
               channelProxy.address,
@@ -379,7 +384,7 @@ describe('Disputes', async () => {
             .to.emit(disputeManager, 'DisputeCreated')
             .withArgs(
               dispute.id,
-              dispute.receipt.subgraphID,
+              dispute.receipt.subgraphDeploymentID,
               dispute.indexerAddress,
               fisherman.address,
               this.fishermanDeposit,
@@ -441,7 +446,7 @@ describe('Disputes', async () => {
               .to.emit(disputeManager, 'DisputeCreated')
               .withArgs(
                 newDispute.id,
-                newDispute.receipt.subgraphID,
+                newDispute.receipt.subgraphDeploymentID,
                 newDispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
@@ -491,7 +496,7 @@ describe('Disputes', async () => {
               .to.emit(disputeManager, 'DisputeAccepted')
               .withArgs(
                 dispute.id,
-                dispute.receipt.subgraphID,
+                dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit.add(reward),
@@ -530,7 +535,7 @@ describe('Disputes', async () => {
               .to.emit(disputeManager, 'DisputeRejected')
               .withArgs(
                 dispute.id,
-                dispute.receipt.subgraphID,
+                dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
@@ -562,7 +567,7 @@ describe('Disputes', async () => {
               .to.emit(disputeManager, 'DisputeDrawn')
               .withArgs(
                 dispute.id,
-                dispute.receipt.subgraphID,
+                dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
