@@ -50,7 +50,10 @@ describe('MinimumViableMultisig.sol', () => {
     epochManager = await deployEpochManagerWithFactory(await governor.getAddress())
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address)
+    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address, [
+      node,
+      indexer,
+    ])
     indexerCTDT = channelContracts.ctdt
     singleAssetInterpreter = channelContracts.singleAssetInterpreter
     multiAssetInterpreter = channelContracts.multiAssetInterpreter
@@ -93,25 +96,24 @@ describe('MinimumViableMultisig.sol', () => {
   })
 
   describe('setup', function() {
-    it('should be able to setup', async function() {
-      const owners = [node.address, indexer.address]
-      await masterCopy.setup(owners)
-      const retrieved = await masterCopy.getOwners()
-      expect(retrieved).to.be.deep.eq(owners)
-    })
-
-    it('should fail if already setup', async function() {
-      const owners = [node.address, indexer.address]
-      await masterCopy.setup(owners)
-      await expect(masterCopy.setup(owners)).to.be.revertedWith('Contract has been set up before')
-    })
+    // it('should be able to setup', async function() {
+    //   const owners = [node.address, indexer.address]
+    //   await masterCopy.setup(owners)
+    //   const retrieved = await masterCopy.getOwners()
+    //   expect(retrieved).to.be.deep.eq(owners)
+    // })
+    // it('should fail if already setup', async function() {
+    //   const owners = [node.address, indexer.address]
+    //   await masterCopy.setup(owners)
+    //   await expect(masterCopy.setup(owners)).to.be.revertedWith('Contract has been set up before')
+    // })
   })
 
   describe('lock', function() {
-    beforeEach(async function() {
-      // Set the multisig owners
-      await masterCopy.setup([node.address, indexer.address])
-    })
+    // beforeEach(async function() {
+    //   // Set the multisig owners
+    //   await masterCopy.setup([node.address, indexer.address])
+    // })
 
     it('should lock', async function() {
       masterCopy.connect(staking)
@@ -131,14 +133,14 @@ describe('MinimumViableMultisig.sol', () => {
   })
 
   describe('unlock', function() {
-    beforeEach(async function() {
-      // Set the multisig owners
-      await masterCopy.setup([node.address, indexer.address])
+    // beforeEach(async function() {
+    //   // Set the multisig owners
+    //   await masterCopy.setup([node.address, indexer.address])
 
-      // Lock the multisig
-      masterCopy.connect(staking)
-      await masterCopy.lock()
-    })
+    //   // Lock the multisig
+    //   masterCopy.connect(staking)
+    //   await masterCopy.lock()
+    // })
 
     it('should unlock', async function() {
       await masterCopy.unlock()

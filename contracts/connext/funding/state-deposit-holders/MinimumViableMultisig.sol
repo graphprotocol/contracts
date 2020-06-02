@@ -59,9 +59,23 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Contract constructor (proxy instance)
     /// @param owners An array of unique addresses representing the multisig owners
-    function setup(address[] memory owners) public {
+    function setup(
+        address[] memory owners,
+        address payable node,
+        address payable staking,
+        address CTDT,
+        address singleAssetInterpreter,
+        address multiAssetInterpreter,
+        address withdrawInterpreter
+    ) public {
         require(_owners.length == 0, "Contract has been set up before");
         _owners = owners;
+        NODE_ADDRESS = node;
+        INDEXER_STAKING_ADDRESS = staking;
+        INDEXER_CTDT_ADDRESS = CTDT;
+        INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
+        INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = multiAssetInterpreter;
+        INDEXER_WITHDRAW_INTERPRETER_ADDRESS = withdrawInterpreter;
     }
 
     /// @notice Modifier to revert if caller is not staking contract
@@ -123,8 +137,6 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
                 Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1])) ||
                 (_owners[1] == NODE_ADDRESS &&
                     Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])));
-
-        // require( false == true, "af HEREE!");
 
         if (isNodeIndexerMultisig) {
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
