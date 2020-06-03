@@ -12,6 +12,7 @@ import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/In
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
 import { Signer } from 'ethers'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
+import { parseEther } from 'ethers/utils'
 
 describe('MinimumViableMultisig.sol', () => {
   let masterCopy: MinimumViableMultisig
@@ -24,6 +25,7 @@ describe('MinimumViableMultisig.sol', () => {
   let token: GraphToken
   let governor: Signer
   let staking: MockStaking
+  let multisig: MinimumViableMultisig
 
   beforeEach(async function() {
     const accounts = await ethers.getSigners()
@@ -48,6 +50,7 @@ describe('MinimumViableMultisig.sol', () => {
     withdrawInterpreter = channelContracts.withdrawInterpreter
     masterCopy = channelContracts.masterCopy
     staking = channelContracts.mockStaking
+    multisig = channelContracts.multisig
   })
 
   describe('constructor', function() {
@@ -96,23 +99,22 @@ describe('MinimumViableMultisig.sol', () => {
     })
   })
 
-  // TODO: how to call from staking contract properly?
-  describe.skip('lock', function() {
+  describe('lock', function() {
     beforeEach(async function() {
       // Set the multisig owners
       await masterCopy.setup([node.address, indexer.address])
     })
 
     it('should lock', async function() {
-      const tx = await staking.functions.lockMultisig(masterCopy.address)
+      const tx = await staking.functions.lockMultisig(multisig.address)
       await tx.wait()
-      expect(await masterCopy.locked()).to.be.eq(true)
+      expect(await multisig.locked()).to.be.eq(true)
     })
 
     it('should fail if not called by staking address', async function() {
-      await expect(
-        masterCopy.connect(governor).lockMultisig(masterCopy.address),
-      ).to.be.revertedWith('Caller must be the staking contract')
+      await expect(multisig.connect(governor).lock()).to.be.revertedWith(
+        'Caller must be the staking contract',
+      )
     })
 
     it('should fail if already locked', async function() {
@@ -122,9 +124,13 @@ describe('MinimumViableMultisig.sol', () => {
         'Multisig must be unlocked to lock',
       )
     })
+
+    it('should not allow transaction with locked multisig', async function() {
+      await governor.sendTransaction({ to: multisig.address, value: parseEther('0.1') })
+    })
   })
 
-  // TODO: how to call from staking contract properly?
+  // TODO: these tests are on the chopping block pending confirmation that unlock is not used
   describe.skip('unlock', function() {
     beforeEach(async function() {
       // Set the multisig owners
