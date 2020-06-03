@@ -24,8 +24,6 @@ contract MockDispute is LibStateChannelApp, LibAppCaller, MixinChallengeRegistry
     ///         Short-circuits the dispute game by directly setting the
     ///         the outcome with the provided state.
 
-    // TODO: Is it a problem if this doesnt share the same interface as the
-    //       connext disputes? Currently combining the fns, but can separate
     function setStateAndOutcome(
         AppIdentity memory appIdentity,
         SignedAppChallengeUpdate memory req,
