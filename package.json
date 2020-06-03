@@ -55,7 +55,7 @@
     "compile": "buidler compile",
     "migrate": "truffle migrate",
     "deploy": "truffle deploy",
-    "test": "buidler test",
+    "test": "buidler typechain && buidler test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm.sh",
     "lint": "npm run lint:js && npm run lint:sol",
