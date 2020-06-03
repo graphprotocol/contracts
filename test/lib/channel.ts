@@ -20,12 +20,10 @@ import {
 } from 'ethers/utils'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import MultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
-import MockDisputeArtifact from '../../build/contracts/MockDispute.json'
-import IndexerCTDTArtifact from '../../build/contracts/IndexerCTDT.json'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 import { toBN } from './testHelpers'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
-import { Zero } from 'ethers/constants'
+import { Zero, AddressZero } from 'ethers/constants'
 
 export async function getRandomFundedChannelSigners(
   numSigners: number,
@@ -83,7 +81,7 @@ export function fundMultisig(
   })
 }
 
-export const outcomeEncoding = tidy(`tuple(
+export const withdrawOutcomeEncoding = tidy(`tuple(
   address to,
   uint256 amount
 )`)
@@ -120,62 +118,140 @@ export const encode = (encoding: string, state: any) => {
   return defaultAbiCoder.encode([encoding], [state])
 }
 
-// defaults are for app instance not free balance dispute
-export async function getInitialDisputeTx(
-  mockDisputeAddr: string,
-  appDefinition: string,
-  multisigAddress: string,
-  multisigOwners: string[],
-  stateEncoding: string = appWithCounterStateEncoding,
-  initialState?: any,
-) {
-  const appState = initialState || {
+export const getAppInitialState = (appDeposit: BigNumber, participants: string[]) => {
+  return {
     counter: toBN(1),
     transfers: [
       {
-        to: multisigOwners[0],
-        amount: toBN(15), // total app deposit
+        to: participants[0],
+        amount: appDeposit,
       },
       {
-        to: multisigOwners[1],
+        to: participants[1],
         amount: Zero,
       },
     ],
   }
+}
+
+export const getFreeBalanceState = (
+  multisigOwners: string[],
+  totalChannelEth: BigNumber,
+  totalChannelTokens: BigNumber,
+  beneficiary: ChannelSigner,
+  appInfo: [{ identityHash: string; deposit: BigNumber; assetId: string }],
+) => {
+  // Generate active apps
+  const activeApps = appInfo.map(appInfo => appInfo.identityHash)
+
+  // Generate token addresses
+  const tokenAddresses = [AddressZero].concat(
+    appInfo.filter(app => app.assetId !== AddressZero).map(app => app.assetId),
+  )
+
+  // Get total app deposits
+  const depositInfo = appInfo.map(({ deposit, assetId }) => {
+    return { deposit, assetId }
+  })
+  const totalAppsEth = depositInfo.reduce(
+    (prev, curr) => {
+      const isEth = curr.assetId === AddressZero
+      return {
+        assetId: curr.assetId,
+        deposit: prev.deposit.add(isEth ? curr.deposit : Zero),
+      }
+    },
+    {
+      assetId: AddressZero,
+      deposit: new BigNumber(0),
+    },
+  )
+
+  const totalAppsToken = depositInfo.reduce(
+    (prev, curr) => {
+      const isToken = curr.assetId !== AddressZero
+      return {
+        assetId: curr.assetId,
+        deposit: prev.deposit.add(isToken ? curr.deposit : Zero),
+      }
+    },
+    {
+      assetId: AddressZero,
+      deposit: new BigNumber(0),
+    },
+  )
+
+  // Generate balances assuming all apps have the same beneficiary
+  const isOwner0 = beneficiary.address === multisigOwners[0]
+  const balances = [
+    [
+      {
+        to: multisigOwners[0],
+        amount: totalChannelEth.div(2).sub(isOwner0 ? totalAppsEth.deposit : Zero),
+      },
+      {
+        to: multisigOwners[1],
+        amount: totalChannelEth.div(2).sub(!isOwner0 ? totalAppsEth.deposit : Zero),
+      },
+    ],
+    [
+      {
+        to: multisigOwners[0],
+        amount: totalChannelTokens.div(2).sub(isOwner0 ? totalAppsToken.deposit : Zero),
+      },
+      {
+        to: multisigOwners[1],
+        amount: totalChannelTokens.div(2).sub(!isOwner0 ? totalAppsToken.deposit : Zero),
+      },
+    ],
+  ]
+  return {
+    tokenAddresses,
+    activeApps,
+    balances,
+  }
+}
+
+// defaults are for app instance not free balance dispute
+export async function createAppDispute(
+  mockDispute: MockDispute,
+  appDefinition: string,
+  multisigAddress: string,
+  multisigOwners: string[],
+  appState: any,
+  stateEncoding: string = freeBalanceStateEncoding,
+  participants: string[] = multisigOwners,
+): Promise<string> {
   // Create app-instance constants
   const identity = {
     multisigAddress,
     channelNonce: toBN(Math.floor(Math.random() * Math.floor(10))),
     // nonce should be unique per app
-    participants: multisigOwners,
+    participants,
     appDefinition,
     defaultTimeout: toBN(0),
   }
   const encoded = encode(stateEncoding, appState)
-  const appStateHash = keccak256(encoded)
 
   // Create inputs for dispute
   const req = {
-    appStateHash,
+    appStateHash: keccak256(encoded),
     versionNumber: Math.floor(Math.random() * Math.floor(10)),
     timeout: toBN(0),
     signatures: [getRandomBytes32(), getRandomBytes32()], // mock disutes dont check sigs
   }
 
-  // Encode call to execute transaction
-  const mockDispute = new Interface(MockDisputeArtifact.abi)
-  const txData = mockDispute.functions.setStateAndOutcome.encode([identity, req, encoded])
+  // Send dispute tx
+  const tx = await mockDispute.functions.setStateAndOutcome(identity, req, encoded)
+  await tx.wait()
 
-  return {
-    identityHash: computeAppIdentityHash(identity),
-    transaction: { to: mockDisputeAddr, value: 0, data: txData },
-  }
+  return computeAppIdentityHash(identity)
 }
 
 export const CommitmentTypes = {
   withdraw: 'withdraw',
-  app: 'app',
-  freebalance: 'freebalance',
+  conditional: 'conditional',
+  setup: 'setup',
 } as const
 export type CommitmentType = keyof typeof CommitmentTypes
 
@@ -187,7 +263,7 @@ type WithdrawParams = {
   ctdt: IndexerCtdt
 }
 
-type AppParams = {
+type ConditionalParams = {
   ctdt: IndexerCtdt
   assetId: string
   amount: BigNumberish
@@ -197,10 +273,17 @@ type AppParams = {
   mockDispute: MockDispute
 }
 
+type SetupParams = {
+  ctdt: IndexerCtdt
+  freeBalanceIdentityHash: string
+  interpreterAddr: string
+  mockDispute: MockDispute
+}
+
 interface CommitmentInputMap {
   [CommitmentTypes.withdraw]: WithdrawParams
-  [CommitmentTypes.app]: AppParams
-  [CommitmentTypes.freebalance]: AppParams
+  [CommitmentTypes.conditional]: ConditionalParams
+  [CommitmentTypes.setup]: SetupParams
 }
 export type CommitmentInputs = {
   [P in keyof CommitmentInputMap]: CommitmentInputMap[P]
@@ -233,7 +316,7 @@ export class MiniCommitment {
           data: ctdt.interface.functions.executeWithdraw.encode([
             withdrawInterpreterAddress,
             randomBytes(32), // nonce
-            encode(outcomeEncoding, { to: recipient, amount: bigNumberify(amount) }),
+            encode(withdrawOutcomeEncoding, { to: recipient, amount: bigNumberify(amount) }),
             encode(withdrawOutcomeInterpreterParamsEncoding, {
               limit: bigNumberify(amount),
               tokenAddress: assetId,
@@ -242,7 +325,7 @@ export class MiniCommitment {
           operation: MultisigOperation.DelegateCall,
         }
       }
-      case CommitmentTypes.app: {
+      case CommitmentTypes.conditional: {
         const {
           ctdt,
           freeBalanceIdentityHash,
@@ -251,7 +334,7 @@ export class MiniCommitment {
           amount,
           assetId,
           mockDispute,
-        } = params as AppParams
+        } = params as ConditionalParams
 
         // Uses single asset interpreter addr
         const interpreterParams = {
@@ -276,12 +359,22 @@ export class MiniCommitment {
         }
       }
       // TODO: returns signed app execute effect tx
-      case CommitmentTypes.freebalance: {
-        const {} = params
+      case CommitmentTypes.setup: {
+        const {
+          ctdt,
+          freeBalanceIdentityHash,
+          interpreterAddr,
+          mockDispute,
+        } = params as SetupParams
         return {
-          to: '',
+          to: ctdt.address,
           value: 0,
-          data: '',
+          data: ctdt.interface.functions.executeEffectOfFreeBalance.encode([
+            mockDispute.address,
+            freeBalanceIdentityHash,
+            interpreterAddr,
+          ]),
+          operation: MultisigOperation.DelegateCall,
         }
       }
       default: {
@@ -312,7 +405,6 @@ export class MiniCommitment {
 
     // Generate owner signatures
     const digest = this.getDigestFromDetails(details)
-    console.log(`owners signing: ${digest}`)
     const signatures = await Promise.all(this.owners.map(owner => owner.signMessage(digest)))
 
     // Encode call to execute transaction
