@@ -1,12 +1,13 @@
 import { expect } from 'chai'
 import { AddressZero } from 'ethers/constants'
+import { defaultAbiCoder as abi, arrayify, concat, hexlify, solidityKeccak256 } from 'ethers/utils'
+import { attestations } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 import { Staking } from '../build/typechain/contracts/Staking'
 
-import createDispute from './lib/attestation'
 import * as deployment from './lib/deployment'
 import {
   advanceBlockTo,
@@ -21,6 +22,36 @@ import {
 
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
+
+interface Dispute {
+  id: string
+  attestation: attestations.Attestation
+  encodedAttestation: string
+  indexerAddress: string
+  receipt: attestations.Receipt
+}
+
+function createDisputeID(attestation: attestations.Attestation, indexerAddress: string) {
+  return solidityKeccak256(
+    ['bytes32', 'bytes32', 'bytes32', 'address'],
+    [attestation.requestCID, attestation.responseCID, attestation.subgraphID, indexerAddress],
+  )
+}
+
+function encodeAttestation(attestation: attestations.Attestation): string {
+  const data = arrayify(
+    abi.encode(
+      ['bytes32', 'bytes32', 'bytes32'],
+      [attestation.requestCID, attestation.responseCID, attestation.subgraphID],
+    ),
+  )
+  const sig = concat([
+    arrayify(hexlify(attestation.v)),
+    arrayify(attestation.r),
+    arrayify(attestation.s),
+  ])
+  return hexlify(concat([data, sig]))
+}
 
 describe('Disputes', async () => {
   const [
@@ -49,13 +80,13 @@ describe('Disputes', async () => {
   const otherIndexerChannelPubKey =
     '0x0447b5891c07679d40d6dfd3c4f8e1974e068da36ac76a6507dbaf5e432b879b3d4cd8c950b0df035e621f5a55b91a224ecdaef8cc8e6bb8cd8afff4a74c1904cd'
 
-  // Create a dispute
-  const receipt = {
+  // Create an attesation receipt for the dispute
+  const receipt: attestations.Receipt = {
     requestCID: randomHexBytes(),
     responseCID: randomHexBytes(),
     subgraphID: randomHexBytes(),
   }
-  let dispute: any
+  let dispute: Dispute
 
   before(async function() {
     // Helpers
@@ -92,14 +123,22 @@ describe('Disputes', async () => {
       me,
     )
 
-    // Create a dispute
-    dispute = await createDispute(
-      receipt,
-      disputeManager.address,
+    // Create an attestation
+    const attestation = await attestations.createAttestation(
       indexerChannelPrivKey,
-      indexer.address,
-      await getChainID(),
+      (await getChainID()) as number,
+      disputeManager.address,
+      receipt,
     )
+
+    // Create dispute data
+    dispute = {
+      id: createDisputeID(attestation, indexer.address),
+      attestation,
+      encodedAttestation: encodeAttestation(attestation),
+      indexerAddress: indexer.address,
+      receipt,
+    }
   })
 
   describe('state variables functions', () => {
@@ -151,18 +190,14 @@ describe('Disputes', async () => {
 
     describe('fishermanRewardPercentage', function() {
       it('should set `fishermanRewardPercentage`', async function() {
-        const fishermanRewardPercentage = defaults.dispute.fishermanRewardPercentage
+        const newValue = defaults.dispute.fishermanRewardPercentage
 
         // Set right in the constructor
-        expect(await disputeManager.fishermanRewardPercentage()).to.eq(
-          fishermanRewardPercentage.toString(),
-        )
+        expect(await disputeManager.fishermanRewardPercentage()).to.eq(newValue)
 
         // Set new value
         await disputeManager.connect(governor).setFishermanRewardPercentage(0)
-        await disputeManager
-          .connect(governor)
-          .setFishermanRewardPercentage(fishermanRewardPercentage)
+        await disputeManager.connect(governor).setFishermanRewardPercentage(newValue)
       })
 
       it('reject set `fishermanRewardPercentage` if out of bounds', async function() {
@@ -178,14 +213,14 @@ describe('Disputes', async () => {
 
     describe('slashingPercentage', function() {
       it('should set `slashingPercentage`', async function() {
-        const slashingPercentage = defaults.dispute.slashingPercentage
+        const newValue = defaults.dispute.slashingPercentage
 
         // Set right in the constructor
-        expect(await disputeManager.slashingPercentage()).to.eq(slashingPercentage.toString())
+        expect(await disputeManager.slashingPercentage()).to.eq(newValue.toString())
 
         // Set new value
         await disputeManager.connect(governor).setSlashingPercentage(0)
-        await disputeManager.connect(governor).setSlashingPercentage(slashingPercentage)
+        await disputeManager.connect(governor).setSlashingPercentage(newValue)
       })
 
       it('reject set `slashingPercentage` if out of bounds', async function() {
@@ -229,7 +264,7 @@ describe('Disputes', async () => {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman)
-        .createDispute(dispute.attestation, this.fishermanDeposit)
+        .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
       await expect(tx).to.be.revertedWith('Indexer cannot be found for the attestation')
     })
 
@@ -271,7 +306,7 @@ describe('Disputes', async () => {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman)
-        .createDispute(dispute.attestation, this.fishermanDeposit)
+        .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
       await expect(tx).to.be.revertedWith('Dispute has no stake by the indexer')
     })
 
@@ -331,7 +366,7 @@ describe('Disputes', async () => {
           // Create invalid dispute as deposit is below minimum
           const tx = disputeManager
             .connect(fisherman)
-            .createDispute(dispute.attestation, belowMinimumDeposit)
+            .createDispute(dispute.encodedAttestation, belowMinimumDeposit)
           await expect(tx).to.be.revertedWith('Dispute deposit is under minimum required')
         })
 
@@ -339,16 +374,16 @@ describe('Disputes', async () => {
           // Create dispute
           const tx = disputeManager
             .connect(fisherman)
-            .createDispute(dispute.attestation, this.fishermanDeposit)
+            .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
           await expect(tx)
             .to.emit(disputeManager, 'DisputeCreated')
             .withArgs(
               dispute.id,
               dispute.receipt.subgraphID,
-              indexer.address,
+              dispute.indexerAddress,
               fisherman.address,
               this.fishermanDeposit,
-              dispute.attestation,
+              dispute.encodedAttestation,
             )
         })
       })
@@ -379,38 +414,45 @@ describe('Disputes', async () => {
           // Create dispute
           await disputeManager
             .connect(fisherman)
-            .createDispute(dispute.attestation, this.fishermanDeposit)
+            .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
         })
 
         describe('create a dispute', function() {
           it('should create dispute if receipt is equal but for other indexer', async function() {
             // Create dispute (same receipt but different indexer)
-            const newDispute = await createDispute(
-              dispute.receipt,
-              disputeManager.address,
+            const attestation = await attestations.createAttestation(
               otherIndexerChannelPrivKey,
-              otherIndexer.address,
-              await getChainID(),
+              (await getChainID()) as number,
+              disputeManager.address,
+              receipt,
             )
+            const newDispute: Dispute = {
+              id: createDisputeID(attestation, otherIndexer.address),
+              attestation,
+              encodedAttestation: encodeAttestation(attestation),
+              indexerAddress: otherIndexer.address,
+              receipt,
+            }
+
             const tx = disputeManager
               .connect(fisherman)
-              .createDispute(newDispute.attestation, this.fishermanDeposit)
+              .createDispute(newDispute.encodedAttestation, this.fishermanDeposit)
             expect(tx)
               .to.emit(disputeManager, 'DisputeCreated')
               .withArgs(
                 newDispute.id,
                 newDispute.receipt.subgraphID,
-                otherIndexer.address,
+                newDispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
-                newDispute.attestation,
+                newDispute.encodedAttestation,
               )
           })
 
           it('reject create duplicated dispute', async function() {
             const tx = disputeManager
               .connect(fisherman)
-              .createDispute(dispute.attestation, this.fishermanDeposit)
+              .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
             await expect(tx).to.be.revertedWith('Dispute already created')
           })
         })
@@ -450,7 +492,7 @@ describe('Disputes', async () => {
               .withArgs(
                 dispute.id,
                 dispute.receipt.subgraphID,
-                indexer.address,
+                dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit.add(reward),
               )
@@ -489,7 +531,7 @@ describe('Disputes', async () => {
               .withArgs(
                 dispute.id,
                 dispute.receipt.subgraphID,
-                indexer.address,
+                dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
               )
@@ -521,7 +563,7 @@ describe('Disputes', async () => {
               .withArgs(
                 dispute.id,
                 dispute.receipt.subgraphID,
-                indexer.address,
+                dispute.indexerAddress,
                 fisherman.address,
                 this.fishermanDeposit,
               )
