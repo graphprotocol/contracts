@@ -29,12 +29,11 @@ import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { Proxy } from '../../build/typechain/contracts/Proxy'
-import { ProxyFactory } from '../../build/typechain/contracts/ProxyFactory'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
 // helpers
 import { defaults } from './testHelpers'
-import { solidityKeccak256, Interface, keccak256 } from 'ethers/utils'
+import { solidityKeccak256 } from 'ethers/utils'
 import { ChannelSigner } from '@connext/utils'
 import { TransactionReceipt } from '@connext/types'
 
