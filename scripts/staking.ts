@@ -84,6 +84,7 @@ const allocate = async () => {
     )
     process.exit(1)
   }
+  // TODO - not implemented
   const allocateOverrides = await overrides('staking', 'withdraw')
   //   await executeTransaction(contracts.staking.functions.allocate(allocateOverrides))
 }
@@ -93,7 +94,7 @@ const settle = async () => {
     console.error(`ERROR: settle() must be provided an amount`)
     process.exit(1)
   }
-  console.log(`todo - print channel proxy msg.sender`)
+  // TODO - not implemented
   const settleOverrides = await overrides('staking', 'withdraw')
   //   await executeTransaction(contracts.staking.functions.settle(settleOverrides))
 }
@@ -114,10 +115,11 @@ const main = async () => {
       console.log(`Unlock tokens and withdraw them from the staking contract...`)
       withdraw()
     } else if (func == 'allocate') {
-      console.log('Todo')
-      allocate()
+      console.log('NOT IMPLEMENTED YET')
+      // allocate()
     } else if (func == 'settle') {
-      console.log(`TODO - settle must be called from a channel proxy, not the normal user`)
+      console.log('NOT IMPLEMENTED YET')
+      // console.log(`TODO - settle must be called from a channel proxy, not the normal user`)
       // settle()
     } else {
       console.log(`Wrong func name provided`)

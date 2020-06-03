@@ -20,7 +20,7 @@ Usage: ${path.basename(process.argv[1])}
 
 Function arguments:
   register
-    --url <string>       - URL of the indexer service
+    --url <string>      - URL of the indexer service
     --geohash <string>  - Geohash of the indexer
 
   unregister (no arguments passed with this function)

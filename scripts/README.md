@@ -4,12 +4,6 @@ These are convenience scripts for interacting with the contracts.
 
 The scripts expect the following:
 
-- `ts-node` to be installed globally on your system. This can be achieved with:
-
-  ```sh
-  npm install -g typescript ts-node
-  ```
-
 - A `.privkey.txt` file at the root of this repository with the mnemonics for
   your Ethereum account.
 
@@ -21,6 +15,10 @@ The scripts expect the following:
   ```sh
   yarn build && yarn typechain
   ```
+
+All scripts that are working are below. Run the script without arguments for more usage info,
+as the CLI will print the information
+
 
 ## GNS
 **Publishing a subgraph**
@@ -47,8 +45,6 @@ ts-node ./gns.ts
     --newOwner      0x7F11E5B7Fe8C04c1E4Ce0dD98aC5c922ECcfA4ed
 ```
 
-Run the script without arguments for more usage info.
-
 ## Graph Token
 **Mint**
 ```sh
@@ -74,4 +70,53 @@ ts-node ./graph-token.ts
     --amount        100
 ```
 
-Run the script without arguments for more usage info.
+## Service Registry
+**Register**
+```sh
+ts-node ./service-registry.ts 
+    --func          register
+    --url           https://172.0.0.1
+    --geohash       gbsuve
+```
+
+**Unregister**
+```sh
+ts-node ./service-registry.ts 
+    --func          unregister
+```
+
+## Curation
+**stake**
+```sh
+ts-node ./curation.ts 
+    --func          stake
+    --amount        520
+```
+
+**redeem**
+```sh
+ts-node ./curation.ts 
+    --func          redeem
+    --amount        520
+```
+
+## Staking
+**stake**
+```sh
+ts-node ./staking.ts 
+    --func          stake
+    --amount        520
+```
+
+**unstake**
+```sh
+ts-node ./staking.ts 
+    --func          unstake
+    --amount        520
+```
+
+**withdraw**
+```sh
+ts-node ./staking.ts 
+    --func          withdraw
+```
