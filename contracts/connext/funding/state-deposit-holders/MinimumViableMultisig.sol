@@ -128,14 +128,6 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             ((_owners[0] == node && Staking(staking).isChannel(_owners[1])) ||
                 (_owners[1] == node && Staking(staking).isChannel(_owners[0])));
 
-        require(staking != address(0), "bad staking addr");
-        require(node != address(0), "bad node addr");
-        require(_owners[0] == node || _owners[1] == node, "node not in owners");
-        require(
-            Staking(staking).isChannel(_owners[0]) || Staking(staking).isChannel(_owners[1]),
-            "indexer not in owners"
-        );
-        require(isNodeIndexerMultisig, "not node indexer multisig");
         if (isNodeIndexerMultisig) {
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
 
