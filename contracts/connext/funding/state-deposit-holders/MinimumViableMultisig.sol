@@ -59,28 +59,17 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Contract constructor (proxy instance)
     /// @param owners An array of unique addresses representing the multisig owners
-    function setup(
-        address[] memory owners,
-        address payable node,
-        address payable staking,
-        address CTDT,
-        address singleAssetInterpreter,
-        address multiAssetInterpreter,
-        address withdrawInterpreter
-    ) public {
+    function setup(address[] memory owners) public {
         require(_owners.length == 0, "Contract has been set up before");
         _owners = owners;
-        NODE_ADDRESS = node;
-        INDEXER_STAKING_ADDRESS = staking;
-        INDEXER_CTDT_ADDRESS = CTDT;
-        INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
-        INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = multiAssetInterpreter;
-        INDEXER_WITHDRAW_INTERPRETER_ADDRESS = withdrawInterpreter;
     }
 
     /// @notice Modifier to revert if caller is not staking contract
     modifier onlyStaking {
-        require(msg.sender == INDEXER_STAKING_ADDRESS, "Caller must be the staking contract");
+        require(
+            msg.sender == MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS(),
+            "Caller must be the staking contract"
+        );
         _;
     }
 
@@ -132,17 +121,31 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             );
         }
 
-        bool isNodeIndexerMultisig = _owners.length == 2 &&
-            ((_owners[0] == NODE_ADDRESS &&
-                Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[1])) ||
-                (_owners[1] == NODE_ADDRESS &&
-                    Staking(INDEXER_STAKING_ADDRESS).isChannel(_owners[0])));
+        address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
+        address node = MinimumViableMultisig(masterCopy).NODE_ADDRESS();
 
+        bool isNodeIndexerMultisig = _owners.length == 2 &&
+            ((_owners[0] == node && Staking(staking).isChannel(_owners[1])) ||
+                (_owners[1] == node && Staking(staking).isChannel(_owners[0])));
+
+        require(staking != address(0), "bad staking addr");
+        require(node != address(0), "bad node addr");
+        require(_owners[0] == node || _owners[1] == node, "node not in owners");
+        require(
+            Staking(staking).isChannel(_owners[0]) || Staking(staking).isChannel(_owners[1]),
+            "indexer not in owners"
+        );
+        require(isNodeIndexerMultisig, "not node indexer multisig");
         if (isNodeIndexerMultisig) {
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");
 
             // Transactions from node-indexer multisigs get redirected to special CTDT contract
-            execute(INDEXER_CTDT_ADDRESS, 0, data, Operation.DelegateCall);
+            execute(
+                MinimumViableMultisig(masterCopy).INDEXER_CTDT_ADDRESS(),
+                0,
+                data,
+                Operation.DelegateCall
+            );
         } else {
             execute(to, value, data, operation);
         }
