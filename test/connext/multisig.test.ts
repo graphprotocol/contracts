@@ -1,6 +1,8 @@
 import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
 import { ChannelSigner } from '@connext/utils'
+import { Signer } from 'ethers'
+import { parseEther } from 'ethers/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { deployMultisigWithProxy, deployGRTWithFactory } from '../lib/deployment'
@@ -10,9 +12,7 @@ import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
-import { Signer } from 'ethers'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
-import { parseEther } from 'ethers/utils'
 
 describe('MinimumViableMultisig.sol', () => {
   let masterCopy: MinimumViableMultisig
