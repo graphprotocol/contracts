@@ -1,16 +1,17 @@
 {
-  "updated-on": "May 25th, 2020",
+  "updated-on": "June 2nd, 2020",
   "kovan": {
-    "blockNumber": "18628084",
+    "commit-hash": "https://github.com/graphprotocol/contracts/tree/d59900ddeb0ef433326de940e14341a6befa8cf7",
+    "blockNumber": "18838602",
     "governor": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
-    "graphToken": "0x20AbE3B457e510EEF66D2518212A6f862E1ebfA9",
-    "epochManager": "0x8d3086840fd075697E590fB6B5A8f0C44fB45176",
-    "disputeManager": "0x7c812124D432dB9C3BAF23e751D704d82ed09e1D",
-    "staking": "0x66F940145995EC6033F5804eDC2041F606e755B5",
-    "curation": "0xFC6CCBa00ceA43512cC50f6f8CC029E782c5AC96",
-    "rewardsManager": "0x449B394836881CA995d4db4313064a66aF5Ca0b0",
-    "serviceRegistry": "0x3caC355B211DbBF593DCb2F806deaEdF070a35D5",
-    "gns": "0xADFc64E984655d67B23Df88D3B608C2770BB60b6"
+    "graphToken": "0x5E32393c1C3DEC28228458d60A66B35ED40f96C6",
+    "epochManager": "0x2eE455eBb75D90a80b38BbF7De5C931403f15736",
+    "disputeManager": "0x8a714a02feEFd3CD763BF9d626650dCb0692be9A",
+    "staking": "0xB3c62a4a46e00E85dC63E3BBF851a33aFa928386",
+    "curation": "0x9ce3085eC642414bDFE8CfF7DE603e1DA6f1F702",
+    "rewardsManager": "0xd1a9930A53D7Ef7126EF2E8A7C51eC40419E37B8",
+    "serviceRegistry": "0x2aF5CcB503292937171228E72858793160fb6560",
+    "gns": "0xdc845c78D4eB360CE77794FDbE74E707799D0eBE"
   },
   "mainnet": {}
 }
