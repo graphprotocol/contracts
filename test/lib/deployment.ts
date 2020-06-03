@@ -36,6 +36,7 @@ import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 import { defaults } from './testHelpers'
 import { solidityKeccak256, Interface, keccak256 } from 'ethers/utils'
 import { ChannelSigner } from '@connext/utils'
+import { TransactionReceipt } from '@connext/types'
 
 const deployGasLimit = 9000000
 
@@ -222,62 +223,6 @@ async function deployIdentityApp(): Promise<IdentityApp> {
   return contract as IdentityApp
 }
 
-export const getCreate2Address = async (
-  owners: ChannelSigner[],
-  proxy: Contract,
-  multisigMaster: MinimumViableMultisig,
-  channelContext: {
-    node: string
-    staking: string
-    indexerCTDT: string
-    singleAssetInterpreter: string
-    multiAssetInterpreter: string
-    withdrawInterpreter: string
-  },
-): Promise<string> => {
-  const proxyBytecode = await proxy.functions.proxyCreationCode()
-
-  const {
-    node,
-    staking,
-    indexerCTDT,
-    singleAssetInterpreter,
-    multiAssetInterpreter,
-    withdrawInterpreter,
-  } = channelContext
-
-  return `0x${solidityKeccak256(
-    ['bytes1', 'address', 'uint256', 'bytes32'],
-    [
-      '0xff',
-      proxy.address,
-      solidityKeccak256(
-        ['bytes32', 'uint256'],
-        [
-          keccak256(
-            // see encoding notes
-            multisigMaster.interface.functions.setup.encode([
-              owners.map(owner => owner.address),
-              node,
-              staking,
-              indexerCTDT,
-              singleAssetInterpreter,
-              multiAssetInterpreter,
-              withdrawInterpreter,
-            ]),
-          ),
-          // hash chainId + saltNonce to ensure multisig addresses are *always* unique
-          solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
-        ],
-      ),
-      solidityKeccak256(
-        ['bytes', 'uint256'],
-        [`0x${proxyBytecode.replace(/^0x/, '')}`, multisigMaster.address],
-      ),
-    ],
-  ).slice(-40)}`
-}
-
 export async function deployIndexerMultisigWithContext(
   node: string,
   tokenAddress: string,
@@ -301,39 +246,16 @@ export async function deployIndexerMultisigWithContext(
     withdrawInterpreter.address,
   )
 
-  const multisigContext = {
-    node,
-    staking: mockStaking.address,
-    indexerCTDT: ctdt.address,
-    singleAssetInterpreter: singleAssetInterpreter.address,
-    multiAssetInterpreter: multiAssetInterpreter.address,
-    withdrawInterpreter: withdrawInterpreter.address,
-  }
-
-  const proxy = await deployProxy(multisigMaster.address)
   const proxyFactory = await deployProxyFactory()
   const tx = await proxyFactory.functions.createProxyWithNonce(
     multisigMaster.address,
-    multisigMaster.interface.functions.setup.encode([
-      owners.map(owner => owner.address),
-      node,
-      mockStaking.address,
-      ctdt.address,
-      singleAssetInterpreter.address,
-      multiAssetInterpreter.address,
-      withdrawInterpreter.address,
-    ]),
-    // hardcode ganache chain-id
+    multisigMaster.interface.functions.setup.encode([owners.map(owner => owner.address)]),
+    // hardcode ganache chainId
     solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
   )
-  await tx.wait()
+  const receipt = (await tx.wait()) as TransactionReceipt
+  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).values
 
-  const multisigAddr = await getCreate2Address(
-    owners,
-    proxyFactory,
-    multisigMaster,
-    multisigContext,
-  )
   const multisig = new Contract(
     multisigAddr,
     MinimumViableMultisigArtifact.abi,
@@ -348,7 +270,6 @@ export async function deployIndexerMultisigWithContext(
     mockStaking,
     multisig,
     masterCopy: multisigMaster,
-    proxy: proxy as MinimumViableMultisig,
     mockDispute,
     app,
     identity,
