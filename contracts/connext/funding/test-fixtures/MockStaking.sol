@@ -33,8 +33,4 @@ contract MockStaking {
     function lockMultisig(MinimumViableMultisig multisig) public {
         multisig.lock();
     }
-
-    function unlockMultisig(MinimumViableMultisig multisig) public {
-        multisig.unlock();
-    }
 }

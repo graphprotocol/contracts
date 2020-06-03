@@ -74,23 +74,13 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     }
 
     /// @notice Lock the multisig; only the staking contract can do that.
-    /// Locked node-indexer multisigs cannot execute transactions anymore
-    /// until unlocked. Regular multisigs are not affected by locking.
+    /// Locked node-indexer multisigs cannot execute transactions anymore.
+    /// Regular multisigs are not affected by locking.
     function lock() external onlyStaking {
         // The following requirement can be removed if that is more suitable
         require(!locked, "Multisig must be unlocked to lock");
 
         locked = true;
-    }
-
-    /// @notice Unlock the multisig; only the staking contract can do that.
-    /// Locked node-indexer multisigs cannot execute transactions anymore
-    /// until unlocked. Regular multisigs are not affected by locking.
-    function unlock() external onlyStaking {
-        // The following requirement can be removed if that is more suitable
-        require(locked, "Multisig must be locked to unlock");
-
-        locked = false;
     }
 
     /// @notice Execute an n-of-n signed transaction specified by a (to, value, data, op) tuple
