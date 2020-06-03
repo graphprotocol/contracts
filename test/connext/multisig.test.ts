@@ -13,7 +13,6 @@ import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/I
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
-import { One, Zero } from 'ethers/constants'
 
 describe('MinimumViableMultisig.sol', () => {
   let masterCopy: MinimumViableMultisig
@@ -94,8 +93,9 @@ describe('MinimumViableMultisig.sol', () => {
     })
     it('should fail if already setup', async function() {
       const owners = [node.address, indexer.address]
-      await multisig.connect(node).setup(owners)
-      await expect(multisig.setup(owners)).to.be.revertedWith('Contract has been set up before')
+      await expect(multisig.connect(node).setup(owners)).to.be.revertedWith(
+        'Contract has been set up before',
+      )
     })
   })
 
@@ -123,26 +123,6 @@ describe('MinimumViableMultisig.sol', () => {
       await expect(staking.functions.lockMultisig(multisig.address)).to.be.revertedWith(
         'Multisig must be unlocked to lock',
       )
-    })
-
-    // TODO: sig issues
-    it.skip('should not allow transaction with locked multisig', async function() {
-      const txHash = await multisig.getTransactionHash(indexer.address, One, '0x', 1)
-      const nodeSig = await node.signMessage(txHash)
-      const indexerSig = await indexer.signMessage(txHash)
-      const execTx = await multisig
-        .connect(node)
-        .execTransaction(indexer.address, One, '0x', 1, [nodeSig, indexerSig].sort())
-      await execTx.wait()
-
-      const lockTx = await staking.functions.lockMultisig(multisig.address)
-      await lockTx.wait()
-
-      await expect(
-        multisig
-          .connect(node)
-          .execTransaction(indexer.address, One, '0x', 1, [nodeSig, indexerSig].sort()),
-      ).to.be.revertedWith('Node-indexer multisig must be unlocked to execute transactions')
     })
   })
 })

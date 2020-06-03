@@ -28,7 +28,7 @@ import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
-describe.only('Indexer Channel Operations', () => {
+describe('Indexer Channel Operations', () => {
   let indexerMultisig: MinimumViableMultisig
   let nonIndexerMultisig: MinimumViableMultisig
   let indexerCTDT: IndexerCtdt
@@ -227,9 +227,41 @@ describe.only('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
+    it('node should be able to withdraw eth (no balance increase, transaction does not revert) in non-indexer/node channels', async function() {
+      // Generate withdrawal commitment for node
+      const commitment = new MiniCommitment(nonIndexerMultisig.address, [node, thirdparty])
+
+      // Generate test params
+      const params = {
+        assetId: AddressZero,
+        amount: 5,
+        recipient: node.address,
+        withdrawInterpreterAddress: withdrawInterpreter.address,
+        ctdt: indexerCTDT,
+      }
+
+      await sendWithdrawalCommitment(commitment, params, true)
+    })
+
     it('node should be able to withdraw tokens in indexer/node channels', async function() {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
+
+      // Generate test params
+      const params = {
+        assetId: token.address,
+        amount: 5,
+        recipient: node.address,
+        withdrawInterpreterAddress: withdrawInterpreter.address,
+        ctdt: indexerCTDT,
+      }
+
+      await sendWithdrawalCommitment(commitment, params, true)
+    })
+
+    it.skip('node should be able to withdraw tokens in non-indexer/node channels', async function() {
+      // Generate withdrawal commitment for node
+      const commitment = new MiniCommitment(nonIndexerMultisig.address, [node, thirdparty])
 
       // Generate test params
       const params = {
