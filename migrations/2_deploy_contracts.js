@@ -9,6 +9,12 @@ const RewardsManager = artifacts.require('RewardsManager')
 const ServiceRegistry = artifacts.require('ServiceRegistry')
 const Staking = artifacts.require('Staking')
 
+const MinimumViableMultisig = artifacts.require('MinimumViableMultisig')
+const IndexerCTDT = artifacts.require('IndexerCTDT')
+const IndexerMultiAssetInterpreter = artifacts.require('IndexerMultiAssetInterpreter')
+const IndexerSingleAssetInterpreter = artifacts.require('IndexerSingleAssetInterpreter')
+const IndexerWithdrawInterpreter = artifacts.require('IndexerWithdrawInterpreter')
+
 module.exports = async (deployer, network, accounts) => {
   const log = (msg, ...params) => {
     deployer.logger.log(msg, ...params)
@@ -55,6 +61,20 @@ module.exports = async (deployer, network, accounts) => {
       const serviceRegistry = await deployer.deploy(ServiceRegistry, governor)
       const gns = await deployer.deploy(GNS, governor)
 
+      const indexerCtdt = await deployer.deploy(IndexerCTDT)
+      const indexerSingleAssetInterpreter = await deployer.deploy(IndexerSingleAssetInterpreter)
+      const indexerMultiAssetInterpreter = await deployer.deploy(IndexerMultiAssetInterpreter)
+      const indexerWithdrawInterpreter = await deployer.deploy(IndexerWithdrawInterpreter)
+      const multisigMastercopy = await deployer.deploy(
+        MinimumViableMultisig,
+        config.node.signerAddress,
+        staking.address,
+        indexerCtdt.address,
+        indexerSingleAssetInterpreter.address,
+        indexerMultiAssetInterpreter.address,
+        indexerWithdrawInterpreter.address,
+      )
+
       // Set Curation parameters
       log('   Configuring Contracts')
       log('   ---------------------')
@@ -90,6 +110,11 @@ module.exports = async (deployer, network, accounts) => {
       log('> REWARDS MANAGER:', rewardsManager.address)
       log('> SERVICE REGISTRY:', serviceRegistry.address)
       log('> GNS:', gns.address)
+      log('> INDEXER CTDT:', indexerCtdt.address)
+      log('> INDEXER SINGLE ASSET INTERPRETER:', indexerSingleAssetInterpreter.address)
+      log('> INDEXER MULTI ASSET INTERPRETER:', indexerMultiAssetInterpreter.address)
+      log('> INDEXER WITHDRAW INTERPRETER:', indexerWithdrawInterpreter.address)
+      log('> MINIMUM VIABLE MULTISIG:', multisigMastercopy.address)
     })
     .catch(err => log(err))
 }

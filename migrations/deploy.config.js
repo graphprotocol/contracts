@@ -24,4 +24,8 @@ module.exports = {
   token: {
     initialSupply: new BN('10000000').mul(TOKEN_UNIT),
   },
+  node: {
+    // TODO
+    signerAddress: '0x0000000000000000000000000000000000000000',
+  },
 }
