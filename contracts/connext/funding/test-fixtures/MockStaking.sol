@@ -2,6 +2,8 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "../../funding/state-deposit-holders/MinimumViableMultisig.sol";
+
 
 contract MockStaking {
     IERC20 public token;
@@ -26,5 +28,13 @@ contract MockStaking {
         // TODO
         token.transferFrom(msg.sender, address(this), amount);
         emit SettleCalled(amount, msg.sender);
+    }
+
+    function lockMultisig(MinimumViableMultisig multisig) public {
+        multisig.lock();
+    }
+
+    function unlockMultisig(MinimumViableMultisig multisig) public {
+        multisig.unlock();
     }
 }
