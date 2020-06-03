@@ -68,7 +68,7 @@
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
-    "typechain": "typechain --target=ethers-v4 --outDir build/typechain/contracts/ ./build/abis/**/*.json"
+    "typechain": "buidler typechain"
   },
   "lint-staged": {
     "contracts/*.sol": [
