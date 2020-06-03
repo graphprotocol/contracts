@@ -1,5 +1,4 @@
 import { getRandomPrivateKey, ChannelSigner, getRandomBytes32, stringify } from '@connext/utils'
-import { waffle as buidler } from '@nomiclabs/buidler'
 import {
   MultisigOperation,
   tidy,
@@ -33,14 +32,12 @@ export async function getRandomFundedChannelSigners(
   // Create signer array
   const signers = []
 
-  const provider = buidler.provider
-
   // Fund all signers with eth + tokens
   // eslint-disable-next-line no-unused-vars
-  for (const _ of Array(numSigners).fill(0)) {
+  for (const _ of Array(numSigners)) {
     // Create random signer
     const privKey = getRandomPrivateKey()
-    const signer = new ChannelSigner(privKey, provider)
+    const signer = new ChannelSigner(privKey, wallet.provider! as any)
     const addr = await signer.getAddress()
 
     // Add signer to array

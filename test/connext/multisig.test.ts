@@ -13,6 +13,7 @@ import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/I
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
+import { One, Zero } from 'ethers/constants'
 
 describe('MinimumViableMultisig.sol', () => {
   let masterCopy: MinimumViableMultisig
@@ -88,14 +89,13 @@ describe('MinimumViableMultisig.sol', () => {
   describe('setup', function() {
     it('should be able to setup', async function() {
       const owners = [node.address, indexer.address]
-      await masterCopy.setup(owners)
-      const retrieved = await masterCopy.getOwners()
+      const retrieved = await multisig.getOwners()
       expect(retrieved).to.be.deep.eq(owners)
     })
     it('should fail if already setup', async function() {
       const owners = [node.address, indexer.address]
-      await masterCopy.setup(owners)
-      await expect(masterCopy.setup(owners)).to.be.revertedWith('Contract has been set up before')
+      await multisig.connect(node).setup(owners)
+      await expect(multisig.setup(owners)).to.be.revertedWith('Contract has been set up before')
     })
   })
 
@@ -118,47 +118,31 @@ describe('MinimumViableMultisig.sol', () => {
     })
 
     it('should fail if already locked', async function() {
-      const tx = await staking.functions.lockMultisig(masterCopy.address)
+      const tx = await staking.functions.lockMultisig(multisig.address)
       await tx.wait()
-      await expect(staking.functions.lockMultisig(masterCopy.address)).to.be.revertedWith(
+      await expect(staking.functions.lockMultisig(multisig.address)).to.be.revertedWith(
         'Multisig must be unlocked to lock',
       )
     })
 
-    it('should not allow transaction with locked multisig', async function() {
-      await governor.sendTransaction({ to: multisig.address, value: parseEther('0.1') })
-    })
-  })
+    // TODO: sig issues
+    it.skip('should not allow transaction with locked multisig', async function() {
+      const txHash = await multisig.getTransactionHash(indexer.address, One, '0x', 1)
+      const nodeSig = await node.signMessage(txHash)
+      const indexerSig = await indexer.signMessage(txHash)
+      const execTx = await multisig
+        .connect(node)
+        .execTransaction(indexer.address, One, '0x', 1, [nodeSig, indexerSig].sort())
+      await execTx.wait()
 
-  // TODO: these tests are on the chopping block pending confirmation that unlock is not used
-  describe.skip('unlock', function() {
-    beforeEach(async function() {
-      // Set the multisig owners
-      await masterCopy.setup([node.address, indexer.address])
+      const lockTx = await staking.functions.lockMultisig(multisig.address)
+      await lockTx.wait()
 
-      // Lock the multisig
-      const tx = await staking.functions.lockMultisig(masterCopy.address)
-      await tx.wait()
-    })
-
-    it('should unlock', async function() {
-      const tx = await staking.functions.unlockMultisig(masterCopy.address)
-      await tx.wait()
-      expect(await masterCopy.locked()).to.be.eq(false)
-    })
-
-    it('should fail if not called by staking address', async function() {
       await expect(
-        masterCopy.connect(governor).unlockMultisig(masterCopy.address),
-      ).to.be.revertedWith('Caller must be the staking contract')
-    })
-
-    it('should fail if already unlocked', async function() {
-      const tx = await staking.functions.unlockMultisig(masterCopy.address)
-      await tx.wait()
-      await expect(staking.functions.unlockMultisig(masterCopy.address)).to.be.revertedWith(
-        'Multisig must be locked to unlock',
-      )
+        multisig
+          .connect(node)
+          .execTransaction(indexer.address, One, '0x', 1, [nodeSig, indexerSig].sort()),
+      ).to.be.revertedWith('Node-indexer multisig must be unlocked to execute transactions')
     })
   })
 })
