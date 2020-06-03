@@ -3,7 +3,7 @@ import { ethers } from '@nomiclabs/buidler'
 import { ChannelSigner } from '@connext/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { deployIndexerMultisigWithContext, deployGRTWithFactory } from '../lib/deployment'
+import { deployMultisigWithProxy, deployGRTWithFactory } from '../lib/deployment'
 import { getRandomFundedChannelSigners } from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
@@ -38,7 +38,7 @@ describe('MinimumViableMultisig.sol', () => {
     indexer = _indexer
 
     // Deploy indexer multisig + CTDT + interpreters
-    const channelContracts = await deployIndexerMultisigWithContext(node.address, token.address, [
+    const channelContracts = await deployMultisigWithProxy(node.address, token.address, [
       node,
       indexer,
     ])

@@ -34,7 +34,7 @@ import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 // helpers
 import { defaults } from './testHelpers'
 import { solidityKeccak256 } from 'ethers/utils'
-import { ChannelSigner } from '@connext/utils'
+import { ChannelSigner, stringify } from '@connext/utils'
 import { TransactionReceipt } from '@connext/types'
 
 const deployGasLimit = 9000000
@@ -222,11 +222,7 @@ async function deployIdentityApp(): Promise<IdentityApp> {
   return contract as IdentityApp
 }
 
-export async function deployIndexerMultisigWithContext(
-  node: string,
-  tokenAddress: string,
-  owners: ChannelSigner[],
-) {
+export async function deployChannelContracts(node: string, tokenAddress: string) {
   const ctdt = await deployIndexerCTDT()
   const singleAssetInterpreter = await deploySingleAssetInterpreter()
   const multiAssetInterpreter = await deployMultiAssetInterpreter()
@@ -235,6 +231,7 @@ export async function deployIndexerMultisigWithContext(
   const mockDispute = await deployMockDispute()
   const app = await deployAppWithAction()
   const identity = await deployIdentityApp()
+  const proxyFactory = await deployProxyFactory()
 
   const multisigMaster = await deployIndexerMultisig(
     node,
@@ -245,10 +242,42 @@ export async function deployIndexerMultisigWithContext(
     withdrawInterpreter.address,
   )
 
-  const proxyFactory = await deployProxyFactory()
+  return {
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+    mockStaking,
+    masterCopy: multisigMaster,
+    mockDispute,
+    app,
+    identity,
+    proxyFactory,
+  }
+}
+
+export async function deployMultisigWithProxy(
+  node: string,
+  tokenAddress: string,
+  owners: ChannelSigner[],
+  existingContext?: any,
+) {
+  const ctx = existingContext || (await deployChannelContracts(node, tokenAddress))
+  const {
+    ctdt,
+    singleAssetInterpreter,
+    multiAssetInterpreter,
+    withdrawInterpreter,
+    mockStaking,
+    proxyFactory,
+    masterCopy,
+    mockDispute,
+    app,
+    identity,
+  } = ctx
   const tx = await proxyFactory.functions.createProxyWithNonce(
-    multisigMaster.address,
-    multisigMaster.interface.functions.setup.encode([owners.map(owner => owner.address)]),
+    masterCopy.address,
+    masterCopy.interface.functions.setup.encode([owners.map(owner => owner.address)]),
     // hardcode ganache chainId
     solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
   )
@@ -267,10 +296,11 @@ export async function deployIndexerMultisigWithContext(
     multiAssetInterpreter,
     withdrawInterpreter,
     mockStaking,
-    multisig,
-    masterCopy: multisigMaster,
+    masterCopy,
     mockDispute,
     app,
     identity,
+    proxyFactory,
+    multisig,
   }
 }
