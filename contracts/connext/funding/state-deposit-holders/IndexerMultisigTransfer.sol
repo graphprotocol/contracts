@@ -1,9 +1,10 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../../Staking.sol";
 
 
