@@ -3,10 +3,15 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
+
 library LibChannelCrypto {
-    function verifyChannelMessage(bytes32 hash, bytes memory signature) internal pure returns (address) {
-      bytes32 digest = toChannelSignedMessage(hash);
-      return ECDSA.recover(digest, signature);
+    function verifyChannelMessage(bytes32 hash, bytes memory signature)
+        internal
+        pure
+        returns (address)
+    {
+        bytes32 digest = toChannelSignedMessage(hash);
+        return ECDSA.recover(digest, signature);
     }
 
     function toChannelSignedMessage(bytes32 hash) internal pure returns (bytes32) {

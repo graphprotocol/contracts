@@ -5,3 +5,8 @@ contracts/openzeppelin
 contracts/Migrations.sol
 contracts/MultiSigWallet.sol
 contracts/Staking.sol
+contracts/connext/funding/interpreters/IndexerMultiAssetInterpreter.sol
+contracts/connext/funding/interpreters/IndexerSingleAssetInterpreter.sol
+contracts/connext/funding/interpreters/IndexerWithdrawInterpreter.sol
+contracts/connext/funding/proxies/Proxy.sol
+contracts/connext/funding/state-deposit-holders/MinimumViableMultisig.sol

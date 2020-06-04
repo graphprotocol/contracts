@@ -7,6 +7,11 @@ import "../../shared/libs/LibChannelCrypto.sol";
 import "../../../Staking.sol";
 
 
+/**
+ * This file is excluded from ethlint/solium because of this issue:
+ * https://github.com/duaraghav8/Ethlint/issues/261
+ */
+
 /// @title MinimumViableMultisig - A multisig wallet supporting the minimum
 /// features required for state channels support
 /// @author Liam Horne - <liam@l4v.io>
