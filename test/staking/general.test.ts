@@ -456,14 +456,14 @@ describe('Staking', () => {
 
           const stakes = await staking.stakes(indexer.address)
           // Stake should be reduced by the amount slashed
-          expect(stakes.tokensIndexer).to.eq(beforeTokensStaked.sub(tokensToSlash))
+          expect(stakes.tokensStaked).to.eq(beforeTokensStaked.sub(tokensToSlash))
           // All allocated tokens should be untouched
           expect(stakes.tokensAllocated).to.eq(tokensToAllocate)
           // All locked tokens need to be consumed from the stake
           expect(stakes.tokensLocked).to.eq(toBN('0'))
           expect(stakes.tokensLockedUntil).to.eq(toBN('0'))
           // Tokens available when negative means over allocation
-          const tokensAvailable = stakes.tokensIndexer
+          const tokensAvailable = stakes.tokensStaked
             .sub(stakes.tokensAllocated)
             .sub(stakes.tokensLocked)
           expect(tokensAvailable).to.eq(toGRT('-50'))

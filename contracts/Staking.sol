@@ -17,17 +17,23 @@ contract Staking is Governed {
     using Stakes for Stakes.Allocation;
     using Rebates for Rebates.Pool;
 
-    // -- Stakes --
+    // 100% in parts per million
+    uint256 private constant MAX_PPM = 1000000;
+
+    // -- Staking --
+
+    // Time in blocks to unstake
+    uint256 public thawingPeriod; // in blocks
+
+    // Indexer stake tracking : indexer => Stake
+    mapping(address => Stakes.Indexer) public stakes;
+
+    // -- Allocation and Channel --
 
     struct Channel {
         address indexer;
         bytes32 subgraphDeploymentID;
     }
-
-    // 100% in parts per million
-    uint256 private constant MAX_PPM = 1000000;
-
-    // -- State --
 
     // Percentage of fees going to curators
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
@@ -39,29 +45,53 @@ contract Staking is Governed {
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
-    // Time in blocks to unstake
-    uint256 public thawingPeriod; // in blocks
+    // Channels : channelID => Channel
+    mapping(address => Channel) public channels;
 
-    // Indexer stake tracking : indexer => Stake
-    mapping(address => Stakes.Indexer) public stakes;
+    // Channels Proxy : Channel Multisig Proxy => channelID
+    mapping(address => address) public channelsProxy;
 
     // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
 
-    // Channels : channelID => Channel
-    mapping(address => Channel) public channels;
-    // Channels Proxy : Channel Multisig Proxy => channelID
-    mapping(address => address) public channelsProxy;
+    // -- Slashing --
 
     // List of addresses allowed to slash stakes
     mapping(address => bool) public slashers;
 
-    // Related contracts
+    // -- Delegation --
+
+    struct DelegationParameters {
+        uint256 indexingRewardCut;
+        uint256 queryFeeCut;
+        uint256 cooldownBlocks;
+        uint256 createdAtBlock;
+    }
+
+    // Set the delegation capacity multiplier, an indexer delegation capacity will be:
+    // max(tokensStaked+tokensDelegated, totalStaked*delegationCapacity)
+    uint256 delegationCapacity;
+
+    // Time in blocks an indexer needs to wait to change delegation parameters
+    uint256 delegationParametersCooldown;
+
+    // Delegation parameters
+    mapping(address => DelegationParameters) public delegations;
+
+    // -- Related contracts --
+
     GraphToken public token;
     EpochManager public epochManager;
     Curation public curation;
 
     // -- Events --
+
+    event DelegationParametersUpdated(
+        address indexed indexer,
+        uint256 indexingRewardCut,
+        uint256 queryFeeCut,
+        uint256 cooldownBlocks
+    );
 
     /**
      * @dev Emitted when `indexer` stake `tokens` amount.
@@ -85,9 +115,19 @@ contract Staking is Governed {
     );
 
     /**
-     * @dev Emitted when `indexer` withdrew `tokens` staked amount
+     * @dev Emitted when `indexer` withdrew `tokens` staked.
      */
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
+
+    /**
+     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`.
+     */
+    event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens);
+
+    /**
+     * @dev Emitted when `delegator` undelegated `tokens` from `indexer`.
+     */
+    event StakeUndelegated(address indexed indexer, address indexed delegator, uint256 tokens);
 
     /**
      * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
@@ -203,6 +243,66 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Set the time in blocks an indexer needs to wait to change delegation parameters.
+     * @param _blocks Number of blocks to set the delegation parameters cooldown period
+     */
+    function setDelegationParametersCooldown(uint256 _blocks) external onlyGovernor {
+        delegationParametersCooldown = _blocks;
+        emit ParameterUpdated("delegationParametersCooldown");
+    }
+
+    /**
+     * @dev Set the delegation capacity multiplier.
+     * @param _delegationCapacity Delegation capacity multiplier
+     */
+    function setDelegationCapacity(uint256 _delegationCapacity) external onlyGovernor {
+        delegationCapacity = _delegationCapacity;
+        emit ParameterUpdated("delegationCapacity");
+    }
+
+    /**
+     * @dev Set the delegation parameters.
+     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
+     * @param _queryFeeCut Percentage of query fees left for delegators
+     * @param _cooldownBlocks Period that need to pass to update delegation parameters
+     */
+    function setDelegationParameters(
+        uint256 _indexingRewardCut,
+        uint256 _queryFeeCut,
+        uint256 _cooldownBlocks
+    ) external {
+        address indexer = msg.sender;
+
+        // Cooldown period set by indexer cannot be below protocol global setting
+        require(
+            _cooldownBlocks >= delegationParametersCooldown,
+            "Delegation parameters cooldown cannot be below minimum"
+        );
+
+        // Verify the cooldown period passed
+        DelegationParameters memory params = delegations[indexer];
+        require(
+            params.createdAtBlock.add(params.cooldownBlocks) >= block.number,
+            "Delegation: must expire cooldown period to update parameters"
+        );
+
+        // Update delegation params
+        delegations[indexer] = DelegationParameters(
+            _indexingRewardCut,
+            _queryFeeCut,
+            _cooldownBlocks,
+            block.number
+        );
+
+        emit DelegationParametersUpdated(
+            indexer,
+            _indexingRewardCut,
+            _queryFeeCut,
+            _cooldownBlocks
+        );
+    }
+
+    /**
      * @dev Set an address as allowed slasher
      * @param _slasher Address of the party allowed to slash indexers
      * @param _allowed True if slasher is allowed
@@ -245,7 +345,7 @@ contract Staking is Governed {
      * @return Amount of tokens staked by the indexer
      */
     function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
-        return stakes[_indexer].tokensIndexer;
+        return stakes[_indexer].tokensStaked;
     }
 
     /**
@@ -370,6 +470,35 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Delegate tokens to an indexer
+     * @param _indexer Addres of the indexer to delegate tokens to
+     * @param _tokens Amount of tokens to delegate
+     */
+    function delegate(address _indexer, uint256 _tokens) external {
+        address delegator = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+
+        require(_tokens > 0, "Delegation: cannot delegate zero tokens");
+
+        indexerStake.tokensDelegated = indexerStake.tokensDelegated.add(_tokens);
+
+        emit StakeDelegated(_indexer, delegator, _tokens);
+    }
+
+    /**
+     * @dev Undelegate tokens from an indexer
+     * @param _indexer Addres of the indexer to delegate tokens to
+     * @param _tokens Amount of tokens to delegate
+     */
+    function undelegate(address _indexer, uint256 _tokens) external {
+        address delegator = msg.sender;
+
+        require(_tokens > 0, "Delegation: cannot undelegate zero tokens");
+
+        emit StakeUndelegated(_indexer, delegator, _tokens);
+    }
+
+    /**
      * @dev Allocate available tokens to a SubgraphDeployment
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
@@ -434,11 +563,12 @@ contract Staking is Governed {
     function settle(uint256 _tokens) external {
         // Get the channelID the caller is related
         address channelID = channelsProxy[msg.sender];
-        delete channelsProxy[msg.sender]; // Remove to avoid re-entrancy
 
         // Receive funds from the channel multisig
         // We use channelID to find the indexer owner of the channel
         require(isChannel(channelID), "Channel: does not exist");
+
+        delete channelsProxy[msg.sender]; // Remove to avoid re-entrancy
 
         // Transfer tokens to settle from multisig to this contract
         require(

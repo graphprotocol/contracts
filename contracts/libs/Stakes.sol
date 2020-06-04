@@ -20,8 +20,9 @@ library Stakes {
     }
 
     struct Indexer {
-        uint256 tokensIndexer; // Tokens on the indexer stake (staked by the indexer)
-        uint256 tokensAllocated; // Tokens used in SubgraphDeployment allocations
+        uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
+        uint256 tokensDelegated; // Tokens delegated to the indexer by delegators
+        uint256 tokensAllocated; // Tokens used in allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
         // SubgraphDeployment stake allocation tracking : subgraphDeploymentID => Allocation
@@ -68,7 +69,7 @@ library Stakes {
      * @param _tokens Amount of tokens to deposit
      */
     function deposit(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensIndexer = stake.tokensIndexer.add(_tokens);
+        stake.tokensStaked = stake.tokensStaked.add(_tokens);
     }
 
     /**
@@ -77,7 +78,7 @@ library Stakes {
      * @param _tokens Amount of tokens to release
      */
     function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensIndexer = stake.tokensIndexer.sub(_tokens);
+        stake.tokensStaked = stake.tokensStaked.sub(_tokens);
     }
 
     /**
@@ -162,7 +163,7 @@ library Stakes {
      * @return True if staked
      */
     function hasTokens(Stakes.Indexer storage stake) internal view returns (bool) {
-        return stake.tokensIndexer > 0;
+        return stake.tokensStaked > 0;
     }
 
     /**
@@ -180,29 +181,19 @@ library Stakes {
     }
 
     /**
-     * @dev Total tokens staked from indexer
-     * @param stake Stake data
-     * @return Token amount
-     */
-    function tokensStaked(Stakes.Indexer storage stake) internal view returns (uint256) {
-        return stake.tokensIndexer;
-    }
-
-    /**
      * @dev Tokens available for use in allocations
-     * @dev tokensIndexer - tokensAllocated - tokensLocked
+     * @dev tokensStaked - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
     function tokensAvailable(Stakes.Indexer storage stake) internal view returns (uint256) {
-        uint256 _tokensStaked = stake.tokensStaked();
         uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
         // Stake is over allocated: return 0 to avoid stake to be used until the overallocation
         // is restored by staking more tokens or unallocating tokens
-        if (tokensUsed > _tokensStaked) {
+        if (tokensUsed > stake.tokensStaked) {
             return 0;
         }
-        return _tokensStaked.sub(tokensUsed);
+        return stake.tokensStaked.sub(tokensUsed);
     }
 
     /**
@@ -211,7 +202,7 @@ library Stakes {
      * @return Token amount
      */
     function tokensSlashable(Stakes.Indexer storage stake) internal view returns (uint256) {
-        return stake.tokensIndexer;
+        return stake.tokensStaked;
     }
 
     /**
@@ -227,8 +218,8 @@ library Stakes {
         // Cannot withdraw more than currently staked
         // This condition can happen if while tokens are locked for withdrawal a slash condition happens
         // In that case the total staked tokens could be below the amount to be withdrawn
-        if (stake.tokensLocked > stake.tokensIndexer) {
-            return stake.tokensIndexer;
+        if (stake.tokensLocked > stake.tokensStaked) {
+            return stake.tokensStaked;
         }
         return stake.tokensLocked;
     }
