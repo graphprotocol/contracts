@@ -188,7 +188,13 @@ describe('Staking', () => {
       this.allocate = function(tokens: BigNumber) {
         return staking
           .connect(indexer)
-          .allocate(this.subgraphID, tokens, this.channelPubKey, channelProxy.address, this.price)
+          .allocate(
+            this.subgraphDeploymentID,
+            tokens,
+            this.channelPubKey,
+            channelProxy.address,
+            this.price,
+          )
       }
       this.shouldStake = async function(indexerStake: BigNumber) {
         // Setup
@@ -209,7 +215,7 @@ describe('Staking', () => {
     beforeEach(async function() {
       // Setup
       this.indexerStake = toGRT('100')
-      this.subgraphID = randomHexBytes()
+      this.subgraphDeploymentID = randomHexBytes()
       this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
       this.channelPubKey =
         '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
@@ -247,7 +253,7 @@ describe('Staking', () => {
     })
 
     describe('allocate()', function() {
-      it('reject allocate to subgraph', async function() {
+      it('reject allocate', async function() {
         const indexerStake = toGRT('100')
         const tx = this.allocate(indexerStake)
         await expect(tx).to.be.revertedWith('Allocation: indexer has no stakes')
@@ -413,7 +419,7 @@ describe('Staking', () => {
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
         })
 
-        it('should slash indexer even if it gets overallocated to subgraphs', async function() {
+        it('should slash indexer even when overallocated', async function() {
           // Initial stake
           const beforeTokensStaked = await staking.getIndexerStakedTokens(indexer.address)
 
@@ -433,7 +439,7 @@ describe('Staking', () => {
           // = Allocated: 70
           // = Available: 20 (staked - allocated - locked)
 
-          // Even if all stake is allocated to subgraphs it should slash the indexer
+          // Even if all stake is allocated it should slash the indexer
           const tokensToSlash = toGRT('80')
           const tokensToReward = toGRT('0')
           await this.shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
@@ -506,13 +512,13 @@ describe('Staking', () => {
       })
 
       describe('allocate()', function() {
-        it('should allocate to subgraph', async function() {
+        it('should allocate', async function() {
           const tx = this.allocate(this.indexerStake)
           await expect(tx)
             .to.emit(staking, 'AllocationCreated')
             .withArgs(
               indexer.address,
-              this.subgraphID,
+              this.subgraphDeploymentID,
               await epochManager.currentEpoch(),
               this.indexerStake,
               this.channelID,
@@ -533,7 +539,7 @@ describe('Staking', () => {
           await expect(tx).to.be.revertedWith('Allocation: cannot allocate zero tokens')
         })
 
-        context('> when subgraph allocated', function() {
+        context('> when allocated', function() {
           beforeEach(async function() {
             this.tokensAllocated = toGRT('10')
             await this.allocate(this.tokensAllocated)
@@ -547,11 +553,11 @@ describe('Staking', () => {
 
           it('reject allocate reusing a channel', async function() {
             const tokensToAllocate = toGRT('10')
-            const subgraphID = randomHexBytes()
+            const subgraphDeploymentID = randomHexBytes()
             const tx = staking
               .connect(indexer)
               .allocate(
-                subgraphID,
+                subgraphDeploymentID,
                 tokensToAllocate,
                 this.channelPubKey,
                 channelProxy.address,
@@ -575,13 +581,16 @@ describe('Staking', () => {
 
         it('should settle and distribute funds', async function() {
           const stakeBefore = await staking.stakes(indexer.address)
-          const allocBefore = await staking.getAllocation(indexer.address, this.subgraphID)
+          const allocBefore = await staking.getAllocation(
+            indexer.address,
+            this.subgraphDeploymentID,
+          )
 
           // Curate the subgraph to be settled to get curation fees distributed
           const tokensToSignal = toGRT('100')
           await grt.connect(governor).mint(me.address, tokensToSignal)
           await grt.connect(me).approve(curation.address, tokensToSignal)
-          await curation.connect(me).stake(this.subgraphID, tokensToSignal)
+          await curation.connect(me).stake(this.subgraphDeploymentID, tokensToSignal)
 
           // Curation parameters
           const curationPercentage = toBN('200000') // 20%
@@ -606,7 +615,7 @@ describe('Staking', () => {
             .to.emit(staking, 'AllocationSettled')
             .withArgs(
               indexer.address,
-              this.subgraphID,
+              this.subgraphDeploymentID,
               settlementEpoch,
               this.tokensToSettle,
               this.channelID,
@@ -616,9 +625,9 @@ describe('Staking', () => {
               effectiveAlloc,
             )
 
-          // Check that curation reserves increased for that subgraph
-          const subgraphAfter = await curation.subgraphs(this.subgraphID)
-          expect(subgraphAfter.tokens).to.eq(tokensToSignal.add(curationFees))
+          // Check that curation reserves increased for that SubgraphDeployment
+          const poolAfter = await curation.pools(this.subgraphDeploymentID)
+          expect(poolAfter.tokens).to.eq(tokensToSignal.add(curationFees))
 
           // Verify stake is updated
           const stakeAfter = await staking.stakes(indexer.address)
@@ -627,7 +636,7 @@ describe('Staking', () => {
           )
 
           // Verify allocation is updated and channel closed
-          const allocAfter = await staking.getAllocation(indexer.address, this.subgraphID)
+          const allocAfter = await staking.getAllocation(indexer.address, this.subgraphDeploymentID)
           expect(allocAfter.tokens).to.eq(toBN('0'))
           expect(allocAfter.createdAtEpoch).to.eq(toBN('0'))
           expect(allocAfter.channelID).to.be.eq(AddressZero)
@@ -636,7 +645,7 @@ describe('Staking', () => {
           const settlement = await staking.getSettlement(
             settlementEpoch,
             indexer.address,
-            this.subgraphID,
+            this.subgraphDeploymentID,
           )
           expect(settlement.fees).to.eq(rebateFees)
           expect(settlement.allocation).to.eq(effectiveAlloc)
@@ -681,12 +690,14 @@ describe('Staking', () => {
 
             // Claim rebates
             const currentEpoch = await epochManager.currentEpoch()
-            const tx = staking.connect(indexer).claim(this.rebateEpoch, this.subgraphID, restake)
+            const tx = staking
+              .connect(indexer)
+              .claim(this.rebateEpoch, this.subgraphDeploymentID, restake)
             await expect(tx)
               .to.emit(staking, 'RebateClaimed')
               .withArgs(
                 indexer.address,
-                this.subgraphID,
+                this.subgraphDeploymentID,
                 currentEpoch,
                 this.rebateEpoch,
                 this.tokensToSettle,
@@ -725,18 +736,18 @@ describe('Staking', () => {
 
         it('reject claim if channelDisputeEpoch has not passed', async function() {
           const currentEpoch = await epochManager.currentEpoch()
-          const tx = staking.connect(indexer).claim(currentEpoch, this.subgraphID, false)
+          const tx = staking.connect(indexer).claim(currentEpoch, this.subgraphDeploymentID, false)
           await expect(tx).to.be.revertedWith('Rebate: need to wait channel dispute period')
         })
 
         it('reject claim when no settlement available for that epoch', async function() {
           const currentEpoch = await epochManager.currentEpoch()
-          const subgraphID = randomHexBytes()
+          const subgraphDeploymentID = randomHexBytes()
 
           // Advance blocks to get the channel in epoch where it can be claimed
           await this.advanceToNextEpoch()
 
-          const tx = staking.connect(indexer).claim(currentEpoch, subgraphID, false)
+          const tx = staking.connect(indexer).claim(currentEpoch, subgraphDeploymentID, false)
           await expect(tx).to.be.revertedWith('Rebate: settlement does not exist')
         })
 
