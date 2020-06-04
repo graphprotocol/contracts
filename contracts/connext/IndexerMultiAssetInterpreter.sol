@@ -1,9 +1,10 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "../state-deposit-holders/IndexerMultisigTransfer.sol";
-import "../libs/LibOutcome.sol";
-import "../Interpreter.sol";
+import "@connext/contracts/src.sol/funding/libs/LibOutcome.sol";
+import "@connext/contracts/src.sol/funding/Interpreter.sol";
+
+import "./IndexerMultisigTransfer.sol";
 
 
 /**

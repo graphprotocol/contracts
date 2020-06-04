@@ -8,9 +8,9 @@ pragma experimental "ABIEncoderV2";
 ///      should perform as little work as possible to accurately
 ///      mock interctions with adjudicator contracts
 
-import "../libs/LibStateChannelApp.sol";
-import "../libs/LibAppCaller.sol";
-import "../mixins/MixinChallengeRegistryCore.sol";
+import "@connext/contracts/src.sol/adjudicator/libs/LibStateChannelApp.sol";
+import "@connext/contracts/src.sol/adjudicator/libs/LibAppCaller.sol";
+import "@connext/contracts/src.sol/adjudicator/mixins/MixinChallengeRegistryCore.sol";
 
 
 contract MockDispute is LibStateChannelApp, LibAppCaller, MixinChallengeRegistryCore {

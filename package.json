@@ -6,6 +6,7 @@
     "test": "test"
   },
   "dependencies": {
+    "@connext/contracts": "^3.2.1",
     "@connext/types": "^6.6.5",
     "@connext/utils": "^6.6.5",
     "@openzeppelin/contracts": "3.0.1",

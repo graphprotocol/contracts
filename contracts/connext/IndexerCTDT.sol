@@ -1,10 +1,13 @@
 pragma solidity ^0.6.4;
 pragma experimental "ABIEncoderV2";
 
-import "./state-deposit-holders/MultisigData.sol";
-import "./state-deposit-holders/MinimumViableMultisig.sol";
-import "../adjudicator/ChallengeRegistry.sol";
-import "./libs/LibOutcome.sol";
+import "@connext/contracts/src.sol/shared/libs/LibChannelCrypto.sol";
+import "@connext/contracts/src.sol/shared/libs/LibCommitment.sol";
+import "@connext/contracts/src.sol/adjudicator/ChallengeRegistry.sol";
+import "@connext/contracts/src.sol/funding/libs/LibOutcome.sol";
+
+import "./MultisigData.sol";
+import "./MinimumViableMultisig.sol";
 
 
 contract IndexerCTDT is MultisigData {

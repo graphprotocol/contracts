@@ -1,10 +1,12 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+import "@connext/contracts/src.sol/shared/libs/LibChannelCrypto.sol";
+import "@connext/contracts/src.sol/shared/libs/LibCommitment.sol";
+
+import "../Staking.sol";
+
 import "./MultisigData.sol";
-import "../../shared/libs/LibCommitment.sol";
-import "../../shared/libs/LibChannelCrypto.sol";
-import "../../../Staking.sol";
 
 
 /**
