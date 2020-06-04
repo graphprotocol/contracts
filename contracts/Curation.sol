@@ -6,7 +6,6 @@ import "./GraphToken.sol";
 import "./bancor/BancorFormula.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-
 /**
  * @title Curation contract
  * @dev Allows curators to signal on subgraph deployments that might be relevant to indexers by

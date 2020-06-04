@@ -8,7 +8,6 @@ import "./GraphToken.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
-
 /**
  * @title Staking contract
  */

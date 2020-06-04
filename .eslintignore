@@ -3,3 +3,4 @@ cache/
 coverage/
 node_modules/
 truffle.js
+cache/
