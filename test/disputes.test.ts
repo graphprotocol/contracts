@@ -105,10 +105,10 @@ describe('Disputes', async () => {
 
   beforeEach(async function() {
     // Deploy epoch contract
-    epochManager = await deployment.deployEpochManager(governor.address, me)
+    epochManager = await deployment.deployEpochManager(governor.address)
 
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Deploy staking contract
     staking = await deployment.deployStaking(
@@ -116,7 +116,6 @@ describe('Disputes', async () => {
       grt.address,
       epochManager.address,
       AddressZero,
-      me,
     )
 
     // Deploy dispute contract
@@ -125,7 +124,6 @@ describe('Disputes', async () => {
       grt.address,
       arbitrator.address,
       staking.address,
-      me,
     )
 
     // Create an attestation

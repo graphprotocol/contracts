@@ -22,7 +22,7 @@ describe('EpochManager', () => {
 
   beforeEach(async function() {
     // Deploy epoch manager contract
-    epochManager = await deployment.deployEpochManager(governor.address, me)
+    epochManager = await deployment.deployEpochManager(governor.address)
   })
 
   describe('state variables functions', () => {

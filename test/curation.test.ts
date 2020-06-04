@@ -20,10 +20,10 @@ describe('Curation', () => {
 
   beforeEach(async function() {
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Deploy curation contract
-    curation = await deployment.deployCuration(governor.address, grt.address, me)
+    curation = await deployment.deployCuration(governor.address, grt.address)
     await curation.connect(governor).setStaking(staking.address)
   })
 

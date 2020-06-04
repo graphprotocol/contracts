@@ -11,8 +11,6 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import * as deployment from '../lib/deployment'
 import {
   advanceBlockTo,
-  defaults,
-  getChainID,
   randomHexBytes,
   latestBlock,
   provider,
@@ -54,13 +52,13 @@ describe('Staking', () => {
 
   beforeEach(async function() {
     // Deploy epoch contract
-    epochManager = await deployment.deployEpochManager(governor.address, me)
+    epochManager = await deployment.deployEpochManager(governor.address)
 
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Deploy curation contract
-    curation = await deployment.deployCuration(governor.address, grt.address, me)
+    curation = await deployment.deployCuration(governor.address, grt.address)
 
     // Deploy staking contract
     staking = await deployment.deployStaking(
@@ -68,7 +66,6 @@ describe('Staking', () => {
       grt.address,
       epochManager.address,
       curation.address,
-      me,
     )
 
     // Set slasher

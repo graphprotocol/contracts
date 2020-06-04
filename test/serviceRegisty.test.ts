@@ -12,7 +12,7 @@ describe('ServiceRegistry', () => {
   const geohash = '69y7hdrhm6mp'
 
   beforeEach(async function() {
-    serviceRegistry = await deployment.deployServiceRegistry(governor)
+    serviceRegistry = await deployment.deployServiceRegistry()
 
     this.shouldRegister = async function(url: string, geohash: string) {
       // Register the indexer service

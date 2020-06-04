@@ -1,17 +1,8 @@
 import { Wallet, Contract } from 'ethers'
-import { deployContract } from 'ethereum-waffle'
 import { ethers, waffle } from '@nomiclabs/buidler'
 
 // contracts artifacts
-import CurationArtifact from '../../build/contracts/Curation.json'
-import DisputeManagerArtifact from '../../build/contracts/DisputeManager.json'
-import EpochManagerArtifact from '../../build/contracts/EpochManager.json'
-import GNSArtifact from '../../build/contracts/GNS.json'
-import GraphTokenArtifact from '../../build/contracts/GraphToken.json'
-import ServiceRegistyArtifact from '../../build/contracts/ServiceRegistry.json'
-import StakingArtifact from '../../build/contracts/Staking.json'
 import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
-import EthereumDIDRegistryArtifact from '../../build/contracts/EthereumDIDRegistry.json'
 
 // contracts definitions
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -21,8 +12,10 @@ import { Gns } from '../../build/typechain/contracts/Gns'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
-import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
+
 import { EthereumDidRegistry } from '../../build/typechain/contracts/EthereumDidRegistry'
+
+import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
@@ -39,43 +32,29 @@ import { solidityKeccak256 } from 'ethers/utils'
 import { ChannelSigner, stringify } from '@connext/utils'
 import { TransactionReceipt } from '@connext/types'
 
-const deployGasLimit = 9000000
-
-export function deployGRT(owner: string, wallet: Wallet): Promise<GraphToken> {
-  return deployContract(wallet, GraphTokenArtifact, [
-    owner,
-    defaults.token.initialSupply,
-  ]) as Promise<GraphToken>
-}
-
-export async function deployGRTWithFactory(owner: string): Promise<GraphToken> {
+export async function deployGRT(owner: string): Promise<GraphToken> {
   const GraphToken = await ethers.getContractFactory('GraphToken')
-  const contract = await GraphToken.deploy(owner, defaults.token.initialSupply)
-  await contract.deployed()
-  return contract as GraphToken
+  return GraphToken.deploy(owner, defaults.token.initialSupply) as Promise<GraphToken>
 }
 
-export function deployCuration(
-  owner: string,
-  graphToken: string,
-  wallet: Wallet,
-): Promise<Curation> {
-  return deployContract(
-    wallet,
-    CurationArtifact,
-    [owner, graphToken, defaults.curation.reserveRatio, defaults.curation.minimumCurationStake],
-    { gasLimit: deployGasLimit },
+export async function deployCuration(owner: string, graphToken: string): Promise<Curation> {
+  const Curation = await ethers.getContractFactory('Curation')
+  return Curation.deploy(
+    owner,
+    graphToken,
+    defaults.curation.reserveRatio,
+    defaults.curation.minimumCurationStake,
   ) as Promise<Curation>
 }
 
-export function deployDisputeManager(
+export async function deployDisputeManager(
   owner: string,
   graphToken: string,
   arbitrator: string,
   staking: string,
-  wallet: Wallet,
 ): Promise<DisputeManager> {
-  return deployContract(wallet, DisputeManagerArtifact, [
+  const DisputeManager = await ethers.getContractFactory('DisputeManager')
+  return DisputeManager.deploy(
     owner,
     arbitrator,
     graphToken,
@@ -83,33 +62,27 @@ export function deployDisputeManager(
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
-  ]) as Promise<DisputeManager>
+  ) as Promise<DisputeManager>
 }
 
-export function deployEpochManager(owner: string, wallet: Wallet): Promise<EpochManager> {
-  return deployContract(wallet, EpochManagerArtifact, [
-    owner,
-    defaults.epochs.lengthInBlocks,
-  ]) as Promise<EpochManager>
-}
-
-export async function deployEpochManagerWithFactory(owner: string): Promise<EpochManager> {
+export async function deployEpochManager(owner: string): Promise<EpochManager> {
   const EpochManager = await ethers.getContractFactory('EpochManager')
-  const contract = await EpochManager.deploy(owner, defaults.token.initialSupply)
-  await contract.deployed()
-  return contract as EpochManager
+  return EpochManager.deploy(owner, defaults.epochs.lengthInBlocks) as Promise<EpochManager>
 }
 
-export function deployGNS(owner: string, didAddress: string, wallet: Wallet): Promise<Gns> {
-  return deployContract(wallet, GNSArtifact, [owner, didAddress]) as Promise<Gns>
+export async function deployGNS(owner: string, didRegistry: string): Promise<Gns> {
+  const Gns = await ethers.getContractFactory('Gns')
+  return Gns.deploy(owner, didRegistry) as Promise<Gns>
 }
 
-export function deployEthereumDIDRegistry(wallet: Wallet): Promise<EthereumDidRegistry> {
-  return deployContract(wallet, EthereumDIDRegistryArtifact) as Promise<EthereumDidRegistry>
+export async function deployEthereumDIDRegistry(): Promise<EthereumDidRegistry> {
+  const EthereumDidRegistry = await ethers.getContractFactory('EthereumDidRegistry')
+  return EthereumDidRegistry.deploy() as Promise<EthereumDidRegistry>
 }
 
-export function deployServiceRegistry(wallet: Wallet): Promise<ServiceRegistry> {
-  return deployContract(wallet, ServiceRegistyArtifact) as Promise<ServiceRegistry>
+export async function deployServiceRegistry(): Promise<ServiceRegistry> {
+  const ServiceRegistry = await ethers.getContractFactory('ServiceRegistry')
+  return ServiceRegistry.deploy() as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(
@@ -117,14 +90,9 @@ export async function deployStaking(
   graphToken: string,
   epochManager: string,
   curation: string,
-  wallet: Wallet,
 ): Promise<Staking> {
-  const contract: Staking = (await deployContract(wallet, StakingArtifact, [
-    owner.address,
-    graphToken,
-    epochManager,
-  ])) as Staking
-
+  const Staking = await ethers.getContractFactory('Staking')
+  const contract = (await Staking.deploy(owner.address, graphToken, epochManager)) as Staking
   await contract.connect(owner).setCuration(curation)
   await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)

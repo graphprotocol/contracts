@@ -13,7 +13,7 @@ describe('GNS', () => {
 
   let gns: Gns
   let didRegistry: EthereumDidRegistry
-  let name = 'graph'
+  const name = 'graph'
 
   const newSubgraph = {
     graphAccount: me,
@@ -26,8 +26,8 @@ describe('GNS', () => {
   beforeEach(async function() {
     // No need to call the didRegistry and update owner, since an account is the owner of itself
     // by default. Thus, we don't even bother, but the contract still is needed in testing
-    didRegistry = await deployment.deployEthereumDIDRegistry(me)
-    gns = await deployment.deployGNS(governor.address, didRegistry.address, me)
+    didRegistry = await deployment.deployEthereumDIDRegistry()
+    gns = await deployment.deployGNS(governor.address, didRegistry.address)
 
     this.publishNewSubgraph = (signer: Wallet, graphAccount: string) =>
       gns
@@ -133,7 +133,9 @@ describe('GNS', () => {
 
     it('should reject publishing a version to a numbered subgraph that does not exist', async function() {
       const tx = this.publishNewVersion(me, me.address, 0)
-      await expect(tx).to.revertedWith('GNS: Cant publish a version directly for a subgraph that wasnt created yet')
+      await expect(tx).to.revertedWith(
+        'GNS: Cant publish a version directly for a subgraph that wasnt created yet',
+      )
     })
 
     it('reject if not the owner', async function() {
@@ -163,16 +165,16 @@ describe('GNS', () => {
 
       // Event being emitted indicates version has been updated
       await expect(tx)
-      .to.emit(gns, 'SubgraphPublished')
-      .withArgs(
-        newSubgraph.graphAccount.address,
-        0,
-        newSubgraph.subgraphDeploymentID,
-        0,
-        newSubgraph.nameIdentifier,
-        newSubgraph.name,
-        newSubgraph.metadataHash,
-      )
+        .to.emit(gns, 'SubgraphPublished')
+        .withArgs(
+          newSubgraph.graphAccount.address,
+          0,
+          newSubgraph.subgraphDeploymentID,
+          0,
+          newSubgraph.nameIdentifier,
+          newSubgraph.name,
+          newSubgraph.metadataHash,
+        )
     })
 
     it('reject if the subgraph does not exist', async function() {

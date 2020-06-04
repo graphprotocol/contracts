@@ -99,7 +99,7 @@ describe('GraphToken', () => {
 
   beforeEach(async function() {
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Mint some tokens
     const tokens = toGRT('100')
