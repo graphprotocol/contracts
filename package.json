@@ -6,8 +6,10 @@
     "test": "test"
   },
   "dependencies": {
+    "@connext/types": "^6.6.5",
+    "@connext/utils": "^6.6.5",
     "@openzeppelin/contracts": "3.0.1",
-    "@typechain/truffle-v4": "^2.0.2",
+    "@typechain/truffle-v4": "^2.0.3",
     "@typechain/truffle-v5": "^2.0.2",
     "@typechain/web3-v1": "^1.0.0",
     "buidler-typechain": "^0.1.1",
@@ -23,9 +25,9 @@
   },
   "devDependencies": {
     "@graphprotocol/common-ts": "^0.0.30",
-    "@nomiclabs/buidler": "^1.3.4",
+    "@nomiclabs/buidler": "^1.3.5",
     "@nomiclabs/buidler-ethers": "^1.3.3",
-    "@nomiclabs/buidler-waffle": "^1.3.3",
+    "@nomiclabs/buidler-waffle": "^1.3.4",
     "@typechain/ethers-v4": "^1.0.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.5",
