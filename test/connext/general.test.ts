@@ -17,7 +17,7 @@ import {
   createAppDispute,
 } from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
-import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
+import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'

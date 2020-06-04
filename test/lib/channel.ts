@@ -19,7 +19,7 @@ import {
 } from 'ethers/utils'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import MultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
-import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCTDT'
+import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
 import { toBN } from './testHelpers'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { Zero, AddressZero } from 'ethers/constants'
