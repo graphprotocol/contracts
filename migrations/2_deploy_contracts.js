@@ -10,7 +10,7 @@ const ServiceRegistry = artifacts.require('ServiceRegistry')
 const Staking = artifacts.require('Staking')
 
 const MinimumViableMultisig = artifacts.require('MinimumViableMultisig')
-const IndexerCTDT = artifacts.require('IndexerCTDT')
+const IndexerCtdt = artifacts.require('IndexerCtdt')
 const IndexerMultiAssetInterpreter = artifacts.require('IndexerMultiAssetInterpreter')
 const IndexerSingleAssetInterpreter = artifacts.require('IndexerSingleAssetInterpreter')
 const IndexerWithdrawInterpreter = artifacts.require('IndexerWithdrawInterpreter')
@@ -61,7 +61,7 @@ module.exports = async (deployer, network, accounts) => {
       const serviceRegistry = await deployer.deploy(ServiceRegistry, governor)
       const gns = await deployer.deploy(GNS, governor)
 
-      const indexerCtdt = await deployer.deploy(IndexerCTDT)
+      const indexerCtdt = await deployer.deploy(IndexerCtdt)
       const indexerSingleAssetInterpreter = await deployer.deploy(IndexerSingleAssetInterpreter)
       const indexerMultiAssetInterpreter = await deployer.deploy(IndexerMultiAssetInterpreter)
       const indexerWithdrawInterpreter = await deployer.deploy(IndexerWithdrawInterpreter)

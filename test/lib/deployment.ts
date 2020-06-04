@@ -162,7 +162,7 @@ async function deployProxyFactory(): Promise<Contract> {
   return contract as Contract
 }
 
-async function deployIndexerCTDT(): Promise<IndexerCtdt> {
+async function deployIndexerCtdt(): Promise<IndexerCtdt> {
   const IndexerCtdt = await ethers.getContractFactory('IndexerCtdt')
   const contract = await IndexerCtdt.deploy()
   await contract.deployed()
@@ -223,7 +223,7 @@ async function deployIdentityApp(): Promise<IdentityApp> {
 }
 
 export async function deployChannelContracts(node: string, tokenAddress: string) {
-  const ctdt = await deployIndexerCTDT()
+  const ctdt = await deployIndexerCtdt()
   const singleAssetInterpreter = await deploySingleAssetInterpreter()
   const multiAssetInterpreter = await deployMultiAssetInterpreter()
   const withdrawInterpreter = await deployWithdrawInterpreter()

@@ -10,7 +10,7 @@ import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";
 
 
-contract IndexerCTDT is MultisigData {
+contract IndexerCtdt is MultisigData {
     uint256 constant MAX_UINT256 = 2**256 - 1;
 
     struct FreeBalanceAppState {
