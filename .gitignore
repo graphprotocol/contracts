@@ -11,6 +11,10 @@ cache/
 # Coverage tests
 coverage/
 
+# Buidler cache
+cached/
+
+# Others
 .privkey.txt
 .infurakey.txt
 .DS_Store

@@ -5,36 +5,35 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../abdk-libraries-solidity/ABDKMath64x64.sol";
 
 
-/*
+/**
  * @title A collection of data structures and functions to manage Rebates
  *        Used for low-level state changes, require() conditions should be evaluated
  *        at the caller function scope.
  */
-
 library Rebates {
     using SafeMath for uint256;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
 
-    // Tracks per indexer/subgraphID settlement
+    // Tracks settlements of allocations
     struct Settlement {
         uint256 fees;
         uint256 allocation;
     }
 
-    // Tracks per epoch settlements
+    // Tracks allocation settlements in a Pool per epoch
     struct Pool {
         uint256 fees;
         uint256 allocation;
         uint256 settlementsCount;
-        // Settlements in this pool : indexer => subgraphID => Settlement
+        // Settlements in this pool : indexer => subgraphDeploymentID => Settlement
         mapping(address => mapping(bytes32 => Settlement)) settlements;
     }
 
     /**
      * @dev Deposit tokens into the rebate pool
      * @param _indexer Address of the indexer settling a channel
-     * @param _subgraphID ID of the settled subgraph
+     * @param _subgraphDeploymentID ID of the settled SubgraphDeployment
      * @param _tokens Amount of fees collected in tokens
      * @param _allocation Effective stake allocated by the indexer for a period of epochs
      * @return A settlement struct created after adding to rebate pool
@@ -42,29 +41,30 @@ library Rebates {
     function add(
         Rebates.Pool storage pool,
         address _indexer,
-        bytes32 _subgraphID,
+        bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         uint256 _allocation
     ) internal returns (Rebates.Settlement storage) {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
-        pool.settlements[_indexer][_subgraphID] = Settlement(_tokens, _allocation);
+        pool.settlements[_indexer][_subgraphDeploymentID] = Settlement(_tokens, _allocation);
         pool.settlementsCount += 1;
 
-        return pool.settlements[_indexer][_subgraphID];
+        return pool.settlements[_indexer][_subgraphDeploymentID];
     }
 
     /**
      * @dev Redeem tokens from the rebate pool
      * @param _indexer Address of the indexer claiming a rebate
-     * @param _subgraphID ID of the claimed subgraph rebate
+     * @param _subgraphDeploymentID ID of the claimed SubgraphDeployment rebate
      * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
      */
-    function redeem(Rebates.Pool storage pool, address _indexer, bytes32 _subgraphID)
-        internal
-        returns (uint256)
-    {
-        Rebates.Settlement storage settlement = pool.settlements[_indexer][_subgraphID];
+    function redeem(
+        Rebates.Pool storage pool,
+        address _indexer,
+        bytes32 _subgraphDeploymentID
+    ) internal returns (uint256) {
+        Rebates.Settlement storage settlement = pool.settlements[_indexer][_subgraphDeploymentID];
 
         uint256 tokens = calcRebateReward(
             2, // TODO: Fixed to do the sqrt()
@@ -75,7 +75,7 @@ library Rebates {
         );
 
         // Redeem settlement
-        delete pool.settlements[_indexer][_subgraphID];
+        delete pool.settlements[_indexer][_subgraphDeploymentID];
         pool.settlementsCount -= 1;
 
         return tokens;
@@ -83,8 +83,8 @@ library Rebates {
 
     /**
      * @dev Calculate rebate using production function
-     * @param _indexerAlloc Effective allocation for (epoch,indexer,subgraphID)
-     * @param _indexerFees Fees collected on (epoch,indexer,subgraphID)
+     * @param _indexerAlloc Effective allocation for (epoch,indexer,subgraphDeploymentID)
+     * @param _indexerFees Fees collected on (epoch,indexer,subgraphDeploymentID)
      * @param _poolAlloc Pooled effective allocation for epoch
      * @param _poolFees Pooled collected fees for epoch
      * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula

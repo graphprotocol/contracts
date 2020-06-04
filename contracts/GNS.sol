@@ -3,12 +3,11 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 
-
 /**
  * @title GNS
  * @dev The Graph Name System contract provides a decentralized namings system for subgraphs
- * used in the scope of the Graph Network. It translate subgraph names into subgraphID regarded as
- * versions.
+ * used in the scope of the Graph Network. It translate subgraph names into
+ * subgraphDeploymentID regarded as versions.
  */
 contract GNS is Governed {
     // -- Types --
@@ -17,7 +16,7 @@ contract GNS is Governed {
 
     struct Record {
         address owner;
-        bytes32 subgraphID;
+        bytes32 subgraphDeploymentID;
         RecordType nameSystem;
     }
 
@@ -28,10 +27,15 @@ contract GNS is Governed {
     // -- Events --
 
     /**
-     * @dev Emitted when `owner` publish a `subgraphID` version under subgraph `name`.
+     * @dev Emitted when `owner` publish a `subgraphDeploymentID` version under subgraph `name`.
      * The event also attach `metadataHash` with extra information.
      */
-    event SubgraphPublished(string name, address owner, bytes32 subgraphID, bytes32 metadataHash);
+    event SubgraphPublished(
+        string name,
+        address owner,
+        bytes32 subgraphDeploymentID,
+        bytes32 metadataHash
+    );
 
     /**
      * @dev Emitted when subgraph `nameHash` is unpublished by its owner.
@@ -49,20 +53,20 @@ contract GNS is Governed {
     }
 
     /**
-     * @dev Contract Constructor
+     * @dev Contract Constructor.
      * @param _governor Owner address of this contract
      */
     constructor(address _governor) public Governed(_governor) {}
 
     /**
-     * @dev Publish a version using `subgraphID` under a subgraph name.
+     * @dev Publish a version using `subgraphDeploymentID` under a subgraph..
      * @param _name Name of the subgraph
-     * @param _subgraphID Subgraph ID to link to the subgraph name
+     * @param _subgraphDeploymentID SubgraphDeployment to link to the subgraph
      * @param _metadataHash IPFS hash linked to the metadata
      */
     function publish(
         string calldata _name,
-        bytes32 _subgraphID,
+        bytes32 _subgraphDeploymentID,
         bytes32 _metadataHash
     ) external {
         address owner = msg.sender;
@@ -72,8 +76,8 @@ contract GNS is Governed {
             "GNS: Record reserved, only record owner can publish"
         );
 
-        records[nameHash] = Record(owner, _subgraphID, RecordType.GNS);
-        emit SubgraphPublished(_name, owner, _subgraphID, _metadataHash);
+        records[nameHash] = Record(owner, _subgraphDeploymentID, RecordType.GNS);
+        emit SubgraphPublished(_name, owner, _subgraphDeploymentID, _metadataHash);
     }
 
     /**
