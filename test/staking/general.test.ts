@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { Wallet } from 'ethers'
+import { Event, Wallet } from 'ethers'
 import { BigNumber } from 'ethers/utils'
 import { AddressZero } from 'ethers/constants'
 
@@ -303,34 +303,36 @@ describe('Staking', () => {
             .withArgs(indexer.address, tokensToUnstake, until)
         })
 
-        // it('should unstake and lock tokens for (weighted avg) thawing period if repeated', async function() {
-        //   const tokensToUnstake = toGRT('10')
-        //   const thawingPeriod = await staking.thawingPeriod()
+        it('should unstake and lock tokens for (weighted avg) thawing period if repeated', async function() {
+          const tokensToUnstake = toGRT('10')
+          const thawingPeriod = await staking.thawingPeriod()
 
-        //   // Unstake (1)
-        //   const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
-        //   const r1 = await provider().getTransactionReceipt(tx1.hash)
-        //   console.log(r1)
-        //   const tokensLockedUntil1 = r1.logs[0].args.until
+          // Unstake (1)
+          const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
+          const receipt1 = await tx1.wait()
+          const event1: Event = (receipt1 as any).events.pop()
+          const tokensLockedUntil1 = event1.args![2]
 
-        //   // Move forward
-        //   await advanceBlockTo(tokensLockedUntil1)
+          // Move forward
+          await advanceBlockTo(tokensLockedUntil1)
 
-        //   // Calculate locking time for tokens taking into account the previous unstake request
-        //   const currentBlock = await latestBlock()
-        //   const lockingPeriod = weightedAverage(
-        //     tokensToUnstake,
-        //     tokensToUnstake,
-        //     tokensLockedUntil1.sub(currentBlock),
-        //     thawingPeriod,
-        //   )
-        //   const expectedLockedUntil = currentBlock.add(lockingPeriod).add(toBN('1'))
+          // Calculate locking time for tokens taking into account the previous unstake request
+          const currentBlock = await latestBlock()
+          const lockingPeriod = weightedAverage(
+            tokensToUnstake,
+            tokensToUnstake,
+            tokensLockedUntil1.sub(currentBlock),
+            thawingPeriod,
+          )
+          const expectedLockedUntil = currentBlock.add(lockingPeriod).add(toBN('1'))
 
-        //   // Unstake (2)
-        //   r = await staking.connect(indexer).unstake(tokensToUnstake)
-        //   const tokensLockedUntil2 = r.logs[0].args.until
-        //   expect(expectedLockedUntil).to.eq(tokensLockedUntil2)
-        // })
+          // Unstake (2)
+          const tx2 = await staking.connect(indexer).unstake(tokensToUnstake)
+          const receipt2 = await tx2.wait()
+          const event2: Event = (receipt2 as any).events.pop()
+          const tokensLockedUntil2 = event2.args![2]
+          expect(expectedLockedUntil).to.eq(tokensLockedUntil2)
+        })
 
         it('reject unstake more than available tokens', async function() {
           const tokensOverCapacity = this.indexerStake.add(toBN('1'))
@@ -340,25 +342,27 @@ describe('Staking', () => {
       })
 
       describe('withdraw()', function() {
-        // it('should withdraw if tokens available', async function() {
-        //   // Unstake
-        //   const tokensToUnstake = toGRT('10')
-        //   const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
-        //   const tokensLockedUntil = logs[0].args.until
+        it('should withdraw if tokens available', async function() {
+          // Unstake
+          const tokensToUnstake = toGRT('10')
+          const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
+          const receipt = await tx1.wait()
+          const event: Event = (receipt as any).events.pop()
+          const tokensLockedUntil = event.args![2]
 
-        //   // Withdraw on locking period (should fail)
-        //   const tx = staking.connect(indexer).withdraw()
-        //   await expect(tx).to.be.revertedWith('Staking: no tokens available to withdraw')
+          // Withdraw on locking period (should fail)
+          const tx2 = staking.connect(indexer).withdraw()
+          await expect(tx2).to.be.revertedWith('Staking: no tokens available to withdraw')
 
-        //   // Move forward
-        //   await advanceBlockTo(tokensLockedUntil)
+          // Move forward
+          await advanceBlockTo(tokensLockedUntil)
 
-        //   // Withdraw after locking period (all good)
-        //   const balanceBefore = await grt.balanceOf(indexer.address)
-        //   await staking.connect(indexer).withdraw()
-        //   const balanceAfter = await grt.balanceOf(indexer.address)
-        //   expect(balanceAfter).to.eq(balanceBefore.add(tokensToUnstake))
-        // })
+          // Withdraw after locking period (all good)
+          const balanceBefore = await grt.balanceOf(indexer.address)
+          await staking.connect(indexer).withdraw()
+          const balanceAfter = await grt.balanceOf(indexer.address)
+          expect(balanceAfter).to.eq(balanceBefore.add(tokensToUnstake))
+        })
 
         it('reject withdraw if no tokens available', async function() {
           const tx = staking.connect(indexer).withdraw()
