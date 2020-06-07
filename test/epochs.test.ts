@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import { BigNumber } from 'ethers/utils'
-import { waffle as buidler } from '@nomiclabs/buidler'
 
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 

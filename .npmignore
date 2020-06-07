@@ -1,8 +1,9 @@
 # Ignore zeppelin contracts
 node_modules/
 
-# Ignore truffle stuff
+# Ignore build stuff
 build/
+cache/
 
 # Coverage tests
 coverage/

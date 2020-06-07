@@ -1,4 +1,4 @@
-const skipFiles = ['bancor', 'bytes', 'abdk-libraries-solidity']
+const skipFiles = ['bancor', 'abdk-libraries-solidity']
 
 module.exports = {
   providerOptions: {

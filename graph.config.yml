@@ -1,0 +1,51 @@
+general:
+  governor: &governor "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+  nodeSignerAddress: &nodeSignerAddress "0x0000000000000000000000000000000000000000"
+
+contracts:
+  Curation:
+    governor: *governor
+    token: "${{GraphToken.address}}"
+    reserveRatio: 500000
+    minimumCurationStake: "100000000000000000000" # 100 GRT
+    __calls:
+      - fn: "setWithdrawalFeePercentage"
+        withdrawalFeePercentage: 50000
+  DisputeManager:
+    governor: *governor
+    arbitrator: *governor
+    token: "${{GraphToken.address}}"
+    staking: "${{Staking.address}}"
+    minimumDeposit: "100000000000000000000" # 100 GRT
+    fishermanRewardPercentage: 1000 # in basis points
+    slashingPercentage: 1000 # in basis points
+  EpochManager:
+    governor: *governor
+    lengthInBlocks: 5760 # One day in blocks
+  GNS:
+    governor: *governor
+  GraphToken:
+    governor: *governor
+    initialSupply: "10000000000000000000000000" # 10000000 GRT
+  RewardManager:
+    governor: *governor
+  Staking:
+    governor: *governor
+    token: "${{GraphToken.address}}"
+    epochManager: "${{EpochManager.address}}"
+    __calls:
+      - fn: "setCuration"
+        curation: "${{Curation.address}}"
+      - fn: "setChannelDisputeEpochs"
+        channelDisputeEpochs: 1
+      - fn: "setMaxAllocationEpochs"
+        maxAllocationEpochs: 5
+      - fn: "setThawingPeriod"
+        thawingPeriod: 20 # in blocks
+  MinimumViableMultisig:
+    node: *nodeSignerAddress
+    staking: "${{Staking.address}}"
+    CTDT: "${{IndexerCTDT.address}}"
+    singleAssetInterpreter: "${{IndexerSingleAssetInterpreter.address}}"
+    multiAssetInterpreter: "${{IndexerMultiAssetInterpreter.address}}"
+    withdrawInterpreter: "${{IndexerWithdrawInterpreter.address}}"
