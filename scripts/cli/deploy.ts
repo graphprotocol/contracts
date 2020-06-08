@@ -1,7 +1,7 @@
 import { Contract, ContractFactory, Wallet, providers, utils } from 'ethers'
 
 import { AddressBook } from './address-book'
-import { artifacts } from './artifacts'
+import { loadArtifact } from './artifacts'
 
 const { keccak256 } = utils
 
@@ -20,7 +20,7 @@ export const isContractDeployed = async (
     return false
   }
   const savedCreationCodeHash = addressBook.getEntry(name).creationCodeHash
-  const creationCodeHash = hash(artifacts[name].bytecode)
+  const creationCodeHash = hash(loadArtifact(name).bytecode)
   if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
     console.log(`creationCodeHash in our address book doen't match ${name} artifacts`)
     console.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
@@ -40,17 +40,14 @@ export const isContractDeployed = async (
   return true
 }
 
-export const contractAt = (contractName: string, contractAddress: string, wallet: Wallet) => {
-  return new Contract(contractAddress, artifacts[contractName].abi, wallet.provider)
-}
-
 export const deployContract = async (
   name: string,
   args: Array<{ name: string; value: string }>,
   wallet: Wallet,
   addressBook: AddressBook,
 ): Promise<Contract> => {
-  const factory = ContractFactory.fromSolidity(artifacts[name])
+  const artifact = loadArtifact(name)
+  const factory = ContractFactory.fromSolidity(artifact)
   const contract = await factory.connect(wallet).deploy(...args.map(a => a.value))
   const txHash = contract.deployTransaction.hash
   console.log(`Sent transaction to deploy ${name}, txHash: ${txHash}`)
@@ -58,7 +55,7 @@ export const deployContract = async (
   const address = contract.address
   console.log(`${name} has been deployed to address: ${address}\n`)
   const runtimeCodeHash = hash(await wallet.provider.getCode(address))
-  const creationCodeHash = hash(artifacts[name].bytecode)
+  const creationCodeHash = hash(artifact.bytecode)
   addressBook.setEntry(name, {
     address,
     constructorArgs: args.length === 0 ? undefined : args,

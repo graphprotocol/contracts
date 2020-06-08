@@ -27,7 +27,7 @@ contracts:
   GraphToken:
     governor: *governor
     initialSupply: "10000000000000000000000000" # 10000000 GRT
-  RewardManager:
+  RewardsManager:
     governor: *governor
   Staking:
     governor: *governor

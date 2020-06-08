@@ -45,13 +45,13 @@ export function getContractConfig(
   const contractParams: ContractParams = []
   const contractCalls: ContractCalls = []
 
-  for (let [name, value] of Object.entries(contractConfig) as Array<Array<string>>) {
+  for (const [name, value] of Object.entries(contractConfig) as Array<Array<string>>) {
     if (name.startsWith('__calls')) {
       for (const entry of contractConfig.__calls) {
         const fn = entry['fn']
         const params = Object.entries(entry)
           .slice(1)
-          .map(([_, value]) => parseConfigValue(value as string, addressBook))
+          .map(([, value]) => parseConfigValue(value as string, addressBook))
         contractCalls.push({ fn, params })
       }
       continue

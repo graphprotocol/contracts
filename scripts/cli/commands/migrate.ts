@@ -17,7 +17,7 @@ const coreContracts = [
   'GraphToken',
   'ServiceRegistry',
   'Curation',
-  'RewardManager',
+  'RewardsManager',
   'Staking',
   'DisputeManager',
   'IndexerCTDT',
@@ -31,7 +31,7 @@ export const migrate = async (
   wallet: Wallet,
   addressBookPath: string,
   graphConfigPath: string,
-  force: boolean = false,
+  force = false,
 ): Promise<void> => {
   ////////////////////////////////////////
   // Environment Setup
