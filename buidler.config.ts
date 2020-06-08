@@ -5,11 +5,25 @@ import { BuidlerConfig, task, usePlugin, types } from '@nomiclabs/buidler/config
 import { cliOpts } from './scripts/cli/constants'
 import { migrate } from './scripts/cli/commands/migrate'
 
+dotenv.config()
+
+// Plugins
+
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('solidity-coverage')
 usePlugin('buidler-typechain')
 
-dotenv.config()
+// Helpers
+
+function getAccountMnemonic() {
+  return process.env.MNEMONIC || ''
+}
+
+function getInfuraProviderURL(network: string) {
+  return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
+}
+
+// Tasks
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, bre) => {
   const accounts = await bre.ethers.getSigners()
@@ -28,15 +42,8 @@ task('migrate', 'Migrate contracts')
     await migrate(accounts[0] as Wallet, taskArgs.addressBook, taskArgs.graphConfig, taskArgs.force)
   })
 
-function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
-}
+// Config - Go to https://buidler.dev/config/ to learn more
 
-function getInfuraProviderURL(network: string) {
-  return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
-}
-
-// Go to https://buidler.dev/config/ to learn more
 const config: BuidlerConfig = {
   paths: {
     sources: './contracts',
