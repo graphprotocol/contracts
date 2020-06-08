@@ -11,7 +11,7 @@ testrpc_running() {
 }
 
 start_testrpc() {
-  npx ganache-cli -m "$MNEMONIC" -i 15 --gasLimit 8000000 --port "$TESTRPC_PORT" > /dev/null &
+  npx ganache-cli -m "$MNEMONIC" -i 1337 --gasLimit 8000000 --port "$TESTRPC_PORT" > /dev/null &
   testrpc_pid=$!
 }
 
@@ -37,7 +37,7 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
   result=$?
 else
   # Run tests using testrpc started in this script
-  npx buidler test --network localhost "$@"
+  npx buidler test --network ganache "$@"
   result=$?
 fi
 

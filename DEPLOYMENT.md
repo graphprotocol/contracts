@@ -2,12 +2,21 @@
 
 ### Running
 
-A script in `/scripts/cli/cli.ts` deploys the contracts to the specified network when used with the `migrate` command.
-This script accepts multiple commands that you can see using `/scripts/cli/cli.ts --help`
+A script in `./scripts/cli/cli.ts` deploys the contracts to the specified network when used with the `migrate` command.
 
-For convenience, the script can be also run with `npm run migrate`.
+This script accepts multiple commands that you can print using:
 
-The migrate command will:
+```
+/scripts/cli/cli.ts --help
+```
+
+For convenience, the script can also be used as a buidler command with `buidler migrate` and it can be also run with:
+
+```
+npm run migrate
+```
+
+The **migrate** command will:
 
 - Read contracts configuration from a file.
 - Parse command-line options to select which network to deploy and the wallet to use.
@@ -15,27 +24,30 @@ The migrate command will:
 - Deploy the contracts and wait for each transaction to be mined.
 - Write an address book file with the deployed contracts data.
 
+The script accepts multiple parameters that allow to override default values, print the available options with:
+
+```
+npm run migrate -- --help
+```
+
 NOTE: Please run `npm run build` at least once before running migrate as this command relies on artifacts produced in the compilation process.
 
 ### Networks
 
 By default, `npm run migrate` will deploy the contracts to a localhost instance of a development network.
 
-- To deploy to a different network execute `npm run migrate -- -p {providerURL}`.
-
-For example:
+To deploy to a different network execute:
 
 ```
-npm run migrate -- -p https://kovan.infura.io/v3
+npm run migrate -- --network {networkName}
+
+# Example
+npm run migrate -- --network kovan
 ```
 
-- To deploy using your own wallet execute `npm run migrate -- -m {mnemonic}`.
+The network must be configured in the `builder.config.ts` as explained in https://buidler.dev/config/#networks-configuration.
 
-For example:
-
-```
-npm run migrate -- -m "myth like bonus scare over problem client lizard pioneer submit female collect"
-```
+To deploy using your own wallet add the HD Wallet Config to the `builder.config.ts` file according to https://buidler.dev/config/#hd-wallet-config.
 
 ### Configuration
 
@@ -44,7 +56,7 @@ A configuration file called `graph.config.yml` contains the parameters needed to
 You can use a different set of configuration options by specifying the file location in the command line:
 
 ```
-npm run migrate -- -c another-graph.config.yml
+npm run migrate -- --graph-config another-graph.config.yml
 ```
 
 Rules:

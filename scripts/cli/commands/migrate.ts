@@ -31,6 +31,7 @@ export const migrate = async (
   wallet: Wallet,
   addressBookPath: string,
   graphConfigPath: string,
+  force: boolean = false,
 ): Promise<void> => {
   ////////////////////////////////////////
   // Environment Setup
@@ -38,10 +39,11 @@ export const migrate = async (
   const balance = await wallet.getBalance()
   const chainId = (await wallet.provider.getNetwork()).chainId
   const nonce = await wallet.getTransactionCount()
+  const walletAddress = await wallet.getAddress()
 
   console.log(`\nPreparing to migrate contracts to chain w id: ${chainId}`)
   console.log(
-    `Deployer Wallet: address=${wallet.address} nonce=${nonce} balance=${formatEther(balance)}\n`,
+    `Deployer Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
   )
 
   const addressBook = getAddressBook(addressBookPath, chainId.toString())
@@ -55,7 +57,7 @@ export const migrate = async (
   for (const name of coreContracts) {
     const addressEntry = addressBook.getEntry(name)
     const savedAddress = addressEntry && addressEntry.address
-    if (await isContractDeployed(name, savedAddress, addressBook, wallet.provider)) {
+    if (!force && (await isContractDeployed(name, savedAddress, addressBook, wallet.provider))) {
       console.log(`${name} is up to date, no action required`)
       console.log(`Address: ${savedAddress}\n`)
     } else {
@@ -105,6 +107,7 @@ export const migrateCommand = {
       Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider)),
       argv.addressBook,
       argv.graphConfig,
+      argv.force,
     )
   },
 }

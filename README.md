@@ -18,11 +18,7 @@ latest subgraph.
 
 We want to also run some test scripts to populate data each time new contracts are deployed.
 
-You will need two files to deploy anything and run `truffle`, they are `.privkey.txt` and
-`.infurakey.txt`. Privkey is a 12 word mneumonic, you should grab you 12 words from metamask, so
-that your metamask keys will work in the browser with what you deployed as a governor. The infura
-key is just the key you get from the infura website that lets you query up to 100,000 queries a day
-for free.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
 
 ### Current Contract Addresses
 
