@@ -9,7 +9,7 @@ describe('ServiceRegistry', () => {
   const [governor, indexer] = provider().getWallets()
 
   let serviceRegistry: ServiceRegistry
-  let geohash: string = '69y7hdrhm6mp'
+  const geohash = '69y7hdrhm6mp'
 
   beforeEach(async function() {
     serviceRegistry = await deployment.deployServiceRegistry(governor)
