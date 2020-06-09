@@ -2,10 +2,9 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
-import "./erc1056/EthereumDIDRegistry.sol";
-import "./ens/ENS.sol";
-import "./ens/TextResolver.sol";
-import "./ens/StringUtils.sol";
+import "./erc1056/IEthereumDIDRegistry.sol";
+import "./ens/IENS.sol";
+import "./ens/ITextResolver.sol";
 
 /**
  * @title GNS
@@ -15,12 +14,6 @@ import "./ens/StringUtils.sol";
  * readable names. All human readable names emitted in events.
  */
 contract GNS is Governed {
-    using StringUtils for string;
-
-    // -- Types --
-
-    enum NameSystem { GNS }
-
     // -- State --
 
     // graphAccountID => subgraphNumber => subgraphDeploymentID
@@ -31,11 +24,11 @@ contract GNS is Governed {
     mapping(address => mapping(uint256 => bytes32)) public subgraphs;
 
     // ERC-1056 contract reference
-    EthereumDIDRegistry public erc1056Registry;
+    IEthereumDIDRegistry public erc1056Registry;
     // ENS contract reference. Importing owner()
-    ENS public ens;
-    // ENS pubic resolver contract reference. Importing text() from TextResolver
-    TextResolver public publicResolver;
+    IENS public ens;
+    // ENS public resolver contract reference. Importing text() from TextResolver
+    ITextResolver public publicResolver;
 
     // -- Events --
 
@@ -49,28 +42,18 @@ contract GNS is Governed {
         address graphAccount,
         uint256 subgraphNumber,
         bytes32 subgraphDeploymentID,
+        bytes32 nameIdentifier,
         string name,
-        NameSystem system,
         bytes32 metadataHash
     );
 
     /**
-     * @dev Emitted when a graph account unpublished one of their subgraphs
+     * @dev Emitted when a graph account deprecated one of their subgraphs
      */
-    event SubgraphUnpublished(address graphAccount, uint256 subgraphNumber);
+    event SubgraphDeprecated(address graphAccount, uint256 subgraphNumber);
 
     /**
-     * @dev Emitted when a graph account sets their default name associated with their account
-     */
-    event SetDefaultName(
-        address graphAccount,
-        string name,
-        NameSystem system,
-        bytes32 systemIdentifier
-    );
-
-    /**
-    @dev Modifer that allows a function to be called by owner of a graph account. Only owner can call
+    @dev Modifier that allows a function to be called by owner of a graph account. Only owner can call
     @param _graphAccount Address of the graph account
     */
     modifier onlyGraphAccountOwner(address _graphAccount) {
@@ -90,8 +73,8 @@ contract GNS is Governed {
         address _ens,
         address _publicResolver
     ) public Governed(_governor) {
-        ens = ENS(_ens);
-        publicResolver = TextResolver(_publicResolver);
+        ens = IENS(_ens);
+        publicResolver = ITextResolver(_publicResolver);
     }
 
     /**
@@ -100,23 +83,20 @@ contract GNS is Governed {
      * Graph account must own the name of the name system they are linking to the subgraph
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
-     * @param _nameSystemIdentifier The value used to look up ownership in the naming system
-     * @param _name Name of the subgraph, from any valid system
-     * @param _system Name system being used to claim
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
+     * @param _nameIdentifier The value used to look up ownership in the naming system
+     * @param _name Name of the subgraph, from any valid system
      * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
      */
     function publish(
         address _graphAccount,
         uint256 _subgraphNumber,
-        bytes32 _nameSystemIdentifier,
-        string calldata _name,
-        NameSystem _system,
         bytes32 _subgraphDeploymentID,
+        bytes32 _nameIdentifier,
+        string calldata _name,
         bytes32 _metadataHash
     ) external onlyGraphAccountOwner(_graphAccount) {
         require(_subgraphDeploymentID != 0, "GNS: Cannot set to 0 in publish");
-        verifyENS(_nameSystemIdentifier, _graphAccount);
 
         // Stores a subgraph deployment ID, which indicates a version has been created
         subgraphs[_graphAccount][_subgraphNumber] = _subgraphDeploymentID;
@@ -125,62 +105,23 @@ contract GNS is Governed {
             _graphAccount,
             _subgraphNumber,
             _subgraphDeploymentID,
+            _nameIdentifier,
             _name,
-            _system,
             _metadataHash
         );
     }
 
     /**
-     * @dev Unpublish a subgraph. Can only be done by the erc-1506 identity owner.
+     * @dev Deprecate a subgraph. Can only be done by the erc-1506 identity owner.
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
      */
-    function unpublish(address _graphAccount, uint256 _subgraphNumber)
+    function deprecate(address _graphAccount, uint256 _subgraphNumber)
         external
         onlyGraphAccountOwner(_graphAccount)
     {
         delete subgraphs[_graphAccount][_subgraphNumber];
-        emit SubgraphUnpublished(_graphAccount, _subgraphNumber);
-    }
-
-    /**
-     * @dev Set default name for a graph account through an event. Can only be done by
-     * the erc-1506 identity owner.
-     * @param _graphAccount Graph account with name being updated
-     * @param _nameSystemIdentifier The value used to look up ownership in the naming system
-     * @param _name Name of the subgraph
-     * @param _system Name system being used to claim
-     */
-    function updateGraphAccountDefaultName(
-        address _graphAccount,
-        bytes32 _nameSystemIdentifier,
-        NameSystem _system,
-        string calldata _name
-    ) external {
-        verifyENS(_nameSystemIdentifier, _graphAccount);
-        emit SetDefaultName(_graphAccount, _name, _system, _nameSystemIdentifier);
-    }
-
-    /**
-     * @dev Verify the Graph Account owns the ENS node, and they set their text record on the
-     * ENS Public Resolver. Text record key is "GRAPH NAME SERVICE". Record should return the
-     * Graph Account ID.
-     * @param _node ENS node being verified
-     * @param _graphAccount Account getting verified
-     */
-    function verifyENS(bytes32 _node, address _graphAccount) private view {
-        address owner = ens.owner(_node);
-        require(
-            owner == _graphAccount,
-            "GNS: The Graph Account must own the ENS name they are registering"
-        );
-        string memory textRecord = publicResolver.text(_node, "GRAPH NAME SERVICE");
-        address textRecordConverted = textRecord.parseAddr();
-        require(
-            textRecordConverted == _graphAccount,
-            "GNS: The graph account must register a text record on ENS"
-        );
+        emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
     }
 
     /**
