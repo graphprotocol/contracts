@@ -76,7 +76,7 @@ contract Staking is Governed {
     uint256 delegationParametersCooldown;
 
     // Delegation parameters
-    mapping(address => DelegationParameters) public delegations;
+    mapping(address => DelegationParameters) public delegationParameters;
 
     // -- Related contracts --
 
@@ -276,18 +276,19 @@ contract Staking is Governed {
         // Cooldown period set by indexer cannot be below protocol global setting
         require(
             _cooldownBlocks >= delegationParametersCooldown,
-            "Delegation parameters cooldown cannot be below minimum"
+            "Delegation: cooldown cannot be below minimum"
         );
 
         // Verify the cooldown period passed
-        DelegationParameters memory params = delegations[indexer];
+        DelegationParameters memory params = delegationParameters[indexer];
         require(
-            params.createdAtBlock.add(params.cooldownBlocks) >= block.number,
+            params.createdAtBlock == 0 ||
+                params.createdAtBlock.add(params.cooldownBlocks) <= block.number,
             "Delegation: must expire cooldown period to update parameters"
         );
 
         // Update delegation params
-        delegations[indexer] = DelegationParameters(
+        delegationParameters[indexer] = DelegationParameters(
             _indexingRewardCut,
             _queryFeeCut,
             _cooldownBlocks,

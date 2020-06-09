@@ -29,7 +29,7 @@ import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 // helpers
 import { defaults } from './testHelpers'
 import { solidityKeccak256 } from 'ethers/utils'
-import { ChannelSigner, stringify } from '@connext/utils'
+import { ChannelSigner } from '@connext/utils'
 import { TransactionReceipt } from '@connext/types'
 
 export async function deployGRT(owner: string): Promise<GraphToken> {

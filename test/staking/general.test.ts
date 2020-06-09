@@ -1,7 +1,8 @@
-import { expect } from 'chai'
+import { expect, use } from 'chai'
 import { Event, Wallet } from 'ethers'
 import { BigNumber } from 'ethers/utils'
 import { AddressZero } from 'ethers/constants'
+import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -17,6 +18,8 @@ import {
   toBN,
   toGRT,
 } from '../lib/testHelpers'
+
+use(solidity)
 
 const MAX_PPM = toBN('1000000')
 
@@ -307,8 +310,8 @@ describe('Staking', () => {
           // Unstake (1)
           const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
           const receipt1 = await tx1.wait()
-          const event1: Event = (receipt1 as any).events.pop()
-          const tokensLockedUntil1 = event1.args![2]
+          const event1: Event = receipt1.events.pop()
+          const tokensLockedUntil1 = event1.args[2]
 
           // Move forward
           await advanceBlockTo(tokensLockedUntil1)
@@ -326,8 +329,8 @@ describe('Staking', () => {
           // Unstake (2)
           const tx2 = await staking.connect(indexer).unstake(tokensToUnstake)
           const receipt2 = await tx2.wait()
-          const event2: Event = (receipt2 as any).events.pop()
-          const tokensLockedUntil2 = event2.args![2]
+          const event2: Event = receipt2.events.pop()
+          const tokensLockedUntil2 = event2.args[2]
           expect(expectedLockedUntil).to.eq(tokensLockedUntil2)
         })
 
@@ -344,8 +347,8 @@ describe('Staking', () => {
           const tokensToUnstake = toGRT('10')
           const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
           const receipt = await tx1.wait()
-          const event: Event = (receipt as any).events.pop()
-          const tokensLockedUntil = event.args![2]
+          const event: Event = receipt.events.pop()
+          const tokensLockedUntil = event.args[2]
 
           // Withdraw on locking period (should fail)
           const tx2 = staking.connect(indexer).withdraw()
