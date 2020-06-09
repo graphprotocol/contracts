@@ -23,6 +23,9 @@ contract GNS is Governed {
     // subgraphDeploymentID = The IPFS hash of the manifest of the subgraph
     mapping(address => mapping(uint256 => bytes32)) public subgraphs;
 
+    // graphAccount => a counter of the accounts subgraph deployments
+    mapping(address => uint256) public graphAccountSubgraphNumbers;
+
     // ERC-1056 contract reference
     IEthereumDIDRegistry public erc1056Registry;
     // ENS contract reference. Importing owner()
@@ -78,9 +81,41 @@ contract GNS is Governed {
     }
 
     /**
+     * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
+     * will be allocated. It then will call publish version. Subsequent versions can be created
+     * by calling publishVersion() directly.
+     * @param _graphAccount Account that is publishing the subgraph
+     * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
+     * @param _nameIdentifier The value used to look up ownership in the naming system
+     * @param _name Name of the subgraph, from any valid system
+     * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
+     */
+    function publishNewSubgraph(
+        address _graphAccount,
+        bytes32 _subgraphDeploymentID,
+        bytes32 _nameIdentifier,
+        string calldata _name,
+        bytes32 _metadataHash
+    ) external onlyGraphAccountOwner(_graphAccount) {
+        uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
+        publishVersion(
+            _graphAccount,
+            subgraphNumber,
+            _subgraphDeploymentID,
+            _nameIdentifier,
+            _name,
+            _metadataHash
+        );
+        graphAccountSubgraphNumbers[_graphAccount]++;
+    }
+
+    /**
      * @dev Allows a graph account to publish a subgraph, with a version, a name, and metadata
      * Graph account must be owner on their ERC-1056 identity
      * Graph account must own the name of the name system they are linking to the subgraph
+     * Version is derived from the occurance of SubgraphPublish being emitted. i.e. version 0
+     * is the first time the event is emitted for the graph account and subgraph number
+     * combination.
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
@@ -88,7 +123,7 @@ contract GNS is Governed {
      * @param _name Name of the subgraph, from any valid system
      * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
      */
-    function publish(
+    function publishNewVersion(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
@@ -96,6 +131,39 @@ contract GNS is Governed {
         string calldata _name,
         bytes32 _metadataHash
     ) external onlyGraphAccountOwner(_graphAccount) {
+        require(
+            subgraphs[_graphAccount][_subgraphNumber] != 0 || // Hasn't been created yet
+                _subgraphNumber <= graphAccountSubgraphNumbers[_graphAccount], // Was created, but deprecated
+            "GNS: Can't publish a version directly for a subgraph that wasn't created yet"
+        );
+
+        publishVersion(
+            _graphAccount,
+            _subgraphNumber,
+            _subgraphDeploymentID,
+            _nameIdentifier,
+            _name,
+            _metadataHash
+        );
+    }
+
+    /**
+     * @dev Internal function used by both external publishing functions
+     * @param _graphAccount Account that is publishing the subgraph
+     * @param _subgraphNumber Subgraph number for the account
+     * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
+     * @param _nameIdentifier The value used to look up ownership in the naming system
+     * @param _name Name of the subgraph, from any valid system
+     * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
+     */
+    function publishVersion(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        bytes32 _subgraphDeploymentID,
+        bytes32 _nameIdentifier,
+        string memory _name,
+        bytes32 _metadataHash
+    ) internal onlyGraphAccountOwner(_graphAccount) {
         require(_subgraphDeploymentID != 0, "GNS: Cannot set to 0 in publish");
 
         // Stores a subgraph deployment ID, which indicates a version has been created

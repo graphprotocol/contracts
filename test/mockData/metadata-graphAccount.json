@@ -1,5 +1,6 @@
 {
     "image": "http://localhost:8080/ipfs/QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
     "description": "John Hancocks graph account",
-    "website": "https://johnhancock.com/"
+    "website": "https://johnhancock.com/",
+    "displayName": "John Hancock"
   }
