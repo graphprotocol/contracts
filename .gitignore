@@ -18,3 +18,4 @@ cached/
 .privkey.txt
 .infurakey.txt
 .DS_Store
+.vscode
