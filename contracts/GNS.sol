@@ -62,8 +62,11 @@ contract GNS is Governed {
     /**
      * @dev Contract Constructor.
      * @param _governor Owner address of this contract
+     * @param _didRegistry Address of the Ethereum DID registry
      */
-    constructor(address _governor) public Governed(_governor) {}
+    constructor(address _governor, address _didRegistry) public Governed(_governor) {
+        erc1056Registry = IEthereumDIDRegistry(_didRegistry);
+    }
 
     /**
      * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
@@ -118,8 +121,8 @@ contract GNS is Governed {
     ) external onlyGraphAccountOwner(_graphAccount) {
         require(
             subgraphs[_graphAccount][_subgraphNumber] != 0 || // Hasn't been created yet
-                _subgraphNumber <= graphAccountSubgraphNumbers[_graphAccount], // Was created, but deprecated
-            "GNS: Can't publish a version directly for a subgraph that wasn't created yet"
+                _subgraphNumber < graphAccountSubgraphNumbers[_graphAccount], // Was created, but deprecated
+            "GNS: Cant publish a version directly for a subgraph that wasnt created yet"
         );
 
         publishVersion(
@@ -148,7 +151,7 @@ contract GNS is Governed {
         bytes32 _nameIdentifier,
         string memory _name,
         bytes32 _metadataHash
-    ) internal onlyGraphAccountOwner(_graphAccount) {
+    ) internal {
         require(_subgraphDeploymentID != 0, "GNS: Cannot set to 0 in publish");
 
         // Stores a subgraph deployment ID, which indicates a version has been created
@@ -173,6 +176,10 @@ contract GNS is Governed {
         external
         onlyGraphAccountOwner(_graphAccount)
     {
+        require(
+            subgraphs[_graphAccount][_subgraphNumber] != 0,
+            "GNS: Cannot deprecate a subgraph which does not exist"
+        );
         delete subgraphs[_graphAccount][_subgraphNumber];
         emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
     }
