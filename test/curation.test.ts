@@ -14,6 +14,10 @@ describe('Curation', () => {
   let curation: Curation
   let grt: GraphToken
 
+  // Test values
+  const shareAmountFor1000Tokens = toBN('3162277660168379331')
+  const subgraphDeploymentID = randomHexBytes()
+
   beforeEach(async function() {
     // Deploy graph token
     grt = await deployment.deployGRT(governor.address, me)
@@ -21,12 +25,6 @@ describe('Curation', () => {
     // Deploy curation contract
     curation = await deployment.deployCuration(governor.address, grt.address, me)
     await curation.connect(governor).setStaking(staking.address)
-
-    // Randomize a test ID
-    this.subgraphDeploymentID = randomHexBytes()
-
-    // Test values
-    this.shareAmountFor1000Tokens = toBN('3')
   })
 
   describe('configuration', function() {
@@ -127,38 +125,35 @@ describe('Curation', () => {
   })
 
   describe('curation', function() {
+    const curatorTokens = toGRT('1000')
+    const tokensToCollect = toGRT('1000')
+
     beforeEach(async function() {
       // Give some funds to the curator and approve the curation contract
-      this.curatorTokens = toGRT('1000')
-      await grt.connect(governor).mint(curator.address, this.curatorTokens)
-      await grt.connect(curator).approve(curation.address, this.curatorTokens)
+      await grt.connect(governor).mint(curator.address, curatorTokens)
+      await grt.connect(curator).approve(curation.address, curatorTokens)
 
       // Give some funds to the staking contract and approve the curation contract
-      this.tokensToCollect = toGRT('1000')
-      await grt.connect(governor).mint(staking.address, this.tokensToCollect)
-      await grt.connect(staking).approve(curation.address, this.curatorTokens)
+      await grt.connect(governor).mint(staking.address, tokensToCollect)
+      await grt.connect(staking).approve(curation.address, curatorTokens)
     })
 
     context('> bonding curve', function() {
-      beforeEach(function() {
-        this.subgraphDeploymentID = randomHexBytes()
-      })
-
       it('convert shares to tokens', async function() {
         // Curate
-        await curation.connect(curator).stake(this.subgraphDeploymentID, this.curatorTokens)
+        await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
 
         // Conversion
-        const shares = (await curation.pools(this.subgraphDeploymentID)).shares
-        const tokens = await curation.sharesToTokens(this.subgraphDeploymentID, shares)
-        expect(tokens).to.eq(this.curatorTokens)
+        const shares = (await curation.pools(subgraphDeploymentID)).shares
+        const tokens = await curation.sharesToTokens(subgraphDeploymentID, shares)
+        expect(tokens).to.eq(curatorTokens)
       })
 
       it('convert tokens to shares', async function() {
         // Conversion
         const tokens = toGRT('1000')
-        const shares = await curation.tokensToShares(this.subgraphDeploymentID, tokens)
-        expect(shares).to.eq(this.shareAmountFor1000Tokens)
+        const shares = await curation.tokensToShares(subgraphDeploymentID, tokens)
+        expect(shares).to.eq(shareAmountFor1000Tokens)
       })
     })
 
@@ -168,27 +163,27 @@ describe('Curation', () => {
         const curatorTokensBefore = await grt.balanceOf(curator.address)
         const curatorSharesBefore = await curation.getCuratorShares(
           curator.address,
-          this.subgraphDeploymentID,
+          subgraphDeploymentID,
         )
-        const poolBefore = await curation.pools(this.subgraphDeploymentID)
+        const poolBefore = await curation.pools(subgraphDeploymentID)
         const totalBalanceBefore = await grt.balanceOf(curation.address)
 
         // Curate
         // Staking the minimum required = 1 share
         const tokensToStake = defaults.curation.minimumCurationStake
-        const sharesToReceive = toBN(1)
-        const tx = curation.connect(curator).stake(this.subgraphDeploymentID, tokensToStake)
+        const sharesToReceive = toGRT('1')
+        const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
         await expect(tx)
           .to.emit(curation, 'Staked')
-          .withArgs(curator.address, this.subgraphDeploymentID, tokensToStake, sharesToReceive)
+          .withArgs(curator.address, subgraphDeploymentID, tokensToStake, sharesToReceive)
 
         // After balances
         const curatorTokensAfter = await grt.balanceOf(curator.address)
         const curatorSharesAfter = await curation.getCuratorShares(
           curator.address,
-          this.subgraphDeploymentID,
+          subgraphDeploymentID,
         )
-        const poolAfter = await curation.pools(this.subgraphDeploymentID)
+        const poolAfter = await curation.pools(subgraphDeploymentID)
         const totalBalanceAfter = await grt.balanceOf(curation.address)
 
         // Tokens transferred properly
@@ -207,44 +202,41 @@ describe('Curation', () => {
 
     it('reject stake below minimum tokens required', async function() {
       const tokensToStake = defaults.curation.minimumCurationStake.sub(toBN(1))
-      const tx = curation.connect(curator).stake(this.subgraphDeploymentID, tokensToStake)
+      const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
       await expect(tx).to.revertedWith('Curation stake is below minimum required')
     })
 
     it('reject redeem more than a curator owns', async function() {
-      const tx = curation.connect(me).redeem(this.subgraphDeploymentID, 1)
+      const tx = curation.connect(me).redeem(subgraphDeploymentID, 1)
       await expect(tx).to.revertedWith('Cannot redeem more shares than you own')
     })
 
     it('reject collect tokens distributed as fees to the reserves', async function() {
       // Source of tokens must be the staking for this to work
-      const tx = curation.connect(staking).collect(this.subgraphDeploymentID, this.tokensToCollect)
+      const tx = curation.connect(staking).collect(subgraphDeploymentID, tokensToCollect)
       await expect(tx).to.revertedWith('SubgraphDeployment must be curated to collect fees')
     })
 
     context('> when is curated', function() {
       beforeEach(async function() {
-        await curation.connect(curator).stake(this.subgraphDeploymentID, this.curatorTokens)
+        await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
       })
 
       it('should create curation with default reserve ratio', async function() {
         const defaultReserveRatio = await curation.defaultReserveRatio()
-        const pool = await curation.pools(this.subgraphDeploymentID)
+        const pool = await curation.pools(subgraphDeploymentID)
         expect(pool.reserveRatio).to.eq(defaultReserveRatio)
       })
 
       it('reject redeem zero shares', async function() {
-        const tx = curation.redeem(this.subgraphDeploymentID, 0)
+        const tx = curation.redeem(subgraphDeploymentID, 0)
         await expect(tx).to.revertedWith('Cannot redeem zero shares')
       })
 
       it('should assign the right amount of shares according to bonding curve', async function() {
         // Shares should be the ones bought with minimum stake (1) + more shares
-        const curatorShares = await curation.getCuratorShares(
-          curator.address,
-          this.subgraphDeploymentID,
-        )
-        expect(curatorShares).to.eq(this.shareAmountFor1000Tokens)
+        const curatorShares = await curation.getCuratorShares(curator.address, subgraphDeploymentID)
+        expect(curatorShares).to.eq(shareAmountFor1000Tokens)
       })
 
       it('should allow to redeem *partially*', async function() {
@@ -253,26 +245,23 @@ describe('Curation', () => {
         const curatorTokensBefore = await grt.balanceOf(curator.address)
         const curatorSharesBefore = await curation.getCuratorShares(
           curator.address,
-          this.subgraphDeploymentID,
+          subgraphDeploymentID,
         )
-        const poolBefore = await curation.pools(this.subgraphDeploymentID)
+        const poolBefore = await curation.pools(subgraphDeploymentID)
         const totalTokensBefore = await grt.balanceOf(curation.address)
 
         // Redeem
         const sharesToRedeem = toBN(1) // Curator want to sell 1 share
-        const tokensToRedeem = await curation.sharesToTokens(
-          this.subgraphDeploymentID,
-          sharesToRedeem,
-        )
+        const tokensToRedeem = await curation.sharesToTokens(subgraphDeploymentID, sharesToRedeem)
         const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
         const withdrawalFees = withdrawalFeePercentage.mul(tokensToRedeem).div(toBN(MAX_PPM))
 
-        const tx = curation.connect(curator).redeem(this.subgraphDeploymentID, sharesToRedeem)
+        const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
         await expect(tx)
           .to.emit(curation, 'Redeemed')
           .withArgs(
             curator.address,
-            this.subgraphDeploymentID,
+            subgraphDeploymentID,
             tokensToRedeem,
             sharesToRedeem,
             withdrawalFees,
@@ -283,9 +272,9 @@ describe('Curation', () => {
         const curatorTokensAfter = await grt.balanceOf(curator.address)
         const curatorSharesAfter = await curation.getCuratorShares(
           curator.address,
-          this.subgraphDeploymentID,
+          subgraphDeploymentID,
         )
-        const poolAfter = await curation.pools(this.subgraphDeploymentID)
+        const poolAfter = await curation.pools(subgraphDeploymentID)
         const totalTokensAfter = await grt.balanceOf(curation.address)
 
         // Curator balance updated
@@ -306,7 +295,7 @@ describe('Curation', () => {
       it('should allow to redeem *fully*', async function() {
         // Before balances
         const tokenTotalSupplyBefore = await grt.totalSupply()
-        const poolBefore = await curation.pools(this.subgraphDeploymentID)
+        const poolBefore = await curation.pools(subgraphDeploymentID)
 
         // Redeem all shares
         const sharesToRedeem = poolBefore.shares // we are selling all shares in the subgraph
@@ -314,12 +303,12 @@ describe('Curation', () => {
         const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
         const withdrawalFees = withdrawalFeePercentage.mul(tokensToRedeem).div(toBN(MAX_PPM))
 
-        const tx = curation.connect(curator).redeem(this.subgraphDeploymentID, sharesToRedeem)
+        const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
         await expect(tx)
           .to.emit(curation, 'Redeemed')
           .withArgs(
             curator.address,
-            this.subgraphDeploymentID,
+            subgraphDeploymentID,
             tokensToRedeem,
             sharesToRedeem,
             withdrawalFees,
@@ -330,9 +319,9 @@ describe('Curation', () => {
         const curatorTokensAfter = await grt.balanceOf(curator.address)
         const curatorSharesAfter = await curation.getCuratorShares(
           curator.address,
-          this.subgraphDeploymentID,
+          subgraphDeploymentID,
         )
-        const poolAfter = await curation.pools(this.subgraphDeploymentID)
+        const poolAfter = await curation.pools(subgraphDeploymentID)
         const totalTokensAfter = await grt.balanceOf(curation.address)
 
         // Curator balance updated
@@ -354,25 +343,23 @@ describe('Curation', () => {
       it('should collect tokens distributed as reserves for', async function() {
         // Before balances
         const totalBalanceBefore = await grt.balanceOf(curation.address)
-        const poolBefore = await curation.pools(this.subgraphDeploymentID)
+        const poolBefore = await curation.pools(subgraphDeploymentID)
 
         // Source of tokens must be the staking for this to work
-        const tx = curation
-          .connect(staking)
-          .collect(this.subgraphDeploymentID, this.tokensToCollect)
+        const tx = curation.connect(staking).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx)
           .to.emit(curation, 'Collected')
-          .withArgs(this.subgraphDeploymentID, this.tokensToCollect)
+          .withArgs(subgraphDeploymentID, tokensToCollect)
 
         // After balances
         const totalBalanceAfter = await grt.balanceOf(curation.address)
-        const poolAfter = await curation.pools(this.subgraphDeploymentID)
+        const poolAfter = await curation.pools(subgraphDeploymentID)
 
         // Curation balance updated
-        expect(poolAfter.tokens).to.eq(poolBefore.tokens.add(this.tokensToCollect))
+        expect(poolAfter.tokens).to.eq(poolBefore.tokens.add(tokensToCollect))
 
         // Contract balance updated
-        expect(totalBalanceAfter).to.eq(totalBalanceBefore.add(this.tokensToCollect))
+        expect(totalBalanceAfter).to.eq(totalBalanceBefore.add(tokensToCollect))
       })
     })
   })

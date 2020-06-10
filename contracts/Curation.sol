@@ -30,7 +30,7 @@ contract Curation is Governed, BancorFormula {
     uint256 private constant MAX_PPM = 1000000;
 
     // Amount of shares you get with your minimum token stake
-    uint256 private constant SHARES_PER_MINIMUM_STAKE = 1;
+    uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
 
     // -- State --
 
