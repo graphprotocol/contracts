@@ -14,7 +14,11 @@ coverage/
 # Buidler cache
 cached/
 
+# Ignore solc bin output
+bin/
+
 # Others
 .privkey.txt
 .infurakey.txt
 .DS_Store
+.vscode

@@ -11,6 +11,7 @@ import GraphTokenArtifact from '../../build/contracts/GraphToken.json'
 import ServiceRegistyArtifact from '../../build/contracts/ServiceRegistry.json'
 import StakingArtifact from '../../build/contracts/Staking.json'
 import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
+import EthereumDIDRegistryArtifact from '../../build/contracts/EthereumDIDRegistry.json'
 
 // contracts definitions
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -21,6 +22,7 @@ import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
+import { EthereumDidRegistry } from '../../build/typechain/contracts/EthereumDidRegistry'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
 import { IndexerSingleAssetInterpreter } from '../../build/typechain/contracts/IndexerSingleAssetInterpreter'
 import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/IndexerMultiAssetInterpreter'
@@ -98,8 +100,12 @@ export async function deployEpochManagerWithFactory(owner: string): Promise<Epoc
   return contract as EpochManager
 }
 
-export function deployGNS(owner: string, wallet: Wallet): Promise<Gns> {
-  return deployContract(wallet, GNSArtifact, [owner]) as Promise<Gns>
+export function deployGNS(owner: string, didAddress: string, wallet: Wallet): Promise<Gns> {
+  return deployContract(wallet, GNSArtifact, [owner, didAddress]) as Promise<Gns>
+}
+
+export function deployEthereumDIDRegistry(wallet: Wallet): Promise<EthereumDidRegistry> {
+  return deployContract(wallet, EthereumDIDRegistryArtifact) as Promise<EthereumDidRegistry>
 }
 
 export function deployServiceRegistry(wallet: Wallet): Promise<ServiceRegistry> {
