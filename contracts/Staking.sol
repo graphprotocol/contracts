@@ -61,22 +61,25 @@ contract Staking is Governed {
 
     // -- Delegation --
 
-    struct DelegationParameters {
+    struct DelegationPool {
+        uint256 cooldownBlocks;
         uint256 indexingRewardCut;
         uint256 queryFeeCut;
-        uint256 cooldownBlocks;
-        uint256 createdAtBlock;
+        uint256 updatedAtBlock;
+        uint256 tokens;
+        uint256 shares;
+        mapping(address => uint256) delegatorShares; // Mapping of delegator => shares
     }
 
     // Set the delegation capacity multiplier, an indexer delegation capacity will be:
     // max(tokensStaked+tokensDelegated, totalStaked*delegationCapacity)
-    uint256 delegationCapacity;
+    uint256 public delegationCapacity;
 
     // Time in blocks an indexer needs to wait to change delegation parameters
-    uint256 delegationParametersCooldown;
+    uint256 public delegationParametersCooldown;
 
-    // Delegation parameters
-    mapping(address => DelegationParameters) public delegationParameters;
+    // Delegation pools : indexer => DelegationPool
+    mapping(address => DelegationPool) public delegation;
 
     // -- Related contracts --
 
@@ -86,6 +89,7 @@ contract Staking is Governed {
 
     // -- Events --
 
+    // TODO: add natspec
     event DelegationParametersUpdated(
         address indexed indexer,
         uint256 indexingRewardCut,
@@ -120,14 +124,25 @@ contract Staking is Governed {
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
 
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`.
+     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
+     * gets `shares` for the delegation pool proportionally to the tokens staked.
      */
-    event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens);
+    event StakeDelegated(
+        address indexed indexer,
+        address indexed delegator,
+        uint256 tokens,
+        uint256 shares
+    );
 
     /**
      * @dev Emitted when `delegator` undelegated `tokens` from `indexer`.
      */
-    event StakeUndelegated(address indexed indexer, address indexed delegator, uint256 tokens);
+    event StakeUndelegated(
+        address indexed indexer,
+        address indexed delegator,
+        uint256 tokens,
+        uint256 shares
+    );
 
     /**
      * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
@@ -280,20 +295,18 @@ contract Staking is Governed {
         );
 
         // Verify the cooldown period passed
-        DelegationParameters memory params = delegationParameters[indexer];
+        DelegationPool storage pool = delegation[indexer];
         require(
-            params.createdAtBlock == 0 ||
-                params.createdAtBlock.add(params.cooldownBlocks) <= block.number,
+            pool.updatedAtBlock == 0 ||
+                pool.updatedAtBlock.add(pool.cooldownBlocks) <= block.number,
             "Delegation: must expire cooldown period to update parameters"
         );
 
         // Update delegation params
-        delegationParameters[indexer] = DelegationParameters(
-            _indexingRewardCut,
-            _queryFeeCut,
-            _cooldownBlocks,
-            block.number
-        );
+        pool.indexingRewardCut = _indexingRewardCut;
+        pool.queryFeeCut = _queryFeeCut;
+        pool.cooldownBlocks = _cooldownBlocks;
+        pool.updatedAtBlock = block.number;
 
         emit DelegationParametersUpdated(
             indexer,
@@ -471,32 +484,57 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Delegate tokens to an indexer
-     * @param _indexer Addres of the indexer to delegate tokens to
+     * @dev Delegate tokens to an indexer.
+     * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
      */
     function delegate(address _indexer, uint256 _tokens) external {
         address delegator = msg.sender;
-        Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         require(_tokens > 0, "Delegation: cannot delegate zero tokens");
 
-        indexerStake.tokensDelegated = indexerStake.tokensDelegated.add(_tokens);
+        // Transfer tokens to delegate to this contract
+        require(
+            token.transferFrom(delegator, address(this), _tokens),
+            "Delegation: Cannot transfer tokens to stake"
+        );
 
-        emit StakeDelegated(_indexer, delegator, _tokens);
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegation[_indexer];
+
+        // Calculate shares to issue
+        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.div(pool.tokens).mul(pool.shares);
+
+        // Update the delegation pool
+        pool.tokens = pool.tokens.add(_tokens);
+        pool.shares = pool.shares.add(shares);
+        pool.delegatorShares[delegator] = pool.delegatorShares[delegator].add(shares);
+
+        emit StakeDelegated(_indexer, delegator, _tokens, shares);
     }
 
     /**
-     * @dev Undelegate tokens from an indexer
-     * @param _indexer Addres of the indexer to delegate tokens to
-     * @param _tokens Amount of tokens to delegate
+     * @dev Undelegate tokens from an indexer.
+     * @param _indexer Address of the indexer where tokens had been delegated
+     * @param _shares Amount of shares to return and undelegate tokens
      */
-    function undelegate(address _indexer, uint256 _tokens) external {
+    function undelegate(address _indexer, uint256 _shares) external {
         address delegator = msg.sender;
 
-        require(_tokens > 0, "Delegation: cannot undelegate zero tokens");
+        require(_shares > 0, "Delegation: cannot undelegate zero shares");
 
-        emit StakeUndelegated(_indexer, delegator, _tokens);
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegation[_indexer];
+
+        //
+        require(
+            pool.delegatorShares[delegator] >= _shares,
+            "Delegation: delegator does not have enough shares"
+        );
+
+        uint256 tokens = 0;
+
+        emit StakeUndelegated(_indexer, delegator, tokens, _shares);
     }
 
     /**
@@ -656,7 +694,6 @@ contract Staking is Governed {
     function _stake(address _indexer, uint256 _tokens) private {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
         indexerStake.deposit(_tokens);
-
         emit StakeDeposited(_indexer, _tokens);
     }
 
