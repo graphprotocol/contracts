@@ -3,8 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 import "./erc1056/IEthereumDIDRegistry.sol";
-import "./ens/IENS.sol";
-import "./ens/ITextResolver.sol";
 
 /**
  * @title GNS
@@ -28,10 +26,6 @@ contract GNS is Governed {
 
     // ERC-1056 contract reference
     IEthereumDIDRegistry public erc1056Registry;
-    // ENS contract reference. Importing owner()
-    IENS public ens;
-    // ENS public resolver contract reference. Importing text() from TextResolver
-    ITextResolver public publicResolver;
 
     // -- Events --
 
@@ -68,17 +62,8 @@ contract GNS is Governed {
     /**
      * @dev Contract Constructor.
      * @param _governor Owner address of this contract
-     * @param _ens Address of the ENS Contract
-     * @param _publicResolver Address of the ENS Public Resolver
      */
-    constructor(
-        address _governor,
-        address _ens,
-        address _publicResolver
-    ) public Governed(_governor) {
-        ens = IENS(_ens);
-        publicResolver = ITextResolver(_publicResolver);
-    }
+    constructor(address _governor) public Governed(_governor) {}
 
     /**
      * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
