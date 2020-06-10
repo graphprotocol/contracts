@@ -59,7 +59,7 @@ module.exports = async (deployer, network, accounts) => {
         config.dispute.slashingPercentage,
       )
       const serviceRegistry = await deployer.deploy(ServiceRegistry, governor)
-      const gns = await deployer.deploy(GNS, governor)
+      const gns = await deployer.deploy(GNS, governor, config.etherDIDRegistry.address)
 
       const indexerCtdt = await deployer.deploy(IndexerCtdt)
       const indexerSingleAssetInterpreter = await deployer.deploy(IndexerSingleAssetInterpreter)

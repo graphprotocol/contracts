@@ -57,6 +57,7 @@
     "compile": "buidler compile",
     "migrate": "truffle migrate",
     "deploy": "truffle deploy",
+    "deploy-kovan": "truffle deploy --reset --network kovan",
     "test": "buidler typechain && buidler test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm.sh",

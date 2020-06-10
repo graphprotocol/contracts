@@ -24,6 +24,9 @@ module.exports = {
   token: {
     initialSupply: new BN('10000000').mul(TOKEN_UNIT),
   },
+  etherDIDRegistry: {
+    address: '0xdca7ef03e98e0dc2b855be647c39abe984fcf21b', // same for all networks
+  },
   node: {
     // TODO
     signerAddress: '0x0000000000000000000000000000000000000000',
