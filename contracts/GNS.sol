@@ -39,6 +39,7 @@ contract GNS is Governed {
         address graphAccount,
         uint256 subgraphNumber,
         bytes32 subgraphDeploymentID,
+        uint256 nameSystem, // placeholder until we implement more than ENS
         bytes32 nameIdentifier,
         string name,
         bytes32 metadataHash
@@ -120,7 +121,7 @@ contract GNS is Governed {
         bytes32 _metadataHash
     ) external onlyGraphAccountOwner(_graphAccount) {
         require(
-            subgraphs[_graphAccount][_subgraphNumber] != 0 || // Hasn't been created yet
+            isPublished(_graphAccount, _subgraphNumber) || // Hasn't been created yet
                 _subgraphNumber < graphAccountSubgraphNumbers[_graphAccount], // Was created, but deprecated
             "GNS: Cant publish a version directly for a subgraph that wasnt created yet"
         );
@@ -161,6 +162,7 @@ contract GNS is Governed {
             _graphAccount,
             _subgraphNumber,
             _subgraphDeploymentID,
+            0,
             _nameIdentifier,
             _name,
             _metadataHash
@@ -177,7 +179,7 @@ contract GNS is Governed {
         onlyGraphAccountOwner(_graphAccount)
     {
         require(
-            subgraphs[_graphAccount][_subgraphNumber] != 0,
+            isPublished(_graphAccount, _subgraphNumber),
             "GNS: Cannot deprecate a subgraph which does not exist"
         );
         delete subgraphs[_graphAccount][_subgraphNumber];
