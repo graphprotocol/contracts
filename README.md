@@ -18,11 +18,7 @@ latest subgraph.
 
 We want to also run some test scripts to populate data each time new contracts are deployed.
 
-You will need two files to deploy anything and run `truffle`, they are `.privkey.txt` and
-`.infurakey.txt`. Privkey is a 12 word mneumonic, you should grab you 12 words from metamask, so
-that your metamask keys will work in the browser with what you deployed as a governor. The infura
-key is just the key you get from the infura website that lets you query up to 100,000 queries a day
-for free.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
 
 ### Current Contract Addresses
 
@@ -61,7 +57,7 @@ cargo run -p graph-node --release --   \
 
 At this point, everything is setup. You can then interact with the contracts through Remix, or
 our graph explorer UI, or through our automated scripts. Real automated scripts will be added soon,
-but for now you can run `truffle test` and it will run all the tests, and execute transactions,
+but for now you can run `npm run test` and it will run all the tests, and execute transactions,
 which will allow the subgraph to store data.
 
 #### Ropsten
@@ -93,10 +89,10 @@ on ropsten, so we can better test.
 1. Install Node.js `v10.15.1`.
 2. Run `npm install` at project root directory.
 3. Install and run `testrpc`, `ganache-cli`, or similar blockchain emulator.
-   - Configure to run on port `8545` or edit `truffle.js` to change the port used by Truffle.
+   - Configure to run on port `8545` or edit `buidler.config.ts` to change the port used by Buidler.
 4. Build
    - `npm run build` (compile contracts, flatten code, export ABIs and create Typescript bindings)
-   - `npm run deploy` (deploy contracts to local blockchain emulator)
+   - `npm run migrate` (deploy contracts to local blockchain emulator)
    - `npm run test` (runs tests)
 5. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
 

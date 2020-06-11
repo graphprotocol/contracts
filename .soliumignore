@@ -1,8 +1,9 @@
 node_modules
 contracts/abdk-libraries-solidity
 contracts/bancor
+contracts/ens
+contracts/erc1056
 contracts/openzeppelin
-contracts/Migrations.sol
 contracts/MultiSigWallet.sol
 contracts/Staking.sol
 contracts/connext/IndexerMultiAssetInterpreter.sol

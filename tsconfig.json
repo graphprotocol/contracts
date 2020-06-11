@@ -9,9 +9,10 @@
     "esModuleInterop": true
   },
   "exclude": ["dist", "node_modules"],
-  "include": ["./scripts", "./test"],
   "files": [
     "./buidler.config.ts",
+    "./scripts/**/*.ts",
+    "./test/**/*.ts",
     "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/buidler-etherscan/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/buidler-waffle/src/type-extensions.d.ts",

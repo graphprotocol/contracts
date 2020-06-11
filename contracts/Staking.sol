@@ -168,8 +168,8 @@ contract Staking is Governed {
      * @dev Set the curation contract where to send curation fees
      * @param _curation Address of the curation contract
      */
-    function setCuration(Curation _curation) external onlyGovernor {
-        curation = _curation;
+    function setCuration(address _curation) external onlyGovernor {
+        curation = Curation(_curation);
         emit ParameterUpdated("curation");
     }
 
