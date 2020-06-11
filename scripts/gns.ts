@@ -62,7 +62,7 @@ const publish = async () => {
   console.log('IPFS:          ', ipfs)
   console.log('Metadata path: ', metadataPath)
 
-  const metadata = require(metadataPath)
+  const metadata = require(metadataPath) // eslint-disable-line @typescript-eslint/no-var-requires
   console.log('Meta data:')
   console.log('  Display name:     ', metadata.displayName || '')
   console.log('  Image:            ', metadata.image || '')
