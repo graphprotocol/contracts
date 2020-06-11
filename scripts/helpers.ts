@@ -3,7 +3,7 @@ import * as path from 'path'
 
 import { ContractTransaction, ethers, utils, Wallet } from 'ethers'
 import { ContractReceipt } from 'ethers/contract'
-import * as ipfsHttpClient from 'ipfs-http-client'
+import  ipfsHttpClient  from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
 import { GnsFactory } from '../build/typechain/contracts/GnsFactory'
@@ -91,9 +91,9 @@ export class IPFS {
     })
   }
 
-  static ipfsHashToBytes32(hash: string): Buffer {
+  static ipfsHashToBytes32(hash: string): string {
     let hashBytes = bs58.decode(hash).slice(2)
-    // console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`);
-    return hashBytes
+    console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`);
+    return utils.hexlify(hashBytes)
   }
 }

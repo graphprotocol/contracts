@@ -13,7 +13,7 @@ The scripts expect the following:
   following at the root of the repository:
 
   ```sh
-  yarn build && yarn typechain
+  npm run build
   ```
 
 All scripts that are working are below. Run the script without arguments for more usage info,

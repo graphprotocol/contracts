@@ -10,39 +10,62 @@ import { contracts, executeTransaction, overrides, IPFS } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, subgraphName, ipfs, subgraphID, metadataPath, newOwner } = minimist.default(
-  process.argv.slice(2),
-  {
-    string: ['func', 'subgraphName', 'ipfs', 'subgraphID', 'metadataPath', 'newOwner'],
-  },
-)
+let {
+  func,
+  ipfs,
+  graphAccount,
+  subgraphDeploymentID,
+  nameIdentifier,
+  name,
+  metadataPath,
+  subgraphNumber,
+} = minimist.default(process.argv.slice(2), {
+  string: [
+    'func',
+    'ipfs',
+    'graphAccount',
+    'subgraphDeploymentID',
+    'nameIdentifier',
+    'name',
+    'metadataPath',
+    'subgraphNumber',
+  ],
+})
 
-if (!func || !subgraphName) {
+if (!func || !graphAccount) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <text> - options: publish, unpublish, transfer
+    --func <text> - options: publishNewSubgraph, publishVersion, deprecate
 
 Function arguments:
-    publish
-      --ipfs <url>            - ex. https://api.thegraph.com/ipfs/
-      --subgraphName <text>   - name of the subgraph
-      --subgraphID <base58>   - subgraphID in bas358
-      --metadata <path>       - filepath to metadata. JSON format:
+    publishNewSubgraph
+      --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/
+      --graphAccount <address>        - erc1056 identity, often just the transacting account
+      --subgraphDeploymentID <base58> - subgraphID in base58
+      --nameIdentifier <string>       - ex. the node value in ENS
+      --name <string>                 - name of the subgraph
+      --metadataPath <path>           - filepath to metadata. JSON format:
                                   {
-                                    "displayName": "",
-                                    "image": "",
-                                    "description": "",
-                                    "codeRepository": "",
-                                    "websiteURL": ""
+                                    "subgraphDescription": "",
+                                    "subgraphImage": "",
+                                    "subgraphCodeRepository": "",
+                                    "subgraphWebsite": "",
+                                    "versionDescription": "",
+                                    "versionLabel": ""
                                   }
-    
-    unpublish
-      --subgraphName <text>  - name of the subgraph
-
-    transfer
-      --subgraphName <text>  - name of the subgraph
-      --new-owner <address>   - address of the new owner
+    publishVersion
+      --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/
+      --graphAccount <address>        - erc1056 identity, often just the transacting account
+      --subgraphDeploymentID <base58> - subgraphID in base58
+      --nameIdentifier <string>       - ex. the node value in ENS
+      --name <string>                 - name of the subgraph
+      --metadataPath <path>           - filepath to metadata. Same format as above
+      --subgraphNumber <number>       - numbered subgraph for the graph account
+      
+    deprecate
+      --graphAccount <address>        - erc1056 identity, often just the transacting account
+      --subgraphNumber <number>       - numbered subgraph for the graph account
 `,
   )
   process.exit(1)
@@ -52,31 +75,76 @@ Function arguments:
 // functions //////////
 ///////////////////////
 
-const publish = async () => {
-  if (!ipfs || !subgraphID || !metadataPath) {
-    console.error(`ERROR: publish must be provided an ipfs endpoint and a subgraphID`)
-    process.exit(1)
-  }
-  console.log('Subgraph:      ', subgraphName)
-  console.log('Subgraph ID:   ', subgraphID)
-  console.log('IPFS:          ', ipfs)
-  console.log('Metadata path: ', metadataPath)
+const publishNewSubgraph = async () => {
+  checkArgument(ipfs, 'ipfs')
+  checkArgument(subgraphDeploymentID, 'subgraphDeploymentID')
+  checkArgument(nameIdentifier, 'nameIdentifier')
+  checkArgument(name, 'name')
+  checkArgument(metadataPath, 'metadataPath')
 
-  const metadata = require(metadataPath) // eslint-disable-line @typescript-eslint/no-var-requires
+  let metaHashBytes = await handleMetadata(ipfs, metadataPath)
+  let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
+  const gnsOverrides = await overrides('gns', 'publishNewSubgraph')
+  console.log(metaHashBytes)
+  console.log(subgraphDeploymentIDBytes)
+  await executeTransaction(
+    contracts.gns.publishNewSubgraph(
+      graphAccount,
+      subgraphDeploymentIDBytes,
+      nameIdentifier,
+      name,
+      metaHashBytes,
+      gnsOverrides,
+    ),
+  )
+}
+
+const publishNewVersion = async () => {
+  checkArgument(ipfs, 'ipfs')
+  checkArgument(subgraphDeploymentID, 'subgraphDeploymentID')
+  checkArgument(nameIdentifier, 'nameIdentifier')
+  checkArgument(name, 'name')
+  checkArgument(metadataPath, 'metadataPath')
+  checkArgument(subgraphNumber, 'subgraphNumber')
+
+  let metaHashBytes = await handleMetadata(ipfs, metadataPath)
+  let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
+  const gnsOverrides = await overrides('gns', 'publishNewVersion')
+
+  await executeTransaction(
+    contracts.gns.publishNewVersion(
+      graphAccount,
+      subgraphNumber,
+      subgraphDeploymentIDBytes,
+      nameIdentifier,
+      name,
+      metaHashBytes,
+      gnsOverrides,
+    ),
+  )
+}
+
+const deprecate = async () => {
+  checkArgument(subgraphNumber, 'subgraphNumber')
+  const gnsOverrides = await overrides('gns', 'deprecate')
+  await executeTransaction(contracts.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides))
+}
+
+const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
+  const metadata = require(path)
   console.log('Meta data:')
-  console.log('  Display name:     ', metadata.displayName || '')
-  console.log('  Image:            ', metadata.image || '')
-  console.log('  Subtitle:         ', metadata.subtitle || '')
-  console.log('  Description:      ', metadata.description || '')
-  console.log('  Code Repository:  ', metadata.codeRepository || '')
-  console.log('  Website:          ', metadata.websiteURL || '')
+  console.log('  Subgraph Description:     ', metadata.subgraphDescription || '')
+  console.log('  Subgraph Image:           ', metadata.subgraphImage || '')
+  console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository || '')
+  console.log('  Subgraph Website:         ', metadata.subgraphWebsite || '')
+  console.log('  Version Description:      ', metadata.versionDescription || '')
+  console.log('  Version Label:            ', metadata.versionLabel || '')
 
   let ipfsClient = IPFS.createIpfsClient(ipfs)
 
   console.log('\nUpload JSON meta data to IPFS...')
   let result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
   let metaHash = result[0].hash
-  let metaHashBytes = IPFS.ipfsHashToBytes32(metaHash)
   try {
     let data = JSON.parse(await ipfsClient.cat(metaHash))
     if (JSON.stringify(data) !== JSON.stringify(metadata)) {
@@ -85,36 +153,15 @@ const publish = async () => {
   } catch (e) {
     throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
   }
-  console.log('Upload metadata successful!\n')
-
-  let subgraphIDBytes = IPFS.ipfsHashToBytes32(subgraphID)
-  const gnsOverrides = await overrides('gns', 'publish')
-  await executeTransaction(
-    contracts.gns.functions.publish(subgraphName, subgraphIDBytes, metaHashBytes, gnsOverrides),
-  )
+  console.log(`Upload metadata successful: ${metaHash}\n`)
+  return IPFS.ipfsHashToBytes32(metaHash)
 }
 
-const unpublish = async () => {
-  console.log('Subgraph:           ', subgraphName)
-  let nameHash = utils.id(subgraphName)
-  console.log('Subgraph name hash: ', nameHash)
-  console.log('\n')
-  const gnsOverrides = await overrides('gns', 'unpublish')
-  await executeTransaction(contracts.gns.functions.unpublish(nameHash, gnsOverrides))
-}
-
-const transfer = async () => {
-  if (!newOwner) {
-    console.error(`ERROR: transfer must be provided a new owner`)
+const checkArgument = (argument: string | undefined, argumentName: string) => {
+  if (!argument) {
+    console.error(`ERROR: ${argumentName} was not provided for publishNewSubgraph()`)
     process.exit(1)
   }
-  console.log('Subgraph:           ', subgraphName)
-  let nameHash = utils.id(subgraphName)
-  console.log('Subgraph name hash: ', nameHash)
-  console.log('New owner:          ', newOwner)
-  console.log('\n')
-  const gnsOverrides = await overrides('gns', 'unpublish')
-  await executeTransaction(contracts.gns.functions.transfer(nameHash, newOwner, gnsOverrides))
 }
 
 ///////////////////////
@@ -123,15 +170,15 @@ const transfer = async () => {
 
 const main = async () => {
   try {
-    if (func == 'publish') {
-      console.log(`Publishing subgraph ${subgraphName} ...`)
-      publish()
-    } else if (func == 'unpublish') {
-      console.log(`Unpublishing subgraph ${subgraphName} ...`)
-      unpublish()
-    } else if (func == 'transfer') {
-      console.log(`Transferring ownership of subgraph ${subgraphName} to ${newOwner}`)
-      transfer()
+    if (func == 'publishNewSubgraph') {
+      console.log(`Publishing 1st version of subgraph ${name} ...`)
+      publishNewSubgraph()
+    } else if (func == 'publishNewVersion') {
+      console.log(`Publishing a new version for subgraph ${name} ...`)
+      publishNewVersion()
+    } else if (func == 'deprecate') {
+      console.log(`Deprecating subgraph ${graphAccount}-${subgraphNumber}`)
+      deprecate()
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

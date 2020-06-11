@@ -46,20 +46,20 @@ const amountBN = utils.parseUnits(amount, 18)
 
 const mint = async () => {
   const mintOverrides = await overrides('graphToken', 'mint')
-  await executeTransaction(contracts.graphToken.functions.mint(account, amountBN, mintOverrides))
+  await executeTransaction(contracts.graphToken.mint(account, amountBN, mintOverrides))
 }
 
 const transfer = async () => {
   const transferOverrides = await overrides('graphToken', 'transfer')
   await executeTransaction(
-    contracts.graphToken.functions.transfer(account, amountBN, transferOverrides),
+    contracts.graphToken.transfer(account, amountBN, transferOverrides),
   )
 }
 
 const approve = async () => {
   const approveOverrides = await overrides('graphToken', 'approve')
   await executeTransaction(
-    contracts.graphToken.functions.approve(account, amountBN, approveOverrides),
+    contracts.graphToken.approve(account, amountBN, approveOverrides),
   )
 }
 

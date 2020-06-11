@@ -1,6 +1,5 @@
 {
     "subgraphDescription": "Scalable queries for a decentralized future.",
-    "subgraphName": "Graph Network",
     "subgraphImage": "http://localhost:8080/ipfs/QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
     "subgraphCodeRepository": "https://github.com/graphprotocol/graph-network-subgraph",
     "subgraphWebsite": "https://thegraph.com/",

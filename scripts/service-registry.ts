@@ -40,13 +40,13 @@ const register = async () => {
   }
   const registerOverrides = await overrides('serviceRegistry', 'register')
   await executeTransaction(
-    contracts.serviceRegistry.functions.register(url, geohash, registerOverrides),
+    contracts.serviceRegistry.register(url, geohash, registerOverrides),
   )
 }
 
 const unregister = async () => {
   const unregisterOverrides = await overrides('graphToken', 'transfer')
-  await executeTransaction(contracts.serviceRegistry.functions.unregister(unregisterOverrides))
+  await executeTransaction(contracts.serviceRegistry.unregister(unregisterOverrides))
 }
 
 ///////////////////////

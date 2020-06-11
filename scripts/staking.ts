@@ -55,12 +55,12 @@ const stake = async () => {
   console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
   const approveOverrides = await overrides('graphToken', 'approve')
   await executeTransaction(
-    contracts.graphToken.functions.approve(contracts.staking.address, amountBN, approveOverrides),
+    contracts.graphToken.approve(contracts.staking.address, amountBN, approveOverrides),
   )
 
   console.log('  Now calling stake() on staking...')
   const stakeOverrides = await overrides('staking', 'stake')
-  await executeTransaction(contracts.staking.functions.stake(amountBN, stakeOverrides))
+  await executeTransaction(contracts.staking.stake(amountBN, stakeOverrides))
 }
 
 const unstake = async () => {
@@ -69,12 +69,12 @@ const unstake = async () => {
     process.exit(1)
   }
   const unstakeOverrides = await overrides('staking', 'unstake')
-  await executeTransaction(contracts.staking.functions.unstake(amountBN, unstakeOverrides))
+  await executeTransaction(contracts.staking.unstake(amountBN, unstakeOverrides))
 }
 
 const withdraw = async () => {
   const withdrawOverrides = await overrides('staking', 'withdraw')
-  await executeTransaction(contracts.staking.functions.withdraw(withdrawOverrides))
+  await executeTransaction(contracts.staking.withdraw(withdrawOverrides))
 }
 
 const allocate = async () => {
@@ -86,7 +86,7 @@ const allocate = async () => {
   }
   // TODO - not implemented
   const allocateOverrides = await overrides('staking', 'withdraw')
-  //   await executeTransaction(contracts.staking.functions.allocate(allocateOverrides))
+  //   await executeTransaction(contracts.staking.allocate(allocateOverrides))
 }
 
 const settle = async () => {
@@ -96,7 +96,7 @@ const settle = async () => {
   }
   // TODO - not implemented
   const settleOverrides = await overrides('staking', 'withdraw')
-  //   await executeTransaction(contracts.staking.functions.settle(settleOverrides))
+  //   await executeTransaction(contracts.staking.settle(settleOverrides))
 }
 
 ///////////////////////

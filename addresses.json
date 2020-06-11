@@ -1,17 +1,24 @@
 {
   "updated-on": "June 2nd, 2020",
   "kovan": {
-    "commit-hash": "https://github.com/graphprotocol/contracts/tree/d59900ddeb0ef433326de940e14341a6befa8cf7",
-    "blockNumber": "18838602",
+    "commit-hash": "https://github.com/graphprotocol/contracts/tree/ed147ffadf108fe22a4cf32045431cbef1d458f1",
+    "blockNumber": "19001931",
     "governor": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
-    "graphToken": "0x5E32393c1C3DEC28228458d60A66B35ED40f96C6",
-    "epochManager": "0x2eE455eBb75D90a80b38BbF7De5C931403f15736",
-    "disputeManager": "0x8a714a02feEFd3CD763BF9d626650dCb0692be9A",
-    "staking": "0xB3c62a4a46e00E85dC63E3BBF851a33aFa928386",
-    "curation": "0x9ce3085eC642414bDFE8CfF7DE603e1DA6f1F702",
-    "rewardsManager": "0xd1a9930A53D7Ef7126EF2E8A7C51eC40419E37B8",
-    "serviceRegistry": "0x2aF5CcB503292937171228E72858793160fb6560",
-    "gns": "0xdc845c78D4eB360CE77794FDbE74E707799D0eBE"
+    "graphToken": "0x3E88f641Ffd41eE9E43CD68478E6f12c408ee121",
+    "epochManager": "0x3434c2D8b072BF4363384755e1E183c276bae25C",
+    "disputeManager": "0x36CF3899148AB47ddE0ea9e49174ee7017cBaA21",
+    "staking": "0x2a4E6310d451253456f4dd4fF16FE708D64605Bb",
+    "curation": "0x23d56AcFFa771F76dE7811480bB82Ec65711B3a3",
+    "rewardsManager": "0x76226c6955Ab8f0D0CA1Bd70722A4Dd60c3a2Eab",
+    "serviceRegistry": "0x91Ed09Ac3AfeBcAc1589a2655e595Bd5518A23c9",
+    "gns": "0x70e52EB6328F3338C5de9b0194B1d33746Ab9B3C",
+    "ens": "0x5e5afd700b87afe701ebbd9777537694f2bdf730",
+    "ensPublicResolver": "0xd7aac435b5b368ef9ecdbd2ff478e52df26eaeff",
+    "indexerCTDT": "0xc28a574C31d100Cf02e78781fC65D7993E89F972",
+    "indexerSingleAssetInterpreter": "0x7FAd43AcAD7bF23ccdF105f9Bd6f3C88B69d09CC",
+    "indexerMultiAssetInterpreter": "0x484B4511B288Bb816C8bE59ef871f95E40858Bd5",
+    "indexerWithdrawInterpreter": "0xACc160952063aF382027166dbFD1e4033D24856f",
+    "minimumViableMultisig": "0x4bb3E33672BD1519923F92c3112DEb42ce64A2A2"
   },
   "mainnet": {}
 }

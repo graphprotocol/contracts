@@ -40,19 +40,19 @@ const stake = async () => {
   console.log('  First calling approve() to ensure curation contract can call transferFrom()...')
   const approveOverrides = await overrides('graphToken', 'approve')
   await executeTransaction(
-    contracts.graphToken.functions.approve(contracts.curation.address, amountBN, approveOverrides),
+    contracts.graphToken.approve(contracts.curation.address, amountBN, approveOverrides),
   )
   console.log('\n')
 
   console.log('  Now calling stake() on curation...')
   const stakeOverrides = await overrides('curation', 'stake')
-  await executeTransaction(contracts.curation.functions.stake(id, amountBN, stakeOverrides))
+  await executeTransaction(contracts.curation.stake(id, amountBN, stakeOverrides))
 }
 
 const redeem = async () => {
   const redeemOverrides = await overrides('curation', 'redeem')
   // Redeeming does not need Big Number
-  await executeTransaction(contracts.curation.functions.redeem(id, amount, redeemOverrides))
+  await executeTransaction(contracts.curation.redeem(id, amount, redeemOverrides))
 }
 
 ///////////////////////
