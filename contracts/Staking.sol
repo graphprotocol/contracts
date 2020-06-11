@@ -63,8 +63,8 @@ contract Staking is Governed {
 
     struct DelegationPool {
         uint256 cooldownBlocks;
-        uint256 indexingRewardCut;
-        uint256 queryFeeCut;
+        uint256 indexingRewardCut; // in PPM
+        uint256 queryFeeCut; // in PPM
         uint256 updatedAtBlock;
         uint256 tokens;
         uint256 shares;
@@ -89,7 +89,9 @@ contract Staking is Governed {
 
     // -- Events --
 
-    // TODO: add natspec
+    /**
+     * @dev Emitted when `indexer` update the delegation parameters for its delegation pool.
+     */
     event DelegationParametersUpdated(
         address indexed indexer,
         uint256 indexingRewardCut,
@@ -288,6 +290,12 @@ contract Staking is Governed {
     ) external {
         address indexer = msg.sender;
 
+        require(_queryFeeCut <= MAX_PPM, "QueryFeeCut must be below or equal to MAX_PPM");
+        require(
+            _indexingRewardCut <= MAX_PPM,
+            "IndexingRewardCut must be below or equal to MAX_PPM"
+        );
+
         // Cooldown period set by indexer cannot be below protocol global setting
         require(
             _cooldownBlocks >= delegationParametersCooldown,
@@ -377,6 +385,20 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get the amount of shares a delegator has in a delegation pool
+     * @param _indexer Address of the indexer
+     * @param _delegator Address of the delegator
+     * @return Shares owned by delegator in a delegation pool
+     */
+    function getDelegationShares(address _indexer, address _delegator)
+        public
+        view
+        returns (uint256)
+    {
+        return delegation[_indexer].delegatorShares[_delegator];
+    }
+
+    /**
      * @dev Get an outstanding unclaimed settlement
      * @param _epoch Epoch when the settlement ocurred
      * @param _indexer Address of the indexer
@@ -409,11 +431,11 @@ contract Staking is Governed {
         require(_tokens > 0, "Slashing: cannot slash zero tokens");
         require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
         require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
-        require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
         require(
-            _tokens <= indexerStake.tokensSlashable(),
+            _tokens <= indexerStake.tokensStaked,
             "Slashing: cannot slash more than staked amount"
         );
+        require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
 
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
@@ -503,7 +525,7 @@ contract Staking is Governed {
         DelegationPool storage pool = delegation[_indexer];
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.div(pool.tokens).mul(pool.shares);
+        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.mul(pool.shares).div(pool.tokens);
 
         // Update the delegation pool
         pool.tokens = pool.tokens.add(_tokens);
@@ -526,13 +548,22 @@ contract Staking is Governed {
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegation[_indexer];
 
-        //
+        // Delegator need to have enough shares in the pool to undelegate
         require(
             pool.delegatorShares[delegator] >= _shares,
             "Delegation: delegator does not have enough shares"
         );
 
-        uint256 tokens = 0;
+        // Calculate tokens to get in exchange for the shares
+        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
+
+        // Update the delegation pool
+        pool.tokens = pool.tokens.sub(tokens);
+        pool.shares = pool.shares.sub(_shares);
+        pool.delegatorShares[delegator] = pool.delegatorShares[delegator].sub(_shares);
+
+        // Return tokens to delegator
+        require(token.transfer(delegator, tokens), "Delegation: error sending tokens");
 
         emit StakeUndelegated(_indexer, delegator, tokens, _shares);
     }
@@ -624,9 +655,11 @@ contract Staking is Governed {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
+        // Get tokens available for withdraw and update balance
         uint256 tokensToWithdraw = indexerStake.withdrawTokens();
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
+        // Return tokens to the indexer
         require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
 
         emit StakeWithdrawn(indexer, tokensToWithdraw);
@@ -722,25 +755,25 @@ contract Staking is Governed {
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
         require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
-        // Calculate curation fees
-        uint256 curationFees = (isCurationEnabled() && curation.isCurated(subgraphDeploymentID))
-            ? curationPercentage.mul(_tokens).div(MAX_PPM)
-            : 0;
+        // Calculate curation fees only if the subgraph deployment is curated
+        uint256 curationFees = _collectCurationFees(subgraphDeploymentID, _tokens);
 
-        // Set apart fees into a rebate pool
-        uint256 rebateFees = _tokens.sub(curationFees);
-        uint256 effectiveAllocation = alloc.getTokensEffectiveAllocation(
-            epochs,
-            maxAllocationEpochs
+        // Calculate delegation fees and add them to the delegation pool
+        uint256 delegationFees = _collectDelegationFees(indexer, _tokens);
+
+        // Set apart fees into a rebate pool for the indexer
+        Rebates.Settlement memory settlement = rebates[currentEpoch].add(
+            indexer,
+            subgraphDeploymentID,
+            _tokens.sub(curationFees).sub(delegationFees), // delegation fees
+            alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs) // effective allocation
         );
-        rebates[currentEpoch].add(indexer, subgraphDeploymentID, rebateFees, effectiveAllocation);
 
         // Close channel
         // NOTE: Channels used are never deleted from state tracked in `channels` var
         stakes[indexer].unallocateTokens(subgraphDeploymentID, alloc.tokens);
         alloc.channelID = address(0);
         alloc.createdAtEpoch = 0;
-        // TODO: send multisig one-shot invalidation
 
         // Send curation fees to the curator SubgraphDeployment reserve
         if (curationFees > 0) {
@@ -758,9 +791,43 @@ contract Staking is Governed {
             _channelID,
             _from,
             curationFees,
-            rebateFees,
-            effectiveAllocation
+            settlement.fees,
+            settlement.allocation
         );
+    }
+
+    /**
+     * @dev Collect the delegation fees related to an indexer from an amount of tokens.
+     * This function will also assign the collected fees to the delegation pool.
+     * @param _indexer Indexer to which the delegation fees are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of delegation fees
+     */
+    function _collectDelegationFees(address _indexer, uint256 _tokens) private returns (uint256) {
+        uint256 delegationFees = 0;
+        DelegationPool storage pool = delegation[_indexer];
+        if (pool.queryFeeCut > 0) {
+            delegationFees = percentageOf(pool.queryFeeCut, _tokens);
+            pool.tokens = pool.tokens.add(delegationFees);
+        }
+        return delegationFees;
+    }
+
+    /**
+     * @dev Collect the curation fees for a subgraph deployment from an amount of tokens.
+     * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of curation fees
+     */
+    function _collectCurationFees(bytes32 _subgraphDeploymentID, uint256 _tokens)
+        private
+        view
+        returns (uint256)
+    {
+        return
+            (isCurationEnabled() && curation.isCurated(_subgraphDeploymentID))
+                ? percentageOf(curationPercentage, _tokens)
+                : 0;
     }
 
     /**
@@ -792,5 +859,15 @@ contract Staking is Governed {
         uint256 mask = 2**(8 * 21) - 1;
         uint256 value = uint256(keccak256(_publicKey));
         return address(value & mask);
+    }
+
+    /**
+     * @dev Calculate the percentage for value in parts per million (PPM)
+     * @param _ppm Parts per million
+     * @param _value Value to calculate percentage of
+     * @return Percentage of value
+     */
+    function percentageOf(uint256 _ppm, uint256 _value) private pure returns (uint256) {
+        return _ppm.mul(_value).div(MAX_PPM);
     }
 }

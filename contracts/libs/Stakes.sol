@@ -196,15 +196,6 @@ library Stakes {
     }
 
     /**
-     * @dev Tokens used for slashing whenever necessary
-     * @param stake Stake data
-     * @return Token amount
-     */
-    function tokensSlashable(Stakes.Indexer storage stake) internal view returns (uint256) {
-        return stake.tokensStaked;
-    }
-
-    /**
      * @dev Tokens available for withdrawal after thawing period
      * @param stake Stake data
      * @return Token amount
