@@ -145,8 +145,8 @@ describe('Staking::Delegation', () => {
   describe('delegate', function() {
     beforeEach(async function() {
       // Distribute test funds
-      await grt.connect(governor).mint(delegator.address, toGRT('10000000000000'))
-      await grt.connect(delegator).approve(staking.address, toGRT('10000000000000'))
+      await grt.connect(governor).mint(delegator.address, toGRT('10000000000000000000'))
+      await grt.connect(delegator).approve(staking.address, toGRT('10000000000000000000'))
     })
 
     it('reject to delegate zero tokens', async function() {
@@ -156,15 +156,17 @@ describe('Staking::Delegation', () => {
     })
 
     it('should delegate tokens and account shares proportionally', async function() {
+      await shouldDelegate(delegator, toGRT('1234'))
       await shouldDelegate(delegator, toGRT('100'))
       await shouldDelegate(delegator, toGRT('50'))
       await shouldDelegate(delegator, toGRT('25'))
       await shouldDelegate(delegator, toGRT('10'))
+      await shouldDelegate(delegator, toGRT('1'))
     })
 
     it('should delegate a high number of tokens', async function() {
       await shouldDelegate(delegator, toGRT('100'))
-      await shouldDelegate(delegator, toGRT('1000000000000'))
+      await shouldDelegate(delegator, toGRT('1000000000000000000'))
     })
   })
 
