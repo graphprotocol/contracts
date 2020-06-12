@@ -4,7 +4,7 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides, IPFS } from './helpers'
+import { contracts, executeTransaction, overrides, IPFS, checkUserInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -76,11 +76,11 @@ Function arguments:
 ///////////////////////
 
 const publishNewSubgraph = async () => {
-  checkArgument(ipfs, 'ipfs')
-  checkArgument(subgraphDeploymentID, 'subgraphDeploymentID')
-  checkArgument(nameIdentifier, 'nameIdentifier')
-  checkArgument(name, 'name')
-  checkArgument(metadataPath, 'metadataPath')
+  checkUserInputs(
+    [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath],
+    ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath'],
+    'publishNewSubgraph',
+  )
 
   let metaHashBytes = await handleMetadata(ipfs, metadataPath)
   let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
@@ -100,12 +100,11 @@ const publishNewSubgraph = async () => {
 }
 
 const publishNewVersion = async () => {
-  checkArgument(ipfs, 'ipfs')
-  checkArgument(subgraphDeploymentID, 'subgraphDeploymentID')
-  checkArgument(nameIdentifier, 'nameIdentifier')
-  checkArgument(name, 'name')
-  checkArgument(metadataPath, 'metadataPath')
-  checkArgument(subgraphNumber, 'subgraphNumber')
+  checkUserInputs(
+    [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath, subgraphNumber],
+    ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath', 'subgraphNumber'],
+    'publishNewVersion',
+  )
 
   let metaHashBytes = await handleMetadata(ipfs, metadataPath)
   let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
@@ -125,7 +124,7 @@ const publishNewVersion = async () => {
 }
 
 const deprecate = async () => {
-  checkArgument(subgraphNumber, 'subgraphNumber')
+  checkUserInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
   const gnsOverrides = await overrides('gns', 'deprecate')
   await executeTransaction(contracts.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides))
 }
@@ -155,13 +154,6 @@ const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   }
   console.log(`Upload metadata successful: ${metaHash}\n`)
   return IPFS.ipfsHashToBytes32(metaHash)
-}
-
-const checkArgument = (argument: string | undefined, argumentName: string) => {
-  if (!argument) {
-    console.error(`ERROR: ${argumentName} was not provided for publishNewSubgraph()`)
-    process.exit(1)
-  }
 }
 
 ///////////////////////

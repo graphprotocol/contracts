@@ -16,11 +16,8 @@ The scripts expect the following:
   npm run build
   ```
 
-All scripts that are working are below. Run the script without arguments for more usage info,
-as the CLI will print the information
-
-
 ## GNS
+
 **Publishing a subgraph**
 ```sh
 ts-node ./gns.ts 

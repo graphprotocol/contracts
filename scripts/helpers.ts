@@ -3,7 +3,8 @@ import * as path from 'path'
 
 import { ContractTransaction, ethers, utils, Wallet } from 'ethers'
 import { ContractReceipt } from 'ethers/contract'
-import  ipfsHttpClient  from 'ipfs-http-client'
+// @ts-ignore
+import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
 import { GnsFactory } from '../build/typechain/contracts/GnsFactory'
@@ -11,6 +12,10 @@ import { StakingFactory } from '../build/typechain/contracts/StakingFactory'
 import { ServiceRegistryFactory } from '../build/typechain/contracts/ServiceRegistryFactory'
 import { GraphTokenFactory } from '../build/typechain/contracts/GraphTokenFactory'
 import { CurationFactory } from '../build/typechain/contracts/CurationFactory'
+import { IensFactory } from '../build/typechain/contracts/IensFactory'
+import { IPublicResolverFactory } from '../build/typechain/contracts/IPublicResolverFactory'
+import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEthereumDidRegistryFactory'
+import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarFactory'
 
 // TODO - make addresses depend on our npm package
 let addresses = (JSON.parse(
@@ -30,6 +35,10 @@ export const contracts = {
   serviceRegistry: ServiceRegistryFactory.connect(addresses.serviceRegistry, wallet),
   graphToken: GraphTokenFactory.connect(addresses.graphToken, wallet),
   curation: CurationFactory.connect(addresses.curation, wallet),
+  ens: IensFactory.connect(addresses.ens, wallet),
+  publicResolver: IPublicResolverFactory.connect(addresses.ensPublicResolver, wallet),
+  ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(addresses.ethereumDIDRegistry, wallet),
+  testRegistrar: ITestRegistrarFactory.connect(addresses.ensTestRegistrar, wallet),
 }
 
 export const executeTransaction = async (
@@ -71,6 +80,19 @@ export const overrides = async (contract: string, func: string) => {
   // }
 }
 
+export const checkUserInputs = (
+  userInputs: Array<string | undefined>,
+  inputNames: Array<string>,
+  functionName: string,
+) => {
+  userInputs.forEach((input, i) => {
+    if (input == undefined) {
+      console.error(`ERROR: ${inputNames[i]} was not provided for ${functionName}()`)
+      process.exit(1)
+    }
+  })
+}
+
 export class IPFS {
   static createIpfsClient(node: string): ipfsHttpClient {
     let url: URL
@@ -93,7 +115,7 @@ export class IPFS {
 
   static ipfsHashToBytes32(hash: string): string {
     let hashBytes = bs58.decode(hash).slice(2)
-    console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`);
+    console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`)
     return utils.hexlify(hashBytes)
   }
 }
