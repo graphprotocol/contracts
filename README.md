@@ -1,122 +1,104 @@
 # Graph Protocol Solidity Smart Contracts
 
-![Version Badge](https://img.shields.io/badge/version-1.0.0-lightgrey.svg)
+![Version Badge](https://img.shields.io/badge/version-0.2.0-lightgrey.svg)
 ![WIP Badge](https://img.shields.io/badge/status-POC-blue.svg)
-[![Build Status](https://travis-ci.com/graphprotocol/contracts.svg?token=wbxCaTb68vuvzoN4HDgt&branch=master)](https://travis-ci.com/graphprotocol/contracts)
 
-## Subgraph
+## Overview
+### Contracts
 
-The subgraph can be found https://github.com/graphprotocol/graph-network-subgraph. The addresses
-for the subgraph need to be the most up to date. This includes grabbing the latest ABIs from here,
-as well as pointing the addresses in the subgraph manifest to the latest addresses. You can find
-the latest subgraph addresses below.
+This repository contains The Graph Protocol solidity contracts. It is based on the
+[PRD outlined here](https://www.notion.so/thegraph/Public-Network-Contracts-PRD-5eb8466aa4b44a1da7f16a28acd6674f),
+There are many other smaller, more detailed PRDs that these contracts implement, that can also be
+found on notion.
 
-There are currently two networks we deploy to - Ropsten, and Ganache. The Ropsten addresses will
-change whenever there are updates to the contract, and we need to redeploy. This needs to be
-done in sync with deploying a new subgraph. The new GNS should point `thegraph` domain to the
-latest subgraph.
+The contracts enable a staking protocol build on top of Ethereum, using The Graph Network Token
+(GRT). The network enables a decentralized network of Graph Nodes
+to index and serve queries for subgraphs.
+[Graph node's repository can be found here](https://github.com/graphprotocol/graph-node).
 
-We want to also run some test scripts to populate data each time new contracts are deployed.
+The Graph Network enables smart contract development to happen alongside subgraph development.
+It is a new and improved way to develop dapps. It allows developers to move some logic into the
+subgraph for resolving data based on events, or past storage data on Ethereum. Therefore,
+the contracts and the subgraph rely on each other, to show to end users the current data and state
+of The Graph Network.
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
+### Subgraph
 
-### Current Contract Addresses
+The subgraph repository can be [found here](https://github.com/graphprotocol/graph-network-subgraph).
 
-See https://github.com/graphprotocol/contracts/blob/master/addresses.json.
+Great care must be taken to ensure all the code and data the subgraph refers to is in sync with
+the current contracts on the correct network. For tracking all of this, we have an NPM package.
 
-### Subgraph Deployment Instructions
+The addresses
+for the subgraph need to be the most up to date. This includes grabbing the latest ABIs and
+typechain bindings, as well as pointing the addresses in the subgraph manifest to the latest
+addresses. You can find the latest subgraph addresses in `addresses.json`, and they are also
+in the NPM package.
 
-#### Ganache
+There are currently two networks we deploy to - Kovan, and Ganache. The Kovan addresses will
+change whenever there are updates to the contract. This needs to be done in sync with deploying
+a new subgraph.
 
-Note, ganache MUST be ran with `ganache-cli -d -i 3859`. `-d` Makes the accounts the same for any
-instance of ganache, which allows us to have deterministic contract addresses. Therefore anyone can
-use the same subgraph manifest for ganache on their own laptop. `-i 99` is used to make the
-network ID constant, which helps with the subgraph. If you update the subgraph, you can just
-close ganache and start it up again and you can deploy. If you use the same subgraph ID though and
-reset ganche, you will have to drop the DB because it will have old data saved in it, with a new
-instance of ganache.
+### NPM package
+The NPM package will be release in versions, and the version will be coordinated to be the same
+version as the contracts and the subgraph. Anyone wanting to tie into the graph network contracts
+or subgraph should install the npm package into their repository, and refer to the same version
+number for the contracts and subgraph.
 
-1. Run `ipfs daemon`
-2. In a new terminal run postrgres with `pg_ctl -D /usr/local/var/postgres -l logfile start`
-3. Create a database with `createdb graph-network-ganache`
-4. In a new terminal, run ganache with `ganche-cli -d -i 99`
-5. In a new terminal go to the `graph-node` repository start the subgraph with
+**New development work on the contracts and subgraph will be merged to master. Thus, when developing**
+**on the network, you should not rely on the master code as it might break between the subgraph repo**
+**and the contracts repo. Please use a version that is tagged.**
 
+The NPM package will contain the following files/information:
+- The contracts
+- The ABIs for those contracts
+- The typechain autogenerated functions. These are typescript functions that are created based off
+  the ABIs, and are very useful for their type checking and the fact they are tied to a version
+- The deployed addresses for each network, the date of deployment, and the commit hash.
+- Metadata JSON objects for Graph Account and Subgraph metadata
+  **This is the only place you should grab contract addresses from.**
+
+We will also release versions for specific releases, such as `@graphprotocol/contracts@beta`.
+
+## Contracts Testing
+
+Testing is done with the following stack:
+- Waffle
+- Buidler
+- Typescript
+- Ethers
+
+To test all files, use `npm run test`. To test a single file run:
+`npx buidler test test/<FILE_NAME>.ts`.
+
+## Deployments
+
+Currently we are only deployed on kovan. Contract addresses can be found in this repository at
+`./addresses.json`. However, addresses should be obtained from the NPM Package.
+
+### Mainnet
+Not deployed yet.
+
+### Kovan
+Deployed. Note that we had to get ENS to deploy an unofficial version of the contracts on ENS.
+While quickly testing, we will use the test registrar. When we  get a testnet on a different
+testnet we will use the normal `.eth` domain, while as with the test registrar we use the
+`.test` one. This will be hidden by the indexing of the subgraph anyways.
+
+**Kovan ENS:**
 ```
-cargo run -p graph-node --release --   \
---postgres-url postgresql://davidkajpust@localhost:5432/graph-network-ganache  \
---ethereum-rpc ganache:http://127.0.0.1:8545   \
---ipfs 127.0.0.1:5001  \
---debug    \
+PublicResolver 0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7
+ETHRegistryWithFallback 0xB66B2f307B6e46a6D038a85997B401aE87455772
+ETHRegistrarController 0x7966398e99a60c7b3465A394B22C0b5ce1012EC9
+Root. 0x821164869e097c7fEcD301EE68d2231A3565D5C9
+TestRegistrar: 0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b
+ReverseRegistrar 0xCE228fF5EFCE6403Cd011046138488FF31C05Da9
 ```
 
-6. In a new terminal go to the `graph-network-subgraph` repository, and create the subgraph with
-   `yarn create-local` (NOTE - MAKE SURE THE CONTRACT ADDRESSES IN THE MANIFEST ARE SET TO THE
-   GANACHE ADDRESSES!)
-7. Then deploy it with `yarn deploy-local`
+### Ropsten/Rinkeby/Goerli
+One of these networks will be added in the future, to test the network with 15 second block times.
+This will likely become the real network we run testnet on with node operators, or else we will
+run our own private network.
 
-At this point, everything is setup. You can then interact with the contracts through Remix, or
-our graph explorer UI, or through our automated scripts. Real automated scripts will be added soon,
-but for now you can run `npm run test` and it will run all the tests, and execute transactions,
-which will allow the subgraph to store data.
-
-#### Ropsten
-
-(Note we use the graph hosted service right now to deploy to. We do not use the new Dapp explorer UI
-to create and deploy subgraphs. It can be found [here](https://staging.thegraph.com/explorer/subgraph/graphprotocol/explorer-dapp)
-]. The subgraph is already created, so we will only mention how to update the subgraph here.
-
-1. Deploy new contracts to Ropsten with `npm run deploy -- --network ropsten`. Truffle stores the
-   addresses for networks, so if you are trying to re-deploy you may have to run
-   `truffle networks —clean`, and then deploy.
-2. Get the new contract addresses from the deployment. They are logged in the terminal output from
-   deploying. Put these contract addresses into the subgraph manifest
-3. Make sure you are a member of `graphprotocol` for the staging explorer application
-4. Then make sure you have the right access token for `graphprotocol`. You can set this up with
-   `graph auth https://api.thegraph.com/deploy/ <ACCESS_TOKEN>`. You can get it from the dashboard in the
-   UI, just pick `graphprotocol` instead of your own account, and you will see the token.
-5. Then in the `graph-network-subgraph` repository, just run `yarn deploy` to update a new version
-6. You will also have to update information in the `graph-explorer-dapp` repo. You must update
-   the contract addresses in the `.env.development` file, and you need to update the contract addresses
-   in the cloud build file
-   https://github.com/graphprotocol/graph-explorer-dapp/blob/master/cloudbuild.staging.yaml
-
-At some point in the future we will work on having scripts that will populate data in the subgraph
-on ropsten, so we can better test.
-
-## Installation &amp; Deployment of Contracts
-
-1. Install Node.js `v10.15.1`.
-2. Run `npm install` at project root directory.
-3. Install and run `testrpc`, `ganache-cli`, or similar blockchain emulator.
-   - Configure to run on port `8545` or edit `buidler.config.ts` to change the port used by Buidler.
-4. Build
-   - `npm run build` (compile contracts, flatten code, export ABIs and create Typescript bindings)
-   - `npm run migrate` (deploy contracts to local blockchain emulator)
-   - `npm run test` (runs tests)
-5. See [DEPLOYMENT.md](./DEPLOYMENT.md) for instructions on deploying the contracts to the blockchain.
-
-## Abstract
-
-This repository will contain the Solidity smart contracts needed to facilitate the processes defined in the Product Requirements Document provided by The Graph.
-(see: [PRD on Notion](https://www.notion.so/Hybrid-POC-Smart-Contracts-18646757d3644f73bf9fdfb2e98b93eb))
-
-![Imgur](https://i.imgur.com/9uwiie1.png)
-
-## Graph Protocol Contracts
-
-1. [Graph Token](./contracts/GraphToken.sol)
-2. [Staking](./contracts/Staking.sol)
-3. [Dispute Resolution](./contracts/DisputeManager.sol)
-4. [Graph Name Service (GNS)](./contracts/GNS.sol)
-5. [Rewards Manager](./contracts/RewardsManager.sol)
-6. [Service Registry](./contracts/ServiceRegistry.sol)
-7. [Governance](./contracts/Governed.sol)
-
-### Supporting Contracts
-
-1. [MultiSig Contract](./contracts/MultiSigWallet.sol) (by Gnosis)
-2. [Detailed, Mintable, Burnable ERC20 Token](./contracts/openzeppelin/) (by Open Zeppelin)
-3. [Bonding Curve Formulas](./contracts/bancor/) (by Bancor)
-
-_[See ./contracts/README.md for full list of contracts](./contracts/)_
+In order to run deployments, see `./DEPLOYMENT.md`. We use a custom deployment script, which
+allowed us to completely remove `truffle` as a dependency.
