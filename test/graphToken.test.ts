@@ -167,7 +167,7 @@ describe('GraphToken', () => {
   })
 
   describe('mint', function() {
-    describe('addMinter()', function() {
+    describe('addMinter', function() {
       it('reject add a new minter if not allowed', async function() {
         const tx = grt.connect(me).addMinter(me.address)
         await expect(tx).to.be.revertedWith('Only Governor can call')
@@ -183,7 +183,7 @@ describe('GraphToken', () => {
       })
     })
 
-    describe('mint()', async function() {
+    describe('mint', async function() {
       it('reject mint if not minter', async function() {
         const tx = grt.connect(me).mint(me.address, toGRT('100'))
         await expect(tx).to.be.revertedWith('Only minter can call')
@@ -196,7 +196,7 @@ describe('GraphToken', () => {
         expect(await grt.isMinter(me.address)).to.be.eq(true)
       })
 
-      describe('mint()', async function() {
+      describe('mint', async function() {
         it('should mint', async function() {
           const tokensBefore = await grt.balanceOf(me.address)
 
@@ -216,7 +216,7 @@ describe('GraphToken', () => {
         })
       })
 
-      describe('removeMinter()', function() {
+      describe('removeMinter', function() {
         it('reject remove a minter if not allowed', async function() {
           const tx = grt.connect(me).removeMinter(me.address)
           await expect(tx).to.be.revertedWith('Only Governor can call')
@@ -231,7 +231,7 @@ describe('GraphToken', () => {
         })
       })
 
-      describe('renounceMinter()', function() {
+      describe('renounceMinter', function() {
         it('should renounce to be a minter', async function() {
           const tx = grt.connect(me).renounceMinter()
           await expect(tx)

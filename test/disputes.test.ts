@@ -144,7 +144,7 @@ describe('Disputes', async () => {
     }
   })
 
-  describe('state variables functions', () => {
+  describe('configuration', () => {
     it('should set `governor`', async function() {
       // Set right in the constructor
       expect(await disputeManager.governor()).to.eq(governor.address)

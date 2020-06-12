@@ -12,6 +12,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import * as deployment from '../lib/deployment'
 import {
   advanceBlockTo,
+  advanceToNextEpoch,
   randomHexBytes,
   latestBlock,
   provider,
@@ -42,16 +43,6 @@ describe('Staking', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
-
-  before(async function() {
-    // Helpers
-    this.advanceToNextEpoch = async () => {
-      const currentBlock = await latestBlock()
-      const epochLength = await epochManager.epochLength()
-      const nextEpochBlock = currentBlock.add(epochLength)
-      await advanceBlockTo(nextEpochBlock)
-    }
-  })
 
   beforeEach(async function() {
     // Deploy epoch contract
@@ -180,71 +171,63 @@ describe('Staking', () => {
   })
 
   describe('staking', function() {
-    before(async function() {
-      // Helpers
-      this.stake = async function(tokens: BigNumber) {
-        return staking.connect(indexer).stake(tokens)
-      }
-      this.allocate = function(tokens: BigNumber) {
-        return staking
-          .connect(indexer)
-          .allocate(
-            this.subgraphDeploymentID,
-            tokens,
-            this.channelPubKey,
-            channelProxy.address,
-            this.price,
-          )
-      }
-      this.shouldStake = async function(indexerStake: BigNumber) {
-        // Setup
-        const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
+    // Setup
+    const indexerTokens = toGRT('1000')
+    const indexerStake = toGRT('100')
+    const subgraphDeploymentID = randomHexBytes()
+    const channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
+    const channelPubKey =
+      '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+    const price = toGRT('0.01')
 
-        // Stake
-        const tx = this.stake(indexerStake)
-        await expect(tx)
-          .to.emit(staking, 'StakeDeposited')
-          .withArgs(indexer.address, indexerStake)
+    // Helpers
+    const stake = async function(tokens: BigNumber) {
+      return staking.connect(indexer).stake(tokens)
+    }
+    const allocate = function(tokens: BigNumber) {
+      return staking
+        .connect(indexer)
+        .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, price)
+    }
+    const shouldStake = async function(indexerStake: BigNumber) {
+      // Setup
+      const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
 
-        // State updated
-        const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
-        expect(indexerStakeAfter).to.eq(indexerStakeBefore.add(indexerStake))
-      }
-    })
+      // Stake
+      const tx = stake(indexerStake)
+      await expect(tx)
+        .to.emit(staking, 'StakeDeposited')
+        .withArgs(indexer.address, indexerStake)
+
+      // State updated
+      const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
+      expect(indexerStakeAfter).to.eq(indexerStakeBefore.add(indexerStake))
+    }
 
     beforeEach(async function() {
-      // Setup
-      this.indexerStake = toGRT('100')
-      this.subgraphDeploymentID = randomHexBytes()
-      this.channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
-      this.channelPubKey =
-        '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
-      this.price = toGRT('0.01')
-
       // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
-      this.indexerTokens = toGRT('1000')
-      await grt.connect(governor).mint(indexer.address, this.indexerTokens)
-      await grt.connect(indexer).approve(staking.address, this.indexerTokens)
+      await grt.connect(governor).mint(indexer.address, indexerTokens)
+      await grt.connect(indexer).approve(staking.address, indexerTokens)
     })
 
-    describe('hasStake()', function() {
+    describe('hasStake', function() {
       it('should not have stakes', async function() {
         expect(await staking.hasStake(indexer.address)).to.be.eq(false)
       })
     })
 
-    describe('stake()', function() {
+    describe('stake', function() {
       it('should stake tokens', async function() {
-        await this.shouldStake(this.indexerStake)
+        await shouldStake(indexerStake)
       })
 
       it('reject stake zero tokens', async function() {
-        const tx = this.stake(toBN('0'))
+        const tx = stake(toBN('0'))
         await expect(tx).to.be.revertedWith('Staking: cannot stake zero tokens')
       })
     })
 
-    describe('unstake()', function() {
+    describe('unstake', function() {
       it('reject unstake tokens', async function() {
         const tokensToUnstake = toGRT('2')
         const tx = staking.connect(indexer).unstake(tokensToUnstake)
@@ -252,15 +235,15 @@ describe('Staking', () => {
       })
     })
 
-    describe('allocate()', function() {
+    describe('allocate', function() {
       it('reject allocate', async function() {
         const indexerStake = toGRT('100')
-        const tx = this.allocate(indexerStake)
+        const tx = allocate(indexerStake)
         await expect(tx).to.be.revertedWith('Allocation: indexer has no stakes')
       })
     })
 
-    describe('slash()', function() {
+    describe('slash', function() {
       it('reject slash indexer', async function() {
         const tokensToSlash = toGRT('10')
         const tokensToReward = toGRT('10')
@@ -274,22 +257,22 @@ describe('Staking', () => {
     context('> when staked', function() {
       beforeEach(async function() {
         // Stake
-        await this.stake(this.indexerStake)
+        await stake(indexerStake)
       })
 
-      describe('hasStake()', function() {
+      describe('hasStake', function() {
         it('should have stakes', async function() {
           expect(await staking.hasStake(indexer.address)).to.be.eq(true)
         })
       })
 
-      describe('stake()', function() {
+      describe('stake', function() {
         it('should allow re-staking', async function() {
-          await this.shouldStake(this.indexerStake)
+          await shouldStake(indexerStake)
         })
       })
 
-      describe('unstake()', function() {
+      describe('unstake', function() {
         it('should unstake and lock tokens for thawing period', async function() {
           const tokensToUnstake = toGRT('2')
           const thawingPeriod = await staking.thawingPeriod()
@@ -335,13 +318,13 @@ describe('Staking', () => {
         })
 
         it('reject unstake more than available tokens', async function() {
-          const tokensOverCapacity = this.indexerStake.add(toBN('1'))
+          const tokensOverCapacity = indexerStake.add(toBN('1'))
           const tx = staking.connect(indexer).unstake(tokensOverCapacity)
           await expect(tx).to.be.revertedWith('Staking: not enough tokens available to unstake')
         })
       })
 
-      describe('withdraw()', function() {
+      describe('withdraw', function() {
         it('should withdraw if tokens available', async function() {
           // Unstake
           const tokensToUnstake = toGRT('10')
@@ -370,7 +353,7 @@ describe('Staking', () => {
         })
       })
 
-      describe('slash()', function() {
+      describe('slash', function() {
         before(function() {
           // Helpers
 
@@ -433,7 +416,7 @@ describe('Staking', () => {
 
           // Allocate indexer stake
           const tokensToAllocate = toGRT('70')
-          await this.allocate(tokensToAllocate)
+          await allocate(tokensToAllocate)
 
           // State pre-slashing
           // helpers.logStake(await staking.stakes(indexer))
@@ -515,43 +498,43 @@ describe('Staking', () => {
         })
       })
 
-      describe('allocate()', function() {
+      describe('allocate', function() {
         it('should allocate', async function() {
-          const tx = this.allocate(this.indexerStake)
+          const tx = allocate(indexerStake)
           await expect(tx)
             .to.emit(staking, 'AllocationCreated')
             .withArgs(
               indexer.address,
-              this.subgraphDeploymentID,
+              subgraphDeploymentID,
               await epochManager.currentEpoch(),
-              this.indexerStake,
-              this.channelID,
-              this.channelPubKey,
-              this.price,
+              indexerStake,
+              channelID,
+              channelPubKey,
+              price,
             )
         })
 
         it('reject allocate more than available tokens', async function() {
-          const tokensOverCapacity = this.indexerStake.add(toBN('1'))
-          const tx = this.allocate(tokensOverCapacity)
+          const tokensOverCapacity = indexerStake.add(toBN('1'))
+          const tx = allocate(tokensOverCapacity)
           await expect(tx).to.be.revertedWith('Allocation: not enough tokens available to allocate')
         })
 
         it('reject allocate zero tokens', async function() {
           const zeroTokens = toGRT('0')
-          const tx = this.allocate(zeroTokens)
+          const tx = allocate(zeroTokens)
           await expect(tx).to.be.revertedWith('Allocation: cannot allocate zero tokens')
         })
 
         context('> when allocated', function() {
           beforeEach(async function() {
             this.tokensAllocated = toGRT('10')
-            await this.allocate(this.tokensAllocated)
+            await allocate(this.tokensAllocated)
           })
 
           it('reject allocate again if not settled', async function() {
             const tokensToAllocate = toGRT('10')
-            const tx = this.allocate(tokensToAllocate)
+            const tx = allocate(tokensToAllocate)
             await expect(tx).to.be.revertedWith('Allocation: cannot allocate if already allocated')
           })
 
@@ -563,52 +546,49 @@ describe('Staking', () => {
               .allocate(
                 subgraphDeploymentID,
                 tokensToAllocate,
-                this.channelPubKey,
+                channelPubKey,
                 channelProxy.address,
-                this.price,
+                price,
               )
             await expect(tx).to.be.revertedWith('Allocation: channel ID already in use')
           })
         })
       })
 
-      describe('settle()', function() {
+      describe('settle', function() {
         beforeEach(async function() {
           this.tokensAllocated = toGRT('10')
           this.tokensToSettle = toGRT('100')
 
           // Create the allocation to be settled
-          await this.allocate(this.tokensAllocated)
+          await allocate(this.tokensAllocated)
           await grt.connect(governor).mint(channelProxy.address, this.tokensToSettle)
           await grt.connect(channelProxy).approve(staking.address, this.tokensToSettle)
         })
 
         it('should settle and distribute funds', async function() {
           const stakeBefore = await staking.stakes(indexer.address)
-          const allocBefore = await staking.getAllocation(
-            indexer.address,
-            this.subgraphDeploymentID,
-          )
+          const allocBefore = await staking.getAllocation(indexer.address, subgraphDeploymentID)
 
           // Curate the subgraph to be settled to get curation fees distributed
           const tokensToSignal = toGRT('100')
           await grt.connect(governor).mint(me.address, tokensToSignal)
           await grt.connect(me).approve(curation.address, tokensToSignal)
-          await curation.connect(me).stake(this.subgraphDeploymentID, tokensToSignal)
+          await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
 
           // Curation parameters
           const curationPercentage = toBN('200000') // 20%
           await staking.connect(governor).setCurationPercentage(curationPercentage)
 
           // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
 
           // Get epoch information
           const result = await epochManager.epochsSince(allocBefore.createdAtEpoch)
           const epochs = result[0].add(toBN('1'))
           const settlementEpoch = result[1].add(toBN('1'))
 
-          // Calculat expected results
+          // Calculate expected results
           const curationFees = this.tokensToSettle.mul(curationPercentage).div(MAX_PPM)
           const rebateFees = this.tokensToSettle.sub(curationFees) // calculate expected fees
           const effectiveAlloc = this.tokensAllocated.mul(epochs) // effective allocation
@@ -619,10 +599,10 @@ describe('Staking', () => {
             .to.emit(staking, 'AllocationSettled')
             .withArgs(
               indexer.address,
-              this.subgraphDeploymentID,
+              subgraphDeploymentID,
               settlementEpoch,
               this.tokensToSettle,
-              this.channelID,
+              channelID,
               channelProxy.address,
               curationFees,
               rebateFees,
@@ -630,7 +610,7 @@ describe('Staking', () => {
             )
 
           // Check that curation reserves increased for that SubgraphDeployment
-          const poolAfter = await curation.pools(this.subgraphDeploymentID)
+          const poolAfter = await curation.pools(subgraphDeploymentID)
           expect(poolAfter.tokens).to.eq(tokensToSignal.add(curationFees))
 
           // Verify stake is updated
@@ -640,7 +620,7 @@ describe('Staking', () => {
           )
 
           // Verify allocation is updated and channel closed
-          const allocAfter = await staking.getAllocation(indexer.address, this.subgraphDeploymentID)
+          const allocAfter = await staking.getAllocation(indexer.address, subgraphDeploymentID)
           expect(allocAfter.tokens).to.eq(toBN('0'))
           expect(allocAfter.createdAtEpoch).to.eq(toBN('0'))
           expect(allocAfter.channelID).to.be.eq(AddressZero)
@@ -649,7 +629,7 @@ describe('Staking', () => {
           const settlement = await staking.getSettlement(
             settlementEpoch,
             indexer.address,
-            this.subgraphDeploymentID,
+            subgraphDeploymentID,
           )
           expect(settlement.fees).to.eq(rebateFees)
           expect(settlement.allocation).to.eq(effectiveAlloc)
@@ -657,7 +637,7 @@ describe('Staking', () => {
 
         it('should settle zero tokens', async function() {
           // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
 
           // Settle zero tokens
           await staking.connect(channelProxy).settle(toBN('0'))
@@ -670,7 +650,7 @@ describe('Staking', () => {
 
         it('reject settle from an already settled channel', async function() {
           // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
 
           // Settle the channel
           await staking.connect(channelProxy).settle(this.tokensToSettle.div(toBN('2')))
@@ -686,7 +666,7 @@ describe('Staking', () => {
         })
       })
 
-      describe('claim()', function() {
+      describe('claim', function() {
         before(async function() {
           // Claim and perform checks
           this.shouldClaim = async function(restake: boolean) {
@@ -696,12 +676,12 @@ describe('Staking', () => {
             const currentEpoch = await epochManager.currentEpoch()
             const tx = staking
               .connect(indexer)
-              .claim(this.rebateEpoch, this.subgraphDeploymentID, restake)
+              .claim(this.rebateEpoch, subgraphDeploymentID, restake)
             await expect(tx)
               .to.emit(staking, 'RebateClaimed')
               .withArgs(
                 indexer.address,
-                this.subgraphDeploymentID,
+                subgraphDeploymentID,
                 currentEpoch,
                 this.rebateEpoch,
                 this.tokensToSettle,
@@ -730,17 +710,17 @@ describe('Staking', () => {
           this.tokensToSettle = toGRT('100')
 
           // Create the allocation to be settled
-          await this.allocate(this.tokensAllocated)
+          await allocate(this.tokensAllocated)
           await grt.connect(governor).mint(channelProxy.address, this.tokensToSettle)
           await grt.connect(channelProxy).approve(staking.address, this.tokensToSettle)
 
           // Advance blocks to get the channel in epoch where it can be settled
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
         })
 
         it('reject claim if channelDisputeEpoch has not passed', async function() {
           const currentEpoch = await epochManager.currentEpoch()
-          const tx = staking.connect(indexer).claim(currentEpoch, this.subgraphDeploymentID, false)
+          const tx = staking.connect(indexer).claim(currentEpoch, subgraphDeploymentID, false)
           await expect(tx).to.be.revertedWith('Rebate: need to wait channel dispute period')
         })
 
@@ -749,7 +729,7 @@ describe('Staking', () => {
           const subgraphDeploymentID = randomHexBytes()
 
           // Advance blocks to get the channel in epoch where it can be claimed
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
 
           const tx = staking.connect(indexer).claim(currentEpoch, subgraphDeploymentID, false)
           await expect(tx).to.be.revertedWith('Rebate: settlement does not exist')
@@ -766,7 +746,7 @@ describe('Staking', () => {
           this.rebateEpoch = await epochManager.currentEpoch()
 
           // Advance blocks to get the channel in epoch where it can be claimed
-          await this.advanceToNextEpoch()
+          await advanceToNextEpoch(epochManager)
 
           // Claim with no restake
           await this.shouldClaim(false)
@@ -785,7 +765,7 @@ describe('Staking', () => {
             this.rebateEpoch = await epochManager.currentEpoch()
 
             // Advance blocks to get the channel in epoch where it can be claimed
-            await this.advanceToNextEpoch()
+            await advanceToNextEpoch(epochManager)
           })
 
           it('should claim rebate', async function() {

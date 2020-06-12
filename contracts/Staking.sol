@@ -71,8 +71,9 @@ contract Staking is Governed {
         mapping(address => uint256) delegatorShares; // Mapping of delegator => shares
     }
 
-    // Set the delegation capacity multiplier, an indexer delegation capacity will be:
-    // max(tokensStaked+tokensDelegated, totalStaked*delegationCapacity)
+    // Set the delegation capacity multiplier.
+    // If delegation capacity is 100 GRT, and an Indexer has staked 5 GRT,
+    // then they can accept 500 GRT as delegated stake.
     uint256 public delegationCapacity;
 
     // Time in blocks an indexer needs to wait to change delegation parameters
@@ -362,15 +363,6 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Get the total amount of tokens staked by the indexer
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens staked by the indexer
-     */
-    function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
-        return stakes[_indexer].tokensStaked;
-    }
-
-    /**
      * @dev Get an allocation of tokens to a SubgraphDeployment
      * @param _indexer Address of the indexer
      * @param _subgraphDeploymentID ID of the SubgraphDeployment to query
@@ -396,6 +388,43 @@ contract Staking is Governed {
         returns (uint256)
     {
         return delegation[_indexer].delegatorShares[_delegator];
+    }
+
+    /**
+     * @dev Get the total amount of tokens staked by the indexer
+     * @param _indexer Address of the indexer
+     * @return Amount of tokens staked by the indexer
+     */
+    function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
+        return stakes[_indexer].tokensStaked;
+    }
+
+    /**
+     * @dev Get the total amount of tokens available to use in allocations.
+     * @param _indexer Address of the indexer
+     * @return Amount of tokens staked by the indexer
+     */
+    function getIndexerCapacity(address _indexer) public view returns (uint256) {
+        Stakes.Indexer memory indexerStake = stakes[_indexer];
+        DelegationPool memory pool = delegation[_indexer];
+
+        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(delegationCapacity);
+        uint256 tokensDelegated = min(pool.tokens, tokensDelegatedMax);
+
+        uint256 tokensUsed = indexerStake.tokensUsed();
+        uint256 tokensCapacity = indexerStake.tokensStaked.add(tokensDelegated);
+
+        // If more tokens are used than the current capacity, the indexer is overallocated.
+        // This means the indexer doesn't have available capacity to create new allocations.
+        // We can reach this state when the indexer has funds allocated and then any
+        // of these conditions happen:
+        // - The delegationCapacity ratio is reduced.
+        // - The indexer stake is slashed.
+        // - A delegator removes enough stake.
+        if (tokensUsed > tokensCapacity) {
+            return 0;
+        }
+        return tokensCapacity.sub(tokensUsed);
     }
 
     /**
@@ -590,9 +619,9 @@ contract Staking is Governed {
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
         // Need to have tokens in our stake to be able to allocate
         require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
-        // Need to have free tokens not used for other purposes to allocate
+        // Need to have free capacity not used for other purposes to allocate
         require(
-            indexerStake.tokensAvailable() >= _tokens,
+            getIndexerCapacity(indexer) >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
         // Can only allocate tokens to a SubgraphDeployment if not currently allocated
@@ -807,7 +836,7 @@ contract Staking is Governed {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegation[_indexer];
         if (pool.queryFeeCut > 0) {
-            delegationFees = percentageOf(pool.queryFeeCut, _tokens);
+            delegationFees = _tokens.sub(percentageOf(pool.queryFeeCut, _tokens));
             pool.tokens = pool.tokens.add(delegationFees);
         }
         return delegationFees;
@@ -848,6 +877,10 @@ contract Staking is Governed {
             id := chainid()
         }
         return id;
+    }
+
+    function min(uint256 a, uint256 b) private pure returns (uint256) {
+        return a < b ? a : b;
     }
 
     /**

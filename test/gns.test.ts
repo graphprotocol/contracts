@@ -1,6 +1,5 @@
 import { ethers, Wallet } from 'ethers'
 import { expect } from 'chai'
-import { AddressZero } from 'ethers/constants'
 
 import { Gns } from '../build/typechain/contracts/Gns'
 import { EthereumDidRegistry } from '../build/typechain/contracts/EthereumDidRegistry'
@@ -56,7 +55,7 @@ describe('GNS', () => {
       gns.connect(signer).deprecate(graphAccount, subgraphNumber)
   })
 
-  describe('isPublished()', function() {
+  describe('isPublished', function() {
     it('should return if the subgraph is published', async function() {
       expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).to.be.eq(false)
       await this.publishNewSubgraph(me, me.address)
@@ -64,7 +63,7 @@ describe('GNS', () => {
     })
   })
 
-  describe('publishNewSubgraph()', async function() {
+  describe('publishNewSubgraph', async function() {
     it('should publish a new subgraph and first version with it', async function() {
       const tx = this.publishNewSubgraph(me, me.address)
       await expect(tx)
@@ -112,7 +111,7 @@ describe('GNS', () => {
     })
   })
 
-  describe('publishNewVersion()', async function() {
+  describe('publishNewVersion', async function() {
     it('should publish a new version on an existing subgraph', async function() {
       await this.publishNewSubgraph(me, me.address)
       const tx = this.publishNewVersion(me, me.address, 0)
@@ -145,7 +144,7 @@ describe('GNS', () => {
     })
   })
 
-  describe('deprecate()', async function() {
+  describe('deprecate', async function() {
     it('should deprecate a subgraph', async function() {
       await this.publishNewSubgraph(me, me.address)
       const tx = this.deprecate(me, me.address, 0)

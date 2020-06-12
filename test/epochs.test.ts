@@ -25,7 +25,7 @@ describe('EpochManager', () => {
     epochManager = await deployment.deployEpochManager(governor.address)
   })
 
-  describe('state variables functions', () => {
+  describe('configuration', () => {
     it('should set `governor`', async function() {
       // Set right in the constructor
       expect(await epochManager.governor()).to.eq(governor.address)
