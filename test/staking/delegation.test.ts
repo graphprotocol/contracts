@@ -23,7 +23,7 @@ use(solidity)
 const MAX_PPM = toBN('1000000')
 
 describe('Staking::Delegation', () => {
-  const [me, delegator, governor, indexer, channelProxy] = provider().getWallets()
+  const [me, delegator, delegator2, governor, indexer, channelProxy] = provider().getWallets()
 
   let curation: Curation
   let epochManager: EpochManager
@@ -32,6 +32,7 @@ describe('Staking::Delegation', () => {
 
   async function shouldDelegate(sender: Wallet, tokens: BigNumber) {
     // Calculate shares to get
+    const beforeShares = await staking.getDelegationShares(indexer.address, sender.address)
     const beforePool = await staking.delegation(indexer.address)
     const shares = beforePool.tokens.eq(toBN('0'))
       ? tokens
@@ -47,6 +48,30 @@ describe('Staking::Delegation', () => {
     const afterPool = await staking.delegation(indexer.address)
     expect(afterPool.tokens).to.be.eq(beforePool.tokens.add(tokens))
     expect(afterPool.shares).to.be.eq(beforePool.shares.add(shares))
+
+    const afterShares = await staking.getDelegationShares(indexer.address, sender.address)
+    expect(afterShares).to.be.eq(beforeShares.add(shares))
+  }
+
+  async function shouldUndelegate(sender: Wallet, shares: BigNumber) {
+    // Get the delegation pool for the indexer
+    const beforePool = await staking.delegation(indexer.address)
+    const beforeShares = await staking.getDelegationShares(indexer.address, sender.address)
+    const tokens = shares.mul(beforePool.shares).div(beforePool.tokens)
+
+    // Undelegate
+    const tx = staking.connect(sender).undelegate(indexer.address, shares)
+    await expect(tx)
+      .to.emit(staking, 'StakeUndelegated')
+      .withArgs(indexer.address, sender.address, tokens, shares)
+
+    // State updated
+    const afterPool = await staking.delegation(indexer.address)
+    expect(afterPool.tokens).to.be.eq(beforePool.tokens.sub(tokens))
+    expect(afterPool.shares).to.be.eq(beforePool.shares.sub(shares))
+
+    const afterShares = await staking.getDelegationShares(indexer.address, sender.address)
+    expect(afterShares).to.be.eq(beforeShares.sub(shares))
   }
 
   beforeEach(async function() {
@@ -164,8 +189,10 @@ describe('Staking::Delegation', () => {
   describe('delegate', function() {
     beforeEach(async function() {
       // Distribute test funds
-      await grt.connect(governor).mint(delegator.address, toGRT('10000000000000000000'))
-      await grt.connect(delegator).approve(staking.address, toGRT('10000000000000000000'))
+      for (const wallet of [delegator, delegator2]) {
+        await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
+        await grt.connect(wallet).approve(staking.address, toGRT('10000000000000000000'))
+      }
     })
 
     it('reject to delegate zero tokens', async function() {
@@ -175,12 +202,16 @@ describe('Staking::Delegation', () => {
     })
 
     it('should delegate tokens and account shares proportionally', async function() {
+      // Multiple delegations should work
       await shouldDelegate(delegator, toGRT('1234'))
       await shouldDelegate(delegator, toGRT('100'))
       await shouldDelegate(delegator, toGRT('50'))
       await shouldDelegate(delegator, toGRT('25'))
       await shouldDelegate(delegator, toGRT('10'))
       await shouldDelegate(delegator, toGRT('1'))
+
+      // Delegation by other delegator
+      await shouldDelegate(delegator2, toGRT('5000'))
     })
 
     it('should delegate a high number of tokens', async function() {
@@ -192,9 +223,9 @@ describe('Staking::Delegation', () => {
   describe('undelegate', function() {
     beforeEach(async function() {
       // Distribute test funds
-      for (const wallet of [delegator, me]) {
-        await grt.connect(governor).mint(wallet.address, toGRT('1000'))
-        await grt.connect(wallet).approve(staking.address, toGRT('1000'))
+      for (const wallet of [delegator, delegator2]) {
+        await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
+        await grt.connect(wallet).approve(staking.address, toGRT('10000000000000000000'))
       }
     })
 
@@ -213,31 +244,20 @@ describe('Staking::Delegation', () => {
 
       // Have two parties that delegated tokens to the same indexer
       await shouldDelegate(delegator, tokens)
-      await shouldDelegate(me, tokens)
+      await shouldDelegate(delegator2, tokens)
 
-      // Get the delegation pool for the indexer
-      const beforePool = await staking.delegation(indexer.address)
+      // Delegate half of the delegated funds
+      await shouldUndelegate(delegator, tokens.div(toBN('2')))
+    })
 
-      // Undelegate half of one of the delegator shares
-      const beforeShares = await staking.getDelegationShares(indexer.address, delegator.address)
-      const sharesToUndelegate = beforeShares.div(toBN('2'))
+    it('should undelegate properly when multiple delegations', async function() {
+      await shouldDelegate(delegator, toGRT('1234'))
+      await shouldDelegate(delegator, toGRT('100'))
+      await shouldDelegate(delegator, toGRT('50'))
+      await shouldDelegate(delegator2, toGRT('50'))
 
-      // Calculate the tokens to receive for the shares
-      const tokensToReceive = sharesToUndelegate.mul(beforePool.shares).div(beforePool.tokens)
-
-      // Undelegate
-      const tx = staking.connect(delegator).undelegate(indexer.address, sharesToUndelegate)
-      await expect(tx)
-        .to.emit(staking, 'StakeUndelegated')
-        .withArgs(indexer.address, delegator.address, tokensToReceive, sharesToUndelegate)
-
-      // State updated
-      const afterPool = await staking.delegation(indexer.address)
-      expect(afterPool.tokens).to.be.eq(beforePool.tokens.sub(tokensToReceive))
-      expect(afterPool.shares).to.be.eq(beforePool.shares.sub(sharesToUndelegate))
-
-      const afterShares = await staking.getDelegationShares(indexer.address, delegator.address)
-      expect(afterShares).to.be.eq(beforeShares.sub(sharesToUndelegate))
+      await shouldUndelegate(delegator, toGRT('1'))
+      await shouldUndelegate(delegator2, toGRT('50'))
     })
   })
 
@@ -245,7 +265,7 @@ describe('Staking::Delegation', () => {
     // Default test values
     const tokensToStake = toGRT('200')
     const tokensToAllocate = toGRT('2000')
-    const tokensToSettle = toGRT('1000')
+    const tokensToSettle = toGRT('1')
     const tokensToDelegate = toGRT('1800')
 
     const subgraphDeploymentID = randomHexBytes()
@@ -260,7 +280,7 @@ describe('Staking::Delegation', () => {
 
     beforeEach(async function() {
       // Distribute test funds
-      for (const wallet of [delegator, indexer, channelProxy]) {
+      for (const wallet of [delegator, me, indexer, channelProxy]) {
         await grt.connect(governor).mint(wallet.address, toGRT('1000000'))
         await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
       }
@@ -301,6 +321,8 @@ describe('Staking::Delegation', () => {
     })
 
     it('should send delegation cut of query fees to delegation pool', async function() {
+      const curationPercentage = toBN('0')
+
       // 1:10 delegation capacity
       await staking.connect(governor).setDelegationCapacity(10)
 
@@ -322,17 +344,70 @@ describe('Staking::Delegation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Delegation pool before settlement
-      const beforePool = await staking.delegation(indexer.address)
+      const beforeDelegationPool = await staking.delegation(indexer.address)
+      const beforeCurationPool = await curation.pools(subgraphDeploymentID)
 
       // Settle
       await staking.connect(channelProxy).settle(tokensToSettle)
 
-      // Calculate delegation fees
+      // Calculate expected results
       const delegationFees = tokensToSettle.sub(queryFeeCut.mul(tokensToSettle).div(MAX_PPM))
+      const curationFees = tokensToSettle.mul(curationPercentage).div(MAX_PPM)
 
       // State updated
-      const afterPool = await staking.delegation(indexer.address)
-      expect(afterPool.tokens).to.be.eq(beforePool.tokens.add(delegationFees))
+      const afterDelegationPool = await staking.delegation(indexer.address)
+      const afterCurationPool = await curation.pools(subgraphDeploymentID)
+      expect(afterDelegationPool.tokens).to.be.eq(beforeDelegationPool.tokens.add(delegationFees))
+      expect(afterCurationPool.tokens).to.be.eq(beforeCurationPool.tokens.add(curationFees))
+    })
+
+    it('should distribute funds when both curation and delegation fees are set', async function() {
+      // In this test we try to max out curation % and delegation % to test that
+      // fund distribution does not overflow
+
+      // Curate on a subgraph that the indexer will settle funds
+      const tokensToSignal = toGRT('1000')
+      const curationPercentage = MAX_PPM
+      await grt.connect(me).approve(curation.address, tokensToSignal)
+      await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
+      await staking.connect(governor).setCurationPercentage(MAX_PPM)
+
+      // 1:10 delegation capacity
+      await staking.connect(governor).setDelegationCapacity(10)
+
+      // Set delegation rules for the indexer
+      const indexingRewardCut = toBN('800000') // indexer keep 80%
+      const queryFeeCut = toBN('950000') // indexer keeps 95%
+      const cooldownBlocks = 5
+      await staking
+        .connect(indexer)
+        .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+
+      // Delegate
+      await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
+
+      // Prepare allocation
+      await setupAllocation(tokensToAllocate)
+
+      // Advance blocks to get the channel in epoch where it can be settled
+      await advanceToNextEpoch(epochManager)
+
+      // Delegation pool before settlement
+      const beforeDelegationPool = await staking.delegation(indexer.address)
+      const beforeCurationPool = await curation.pools(subgraphDeploymentID)
+
+      // Settle
+      await staking.connect(channelProxy).settle(tokensToSettle)
+
+      // Calculate expected results
+      const delegationFees = tokensToSettle.sub(queryFeeCut.mul(tokensToSettle).div(MAX_PPM))
+      const curationFees = tokensToSettle.mul(curationPercentage).div(MAX_PPM)
+
+      // State updated
+      const afterDelegationPool = await staking.delegation(indexer.address)
+      const afterCurationPool = await curation.pools(subgraphDeploymentID)
+      expect(afterDelegationPool.tokens).to.be.eq(beforeDelegationPool.tokens.add(delegationFees))
+      expect(afterCurationPool.tokens).to.be.eq(beforeCurationPool.tokens.add(curationFees))
     })
   })
 })

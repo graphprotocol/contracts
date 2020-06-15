@@ -774,6 +774,7 @@ contract Staking is Governed {
         bytes32 subgraphDeploymentID = channels[_channelID].subgraphDeploymentID;
         Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphDeploymentID];
 
+        // Channel validation
         require(_channelID != address(0), "Channel: ChannelID cannot be empty address");
         require(
             alloc.channelID == _channelID,
