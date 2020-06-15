@@ -8,7 +8,7 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, id, amount } = minimist.default(process.argv.slice(2), {
+const { func, id, amount } = minimist.default(process.argv.slice(2), {
   string: ['func', 'id', 'amount'],
 })
 
@@ -38,19 +38,19 @@ const amountBN = utils.parseUnits(amount, 18)
 
 const stake = async () => {
   console.log('  First calling approve() to ensure curation contract can call transferFrom()...')
-  const approveOverrides = await overrides('graphToken', 'approve')
+  const approveOverrides = overrides('graphToken', 'approve')
   await executeTransaction(
     contracts.graphToken.approve(contracts.curation.address, amountBN, approveOverrides),
   )
   console.log('\n')
 
   console.log('  Now calling stake() on curation...')
-  const stakeOverrides = await overrides('curation', 'stake')
+  const stakeOverrides = overrides('curation', 'stake')
   await executeTransaction(contracts.curation.stake(id, amountBN, stakeOverrides))
 }
 
 const redeem = async () => {
-  const redeemOverrides = await overrides('curation', 'redeem')
+  const redeemOverrides = overrides('curation', 'redeem')
   // Redeeming does not need Big Number
   await executeTransaction(contracts.curation.redeem(id, amount, redeemOverrides))
 }

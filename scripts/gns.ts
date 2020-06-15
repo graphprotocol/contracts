@@ -1,8 +1,8 @@
 #!/usr/bin/env ts-node
 
-import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
+import * as fs from 'fs'
 
 import { contracts, executeTransaction, overrides, IPFS, checkUserInputs } from './helpers'
 
@@ -10,7 +10,7 @@ import { contracts, executeTransaction, overrides, IPFS, checkUserInputs } from 
 // Set up the script //
 ///////////////////////
 
-let {
+const {
   func,
   ipfs,
   graphAccount,
@@ -82,9 +82,9 @@ const publishNewSubgraph = async () => {
     'publishNewSubgraph',
   )
 
-  let metaHashBytes = await handleMetadata(ipfs, metadataPath)
-  let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
-  const gnsOverrides = await overrides('gns', 'publishNewSubgraph')
+  const metaHashBytes = await handleMetadata(ipfs, metadataPath)
+  const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
+  const gnsOverrides = overrides('gns', 'publishNewSubgraph')
   console.log(metaHashBytes)
   console.log(subgraphDeploymentIDBytes)
   await executeTransaction(
@@ -106,9 +106,9 @@ const publishNewVersion = async () => {
     'publishNewVersion',
   )
 
-  let metaHashBytes = await handleMetadata(ipfs, metadataPath)
-  let subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
-  const gnsOverrides = await overrides('gns', 'publishNewVersion')
+  const metaHashBytes = await handleMetadata(ipfs, metadataPath)
+  const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
+  const gnsOverrides = overrides('gns', 'publishNewVersion')
 
   await executeTransaction(
     contracts.gns.publishNewVersion(
@@ -125,12 +125,21 @@ const publishNewVersion = async () => {
 
 const deprecate = async () => {
   checkUserInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
-  const gnsOverrides = await overrides('gns', 'deprecate')
+  const gnsOverrides = overrides('gns', 'deprecate')
   await executeTransaction(contracts.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides))
 }
 
+interface GNSMetadata {
+  subgraphDescription: string
+  subgraphImage: string
+  subgraphCodeRepository: string
+  subgraphWebsite: string
+  versionDescription: string
+  versionLabel: string
+}
+
 const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
-  const metadata = require(path)
+  const metadata: GNSMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
   console.log('Meta data:')
   console.log('  Subgraph Description:     ', metadata.subgraphDescription || '')
   console.log('  Subgraph Image:           ', metadata.subgraphImage || '')
@@ -139,13 +148,13 @@ const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   console.log('  Version Description:      ', metadata.versionDescription || '')
   console.log('  Version Label:            ', metadata.versionLabel || '')
 
-  let ipfsClient = IPFS.createIpfsClient(ipfs)
+  const ipfsClient = IPFS.createIpfsClient(ipfs)
 
   console.log('\nUpload JSON meta data to IPFS...')
-  let result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
-  let metaHash = result[0].hash
+  const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
+  const metaHash = result[0].hash
   try {
-    let data = JSON.parse(await ipfsClient.cat(metaHash))
+    const data = JSON.parse(await ipfsClient.cat(metaHash))
     if (JSON.stringify(data) !== JSON.stringify(metadata)) {
       throw new Error(`Original meta data and uploaded data are not identical`)
     }

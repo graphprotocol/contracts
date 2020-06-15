@@ -10,7 +10,7 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, account, amount } = minimist.default(process.argv.slice(2), {
+const { func, account, amount } = minimist.default(process.argv.slice(2), {
   string: ['func', 'account', 'amount'],
 })
 
@@ -45,22 +45,18 @@ const amountBN = utils.parseUnits(amount, 18)
 ///////////////////////
 
 const mint = async () => {
-  const mintOverrides = await overrides('graphToken', 'mint')
+  const mintOverrides = overrides('graphToken', 'mint')
   await executeTransaction(contracts.graphToken.mint(account, amountBN, mintOverrides))
 }
 
 const transfer = async () => {
-  const transferOverrides = await overrides('graphToken', 'transfer')
-  await executeTransaction(
-    contracts.graphToken.transfer(account, amountBN, transferOverrides),
-  )
+  const transferOverrides = overrides('graphToken', 'transfer')
+  await executeTransaction(contracts.graphToken.transfer(account, amountBN, transferOverrides))
 }
 
 const approve = async () => {
-  const approveOverrides = await overrides('graphToken', 'approve')
-  await executeTransaction(
-    contracts.graphToken.approve(account, amountBN, approveOverrides),
-  )
+  const approveOverrides = overrides('graphToken', 'approve')
+  await executeTransaction(contracts.graphToken.approve(account, amountBN, approveOverrides))
 }
 
 ///////////////////////

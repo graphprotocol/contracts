@@ -8,8 +8,8 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, url, geohash } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'url', 'geohash'],
+const { func, url, geoHash } = minimist.default(process.argv.slice(2), {
+  string: ['func', 'url', 'geoHash'],
 })
 
 if (!func) {
@@ -21,7 +21,7 @@ Usage: ${path.basename(process.argv[1])}
 Function arguments:
   register
     --url <string>      - URL of the indexer service
-    --geohash <string>  - Geohash of the indexer
+    --geoHash <string>  - geoHash of the indexer
 
   unregister (no arguments passed with this function)
 
@@ -34,18 +34,16 @@ Function arguments:
 ///////////////////////
 
 const register = async () => {
-  if (!url || !geohash) {
-    console.error(`ERROR: register must be provided a url or geohash`)
+  if (!url || !geoHash) {
+    console.error(`ERROR: register must be provided a url or geoHash`)
     process.exit(1)
   }
-  const registerOverrides = await overrides('serviceRegistry', 'register')
-  await executeTransaction(
-    contracts.serviceRegistry.register(url, geohash, registerOverrides),
-  )
+  const registerOverrides = overrides('serviceRegistry', 'register')
+  await executeTransaction(contracts.serviceRegistry.register(url, geoHash, registerOverrides))
 }
 
 const unregister = async () => {
-  const unregisterOverrides = await overrides('graphToken', 'transfer')
+  const unregisterOverrides = overrides('graphToken', 'transfer')
   await executeTransaction(contracts.serviceRegistry.unregister(unregisterOverrides))
 }
 
@@ -57,7 +55,7 @@ const main = async () => {
   try {
     if (func == 'register') {
       console.log(
-        `Registering ${await contracts.serviceRegistry.signer.getAddress()} with url ${url} and geohash ${geohash}...`,
+        `Registering ${await contracts.serviceRegistry.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
       )
       register()
     } else if (func == 'unregister') {

@@ -3,7 +3,6 @@ import * as path from 'path'
 
 import { ContractTransaction, ethers, utils, Wallet } from 'ethers'
 import { ContractReceipt } from 'ethers/contract'
-// @ts-ignore
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
@@ -16,16 +15,16 @@ import { IensFactory } from '../build/typechain/contracts/IensFactory'
 import { IPublicResolverFactory } from '../build/typechain/contracts/IPublicResolverFactory'
 import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEthereumDidRegistryFactory'
 import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarFactory'
+import { TransactionOverrides } from '../build/typechain/contracts'
 
 // TODO - make addresses depend on our npm package
-let addresses = (JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'),
-) as any).kovan
-let privateKey = fs.readFileSync(path.join(__dirname, '..', '.privkey.txt'), 'utf-8').trim()
-let infuraKey = fs.readFileSync(path.join(__dirname, '..', '.infurakey.txt'), 'utf-8').trim()
+const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'))
+  .kovan
+const privateKey = fs.readFileSync(path.join(__dirname, '..', '.privkey.txt'), 'utf-8').trim()
+const infuraKey = fs.readFileSync(path.join(__dirname, '..', '.infurakey.txt'), 'utf-8').trim()
 
-let ethereum = `https://kovan.infura.io/v3/${infuraKey}`
-let eth = new ethers.providers.JsonRpcProvider(ethereum)
+const ethereum = `https://kovan.infura.io/v3/${infuraKey}`
+const eth = new ethers.providers.JsonRpcProvider(ethereum)
 let wallet = Wallet.fromMnemonic(privateKey)
 wallet = wallet.connect(eth)
 
@@ -45,9 +44,9 @@ export const executeTransaction = async (
   transaction: Promise<ContractTransaction>,
 ): Promise<ContractReceipt> => {
   try {
-    let tx = await transaction
+    const tx = await transaction
     console.log(`  Transaction pending: 'https://kovan.etherscan.io/tx/${tx.hash}'`)
-    let receipt = await tx.wait(1)
+    const receipt = await tx.wait(1)
     console.log(`  Transaction successfully included in block #${receipt.blockNumber}`)
     return receipt
   } catch (e) {
@@ -56,7 +55,12 @@ export const executeTransaction = async (
   }
 }
 
-export const overrides = async (contract: string, func: string) => {
+type Overrides = {
+  address?: string
+  topics?: Array<string>
+}
+
+export const overrides = (contract: string, func: string): TransactionOverrides => {
   const gasPrice = utils.parseUnits('25', 'gwei')
   const gasLimit = 1000000
   // console.log(`\ntx gas price: '${gasPrice}'`);
@@ -84,7 +88,7 @@ export const checkUserInputs = (
   userInputs: Array<string | undefined>,
   inputNames: Array<string>,
   functionName: string,
-) => {
+): void => {
   userInputs.forEach((input, i) => {
     if (input == undefined) {
       console.error(`ERROR: ${inputNames[i]} was not provided for ${functionName}()`)
@@ -114,7 +118,7 @@ export class IPFS {
   }
 
   static ipfsHashToBytes32(hash: string): string {
-    let hashBytes = bs58.decode(hash).slice(2)
+    const hashBytes = bs58.decode(hash).slice(2)
     console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`)
     return utils.hexlify(hashBytes)
   }

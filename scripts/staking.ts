@@ -8,9 +8,12 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-let { func, amount, channelPubKey, channelProxy, price } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'amount', 'channelPubKey', 'channelProxy', 'price'],
-})
+const { func, amount, channelPubKey, channelProxy, price } = minimist.default(
+  process.argv.slice(2),
+  {
+    string: ['func', 'amount', 'channelPubKey', 'channelProxy', 'price'],
+  },
+)
 
 if (!func) {
   console.error(
@@ -53,13 +56,13 @@ const stake = async () => {
     process.exit(1)
   }
   console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
-  const approveOverrides = await overrides('graphToken', 'approve')
+  const approveOverrides = overrides('graphToken', 'approve')
   await executeTransaction(
     contracts.graphToken.approve(contracts.staking.address, amountBN, approveOverrides),
   )
 
   console.log('  Now calling stake() on staking...')
-  const stakeOverrides = await overrides('staking', 'stake')
+  const stakeOverrides = overrides('staking', 'stake')
   await executeTransaction(contracts.staking.stake(amountBN, stakeOverrides))
 }
 
@@ -68,36 +71,36 @@ const unstake = async () => {
     console.error(`ERROR: unstake() must be provided an amount`)
     process.exit(1)
   }
-  const unstakeOverrides = await overrides('staking', 'unstake')
+  const unstakeOverrides = overrides('staking', 'unstake')
   await executeTransaction(contracts.staking.unstake(amountBN, unstakeOverrides))
 }
 
 const withdraw = async () => {
-  const withdrawOverrides = await overrides('staking', 'withdraw')
+  const withdrawOverrides = overrides('staking', 'withdraw')
   await executeTransaction(contracts.staking.withdraw(withdrawOverrides))
 }
 
-const allocate = async () => {
-  if (!amount || !channelPubKey || !channelProxy || !price) {
-    console.error(
-      `ERROR: allocate() must be provided with amount, channelPubKey, channelProxy, and price`,
-    )
-    process.exit(1)
-  }
-  // TODO - not implemented
-  const allocateOverrides = await overrides('staking', 'withdraw')
-  //   await executeTransaction(contracts.staking.allocate(allocateOverrides))
-}
+// const allocate = async () => {
+//   if (!amount || !channelPubKey || !channelProxy || !price) {
+//     console.error(
+//       `ERROR: allocate() must be provided with amount, channelPubKey, channelProxy, and price`,
+//     )
+//     process.exit(1)
+//   }
+//   // TODO - not implemented
+//   const allocateOverrides = overrides('staking', 'withdraw')
+//   //   await executeTransaction(contracts.staking.allocate(allocateOverrides))
+// }
 
-const settle = async () => {
-  if (!amount) {
-    console.error(`ERROR: settle() must be provided an amount`)
-    process.exit(1)
-  }
-  // TODO - not implemented
-  const settleOverrides = await overrides('staking', 'withdraw')
-  //   await executeTransaction(contracts.staking.settle(settleOverrides))
-}
+// const settle = async () => {
+//   if (!amount) {
+//     console.error(`ERROR: settle() must be provided an amount`)
+//     process.exit(1)
+//   }
+//   // TODO - not implemented
+//   const settleOverrides = overrides('staking', 'withdraw')
+//   //   await executeTransaction(contracts.staking.settle(settleOverrides))
+// }
 
 ///////////////////////
 // main ///////////////
