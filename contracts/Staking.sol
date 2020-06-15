@@ -186,7 +186,7 @@ contract Staking is Governed {
      * @dev Emitted when `indexer` claimed a rebate on `subgraphDeploymentID` during `epoch`
      * related to the `forEpoch` rebate pool.
      * The rebate is for `tokens` amount and an outstanding `settlements` count are
-     * left for claim in the rebate pool.
+     * left for claim in the rebate pool. `delegationFees` collected and sent to delegation pool.
      */
     event RebateClaimed(
         address indexed indexer,
@@ -194,7 +194,8 @@ contract Staking is Governed {
         uint256 epoch,
         uint256 forEpoch,
         uint256 tokens,
-        uint256 settlements
+        uint256 settlements,
+        uint256 delegationFees
     );
 
     /**
@@ -726,6 +727,10 @@ contract Staking is Governed {
             delete rebates[_epoch];
         }
 
+        // Calculate delegation fees and add them to the delegation pool
+        uint256 delegationFees = _collectDelegationFees(indexer, tokensToClaim);
+        tokensToClaim = tokensToClaim.sub(delegationFees);
+
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
             // Assign claimed tokens
@@ -744,7 +749,8 @@ contract Staking is Governed {
             currentEpoch,
             _epoch,
             tokensToClaim,
-            pool.settlementsCount
+            pool.settlementsCount,
+            delegationFees
         );
     }
 
@@ -788,14 +794,11 @@ contract Staking is Governed {
         // Calculate curation fees only if the subgraph deployment is curated
         uint256 curationFees = _collectCurationFees(subgraphDeploymentID, _tokens);
 
-        // Calculate delegation fees and add them to the delegation pool
-        uint256 delegationFees = _collectDelegationFees(indexer, _tokens);
-
         // Set apart fees into a rebate pool for the indexer
         Rebates.Settlement memory settlement = rebates[currentEpoch].add(
             indexer,
             subgraphDeploymentID,
-            _tokens.sub(curationFees).sub(delegationFees), // delegation fees
+            _tokens.sub(curationFees), // substract curation fees
             alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs) // effective allocation
         );
 
@@ -836,7 +839,7 @@ contract Staking is Governed {
     function _collectDelegationFees(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegation[_indexer];
-        if (pool.queryFeeCut > 0) {
+        if (pool.queryFeeCut < MAX_PPM) {
             delegationFees = _tokens.sub(percentageOf(pool.queryFeeCut, _tokens));
             pool.tokens = pool.tokens.add(delegationFees);
         }
