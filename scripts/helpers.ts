@@ -84,7 +84,7 @@ export const overrides = (contract: string, func: string): TransactionOverrides 
   // }
 }
 
-export const checkUserInputs = (
+export const checkFuncInputs = (
   userInputs: Array<string | undefined>,
   inputNames: Array<string>,
   functionName: string,

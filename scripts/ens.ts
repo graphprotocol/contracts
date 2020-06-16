@@ -4,7 +4,7 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides, checkUserInputs } from './helpers'
+import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -35,9 +35,9 @@ Function arguments:
 // functions //////////
 ///////////////////////
 
-// NOT IN USE, SEE setTestRecord
+// NOT IN USE, SEE setTestRecord. Will be in use when we are on Rinkeby
 // const setSubnodeRecord = async (nodeName: string, labelName: string) => {
-//   checkUserInputs([nodeName, labelName], ['nodeName', 'labelName'], 'setSubnodeRecord')
+//   checkFuncInputs([nodeName, labelName], ['nodeName', 'labelName'], 'setSubnodeRecord')
 //   const node = utils.namehash(nodeName)
 //   const labelNameFull = `${labelName}.${nodeName}`
 //   const label = utils.namehash(labelNameFull)
@@ -56,7 +56,7 @@ Function arguments:
 // }
 
 const setTestRecord = async (labelName: string) => {
-  checkUserInputs([labelName], ['labelName'], 'setTestRecord')
+  checkFuncInputs([labelName], ['labelName'], 'setTestRecord')
   const node = utils.namehash('test')
   const labelNameFull = `${labelName}.${'test'}`
   const label = utils.keccak256(utils.toUtf8Bytes(labelName))
@@ -72,7 +72,7 @@ const setTestRecord = async (labelName: string) => {
 }
 
 const setText = async () => {
-  checkUserInputs([node], ['node'], 'setText')
+  checkFuncInputs([node], ['node'], 'setText')
   const key = 'GRAPH NAME SERVICE'
   const ensOverrides = overrides('ens', 'setText')
   const signerAddress = await contracts.publicResolver.signer.getAddress()
@@ -80,7 +80,7 @@ const setText = async () => {
 }
 
 const checkOwner = async () => {
-  checkUserInputs([name], ['name'], 'checkOwner')
+  checkFuncInputs([name], ['name'], 'checkOwner')
   try {
     const node = utils.namehash(`${name}.test`)
     console.log(`Node: ${node}`)

@@ -3,7 +3,7 @@ import { utils, Wallet } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from './helpers'
+import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 ///////////////////////
 // Set up the script //
 ///////////////////////
@@ -52,10 +52,7 @@ const amountBN = utils.parseUnits(amount, 18)
 console.log(amountBN)
 
 const stake = async () => {
-  if (!amount) {
-    console.error(`ERROR: stake() must be provided an amount`)
-    process.exit(1)
-  }
+  checkFuncInputs([amount], ['amount'], 'stake')
   console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
   const approveOverrides = overrides('graphToken', 'approve')
   await executeTransaction(
@@ -68,10 +65,7 @@ const stake = async () => {
 }
 
 const unstake = async () => {
-  if (!amount) {
-    console.error(`ERROR: unstake() must be provided an amount`)
-    process.exit(1)
-  }
+  checkFuncInputs([amount], ['amount'], 'unstake')
   const unstakeOverrides = overrides('staking', 'unstake')
   await executeTransaction(contracts.staking.unstake(amountBN, unstakeOverrides))
 }
@@ -82,13 +76,7 @@ const withdraw = async () => {
 }
 
 const allocate = async () => {
-  if (!amount || !price) {
-    console.error(
-      `ERROR: allocate() must be provided with subgraphDeploymentID, amount, channelPubKey, channelProxy, and price`,
-    )
-    process.exit(1)
-  }
-
+  checkFuncInputs([amount, price], ['amount', 'price'], 'allocate')
   let publicKey: string
   let proxy: string
   let id: utils.Arrayish
@@ -100,18 +88,19 @@ const allocate = async () => {
 
   channelProxy ? (proxy = channelProxy) : (proxy = Wallet.createRandom().address)
 
+  console.log(`Subgraph Deployment ID: ${id}`)
+  console.log(`Channel Proxy:          ${proxy}`)
+  console.log(`Channel Public Key:     ${publicKey}`)
+
   const allocateOverrides = overrides('staking', 'allocate')
   await executeTransaction(
     contracts.staking.allocate(id, amountBN, publicKey, proxy, price, allocateOverrides),
   )
 }
 
+// TODO - not implemented, because time has to pass, and we need to index th epoch manager too
 // const settle = async () => {
-//   if (!amount) {
-//     console.error(`ERROR: settle() must be provided an amount`)
-//     process.exit(1)
-//   }
-//   // TODO - not implemented
+//   checkFuncInputs([amount], ['amount'], 'settle')
 //   const settleOverrides = overrides('staking', 'withdraw')
 //   //   await executeTransaction(contracts.staking.settle(settleOverrides))
 // }

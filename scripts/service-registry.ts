@@ -2,7 +2,7 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from './helpers'
+import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -34,10 +34,7 @@ Function arguments:
 ///////////////////////
 
 const register = async () => {
-  if (!url || !geoHash) {
-    console.error(`ERROR: register must be provided a url or geoHash`)
-    process.exit(1)
-  }
+  checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')
   const registerOverrides = overrides('serviceRegistry', 'register')
   await executeTransaction(contracts.serviceRegistry.register(url, geoHash, registerOverrides))
 }

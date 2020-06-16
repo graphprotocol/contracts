@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as minimist from 'minimist'
 import * as fs from 'fs'
 
-import { contracts, executeTransaction, overrides, IPFS, checkUserInputs } from './helpers'
+import { contracts, executeTransaction, overrides, IPFS, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -76,7 +76,7 @@ Function arguments:
 ///////////////////////
 
 const publishNewSubgraph = async () => {
-  checkUserInputs(
+  checkFuncInputs(
     [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath],
     ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath'],
     'publishNewSubgraph',
@@ -100,7 +100,7 @@ const publishNewSubgraph = async () => {
 }
 
 const publishNewVersion = async () => {
-  checkUserInputs(
+  checkFuncInputs(
     [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath, subgraphNumber],
     ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath', 'subgraphNumber'],
     'publishNewVersion',
@@ -124,7 +124,7 @@ const publishNewVersion = async () => {
 }
 
 const deprecate = async () => {
-  checkUserInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
+  checkFuncInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
   const gnsOverrides = overrides('gns', 'deprecate')
   await executeTransaction(contracts.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides))
 }

@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as minimist from 'minimist'
 import * as fs from 'fs'
 
-import { contracts, executeTransaction, overrides, IPFS, checkUserInputs } from './helpers'
+import { contracts, executeTransaction, overrides, IPFS, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
