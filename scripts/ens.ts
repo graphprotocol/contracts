@@ -18,7 +18,7 @@ if (!func) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <string> - options: setRecord, setText
+    --func <string> - options: setRecord, setText, checkOwner
 
 Function arguments:
     setRecord
@@ -26,6 +26,9 @@ Function arguments:
 
     setText
       --node <bytes32>  - node having the graph text field set
+
+    checkOwner
+      --name <string>   - name being checked for ownership
 `,
   )
   process.exit(1)
