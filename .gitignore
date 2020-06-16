@@ -16,6 +16,7 @@ cached/
 bin/
 
 # Others
+.env
 .privkey.txt
 .infurakey.txt
 .DS_Store
