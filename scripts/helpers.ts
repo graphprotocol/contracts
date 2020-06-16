@@ -19,24 +19,31 @@ import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistr
 import { TransactionOverrides } from '../build/typechain/contracts'
 
 dotenv.config()
-// TODO - make addresses depend on our npm package
 const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'))
-  .kovan
+const generatedAddresses = addresses['42']
+const permanentAddresses = addresses.kovan // TODO - make these park of the autogen. Right now they are hardcoded
+
 const ethereum = `https://kovan.infura.io/v3/${process.env.INFURA_KEY}`
 const eth = new ethers.providers.JsonRpcProvider(ethereum)
 let wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
 wallet = wallet.connect(eth)
 
 export const contracts = {
-  gns: GnsFactory.connect(addresses.gns, wallet),
-  staking: StakingFactory.connect(addresses.staking, wallet),
-  serviceRegistry: ServiceRegistryFactory.connect(addresses.serviceRegistry, wallet),
-  graphToken: GraphTokenFactory.connect(addresses.graphToken, wallet),
-  curation: CurationFactory.connect(addresses.curation, wallet),
-  ens: IensFactory.connect(addresses.ens, wallet),
-  publicResolver: IPublicResolverFactory.connect(addresses.ensPublicResolver, wallet),
-  ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(addresses.ethereumDIDRegistry, wallet),
-  testRegistrar: ITestRegistrarFactory.connect(addresses.ensTestRegistrar, wallet),
+  gns: GnsFactory.connect(generatedAddresses.GNS.address, wallet),
+  staking: StakingFactory.connect(generatedAddresses.Staking.address, wallet),
+  serviceRegistry: ServiceRegistryFactory.connect(
+    generatedAddresses.ServiceRegistry.address,
+    wallet,
+  ),
+  graphToken: GraphTokenFactory.connect(generatedAddresses.GraphToken.address, wallet),
+  curation: CurationFactory.connect(generatedAddresses.Curation.address, wallet),
+  ens: IensFactory.connect(permanentAddresses.ens, wallet),
+  publicResolver: IPublicResolverFactory.connect(permanentAddresses.ensPublicResolver, wallet),
+  ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(
+    permanentAddresses.ethereumDIDRegistry,
+    wallet,
+  ),
+  testRegistrar: ITestRegistrarFactory.connect(permanentAddresses.ensTestRegistrar, wallet),
 }
 
 export const executeTransaction = async (

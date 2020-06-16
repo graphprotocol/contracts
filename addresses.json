@@ -1,26 +1,213 @@
 {
-  "updated-on": "June 2nd, 2020",
+  "42": {
+    "EpochManager": {
+      "address": "0xe18D453563d367984fb214d90BDCDd3743Ef5719",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "lengthInBlocks",
+          "value": 5760
+        }
+      ],
+      "creationCodeHash": "0xdf77b4cdcdb26fb0036b5d6ad41c42e6691caa0ea614d5c918ff81445966a8cb",
+      "runtimeCodeHash": "0x2b573256df4f4a98b977edccd50581264257196731b3f29150a3359bc166a219",
+      "txHash": "0x2c8cc32d318ecd1c1ff07aa0bdfb0dbde02709498940a7ee6f8f1a26c8a2215d"
+    },
+    "GNS": {
+      "address": "0x094807C86162329eFF3d1781F46eF6Bd5580e766",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "didRegistry",
+          "value": "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+        }
+      ],
+      "creationCodeHash": "0xd945cfeb350eafa39bf050b6cb5208eaf1890bb37f92a78ac176f5d584bc0918",
+      "runtimeCodeHash": "0x62f4a637a2896da4365f72adeefe32b57ee155ff98c0d24132910e0d0588b079",
+      "txHash": "0x86b9becc7d8da21a2141d154a6e7bf1b16913d47715b171a5de75d4f91b861c3"
+    },
+    "GraphToken": {
+      "address": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "initialSupply",
+          "value": "10000000000000000000000000"
+        }
+      ],
+      "creationCodeHash": "0x7a3b41088c34a6d9d2233acb63426725b91196f4859f0aee191a1f9ce6d66790",
+      "runtimeCodeHash": "0x5ae50683bfd5bb06f4bb849eeea7d0085e6c15797fa96f7272ba3d5acc50568b",
+      "txHash": "0xc4765511d24987562169e54d37f77727ecb5d9d5b2d5d0528723417f71a70912"
+    },
+    "ServiceRegistry": {
+      "address": "0x2538f2107222e45e2074A337C5f6a4e3dC44c5C6",
+      "creationCodeHash": "0x0bba22e30783c4b2acc78b906bbc784e741b5b7d94e2c9caff0033e873214153",
+      "runtimeCodeHash": "0x71293814a2ba0b4bf9a29dac340eef2a38ff554ae423aff85a211ad7d019448d",
+      "txHash": "0x0406f81dd550ff375ea2092a741b04a2c13849e21c3ed7198ba002e382ffc99a"
+    },
+    "Curation": {
+      "address": "0x5A8b493f9cf79ca22452b4511b55e0Ff91C850d9",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "token",
+          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
+        },
+        {
+          "name": "reserveRatio",
+          "value": 500000
+        },
+        {
+          "name": "minimumCurationStake",
+          "value": "100000000000000000000"
+        }
+      ],
+      "creationCodeHash": "0xf7c9eeda8efefca0d25aeee82535008f33fd252dc60f5d146dd3dfc3c52d6cc7",
+      "runtimeCodeHash": "0xc69fa19913f7d2bc0b90e49443958d185825e9d6ad1da1eae27e68dad55d94b5",
+      "txHash": "0x3f0f7051fbe5ec7aa246d398aec48a8554a5450ecc13b473c32ae7018a58e3b2"
+    },
+    "RewardsManager": {
+      "address": "0x6304AE0C965B54724C0B34B2611c93c24Ed4B98d",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        }
+      ],
+      "creationCodeHash": "0x3554999ca479cb97bfb0f74eedb5a7056b4c055a7a8f27d2eca1c55e280c0e78",
+      "runtimeCodeHash": "0xbdfa9b703de03a1d712594d47a46f08900c37fefcc66f0e0f2b0743c21a3636e",
+      "txHash": "0xe69ad34fcde1256e736922ce45cd3017b7b10a01e4f44236972b9d46cb826baf"
+    },
+    "Staking": {
+      "address": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "token",
+          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
+        },
+        {
+          "name": "epochManager",
+          "value": "0xe18D453563d367984fb214d90BDCDd3743Ef5719"
+        }
+      ],
+      "creationCodeHash": "0x63c2da6b34be2919f8ed446c310f4353a784db6933645d3175e24bbbb12dd73c",
+      "runtimeCodeHash": "0x6a7f66f97dbb741a812047441884e936a34a50b539c754963470e76d1bfd32ea",
+      "txHash": "0x3cdfefd785d755183dee01a7fd91124cea1f076b81aa724c7032fde03c93b245"
+    },
+    "DisputeManager": {
+      "address": "0xCb3bA107b7096Fe8CF69d4b83b122e0e0BAEaACe",
+      "constructorArgs": [
+        {
+          "name": "governor",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "arbitrator",
+          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
+        },
+        {
+          "name": "token",
+          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
+        },
+        {
+          "name": "staking",
+          "value": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1"
+        },
+        {
+          "name": "minimumDeposit",
+          "value": "100000000000000000000"
+        },
+        {
+          "name": "fishermanRewardPercentage",
+          "value": 1000
+        },
+        {
+          "name": "slashingPercentage",
+          "value": 1000
+        }
+      ],
+      "creationCodeHash": "0x5f0f60b3a52a4ca320bba2ae9160e36c900050443e2e68c5685a03c39ce254d3",
+      "runtimeCodeHash": "0xe2d13b28f3a5518ee95e13b53ab27d435efdc4b35fa03432b40bf438c68119c5",
+      "txHash": "0x317f51e2372189fc92de081ade980109322ba23ff3fc6205fb829c3af3a0f9b1"
+    },
+    "IndexerCTDT": {
+      "address": "0xF537B2b434840D021b92fD99f51ae85c5c6672C1",
+      "creationCodeHash": "0x545816357620fe4b754c6762a145897f6bb3a1dbc9fd8f84592e4dad381b5c78",
+      "runtimeCodeHash": "0x6efbe2de686d7a695463f0a427a3f37ce556ec438d09e105f37fadd31565a30e",
+      "txHash": "0xdc780890c5e256294699e8d19af585b6f7d4e31ac9e3aa1b3ef093f9518488a7"
+    },
+    "IndexerSingleAssetInterpreter": {
+      "address": "0xe64E6ecf07C81d88bc344284888F772431c4e98c",
+      "creationCodeHash": "0xcbc980af13c5d2f76e8277429dcbcf10d16d1616731a5c24481dbf13eb065357",
+      "runtimeCodeHash": "0x8235a58e9ee9a6057b9b40749c3bc7a0da6f7f0e98c715287042cb219eed12c7",
+      "txHash": "0xacf66e3982d206096c12cdf30bcbfcdfed749701884a656a100124f578455260"
+    },
+    "IndexerMultiAssetInterpreter": {
+      "address": "0x9C62F260D7CCfbf8C553f17140a94C76083958ea",
+      "creationCodeHash": "0xcf680c95414066ae46789c3f56befffb0ccf53128e20e47d11163eabdca7eadd",
+      "runtimeCodeHash": "0x4f0c291f8a7bf98accde0c58a1a93eec0bed054d5fa2d04c87c17d7716283b21",
+      "txHash": "0xf6eadc68890a3e3f4b9428621c59f99565d30f891bea14c3ad9c8d673c7c4121"
+    },
+    "IndexerWithdrawInterpreter": {
+      "address": "0xAB0cCB064DAaa462cBbCF25073A0E70778c79361",
+      "creationCodeHash": "0x6fb667bf67a16df6880624be4ed5585f4c3b0d30aeb8e7d8abf01cacbb7f5993",
+      "runtimeCodeHash": "0xe91f02039850e2776be90485801baedb5ae89d77828ccd5bcfa0a726a9364edb",
+      "txHash": "0x9c724a9e5db720a79709206773676158a6f567ccd2202a17f8b7d0a900c03b2f"
+    },
+    "MinimumViableMultisig": {
+      "address": "0xBcdd062Aa401d12762D39a78eCD407e9Aa38Dcaa",
+      "constructorArgs": [
+        {
+          "name": "node",
+          "value": "0x0000000000000000000000000000000000000000"
+        },
+        {
+          "name": "staking",
+          "value": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1"
+        },
+        {
+          "name": "CTDT",
+          "value": "0xF537B2b434840D021b92fD99f51ae85c5c6672C1"
+        },
+        {
+          "name": "singleAssetInterpreter",
+          "value": "0xe64E6ecf07C81d88bc344284888F772431c4e98c"
+        },
+        {
+          "name": "multiAssetInterpreter",
+          "value": "0x9C62F260D7CCfbf8C553f17140a94C76083958ea"
+        },
+        {
+          "name": "withdrawInterpreter",
+          "value": "0xAB0cCB064DAaa462cBbCF25073A0E70778c79361"
+        }
+      ],
+      "creationCodeHash": "0xe0038bd2d6a782a6992d6694508e9ddb297328d11d896c1b03a45321ab80b53a",
+      "runtimeCodeHash": "0xf1a4aef85dc2fa6fa33a2d4ed683bbcd50857b779010eed187ed888cbafc15b2",
+      "txHash": "0x2be17f242352c6c31d2c24c8d17693e251defba8dea7a3fb8ef3a51c1f860f0b"
+    }
+  },
   "kovan": {
-    "commit-hash": "https://github.com/graphprotocol/contracts/tree/ed147ffadf108fe22a4cf32045431cbef1d458f1",
-    "blockNumber": "19001931",
-    "governor": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd",
-    "graphToken": "0x3E88f641Ffd41eE9E43CD68478E6f12c408ee121",
-    "epochManager": "0x3434c2D8b072BF4363384755e1E183c276bae25C",
-    "disputeManager": "0x36CF3899148AB47ddE0ea9e49174ee7017cBaA21",
-    "staking": "0x2a4E6310d451253456f4dd4fF16FE708D64605Bb",
-    "curation": "0x23d56AcFFa771F76dE7811480bB82Ec65711B3a3",
-    "rewardsManager": "0x76226c6955Ab8f0D0CA1Bd70722A4Dd60c3a2Eab",
-    "serviceRegistry": "0x91Ed09Ac3AfeBcAc1589a2655e595Bd5518A23c9",
-    "gns": "0x70e52EB6328F3338C5de9b0194B1d33746Ab9B3C",
     "ens": "0xB66B2f307B6e46a6D038a85997B401aE87455772",
     "ensTestRegistrar": "0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b",
     "ensPublicResolver": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7",
-    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B",
-    "indexerCTDT": "0xc28a574C31d100Cf02e78781fC65D7993E89F972",
-    "indexerSingleAssetInterpreter": "0x7FAd43AcAD7bF23ccdF105f9Bd6f3C88B69d09CC",
-    "indexerMultiAssetInterpreter": "0x484B4511B288Bb816C8bE59ef871f95E40858Bd5",
-    "indexerWithdrawInterpreter": "0xACc160952063aF382027166dbFD1e4033D24856f",
-    "minimumViableMultisig": "0x4bb3E33672BD1519923F92c3112DEb42ce64A2A2"
+    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
   },
   "mainnet": {}
 }

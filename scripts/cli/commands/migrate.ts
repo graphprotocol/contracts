@@ -68,6 +68,7 @@ export const migrate = async (
       }
     }
   }
+  console.log('Contract deployments done! Contract calls are next')
 
   ////////////////////////////////////////
   // Run contracts calls
