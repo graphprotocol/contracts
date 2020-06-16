@@ -1,5 +1,5 @@
 #!/usr/bin/env ts-node
-import { utils } from 'ethers'
+import { utils, Wallet } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
@@ -8,10 +8,10 @@ import { contracts, executeTransaction, overrides } from './helpers'
 // Set up the script //
 ///////////////////////
 
-const { func, amount, channelPubKey, channelProxy, price } = minimist.default(
+const { func, amount, subgraphDeploymentID, channelPubKey, channelProxy, price } = minimist.default(
   process.argv.slice(2),
   {
-    string: ['func', 'amount', 'channelPubKey', 'channelProxy', 'price'],
+    string: ['func', 'amount', 'subgraphDeploymentID', 'channelPubKey', 'channelProxy', 'price'],
   },
 )
 
@@ -23,23 +23,23 @@ Usage: ${path.basename(process.argv[1])}
 
 Function arguments:
   stake
-    --amount <number>   - Amount of tokens being staked
+    --amount <number>   - Amount of tokens being staked (script adds 10^18)
 
   unstake
-    --amount <number>   - Amount of shares being unstaked
+    --amount <number>   - Amount of shares being unstaked (script adds 10^18)
 
   withdraw
     no arguments
 
   allocate
-    --id <bytes32>              - The subgraph deployment ID being allocated on
-    --amount <number>           - Amount of tokens being allocated
-    --channelPubKey <bytes>     - The subgraph deployment ID being allocated on
-    --channelProxy <address>    - The subgraph deployment ID being allocated on
-    --price <number>            - Price the indexer will charge for serving queries of the subgraphID
+    --subgraphDeploymentID <bytes32>  - The subgraph deployment ID being allocated on
+    --amount <number>                 - Amount of tokens being allocated (script adds 10^18)
+    --channelPubKey <bytes>           - The subgraph deployment ID being allocated on
+    --channelProxy <address>          - The subgraph deployment ID being allocated on
+    --price <number>                  - Price the indexer will charge for serving queries of the subgraphID
 
   settle
-    --amount <number>   - Amount of tokens being settled
+    --amount <number>   - Amount of tokens being settled  (script adds 10^18)
     `,
   )
   process.exit(1)
@@ -49,6 +49,7 @@ Function arguments:
 ///////////////////////
 
 const amountBN = utils.parseUnits(amount, 18)
+console.log(amountBN)
 
 const stake = async () => {
   if (!amount) {
@@ -80,17 +81,30 @@ const withdraw = async () => {
   await executeTransaction(contracts.staking.withdraw(withdrawOverrides))
 }
 
-// const allocate = async () => {
-//   if (!amount || !channelPubKey || !channelProxy || !price) {
-//     console.error(
-//       `ERROR: allocate() must be provided with amount, channelPubKey, channelProxy, and price`,
-//     )
-//     process.exit(1)
-//   }
-//   // TODO - not implemented
-//   const allocateOverrides = overrides('staking', 'withdraw')
-//   //   await executeTransaction(contracts.staking.allocate(allocateOverrides))
-// }
+const allocate = async () => {
+  if (!amount || !price) {
+    console.error(
+      `ERROR: allocate() must be provided with subgraphDeploymentID, amount, channelPubKey, channelProxy, and price`,
+    )
+    process.exit(1)
+  }
+
+  let publicKey: string
+  let proxy: string
+  let id: utils.Arrayish
+
+  subgraphDeploymentID ? (id = subgraphDeploymentID) : (id = utils.randomBytes(32))
+  channelPubKey
+    ? (publicKey = channelPubKey)
+    : (publicKey = utils.HDNode.fromMnemonic(Wallet.createRandom().mnemonic).publicKey)
+
+  channelProxy ? (proxy = channelProxy) : (proxy = Wallet.createRandom().address)
+
+  const allocateOverrides = overrides('staking', 'allocate')
+  await executeTransaction(
+    contracts.staking.allocate(id, amountBN, publicKey, proxy, price, allocateOverrides),
+  )
+}
 
 // const settle = async () => {
 //   if (!amount) {
@@ -118,8 +132,8 @@ const main = async () => {
       console.log(`Unlock tokens and withdraw them from the staking contract...`)
       withdraw()
     } else if (func == 'allocate') {
-      console.log('NOT IMPLEMENTED YET')
-      // allocate()
+      console.log(`Allocating ${amount} tokens on stake channel ${subgraphDeploymentID} ...`)
+      allocate()
     } else if (func == 'settle') {
       console.log('NOT IMPLEMENTED YET')
       // console.log(`TODO - settle must be called from a channel proxy, not the normal user`)
