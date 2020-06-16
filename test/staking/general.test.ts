@@ -195,7 +195,7 @@ describe('Staking', () => {
     }
     const shouldStake = async function(indexerStake: BigNumber) {
       // Setup
-      const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
+      const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
 
       // Stake
       const tx = stake(indexerStake)
@@ -204,8 +204,8 @@ describe('Staking', () => {
         .withArgs(indexer.address, indexerStake)
 
       // State updated
-      const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
-      expect(indexerStakeAfter).to.eq(indexerStakeBefore.add(indexerStake))
+      const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+      expect(afterIndexerStake).to.eq(beforeIndexerStake.add(indexerStake))
     }
 
     beforeEach(async function() {
@@ -345,10 +345,10 @@ describe('Staking', () => {
           await advanceBlockTo(tokensLockedUntil)
 
           // Withdraw after locking period (all good)
-          const balanceBefore = await grt.balanceOf(indexer.address)
+          const beforeBalance = await grt.balanceOf(indexer.address)
           await staking.connect(indexer).withdraw()
-          const balanceAfter = await grt.balanceOf(indexer.address)
-          expect(balanceAfter).to.eq(balanceBefore.add(tokensToUnstake))
+          const afterBalance = await grt.balanceOf(indexer.address)
+          expect(afterBalance).to.eq(beforeBalance.add(tokensToUnstake))
         })
 
         it('reject withdraw if no tokens available', async function() {
@@ -563,8 +563,8 @@ describe('Staking', () => {
         })
 
         it('should settle and distribute funds', async function() {
-          const stakeBefore = await staking.stakes(indexer.address)
-          const allocBefore = await staking.getAllocation(indexer.address, subgraphDeploymentID)
+          const beforeStake = await staking.stakes(indexer.address)
+          const beforeAlloc = await staking.getAllocation(indexer.address, subgraphDeploymentID)
 
           // Curate the subgraph to be settled to get curation fees distributed
           const tokensToSignal = toGRT('100')
@@ -580,7 +580,7 @@ describe('Staking', () => {
           await advanceToNextEpoch(epochManager)
 
           // Get epoch information
-          const result = await epochManager.epochsSince(allocBefore.createdAtEpoch)
+          const result = await epochManager.epochsSince(beforeAlloc.createdAtEpoch)
           const epochs = result[0].add(toBN('1'))
           const settlementEpoch = result[1].add(toBN('1'))
 
@@ -606,20 +606,20 @@ describe('Staking', () => {
             )
 
           // Check that curation reserves increased for that SubgraphDeployment
-          const poolAfter = await curation.pools(subgraphDeploymentID)
-          expect(poolAfter.tokens).to.eq(tokensToSignal.add(curationFees))
+          const afterPool = await curation.pools(subgraphDeploymentID)
+          expect(afterPool.tokens).to.eq(tokensToSignal.add(curationFees))
 
           // Verify stake is updated
-          const stakeAfter = await staking.stakes(indexer.address)
-          expect(stakeAfter.tokensAllocated).to.eq(
-            stakeBefore.tokensAllocated.sub(allocBefore.tokens),
+          const afterStake = await staking.stakes(indexer.address)
+          expect(afterStake.tokensAllocated).to.eq(
+            beforeStake.tokensAllocated.sub(beforeAlloc.tokens),
           )
 
           // Verify allocation is updated and channel closed
-          const allocAfter = await staking.getAllocation(indexer.address, subgraphDeploymentID)
-          expect(allocAfter.tokens).to.eq(toBN('0'))
-          expect(allocAfter.createdAtEpoch).to.eq(toBN('0'))
-          expect(allocAfter.channelID).to.be.eq(AddressZero)
+          const afterAlloc = await staking.getAllocation(indexer.address, subgraphDeploymentID)
+          expect(afterAlloc.tokens).to.eq(toBN('0'))
+          expect(afterAlloc.createdAtEpoch).to.eq(toBN('0'))
+          expect(afterAlloc.channelID).to.be.eq(AddressZero)
 
           // Verify rebate information is stored
           const settlement = await staking.getSettlement(
@@ -666,13 +666,15 @@ describe('Staking', () => {
 
       describe('claim', function() {
         // Claim and perform checks
-        const shouldClaim = async function(restake: boolean, tokensSettled: BigNumber) {
-          const rebateEpoch = await epochManager.currentEpoch()
-
+        const shouldClaim = async function(
+          rebateEpoch: BigNumber,
+          restake: boolean,
+          tokensSettled: BigNumber,
+        ) {
           // Advance blocks to get the channel in epoch where it can be claimed
           await advanceToNextEpoch(epochManager)
 
-          const rebatePoolBefore = await staking.rebates(rebateEpoch)
+          const beforeRebatePool = await staking.rebates(rebateEpoch)
 
           // Claim rebates
           const currentEpoch = await epochManager.currentEpoch()
@@ -685,22 +687,23 @@ describe('Staking', () => {
               currentEpoch,
               rebateEpoch,
               tokensSettled,
-              rebatePoolBefore.settlementsCount.sub(toBN('1')),
+              beforeRebatePool.settlementsCount.sub(toBN('1')),
+              toGRT('0'),
             )
 
           // Verify the settlement is consumed when claimed and rebate pool updated
-          const rebatePoolAfter = await staking.rebates(rebateEpoch)
-          expect(rebatePoolAfter.settlementsCount).to.eq(
-            rebatePoolBefore.settlementsCount.sub(toBN('1')),
+          const afterRebatePool = await staking.rebates(rebateEpoch)
+          expect(afterRebatePool.settlementsCount).to.eq(
+            beforeRebatePool.settlementsCount.sub(toBN('1')),
           )
-          if (rebatePoolAfter.settlementsCount.eq(toBN('0'))) {
+          if (afterRebatePool.settlementsCount.eq(toBN('0'))) {
             // Rebate pool is empty and then pruned
-            expect(rebatePoolAfter.allocation).to.eq(toBN('0'))
-            expect(rebatePoolAfter.fees).to.eq(toBN('0'))
+            expect(afterRebatePool.allocation).to.eq(toBN('0'))
+            expect(afterRebatePool.fees).to.eq(toBN('0'))
           } else {
             // There are still more settlements in the rebate
-            expect(rebatePoolAfter.allocation).to.eq(rebatePoolBefore.allocation)
-            expect(rebatePoolAfter.fees).to.eq(rebatePoolBefore.fees.sub(tokensSettled))
+            expect(afterRebatePool.allocation).to.eq(beforeRebatePool.allocation)
+            expect(afterRebatePool.fees).to.eq(beforeRebatePool.fees.sub(tokensSettled))
           }
         }
 
@@ -733,48 +736,56 @@ describe('Staking', () => {
 
         it('should claim rebate of zero tokens', async function() {
           // Setup
-          const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
-          const indexerTokensBefore = await grt.balanceOf(indexer.address)
+          const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+          const beforeIndexerTokens = await grt.balanceOf(indexer.address)
 
           // Settle zero tokens
-          await staking.connect(channelProxy).settle(toBN('0'))
+          const tx1 = await staking.connect(channelProxy).settle(toBN('0'))
+          const receipt1 = await tx1.wait()
+          const event1: Event = receipt1.events.pop()
+          const rebateEpoch = event1.args['epoch']
 
           // Claim with no restake
-          await shouldClaim(false, toBN('0'))
+          await shouldClaim(rebateEpoch, false, toBN('0'))
 
           // Verify that both stake and transferred tokens did not change
-          const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
-          const indexerTokensAfter = await grt.balanceOf(indexer.address)
-          expect(indexerStakeAfter).to.eq(indexerStakeBefore)
-          expect(indexerTokensAfter).to.eq(indexerTokensBefore)
+          const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+          const afterIndexerTokens = await grt.balanceOf(indexer.address)
+          expect(afterIndexerStake).to.eq(beforeIndexerStake)
+          expect(afterIndexerTokens).to.eq(beforeIndexerTokens)
         })
 
         context('> when settled', function() {
+          let rebateEpoch
+
           beforeEach(async function() {
             // Settle
-            await staking.connect(channelProxy).settle(tokensToSettle)
+            const tx1 = await staking.connect(channelProxy).settle(tokensToSettle)
+            const receipt1 = await tx1.wait()
+            const event1: Event = receipt1.events.pop()
+            rebateEpoch = event1.args['epoch']
           })
 
           it('should claim rebate', async function() {
-            const indexerTokensBefore = await grt.balanceOf(indexer.address)
+            const beforeIndexerTokens = await grt.balanceOf(indexer.address)
 
             // Claim with no restake
-            await shouldClaim(false, tokensToSettle)
+            await shouldClaim(rebateEpoch, false, tokensToSettle)
 
             // Verify that the claimed tokens are transferred to the indexer
-            const indexerTokensAfter = await grt.balanceOf(indexer.address)
-            expect(indexerTokensAfter).to.eq(indexerTokensBefore.add(tokensToSettle))
+            const afterIndexerTokens = await grt.balanceOf(indexer.address)
+            expect(afterIndexerTokens).to.eq(beforeIndexerTokens.add(tokensToSettle))
           })
 
           it('should claim rebate with restake', async function() {
-            const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
+            const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
 
             // Claim with restake
-            await shouldClaim(true, tokensToSettle)
+            await shouldClaim(rebateEpoch, true, tokensToSettle)
 
             // Verify that the claimed tokens are restaked
-            const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
-            expect(indexerStakeAfter).to.eq(indexerStakeBefore.add(tokensToSettle))
+            const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+            expect(afterIndexerStake).to.eq(beforeIndexerStake.add(tokensToSettle))
           })
         })
       })

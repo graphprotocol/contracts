@@ -292,6 +292,7 @@ contract Staking is Governed {
     ) external {
         address indexer = msg.sender;
 
+        // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, "QueryFeeCut must be below or equal to MAX_PPM");
         require(
             _indexingRewardCut <= MAX_PPM,
@@ -839,7 +840,7 @@ contract Staking is Governed {
     function _collectDelegationFees(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegation[_indexer];
-        if (pool.queryFeeCut < MAX_PPM) {
+        if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
             delegationFees = _tokens.sub(percentageOf(pool.queryFeeCut, _tokens));
             pool.tokens = pool.tokens.add(delegationFees);
         }
