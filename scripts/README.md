@@ -25,7 +25,7 @@ ts-node ./gns.ts
     --ipfs          https://api.thegraph.com/ipfs/
     --subgraphName  davesSubgraph  
     --subgraphID    QmdiX6GsbFaz7HDzNxmWCh1oi3bmy19C4te8YSkHbvLbQQ 
-    --metadataPath  ./data/metadata.json
+    --metadataPath  /mockData/metadata-subgraph.json
 ```
 **Unpublishing a subgraph**
 ```sh

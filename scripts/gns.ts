@@ -46,14 +46,14 @@ Function arguments:
       --nameIdentifier <string>       - ex. the node value in ENS
       --name <string>                 - name of the subgraph
       --metadataPath <path>           - filepath to metadata. JSON format:
-                                  {
-                                    "subgraphDescription": "",
-                                    "subgraphImage": "",
-                                    "subgraphCodeRepository": "",
-                                    "subgraphWebsite": "",
-                                    "versionDescription": "",
-                                    "versionLabel": ""
-                                  }
+                                          {
+                                            "subgraphDescription": "",
+                                            "subgraphImage": "",
+                                            "subgraphCodeRepository": "",
+                                            "subgraphWebsite": "",
+                                            "versionDescription": "",
+                                            "versionLabel": ""
+                                          }
     publishVersion
       --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/
       --graphAccount <address>        - erc1056 identity, often just the transacting account
@@ -66,7 +66,7 @@ Function arguments:
     deprecate
       --graphAccount <address>        - erc1056 identity, often just the transacting account
       --subgraphNumber <number>       - numbered subgraph for the graph account
-`,
+    `,
   )
   process.exit(1)
 }
