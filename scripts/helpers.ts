@@ -1,5 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import * as dotenv from 'dotenv'
 
 import { ContractTransaction, ethers, utils, Wallet } from 'ethers'
 import { ContractReceipt } from 'ethers/contract'
@@ -17,15 +18,13 @@ import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEther
 import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarFactory'
 import { TransactionOverrides } from '../build/typechain/contracts'
 
+dotenv.config()
 // TODO - make addresses depend on our npm package
 const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'))
   .kovan
-const privateKey = fs.readFileSync(path.join(__dirname, '..', '.privkey.txt'), 'utf-8').trim()
-const infuraKey = fs.readFileSync(path.join(__dirname, '..', '.infurakey.txt'), 'utf-8').trim()
-
-const ethereum = `https://kovan.infura.io/v3/${infuraKey}`
+const ethereum = `https://kovan.infura.io/v3/${process.env.INFURA_KEY}`
 const eth = new ethers.providers.JsonRpcProvider(ethereum)
-let wallet = Wallet.fromMnemonic(privateKey)
+let wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
 wallet = wallet.connect(eth)
 
 export const contracts = {

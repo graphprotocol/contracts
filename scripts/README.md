@@ -16,7 +16,11 @@ The scripts expect the following:
   npm run build
   ```
 
+
+
 ## GNS
+`chmod+x` can be run on the files first, and then you will not need to pass `ts-node` in any of
+the script calls.
 
 **Publishing a subgraph**
 ```sh
