@@ -25,7 +25,15 @@ const MAX_PPM = toBN('1000000')
 const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
-  const [me, delegator, delegator2, governor, indexer, channelProxy] = provider().getWallets()
+  const [
+    me,
+    delegator,
+    delegator2,
+    governor,
+    indexer,
+    indexer2,
+    channelProxy,
+  ] = provider().getWallets()
 
   let curation: Curation
   let epochManager: EpochManager
@@ -84,7 +92,7 @@ describe('Staking::Delegation', () => {
     expect(afterDelegatorBalance).to.be.eq(beforeDelegatorBalance.add(tokens))
   }
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Deploy epoch contract
     epochManager = await deployment.deployEpochManager(governor.address)
 
@@ -103,41 +111,41 @@ describe('Staking::Delegation', () => {
     )
   })
 
-  describe('configuration', function() {
-    describe('delegationCapacity', function() {
+  describe('configuration', function () {
+    describe('delegationCapacity', function () {
       const delegationCapacity = 5
 
-      it('should set `delegationCapacity`', async function() {
+      it('should set `delegationCapacity`', async function () {
         await staking.connect(governor).setDelegationCapacity(delegationCapacity)
         expect(await staking.delegationCapacity()).to.be.eq(delegationCapacity)
       })
 
-      it('reject set `delegationCapacity` if not allowed', async function() {
+      it('reject set `delegationCapacity` if not allowed', async function () {
         const tx = staking.setDelegationCapacity(delegationCapacity)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
 
-    describe('delegationParametersCooldown', function() {
+    describe('delegationParametersCooldown', function () {
       const cooldown = 5
 
-      it('should set `delegationParametersCooldown`', async function() {
+      it('should set `delegationParametersCooldown`', async function () {
         await staking.connect(governor).setDelegationParametersCooldown(cooldown)
         expect(await staking.delegationParametersCooldown()).to.be.eq(cooldown)
       })
 
-      it('reject set `delegationParametersCooldown` if not allowed', async function() {
+      it('reject set `delegationParametersCooldown` if not allowed', async function () {
         const tx = staking.setDelegationParametersCooldown(cooldown)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
 
-    describe('delegationParameters', function() {
+    describe('delegationParameters', function () {
       const indexingRewardCut = toBN('50000')
       const queryFeeCut = toBN('80000')
       const cooldownBlocks = 5
 
-      it('reject to set if under cooldown period', async function() {
+      it('reject to set if under cooldown period', async function () {
         // Set parameters
         await staking
           .connect(indexer)
@@ -152,7 +160,7 @@ describe('Staking::Delegation', () => {
         )
       })
 
-      it('reject to set if cooldown below the global configuration', async function() {
+      it('reject to set if cooldown below the global configuration', async function () {
         // Set global cooldown parameter
         await staking.connect(governor).setDelegationParametersCooldown(cooldownBlocks)
 
@@ -163,7 +171,7 @@ describe('Staking::Delegation', () => {
         await expect(tx).revertedWith('Delegation: cooldown cannot be below minimum')
       })
 
-      it('reject to set parameters out of bound', async function() {
+      it('reject to set parameters out of bound', async function () {
         // Indexing reward out of bounds
         const tx1 = staking
           .connect(indexer)
@@ -177,7 +185,7 @@ describe('Staking::Delegation', () => {
         await expect(tx2).revertedWith('QueryFeeCut must be below or equal to MAX_PPM')
       })
 
-      it('should set parameters', async function() {
+      it('should set parameters', async function () {
         // Set parameters
         const tx = staking
           .connect(indexer)
@@ -196,8 +204,8 @@ describe('Staking::Delegation', () => {
     })
   })
 
-  describe('delegate', function() {
-    beforeEach(async function() {
+  describe('lifecycle', function () {
+    beforeEach(async function () {
       // Distribute test funds
       for (const wallet of [delegator, delegator2]) {
         await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
@@ -205,73 +213,104 @@ describe('Staking::Delegation', () => {
       }
     })
 
-    it('reject to delegate zero tokens', async function() {
-      const tokensToDelegate = toGRT('0')
-      const tx = staking.delegate(indexer.address, tokensToDelegate)
-      await expect(tx).revertedWith('Delegation: cannot delegate zero tokens')
+    describe('delegate', function () {
+      it('reject to delegate zero tokens', async function () {
+        const tokensToDelegate = toGRT('0')
+        const tx = staking.delegate(indexer.address, tokensToDelegate)
+        await expect(tx).revertedWith('Delegation: cannot delegate zero tokens')
+      })
+
+      it('should delegate tokens and account shares proportionally', async function () {
+        // Multiple delegations should work
+        await shouldDelegate(delegator, toGRT('1234'))
+        await shouldDelegate(delegator, toGRT('100'))
+        await shouldDelegate(delegator, toGRT('50'))
+        await shouldDelegate(delegator, toGRT('25'))
+        await shouldDelegate(delegator, toGRT('10'))
+        await shouldDelegate(delegator, toGRT('1'))
+
+        // Delegation by other delegator
+        await shouldDelegate(delegator2, toGRT('5000'))
+      })
+
+      it('should delegate a high number of tokens', async function () {
+        await shouldDelegate(delegator, toGRT('100'))
+        await shouldDelegate(delegator, toGRT('1000000000000000000'))
+      })
     })
 
-    it('should delegate tokens and account shares proportionally', async function() {
-      // Multiple delegations should work
-      await shouldDelegate(delegator, toGRT('1234'))
-      await shouldDelegate(delegator, toGRT('100'))
-      await shouldDelegate(delegator, toGRT('50'))
-      await shouldDelegate(delegator, toGRT('25'))
-      await shouldDelegate(delegator, toGRT('10'))
-      await shouldDelegate(delegator, toGRT('1'))
+    describe('undelegate', function () {
+      it('reject to undelegate zero shares', async function () {
+        const tx = staking.connect(delegator).undelegate(indexer.address, toGRT('0'))
+        await expect(tx).revertedWith('Delegation: cannot undelegate zero shares')
+      })
 
-      // Delegation by other delegator
-      await shouldDelegate(delegator2, toGRT('5000'))
+      it('reject to undelegate more shares than owned', async function () {
+        const tx = staking.connect(delegator).undelegate(indexer.address, toGRT('100'))
+        await expect(tx).revertedWith('Delegation: delegator does not have enough shares')
+      })
+
+      it('should exchange delegation pool shares for tokens', async function () {
+        const tokens = toGRT('100')
+
+        // Have two parties that delegated tokens to the same indexer
+        await shouldDelegate(delegator, tokens)
+        await shouldDelegate(delegator2, tokens)
+
+        // Delegate half of the delegated funds
+        await shouldUndelegate(delegator, tokens.div(toBN('2')))
+      })
+
+      it('should undelegate properly when multiple delegations', async function () {
+        await shouldDelegate(delegator, toGRT('1234'))
+        await shouldDelegate(delegator, toGRT('100'))
+        await shouldDelegate(delegator, toGRT('50'))
+        await shouldDelegate(delegator2, toGRT('50'))
+
+        await shouldUndelegate(delegator, toGRT('1'))
+        await shouldUndelegate(delegator2, toGRT('50'))
+      })
     })
 
-    it('should delegate a high number of tokens', async function() {
-      await shouldDelegate(delegator, toGRT('100'))
-      await shouldDelegate(delegator, toGRT('1000000000000000000'))
+    describe('redelegate', function () {
+      it('reject redelegate to same indexer', async function () {
+        const tx = staking
+          .connect(delegator)
+          .redelegate(indexer.address, indexer.address, toGRT('100'))
+        await expect(tx).revertedWith('Delegation: cannot redelegate to same indexer')
+      })
+
+      it('it should redelegate from indexer to indexer2', async function () {
+        await shouldDelegate(delegator, toGRT('1000'))
+
+        // Before state
+        const beforePool1 = await staking.delegation(indexer.address)
+        const beforeShares1 = await staking.getDelegationShares(indexer.address, delegator.address)
+        const beforePool2 = await staking.delegation(indexer2.address)
+        const beforeShares2 = await staking.getDelegationShares(indexer2.address, delegator.address)
+
+        // Redelegate
+        const sharesToRedelegate = toGRT('100')
+        await staking
+          .connect(delegator)
+          .redelegate(indexer.address, indexer2.address, sharesToRedelegate)
+
+        // After state
+        const afterPool1 = await staking.delegation(indexer.address)
+        const afterShares1 = await staking.getDelegationShares(indexer.address, delegator.address)
+        const afterPool2 = await staking.delegation(indexer2.address)
+        const afterShares2 = await staking.getDelegationShares(indexer2.address, delegator.address)
+
+        // State updated
+        expect(afterPool1.shares).to.be.eq(beforePool1.shares.sub(sharesToRedelegate))
+        expect(afterPool2.shares).to.be.eq(beforePool2.shares.add(sharesToRedelegate))
+        expect(afterShares1).to.be.eq(beforeShares1.sub(sharesToRedelegate))
+        expect(afterShares2).to.be.eq(beforeShares2.add(sharesToRedelegate))
+      })
     })
   })
 
-  describe('undelegate', function() {
-    beforeEach(async function() {
-      // Distribute test funds
-      for (const wallet of [delegator, delegator2]) {
-        await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
-        await grt.connect(wallet).approve(staking.address, toGRT('10000000000000000000'))
-      }
-    })
-
-    it('reject to undelegate zero shares', async function() {
-      const tx = staking.connect(delegator).undelegate(indexer.address, toGRT('0'))
-      await expect(tx).revertedWith('Delegation: cannot undelegate zero shares')
-    })
-
-    it('reject to undelegate more shares than owned', async function() {
-      const tx = staking.connect(delegator).undelegate(indexer.address, toGRT('100'))
-      await expect(tx).revertedWith('Delegation: delegator does not have enough shares')
-    })
-
-    it('should exchange delegation pool shares for tokens', async function() {
-      const tokens = toGRT('100')
-
-      // Have two parties that delegated tokens to the same indexer
-      await shouldDelegate(delegator, tokens)
-      await shouldDelegate(delegator2, tokens)
-
-      // Delegate half of the delegated funds
-      await shouldUndelegate(delegator, tokens.div(toBN('2')))
-    })
-
-    it('should undelegate properly when multiple delegations', async function() {
-      await shouldDelegate(delegator, toGRT('1234'))
-      await shouldDelegate(delegator, toGRT('100'))
-      await shouldDelegate(delegator, toGRT('50'))
-      await shouldDelegate(delegator2, toGRT('50'))
-
-      await shouldUndelegate(delegator, toGRT('1'))
-      await shouldUndelegate(delegator2, toGRT('50'))
-    })
-  })
-
-  describe('use of delegated funds', function() {
+  describe('use of delegated funds', function () {
     // Default test values
     const tokensToStake = toGRT('200')
     const tokensToAllocate = toGRT('2000')
@@ -288,7 +327,7 @@ describe('Staking::Delegation', () => {
         .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, toGRT('0.01'))
     }
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       // Distribute test funds
       for (const wallet of [delegator, me, indexer, channelProxy]) {
         await grt.connect(governor).mint(wallet.address, toGRT('1000000'))
@@ -299,7 +338,7 @@ describe('Staking::Delegation', () => {
       await staking.connect(indexer).stake(tokensToStake)
     })
 
-    it('revert allocate when capacity is not enough', async function() {
+    it('revert allocate when capacity is not enough', async function () {
       // 1:2 delegation capacity
       await staking.connect(governor).setDelegationCapacity(2)
 
@@ -313,7 +352,7 @@ describe('Staking::Delegation', () => {
       await expect(tx).revertedWith('Allocation: not enough tokens available to allocate')
     })
 
-    it('should allocate using full delegation capacity', async function() {
+    it('should allocate using full delegation capacity', async function () {
       // 1:10 delegation capacity
       await staking.connect(governor).setDelegationCapacity(10)
 
@@ -330,7 +369,7 @@ describe('Staking::Delegation', () => {
       expect(alloc.tokens).to.be.eq(tokensToAllocate)
     })
 
-    it('should send delegation cut of query fees to delegation pool', async function() {
+    it('should send delegation cut of query fees to delegation pool', async function () {
       // 1:10 delegation capacity
       await staking.connect(governor).setDelegationCapacity(10)
 

@@ -582,9 +582,6 @@ contract Staking is Governed {
     ) external {
         address delegator = msg.sender;
 
-        // Can only redelegate a non-zero amount of shares
-        require(_shares > 0, "Delegation: cannot undelegate zero shares");
-
         // Can only redelegate to a different indexer
         require(_srcIndexer != _dstIndexer, "Delegation: cannot redelegate to same indexer");
 
