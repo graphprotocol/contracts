@@ -544,26 +544,14 @@ contract Staking is Governed {
     function delegate(address _indexer, uint256 _tokens) external {
         address delegator = msg.sender;
 
-        require(_tokens > 0, "Delegation: cannot delegate zero tokens");
-
         // Transfer tokens to delegate to this contract
         require(
             token.transferFrom(delegator, address(this), _tokens),
             "Delegation: Cannot transfer tokens to stake"
         );
 
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegation[_indexer];
-
-        // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.mul(pool.shares).div(pool.tokens);
-
-        // Update the delegation pool
-        pool.tokens = pool.tokens.add(_tokens);
-        pool.shares = pool.shares.add(shares);
-        pool.delegatorShares[delegator] = pool.delegatorShares[delegator].add(shares);
-
-        emit StakeDelegated(_indexer, delegator, _tokens, shares);
+        // Update state
+        _delegate(delegator, _indexer, _tokens);
     }
 
     /**
@@ -574,29 +562,33 @@ contract Staking is Governed {
     function undelegate(address _indexer, uint256 _shares) external {
         address delegator = msg.sender;
 
-        require(_shares > 0, "Delegation: cannot undelegate zero shares");
-
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegation[_indexer];
-
-        // Delegator need to have enough shares in the pool to undelegate
-        require(
-            pool.delegatorShares[delegator] >= _shares,
-            "Delegation: delegator does not have enough shares"
-        );
-
-        // Calculate tokens to get in exchange for the shares
-        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
-
-        // Update the delegation pool
-        pool.tokens = pool.tokens.sub(tokens);
-        pool.shares = pool.shares.sub(_shares);
-        pool.delegatorShares[delegator] = pool.delegatorShares[delegator].sub(_shares);
+        // Update state
+        uint256 tokens = _undelegate(delegator, _indexer, _shares);
 
         // Return tokens to delegator
         require(token.transfer(delegator, tokens), "Delegation: error sending tokens");
+    }
 
-        emit StakeUndelegated(_indexer, delegator, tokens, _shares);
+    /**
+     * @dev Switch delegation to other indexer.
+     * @param _srcIndexer Address of the indexer source of redelegated funds
+     * @param _dstIndexer Address of the indexer target of redelegated funds
+     * @param _shares Amount of shares to redelegate
+     */
+    function redelegate(
+        address _srcIndexer,
+        address _dstIndexer,
+        uint256 _shares
+    ) external {
+        address delegator = msg.sender;
+
+        // Can only redelegate a non-zero amount of shares
+        require(_shares > 0, "Delegation: cannot undelegate zero shares");
+
+        // Can only redelegate to a different indexer
+        require(_srcIndexer != _dstIndexer, "Delegation: cannot redelegate to same indexer");
+
+        _delegate(delegator, _dstIndexer, _undelegate(delegator, _srcIndexer, _shares));
     }
 
     /**
@@ -828,6 +820,74 @@ contract Staking is Governed {
             settlement.fees,
             settlement.allocation
         );
+    }
+
+    /**
+     * @dev Delegate tokens to an indexer.
+     * @param _delegator Address of the delegator
+     * @param _indexer Address of the indexer to delegate tokens to
+     * @param _tokens Amount of tokens to delegate
+     * @return Amount of shares issued of the delegation pool
+     */
+    function _delegate(
+        address _delegator,
+        address _indexer,
+        uint256 _tokens
+    ) private returns (uint256) {
+        // Can only delegate a non-zero amount of tokens
+        require(_tokens > 0, "Delegation: cannot delegate zero tokens");
+
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegation[_indexer];
+
+        // Calculate shares to issue
+        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.mul(pool.shares).div(pool.tokens);
+
+        // Update the delegation pool
+        pool.tokens = pool.tokens.add(_tokens);
+        pool.shares = pool.shares.add(shares);
+        pool.delegatorShares[_delegator] = pool.delegatorShares[_delegator].add(shares);
+
+        emit StakeDelegated(_indexer, _delegator, _tokens, shares);
+
+        return shares;
+    }
+
+    /**
+     * @dev Undelegate tokens from an indexer.
+     * @param _delegator Address of the delegator
+     * @param _indexer Address of the indexer where tokens had been delegated
+     * @param _shares Amount of shares to return and undelegate tokens
+     * @return Amount of tokens returned for the shares of the delegation pool
+     */
+    function _undelegate(
+        address _delegator,
+        address _indexer,
+        uint256 _shares
+    ) private returns (uint256) {
+        // Can only undelegate a non-zero amount of shares
+        require(_shares > 0, "Delegation: cannot undelegate zero shares");
+
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegation[_indexer];
+
+        // Delegator need to have enough shares in the pool to undelegate
+        require(
+            pool.delegatorShares[_delegator] >= _shares,
+            "Delegation: delegator does not have enough shares"
+        );
+
+        // Calculate tokens to get in exchange for the shares
+        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
+
+        // Update the delegation pool
+        pool.tokens = pool.tokens.sub(tokens);
+        pool.shares = pool.shares.sub(_shares);
+        pool.delegatorShares[_delegator] = pool.delegatorShares[_delegator].sub(_shares);
+
+        emit StakeUndelegated(_indexer, _delegator, tokens, _shares);
+
+        return tokens;
     }
 
     /**
