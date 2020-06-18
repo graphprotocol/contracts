@@ -4,7 +4,7 @@
     "ecmaVersion": 2020,
     "sourceType": "module"
   },
-  "extends": ["plugin:@typescript-eslint/recommended"],
+  "extends": ["plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
   "rules": {
     "prefer-const": "warn",
     "@typescript-eslint/no-inferrable-types": "warn",
