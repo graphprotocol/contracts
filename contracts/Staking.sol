@@ -293,10 +293,13 @@ contract Staking is Governed {
         address indexer = msg.sender;
 
         // Incentives must be within bounds
-        require(_queryFeeCut <= MAX_PPM, "QueryFeeCut must be below or equal to MAX_PPM");
+        require(
+            _queryFeeCut <= MAX_PPM,
+            "Delegation: QueryFeeCut must be below or equal to MAX_PPM"
+        );
         require(
             _indexingRewardCut <= MAX_PPM,
-            "IndexingRewardCut must be below or equal to MAX_PPM"
+            "Delegation: IndexingRewardCut must be below or equal to MAX_PPM"
         );
 
         // Cooldown period set by indexer cannot be below protocol global setting
@@ -393,6 +396,26 @@ contract Staking is Governed {
     }
 
     /**
+     * @dev Get the amount of tokens a delegator has in a delegation pool
+     * @param _indexer Address of the indexer
+     * @param _delegator Address of the delegator
+     * @return Tokens owned by delegator in a delegation pool
+     */
+    function getDelegationTokens(address _indexer, address _delegator)
+        public
+        view
+        returns (uint256)
+    {
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegation[_indexer];
+        if (pool.shares == 0) {
+            return 0;
+        }
+        uint256 _shares = getDelegationShares(_indexer, _delegator);
+        return _shares.mul(pool.tokens).div(pool.shares);
+    }
+
+    /**
      * @dev Get the total amount of tokens staked by the indexer
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
@@ -411,7 +434,9 @@ contract Staking is Governed {
         DelegationPool memory pool = delegation[_indexer];
 
         uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(delegationCapacity);
-        uint256 tokensDelegated = min(pool.tokens, tokensDelegatedMax);
+        uint256 tokensDelegated = (pool.tokens < tokensDelegatedMax)
+            ? pool.tokens
+            : tokensDelegatedMax;
 
         uint256 tokensUsed = indexerStake.tokensUsed();
         uint256 tokensCapacity = indexerStake.tokensStaked.add(tokensDelegated);
@@ -834,6 +859,9 @@ contract Staking is Governed {
         // Can only delegate a non-zero amount of tokens
         require(_tokens > 0, "Delegation: cannot delegate zero tokens");
 
+        // Can only delegate to non-empty address
+        require(_indexer != address(0), "Delegation: cannot delegate to empty address");
+
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegation[_indexer];
 
@@ -898,7 +926,8 @@ contract Staking is Governed {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegation[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
-            delegationFees = _tokens.sub(percentageOf(pool.queryFeeCut, _tokens));
+            uint256 indexerCut = pool.queryFeeCut.mul(_tokens).div(MAX_PPM);
+            delegationFees = _tokens.sub(indexerCut);
             pool.tokens = pool.tokens.add(delegationFees);
         }
         return delegationFees;
@@ -915,10 +944,10 @@ contract Staking is Governed {
         view
         returns (uint256)
     {
-        return
-            (isCurationEnabled() && curation.isCurated(_subgraphDeploymentID))
-                ? percentageOf(curationPercentage, _tokens)
-                : 0;
+        if (isCurationEnabled() && curation.isCurated(_subgraphDeploymentID)) {
+            return curationPercentage.mul(_tokens).div(MAX_PPM);
+        }
+        return 0;
     }
 
     /**
@@ -941,10 +970,6 @@ contract Staking is Governed {
         return id;
     }
 
-    function min(uint256 a, uint256 b) private pure returns (uint256) {
-        return a < b ? a : b;
-    }
-
     /**
      * @dev Convert an uncompressed public key to an Ethereum address
      * @param _publicKey Public key in uncompressed format without the 1 byte prefix
@@ -954,15 +979,5 @@ contract Staking is Governed {
         uint256 mask = 2**(8 * 21) - 1;
         uint256 value = uint256(keccak256(_publicKey));
         return address(value & mask);
-    }
-
-    /**
-     * @dev Calculate the percentage for value in parts per million (PPM)
-     * @param _ppm Parts per million
-     * @param _value Value to calculate percentage of
-     * @return Percentage of value
-     */
-    function percentageOf(uint256 _ppm, uint256 _value) private pure returns (uint256) {
-        return _ppm.mul(_value).div(MAX_PPM);
     }
 }
