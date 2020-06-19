@@ -1,9 +1,11 @@
 import { waffle as buidler } from '@nomiclabs/buidler'
-import { BigNumber, bigNumberify, hexlify, randomBytes, parseEther, parseUnits } from 'ethers/utils'
+import { BigNumber, utils } from 'ethers'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 
-export const toBN = (value: string | number): BigNumber => bigNumberify(value)
+const { hexlify, parseUnits, parseEther, randomBytes } = utils
+
+export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string): BigNumber => parseUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const logStake = (stakes: any): void => {
