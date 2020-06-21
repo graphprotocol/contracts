@@ -1,6 +1,6 @@
 import { expect, use } from 'chai'
 import { Event, Wallet } from 'ethers'
-import { BigNumber } from 'ethers/utils'
+import { computePublicKey, BigNumber } from 'ethers/utils'
 import { AddressZero } from 'ethers/constants'
 import { solidity } from 'ethereum-waffle'
 
@@ -524,6 +524,20 @@ describe('Staking', () => {
           const zeroTokens = toGRT('0')
           const tx = allocate(zeroTokens)
           await expect(tx).to.be.revertedWith('Allocation: cannot allocate zero tokens')
+        })
+
+        it('reject allocate with invalid public key', async function() {
+          const invalidChannelPubKey = computePublicKey(channelPubKey, true)
+          const tx = staking
+            .connect(indexer)
+            .allocate(
+              subgraphDeploymentID,
+              toGRT('100'),
+              invalidChannelPubKey,
+              channelProxy.address,
+              price,
+            )
+          await expect(tx).to.be.revertedWith('Allocation: invalid channel public key')
         })
 
         context('> when allocated', function() {

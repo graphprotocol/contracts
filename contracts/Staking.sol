@@ -633,20 +633,30 @@ contract Staking is Governed {
 
         // Only allocations with a token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
+
         // Need to have tokens in our stake to be able to allocate
         require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
+
         // Need to have free capacity not used for other purposes to allocate
         require(
             getIndexerCapacity(indexer) >= _tokens,
             "Allocation: not enough tokens available to allocate"
         );
+
         // Can only allocate tokens to a SubgraphDeployment if not currently allocated
         require(
             indexerStake.hasAllocation(_subgraphDeploymentID) == false,
             "Allocation: cannot allocate if already allocated"
         );
+
+        // Channel public key must be in uncompressed format
+        require(
+            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
+            "Allocation: invalid channel public key"
+        );
+
         // Cannot reuse a channelID that has been used in the past
-        address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
+        address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
         require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
         // Allocate and setup channel
@@ -968,16 +978,5 @@ contract Staking is Governed {
             id := chainid()
         }
         return id;
-    }
-
-    /**
-     * @dev Convert an uncompressed public key to an Ethereum address
-     * @param _publicKey Public key in uncompressed format without the 1 byte prefix
-     * @return An Ethereum address corresponding to the public key
-     */
-    function publicKeyToAddress(bytes memory _publicKey) private pure returns (address) {
-        uint256 mask = 2**(8 * 21) - 1;
-        uint256 value = uint256(keccak256(_publicKey));
-        return address(value & mask);
     }
 }
