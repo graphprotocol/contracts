@@ -28,11 +28,16 @@ contract Staking is Governed {
     // Indexer stake tracking : indexer => Stake
     mapping(address => Stakes.Indexer) public stakes;
 
-    // -- Allocation and Channel --
+    // -- Allocation --
 
-    struct Channel {
+    struct Allocation {
         address indexer;
         bytes32 subgraphDeploymentID;
+        uint256 tokens; // Tokens allocated to a SubgraphDeployment
+        uint256 createdAtEpoch; // Epoch when it was created
+        uint256 settledAtEpoch; // Epoch when it was settled
+        uint256 collectedFees;
+        uint256 effectiveAllocation;
     }
 
     // Percentage of fees going to curators
@@ -45,8 +50,8 @@ contract Staking is Governed {
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
-    // Channels : channelID => Channel
-    mapping(address => Channel) public channels;
+    // Allocations : allocationID => Allocation
+    mapping(address => Allocation) allocations;
 
     // Channels Proxy : Channel Multisig Proxy => channelID
     mapping(address => address) public channelsProxy;
@@ -178,8 +183,7 @@ contract Staking is Governed {
         address channelID,
         address from,
         uint256 curationFees,
-        uint256 rebateFees,
-        uint256 effectiveAllocation
+        uint256 rebateFees
     );
 
     /**
@@ -350,12 +354,12 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Return if channelID (address) is already used
+     * @dev Return if channelID (address) was used as a channel in any allocation.
      * @param _channelID Address used as signer for indexer in channel
      * @return True if channelID already used
      */
     function isChannel(address _channelID) public view returns (bool) {
-        return channels[_channelID].indexer != address(0);
+        return allocations[_channelID].indexer != address(0);
     }
 
     /**
@@ -365,20 +369,6 @@ contract Staking is Governed {
      */
     function hasStake(address _indexer) public view returns (bool) {
         return stakes[_indexer].hasTokens();
-    }
-
-    /**
-     * @dev Get an allocation of tokens to a SubgraphDeployment
-     * @param _indexer Address of the indexer
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment to query
-     * @return Allocation data
-     */
-    function getAllocation(address _indexer, bytes32 _subgraphDeploymentID)
-        public
-        view
-        returns (Stakes.Allocation memory)
-    {
-        return stakes[_indexer].allocations[_subgraphDeploymentID];
     }
 
     /**
@@ -535,7 +525,7 @@ contract Staking is Governed {
         // Transfer tokens to stake from indexer to this contract
         require(
             token.transferFrom(indexer, address(this), _tokens),
-            "Staking: Cannot transfer tokens to stake"
+            "Staking: cannot transfer tokens to stake"
         );
 
         // Stake the transferred tokens
@@ -614,7 +604,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Allocate available tokens to a SubgraphDeployment
+     * @dev Allocate available tokens to a SubgraphDeployment.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
@@ -631,13 +621,13 @@ contract Staking is Governed {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        // Only allocations with a token amount are allowed
+        // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
 
-        // Need to have tokens in our stake to be able to allocate
+        // Needs to have tokens in our stake to be able to allocate
         require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
 
-        // Need to have free capacity not used for other purposes to allocate
+        // Needs to have free capacity not used for other purposes to allocate
         require(
             getIndexerCapacity(indexer) >= _tokens,
             "Allocation: not enough tokens available to allocate"
@@ -655,51 +645,107 @@ contract Staking is Governed {
             "Allocation: invalid channel public key"
         );
 
-        // Cannot reuse a channelID that has been used in the past
+        // A channel public key is derived by the indexer when creating the offchain payment channel.
+        // Get the Ethereum address from the public key and use as channel identifier.
+        // The channel identifier is the address of the indexer signing party of a multisig that
+        // will hold the funds received when the channel is settled.
         address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
-        require(isChannel(channelID) == false, "Allocation: channel ID already in use");
 
-        // Allocate and setup channel
-        Stakes.Allocation storage alloc = indexerStake.allocateTokens(
+        // Cannot reuse a channelID that has already been used in an allocation
+        require(isChannel(channelID) == false, "Allocation: channel ID already used");
+
+        // TODO: track counter of multiple allocations allowed for the same (indexer,subgraphDeployment)
+
+        // Create allocation linked to the channel identifier
+        allocations[channelID] = Allocation(
+            indexer,
             _subgraphDeploymentID,
-            _tokens
+            _tokens,
+            epochManager.currentEpoch(), // createdAtEpoch
+            0, // settledAtEpoch
+            0, // start we zero collected fees
+            0 // effective allocation
         );
-        alloc.channelID = channelID;
-        alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[channelID] = Channel(indexer, _subgraphDeploymentID);
+
+        // Mark allocated tokens as used
+        indexerStake.allocate(_tokens);
+
+        // The channel proxy address is the contract that will send tokens to be settled to
+        // this contract. Create a link to the channelID to properly assign funds settled.
         channelsProxy[_channelProxy] = channelID;
 
         emit AllocationCreated(
             indexer,
             _subgraphDeploymentID,
-            alloc.createdAtEpoch,
-            alloc.tokens,
+            allocations[channelID].createdAtEpoch,
+            allocations[channelID].tokens,
             channelID,
             _channelPubKey,
             _price
         );
     }
 
+    function unallocate(address _channelID) external {
+        address indexer = msg.sender;
+
+        // Get allocation related to the channel identifier
+        Allocation storage alloc = allocations[_channelID];
+
+        // Allocation must exist
+        require(isChannel(_channelID), "Allocation: channelID not used in any allocation");
+
+        // Verify that the allocation owner is unallocating
+        // TODO: also allow delegator to force it after a period
+        require(alloc.indexer == indexer, "Allocation: only allocation owner allowed");
+
+        // Must be an active allocation
+        require(alloc.settledAtEpoch == 0, "Allocation: must be active");
+
+        // Validate that an allocation cannot be settled before one epoch
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
+        require(epochs > 0, "Allocation: must pass at least one epoch");
+
+        // Settle the allocation and start counting a period to finalize any other
+        // withdrawal from the related channel.
+        alloc.settledAtEpoch = currentEpoch;
+        alloc.effectiveAllocation = getEffectiveAllocation(alloc.tokens, epochs);
+
+        // TODO: find a rebate pool for the epoch and accumulate stuff there
+        // TODO: review if we can replace Settlement with Allocation
+        // TODO: can we unallocate two Allocations on the same epoch - rebate?
+        Rebates.Pool storage rebatePool = rebates[currentEpoch];
+        rebatePool.fees = rebatePool.fees.add(alloc.collectedFees);
+        rebatePool.allocation = rebatePool.allocation.add(alloc.effectiveAllocation);
+        rebatePool.settlementsCount += 1;
+
+        // Free allocated tokens from use
+        indexerStake.unallocate(_tokens);
+
+        // TODO: emit event
+    }
+
     /**
-     * @dev Settle a channel after receiving collected query fees from it
-     * Funds are received from a channel multisig proxy contract
+     * @dev Collected query fees from a channel.
+     * Funds received are only accepted from a channel multisig proxy contract.
      * @param _tokens Amount of tokens to settle
      */
     function settle(uint256 _tokens) external {
-        // Get the channelID the caller is related
+        // The contract caller must only be a channel proxy registered during allocation
+        // Get the channelID related to the caller channel proxy
         address channelID = channelsProxy[msg.sender];
 
-        // Receive funds from the channel multisig
-        // We use channelID to find the indexer owner of the channel
-        require(isChannel(channelID), "Channel: does not exist");
+        // Channel validation
+        require(channelID != address(0), "Settle: caller not allowed to settle");
 
-        delete channelsProxy[msg.sender]; // Remove to avoid re-entrancy
+        // The channelID must exist and used in an allocation
+        require(isChannel(channelID), "Settle: does not exist");
 
-        // Transfer tokens to settle from multisig to this contract
+        // Transfer tokens to collect from multisig to this contract
         require(
             token.transferFrom(msg.sender, address(this), _tokens),
-            "Channel: Cannot transfer tokens to settle"
+            "Settle: cannot transfer tokens to settle"
         );
+
         _settle(channelID, msg.sender, _tokens);
     }
 
@@ -791,8 +837,8 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Settle a channel after receiving collected query fees from it
-     * @param _channelID ChannelID - address of the indexer in the channel
+     * @dev Settle a channel after receiving collected query fees from it.
+     * @param _channelID ChannelID address of the indexer in the channel
      * @param _from Multisig channel address that triggered settlement
      * @param _tokens Amount of tokens to settle
      */
@@ -801,56 +847,35 @@ contract Staking is Governed {
         address _from,
         uint256 _tokens
     ) private {
-        address indexer = channels[_channelID].indexer;
-        bytes32 subgraphDeploymentID = channels[_channelID].subgraphDeploymentID;
-        Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphDeploymentID];
+        // Get allocation related to the channel identifier
+        Allocation storage alloc = allocations[_channelID];
 
-        // Channel validation
-        require(_channelID != address(0), "Channel: ChannelID cannot be empty address");
-        require(
-            alloc.channelID == _channelID,
-            "Channel: The allocation has no channel, or the channel was already settled"
-        );
-
-        // Time conditions
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
-        require(epochs > 0, "Channel: Can only settle after one epoch passed");
+        // TODO: validate the the allocation can still be settled
 
         // Calculate curation fees only if the subgraph deployment is curated
-        uint256 curationFees = _collectCurationFees(subgraphDeploymentID, _tokens);
+        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
 
-        // Set apart fees into a rebate pool for the indexer
-        Rebates.Settlement memory settlement = rebates[currentEpoch].add(
-            indexer,
-            subgraphDeploymentID,
-            _tokens.sub(curationFees), // substract curation fees
-            alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs) // effective allocation
-        );
-
-        // Close channel
-        // NOTE: Channels used are never deleted from state tracked in `channels` var
-        stakes[indexer].unallocateTokens(subgraphDeploymentID, alloc.tokens);
-        alloc.channelID = address(0);
-        alloc.createdAtEpoch = 0;
+        // Hold tokens received in the allocation
+        uint256 rebateFees = _tokens.sub(curationFees);
+        alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
         // Send curation fees to the curator SubgraphDeployment reserve
         if (curationFees > 0) {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             require(token.approve(address(curation), curationFees));
-            curation.collect(subgraphDeploymentID, curationFees);
+            curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
         emit AllocationSettled(
-            indexer,
-            subgraphDeploymentID,
-            currentEpoch,
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            epochManager.currentEpoch(),
             _tokens,
             _channelID,
             _from,
             curationFees,
-            settlement.fees,
-            settlement.allocation
+            rebateFees
         );
     }
 
@@ -966,6 +991,21 @@ contract Staking is Governed {
      */
     function isCurationEnabled() private view returns (bool) {
         return curationPercentage > 0 && address(curation) != address(0);
+    }
+
+    /**
+     * @dev Get the effective stake allocation considering epochs from allocation to settlement.
+     * @param _tokens Amount of tokens allocated
+     * @param _numEpochs Number of epochs that passed from allocation to settlement
+     * @return Effective allocated tokens accross epochs
+     */
+    function getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
+        private
+        view
+        returns (uint256)
+    {
+        bool shouldCap = maxAllocationEpochs > 0 && _numEpochs > maxAllocationEpochs;
+        return _tokens.mul((shouldCap) ? maxAllocationEpochs : _numEpochs);
     }
 
     /**

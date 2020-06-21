@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../abdk-libraries-solidity/ABDKMath64x64.sol";
 
-
 /**
  * @title A collection of data structures and functions to manage Rebates
  *        Used for low-level state changes, require() conditions should be evaluated
@@ -47,6 +46,7 @@ library Rebates {
     ) internal returns (Rebates.Settlement storage) {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
+        // TODO: change Settlement() to add tokens and allocation
         pool.settlements[_indexer][_subgraphDeploymentID] = Settlement(_tokens, _allocation);
         pool.settlementsCount += 1;
 

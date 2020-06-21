@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
- * @title A collection of data structures and functions to manage the Stake state
+ * @title A collection of data structures and functions to manage the Indexer Stake state.
  *        Used for low-level state changes, require() conditions should be evaluated
  *        at the caller function scope.
  */
@@ -12,53 +12,11 @@ library Stakes {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
-    struct Allocation {
-        uint256 tokens; // Tokens allocated to a SubgraphDeployment
-        uint256 createdAtEpoch; // Epoch when it was created
-        address channelID; // Indexer channel ID used off chain
-    }
-
     struct Indexer {
         uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
         uint256 tokensAllocated; // Tokens used in allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
-        // SubgraphDeployment stake allocation tracking : subgraphDeploymentID => Allocation
-        mapping(bytes32 => Allocation) allocations;
-    }
-
-    /**
-     * @dev Allocate tokens from the main stack to a SubgraphDeployment.
-     * @param stake Stake data
-     * @param _subgraphDeploymentID SubgraphDeployment where to allocate tokens
-     * @param _tokens Amount of tokens to allocate
-     */
-    function allocateTokens(
-        Stakes.Indexer storage stake,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens
-    ) internal returns (Allocation storage) {
-        Stakes.Allocation storage alloc = stake.allocations[_subgraphDeploymentID];
-        alloc.tokens = alloc.tokens.add(_tokens);
-        stake.tokensAllocated = stake.tokensAllocated.add(_tokens);
-        return alloc;
-    }
-
-    /**
-     * @dev Unallocate tokens from a SubgraphDeployment.
-     * @param stake Stake data
-     * @param _subgraphDeploymentID SubgraphDeployment from where to unallocate tokens
-     * @param _tokens Amount of tokens to unallocate
-     */
-    function unallocateTokens(
-        Stakes.Indexer storage stake,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens
-    ) internal returns (Allocation storage) {
-        Stakes.Allocation storage alloc = stake.allocations[_subgraphDeploymentID];
-        alloc.tokens = alloc.tokens.sub(_tokens);
-        stake.tokensAllocated = stake.tokensAllocated.sub(_tokens);
-        return alloc;
     }
 
     /**
@@ -77,6 +35,24 @@ library Stakes {
      */
     function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensStaked = stake.tokensStaked.sub(_tokens);
+    }
+
+    /**
+     * @dev Allocate tokens from the main stack to a SubgraphDeployment.
+     * @param stake Stake data
+     * @param _tokens Amount of tokens to allocate
+     */
+    function allocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
+        stake.tokensAllocated = stake.tokensAllocated.add(_tokens);
+    }
+
+    /**
+     * @dev Unallocate tokens from a SubgraphDeployment back to the main stack.
+     * @param stake Stake data
+     * @param _tokens Amount of tokens to unallocate
+     */
+    function unallocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
+        stake.tokensAllocated = stake.tokensAllocated.sub(_tokens);
     }
 
     /**
@@ -166,20 +142,6 @@ library Stakes {
     }
 
     /**
-     * @dev Return true if the indexer has allocated stake on the SubgraphDeployment.
-     * @param stake Stake data
-     * @param _subgraphDeploymentID SubgraphDeployment for the allocation
-     * @return True if allocated
-     */
-    function hasAllocation(Stakes.Indexer storage stake, bytes32 _subgraphDeploymentID)
-        internal
-        view
-        returns (bool)
-    {
-        return stake.allocations[_subgraphDeploymentID].tokens > 0;
-    }
-
-    /**
      * @dev Return the amount of tokens used in allocations and locked for withdrawal.
      * @param stake Stake data
      * @return Token amount
@@ -221,31 +183,5 @@ library Stakes {
             return stake.tokensStaked;
         }
         return stake.tokensLocked;
-    }
-
-    /**
-     * @dev Return if channel for an allocation is active.
-     * @param alloc Allocation data
-     * @return True if channel related to allocation is active
-     */
-    function hasChannel(Stakes.Allocation memory alloc) internal view returns (bool) {
-        return alloc.channelID != address(0);
-    }
-
-    /**
-     * @dev Get the effective stake allocation considering epochs from allocation to settlement.
-     * @param alloc Allocation data
-     * @param _numEpochs Number of epochs that passed from allocation to settlement
-     * @param _maxEpochs Number of epochs used as a maximum to cap effective allocation
-     * @return Effective allocated tokens accross epochs
-     */
-    function getTokensEffectiveAllocation(
-        Stakes.Allocation memory alloc,
-        uint256 _numEpochs,
-        uint256 _maxEpochs
-    ) internal view returns (uint256) {
-        uint256 tokens = alloc.tokens;
-        bool shouldCap = _maxEpochs > 0 && _numEpochs > _maxEpochs;
-        return (shouldCap) ? tokens.mul(_maxEpochs) : tokens.mul(_numEpochs);
     }
 }
