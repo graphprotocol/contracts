@@ -5,7 +5,7 @@ import { Signer } from 'ethers'
 import { parseEther } from 'ethers/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { deployMultisigWithProxy, deployGRTWithFactory } from '../lib/deployment'
+import { deployMultisigWithProxy, deployGRT } from '../lib/deployment'
 import { getRandomFundedChannelSigners } from '../lib/channel'
 import { MinimumViableMultisig } from '../../build/typechain/contracts/MinimumViableMultisig'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
@@ -32,7 +32,7 @@ describe('MinimumViableMultisig.sol', () => {
     governor = accounts[0]
 
     // Deploy graph token
-    token = await deployGRTWithFactory(await governor.getAddress())
+    token = await deployGRT(await governor.getAddress())
 
     // Get channel signers
     const [_node, _indexer] = await getRandomFundedChannelSigners(2, governor, token)

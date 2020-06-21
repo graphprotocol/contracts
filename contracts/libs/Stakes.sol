@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-
 /**
  * @title A collection of data structures and functions to manage the Stake state
  *        Used for low-level state changes, require() conditions should be evaluated
@@ -20,8 +19,8 @@ library Stakes {
     }
 
     struct Indexer {
-        uint256 tokensIndexer; // Tokens on the indexer stake (staked by the indexer)
-        uint256 tokensAllocated; // Tokens used in SubgraphDeployment allocations
+        uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
+        uint256 tokensAllocated; // Tokens used in allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
         uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
         // SubgraphDeployment stake allocation tracking : subgraphDeploymentID => Allocation
@@ -29,7 +28,7 @@ library Stakes {
     }
 
     /**
-     * @dev Allocate tokens from the available stack to a SubgraphDeployment
+     * @dev Allocate tokens from the main stack to a SubgraphDeployment.
      * @param stake Stake data
      * @param _subgraphDeploymentID SubgraphDeployment where to allocate tokens
      * @param _tokens Amount of tokens to allocate
@@ -46,7 +45,7 @@ library Stakes {
     }
 
     /**
-     * @dev Unallocate tokens from a SubgraphDeployment
+     * @dev Unallocate tokens from a SubgraphDeployment.
      * @param stake Stake data
      * @param _subgraphDeploymentID SubgraphDeployment from where to unallocate tokens
      * @param _tokens Amount of tokens to unallocate
@@ -63,25 +62,25 @@ library Stakes {
     }
 
     /**
-     * @dev Deposit tokens to the indexer stake
+     * @dev Deposit tokens to the indexer stake.
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
     function deposit(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensIndexer = stake.tokensIndexer.add(_tokens);
+        stake.tokensStaked = stake.tokensStaked.add(_tokens);
     }
 
     /**
-     * @dev Release tokens from the indexer stake
+     * @dev Release tokens from the indexer stake.
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
     function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensIndexer = stake.tokensIndexer.sub(_tokens);
+        stake.tokensStaked = stake.tokensStaked.sub(_tokens);
     }
 
     /**
-     * @dev Lock tokens until a thawing period expires
+     * @dev Lock tokens until a thawing period expires,
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
@@ -103,7 +102,7 @@ library Stakes {
     }
 
     /**
-     * @dev Unlock tokens
+     * @dev Unlock tokens.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unkock
      */
@@ -115,7 +114,7 @@ library Stakes {
     }
 
     /**
-     * @dev Take all tokens out from the locked stack for withdrawal
+     * @dev Take all tokens out from the locked stack for withdrawal.
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
      */
@@ -135,14 +134,15 @@ library Stakes {
     }
 
     /**
-     * @dev Get the locking period of the tokens to unstake, if already unstaked before calculate the weighted average
+     * @dev Get the locking period of the tokens to unstake.
+     * If already unstaked before calculate the weighted average.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
      * @return True if staked
      */
     function getLockingPeriod(
-        Stakes.Indexer storage stake,
+        Stakes.Indexer memory stake,
         uint256 _tokens,
         uint256 _thawingPeriod
     ) internal view returns (uint256) {
@@ -157,16 +157,16 @@ library Stakes {
     }
 
     /**
-     * @dev Return true if there are tokens staked by the Indexer
+     * @dev Return true if there are tokens staked by the Indexer.
      * @param stake Stake data
      * @return True if staked
      */
-    function hasTokens(Stakes.Indexer storage stake) internal view returns (bool) {
-        return stake.tokensIndexer > 0;
+    function hasTokens(Stakes.Indexer memory stake) internal view returns (bool) {
+        return stake.tokensStaked > 0;
     }
 
     /**
-     * @dev Return true if the indexer has allocated stake on the SubgraphDeployment
+     * @dev Return true if the indexer has allocated stake on the SubgraphDeployment.
      * @param stake Stake data
      * @param _subgraphDeploymentID SubgraphDeployment for the allocation
      * @return True if allocated
@@ -180,46 +180,36 @@ library Stakes {
     }
 
     /**
-     * @dev Total tokens staked from indexer
+     * @dev Return the amount of tokens used in allocations and locked for withdrawal.
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensStaked(Stakes.Indexer storage stake) internal view returns (uint256) {
-        return stake.tokensIndexer;
+    function tokensUsed(Stakes.Indexer memory stake) internal view returns (uint256) {
+        return stake.tokensAllocated.add(stake.tokensLocked);
     }
 
     /**
-     * @dev Tokens available for use in allocations
-     * @dev tokensIndexer - tokensAllocated - tokensLocked
+     * @dev Tokens free balance on the indexer stake.
+     * tokensStaked - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensAvailable(Stakes.Indexer storage stake) internal view returns (uint256) {
-        uint256 _tokensStaked = stake.tokensStaked();
-        uint256 tokensUsed = stake.tokensAllocated.add(stake.tokensLocked);
-        // Stake is over allocated: return 0 to avoid stake to be used until the overallocation
-        // is restored by staking more tokens or unallocating tokens
-        if (tokensUsed > _tokensStaked) {
+    function tokensAvailable(Stakes.Indexer memory stake) internal view returns (uint256) {
+        uint256 tokensUsed = stake.tokensUsed();
+        // Indexer stake is over allocated: return 0 to avoid stake to be used until
+        // the overallocation is restored by staking more tokens or unallocating tokens
+        if (tokensUsed > stake.tokensStaked) {
             return 0;
         }
-        return _tokensStaked.sub(tokensUsed);
+        return stake.tokensStaked.sub(tokensUsed);
     }
 
     /**
-     * @dev Tokens used for slashing whenever necessary
+     * @dev Tokens available for withdrawal after thawing period.
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensSlashable(Stakes.Indexer storage stake) internal view returns (uint256) {
-        return stake.tokensIndexer;
-    }
-
-    /**
-     * @dev Tokens available for withdrawal after thawing period
-     * @param stake Stake data
-     * @return Token amount
-     */
-    function tokensWithdrawable(Stakes.Indexer storage stake) internal view returns (uint256) {
+    function tokensWithdrawable(Stakes.Indexer memory stake) internal view returns (uint256) {
         // No tokens to withdraw before locking period
         if (stake.tokensLockedUntil == 0 || block.number < stake.tokensLockedUntil) {
             return 0;
@@ -227,30 +217,30 @@ library Stakes {
         // Cannot withdraw more than currently staked
         // This condition can happen if while tokens are locked for withdrawal a slash condition happens
         // In that case the total staked tokens could be below the amount to be withdrawn
-        if (stake.tokensLocked > stake.tokensIndexer) {
-            return stake.tokensIndexer;
+        if (stake.tokensLocked > stake.tokensStaked) {
+            return stake.tokensStaked;
         }
         return stake.tokensLocked;
     }
 
     /**
-     * @dev Return if channel for an allocation is active
+     * @dev Return if channel for an allocation is active.
      * @param alloc Allocation data
      * @return True if channel related to allocation is active
      */
-    function hasChannel(Stakes.Allocation storage alloc) internal view returns (bool) {
+    function hasChannel(Stakes.Allocation memory alloc) internal view returns (bool) {
         return alloc.channelID != address(0);
     }
 
     /**
-     * @dev Get the effective stake allocation considering epochs from allocation to settlement
+     * @dev Get the effective stake allocation considering epochs from allocation to settlement.
      * @param alloc Allocation data
      * @param _numEpochs Number of epochs that passed from allocation to settlement
      * @param _maxEpochs Number of epochs used as a maximum to cap effective allocation
      * @return Effective allocated tokens accross epochs
      */
     function getTokensEffectiveAllocation(
-        Stakes.Allocation storage alloc,
+        Stakes.Allocation memory alloc,
         uint256 _numEpochs,
         uint256 _maxEpochs
     ) internal view returns (uint256) {

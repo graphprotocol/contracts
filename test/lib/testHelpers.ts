@@ -1,13 +1,16 @@
 import { waffle as buidler } from '@nomiclabs/buidler'
 import { BigNumber, bigNumberify, hexlify, randomBytes, parseEther, parseUnits } from 'ethers/utils'
 
-export const toBN = (value: string | number) => bigNumberify(value)
+import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+
+export const toBN = (value: string | number): BigNumber => bigNumberify(value)
 export const toGRT = (value: string): BigNumber => parseUnits(value, '18')
-export const randomHexBytes = (n: number = 32) => hexlify(randomBytes(n))
-export const logStake = (stakes: any) =>
+export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
+export const logStake = (stakes: any): void => {
   Object.entries(stakes).map(([k, v]) => {
     console.log(k, ':', parseEther(v as string))
   })
+}
 
 // Network
 
@@ -18,16 +21,16 @@ export const getChainID = (): Promise<string | number> =>
     .getNetwork()
     .then(r => r.chainId)
 
-export const latestBlock = () =>
+export const latestBlock = (): Promise<BigNumber> =>
   provider()
     .getBlockNumber()
     .then(toBN)
 
-export const advanceBlock = () => {
+export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
 }
 
-export const advanceBlockTo = async (blockNumber: string | number | BigNumber) => {
+export const advanceBlockTo = async (blockNumber: string | number | BigNumber): Promise<void> => {
   const target =
     typeof blockNumber === 'number' || typeof blockNumber === 'string'
       ? toBN(blockNumber)
@@ -46,7 +49,15 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber) =
   }
 }
 
+export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
+  const currentBlock = await latestBlock()
+  const epochLength = await epochManager.epochLength()
+  const nextEpochBlock = currentBlock.add(epochLength)
+  await advanceBlockTo(nextEpochBlock)
+}
+
 // Default configuration used in tests
+
 export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),

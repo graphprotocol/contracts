@@ -5,7 +5,7 @@ import { bigNumberify, parseEther, BigNumberish, BigNumber } from 'ethers/utils'
 import { ChallengeStatus, MinimalTransaction } from '@connext/types'
 import { ChannelSigner, toBN, stringify } from '@connext/utils'
 
-import { deployGRTWithFactory, deployMultisigWithProxy } from '../lib/deployment'
+import { deployGRT, deployMultisigWithProxy } from '../lib/deployment'
 import {
   getRandomFundedChannelSigners,
   fundMultisig,
@@ -61,7 +61,7 @@ describe('Indexer Channel Operations', () => {
     governer = accounts[0]
 
     // Deploy graph token
-    token = await deployGRTWithFactory(await governer.getAddress())
+    token = await deployGRT(await governer.getAddress())
 
     // Get channel signers
     const [_node, _indexer, _thirdparty] = await getRandomFundedChannelSigners(3, governer, token)

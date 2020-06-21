@@ -12,7 +12,7 @@ describe('ServiceRegistry', () => {
   const geohash = '69y7hdrhm6mp'
 
   beforeEach(async function() {
-    serviceRegistry = await deployment.deployServiceRegistry(governor)
+    serviceRegistry = await deployment.deployServiceRegistry()
 
     this.shouldRegister = async function(url: string, geohash: string) {
       // Register the indexer service
@@ -28,7 +28,7 @@ describe('ServiceRegistry', () => {
     }
   })
 
-  describe('register()', function() {
+  describe('register', function() {
     it('should allow registering', async function() {
       const url = 'https://192.168.2.1/'
       await this.shouldRegister(url, geohash)
@@ -52,7 +52,7 @@ describe('ServiceRegistry', () => {
     })
   })
 
-  describe('unregister()', function() {
+  describe('unregister', function() {
     it('should unregister existing registration', async function() {
       const url = 'https://thegraph.com'
 
