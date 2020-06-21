@@ -54,6 +54,7 @@
     "ts-generator": "0.0.8",
     "ts-node": "^8.10.1",
     "typechain": "^2.0.0",
+    "typechain-target-ethers-v5": "^1.2.0",
     "typescript": "^3.9.3",
     "yaml": "^1.10.0",
     "yargs": "^15.3.1"
@@ -66,7 +67,7 @@
     "deploy": "npm run migrate",
     "deploy-kovan": "npm run migrate -- --force --network kovan",
     "migrate": "buidler migrate",
-    "test": "buidler typechain && buidler test",
+    "test": "npm run typechain && buidler test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm.sh",
     "lint": "npm run lint:ts && npm run lint:sol",
@@ -80,7 +81,7 @@
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
-    "typechain": "buidler typechain"
+    "typechain": "typechain --target ethers-v5 --outDir build/typechain/contracts 'build/abis/*.json'"
   },
   "lint-staged": {
     "contracts/*.sol": [

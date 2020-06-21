@@ -1,6 +1,5 @@
 import { expect, use } from 'chai'
-import { Event, Wallet } from 'ethers'
-import { BigNumber } from 'ethers/utils'
+import { BigNumber, Event, Wallet } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'

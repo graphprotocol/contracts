@@ -2,7 +2,6 @@ import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
 import { ChannelSigner } from '@connext/utils'
 import { Signer } from 'ethers'
-import { parseEther } from 'ethers/utils'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { deployMultisigWithProxy, deployGRT } from '../lib/deployment'

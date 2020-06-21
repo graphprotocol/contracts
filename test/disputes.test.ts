@@ -1,6 +1,6 @@
-import { expect } from 'chai'
-import { AddressZero } from 'ethers/constants'
-import { defaultAbiCoder as abi, arrayify, concat, hexlify, solidityKeccak256 } from 'ethers/utils'
+import { expect, use } from 'chai'
+import { constants, utils } from 'ethers'
+import { solidity } from 'ethereum-waffle'
 import { attestations } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../build/typechain/contracts/DisputeManager'
@@ -19,6 +19,11 @@ import {
   toBN,
   toGRT,
 } from './lib/testHelpers'
+
+use(solidity)
+
+const { AddressZero } = constants
+const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
 
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()

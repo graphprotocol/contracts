@@ -251,12 +251,14 @@ export async function deployMultisigWithProxy(
   } = ctx
   const tx = await proxyFactory.functions.createProxyWithNonce(
     masterCopy.address,
-    masterCopy.interface.functions.setup.encode([owners.map(owner => owner.address)]),
+    masterCopy.interface.encodeFunctionData('setup(address[])', [
+      owners.map(owner => owner.address),
+    ]),
     // hardcode ganache chainId
     solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
   )
   const receipt = (await tx.wait()) as TransactionReceipt
-  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).values
+  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).args
 
   const multisig = new Contract(
     multisigAddr,

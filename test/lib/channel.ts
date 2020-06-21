@@ -5,24 +5,23 @@ import {
   singleAssetTwoPartyCoinTransferInterpreterParamsEncoding,
 } from '@connext/types'
 import { Signer } from 'ethers'
-import {
-  parseEther,
-  BigNumber,
-  Interface,
-  randomBytes,
-  solidityKeccak256,
-  bigNumberify,
-  solidityPack,
-  keccak256,
-  BigNumberish,
-  defaultAbiCoder,
-} from 'ethers/utils'
+import { constants, utils, BigNumber, BigNumberish } from 'ethers'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import MultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
 import { IndexerCtdt } from '../../build/typechain/contracts/IndexerCtdt'
 import { toBN } from './testHelpers'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
-import { Zero, AddressZero } from 'ethers/constants'
+
+const { Zero, AddressZero } = constants
+const {
+  parseEther,
+  Interface,
+  randomBytes,
+  solidityKeccak256,
+  solidityPack,
+  keccak256,
+  defaultAbiCoder,
+} = utils
 
 export async function getRandomFundedChannelSigners(
   numSigners: number,
@@ -160,7 +159,7 @@ export const getFreeBalanceState = (
     },
     {
       assetId: AddressZero,
-      deposit: new BigNumber(0),
+      deposit: BigNumber.from(0),
     },
   )
 
@@ -174,7 +173,7 @@ export const getFreeBalanceState = (
     },
     {
       assetId: AddressZero,
-      deposit: new BigNumber(0),
+      deposit: BigNumber.from(0),
     },
   )
 
@@ -310,12 +309,12 @@ export class MiniCommitment {
         return {
           to: ctdt.address,
           value: 0,
-          data: ctdt.interface.functions.executeWithdraw.encode([
+          data: ctdt.interface.encodeFunctionData('executeWithdraw(address,bytes32,bytes,bytes)', [
             withdrawInterpreterAddress,
             randomBytes(32), // nonce
-            encode(withdrawOutcomeEncoding, { to: recipient, amount: bigNumberify(amount) }),
+            encode(withdrawOutcomeEncoding, { to: recipient, amount: BigNumber.from(amount) }),
             encode(withdrawOutcomeInterpreterParamsEncoding, {
-              limit: bigNumberify(amount),
+              limit: BigNumber.from(amount),
               tokenAddress: assetId,
             }),
           ]),
@@ -345,16 +344,20 @@ export class MiniCommitment {
         return {
           to: ctdt.address,
           value: 0,
-          data: ctdt.interface.functions.executeEffectOfInterpretedAppOutcome.encode([
-            mockDispute.address,
-            freeBalanceIdentityHash,
-            appIdentityHash,
-            interpreterAddr,
-            encodedParams,
-          ]),
+          data: ctdt.interface.encodeFunctionData(
+            'executeEffectOfInterpretedAppOutcome(address,bytes32,bytes32,address,bytes)',
+            [
+              mockDispute.address,
+              freeBalanceIdentityHash,
+              appIdentityHash,
+              interpreterAddr,
+              encodedParams,
+            ],
+          ),
           operation: MultisigOperation.DelegateCall,
         }
       }
+
       // TODO: returns signed app execute effect tx
       case CommitmentTypes.setup: {
         const {
@@ -366,11 +369,10 @@ export class MiniCommitment {
         return {
           to: ctdt.address,
           value: 0,
-          data: ctdt.interface.functions.executeEffectOfFreeBalance.encode([
-            mockDispute.address,
-            freeBalanceIdentityHash,
-            interpreterAddr,
-          ]),
+          data: ctdt.interface.encodeFunctionData(
+            'executeEffectOfFreeBalance(address,bytes32,address)',
+            [mockDispute.address, freeBalanceIdentityHash, interpreterAddr],
+          ),
           operation: MultisigOperation.DelegateCall,
         }
       }
@@ -406,13 +408,11 @@ export class MiniCommitment {
 
     // Encode call to execute transaction
     const multisig = new Interface(MultisigArtifact.abi)
-    const txData = multisig.functions.execTransaction.encode([
-      details.to,
-      details.value,
-      details.data,
-      details.operation,
-      signatures,
-    ])
+
+    const txData = multisig.encodeFunctionData(
+      'execTransaction(address,uint256,bytes,uint8,bytes[])',
+      [details.to, details.value, details.data, details.operation, signatures],
+    )
 
     return { to: this.multisigAddress, value: 0, data: txData }
   }

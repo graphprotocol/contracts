@@ -1,12 +1,17 @@
-import { expect } from 'chai'
-import { AddressZero } from 'ethers/constants'
-import { BigNumber, Arrayish, HDNode, SigningKey, keccak256, Signature } from 'ethers/utils'
+import { expect, use } from 'chai'
+import { constants, utils, BytesLike, BigNumber, Signature } from 'ethers'
+import { solidity } from 'ethereum-waffle'
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
 import { getChainID, provider, toBN, toGRT } from './lib/testHelpers'
+
+use(solidity)
+
+const { AddressZero } = constants
+const { keccak256, SigningKey } = utils
 
 const MAX_UINT256 = toBN('2')
   .pow('256')
@@ -34,7 +39,7 @@ function hashEncodePermit(permit: Permit) {
 }
 
 function signPermit(
-  signer: Arrayish | HDNode.HDNode,
+  signer: BytesLike,
   chainId: number,
   contractAddress: string,
   permit: Permit,
