@@ -71,13 +71,13 @@ export async function deployEpochManager(owner: string): Promise<EpochManager> {
 }
 
 export async function deployGNS(owner: string, didRegistry: string): Promise<Gns> {
-  const Gns = await ethers.getContractFactory('Gns')
-  return Gns.deploy(owner, didRegistry) as Promise<Gns>
+  const GNS = await ethers.getContractFactory('GNS')
+  return GNS.deploy(owner, didRegistry) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(): Promise<EthereumDidRegistry> {
-  const EthereumDidRegistry = await ethers.getContractFactory('EthereumDidRegistry')
-  return EthereumDidRegistry.deploy() as Promise<EthereumDidRegistry>
+  const EthereumDIDRegistry = await ethers.getContractFactory('EthereumDIDRegistry')
+  return EthereumDIDRegistry.deploy() as Promise<EthereumDidRegistry>
 }
 
 export async function deployServiceRegistry(): Promise<ServiceRegistry> {
