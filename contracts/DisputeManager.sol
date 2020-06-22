@@ -423,12 +423,13 @@ contract DisputeManager is Governed {
         address channelID = _recoverAttestationSigner(attestation);
 
         // Get the indexer that created the channel and signed the attestation
-        (address indexer, bytes32 subgraphDeploymentID) = staking.channels(channelID);
+        (bytes memory publicKey, address indexer, bytes32 subgraphDeploymentID) = staking.channels(channelID);
         require(indexer != address(0), "Indexer cannot be found for the attestation");
         require(
             subgraphDeploymentID == attestation.subgraphDeploymentID,
             "Channel and attestation subgraphDeploymentID must match"
         );
+        require(keccak256(publicKey) != keccak256(""), "Public key cannot be found for the attestation");
 
         // Create a disputeID
         bytes32 disputeID = keccak256(

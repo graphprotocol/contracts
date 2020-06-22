@@ -31,6 +31,7 @@ contract Staking is Governed {
     // -- Allocation and Channel --
 
     struct Channel {
+        bytes publicKey;
         address indexer;
         bytes32 subgraphDeploymentID;
     }
@@ -666,7 +667,7 @@ contract Staking is Governed {
         );
         alloc.channelID = channelID;
         alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[channelID] = Channel(indexer, _subgraphDeploymentID);
+        channels[channelID] = Channel(_channelPubKey, indexer, _subgraphDeploymentID);
         channelsProxy[_channelProxy] = channelID;
 
         emit AllocationCreated(
