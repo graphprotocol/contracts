@@ -2,21 +2,19 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
 
-import { ContractTransaction, ethers, utils, Wallet } from 'ethers'
-import { ContractReceipt } from 'ethers/contract'
+import { ContractTransaction, ethers, utils, Wallet, ContractReceipt, Overrides } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
-import { GnsFactory } from '../build/typechain/contracts/GnsFactory'
-import { StakingFactory } from '../build/typechain/contracts/StakingFactory'
-import { ServiceRegistryFactory } from '../build/typechain/contracts/ServiceRegistryFactory'
-import { GraphTokenFactory } from '../build/typechain/contracts/GraphTokenFactory'
-import { CurationFactory } from '../build/typechain/contracts/CurationFactory'
-import { IensFactory } from '../build/typechain/contracts/IensFactory'
-import { IPublicResolverFactory } from '../build/typechain/contracts/IPublicResolverFactory'
-import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEthereumDidRegistryFactory'
-import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarFactory'
-import { TransactionOverrides } from '../build/typechain/contracts'
+import { GnsFactory } from '../build/typechain/contracts/GnsContract'
+import { StakingFactory } from '../build/typechain/contracts/StakingContract'
+import { ServiceRegistryFactory } from '../build/typechain/contracts/ServiceRegistryContract'
+import { GraphTokenFactory } from '../build/typechain/contracts/GraphTokenContract'
+import { CurationFactory } from '../build/typechain/contracts/CurationContract'
+import { IensFactory } from '../build/typechain/contracts/IensContract'
+import { IPublicResolverFactory } from '../build/typechain/contracts/IPublicResolverContract'
+import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEthereumDidRegistryContract'
+import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarContract'
 
 dotenv.config()
 const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'))
@@ -61,12 +59,7 @@ export const executeTransaction = async (
   }
 }
 
-type Overrides = {
-  address?: string
-  topics?: Array<string>
-}
-
-export const overrides = (contract: string, func: string): TransactionOverrides => {
+export const overrides = (contract: string, func: string): Overrides => {
   const gasPrice = utils.parseUnits('25', 'gwei')
   const gasLimit = 1000000
   // console.log(`\ntx gas price: '${gasPrice}'`);

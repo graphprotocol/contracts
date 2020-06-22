@@ -58,7 +58,7 @@
   "scripts": {
     "prepublishOnly": "npm run build && rm -rf dist && cp -R build dist",
     "build": "npm run compile && npm run flatten && npm run abi:extract && npm run typechain",
-    "clean": "rm -rf build/ cache/",
+    "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
     "deploy": "npm run migrate",
     "deploy-kovan": "npm run migrate -- --force --network kovan",
