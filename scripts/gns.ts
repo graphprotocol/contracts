@@ -140,13 +140,24 @@ interface GNSMetadata {
 
 const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   const metadata: GNSMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
+  if (
+    !metadata.subgraphDescription ||
+    !metadata.subgraphImage ||
+    !metadata.subgraphCodeRepository ||
+    !metadata.subgraphWebsite ||
+    !metadata.versionDescription ||
+    !metadata.versionLabel
+  ) {
+    console.log(`One or more fields for metadata are missing`)
+    process.exit(1)
+  }
   console.log('Meta data:')
-  console.log('  Subgraph Description:     ', metadata.subgraphDescription || '')
-  console.log('  Subgraph Image:           ', metadata.subgraphImage || '')
-  console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository || '')
-  console.log('  Subgraph Website:         ', metadata.subgraphWebsite || '')
-  console.log('  Version Description:      ', metadata.versionDescription || '')
-  console.log('  Version Label:            ', metadata.versionLabel || '')
+  console.log('  Subgraph Description:     ', metadata.subgraphDescription)
+  console.log('  Subgraph Image:           ', metadata.subgraphImage)
+  console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository)
+  console.log('  Subgraph Website:         ', metadata.subgraphWebsite)
+  console.log('  Version Description:      ', metadata.versionDescription)
+  console.log('  Version Label:            ', metadata.versionLabel)
 
   const ipfsClient = IPFS.createIpfsClient(ipfs)
 
