@@ -1,6 +1,6 @@
-import { expect } from 'chai'
-import { AddressZero } from 'ethers/constants'
-import { BigNumber, Arrayish, HDNode, SigningKey, keccak256, Signature } from 'ethers/utils'
+import { expect, use } from 'chai'
+import { constants, utils, BytesLike, BigNumber, Signature } from 'ethers'
+import { solidity } from 'ethereum-waffle'
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
@@ -8,9 +8,12 @@ import { GraphToken } from '../build/typechain/contracts/GraphToken'
 import * as deployment from './lib/deployment'
 import { getChainID, provider, toBN, toGRT } from './lib/testHelpers'
 
-const MAX_UINT256 = toBN('2')
-  .pow('256')
-  .sub(1)
+use(solidity)
+
+const { AddressZero } = constants
+const { keccak256, SigningKey } = utils
+
+const MAX_UINT256 = toBN('2').pow('256').sub(1)
 
 const PERMIT_TYPE_HASH = eip712.typeHash(
   'Permit(address owner,address spender,uint256 nonce,uint256 expiry,bool allowed)',
@@ -34,7 +37,7 @@ function hashEncodePermit(permit: Permit) {
 }
 
 function signPermit(
-  signer: Arrayish | HDNode.HDNode,
+  signer: BytesLike,
   chainId: number,
   contractAddress: string,
   permit: Permit,
@@ -97,23 +100,21 @@ describe('GraphToken', () => {
     )
   }
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Mint some tokens
     const tokens = toGRT('100')
     await grt.connect(governor).mint(me.address, tokens)
   })
 
-  describe('permit', function() {
-    it('should permit max token allowance', async function() {
+  describe('permit', function () {
+    it('should permit max token allowance', async function () {
       // Allow to transfer tokens
       const permit = await permitOK()
       const tx = createPermitTransaction(permit, me.privateKey)
-      await expect(tx)
-        .to.emit(grt, 'Approval')
-        .withArgs(permit.owner, permit.spender, MAX_UINT256)
+      await expect(tx).to.emit(grt, 'Approval').withArgs(permit.owner, permit.spender, MAX_UINT256)
 
       // Allowance updated
       const allowance = await grt.allowance(me.address, other.address)
@@ -124,7 +125,7 @@ describe('GraphToken', () => {
       await grt.connect(other).transferFrom(me.address, other.address, tokens)
     })
 
-    it('reject use two permits with same nonce', async function() {
+    it('reject use two permits with same nonce', async function () {
       // Allow to transfer tokens
       const permit = await permitOK()
       await createPermitTransaction(permit, me.privateKey)
@@ -134,19 +135,19 @@ describe('GraphToken', () => {
       await expect(tx).to.revertedWith('GRT: invalid nonce')
     })
 
-    it('reject use expired permit', async function() {
+    it('reject use expired permit', async function () {
       const permit = await permitExpired()
       const tx = createPermitTransaction(permit, me.privateKey)
       await expect(tx).to.revertedWith('GRT: permit expired')
     })
 
-    it('reject permit if holder address does not match', async function() {
+    it('reject permit if holder address does not match', async function () {
       const permit = await permitOK()
       const tx = createPermitTransaction(permit, other.privateKey)
       await expect(tx).to.revertedWith('GRT: invalid permit')
     })
 
-    it('should deny transfer from if permit was denied', async function() {
+    it('should deny transfer from if permit was denied', async function () {
       // Allow to transfer tokens
       const permit1 = await permitOK()
       await createPermitTransaction(permit1, me.privateKey)
@@ -166,77 +167,69 @@ describe('GraphToken', () => {
     })
   })
 
-  describe('mint', function() {
-    describe('addMinter()', function() {
-      it('reject add a new minter if not allowed', async function() {
+  describe('mint', function () {
+    describe('addMinter()', function () {
+      it('reject add a new minter if not allowed', async function () {
         const tx = grt.connect(me).addMinter(me.address)
         await expect(tx).to.be.revertedWith('Only Governor can call')
       })
 
-      it('should add a new minter', async function() {
+      it('should add a new minter', async function () {
         expect(await grt.isMinter(me.address)).to.be.eq(false)
         const tx = grt.connect(governor).addMinter(me.address)
-        await expect(tx)
-          .to.emit(grt, 'MinterAdded')
-          .withArgs(me.address)
+        await expect(tx).to.emit(grt, 'MinterAdded').withArgs(me.address)
         expect(await grt.isMinter(me.address)).to.be.eq(true)
       })
     })
 
-    describe('mint()', async function() {
-      it('reject mint if not minter', async function() {
+    describe('mint()', async function () {
+      it('reject mint if not minter', async function () {
         const tx = grt.connect(me).mint(me.address, toGRT('100'))
         await expect(tx).to.be.revertedWith('Only minter can call')
       })
     })
 
-    context('> when is minter', function() {
-      beforeEach(async function() {
+    context('> when is minter', function () {
+      beforeEach(async function () {
         await grt.connect(governor).addMinter(me.address)
         expect(await grt.isMinter(me.address)).to.be.eq(true)
       })
 
-      describe('mint()', async function() {
-        it('should mint', async function() {
+      describe('mint()', async function () {
+        it('should mint', async function () {
           const tokensBefore = await grt.balanceOf(me.address)
 
           const tokensToMint = toGRT('100')
           const tx = grt.connect(me).mint(me.address, tokensToMint)
-          await expect(tx)
-            .to.emit(grt, 'Transfer')
-            .withArgs(AddressZero, me.address, tokensToMint)
+          await expect(tx).to.emit(grt, 'Transfer').withArgs(AddressZero, me.address, tokensToMint)
 
           const tokensAfter = await grt.balanceOf(me.address)
           expect(tokensAfter).to.eq(tokensBefore.add(tokensToMint))
         })
 
-        it('should mint if governor', async function() {
+        it('should mint if governor', async function () {
           const tokensToMint = toGRT('100')
           await grt.connect(governor).mint(me.address, tokensToMint)
         })
       })
 
-      describe('removeMinter()', function() {
-        it('reject remove a minter if not allowed', async function() {
+      describe('removeMinter()', function () {
+        it('reject remove a minter if not allowed', async function () {
           const tx = grt.connect(me).removeMinter(me.address)
           await expect(tx).to.be.revertedWith('Only Governor can call')
         })
 
-        it('should remove a minter', async function() {
+        it('should remove a minter', async function () {
           const tx = grt.connect(governor).removeMinter(me.address)
-          await expect(tx)
-            .to.emit(grt, 'MinterRemoved')
-            .withArgs(me.address)
+          await expect(tx).to.emit(grt, 'MinterRemoved').withArgs(me.address)
           expect(await grt.isMinter(me.address)).to.be.eq(false)
         })
       })
 
-      describe('renounceMinter()', function() {
-        it('should renounce to be a minter', async function() {
+      describe('renounceMinter()', function () {
+        it('should renounce to be a minter', async function () {
           const tx = grt.connect(me).renounceMinter()
-          await expect(tx)
-            .to.emit(grt, 'MinterRemoved')
-            .withArgs(me.address)
+          await expect(tx).to.emit(grt, 'MinterRemoved').withArgs(me.address)
           expect(await grt.isMinter(me.address)).to.be.eq(false)
         })
       })

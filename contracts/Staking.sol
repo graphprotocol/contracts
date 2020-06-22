@@ -401,6 +401,13 @@ contract Staking is Governed {
             indexerStake.hasAllocation(_subgraphDeploymentID) == false,
             "Allocation: cannot allocate if already allocated"
         );
+
+        // Channel public key must be in uncompressed format
+        require(
+            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
+            "Allocation: invalid channel public key"
+        );
+
         // Cannot reuse a channelID that has been used in the past
         address channelID = publicKeyToAddress(bytes(_channelPubKey[1:])); // solium-disable-line
         require(isChannel(channelID) == false, "Allocation: channel ID already in use");

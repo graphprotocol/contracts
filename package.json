@@ -5,27 +5,19 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {
-    "@connext/contracts": "^3.2.1",
-    "@connext/types": "^6.6.5",
-    "@connext/utils": "^6.6.5",
-    "@openzeppelin/contracts": "3.0.1",
-    "buidler-typechain": "^0.1.1",
-    "truffle-hdwallet-provider": "^1.0.14",
-    "ts-generator": "0.0.8"
-  },
   "devDependencies": {
-    "@graphprotocol/common-ts": "^0.0.31",
-    "@nomiclabs/buidler": "^1.3.6",
-    "@nomiclabs/buidler-ethers": "^1.3.3",
-    "@nomiclabs/buidler-waffle": "^1.3.4",
-    "@typechain/ethers-v4": "^1.0.0",
-    "@types/bs58": "^4.0.1",
-    "@types/minimist": "^1.2.0",
-    "@typechain/truffle-v4": "^2.0.3",
-    "@typechain/truffle-v5": "^2.0.2",
+    "@connext/contracts": "^3.2.1",
+    "@connext/types": "^7.0.0-alpha.2",
+    "@connext/utils": "^7.0.0-alpha.2",
+    "@graphprotocol/common-ts": "0.0.32",
+    "@nomiclabs/buidler": "^1.3.7",
+    "@nomiclabs/buidler-ethers": "^2.0.0-alpha.1",
+    "@nomiclabs/buidler-waffle": "^2.0.0-alpha.1",
+    "@openzeppelin/contracts": "3.0.1",
     "@typechain/web3-v1": "^1.0.0",
+    "@types/bs58": "^4.0.1",
     "@types/dotenv": "^8.2.0",
+    "@types/minimist": "^1.2.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.5",
     "@types/yargs": "^15.0.5",
@@ -42,8 +34,8 @@
     "eslint-plugin-prettier": "^3.1.3",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "ethereum-waffle": "^2.5.1",
-    "ethers": "^4.0.47",
+    "ethereum-waffle": "^3.0.0",
+    "ethers": "^5.0.2",
     "ethlint": "^1.2.5",
     "husky": "^4.2.5",
     "ipfs-http-client": "34.0.0",
@@ -54,8 +46,11 @@
     "solidity-coverage": "^0.7.5",
     "truffle-abi": "^1.0.3",
     "truffle-flattener": "^1.4.4",
+    "truffle-hdwallet-provider": "^1.0.14",
+    "ts-generator": "0.0.8",
     "ts-node": "^8.10.1",
     "typechain": "^2.0.0",
+    "typechain-target-ethers-v5": "^1.2.0",
     "typescript": "^3.9.3",
     "yaml": "^1.10.0",
     "yargs": "^15.3.1"
@@ -68,7 +63,7 @@
     "deploy": "npm run migrate",
     "deploy-kovan": "npm run migrate -- --force --network kovan",
     "migrate": "buidler migrate",
-    "test": "buidler typechain && buidler test",
+    "test": "npm run typechain && buidler test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm.sh",
     "lint": "npm run lint:ts && npm run lint:sol",
@@ -82,7 +77,7 @@
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "flatten": "scripts/flatten.sh",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
-    "typechain": "buidler typechain"
+    "typechain": "typechain --target ethers-v5 --outDir build/typechain/contracts 'build/abis/*.json'"
   },
   "lint-staged": {
     "contracts/*.sol": [
