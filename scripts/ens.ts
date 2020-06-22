@@ -10,15 +10,15 @@ import { contracts, executeTransaction, overrides, checkFuncInputs } from './hel
 // Set up the script //
 ///////////////////////
 
-const { func, name, node } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'name', 'node'],
+const { func, name } = minimist.default(process.argv.slice(2), {
+  string: ['func', 'name'],
 })
 
-if (!func) {
+if (!func || !name) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <string> - options: setRecord, setText, checkOwner
+    --func <string> - options: registerName, setRecord, setText, checkOwner, nameHash
 
 Function arguments:
     setRecord
@@ -58,28 +58,42 @@ Function arguments:
 //   )
 // }
 
-const setTestRecord = async (labelName: string) => {
-  checkFuncInputs([labelName], ['labelName'], 'setTestRecord')
-  const node = utils.namehash('test')
-  const labelNameFull = `${labelName}.${'test'}`
-  const label = utils.keccak256(utils.toUtf8Bytes(labelName))
-  console.log(label)
+// Must normalize name to lower case to get script to work with ethers namehash
+// This is because in setTestRecord() - label uses the normal keccak
+// TODO - follow UTS46 in scripts https://docs.ens.domains/contract-api-reference/name-processing
+const normalizedName = name.toLowerCase()
+
+const setTestRecord = async () => {
+  // const node = utils.namehash('test')
+  // console.log('Namehash node for "test": ', node)
+  const labelNameFull = `${normalizedName}.${'test'}`
   const labelHashFull = utils.namehash(labelNameFull)
-  const signerAddress = await contracts.ens.signer.getAddress()
-  const ensOverrides = overrides('ens', 'register')
-  console.log('Namehash node for "test": ', node)
-  console.log(`Hash of label ${labelName}: `, label)
   console.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
 
+  const signerAddress = await contracts.ens.signer.getAddress()
+  const ensOverrides = overrides('ens', 'register')
+  const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
+  // console.log(`Hash of label being registered on ens ${name}: `, label)
   await executeTransaction(contracts.testRegistrar.register(label, signerAddress, ensOverrides))
 }
 
 const setText = async () => {
-  checkFuncInputs([node], ['node'], 'setText')
+  const labelNameFull = `${normalizedName}.${'test'}`
+  const labelHashFull = utils.namehash(labelNameFull)
+  console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
+
   const key = 'GRAPH NAME SERVICE'
   const ensOverrides = overrides('ens', 'setText')
   const signerAddress = await contracts.publicResolver.signer.getAddress()
-  await executeTransaction(contracts.publicResolver.setText(node, key, signerAddress, ensOverrides))
+  await executeTransaction(
+    contracts.publicResolver.setText(labelHashFull, key, signerAddress, ensOverrides),
+  )
+}
+
+// does everything in one func call
+const registerName = async () => {
+  await setTestRecord()
+  await setText()
 }
 
 const checkOwner = async () => {
@@ -100,15 +114,15 @@ const checkOwner = async () => {
 
 const main = async () => {
   try {
-    if (func == 'setTestRecord') {
+    if (func == 'registerName') {
+      console.log(`Registering ownership and text record for ${name} ...`)
+      registerName()
+    } else if (func == 'setTestRecord') {
       console.log(`Setting owner for ${name} ...`)
-      setTestRecord(name)
+      setTestRecord()
     } else if (func == 'setText') {
       console.log(`Setting text record of 'GRAPH NAME SERVICE' for caller ...`)
       setText()
-      // } else if (func == 'setEthDomain') { NOT IN USE
-      //   console.log(`Setting '.eth' domain ...`)
-      //   setSubnodeRecord('', 'eth')
     } else if (func == 'checkOwner') {
       console.log(`Checking owner of ${name} ...`)
       checkOwner()
