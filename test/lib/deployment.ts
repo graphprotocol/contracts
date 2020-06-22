@@ -1,5 +1,9 @@
-import { Wallet, Contract } from 'ethers'
+import { utils, Wallet, Contract } from 'ethers'
+import { TransactionReceipt } from '@connext/types'
+import { ChannelSigner } from '@connext/utils'
 import { ethers, waffle } from '@nomiclabs/buidler'
+
+import { defaults } from './testHelpers'
 
 // contracts artifacts
 import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
@@ -26,11 +30,7 @@ import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { Proxy } from '../../build/typechain/contracts/Proxy'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
-// helpers
-import { defaults } from './testHelpers'
-import { solidityKeccak256 } from 'ethers/utils'
-import { ChannelSigner } from '@connext/utils'
-import { TransactionReceipt } from '@connext/types'
+const { solidityKeccak256 } = utils
 
 export async function deployGRT(owner: string): Promise<GraphToken> {
   const GraphToken = await ethers.getContractFactory('GraphToken')
@@ -251,12 +251,14 @@ export async function deployMultisigWithProxy(
   } = ctx
   const tx = await proxyFactory.functions.createProxyWithNonce(
     masterCopy.address,
-    masterCopy.interface.functions.setup.encode([owners.map(owner => owner.address)]),
+    masterCopy.interface.encodeFunctionData('setup(address[])', [
+      owners.map(owner => owner.address),
+    ]),
     // hardcode ganache chainId
     solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
   )
   const receipt = (await tx.wait()) as TransactionReceipt
-  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).values
+  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).args
 
   const multisig = new Contract(
     multisigAddr,

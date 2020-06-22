@@ -1,7 +1,5 @@
 import { expect, use } from 'chai'
-import { Event, Wallet } from 'ethers'
-import { computePublicKey, BigNumber } from 'ethers/utils'
-import { AddressZero } from 'ethers/constants'
+import { constants, utils, BigNumber, Event, Wallet } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -21,6 +19,9 @@ import {
 } from '../lib/testHelpers'
 
 use(solidity)
+
+const { AddressZero } = constants
+const { computePublicKey } = utils
 
 const MAX_PPM = toBN('1000000')
 

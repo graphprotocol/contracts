@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
-import { Signer } from 'ethers'
-import { bigNumberify, parseEther, BigNumberish, BigNumber } from 'ethers/utils'
+import { constants, utils, BigNumberish, BigNumber, Signer } from 'ethers'
+
 import { ChallengeStatus, MinimalTransaction } from '@connext/types'
-import { ChannelSigner, toBN, stringify } from '@connext/utils'
+import { ChannelSigner, toBN } from '@connext/utils'
 
 import { deployGRT, deployMultisigWithProxy } from '../lib/deployment'
 import {
@@ -23,10 +23,12 @@ import { IndexerMultiAssetInterpreter } from '../../build/typechain/contracts/In
 import { IndexerWithdrawInterpreter } from '../../build/typechain/contracts/IndexerWithdrawInterpreter'
 import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { AddressZero, Zero } from 'ethers/constants'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
+
+const { AddressZero, Zero } = constants
+const { parseEther } = utils
 
 describe('Indexer Channel Operations', () => {
   let indexerMultisig: MinimumViableMultisig
@@ -109,7 +111,7 @@ describe('Indexer Channel Operations', () => {
       expect(preDeposit.toString()).to.be.eq('0')
 
       // Fund multisig from governor
-      await fundMultisig(new BigNumber(amount), multisig.address, governer, tokenContract)
+      await fundMultisig(BigNumber.from(amount), multisig.address, governer, tokenContract)
 
       // Get + verify post deposit balance
       const postDeposit = tokenContract
@@ -139,7 +141,7 @@ describe('Indexer Channel Operations', () => {
 
   describe('funding + withdrawal', function() {
     // Establish test constants
-    const ETH_DEPOSIT = bigNumberify(180)
+    const ETH_DEPOSIT = BigNumber.from(180)
     const TOKEN_DEPOSIT = parseEther('4')
 
     let sendWithdrawalCommitment: (
@@ -320,7 +322,7 @@ describe('Indexer Channel Operations', () => {
 
   describe('disputes', function() {
     // Establish test constants
-    const ETH_DEPOSIT = bigNumberify(180)
+    const ETH_DEPOSIT = BigNumber.from(180)
     const TOKEN_DEPOSIT = parseEther('4')
     const APP_DEPOSIT = toBN(15)
 

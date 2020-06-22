@@ -1,5 +1,6 @@
-import { expect } from 'chai'
-import { BigNumber } from 'ethers/utils'
+import { expect, use } from 'chai'
+import { BigNumber } from 'ethers'
+import { solidity } from 'ethereum-waffle'
 
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 
@@ -12,6 +13,8 @@ import {
   provider,
   toBN,
 } from './lib/testHelpers'
+
+use(solidity)
 
 describe('EpochManager', () => {
   const [me, governor] = provider().getWallets()

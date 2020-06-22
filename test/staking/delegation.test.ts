@@ -1,6 +1,5 @@
 import { expect, use } from 'chai'
-import { Event, Wallet } from 'ethers'
-import { BigNumber } from 'ethers/utils'
+import { constants, BigNumber, Event, Wallet } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -17,7 +16,8 @@ import {
   toGRT,
   toBN,
 } from '../lib/testHelpers'
-import { AddressZero } from 'ethers/constants'
+
+const { AddressZero } = constants
 
 use(solidity)
 
