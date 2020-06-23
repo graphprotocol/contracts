@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eo pipefail
+
+npm run compile
+npm run flatten
+npm run abi:extract
+npm run typechain
