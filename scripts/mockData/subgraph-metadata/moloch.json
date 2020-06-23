@@ -1,0 +1,9 @@
+{
+  "subgraphDescription": "Decentralized asset allocation",
+  "subgraphDisplayName": "Moloch",
+  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmSLfbgC7wrmufnr4ekLJtzYT1YfoQFPRsFpCRrHsxr8ED",
+  "subgraphCodeRepository": "https://github.com/MolochVentures/moloch-monorepo/",
+  "subgraphWebsite": "https://molochdao.com/",
+  "versionLabel": "v0.1.0",
+  "versionDescription": "First Version"
+}

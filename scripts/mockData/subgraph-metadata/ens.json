@@ -1,0 +1,9 @@
+{
+  "subgraphDescription": "A secure & decentralized way to address resources on and off the blockchain using simple, human-readable names. Access domains and transfer history.",
+  "subgraphDisplayName": "ENS",
+  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmUqD4MMAXQvbNX3FbWNP43gmDFFdQPmQrn8CT9kNEb7Rs",
+  "subgraphCodeRepository": "https://github.com/ensdomains/ens-subgraph",
+  "subgraphWebsite": "https://ens.domains/",
+  "versionLabel": "v0.1.0",
+  "versionDescription": "First Version"
+}
