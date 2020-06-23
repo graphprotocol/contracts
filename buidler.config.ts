@@ -11,7 +11,6 @@ dotenv.config()
 
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('solidity-coverage')
-usePlugin('buidler-typechain')
 
 // Helpers
 
@@ -121,11 +120,7 @@ const config: BuidlerConfig = {
         mnemonic: getAccountMnemonic(),
       },
     },
-  },
-  typechain: {
-    outDir: './build/typechain/contracts',
-    target: 'ethers-v4',
-  },
+  }
 }
 
 export default config

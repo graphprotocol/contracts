@@ -18,28 +18,28 @@ describe('Curation', () => {
   const shareAmountFor1000Tokens = toBN('3162277660168379331')
   const subgraphDeploymentID = randomHexBytes()
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address, me)
+    grt = await deployment.deployGRT(governor.address)
 
     // Deploy curation contract
-    curation = await deployment.deployCuration(governor.address, grt.address, me)
+    curation = await deployment.deployCuration(governor.address, grt.address)
     await curation.connect(governor).setStaking(staking.address)
   })
 
-  describe('configuration', function() {
-    it('should set `governor`', async function() {
+  describe('configuration', function () {
+    it('should set `governor`', async function () {
       // Set right in the constructor
       expect(await curation.governor()).to.eq(governor.address)
     })
 
-    it('should set `graphToken`', async function() {
+    it('should set `graphToken`', async function () {
       // Set right in the constructor
       expect(await curation.token()).to.eq(grt.address)
     })
 
-    describe('staking', function() {
-      it('should set `staking`', async function() {
+    describe('staking', function () {
+      it('should set `staking`', async function () {
         // Set right in the constructor
         expect(await curation.staking()).to.eq(staking.address)
 
@@ -48,14 +48,14 @@ describe('Curation', () => {
         expect(await curation.staking()).to.eq(other.address)
       })
 
-      it('reject set `staking` if not allowed', async function() {
+      it('reject set `staking` if not allowed', async function () {
         const tx = curation.connect(other).setStaking(staking.address)
         await expect(tx).to.be.revertedWith('Only Governor can call')
       })
     })
 
-    describe('defaultReserveRatio', function() {
-      it('should set `defaultReserveRatio`', async function() {
+    describe('defaultReserveRatio', function () {
+      it('should set `defaultReserveRatio`', async function () {
         // Set right in the constructor
         expect(await curation.defaultReserveRatio()).to.eq(defaults.curation.reserveRatio)
 
@@ -65,7 +65,7 @@ describe('Curation', () => {
         expect(await curation.defaultReserveRatio()).to.be.eq(newValue)
       })
 
-      it('reject set `defaultReserveRatio` if out of bounds', async function() {
+      it('reject set `defaultReserveRatio` if out of bounds', async function () {
         const tx1 = curation.connect(governor).setDefaultReserveRatio(0)
         await expect(tx1).to.be.revertedWith('Default reserve ratio must be > 0')
 
@@ -73,14 +73,14 @@ describe('Curation', () => {
         await expect(tx2).to.be.revertedWith('Default reserve ratio cannot be higher than MAX_PPM')
       })
 
-      it('reject set `defaultReserveRatio` if not allowed', async function() {
+      it('reject set `defaultReserveRatio` if not allowed', async function () {
         const tx = curation.connect(other).setDefaultReserveRatio(defaults.curation.reserveRatio)
         await expect(tx).to.be.revertedWith('Only Governor can call')
       })
     })
 
-    describe('minimumCurationStake', function() {
-      it('should set `minimumCurationStake`', async function() {
+    describe('minimumCurationStake', function () {
+      it('should set `minimumCurationStake`', async function () {
         // Set right in the constructor
         expect(await curation.minimumCurationStake()).to.eq(defaults.curation.minimumCurationStake)
 
@@ -90,12 +90,12 @@ describe('Curation', () => {
         expect(await curation.minimumCurationStake()).to.eq(newValue)
       })
 
-      it('reject set `minimumCurationStake` if out of bounds', async function() {
+      it('reject set `minimumCurationStake` if out of bounds', async function () {
         const tx = curation.connect(governor).setMinimumCurationStake(0)
         await expect(tx).to.be.revertedWith('Minimum curation stake cannot be 0')
       })
 
-      it('reject set `minimumCurationStake` if not allowed', async function() {
+      it('reject set `minimumCurationStake` if not allowed', async function () {
         const tx = curation
           .connect(other)
           .setMinimumCurationStake(defaults.curation.minimumCurationStake)
@@ -103,8 +103,8 @@ describe('Curation', () => {
       })
     })
 
-    describe('withdrawalFeePercentage', function() {
-      it('should set `withdrawalFeePercentage`', async function() {
+    describe('withdrawalFeePercentage', function () {
+      it('should set `withdrawalFeePercentage`', async function () {
         const withdrawalFeePercentage = defaults.curation.withdrawalFeePercentage
 
         // Set new value
@@ -112,23 +112,23 @@ describe('Curation', () => {
         await curation.connect(governor).setWithdrawalFeePercentage(withdrawalFeePercentage)
       })
 
-      it('reject set `withdrawalFeePercentage` if out of bounds', async function() {
+      it('reject set `withdrawalFeePercentage` if out of bounds', async function () {
         const tx = curation.connect(governor).setWithdrawalFeePercentage(MAX_PPM + 1)
         await expect(tx).revertedWith('Withdrawal fee percentage must be below or equal to MAX_PPM')
       })
 
-      it('reject set `withdrawalFeePercentage` if not allowed', async function() {
+      it('reject set `withdrawalFeePercentage` if not allowed', async function () {
         const tx = curation.connect(other).setWithdrawalFeePercentage(0)
         await expect(tx).to.be.revertedWith('Only Governor can call')
       })
     })
   })
 
-  describe('curation', function() {
+  describe('curation', function () {
     const curatorTokens = toGRT('1000')
     const tokensToCollect = toGRT('1000')
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       // Give some funds to the curator and approve the curation contract
       await grt.connect(governor).mint(curator.address, curatorTokens)
       await grt.connect(curator).approve(curation.address, curatorTokens)
@@ -138,8 +138,8 @@ describe('Curation', () => {
       await grt.connect(staking).approve(curation.address, curatorTokens)
     })
 
-    context('> bonding curve', function() {
-      it('convert shares to tokens', async function() {
+    context('> bonding curve', function () {
+      it('convert shares to tokens', async function () {
         // Curate
         await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
 
@@ -149,7 +149,7 @@ describe('Curation', () => {
         expect(tokens).to.eq(curatorTokens)
       })
 
-      it('convert tokens to shares', async function() {
+      it('convert tokens to shares', async function () {
         // Conversion
         const tokens = toGRT('1000')
         const shares = await curation.tokensToShares(subgraphDeploymentID, tokens)
@@ -157,8 +157,8 @@ describe('Curation', () => {
       })
     })
 
-    context('> when is not curated', function() {
-      it('should stake on a SubgraphDeployment', async function() {
+    context('> when is not curated', function () {
+      it('should stake on a SubgraphDeployment', async function () {
         // Before balances
         const curatorTokensBefore = await grt.balanceOf(curator.address)
         const curatorSharesBefore = await curation.getCuratorShares(
@@ -200,46 +200,46 @@ describe('Curation', () => {
       })
     })
 
-    it('reject stake below minimum tokens required', async function() {
+    it('reject stake below minimum tokens required', async function () {
       const tokensToStake = defaults.curation.minimumCurationStake.sub(toBN(1))
       const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
       await expect(tx).to.revertedWith('Curation stake is below minimum required')
     })
 
-    it('reject redeem more than a curator owns', async function() {
+    it('reject redeem more than a curator owns', async function () {
       const tx = curation.connect(me).redeem(subgraphDeploymentID, 1)
       await expect(tx).to.revertedWith('Cannot redeem more shares than you own')
     })
 
-    it('reject collect tokens distributed as fees to the reserves', async function() {
+    it('reject collect tokens distributed as fees to the reserves', async function () {
       // Source of tokens must be the staking for this to work
       const tx = curation.connect(staking).collect(subgraphDeploymentID, tokensToCollect)
       await expect(tx).to.revertedWith('SubgraphDeployment must be curated to collect fees')
     })
 
-    context('> when is curated', function() {
-      beforeEach(async function() {
+    context('> when is curated', function () {
+      beforeEach(async function () {
         await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
       })
 
-      it('should create curation with default reserve ratio', async function() {
+      it('should create curation with default reserve ratio', async function () {
         const defaultReserveRatio = await curation.defaultReserveRatio()
         const pool = await curation.pools(subgraphDeploymentID)
         expect(pool.reserveRatio).to.eq(defaultReserveRatio)
       })
 
-      it('reject redeem zero shares', async function() {
+      it('reject redeem zero shares', async function () {
         const tx = curation.redeem(subgraphDeploymentID, 0)
         await expect(tx).to.revertedWith('Cannot redeem zero shares')
       })
 
-      it('should assign the right amount of shares according to bonding curve', async function() {
+      it('should assign the right amount of shares according to bonding curve', async function () {
         // Shares should be the ones bought with minimum stake (1) + more shares
         const curatorShares = await curation.getCuratorShares(curator.address, subgraphDeploymentID)
         expect(curatorShares).to.eq(shareAmountFor1000Tokens)
       })
 
-      it('should allow to redeem *partially*', async function() {
+      it('should allow to redeem *partially*', async function () {
         // Before balances
         const tokenTotalSupplyBefore = await grt.totalSupply()
         const curatorTokensBefore = await grt.balanceOf(curator.address)
@@ -292,7 +292,7 @@ describe('Curation', () => {
         expect(tokenTotalSupplyAfter).to.eq(tokenTotalSupplyBefore.sub(withdrawalFees))
       })
 
-      it('should allow to redeem *fully*', async function() {
+      it('should allow to redeem *fully*', async function () {
         // Before balances
         const tokenTotalSupplyBefore = await grt.totalSupply()
         const poolBefore = await curation.pools(subgraphDeploymentID)
@@ -340,7 +340,7 @@ describe('Curation', () => {
         expect(tokenTotalSupplyAfter).to.eq(tokenTotalSupplyBefore.sub(withdrawalFees))
       })
 
-      it('should collect tokens distributed as reserves for', async function() {
+      it('should collect tokens distributed as reserves for', async function () {
         // Before balances
         const totalBalanceBefore = await grt.balanceOf(curation.address)
         const poolBefore = await curation.pools(subgraphDeploymentID)
