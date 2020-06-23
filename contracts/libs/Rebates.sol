@@ -14,70 +14,48 @@ library Rebates {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
 
-    // Tracks settlements of allocations
-    struct Settlement {
-        uint256 fees;
-        uint256 allocation;
-    }
-
     // Tracks allocation settlements in a Pool per epoch
     struct Pool {
         uint256 fees;
         uint256 allocation;
         uint256 settlementsCount;
-        // Settlements in this pool : indexer => subgraphDeploymentID => Settlement
-        mapping(address => mapping(bytes32 => Settlement)) settlements;
     }
 
     /**
      * @dev Deposit tokens into the rebate pool
-     * @param _indexer Address of the indexer settling a channel
-     * @param _subgraphDeploymentID ID of the settled SubgraphDeployment
      * @param _tokens Amount of fees collected in tokens
      * @param _allocation Effective stake allocated by the indexer for a period of epochs
      * @return A settlement struct created after adding to rebate pool
      */
     function add(
         Rebates.Pool storage pool,
-        address _indexer,
-        bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         uint256 _allocation
-    ) internal returns (Rebates.Settlement storage) {
+    ) internal {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
-        // TODO: change Settlement() to add tokens and allocation
-        pool.settlements[_indexer][_subgraphDeploymentID] = Settlement(_tokens, _allocation);
         pool.settlementsCount += 1;
-
-        return pool.settlements[_indexer][_subgraphDeploymentID];
     }
 
     /**
      * @dev Redeem tokens from the rebate pool
-     * @param _indexer Address of the indexer claiming a rebate
-     * @param _subgraphDeploymentID ID of the claimed SubgraphDeployment rebate
+     * @param _tokens Amount of fees collected in tokens
+     * @param _allocation Effective stake allocated by the indexer for a period of epochs
      * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
      */
     function redeem(
         Rebates.Pool storage pool,
-        address _indexer,
-        bytes32 _subgraphDeploymentID
+        uint256 _tokens,
+        uint256 _allocation
     ) internal returns (uint256) {
-        Rebates.Settlement storage settlement = pool.settlements[_indexer][_subgraphDeploymentID];
-
         uint256 tokens = calcRebateReward(
             2, // TODO: Fixed to do the sqrt()
-            settlement.allocation,
-            settlement.fees,
+            _tokens,
+            _allocation,
             pool.allocation,
             pool.fees
         );
-
-        // Redeem settlement
-        delete pool.settlements[_indexer][_subgraphDeploymentID];
         pool.settlementsCount -= 1;
-
         return tokens;
     }
 

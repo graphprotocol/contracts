@@ -767,31 +767,24 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Claim tokens from the rebate pool
-     * @param _epoch Epoch of the rebate pool we are claiming tokens from
-     * @param _subgraphDeploymentID SubgraphDeployment we are claiming tokens from
+     * @dev Claim tokens from the rebate pool.
+     * @param _channelId Identifier of the channel we are claiming funds from
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claim(
-        uint256 _epoch,
-        bytes32 _subgraphDeploymentID,
-        bool _restake
-    ) external {
+    function claim(uint256 _channelId, bool _restake) external {
         address indexer = msg.sender;
         Rebates.Pool storage pool = rebates[_epoch];
-        Rebates.Settlement storage settlement = pool.settlements[indexer][_subgraphDeploymentID];
+        Allocation storage alloc = allocations[_channelID];
 
-        (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
+        require(alloc.tokens > 0, "Rebate: channel does not exist");
+        require(alloc.settledAtEpoch != 0, "Rebate: channel must be settled");
 
-        require(
-            epochsSinceSettlement >= channelDisputeEpochs,
-            "Rebate: need to wait channel dispute period"
-        );
-
-        require(settlement.allocation > 0, "Rebate: settlement does not exist");
+        // Funds can be claimed only after a period of time passed since settlement
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
+        require(epochs >= channelDisputeEpochs, "Rebate: need to wait channel dispute period");
 
         // Process rebate
-        uint256 tokensToClaim = pool.redeem(indexer, _subgraphDeploymentID);
+        uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
         // When all settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
