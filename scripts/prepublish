@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eo pipefail
+
+npm run clean
+npm run build
+cp -R build dist
+tsc -d dist/typechain/contracts/*.ts
