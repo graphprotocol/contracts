@@ -44,7 +44,7 @@ contract Staking is Governed {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public curationPercentage;
 
-    // Need to pass this period to claim fees in rebate pool
+    // Need to pass this period for channel to be finalized
     uint256 public channelDisputeEpochs;
 
     // Maximum allocation time
@@ -170,12 +170,11 @@ contract Staking is Governed {
     );
 
     /**
-     * @dev Emitted when `indexer` settled an allocation of `tokens` amount to `subgraphDeploymentID`
-     * during `epoch` using `channelID` as channel.
-     *
-     * NOTE: `from` tracks the multisig contract from where it was settled.
+     * @dev Emitted when `indexer` withdrew `tokens` amount in `epoch` from `channelID` channel.
+     * The funds are related to `subgraphDeploymentID`.
+     * `from` attribute records the the multisig contract from where it was settled.
      */
-    event AllocationSettled(
+    event AllocationWithdrawal(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
@@ -184,6 +183,20 @@ contract Staking is Governed {
         address from,
         uint256 curationFees,
         uint256 rebateFees
+    );
+
+    /**
+     * @dev Emitted when `indexer` settled an allocation in `epoch` for `channelID` channel.
+     * The `tokens` getting unallocated from `subgraphDeploymentID`.
+     * The `effectiveAllocation` are the tokens allocated from creation to settlement.
+     */
+    event AllocationSettled(
+        address indexed indexer,
+        bytes32 indexed subgraphDeploymentID,
+        uint256 epoch,
+        uint256 tokens,
+        address channelID,
+        uint256 effectiveAllocation
     );
 
     /**
@@ -685,6 +698,10 @@ contract Staking is Governed {
         );
     }
 
+    /**
+     * @dev Unallocate tokens from a SubgraphDeployment.
+     * @param _channelID The channel identifier for the allocation
+     */
     function unallocate(address _channelID) external {
         address indexer = msg.sender;
 
@@ -692,11 +709,11 @@ contract Staking is Governed {
         Allocation storage alloc = allocations[_channelID];
 
         // Allocation must exist
-        require(isChannel(_channelID), "Allocation: channelID not used in any allocation");
+        require(isChannel(_channelID), "Allocation: channel does not exist");
 
         // Verify that the allocation owner is unallocating
         // TODO: also allow delegator to force it after a period
-        require(alloc.indexer == indexer, "Allocation: only allocation owner allowed");
+        require(alloc.indexer == indexer, "Allocation: only owner can settle");
 
         // Must be an active allocation
         require(alloc.settledAtEpoch == 0, "Allocation: must be active");
@@ -710,9 +727,7 @@ contract Staking is Governed {
         alloc.settledAtEpoch = currentEpoch;
         alloc.effectiveAllocation = getEffectiveAllocation(alloc.tokens, epochs);
 
-        // TODO: find a rebate pool for the epoch and accumulate stuff there
-        // TODO: review if we can replace Settlement with Allocation
-        // TODO: can we unallocate two Allocations on the same epoch - rebate?
+        // Send funds to rebate pool and account the effective allocation
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
         rebatePool.fees = rebatePool.fees.add(alloc.collectedFees);
         rebatePool.allocation = rebatePool.allocation.add(alloc.effectiveAllocation);
@@ -721,32 +736,39 @@ contract Staking is Governed {
         // Free allocated tokens from use
         indexerStake.unallocate(_tokens);
 
-        // TODO: emit event
+        emit AllocationSettled(
+            indexer,
+            _subgraphDeploymentID,
+            epochManager.currentEpoch(),
+            alloc.tokens,
+            _channelID,
+            alloc.effectiveAllocation
+        );
     }
 
     /**
-     * @dev Collected query fees from a channel.
+     * @dev Collect query fees from a channel.
      * Funds received are only accepted from a channel multisig proxy contract.
-     * @param _tokens Amount of tokens to settle
+     * @param _tokens Amount of tokens to collect
      */
-    function settle(uint256 _tokens) external {
+    function collect(uint256 _tokens) external {
         // The contract caller must only be a channel proxy registered during allocation
         // Get the channelID related to the caller channel proxy
         address channelID = channelsProxy[msg.sender];
 
         // Channel validation
-        require(channelID != address(0), "Settle: caller not allowed to settle");
+        require(channelID != address(0), "Collect: caller not allowed to settle");
 
-        // The channelID must exist and used in an allocation
-        require(isChannel(channelID), "Settle: does not exist");
+        // The channel identifier must exist and used in an allocation
+        require(isChannel(channelID), "Collect: does not exist");
 
         // Transfer tokens to collect from multisig to this contract
         require(
             token.transferFrom(msg.sender, address(this), _tokens),
-            "Settle: cannot transfer tokens to settle"
+            "Collect: cannot transfer tokens to settle"
         );
 
-        _settle(channelID, msg.sender, _tokens);
+        _collect(channelID, msg.sender, _tokens);
     }
 
     /**
@@ -791,6 +813,8 @@ contract Staking is Governed {
             delete rebates[_epoch];
         }
 
+        // TODO: delete allocation and channelProxy?
+
         // Calculate delegation fees and add them to the delegation pool
         uint256 delegationFees = _collectDelegationFees(indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationFees);
@@ -830,12 +854,12 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Settle a channel after receiving collected query fees from it.
+     * @dev Withdraw and collect funds from the channel.
      * @param _channelID ChannelID address of the indexer in the channel
-     * @param _from Multisig channel address that triggered settlement
-     * @param _tokens Amount of tokens to settle
+     * @param _from Multisig channel address that triggered withdrawal
+     * @param _tokens Amount of tokens to withdraw
      */
-    function _settle(
+    function _collect(
         address _channelID,
         address _from,
         uint256 _tokens
@@ -843,7 +867,12 @@ contract Staking is Governed {
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
 
-        // TODO: validate the the allocation can still be settled
+        // Validate the channel can still receive funds
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
+        require(
+            epochs > channelDisputeEpochs,
+            "Collect: channel cannot withdraw funds after dispute period"
+        );
 
         // Calculate curation fees only if the subgraph deployment is curated
         uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
@@ -860,7 +889,7 @@ contract Staking is Governed {
             curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
-        emit AllocationSettled(
+        emit AllocationWithdrawal(
             alloc.indexer,
             alloc.subgraphDeploymentID,
             epochManager.currentEpoch(),
