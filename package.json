@@ -5,6 +5,11 @@
   "directories": {
     "test": "test"
   },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@connext/contracts": "^3.2.1",
     "@connext/types": "^7.0.0-alpha.2",
@@ -56,7 +61,7 @@
   },
   "scripts": {
     "prepublishOnly": "./scripts/prepublish",
-    "build": "npm run compile && npm run flatten && npm run abi:extract && npm run typechain",
+    "build": "./scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
     "deploy": "npm run migrate",
@@ -96,8 +101,8 @@
     "type": "git",
     "url": "git+https://github.com/graphprotocol/contracts.git"
   },
-  "author": "",
-  "license": "",
+  "author": "TheGraph Team",
+  "license": "MIT License",
   "bugs": {
     "url": "https://github.com/graphprotocol/contracts/issues"
   },
