@@ -55,7 +55,7 @@
     "yargs": "^15.3.1"
   },
   "scripts": {
-    "prepublishOnly": "npm run build && rm -rf dist && cp -R build dist",
+    "prepublishOnly": "./scripts/prepublish",
     "build": "npm run compile && npm run flatten && npm run abi:extract && npm run typechain",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
