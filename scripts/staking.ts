@@ -1,5 +1,5 @@
 #!/usr/bin/env ts-node
-import { utils, Wallet } from 'ethers'
+import { utils, BytesLike, Wallet } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
@@ -79,13 +79,10 @@ const allocate = async () => {
   checkFuncInputs([amount, price], ['amount', 'price'], 'allocate')
   let publicKey: string
   let proxy: string
-  let id: utils.Arrayish
+  let id: BytesLike
 
   subgraphDeploymentID ? (id = subgraphDeploymentID) : (id = utils.randomBytes(32))
-  channelPubKey
-    ? (publicKey = channelPubKey)
-    : (publicKey = utils.HDNode.fromMnemonic(Wallet.createRandom().mnemonic).publicKey)
-
+  channelPubKey ? (publicKey = channelPubKey) : (publicKey = Wallet.createRandom().publicKey)
   channelProxy ? (proxy = channelProxy) : (proxy = Wallet.createRandom().address)
 
   console.log(`Subgraph Deployment ID: ${id}`)
