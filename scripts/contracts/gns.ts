@@ -131,6 +131,7 @@ const deprecate = async () => {
 
 interface GNSMetadata {
   subgraphDescription: string
+  subgraphDisplayName: string
   subgraphImage: string
   subgraphCodeRepository: string
   subgraphWebsite: string
@@ -142,6 +143,7 @@ const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   const metadata: GNSMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
   if (
     !metadata.subgraphDescription ||
+    !metadata.subgraphDisplayName ||
     !metadata.subgraphImage ||
     !metadata.subgraphCodeRepository ||
     !metadata.subgraphWebsite ||
@@ -153,6 +155,7 @@ const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   }
   console.log('Meta data:')
   console.log('  Subgraph Description:     ', metadata.subgraphDescription)
+  console.log('  Subgraph Display Name:     ', metadata.subgraphDisplayName)
   console.log('  Subgraph Image:           ', metadata.subgraphImage)
   console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository)
   console.log('  Subgraph Website:         ', metadata.subgraphWebsite)

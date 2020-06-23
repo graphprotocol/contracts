@@ -6,18 +6,18 @@ import { ContractTransaction, ethers, utils, Wallet, ContractReceipt, Overrides 
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
-import { GnsFactory } from '../build/typechain/contracts/GnsContract'
-import { StakingFactory } from '../build/typechain/contracts/StakingContract'
-import { ServiceRegistryFactory } from '../build/typechain/contracts/ServiceRegistryContract'
-import { GraphTokenFactory } from '../build/typechain/contracts/GraphTokenContract'
-import { CurationFactory } from '../build/typechain/contracts/CurationContract'
-import { IensFactory } from '../build/typechain/contracts/IensContract'
-import { IPublicResolverFactory } from '../build/typechain/contracts/IPublicResolverContract'
-import { IEthereumDidRegistryFactory } from '../build/typechain/contracts/IEthereumDidRegistryContract'
-import { ITestRegistrarFactory } from '../build/typechain/contracts/ITestRegistrarContract'
+import { GnsFactory } from '../../build/typechain/contracts/GnsContract'
+import { StakingFactory } from '../../build/typechain/contracts/StakingContract'
+import { ServiceRegistryFactory } from '../../build/typechain/contracts/ServiceRegistryContract'
+import { GraphTokenFactory } from '../../build/typechain/contracts/GraphTokenContract'
+import { CurationFactory } from '../../build/typechain/contracts/CurationContract'
+import { IensFactory } from '../../build/typechain/contracts/IensContract'
+import { IPublicResolverFactory } from '../../build/typechain/contracts/IPublicResolverContract'
+import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEthereumDidRegistryContract'
+import { ITestRegistrarFactory } from '../../build/typechain/contracts/ITestRegistrarContract'
 
 dotenv.config()
-const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'addresses.json'), 'utf-8'))
+const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '../..', 'addresses.json'), 'utf-8'))
 const generatedAddresses = addresses['42']
 const permanentAddresses = addresses.kovan // TODO - make these park of the autogen. Right now they are hardcoded
 
