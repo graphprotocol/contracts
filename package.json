@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "v0.3.1-beta",
+  "version": "v0.3.2-beta",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
