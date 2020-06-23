@@ -6,7 +6,7 @@ import { getAddressBook } from '../address-book'
 import { readConfig, getContractConfig } from '../config'
 import { cliOpts } from '../constants'
 import { isContractDeployed, deployContract } from '../deploy'
-import { getProvider } from '../utils'
+import { walletFromArgs } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
@@ -95,20 +95,9 @@ export const migrate = async (
 
 export const migrateCommand = {
   command: 'migrate',
-  describe: 'Migrate contracts',
-  builder: (yargs: Argv) => {
-    return yargs
-      .option('a', cliOpts.addressBook)
-      .option('c', cliOpts.graphConfig)
-      .option('m', cliOpts.mnemonic)
-      .option('p', cliOpts.ethProvider)
-  },
-  handler: async (argv: { [key: string]: any } & Argv['argv']) => {
-    await migrate(
-      Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider)),
-      argv.addressBook,
-      argv.graphConfig,
-      argv.force,
-    )
+  desc: 'Migrate contracts',
+  builder: (yargs: Argv): Argv => yargs.option('c', cliOpts.graphConfig),
+  handler: async (argv: { [key: string]: any } & Argv['argv']): Promise<void> => {
+    await migrate(walletFromArgs(argv), argv.addressBook, argv.graphConfig, argv.force)
   },
 }

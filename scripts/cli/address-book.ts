@@ -23,7 +23,7 @@ export interface AddressBook {
 }
 
 export const getAddressBook = (path: string, chainId: string): AddressBook => {
-  if (!path) throw new Error(`A path the the address book file is required.`)
+  if (!path) throw new Error(`A path of the address book file is required.`)
   if (!chainId) throw new Error(`A chainId is required.`)
 
   const addressBook = JSON.parse(fs.readFileSync(path, 'utf8') || '{}') as AddressBookJson
