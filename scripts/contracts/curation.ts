@@ -3,11 +3,37 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { connectedContracts, executeTransaction, overrides } from './helpers'
-///////////////////////
-// Set up the script //
-///////////////////////
+import { executeTransaction, overrides, ConnectedContract } from './helpers'
 
+class ConnectedCuration extends ConnectedContract {
+  stake = async (id: string, amount: string): Promise<void> => {
+    const amountBN = utils.parseUnits(amount, 18)
+    console.log('  First calling approve() to ensure curation contract can call transferFrom()...')
+    const approveOverrides = overrides('graphToken', 'approve')
+    await executeTransaction(
+      this.contracts.graphToken.approve(
+        this.contracts.curation.address,
+        amountBN,
+        approveOverrides,
+      ),
+    )
+
+    console.log('  Now calling stake() on curation...')
+    const stakeOverrides = overrides('curation', 'stake')
+    await executeTransaction(this.contracts.curation.stake(id, amountBN, stakeOverrides))
+  }
+
+  redeem = async (id: string, amount: string): Promise<void> => {
+    const redeemOverrides = overrides('curation', 'redeem')
+    // Redeeming does not need Big Number right now // TODO - new contracts have decimals for shares,
+    // so this will have to be updated
+    await executeTransaction(this.contracts.curation.redeem(id, amount, redeemOverrides))
+  }
+}
+
+///////////////////////
+// script /////////////
+///////////////////////
 const { func, id, amount } = minimist.default(process.argv.slice(2), {
   string: ['func', 'id', 'amount'],
 })
@@ -30,45 +56,16 @@ Function arguments:
   )
   process.exit(1)
 }
-///////////////////////
-// functions //////////
-///////////////////////
-
-const contracts = connectedContracts()
-
-const stake = async (id: string, amount: string): Promise<void> => {
-  const amountBN = utils.parseUnits(amount, 18)
-  console.log('  First calling approve() to ensure curation contract can call transferFrom()...')
-  const approveOverrides = overrides('graphToken', 'approve')
-  await executeTransaction(
-    contracts.graphToken.approve(contracts.curation.address, amountBN, approveOverrides),
-  )
-  console.log('\n')
-
-  console.log('  Now calling stake() on curation...')
-  const stakeOverrides = overrides('curation', 'stake')
-  await executeTransaction(contracts.curation.stake(id, amountBN, stakeOverrides))
-}
-
-const redeem = async (id: string, amount: string): Promise<void> => {
-  const redeemOverrides = overrides('curation', 'redeem')
-  // Redeeming does not need Big Number right now // TODO - new contracts have decimals for shares,
-  // so this will have to be updated
-  await executeTransaction(contracts.curation.redeem(id, amount, redeemOverrides))
-}
-
-///////////////////////
-// main ///////////////
-///////////////////////
 
 const main = async () => {
+  const curation = new ConnectedCuration()
   try {
     if (func == 'stake') {
       console.log(`Signaling on ${id} with ${amount} tokens...`)
-      stake(id, amount)
+      curation.stake(id, amount)
     } else if (func == 'redeem') {
       console.log(`Redeeming ${amount} shares on ${id}...`)
-      redeem(id, amount)
+      curation.redeem(id, amount)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -81,4 +78,4 @@ const main = async () => {
 
 main()
 
-export { stake, redeem }
+export { ConnectedCuration }

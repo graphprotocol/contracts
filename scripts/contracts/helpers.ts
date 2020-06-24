@@ -43,7 +43,6 @@ export const connectedContracts = (wallet?: Wallet, network?: string) => {
   if (wallet == undefined) {
     try {
       wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
-      console.log(wallet)
     } catch {
       throw Error(
         `Please create a .env file at the root of this project, and set MNEMONIC=<YOUR_12_WORD_MNEMONIC>`,
@@ -153,4 +152,9 @@ export class IPFS {
     console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`)
     return utils.hexlify(hashBytes)
   }
+}
+
+export class ConnectedContract {
+  constructor(readonly wallet?: Wallet, readonly network?: string) {}
+  contracts = connectedContracts(this.wallet, this.network)
 }

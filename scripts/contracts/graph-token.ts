@@ -1,13 +1,37 @@
 #!/usr/bin/env ts-node
 
-import { utils, BigNumber } from 'ethers'
+import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { connectedContracts, executeTransaction, overrides } from './helpers'
+import { ConnectedContract, executeTransaction, overrides } from './helpers'
+
+class ConnectedGraphToken extends ConnectedContract {
+  // Units are automatically parsed to add 18 decimals
+  mint = async (account: string, amount: string): Promise<void> => {
+    const mintOverrides = overrides('graphToken', 'mint')
+    await executeTransaction(
+      this.contracts.graphToken.mint(account, utils.parseUnits(amount, 18), mintOverrides),
+    )
+  }
+
+  transfer = async (account: string, amount: string): Promise<void> => {
+    const transferOverrides = overrides('graphToken', 'transfer')
+    await executeTransaction(
+      this.contracts.graphToken.transfer(account, utils.parseUnits(amount, 18), transferOverrides),
+    )
+  }
+
+  approve = async (): Promise<void> => {
+    const approveOverrides = overrides('graphToken', 'approve')
+    await executeTransaction(
+      this.contracts.graphToken.approve(account, utils.parseUnits(amount, 18), approveOverrides),
+    )
+  }
+}
 
 ///////////////////////
-// Set up the script //
+// script /////////////
 ///////////////////////
 
 const { func, account, amount } = minimist.default(process.argv.slice(2), {
@@ -37,44 +61,18 @@ Function arguments:
   process.exit(1)
 }
 
-// GRT has 18 decimals
-const amountBN = utils.parseUnits(amount, 18)
-const contracts = connectedContracts()
-
-///////////////////////
-// functions //////////
-///////////////////////
-
-const mint = async (account: string, amountBN: BigNumber): Promise<void> => {
-  const mintOverrides = overrides('graphToken', 'mint')
-  await executeTransaction(contracts.graphToken.mint(account, amountBN, mintOverrides))
-}
-
-const transfer = async (account: string, amountBN: BigNumber): Promise<void> => {
-  const transferOverrides = overrides('graphToken', 'transfer')
-  await executeTransaction(contracts.graphToken.transfer(account, amountBN, transferOverrides))
-}
-
-const approve = async () => {
-  const approveOverrides = overrides('graphToken', 'approve')
-  await executeTransaction(contracts.graphToken.approve(account, amountBN, approveOverrides))
-}
-
-///////////////////////
-// main ///////////////
-///////////////////////
-
 const main = async () => {
+  const graphToken = new ConnectedGraphToken()
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)
-      mint(account, amountBN)
+      graphToken.mint(account, amount)
     } else if (func == 'transfer') {
       console.log(`Transferring ${amount} tokens to user ${account}...`)
-      transfer(account, amountBN)
+      graphToken.transfer(account, amount)
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
-      approve()
+      graphToken.approve()
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -87,4 +85,4 @@ const main = async () => {
 
 main()
 
-export { transfer, mint }
+export { ConnectedGraphToken }

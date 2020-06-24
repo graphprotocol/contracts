@@ -4,12 +4,64 @@ import * as path from 'path'
 import * as minimist from 'minimist'
 import * as fs from 'fs'
 
-import { connectedContracts, executeTransaction, overrides, IPFS } from './helpers'
+import { executeTransaction, overrides, IPFS, ConnectedContract } from './helpers'
 
-///////////////////////
-// Set up the script //
-///////////////////////
+interface AccountMetadata {
+  codeRepository: string
+  description: string
+  image: string
+  name: string
+  website: string
+  versionLabel: string
+}
 
+class ConnectedEthereumDIDRegistry extends ConnectedContract {
+  setAttribute = async (ipfs: string, metadataPath: string): Promise<void> => {
+    const metaHashBytes = await this.handleMetadata(ipfs, metadataPath)
+    const edrOverrides = overrides('ethereumDIDRegistry', 'publishNewSubgraph')
+    const signerAddress = await this.contracts.ens.signer.getAddress()
+    // name = keccak256("GRAPH NAME SERVICE")
+    const name = '0x72abcb436eed911d1b6046bbe645c235ec3767c842eb1005a6da9326c2347e4c'
+    await executeTransaction(
+      this.contracts.ethereumDIDRegistry.setAttribute(
+        signerAddress,
+        name,
+        metaHashBytes,
+        0,
+        edrOverrides,
+      ),
+    )
+  }
+
+  private handleMetadata = async (ipfs: string, path: string): Promise<string> => {
+    const metadata: AccountMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
+    console.log('Meta data:')
+    console.log('  Code Repository: ', metadata.codeRepository || '')
+    console.log('  Description:     ', metadata.description || '')
+    console.log('  Image:           ', metadata.image || '')
+    console.log('  Name:            ', metadata.name || '')
+    console.log('  Website:         ', metadata.website || '')
+
+    const ipfsClient = IPFS.createIpfsClient(ipfs)
+
+    console.log('\nUpload JSON meta data to IPFS...')
+    const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
+    const metaHash = result[0].hash
+    try {
+      const data = JSON.parse(await ipfsClient.cat(metaHash))
+      if (JSON.stringify(data) !== JSON.stringify(metadata)) {
+        throw new Error(`Original meta data and uploaded data are not identical`)
+      }
+    } catch (e) {
+      throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
+    }
+    console.log(`Upload metadata successful: ${metaHash}\n`)
+    return IPFS.ipfsHashToBytes32(metaHash)
+  }
+}
+///////////////////////
+// script /////////////
+///////////////////////
 const { func, ipfs, metadataPath } = minimist.default(process.argv.slice(2), {
   string: ['func', 'ipfs', 'metadataPath'],
 })
@@ -37,67 +89,12 @@ Function arguments:
   process.exit(1)
 }
 
-const contracts = connectedContracts()
-
-///////////////////////
-// functions //////////
-///////////////////////
-
-const setAttribute = async (ipfs: string, metadataPath: string): Promise<void> => {
-  const metaHashBytes = await handleMetadata(ipfs, metadataPath)
-  const edrOverrides = overrides('ethereumDIDRegistry', 'publishNewSubgraph')
-  const signerAddress = await contracts.ens.signer.getAddress()
-  // name = keccak256("GRAPH NAME SERVICE")
-  const name = '0x72abcb436eed911d1b6046bbe645c235ec3767c842eb1005a6da9326c2347e4c'
-  await executeTransaction(
-    contracts.ethereumDIDRegistry.setAttribute(signerAddress, name, metaHashBytes, 0, edrOverrides),
-  )
-}
-
-interface AccountMetadata {
-  codeRepository: string
-  description: string
-  image: string
-  name: string
-  website: string
-  versionLabel: string
-}
-
-const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
-  const metadata: AccountMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
-  console.log('Meta data:')
-  console.log('  Code Repository: ', metadata.codeRepository || '')
-  console.log('  Description:     ', metadata.description || '')
-  console.log('  Image:           ', metadata.image || '')
-  console.log('  Name:            ', metadata.name || '')
-  console.log('  Website:         ', metadata.website || '')
-
-  const ipfsClient = IPFS.createIpfsClient(ipfs)
-
-  console.log('\nUpload JSON meta data to IPFS...')
-  const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
-  const metaHash = result[0].hash
-  try {
-    const data = JSON.parse(await ipfsClient.cat(metaHash))
-    if (JSON.stringify(data) !== JSON.stringify(metadata)) {
-      throw new Error(`Original meta data and uploaded data are not identical`)
-    }
-  } catch (e) {
-    throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
-  }
-  console.log(`Upload metadata successful: ${metaHash}\n`)
-  return IPFS.ipfsHashToBytes32(metaHash)
-}
-
-///////////////////////
-// main ///////////////
-///////////////////////
-
 const main = async () => {
+  const ethereumDIDRegistry = new ConnectedEthereumDIDRegistry()
   try {
     if (func == 'setAttribute') {
       console.log(`Setting attribute on ethereum DID registry ...`)
-      setAttribute(ipfs, metadataPath)
+      ethereumDIDRegistry.setAttribute(ipfs, metadataPath)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -110,4 +107,4 @@ const main = async () => {
 
 main()
 
-export { setAttribute }
+export { ConnectedEthereumDIDRegistry }
