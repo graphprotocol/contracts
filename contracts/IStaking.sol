@@ -2,7 +2,7 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 interface IStaking {
-    // -- Allocation --
+    // -- Allocation Data --
 
     struct Allocation {
         address indexer;
@@ -14,7 +14,7 @@ interface IStaking {
         uint256 effectiveAllocation;
     }
 
-    // -- Delegation --
+    // -- Delegation Data --
 
     struct DelegationPool {
         uint256 cooldownBlocks;

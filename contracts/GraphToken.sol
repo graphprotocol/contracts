@@ -1,9 +1,9 @@
 pragma solidity ^0.6.4;
-pragma experimental ABIEncoderV2;
 
-import "./Governed.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+
+import "./Governed.sol";
 
 /**
  * @title GraphToken contract

@@ -8,7 +8,6 @@ import "../Staking.sol";
 import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";
 
-
 /// @title IndexerMultisigTransfer - Indexer variant
 /// of the regular MultisigTransfer.
 contract IndexerMultisigTransfer is MultisigData {
@@ -43,7 +42,7 @@ contract IndexerMultisigTransfer is MultisigData {
                 IERC20(token).approve(staking, amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
-            Staking(staking).settle(amount);
+            Staking(staking).collect(amount);
         }
     }
 

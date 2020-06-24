@@ -25,7 +25,6 @@ library Rebates {
      * @dev Deposit tokens into the rebate pool
      * @param _tokens Amount of fees collected in tokens
      * @param _allocation Effective stake allocated by the indexer for a period of epochs
-     * @return A settlement struct created after adding to rebate pool
      */
     function add(
         Rebates.Pool storage pool,

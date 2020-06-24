@@ -1,15 +1,13 @@
 pragma solidity ^0.6.4;
-pragma experimental ABIEncoderV2;
 
-/*
- * @title EpochManager contract
- * @notice Tracks epochs based on its block duration to sync contracts in the protocol.
- */
-
-import "./Governed.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "./Governed.sol";
 
+/**
+ * @title EpochManager contract
+ * @dev Tracks epochs based on its block duration to sync contracts in the protocol.
+ */
 contract EpochManager is Governed {
     using SafeMath for uint256;
 

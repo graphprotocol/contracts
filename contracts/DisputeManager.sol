@@ -1,9 +1,11 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 import "./Governed.sol";
-import "./GraphToken.sol";
-import "./Staking.sol";
+import "./IGraphToken.sol";
+import "./IStaking.sol";
 
 /*
  * @title DisputeManager
@@ -80,10 +82,10 @@ contract DisputeManager is Governed {
     uint256 public slashingPercentage;
 
     // Graph Token address
-    GraphToken public token;
+    IGraphToken public token;
 
     // Staking contract used for slashing
-    Staking public staking;
+    IStaking public staking;
 
     // -- Events --
 
@@ -165,8 +167,8 @@ contract DisputeManager is Governed {
         uint256 _slashingPercentage
     ) public Governed(_governor) {
         arbitrator = _arbitrator;
-        token = GraphToken(_token);
-        staking = Staking(_staking);
+        token = IGraphToken(_token);
+        staking = IStaking(_staking);
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
@@ -288,8 +290,8 @@ contract DisputeManager is Governed {
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
-    function setStaking(Staking _staking) external onlyGovernor {
-        staking = _staking;
+    function setStaking(address _staking) external onlyGovernor {
+        staking = IStaking(_staking);
         emit ParameterUpdated("staking");
     }
 
@@ -423,10 +425,10 @@ contract DisputeManager is Governed {
         address channelID = _recoverAttestationSigner(attestation);
 
         // Get the indexer that created the channel and signed the attestation
-        (address indexer, bytes32 subgraphDeploymentID) = staking.channels(channelID);
-        require(indexer != address(0), "Indexer cannot be found for the attestation");
+        IStaking.Allocation memory alloc = staking.getAllocation(channelID);
+        require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
-            subgraphDeploymentID == attestation.subgraphDeploymentID,
+            alloc.subgraphDeploymentID == attestation.subgraphDeploymentID,
             "Channel and attestation subgraphDeploymentID must match"
         );
 
@@ -436,12 +438,12 @@ contract DisputeManager is Governed {
                 attestation.requestCID,
                 attestation.responseCID,
                 attestation.subgraphDeploymentID,
-                indexer
+                alloc.indexer
             )
         );
 
         // This also validates that indexer exists
-        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
+        require(staking.hasStake(alloc.indexer), "Dispute has no stake by the indexer");
 
         // A fisherman can only open one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
@@ -449,7 +451,7 @@ contract DisputeManager is Governed {
         // Store dispute
         disputes[disputeID] = Dispute(
             attestation.subgraphDeploymentID,
-            indexer,
+            alloc.indexer,
             _fisherman,
             _deposit
         );
@@ -457,7 +459,7 @@ contract DisputeManager is Governed {
         emit DisputeCreated(
             disputeID,
             attestation.subgraphDeploymentID,
-            indexer,
+            alloc.indexer,
             _fisherman,
             _deposit,
             _attestationData
