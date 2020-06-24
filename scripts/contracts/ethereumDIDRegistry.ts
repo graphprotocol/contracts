@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as minimist from 'minimist'
 import * as fs from 'fs'
 
-import { contracts, executeTransaction, overrides, IPFS } from './helpers'
+import { connectedContracts, executeTransaction, overrides, IPFS } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -37,11 +37,13 @@ Function arguments:
   process.exit(1)
 }
 
+const contracts = connectedContracts()
+
 ///////////////////////
 // functions //////////
 ///////////////////////
 
-const setAttribute = async () => {
+const setAttribute = async (ipfs: string, metadataPath: string): Promise<void> => {
   const metaHashBytes = await handleMetadata(ipfs, metadataPath)
   const edrOverrides = overrides('ethereumDIDRegistry', 'publishNewSubgraph')
   const signerAddress = await contracts.ens.signer.getAddress()
@@ -95,7 +97,7 @@ const main = async () => {
   try {
     if (func == 'setAttribute') {
       console.log(`Setting attribute on ethereum DID registry ...`)
-      setAttribute()
+      setAttribute(ipfs, metadataPath)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -107,3 +109,5 @@ const main = async () => {
 }
 
 main()
+
+export { setAttribute }

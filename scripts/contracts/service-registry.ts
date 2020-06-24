@@ -2,7 +2,7 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
+import { connectedContracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -33,13 +33,15 @@ Function arguments:
 // functions //////////
 ///////////////////////
 
-const register = async () => {
+const contracts = connectedContracts()
+
+const register = async (url: string, geoHash: string): Promise<void> => {
   checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')
   const registerOverrides = overrides('serviceRegistry', 'register')
   await executeTransaction(contracts.serviceRegistry.register(url, geoHash, registerOverrides))
 }
 
-const unregister = async () => {
+const unregister = async (): Promise<void> => {
   const unregisterOverrides = overrides('graphToken', 'transfer')
   await executeTransaction(contracts.serviceRegistry.unregister(unregisterOverrides))
 }
@@ -54,7 +56,7 @@ const main = async () => {
       console.log(
         `Registering ${await contracts.serviceRegistry.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
       )
-      register()
+      register(url, geoHash)
     } else if (func == 'unregister') {
       console.log(`Unregistering ${await contracts.serviceRegistry.signer.getAddress()}...`)
       unregister()
@@ -69,3 +71,5 @@ const main = async () => {
 }
 
 main()
+
+export { register, unregister }

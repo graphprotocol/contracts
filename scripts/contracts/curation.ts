@@ -3,7 +3,7 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from './helpers'
+import { connectedContracts, executeTransaction, overrides } from './helpers'
 ///////////////////////
 // Set up the script //
 ///////////////////////
@@ -34,9 +34,10 @@ Function arguments:
 // functions //////////
 ///////////////////////
 
-const amountBN = utils.parseUnits(amount, 18)
+const contracts = connectedContracts()
 
-const stake = async () => {
+const stake = async (id: string, amount: string): Promise<void> => {
+  const amountBN = utils.parseUnits(amount, 18)
   console.log('  First calling approve() to ensure curation contract can call transferFrom()...')
   const approveOverrides = overrides('graphToken', 'approve')
   await executeTransaction(
@@ -49,9 +50,10 @@ const stake = async () => {
   await executeTransaction(contracts.curation.stake(id, amountBN, stakeOverrides))
 }
 
-const redeem = async () => {
+const redeem = async (id: string, amount: string): Promise<void> => {
   const redeemOverrides = overrides('curation', 'redeem')
-  // Redeeming does not need Big Number
+  // Redeeming does not need Big Number right now // TODO - new contracts have decimals for shares,
+  // so this will have to be updated
   await executeTransaction(contracts.curation.redeem(id, amount, redeemOverrides))
 }
 
@@ -63,10 +65,10 @@ const main = async () => {
   try {
     if (func == 'stake') {
       console.log(`Signaling on ${id} with ${amount} tokens...`)
-      stake()
+      stake(id, amount)
     } else if (func == 'redeem') {
       console.log(`Redeeming ${amount} shares on ${id}...`)
-      redeem()
+      redeem(id, amount)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -78,3 +80,5 @@ const main = async () => {
 }
 
 main()
+
+export { stake, redeem }

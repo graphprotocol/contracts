@@ -1,9 +1,9 @@
 #!/usr/bin/env ts-node
-import { utils, BytesLike, Wallet } from 'ethers'
+import { utils, BytesLike, Wallet, BigNumber } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
+import { connectedContracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 ///////////////////////
 // Set up the script //
 ///////////////////////
@@ -38,7 +38,7 @@ Function arguments:
     --channelProxy <address>          - The subgraph deployment ID being allocated on
     --price <number>                  - Price the indexer will charge for serving queries of the subgraphID
 
-  settle
+  settle (Note - settle must be called by the channelProxy that created the allocation)
     --amount <number>   - Amount of tokens being settled  (script adds 10^18)
     `,
   )
@@ -49,9 +49,9 @@ Function arguments:
 ///////////////////////
 
 const amountBN = utils.parseUnits(amount, 18)
-console.log(amountBN)
+const contracts = connectedContracts()
 
-const stake = async () => {
+const stake = async (amountBN: BigNumber): Promise<void> => {
   checkFuncInputs([amount], ['amount'], 'stake')
   console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
   const approveOverrides = overrides('graphToken', 'approve')
@@ -64,26 +64,34 @@ const stake = async () => {
   await executeTransaction(contracts.staking.stake(amountBN, stakeOverrides))
 }
 
-const unstake = async () => {
+const unstake = async (amountBN: BigNumber): Promise<void> => {
   checkFuncInputs([amount], ['amount'], 'unstake')
   const unstakeOverrides = overrides('staking', 'unstake')
   await executeTransaction(contracts.staking.unstake(amountBN, unstakeOverrides))
 }
 
-const withdraw = async () => {
+const withdraw = async (): Promise<void> => {
   const withdrawOverrides = overrides('staking', 'withdraw')
   await executeTransaction(contracts.staking.withdraw(withdrawOverrides))
 }
 
-const allocate = async () => {
+const allocate = async (
+  amountBN: BigNumber,
+  price: string,
+  subgraphDeploymentID?: string,
+  channelPubKey?: string,
+  channelProxy?: string,
+): Promise<void> => {
   checkFuncInputs([amount, price], ['amount', 'price'], 'allocate')
   let publicKey: string
   let proxy: string
   let id: BytesLike
 
-  subgraphDeploymentID ? (id = subgraphDeploymentID) : (id = utils.randomBytes(32))
-  channelPubKey ? (publicKey = channelPubKey) : (publicKey = Wallet.createRandom().publicKey)
-  channelProxy ? (proxy = channelProxy) : (proxy = Wallet.createRandom().address)
+  subgraphDeploymentID == undefined ? (id = utils.randomBytes(32)) : (id = subgraphDeploymentID)
+  channelPubKey == undefined
+    ? (publicKey = Wallet.createRandom().publicKey)
+    : (publicKey = channelPubKey)
+  channelProxy == undefined ? (proxy = Wallet.createRandom().address) : (proxy = channelProxy)
 
   console.log(`Subgraph Deployment ID: ${id}`)
   console.log(`Channel Proxy:          ${proxy}`)
@@ -95,12 +103,11 @@ const allocate = async () => {
   )
 }
 
-// TODO - not implemented, because time has to pass, and we need to index th epoch manager too
-// const settle = async () => {
-//   checkFuncInputs([amount], ['amount'], 'settle')
-//   const settleOverrides = overrides('staking', 'withdraw')
-//   //   await executeTransaction(contracts.staking.settle(settleOverrides))
-// }
+const settle = async () => {
+  checkFuncInputs([amount], ['amount'], 'settle')
+  const settleOverrides = overrides('staking', 'withdraw')
+  //   await executeTransaction(contracts.staking.settle(settleOverrides))
+}
 
 ///////////////////////
 // main ///////////////
@@ -110,20 +117,20 @@ const main = async () => {
   try {
     if (func == 'stake') {
       console.log(`Staking ${amount} tokens in the staking contract...`)
-      stake()
+      stake(amount)
     } else if (func == 'unstake') {
       console.log(`Unstaking ${amount} tokens. Tokens will be locked...`)
-      unstake()
+      unstake(amount)
     } else if (func == 'withdraw') {
       console.log(`Unlock tokens and withdraw them from the staking contract...`)
       withdraw()
     } else if (func == 'allocate') {
-      console.log(`Allocating ${amount} tokens on stake channel ${subgraphDeploymentID} ...`)
-      allocate()
+      console.log(`Allocating ${amount} tokens on state channel ${subgraphDeploymentID} ...`)
+      allocate(amountBN, price, subgraphDeploymentID, channelPubKey, channelProxy)
     } else if (func == 'settle') {
-      console.log('NOT IMPLEMENTED YET')
-      // console.log(`TODO - settle must be called from a channel proxy, not the normal user`)
-      // settle()
+      // TODO, make addresses passed in
+      console.log(`Settling ${amount} tokens on state channel with proxy address TODO`)
+      settle(amount)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -135,3 +142,4 @@ const main = async () => {
 }
 
 main()
+

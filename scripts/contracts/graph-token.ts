@@ -1,10 +1,10 @@
 #!/usr/bin/env ts-node
 
-import { utils } from 'ethers'
+import { utils, BigNumber } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides } from './helpers'
+import { connectedContracts, executeTransaction, overrides } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -39,17 +39,18 @@ Function arguments:
 
 // GRT has 18 decimals
 const amountBN = utils.parseUnits(amount, 18)
+const contracts = connectedContracts()
 
 ///////////////////////
 // functions //////////
 ///////////////////////
 
-const mint = async () => {
+const mint = async (account: string, amountBN: BigNumber): Promise<void> => {
   const mintOverrides = overrides('graphToken', 'mint')
   await executeTransaction(contracts.graphToken.mint(account, amountBN, mintOverrides))
 }
 
-const transfer = async () => {
+const transfer = async (account: string, amountBN: BigNumber): Promise<void> => {
   const transferOverrides = overrides('graphToken', 'transfer')
   await executeTransaction(contracts.graphToken.transfer(account, amountBN, transferOverrides))
 }
@@ -67,10 +68,10 @@ const main = async () => {
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)
-      mint()
+      mint(account, amountBN)
     } else if (func == 'transfer') {
       console.log(`Transferring ${amount} tokens to user ${account}...`)
-      transfer()
+      transfer(account, amountBN)
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
       approve()
@@ -85,3 +86,5 @@ const main = async () => {
 }
 
 main()
+
+export { transfer, mint }

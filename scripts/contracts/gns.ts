@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as minimist from 'minimist'
 import * as fs from 'fs'
 
-import { contracts, executeTransaction, overrides, IPFS, checkFuncInputs } from './helpers'
+import { connectedContracts, executeTransaction, overrides, IPFS, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -71,11 +71,19 @@ Function arguments:
   process.exit(1)
 }
 
+const contracts = connectedContracts()
+
 ///////////////////////
 // functions //////////
 ///////////////////////
 
-const publishNewSubgraph = async () => {
+const publishNewSubgraph = async (
+  ipfs: string,
+  subgraphDeploymentID: string,
+  nameIdentifier: string,
+  name: string,
+  metadataPath: string,
+): Promise<void> => {
   checkFuncInputs(
     [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath],
     ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath'],
@@ -99,7 +107,14 @@ const publishNewSubgraph = async () => {
   )
 }
 
-const publishNewVersion = async () => {
+const publishNewVersion = async (
+  ipfs: string,
+  subgraphDeploymentID: string,
+  nameIdentifier: string,
+  name: string,
+  metadataPath: string,
+  subgraphNumber: string,
+): Promise<void> => {
   checkFuncInputs(
     [ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath, subgraphNumber],
     ['ipfs', 'subgraphDeploymentID', 'nameIdentifier', 'name', 'metadataPath', 'subgraphNumber'],
@@ -123,7 +138,7 @@ const publishNewVersion = async () => {
   )
 }
 
-const deprecate = async () => {
+const deprecate = async (subgraphNumber: string): Promise<void> => {
   checkFuncInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
   const gnsOverrides = overrides('gns', 'deprecate')
   await executeTransaction(contracts.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides))
@@ -155,7 +170,7 @@ const handleMetadata = async (ipfs: string, path: string): Promise<string> => {
   }
   console.log('Meta data:')
   console.log('  Subgraph Description:     ', metadata.subgraphDescription)
-  console.log('  Subgraph Display Name:     ', metadata.subgraphDisplayName)
+  console.log('  Subgraph Display Name:    ', metadata.subgraphDisplayName)
   console.log('  Subgraph Image:           ', metadata.subgraphImage)
   console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository)
   console.log('  Subgraph Website:         ', metadata.subgraphWebsite)
@@ -187,13 +202,20 @@ const main = async () => {
   try {
     if (func == 'publishNewSubgraph') {
       console.log(`Publishing 1st version of subgraph ${name} ...`)
-      publishNewSubgraph()
+      publishNewSubgraph(ipfs, subgraphDeploymentID, nameIdentifier, name, metadataPath)
     } else if (func == 'publishNewVersion') {
       console.log(`Publishing a new version for subgraph ${name} ...`)
-      publishNewVersion()
+      publishNewVersion(
+        ipfs,
+        subgraphDeploymentID,
+        nameIdentifier,
+        name,
+        metadataPath,
+        subgraphNumber,
+      )
     } else if (func == 'deprecate') {
       console.log(`Deprecating subgraph ${graphAccount}-${subgraphNumber}`)
-      deprecate()
+      deprecate(subgraphNumber)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -205,3 +227,5 @@ const main = async () => {
 }
 
 main()
+
+export { publishNewSubgraph, publishNewVersion, deprecate }

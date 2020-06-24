@@ -17,31 +17,63 @@ import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEt
 import { ITestRegistrarFactory } from '../../build/typechain/contracts/ITestRegistrarContract'
 
 dotenv.config()
-const addresses = JSON.parse(fs.readFileSync(path.join(__dirname, '../..', 'addresses.json'), 'utf-8'))
-const generatedAddresses = addresses['42']
-const permanentAddresses = addresses.kovan // TODO - make these park of the autogen. Right now they are hardcoded
 
-const ethereum = `https://kovan.infura.io/v3/${process.env.INFURA_KEY}`
-const eth = new ethers.providers.JsonRpcProvider(ethereum)
-let wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
-wallet = wallet.connect(eth)
+// If you pass a wallet, it is using the produceData script, which uses multi-wallets
+// Otherwise from cli, it takes the base mnemonic in .env
+// Network currently defaults to kovan
+export const connectedContracts = (wallet?: Wallet, network?: string) => {
+  let generatedAddresses
+  let permanentAddresses
+  const addresses = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '../..', 'addresses.json'), 'utf-8'),
+  )
+  if (network == undefined) {
+    network = 'kovan'
+    generatedAddresses = addresses['42']
+    permanentAddresses = addresses.kovan
+  }
 
-export const contracts = {
-  gns: GnsFactory.connect(generatedAddresses.GNS.address, wallet),
-  staking: StakingFactory.connect(generatedAddresses.Staking.address, wallet),
-  serviceRegistry: ServiceRegistryFactory.connect(
-    generatedAddresses.ServiceRegistry.address,
-    wallet,
-  ),
-  graphToken: GraphTokenFactory.connect(generatedAddresses.GraphToken.address, wallet),
-  curation: CurationFactory.connect(generatedAddresses.Curation.address, wallet),
-  ens: IensFactory.connect(permanentAddresses.ens, wallet),
-  publicResolver: IPublicResolverFactory.connect(permanentAddresses.ensPublicResolver, wallet),
-  ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(
-    permanentAddresses.ethereumDIDRegistry,
-    wallet,
-  ),
-  testRegistrar: ITestRegistrarFactory.connect(permanentAddresses.ensTestRegistrar, wallet),
+  if (process.env.INFURA_KEY == undefined) {
+    throw Error(
+      `Please create a .env file at the root of this project, and set INFURA_KEY=<YOUR_INFURA_KEY>`,
+    )
+  }
+  const ethereum = `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
+  const eth = new ethers.providers.JsonRpcProvider(ethereum)
+  if (wallet == undefined) {
+    try {
+      wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
+      console.log(wallet)
+    } catch {
+      throw Error(
+        `Please create a .env file at the root of this project, and set MNEMONIC=<YOUR_12_WORD_MNEMONIC>`,
+      )
+    }
+  }
+  wallet = wallet.connect(eth)
+
+  return {
+    gns: GnsFactory.connect(generatedAddresses.GNS.address, wallet),
+    staking: StakingFactory.connect(generatedAddresses.Staking.address, wallet),
+    serviceRegistry: ServiceRegistryFactory.connect(
+      generatedAddresses.ServiceRegistry.address,
+      wallet,
+    ),
+    graphToken: GraphTokenFactory.connect(generatedAddresses.GraphToken.address, wallet),
+    curation: CurationFactory.connect(generatedAddresses.Curation.address, wallet),
+    ens: IensFactory.connect(permanentAddresses.ens, wallet),
+    publicResolver: IPublicResolverFactory.connect(permanentAddresses.ensPublicResolver, wallet),
+    ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(
+      permanentAddresses.ethereumDIDRegistry,
+      wallet,
+    ),
+    testRegistrar: ITestRegistrarFactory.connect(permanentAddresses.ensTestRegistrar, wallet),
+  }
+}
+
+export const connectedContractsRandomWallet = (network?: string) => {
+  const wallet = Wallet.createRandom()
+  return connectedContracts(wallet, network)
 }
 
 export const executeTransaction = async (

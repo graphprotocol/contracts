@@ -4,7 +4,7 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { contracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
+import { connectedContracts, executeTransaction, overrides, checkFuncInputs } from './helpers'
 
 ///////////////////////
 // Set up the script //
@@ -21,6 +21,9 @@ Usage: ${path.basename(process.argv[1])}
     --func <string> - options: registerName, setRecord, setText, checkOwner, nameHash
 
 Function arguments:
+    registerName
+      --name <string>   - calls both setRecord and setText for one name
+
     setRecord
       --name <string>   - name being registered on ens
 
@@ -33,6 +36,8 @@ Function arguments:
   )
   process.exit(1)
 }
+
+const contracts = connectedContracts()
 
 ///////////////////////
 // functions //////////
@@ -61,9 +66,9 @@ Function arguments:
 // Must normalize name to lower case to get script to work with ethers namehash
 // This is because in setTestRecord() - label uses the normal keccak
 // TODO - follow UTS46 in scripts https://docs.ens.domains/contract-api-reference/name-processing
-const normalizedName = name.toLowerCase()
 
-const setTestRecord = async () => {
+const setTestRecord = async (name: string) => {
+  const normalizedName = name.toLowerCase()
   // const node = utils.namehash('test')
   // console.log('Namehash node for "test": ', node)
   const labelNameFull = `${normalizedName}.${'test'}`
@@ -77,7 +82,8 @@ const setTestRecord = async () => {
   await executeTransaction(contracts.testRegistrar.register(label, signerAddress, ensOverrides))
 }
 
-const setText = async () => {
+const setText = async (name: string) => {
+  const normalizedName = name.toLowerCase()
   const labelNameFull = `${normalizedName}.${'test'}`
   const labelHashFull = utils.namehash(labelNameFull)
   console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
@@ -91,12 +97,12 @@ const setText = async () => {
 }
 
 // does everything in one func call
-const registerName = async () => {
-  await setTestRecord()
-  await setText()
+const registerName = async (name: string): Promise<void> => {
+  await setTestRecord(name)
+  await setText(name)
 }
 
-const checkOwner = async () => {
+const checkOwner = async (name: string) => {
   checkFuncInputs([name], ['name'], 'checkOwner')
   try {
     const node = utils.namehash(`${name}.test`)
@@ -116,16 +122,16 @@ const main = async () => {
   try {
     if (func == 'registerName') {
       console.log(`Registering ownership and text record for ${name} ...`)
-      registerName()
+      registerName(name)
     } else if (func == 'setTestRecord') {
       console.log(`Setting owner for ${name} ...`)
-      setTestRecord()
+      setTestRecord(name)
     } else if (func == 'setText') {
       console.log(`Setting text record of 'GRAPH NAME SERVICE' for caller ...`)
-      setText()
+      setText(name)
     } else if (func == 'checkOwner') {
       console.log(`Checking owner of ${name} ...`)
-      checkOwner()
+      checkOwner(name)
     } else if (func == 'namehash') {
       console.log(`Namehash of ${name}: ${utils.namehash(name)}`)
     } else {
@@ -139,3 +145,5 @@ const main = async () => {
 }
 
 main()
+
+export { registerName }
