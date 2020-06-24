@@ -38,6 +38,9 @@ contract Staking is IStaking, Governed {
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
+    // Grace period after delegator can settle a channel
+    uint256 public settlementGracePeriodEpochs;
+
     // Allocations : allocationID => Allocation
     mapping(address => Allocation) public allocations;
 
@@ -202,7 +205,7 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Staking Contract Constructor
+     * @dev Staking Contract Constructor.
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
@@ -217,7 +220,7 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set the curation contract where to send curation fees
+     * @dev Set the curation contract where to send curation fees.
      * @param _curation Address of the curation contract
      */
     function setCuration(address _curation) external override onlyGovernor {
@@ -226,7 +229,7 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set the curation percentage of indexer fees sent to curators
+     * @dev Set the curation percentage of indexer fees sent to curators.
      * @param _percentage Percentage of indexer fees sent to curators
      */
     function setCurationPercentage(uint256 _percentage) external override onlyGovernor {
@@ -237,7 +240,7 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
+     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed.
      * @param _channelDisputeEpochs Period in epochs
      */
     function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external override onlyGovernor {
@@ -246,12 +249,25 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set the max allocation time allowed for indexers
+     * @dev Set the max allocation time allowed for indexers stake on channels.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
     function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external override onlyGovernor {
         maxAllocationEpochs = _maxAllocationEpochs;
         emit ParameterUpdated("maxAllocationEpochs");
+    }
+
+    /**
+     * @dev Set a grace period after max allocation passed after delegator can settle a channel.
+     * @param _settlementGracePeriodEpochs Grace period in epochs
+     */
+    function setSettlementGracePeriodEpochs(uint256 _settlementGracePeriodEpochs)
+        external
+        override
+        onlyGovernor
+    {
+        settlementGracePeriodEpochs = _settlementGracePeriodEpochs;
+        emit ParameterUpdated("settlementGracePeriodEpochs");
     }
 
     /**
@@ -669,27 +685,34 @@ contract Staking is IStaking, Governed {
      * @param _channelID The channel identifier for the allocation
      */
     function settle(address _channelID) external override {
-        address indexer = msg.sender;
-
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
 
         // Get indexer stakes
-        Stakes.Indexer storage indexerStake = stakes[indexer];
+        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
         // Allocation must exist
         require(isChannel(_channelID), "Allocation: channel does not exist");
 
-        // Verify that the allocation owner is unallocating
-        // TODO: also allow delegator to force it after a period
-        require(alloc.indexer == indexer, "Allocation: only owner can settle");
-
-        // Must be an active allocation
-        require(alloc.settledAtEpoch == 0, "Allocation: must be active");
-
         // Validate that an allocation cannot be settled before one epoch
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
         require(epochs > 0, "Allocation: must pass at least one epoch");
+
+        // Validate ownership
+        if (epochs > maxAllocationEpochs + settlementGracePeriodEpochs) {
+            // Verify that the allocation owner or delegator is settling
+            require(
+                alloc.indexer == msg.sender ||
+                    delegation[alloc.indexer].delegatorShares[msg.sender] > 0,
+                "Allocation: only indexer or delegator can settle"
+            );
+        } else {
+            // Verify that the allocation owner is settling
+            require(alloc.indexer == msg.sender, "Allocation: only indexer can settle");
+        }
+
+        // Must be an active allocation
+        require(alloc.settledAtEpoch == 0, "Allocation: must be active");
 
         // Settle the allocation and start counting a period to finalize any other
         // withdrawal from the related channel.

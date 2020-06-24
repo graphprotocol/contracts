@@ -36,6 +36,8 @@ interface IStaking {
 
     function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external;
 
+    function setSettlementGracePeriodEpochs(uint256 _settlementGracePeriodEpochs) external;
+
     function setDelegationParametersCooldown(uint256 _blocks) external;
 
     function setDelegationCapacity(uint256 _delegationCapacity) external;

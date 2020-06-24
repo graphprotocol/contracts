@@ -157,13 +157,13 @@ library Stakes {
      * @return Token amount
      */
     function tokensAvailable(Stakes.Indexer memory stake) internal view returns (uint256) {
-        uint256 tokensUsed = stake.tokensUsed();
+        uint256 _tokensUsed = stake.tokensUsed();
         // Indexer stake is over allocated: return 0 to avoid stake to be used until
         // the overallocation is restored by staking more tokens or unallocating tokens
-        if (tokensUsed > stake.tokensStaked) {
+        if (_tokensUsed > stake.tokensStaked) {
             return 0;
         }
-        return stake.tokensStaked.sub(tokensUsed);
+        return stake.tokensStaked.sub(_tokensUsed);
     }
 
     /**
