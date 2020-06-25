@@ -2,26 +2,8 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction, overrides, checkFuncInputs, ConnectedContract } from './helpers'
-
-class ConnectedServiceRegistry extends ConnectedContract {
-  register = async (url: string, geoHash: string): Promise<void> => {
-    checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')
-    const registerOverrides = overrides('serviceRegistry', 'register')
-    await executeTransaction(
-      this.contracts.serviceRegistry.register(url, geoHash, registerOverrides),
-    )
-  }
-
-  unregister = async (): Promise<void> => {
-    const unregisterOverrides = overrides('graphToken', 'transfer')
-    await executeTransaction(this.contracts.serviceRegistry.unregister(unregisterOverrides))
-  }
-}
-
-///////////////////////
-// script /////////////
-///////////////////////
+import { executeTransaction, checkFuncInputs } from './helpers'
+import { ConnectedServiceRegistry } from './connectedContracts'
 
 const { func, url, geoHash } = minimist.default(process.argv.slice(2), {
   string: ['func', 'url', 'geoHash'],
@@ -46,18 +28,17 @@ Function arguments:
 }
 
 const main = async () => {
-  const serviceRegistry = new ConnectedServiceRegistry()
+  const serviceRegistry = new ConnectedServiceRegistry(true)
   try {
     if (func == 'register') {
+      checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')
       console.log(
-        `Registering ${await serviceRegistry.contracts.serviceRegistry.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
+        `Registering ${await serviceRegistry.serviceRegistry.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
       )
-      serviceRegistry.register(url, geoHash)
+      await executeTransaction(serviceRegistry.registerWithOverrides(url, geoHash))
     } else if (func == 'unregister') {
-      console.log(
-        `Unregistering ${await serviceRegistry.contracts.serviceRegistry.signer.getAddress()}...`,
-      )
-      serviceRegistry.unregister()
+      console.log(`Unregistering ${await serviceRegistry.serviceRegistry.signer.getAddress()}...`)
+      await executeTransaction(serviceRegistry.unRegisterWithOverrides())
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -69,5 +50,3 @@ const main = async () => {
 }
 
 main()
-
-export { ConnectedServiceRegistry }

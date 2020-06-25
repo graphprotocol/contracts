@@ -4,82 +4,9 @@ import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction, overrides, checkFuncInputs, ConnectedContract } from './helpers'
+import { executeTransaction } from './helpers'
+import { ConnectedENS } from './connectedContracts'
 
-class ConnectedENS extends ConnectedContract {
-  // NOT IN USE, SEE setTestRecord. Will be in use when we are on Rinkeby
-  // const setSubnodeRecord = async (nodeName: string, labelName: string) => {
-  //   checkFuncInputs([nodeName, labelName], ['nodeName', 'labelName'], 'setSubnodeRecord')
-  //   const node = utils.namehash(nodeName)
-  //   const labelNameFull = `${labelName}.${nodeName}`
-  //   const label = utils.namehash(labelNameFull)
-  //   const ttl = 31536000 // time to live = 1 year
-  //   const resolverAddress = contracts.publicResolver.address
-  //   const signerAddress = await contracts.ens.signer.getAddress()
-  //   console.log(signerAddress)
-  //   const ensOverrides = overrides('ens', 'setSubnodeRecord')
-  //   console.log('Namehash node: ', node)
-  //   console.log('Namehash labelNameFull: ', labelNameFull)
-  //   console.log('Namehash label: ', label)
-
-  //   await executeTransaction(
-  //     contracts.ens.setSubnodeRecord(node, label, signerAddress, resolverAddress, ttl, ensOverrides),
-  //   )
-  // }
-
-  // Must normalize name to lower case to get script to work with ethers namehash
-  // This is because in setTestRecord() - label uses the normal keccak
-  // TODO - follow UTS46 in scripts https://docs.ens.domains/contract-api-reference/name-processing
-
-  setTestRecord = async (name: string): Promise<void> => {
-    const normalizedName = name.toLowerCase()
-    // const node = utils.namehash('test')
-    // console.log('Namehash node for "test": ', node)
-    const labelNameFull = `${normalizedName}.${'test'}`
-    const labelHashFull = utils.namehash(labelNameFull)
-    console.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
-
-    const signerAddress = await this.contracts.ens.signer.getAddress()
-    const ensOverrides = overrides('ens', 'register')
-    const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
-    // console.log(`Hash of label being registered on ens ${name}: `, label)
-    await executeTransaction(
-      this.contracts.testRegistrar.register(label, signerAddress, ensOverrides),
-    )
-  }
-
-  setText = async (name: string): Promise<void> => {
-    const normalizedName = name.toLowerCase()
-    const labelNameFull = `${normalizedName}.${'test'}`
-    const labelHashFull = utils.namehash(labelNameFull)
-    console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
-
-    const key = 'GRAPH NAME SERVICE'
-    const ensOverrides = overrides('ens', 'setText')
-    const signerAddress = await this.contracts.publicResolver.signer.getAddress()
-    await executeTransaction(
-      this.contracts.publicResolver.setText(labelHashFull, key, signerAddress, ensOverrides),
-    )
-  }
-
-  // does everything in one func call
-  registerName = async (name: string): Promise<void> => {
-    await this.setTestRecord(name)
-    await this.setText(name)
-  }
-
-  checkOwner = async (name: string): Promise<void> => {
-    checkFuncInputs([name], ['name'], 'checkOwner')
-    try {
-      const node = utils.namehash(`${name}.test`)
-      console.log(`Node: ${node}`)
-      const res = await this.contracts.ens.owner(node)
-      console.log(`Owner of ${name}.test is: ${res}`)
-    } catch (e) {
-      console.log(`  ..failed on checkOwner: ${e.message}`)
-    }
-  }
-}
 ///////////////////////
 // script /////////////
 ///////////////////////
@@ -91,17 +18,11 @@ if (!func || !name) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <string> - options: registerName, setRecord, setText, checkOwner, nameHash
+    --func <string> - options: registerName, checkOwner
 
 Function arguments:
     registerName
       --name <string>   - calls both setRecord and setText for one name
-
-    setRecord
-      --name <string>   - name being registered on ens
-
-    setText
-      --node <bytes32>  - node having the graph text field set
 
     checkOwner
       --name <string>   - name being checked for ownership
@@ -111,20 +32,15 @@ Function arguments:
 }
 
 const main = async () => {
-  const ens = new ConnectedENS()
+  const ens = new ConnectedENS(true)
   try {
     if (func == 'registerName') {
-      console.log(`Registering ownership and text record for ${name} ...`)
-      ens.registerName(name)
-    } else if (func == 'setTestRecord') {
       console.log(`Setting owner for ${name} ...`)
-      ens.setTestRecord(name)
-    } else if (func == 'setText') {
-      console.log(`Setting text record of 'GRAPH NAME SERVICE' for caller ...`)
-      ens.setText(name)
+      await executeTransaction(ens.setTestRecord(name))
+      await executeTransaction(ens.setText(name))
     } else if (func == 'checkOwner') {
       console.log(`Checking owner of ${name} ...`)
-      ens.checkOwner(name)
+      await ens.checkOwner(name)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -136,5 +52,3 @@ const main = async () => {
 }
 
 main()
-
-export { ConnectedENS }

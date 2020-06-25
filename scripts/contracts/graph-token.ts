@@ -1,38 +1,10 @@
 #!/usr/bin/env ts-node
 
-import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { ConnectedContract, executeTransaction, overrides } from './helpers'
-
-class ConnectedGraphToken extends ConnectedContract {
-  // Units are automatically parsed to add 18 decimals
-  mint = async (account: string, amount: string): Promise<void> => {
-    const mintOverrides = overrides('graphToken', 'mint')
-    await executeTransaction(
-      this.contracts.graphToken.mint(account, utils.parseUnits(amount, 18), mintOverrides),
-    )
-  }
-
-  transfer = async (account: string, amount: string): Promise<void> => {
-    const transferOverrides = overrides('graphToken', 'transfer')
-    await executeTransaction(
-      this.contracts.graphToken.transfer(account, utils.parseUnits(amount, 18), transferOverrides),
-    )
-  }
-
-  approve = async (): Promise<void> => {
-    const approveOverrides = overrides('graphToken', 'approve')
-    await executeTransaction(
-      this.contracts.graphToken.approve(account, utils.parseUnits(amount, 18), approveOverrides),
-    )
-  }
-}
-
-///////////////////////
-// script /////////////
-///////////////////////
+import { executeTransaction } from './helpers'
+import { ConnectedGraphToken } from './connectedContracts'
 
 const { func, account, amount } = minimist.default(process.argv.slice(2), {
   string: ['func', 'account', 'amount'],
@@ -60,19 +32,18 @@ Function arguments:
   )
   process.exit(1)
 }
-
 const main = async () => {
-  const graphToken = new ConnectedGraphToken()
+  const graphToken = new ConnectedGraphToken(true)
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)
-      graphToken.mint(account, amount)
+      await executeTransaction(graphToken.mintWithOverrides(account, amount))
     } else if (func == 'transfer') {
       console.log(`Transferring ${amount} tokens to user ${account}...`)
-      graphToken.transfer(account, amount)
+      await executeTransaction(graphToken.transferWithOverrides(account, amount))
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
-      graphToken.approve()
+      await executeTransaction(graphToken.approveWithOverrides(account, amount))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
@@ -84,5 +55,3 @@ const main = async () => {
 }
 
 main()
-
-export { ConnectedGraphToken }
