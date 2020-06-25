@@ -1,14 +1,16 @@
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
-import { BuidlerConfig, task, usePlugin, types } from '@nomiclabs/buidler/config'
+import { BuidlerConfig, task, usePlugin } from '@nomiclabs/buidler/config'
 
 import { cliOpts } from './scripts/cli/constants'
 import { migrate } from './scripts/cli/commands/migrate'
+import { verify } from './scripts/cli/commands/verify'
 
 dotenv.config()
 
 // Plugins
 
+usePlugin('@nomiclabs/buidler-etherscan')
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('solidity-coverage')
 
@@ -26,7 +28,6 @@ function getInfuraProviderURL(network: string) {
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, bre) => {
   const accounts = await bre.ethers.getSigners()
-
   for (const account of accounts) {
     console.log(await account.getAddress())
   }
@@ -39,6 +40,13 @@ task('migrate', 'Migrate contracts')
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()
     await migrate(accounts[0] as Wallet, taskArgs.addressBook, taskArgs.graphConfig, taskArgs.force)
+  })
+
+task('verify', 'Verify contracts in Etherscan')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, bre) => {
+    const accounts = await bre.ethers.getSigners()
+    await verify(accounts[0] as Wallet, taskArgs.addressBook)
   })
 
 // Config - Go to https://buidler.dev/config/ to learn more
@@ -120,7 +128,11 @@ const config: BuidlerConfig = {
         mnemonic: getAccountMnemonic(),
       },
     },
-  }
+  },
+  etherscan: {
+    url: 'https://api-kovan.etherscan.io/api',
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
 }
 
 export default config

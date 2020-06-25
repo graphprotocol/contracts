@@ -97,11 +97,7 @@ export const migrateCommand = {
   command: 'migrate',
   describe: 'Migrate contracts',
   builder: (yargs: Argv) => {
-    return yargs
-      .option('a', cliOpts.addressBook)
-      .option('c', cliOpts.graphConfig)
-      .option('m', cliOpts.mnemonic)
-      .option('p', cliOpts.ethProvider)
+    return yargs.option('c', cliOpts.graphConfig)
   },
   handler: async (argv: { [key: string]: any } & Argv['argv']) => {
     await migrate(
