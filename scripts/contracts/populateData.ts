@@ -94,12 +94,39 @@ const populateENS = async (signers: Array<Wallet>) => {
   }
 }
 
+const testDeploymentIDsBase58: Array<string> = [
+  'Qmb7e8bYoj93F9u33R3JY1H764626C8KHUgWMeVjWPiwdD', //compound
+  'QmXenxBqM7uBbRq6y7EAcy86mfcaBkWE53Tz53H3dVeeit', //used synthetix
+  'QmY8Uzg61ttrogeTyCKLcDDR4gKNK44g9qkGDqeProkSHE', //ens
+  'QmRkqEVeZ8bRmMfvBHJvoB4NbnPgXNcuszLZWNNF49skY8', //livepeer
+  'Qmb3hd2hYd2nWFgcmRswykF1dUBSrDUrinYCgN1dmE1tNy', //maker
+  'QmcqrL62BHSasBsk47tNT1G66BHbaANwY213cX841NWE61', //melon
+  'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9', // moloch
+  'QmNoMRb9c5nGi5gETeyeAc7V14XvubAMAA7sxEJzsXnpTF', //used aave
+  'QmUVKS3W7G7Kog6pGq2ttZtXfE89pRvw45vEJM2YEYwpQz', //thegraph
+  'QmNPKaPqgTqKdCv2k3SF9vAhbHo4PVb2cKx2Gs4PzNQkZx', //uniswap
+]
+
+const testDeploymentIDsBytes32: Array<string> = [
+  '0xbdd2b9eb5e4d2a1435b2858874e22e17a681263e86bc941bed345b58b8b8e634', //compound
+  '0x8a5ef5005250f06a2787be70894cf00d4b45df94035a18217e0ac15358d7a239', //used synthetix
+  '0x9176ea5ef5ebdca64119feb40bd96c54075622caab4917249e6557a8ede61769', //ens
+  '0x32c4e64f2b5ecfedbcd41c1d1c469f837d2f3f4f9cdaff496fc7332d92090449', //livepeer
+  '0xbcd059746c62617c5c96a3e2b5ce88516039393f34266f3485e60ded2321e476', //maker
+  '0xd77e99802f1e0019722c1050e1e0ff5f96956dbbd534b00c3724c7b5d0b9950e', //melon
+  '0x4d31d21d389263c98d1e83a031e8fed17cdcef15bd62ee8153f34188a83c7b1c', // moloch
+  '0x06d7234c76d0fb43247537246a4384b06b4caa02978788bfe45e17ef13000b76', //used aave
+  '0x5b5e8d658fd5ad6b84d7ad79a4f86ce4f97518863b393509d8750705d2e997cb', //thegraph
+  '0x00af1bd4a2c640b4425577ce842959ff3b7259f6d93309c3ca1287137f4c360b', //uniswap
+]
+
 // Publish 10 subgraphs
 // Publish new versions for them all
 // Deprecate 2
 const populateGNS = async (signers: Array<Wallet>) => {
   let i = 0
-  const testDeploymentID = 'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9' // TODO - get 10 real subgraph IDs for 10 real subgraphs. For now we just use the same for all
+
+  //'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9' // TODO - get 10 real subgraph IDs for 10 real subgraphs. For now we just use the same for all
   for (const subgraph in subgraphMetadatas) {
     const gns = new ConnectedGNS(true, undefined, undefined, signers[i])
     const ipfs = 'https://api.thegraph.com/ipfs/'
@@ -111,7 +138,7 @@ const populateGNS = async (signers: Array<Wallet>) => {
       gns.publishNewSubgraphWithOverrides(
         ipfs,
         gns.wallet.address,
-        testDeploymentID,
+        testDeploymentIDsBase58[i],
         nameIdentifier,
         name,
         subgraphMetadatas[subgraph] as SubgraphMetadata,
@@ -122,7 +149,7 @@ const populateGNS = async (signers: Array<Wallet>) => {
       gns.publishNewVersionWithOverrides(
         ipfs,
         gns.wallet.address,
-        testDeploymentID,
+        testDeploymentIDsBase58[i],
         nameIdentifier,
         name,
         subgraphMetadatas[subgraph] as SubgraphMetadata,
@@ -141,9 +168,36 @@ const populateGNS = async (signers: Array<Wallet>) => {
   // await executeTransaction(gns.deprecateWithOverrides(gns.wallet.address, '5'))
 }
 
-// const populateCuration = async () => {
-//   // todo
-// }
+//  Each GraphAccount curates on their own
+//  Then we stake on a few to make them higher
+//  Then we run some redeems to make them lower
+const populateCuration = async (signers: Array<Wallet>) => {
+  const curation = new ConnectedCuration(true)
+  const connectedGT = new ConnectedGraphToken(true)
+  const stakeAmount = '5000'
+  const stakeAmountBig = '10000'
+  const totalAmount = '25000'
+  for (let i = 0; i < signers.length; i++) {
+    console.log('First calling approve() to ensure curation contract can call transferFrom()...')
+    await executeTransaction(
+      connectedGT.approveWithOverrides(curation.curation.address, totalAmount),
+    )
+    console.log('Now calling multiple txs stake() on curation...')
+    await executeTransaction(curation.stakeWithOverrides(testDeploymentIDsBytes32[i], stakeAmount))
+    await executeTransaction(curation.stakeWithOverrides(testDeploymentIDsBytes32[0], stakeAmount))
+    await executeTransaction(curation.stakeWithOverrides(testDeploymentIDsBytes32[1], stakeAmount))
+    await executeTransaction(
+      curation.stakeWithOverrides(testDeploymentIDsBytes32[2], stakeAmountBig),
+    )
+  }
+  const redeemAmount = '2' // Redeeming SHARES/Signal, NOT tokens. 2 shares can be a lot of tokens
+  console.log('Running 10 redeem transactions...')
+  for (let i = 0; i < signers.length; i++) {
+    await executeTransaction(
+      curation.redeemWithOverrides(testDeploymentIDsBytes32[1], redeemAmount),
+    )
+  }
+}
 
 // const populateServiceRegistry = async () => {
 //   // todo
@@ -166,6 +220,7 @@ const main = async () => {
     // await populateEthereumDIDRegistry(userAccounts)
     // await populateENS(userAccounts)
     // await populateGNS(userAccounts)
+    // await populateCuration(userAccounts)
   } catch (e) {
     console.log(`  ..failed within main: ${e.message}`)
     process.exit(1)
@@ -175,11 +230,6 @@ const main = async () => {
 main()
 
 /*
- * - curation
- *  - curate on ten of them, that were not deprecated
- *  - make sure that there are multiple curations by different users, and
- *    get some bonding curves high
- *  - run some redeeming through (5?)
  *
  * - service Registry
  *  - register all ten

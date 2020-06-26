@@ -85,17 +85,18 @@ class ConnectedCuration extends ConnectedContract {
     deploymentID: string,
     amount: BigNumberish,
   ): Promise<ContractTransaction> => {
+    const amountParseDecimals = utils.parseUnits(amount as string, 18).toString()
     let limit
     try {
       this.estimate
-        ? (limit = await this.curation.estimateGas.redeem(deploymentID, amount))
+        ? (limit = await this.curation.estimateGas.redeem(deploymentID, amountParseDecimals))
         : (limit = this.gasLimit)
     } catch {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
     const redeemOverrides = overrides(limit, this.gasPrice)
-    return this.curation.redeem(deploymentID, amount, redeemOverrides)
+    return this.curation.redeem(deploymentID, amountParseDecimals, redeemOverrides)
   }
 }
 
