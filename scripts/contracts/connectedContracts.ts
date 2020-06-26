@@ -11,6 +11,12 @@ import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEt
 
 import { getNetworkAddresses, configureWallet, IPFS } from './helpers'
 import { connectContracts } from './connectedNetwork'
+import {
+  SubgraphMetadata,
+  AccountMetadata,
+  jsonToAccountMetadata,
+  jsonToSubgraphMetadata,
+} from '../common'
 // Connect to individual contracts that wrap the typescript bindings, to make development simpler
 
 // Passing gasPrice or gasLimit will default all txs to us this amount
@@ -201,15 +207,6 @@ class ConnectedGraphToken extends ConnectedContract {
   }
 }
 
-interface AccountMetadata {
-  codeRepository: string
-  description: string
-  image: string
-  name: string
-  website: string
-  versionLabel: string
-}
-
 class ConnectedEthereumDIDRegistry extends ConnectedContract {
   ethereumDIDRegistry = IEthereumDidRegistryFactory.connect(
     this.addresses.permanentAddresses.ethereumDIDRegistry,
@@ -217,9 +214,9 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
   )
   setAttributeWithOverrides = async (
     ipfs: string,
-    metadataPath: string,
+    pathOrData: string | AccountMetadata,
   ): Promise<ContractTransaction> => {
-    const metaHashBytes = await this.handleMetadata(ipfs, metadataPath)
+    const metaHashBytes = await this.handleAccountMetadata(ipfs, pathOrData)
     const signerAddress = await this.ethereumDIDRegistry.signer.getAddress()
     // name = keccak256("GRAPH NAME SERVICE")
     const name = '0x72abcb436eed911d1b6046bbe645c235ec3767c842eb1005a6da9326c2347e4c'
@@ -248,8 +245,16 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
     )
   }
 
-  private handleMetadata = async (ipfs: string, path: string): Promise<string> => {
-    const metadata: AccountMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
+  private handleAccountMetadata = async (
+    ipfs: string,
+    pathOrData: string | AccountMetadata,
+  ): Promise<string> => {
+    let metadata: AccountMetadata
+    typeof pathOrData == 'string'
+      ? (metadata = jsonToAccountMetadata(
+          JSON.parse(fs.readFileSync(__dirname + pathOrData).toString()),
+        ))
+      : (metadata = pathOrData)
     console.log('Meta data:')
     console.log('  Code Repository: ', metadata.codeRepository || '')
     console.log('  Description:     ', metadata.description || '')
@@ -275,16 +280,6 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
   }
 }
 
-interface GNSMetadata {
-  subgraphDescription: string
-  subgraphDisplayName: string
-  subgraphImage: string
-  subgraphCodeRepository: string
-  subgraphWebsite: string
-  versionDescription: string
-  versionLabel: string
-}
-
 class ConnectedGNS extends ConnectedContract {
   gns = GnsFactory.connect(this.addresses.generatedAddresses.GNS.address, this.configuredWallet)
   publishNewSubgraphWithOverrides = async (
@@ -293,9 +288,9 @@ class ConnectedGNS extends ConnectedContract {
     subgraphDeploymentID: string,
     nameIdentifier: string,
     name: string,
-    metadataPath: string,
+    metadataPath: string | SubgraphMetadata,
   ): Promise<ContractTransaction> => {
-    const metaHashBytes = await this.handleMetadata(ipfs, metadataPath)
+    const metaHashBytes = await this.handleSubgraphMetadata(ipfs, metadataPath)
     const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
 
     let limit
@@ -331,10 +326,10 @@ class ConnectedGNS extends ConnectedContract {
     subgraphDeploymentID: string,
     nameIdentifier: string,
     name: string,
-    metadataPath: string,
+    metadataPath: string | SubgraphMetadata,
     subgraphNumber: string,
   ): Promise<ContractTransaction> => {
-    const metaHashBytes = await this.handleMetadata(ipfs, metadataPath)
+    const metaHashBytes = await this.handleSubgraphMetadata(ipfs, metadataPath)
     const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
 
     let limit
@@ -382,20 +377,16 @@ class ConnectedGNS extends ConnectedContract {
     return this.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides)
   }
 
-  private handleMetadata = async (ipfs: string, path: string): Promise<string> => {
-    const metadata: GNSMetadata = JSON.parse(fs.readFileSync(__dirname + path).toString())
-    if (
-      !metadata.subgraphDescription ||
-      !metadata.subgraphDisplayName ||
-      !metadata.subgraphImage ||
-      !metadata.subgraphCodeRepository ||
-      !metadata.subgraphWebsite ||
-      !metadata.versionDescription ||
-      !metadata.versionLabel
-    ) {
-      console.log(`One or more fields for metadata are missing`)
-      process.exit(1)
-    }
+  private handleSubgraphMetadata = async (
+    ipfs: string,
+    pathOrData: string | SubgraphMetadata,
+  ): Promise<string> => {
+    let metadata: SubgraphMetadata
+    typeof pathOrData == 'string'
+      ? (metadata = jsonToSubgraphMetadata(
+          JSON.parse(fs.readFileSync(__dirname + pathOrData).toString()),
+        ))
+      : (metadata = pathOrData)
     console.log('Meta data:')
     console.log('  Subgraph Description:     ', metadata.subgraphDescription)
     console.log('  Subgraph Display Name:    ', metadata.subgraphDisplayName)
@@ -568,6 +559,7 @@ class ConnectedStaking extends ConnectedContract {
 export {
   ConnectedCuration,
   ConnectedENS,
+  AccountMetadata,
   ConnectedEthereumDIDRegistry,
   ConnectedGNS,
   ConnectedGraphToken,

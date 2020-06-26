@@ -11,7 +11,7 @@ dotenv.config()
 // TODO - implement ganache mnenomic, from scripts/cli/constants
 export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
   if (process.env.INFURA_KEY == undefined) {
-    throw Error(
+    throw new Error(
       `Please create a .env file at the root of this project, and set INFURA_KEY=<YOUR_INFURA_KEY>`,
     )
   }
@@ -24,7 +24,7 @@ export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
     try {
       wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
     } catch {
-      throw Error(
+      throw new Error(
         `Please create a .env file at the root of this project, and set MNEMONIC=<YOUR_12_WORD_MNEMONIC>`,
       )
     }
