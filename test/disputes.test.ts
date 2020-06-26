@@ -297,7 +297,7 @@ describe('Disputes', async () => {
 
       // Indexer stake funds, allocate, settle, unstake and withdraw the stake fully
       await staking.connect(indexer).stake(indexerTokens)
-      await staking
+      const tx1 = await staking
         .connect(indexer)
         .allocate(
           dispute.receipt.subgraphDeploymentID,
@@ -306,8 +306,11 @@ describe('Disputes', async () => {
           channelProxy.address,
           toBN('0'),
         )
+      const receipt1 = await tx1.wait()
+      const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await this.advanceToNextEpoch() // wait the required one epoch to settle
-      await staking.connect(channelProxy).settle(indexerSettledTokens)
+      await staking.connect(channelProxy).collect(indexerSettledTokens)
+      await staking.connect(indexer).settle(event1.channelID)
       await staking.connect(indexer).unstake(indexerTokens)
       await staking.connect(indexer).withdraw() // no thawing period so we are good
 

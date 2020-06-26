@@ -137,7 +137,7 @@ library Stakes {
      * @param stake Stake data
      * @return True if staked
      */
-    function hasTokens(Stakes.Indexer memory stake) internal view returns (bool) {
+    function hasTokens(Stakes.Indexer memory stake) internal pure returns (bool) {
         return stake.tokensStaked > 0;
     }
 
@@ -146,7 +146,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensUsed(Stakes.Indexer memory stake) internal view returns (uint256) {
+    function tokensUsed(Stakes.Indexer memory stake) internal pure returns (uint256) {
         return stake.tokensAllocated.add(stake.tokensLocked);
     }
 

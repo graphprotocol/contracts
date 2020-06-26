@@ -153,7 +153,7 @@ contract Staking is IStaking, Governed {
      * The funds are related to `subgraphDeploymentID`.
      * `from` attribute records the the multisig contract from where it was settled.
      */
-    event AllocationWithdrawal(
+    event AllocationCollected(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
@@ -475,13 +475,20 @@ contract Staking is IStaking, Governed {
     ) external override onlySlasher {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
+        // Only able to slash a non-zero number of tokens
         require(_tokens > 0, "Slashing: cannot slash zero tokens");
+
+        // Rewards comes from tokens slashed balance
         require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
+
+        // Cannot slash stake of an indexer without any or enough stake
         require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
         require(
             _tokens <= indexerStake.tokensStaked,
             "Slashing: cannot slash more than staked amount"
         );
+
+        // Validate beneficiary of slashed tokens
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
 
         // Slashing more tokens than freely available (over allocation condition)
@@ -859,30 +866,33 @@ contract Staking is IStaking, Governed {
     ) private {
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
+        bool isAllocationSettling = alloc.settledAtEpoch > 0;
 
-        // Validate the channel can still receive funds
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
-        require(
-            epochs > channelDisputeEpochs,
-            "Collect: channel cannot withdraw funds after dispute period"
-        );
+        // Validate the channel can still receive funds on a settled allocation
+        if (isAllocationSettling) {
+            (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
+            require(
+                epochs < channelDisputeEpochs,
+                "Collect: channel cannot collect funds after dispute period"
+            );
+        }
 
         // Calculate curation fees only if the subgraph deployment is curated
         uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
 
-        // Hold tokens received in the allocation
+        // Calculate rebate fees
         uint256 rebateFees = _tokens.sub(curationFees);
 
-        if (alloc.settledAtEpoch > 0) {
-            // When channel allocation is settled redirect funds to the rebate pool
+        // Collect funds in the allocated channel
+        alloc.collectedFees = alloc.collectedFees.add(rebateFees);
+
+        // When channel allocation is settled redirect funds to the rebate pool
+        if (isAllocationSettling) {
             Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);
-        } else {
-            // Collect funds in the allocated channel
-            alloc.collectedFees = alloc.collectedFees.add(rebateFees);
         }
 
-        // Send curation fees to the curator SubgraphDeployment reserve
+        // Send curation fees to the curator reserve pool
         if (curationFees > 0) {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
@@ -890,7 +900,7 @@ contract Staking is IStaking, Governed {
             curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
-        emit AllocationWithdrawal(
+        emit AllocationCollected(
             alloc.indexer,
             alloc.subgraphDeploymentID,
             epochManager.currentEpoch(),
@@ -1002,18 +1012,11 @@ contract Staking is IStaking, Governed {
         view
         returns (uint256)
     {
-        if (isCurationEnabled() && curation.isCurated(_subgraphDeploymentID)) {
+        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
+        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             return curationPercentage.mul(_tokens).div(MAX_PPM);
         }
         return 0;
-    }
-
-    /**
-     * @dev Get whether curation rewards are active or not
-     * @return true if curation fees are enabled
-     */
-    function isCurationEnabled() private view returns (bool) {
-        return curationPercentage > 0 && address(curation) != address(0);
     }
 
     /**

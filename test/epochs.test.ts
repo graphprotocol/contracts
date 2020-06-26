@@ -76,23 +76,23 @@ describe('EpochManager', () => {
         const blocksToNextEpoch = epochLength.sub(blocksSinceEpochStart)
         await advanceBlockTo((await epochManager.blockNum()).add(blocksToNextEpoch))
 
-        const currentEpochBlockBefore = await epochManager.currentEpochBlock()
+        const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance block - will not jump to next epoch
         await advanceBlock()
 
-        const currentEpochBlockAfter = await epochManager.currentEpochBlock()
-        expect(currentEpochBlockAfter).to.equal(currentEpochBlockBefore)
+        const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
+        expect(afterCurrentEpochBlock).to.equal(beforeCurrentEpochBlock)
       })
 
       it('should return next starting block if we move to the next epoch', async function() {
-        const currentEpochBlockBefore = await epochManager.currentEpochBlock()
+        const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance blocks to move to the next epoch
-        await advanceBlockTo(currentEpochBlockBefore.add(epochLength))
+        await advanceBlockTo(beforeCurrentEpochBlock.add(epochLength))
 
-        const currentEpochBlockAfter = await epochManager.currentEpochBlock()
-        expect(currentEpochBlockAfter).to.not.eq(currentEpochBlockBefore)
+        const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
+        expect(afterCurrentEpochBlock).to.not.eq(beforeCurrentEpochBlock)
       })
 
       it('should return next epoch if advance > epochLength', async function() {
@@ -102,8 +102,8 @@ describe('EpochManager', () => {
         const currentEpochBlock = await epochManager.currentEpochBlock()
         await advanceBlockTo(currentEpochBlock.add(epochLength))
 
-        const currentEpochAfter = await epochManager.currentEpoch()
-        expect(currentEpochAfter).to.eq(nextEpoch)
+        const afterCurrentEpoch = await epochManager.currentEpoch()
+        expect(afterCurrentEpoch).to.eq(nextEpoch)
       })
     })
 
