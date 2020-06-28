@@ -25,8 +25,19 @@ const coreContracts = [
 export const verify = async (wallet: Wallet, addressBookPath: string): Promise<void> => {
   const chainId = (await wallet.provider.getNetwork()).chainId
   const addressBook = getAddressBook(addressBookPath, chainId.toString())
+  console.log(
+    `* Verifying contracts for chainId (${chainId}) using address-book (${addressBookPath})`,
+  )
+
   for (const contractName of coreContracts) {
     const contract = addressBook.getEntry(contractName)
+    if (!contract) {
+      console.log(
+        `- ERROR: Contract ${contractName} not found in address-book for network ${chainId}`,
+      )
+      continue
+    }
+
     const address = contract.address
     const args = contract.constructorArgs ? contract.constructorArgs.map(e => e.value) : []
     const argsList = args.map(e => `"${e}"`).join(' ')
@@ -37,7 +48,7 @@ export const verify = async (wallet: Wallet, addressBookPath: string): Promise<v
       await execSync(cmd)
       console.log(`+ Contract ${contractName}::${address} verified`)
     } catch (err) {
-      console.log(`- ERROR ${contractName}::${address}`)
+      console.log(`- ERROR: ${contractName}::${address}`)
     }
   }
 }
