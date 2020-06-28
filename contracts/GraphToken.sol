@@ -5,7 +5,6 @@ import "./Governed.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
-
 /**
  * @title GraphToken contract
  * @dev This is the implementation of the ERC20 Graph Token.
@@ -19,9 +18,10 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Token");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT = 0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026afa; // Randomly generated salt
+    bytes32
+        private constant DOMAIN_SALT = 0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026afa; // Randomly generated salt
     bytes32 private constant PERMIT_TYPEHASH = keccak256(
-        "Permit(address owner,address spender,uint256 nonce,uint256 expiry,bool allowed)"
+        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
     );
 
     // -- State --
@@ -74,9 +74,8 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * This function will approve MAX_UINT256 tokens to be spent.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
-     * @param _nonce Sequence number to avoid permit reuse
-     * @param _expiry Expiration time of the signed permit
-     * @param _allowed Whether to approve or dissaprove the spender
+     * @param _value Amount of tokens to approve the spender
+     * @param _deadline Expiration time of the signed permit
      * @param _v Signature version
      * @param _r Signature r value
      * @param _s Signature s value
@@ -84,9 +83,8 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     function permit(
         address _owner,
         address _spender,
-        uint256 _nonce,
-        uint256 _expiry,
-        bool _allowed,
+        uint256 _value,
+        uint256 _deadline,
         uint8 _v,
         bytes32 _r,
         bytes32 _s
@@ -95,16 +93,27 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
             abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
-                keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _nonce, _expiry, _allowed))
+                keccak256(
+                    abi.encode(
+                        PERMIT_TYPEHASH,
+                        _owner,
+                        _spender,
+                        _value,
+                        nonces[_owner]++,
+                        _deadline
+                    )
+                )
             )
         );
 
-        require(_owner == ecrecover(digest, _v, _r, _s), "GRT: invalid permit");
-        require(_expiry == 0 || block.timestamp <= _expiry, "GRT: permit expired");
-        require(_nonce == nonces[_owner]++, "GRT: invalid nonce");
+        address recoveredAddress = ecrecover(digest, _v, _r, _s);
+        require(
+            recoveredAddress != address(0) && _owner == recoveredAddress,
+            "GRT: invalid permit"
+        );
+        require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
-        uint256 allowance = _allowed ? uint256(-1) : 0;
-        _approve(_owner, _spender, allowance);
+        _approve(_owner, _spender, _value);
     }
 
     /**
