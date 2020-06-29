@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
 
-import { ContractTransaction, utils, ContractReceipt, providers, Wallet } from 'ethers'
+import { ContractTransaction, utils, ContractReceipt, providers, Wallet, Overrides } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
@@ -33,6 +33,15 @@ export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
   return wallet
 }
 
+export const checkGovernor = (address: string): void => {
+  const governor = '0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd'
+  if (address == governor) {
+    return
+  } else {
+    throw new Error('You are trying to call a governor function from the wrong account')
+  }
+}
+
 // TODO - return address book type, not any
 export const getNetworkAddresses = (network?: string): any => {
   let generatedAddresses
@@ -48,6 +57,13 @@ export const getNetworkAddresses = (network?: string): any => {
   return {
     generatedAddresses: generatedAddresses,
     permanentAddresses: permanentAddresses,
+  }
+}
+
+export const basicOverrides = (): Overrides => {
+  return {
+    gasPrice: utils.parseUnits('25', 'gwei'),
+    gasLimit: 1000000,
   }
 }
 

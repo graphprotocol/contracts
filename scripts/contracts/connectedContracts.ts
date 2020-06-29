@@ -494,7 +494,7 @@ class ConnectedStaking extends ConnectedContract {
       limit = this.gasLimit
     }
     const withdrawOverrides = overrides(limit, this.gasPrice)
-    return this.staking.staking.withdraw(withdrawOverrides)
+    return this.staking.withdraw(withdrawOverrides)
   }
 
   allocateWithOverrides = async (
@@ -531,7 +531,7 @@ class ConnectedStaking extends ConnectedContract {
       limit = this.gasLimit
     }
     const allocateOverrides = overrides(limit, this.gasPrice)
-    return this.staking.staking.allocate(
+    return this.staking.allocate(
       id,
       utils.parseUnits(amount, 18),
       publicKey,

@@ -12,14 +12,51 @@ import {
   ConnectedServiceRegistry,
   ConnectedStaking,
 } from './connectedContracts'
+import { connectContracts } from './connectedNetwork'
 import { AccountMetadata, SubgraphMetadata } from '../common'
 import * as AccountDatas from '../mockData/account-metadata/accountMetadatas'
 import * as SubgraphDatas from '../mockData/subgraph-metadata/subgraphMetadatas'
-import { configureWallet, executeTransaction, IPFS } from './helpers'
+import { configureWallet, executeTransaction, IPFS, checkGovernor, basicOverrides } from './helpers'
 
 dotenv.config()
 const accountMetadatas = AccountDatas.default
 const subgraphMetadatas = SubgraphDatas.default
+const testDeploymentIDsBase58: Array<string> = [
+  'Qmb7e8bYoj93F9u33R3JY1H764626C8KHUgWMeVjWPiwdD', //compound
+  'QmXenxBqM7uBbRq6y7EAcy86mfcaBkWE53Tz53H3dVeeit', //used synthetix
+  'QmY8Uzg61ttrogeTyCKLcDDR4gKNK44g9qkGDqeProkSHE', //ens
+  'QmRkqEVeZ8bRmMfvBHJvoB4NbnPgXNcuszLZWNNF49skY8', //livepeer
+  'Qmb3hd2hYd2nWFgcmRswykF1dUBSrDUrinYCgN1dmE1tNy', //maker
+  'QmcqrL62BHSasBsk47tNT1G66BHbaANwY213cX841NWE61', //melon
+  'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9', // moloch
+  'QmNoMRb9c5nGi5gETeyeAc7V14XvubAMAA7sxEJzsXnpTF', //used aave
+  'QmUVKS3W7G7Kog6pGq2ttZtXfE89pRvw45vEJM2YEYwpQz', //thegraph
+  'QmNPKaPqgTqKdCv2k3SF9vAhbHo4PVb2cKx2Gs4PzNQkZx', //uniswap
+]
+const testDeploymentIDsBytes32: Array<string> = [
+  '0xbdd2b9eb5e4d2a1435b2858874e22e17a681263e86bc941bed345b58b8b8e634', //compound
+  '0x8a5ef5005250f06a2787be70894cf00d4b45df94035a18217e0ac15358d7a239', //used synthetix
+  '0x9176ea5ef5ebdca64119feb40bd96c54075622caab4917249e6557a8ede61769', //ens
+  '0x32c4e64f2b5ecfedbcd41c1d1c469f837d2f3f4f9cdaff496fc7332d92090449', //livepeer
+  '0xbcd059746c62617c5c96a3e2b5ce88516039393f34266f3485e60ded2321e476', //maker
+  '0xd77e99802f1e0019722c1050e1e0ff5f96956dbbd534b00c3724c7b5d0b9950e', //melon
+  '0x4d31d21d389263c98d1e83a031e8fed17cdcef15bd62ee8153f34188a83c7b1c', // moloch
+  '0x06d7234c76d0fb43247537246a4384b06b4caa02978788bfe45e17ef13000b76', //used aave
+  '0x5b5e8d658fd5ad6b84d7ad79a4f86ce4f97518863b393509d8750705d2e997cb', //thegraph
+  '0x00af1bd4a2c640b4425577ce842959ff3b7259f6d93309c3ca1287137f4c360b', //uniswap
+]
+const testChannelPubkeys: Array<string> = [
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d50',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d51',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d52',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d54',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d55',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d56',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d57',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d58',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d59',
+]
 
 // Creates an array of signers, that are not connected to providers
 const createManySigners = (count: number, mnemonic?: string): Array<Wallet> => {
@@ -41,12 +78,20 @@ const createManySigners = (count: number, mnemonic?: string): Array<Wallet> => {
 }
 
 // Send ETH to the accounts so they can transact on the network
-const sendEth = async (signers: Array<Wallet>, amount: string) => {
+const sendEth = async (signers: Array<Wallet>, proxies: Array<Wallet>, amount: string) => {
+  checkGovernor(signers[0].address)
   const sender = configureWallet(signers[0])
   const amountEther = utils.parseEther(amount)
-  for (let i = 3; i < signers.length; i++) {
+  for (let i = 1; i < signers.length; i++) {
     const data = {
       to: signers[i].address,
+      value: amountEther,
+    }
+    await executeTransaction(sender.sendTransaction(data))
+  }
+  for (let i = 0; i < proxies.length; i++) {
+    const data = {
+      to: proxies[i].address,
       value: amountEther,
     }
     await executeTransaction(sender.sendTransaction(data))
@@ -54,12 +99,18 @@ const sendEth = async (signers: Array<Wallet>, amount: string) => {
 }
 
 // Send GRT to accounts that will act as indexers, curators, etc, to interact with the contracts
-const populateGraphToken = async (signers: Array<Wallet>, amount: string) => {
+const populateGraphToken = async (
+  signers: Array<Wallet>,
+  proxies: Array<Wallet>,
+  amount: string,
+) => {
   // since no wallet is passed, it defaults to process.env
   // Which is desired, as long as this account is the governor, or has been sent coins
   const graphToken = new ConnectedGraphToken(true)
+  console.log('Sending GRT to indexers, curators, and proxies...')
   for (let i = 0; i < signers.length; i++) {
     await executeTransaction(graphToken.transferWithOverrides(signers[i].address, amount))
+    await executeTransaction(graphToken.transferWithOverrides(proxies[i].address, amount))
   }
 }
 
@@ -93,32 +144,6 @@ const populateENS = async (signers: Array<Wallet>) => {
     i++
   }
 }
-
-const testDeploymentIDsBase58: Array<string> = [
-  'Qmb7e8bYoj93F9u33R3JY1H764626C8KHUgWMeVjWPiwdD', //compound
-  'QmXenxBqM7uBbRq6y7EAcy86mfcaBkWE53Tz53H3dVeeit', //used synthetix
-  'QmY8Uzg61ttrogeTyCKLcDDR4gKNK44g9qkGDqeProkSHE', //ens
-  'QmRkqEVeZ8bRmMfvBHJvoB4NbnPgXNcuszLZWNNF49skY8', //livepeer
-  'Qmb3hd2hYd2nWFgcmRswykF1dUBSrDUrinYCgN1dmE1tNy', //maker
-  'QmcqrL62BHSasBsk47tNT1G66BHbaANwY213cX841NWE61', //melon
-  'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9', // moloch
-  'QmNoMRb9c5nGi5gETeyeAc7V14XvubAMAA7sxEJzsXnpTF', //used aave
-  'QmUVKS3W7G7Kog6pGq2ttZtXfE89pRvw45vEJM2YEYwpQz', //thegraph
-  'QmNPKaPqgTqKdCv2k3SF9vAhbHo4PVb2cKx2Gs4PzNQkZx', //uniswap
-]
-
-const testDeploymentIDsBytes32: Array<string> = [
-  '0xbdd2b9eb5e4d2a1435b2858874e22e17a681263e86bc941bed345b58b8b8e634', //compound
-  '0x8a5ef5005250f06a2787be70894cf00d4b45df94035a18217e0ac15358d7a239', //used synthetix
-  '0x9176ea5ef5ebdca64119feb40bd96c54075622caab4917249e6557a8ede61769', //ens
-  '0x32c4e64f2b5ecfedbcd41c1d1c469f837d2f3f4f9cdaff496fc7332d92090449', //livepeer
-  '0xbcd059746c62617c5c96a3e2b5ce88516039393f34266f3485e60ded2321e476', //maker
-  '0xd77e99802f1e0019722c1050e1e0ff5f96956dbbd534b00c3724c7b5d0b9950e', //melon
-  '0x4d31d21d389263c98d1e83a031e8fed17cdcef15bd62ee8153f34188a83c7b1c', // moloch
-  '0x06d7234c76d0fb43247537246a4384b06b4caa02978788bfe45e17ef13000b76', //used aave
-  '0x5b5e8d658fd5ad6b84d7ad79a4f86ce4f97518863b393509d8750705d2e997cb', //thegraph
-  '0x00af1bd4a2c640b4425577ce842959ff3b7259f6d93309c3ca1287137f4c360b', //uniswap
-]
 
 // Publish 10 subgraphs
 // Publish new versions for them all
@@ -172,12 +197,12 @@ const populateGNS = async (signers: Array<Wallet>) => {
 //  Then we stake on a few to make them higher
 //  Then we run some redeems to make them lower
 const populateCuration = async (signers: Array<Wallet>) => {
-  const curation = new ConnectedCuration(true)
-  const connectedGT = new ConnectedGraphToken(true)
   const stakeAmount = '5000'
   const stakeAmountBig = '10000'
   const totalAmount = '25000'
   for (let i = 0; i < signers.length; i++) {
+    const curation = new ConnectedCuration(true, undefined, undefined, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
     console.log('First calling approve() to ensure curation contract can call transferFrom()...')
     await executeTransaction(
       connectedGT.approveWithOverrides(curation.curation.address, totalAmount),
@@ -193,34 +218,160 @@ const populateCuration = async (signers: Array<Wallet>) => {
   const redeemAmount = '2' // Redeeming SHARES/Signal, NOT tokens. 2 shares can be a lot of tokens
   console.log('Running 10 redeem transactions...')
   for (let i = 0; i < signers.length; i++) {
+    const curation = new ConnectedCuration(true, undefined, undefined, signers[i])
     await executeTransaction(
       curation.redeemWithOverrides(testDeploymentIDsBytes32[1], redeemAmount),
     )
   }
 }
 
-// const populateServiceRegistry = async () => {
-//   // todo
-// }
+// Register 10 indexers
+// Unregister them all
+// Register all 10 again
+const populateServiceRegistry = async (signers: Array<Wallet>) => {
+  // Lat = 43.651 Long = -79.382, resolves to the geohash dpz83d (downtown toronto)
+  // TODO = implement GEOHASH in the exportable code. For now, we just use 10 geohashes
+  const geoHashes: Array<string> = [
+    'dpz83d',
+    'dpz83a',
+    'dpz83b',
+    'dpz83c',
+    'dpz83e',
+    'dpz83f',
+    'dpz83g',
+    'dpz83h',
+    'dpz83i',
+    'dpz83j',
+  ]
 
-// const populateStaking = async () => {
-//   // todo
-//   // will need t make many more wallets here, for channel proxies
-// }
+  const urls: Array<string> = [
+    'https://indexer1.com',
+    'https://indexer2.com',
+    'https://indexer3.com',
+    'https://indexer4.com',
+    'https://indexer5.com',
+    'https://indexer6.com',
+    'https://indexer7.com',
+    'https://indexer8.com',
+    'https://indexer9.com',
+    'https://indexer10.com',
+  ]
 
-// const populateAll = async () => {}
+  for (let i = 0; i < signers.length; i++) {
+    const serviceRegistry = new ConnectedServiceRegistry(true, undefined, undefined, signers[i])
+    console.log(`Registering an indexer in the service registry...`)
+    await executeTransaction(serviceRegistry.registerWithOverrides(urls[i], geoHashes[i]))
+    if (i < 2) {
+      // Just need to test a few
+      console.log(`Unregistering them...`)
+      await executeTransaction(serviceRegistry.unRegisterWithOverrides())
+      console.log(`Re-registering them...`)
+      await executeTransaction(serviceRegistry.registerWithOverrides(urls[i], geoHashes[i]))
+    }
+  }
+}
+
+// Deposit for 10 users
+// Set thawing period to 0
+// Unstake for a few users, then withdraw
+// Set epochs to one block
+// Create 10 allocations
+// Settle 5 allocations (Settle is called by the proxies)
+// Set back thawing period and epoch manager to default
+const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) => {
+  checkGovernor(signers[0].address)
+  const networkContracts = await connectContracts(signers[0])
+  const epochManager = networkContracts.epochManager
+  const stakeAmount = '10000'
+
+  for (let i = 0; i < signers.length; i++) {
+    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
+    console.log(
+      'First calling approve() to ensure staking contract can call transferFrom() from the stakers...',
+    )
+    await executeTransaction(connectedGT.approveWithOverrides(staking.staking.address, stakeAmount))
+    console.log('Now calling stake()...')
+    await executeTransaction(staking.stakeWithOverrides(stakeAmount))
+  }
+
+  console.log('Calling governor function to set epoch length to 1...')
+  await executeTransaction(epochManager.setEpochLength(1, basicOverrides()))
+  console.log('Calling governor function to set thawing period to 0...')
+  await executeTransaction(networkContracts.staking.setThawingPeriod(0, basicOverrides()))
+  console.log('Approve, stake extra, initialize unstake for 3 signers...')
+  for (let i = 0; i < 3; i++) {
+    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
+    await executeTransaction(connectedGT.approveWithOverrides(staking.staking.address, stakeAmount))
+    await executeTransaction(staking.stakeWithOverrides(stakeAmount))
+    await executeTransaction(staking.unstakeWithOverrides(stakeAmount))
+  }
+  console.log('Withdraw for 3 signers...')
+  for (let i = 0; i < 3; i++) {
+    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
+    await executeTransaction(staking.withdrawWithOverrides())
+  }
+
+  console.log('Create 10 allocations...')
+  for (let i = 0; i < signers.length; i++) {
+    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
+    await executeTransaction(
+      staking.allocateWithOverrides(
+        stakeAmount,
+        '0',
+        proxies[i].address,
+        testDeploymentIDsBytes32[i],
+        testChannelPubkeys[i],
+      ),
+    )
+  }
+
+  console.log('Run Epoch....')
+  await executeTransaction(epochManager.runEpoch(basicOverrides()))
+  console.log('Settle 5 allocations...')
+  for (let i = 0; i < 5; i++) {
+    console.log(
+      'First calling approve() to ensure staking contract can call transferFrom() from the proxies...',
+    )
+    // Note that the array of proxy wallets is used, not the signers
+    const staking = new ConnectedStaking(true, undefined, undefined, proxies[i])
+    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, proxies[i])
+
+    await executeTransaction(connectedGT.approveWithOverrides(staking.staking.address, stakeAmount))
+    console.log('Settling a channel...')
+    await executeTransaction(staking.settleWithOverrides(stakeAmount))
+  }
+  const defaultThawingPeriod = 20 //await networkContracts.staking.thawingPeriod()
+  const defaultEpochLength = 5760 //await epochManager.epochLength()
+
+  console.log('Setting epoch length back to default')
+  await executeTransaction(epochManager.setEpochLength(defaultEpochLength, basicOverrides()))
+  console.log('Setting back the thawing period to default')
+  await executeTransaction(
+    networkContracts.staking.setThawingPeriod(defaultThawingPeriod, basicOverrides()),
+  )
+}
+
+// TODO next - network parameters
+
+const populateAll = async () => {
+  const signers = createManySigners(20, process.env.MNEMONIC)
+  const userAccounts = signers.slice(0, 10)
+  const proxyAccounts = signers.slice(10, 20)
+  // await sendEth(userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
+  // await populateGraphToken(userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
+  await populateEthereumDIDRegistry(userAccounts)
+  await populateENS(userAccounts)
+  await populateGNS(userAccounts)
+  await populateCuration(userAccounts)
+  await populateServiceRegistry(userAccounts)
+  await populateStaking(userAccounts, proxyAccounts)
+}
 
 const main = async () => {
   try {
-    const signers = createManySigners(20, process.env.MNEMONIC)
-    const userAccounts = signers.slice(0, 10)
-    const proxyAccounts = signers.slice(10, 20)
-    // await sendEth(userAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
-    // await populateGraphToken(userAccounts, '100000')
-    // await populateEthereumDIDRegistry(userAccounts)
-    // await populateENS(userAccounts)
-    // await populateGNS(userAccounts)
-    // await populateCuration(userAccounts)
+    await populateAll()
   } catch (e) {
     console.log(`  ..failed within main: ${e.message}`)
     process.exit(1)
@@ -228,33 +379,3 @@ const main = async () => {
 }
 
 main()
-
-/*
- *
- * - service Registry
- *  - register all ten
- *  - unregister 5, then reregister them
- *
- * - staking
- *  - deposit
- *    - for all ten users
- *    - Withdraw a bit 5, then stake it back
- *  - unstake and withdraw
- *    - set thawing period to 0
- *    - unstake for 3
- *    - withdraw for 3
- *    - restake
- *  - createAllocation
- *    - call epoch manager, set epoch to 1 block
- *    - create allocation for all ten users
- *  - settleAllocation
- *    - TODO - implement this function
- *    - settle 5 of them
- *  - fixing parameters
- *    - set thawing period back to default
- *    - set epoch manager back to default
- *
- * - TODO FUTURE
- *  - handle all parameter updates
- *  - staking - rebate claimed, stake slashed
- */
