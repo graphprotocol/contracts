@@ -511,7 +511,6 @@ describe('Staking', () => {
 
           // Check that curation reserves increased for the SubgraphDeployment
           expect(afterPool.tokens).eq(tokensToSignal.add(curationFees))
-
           // Verify allocation is updated and channel closed
           expect(afterAlloc.tokens).eq(beforeAlloc.tokens)
           expect(afterAlloc.createdAtEpoch).eq(beforeAlloc.createdAtEpoch)

@@ -1,4 +1,5 @@
 import { expect, use } from 'chai'
+import { BigNumber } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -18,10 +19,60 @@ describe('Curation', () => {
   let grt: GraphToken
 
   // Test values
-  const shareAmountFor1000Tokens = toBN('3162277660168379331')
+  const shareAmountFor1000Tokens = toGRT('3.162277660168379331')
   const subgraphDeploymentID = randomHexBytes()
   const curatorTokens = toGRT('1000')
-  const tokensToCollect = toGRT('1000')
+  const tokensToCollect = toGRT('2000')
+
+  const shouldRedeem = async (sharesToRedeem: BigNumber, expectedTokens: BigNumber) => {
+    // Before balances
+    const beforeTokenTotalSupply = await grt.totalSupply()
+    const beforeCuratorTokens = await grt.balanceOf(curator.address)
+    const beforeCuratorShares = await curation.getCuratorShares(
+      curator.address,
+      subgraphDeploymentID,
+    )
+    const poolBefore = await curation.pools(subgraphDeploymentID)
+    const totalTokensBefore = await grt.balanceOf(curation.address)
+
+    // Calculations
+    // const tokensToRedeem = await curation.sharesToTokens(subgraphDeploymentID, sharesToRedeem)
+    const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
+    const withdrawalFees = withdrawalFeePercentage.mul(expectedTokens).div(toBN(MAX_PPM))
+
+    // Redeem
+    const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
+    await expect(tx)
+      .emit(curation, 'Redeemed')
+      .withArgs(
+        curator.address,
+        subgraphDeploymentID,
+        expectedTokens,
+        sharesToRedeem,
+        withdrawalFees,
+      )
+
+    // After balances
+    const afterTokenTotalSupply = await grt.totalSupply()
+    const afterCuratorTokens = await grt.balanceOf(curator.address)
+    const afterCuratorShares = await curation.getCuratorShares(
+      curator.address,
+      subgraphDeploymentID,
+    )
+    const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curator balance updated
+    expect(afterCuratorTokens).eq(beforeCuratorTokens.add(expectedTokens))
+    expect(afterCuratorShares).eq(beforeCuratorShares.sub(sharesToRedeem))
+    // Curation balance updated
+    expect(afterPool.tokens).eq(poolBefore.tokens.sub(expectedTokens))
+    expect(afterPool.shares).eq(poolBefore.shares.sub(sharesToRedeem))
+    // Contract balance updated
+    expect(afterTotalTokens).eq(totalTokensBefore.sub(expectedTokens))
+    // Withdrawal fees are burned
+    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(withdrawalFees))
+  }
 
   beforeEach(async function() {
     ;({ curation, grt } = await loadFixture(governor, staking))
@@ -36,6 +87,8 @@ describe('Curation', () => {
   })
 
   describe('bonding curve', function() {
+    const tokensToStake = curatorTokens
+
     it('reject convert shares to tokens if subgraph deployment not initted', async function() {
       const tx = curation.sharesToTokens(subgraphDeploymentID, toGRT('100'))
       await expect(tx).revertedWith('SubgraphDeployment must be curated to perform calculations')
@@ -43,12 +96,12 @@ describe('Curation', () => {
 
     it('convert shares to tokens', async function() {
       // Curate
-      await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
+      await curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
 
       // Conversion
       const shares = (await curation.pools(subgraphDeploymentID)).shares
       const tokens = await curation.sharesToTokens(subgraphDeploymentID, shares)
-      expect(tokens).eq(curatorTokens)
+      expect(tokens).eq(tokensToStake)
     })
 
     it('convert tokens to shares', async function() {
@@ -60,13 +113,7 @@ describe('Curation', () => {
   })
 
   describe('curate', async function() {
-    it('reject stake below minimum tokens required', async function() {
-      const tokensToStake = (await curation.minimumCurationStake()).sub(toBN(1))
-      const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
-      await expect(tx).revertedWith('Curation stake is below minimum required')
-    })
-
-    it('should stake on a subgraph deployment', async function() {
+    const shouldStake = async (tokensToStake: BigNumber, expectedShares: BigNumber) => {
       // Before state
       const beforeCuratorTokens = await grt.balanceOf(curator.address)
       const beforeCuratorShares = await curation.getCuratorShares(
@@ -76,15 +123,11 @@ describe('Curation', () => {
       const beforePool = await curation.pools(subgraphDeploymentID)
       const beforeTotalBalance = await grt.balanceOf(curation.address)
 
-      // Calculate stake the minimum required = 1 share
-      const tokensToStake = await curation.minimumCurationStake()
-      const sharesToReceive = toGRT('1')
-
       // Curate
       const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
       await expect(tx)
         .emit(curation, 'Staked')
-        .withArgs(curator.address, subgraphDeploymentID, tokensToStake, sharesToReceive)
+        .withArgs(curator.address, subgraphDeploymentID, tokensToStake, expectedShares)
 
       // After state
       const afterCuratorTokens = await grt.balanceOf(curator.address)
@@ -97,23 +140,33 @@ describe('Curation', () => {
 
       // Tokens transferred properly
       expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToStake))
-      expect(afterCuratorShares).eq(beforeCuratorShares.add(sharesToReceive))
+      expect(afterCuratorShares).eq(beforeCuratorShares.add(expectedShares))
       // Allocated and balance updated
       expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToStake))
-      expect(afterPool.shares).eq(beforePool.shares.add(sharesToReceive))
+      expect(afterPool.shares).eq(beforePool.shares.add(expectedShares))
       expect(afterPool.reserveRatio).eq(defaults.curation.reserveRatio)
       // Contract balance updated
       expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToStake))
       // Uses default reserve ratio
       expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    }
+
+    it('reject stake below minimum tokens required', async function() {
+      const tokensToStake = (await curation.minimumCurationStake()).sub(toBN(1))
+      const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+      await expect(tx).revertedWith('Curation stake is below minimum required')
+    })
+
+    it('should stake on a subgraph deployment', async function() {
+      const tokensToStake = await curation.minimumCurationStake()
+      const expectedShares = toGRT('1')
+      await shouldStake(tokensToStake, expectedShares)
     })
 
     it('should assign the right amount of shares according to bonding curve', async function() {
-      await curation.connect(curator).stake(subgraphDeploymentID, toGRT('1000'))
-
-      // Shares should be the ones bought with minimum stake (1) + more shares
-      const curatorShares = await curation.getCuratorShares(curator.address, subgraphDeploymentID)
-      expect(curatorShares).eq(shareAmountFor1000Tokens)
+      const tokensToStake = toGRT('1000')
+      const expectedShares = shareAmountFor1000Tokens
+      await shouldStake(tokensToStake, expectedShares)
     })
   })
 
@@ -127,11 +180,7 @@ describe('Curation', () => {
     })
 
     context('> curated', async function() {
-      beforeEach(async function() {
-        await curation.connect(curator).stake(subgraphDeploymentID, toGRT('1000'))
-      })
-
-      it('should collect tokens distributed to the curation pool', async function() {
+      const shouldCollect = async (tokensToCollect: BigNumber) => {
         // Before state
         const beforePool = await curation.pools(subgraphDeploymentID)
         const beforeTotalBalance = await grt.balanceOf(curation.address)
@@ -149,13 +198,32 @@ describe('Curation', () => {
         // State updated
         expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToCollect))
         expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToCollect))
+      }
+
+      beforeEach(async function() {
+        await curation.connect(curator).stake(subgraphDeploymentID, toGRT('1000'))
+      })
+
+      it('reject collect tokens distributed from invalid address', async function() {
+        const tx = curation.connect(me).collect(subgraphDeploymentID, tokensToCollect)
+        await expect(tx).revertedWith('Caller must be the staking contract')
+      })
+
+      it('should collect tokens distributed to the curation pool', async function() {
+        await shouldCollect(toGRT('1'))
+        await shouldCollect(toGRT('10'))
+        await shouldCollect(toGRT('100'))
+        await shouldCollect(toGRT('200'))
+        await shouldCollect(toGRT('500.25'))
       })
     })
   })
 
   describe('redeem', async function() {
+    const tokensToStake = curatorTokens
+
     beforeEach(async function() {
-      await curation.connect(curator).stake(subgraphDeploymentID, curatorTokens)
+      await curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
     })
 
     it('reject redeem more than a curator owns', async function() {
@@ -169,100 +237,14 @@ describe('Curation', () => {
     })
 
     it('should allow to redeem *partially*', async function() {
-      // Before balances
-      const beforeTokenTotalSupply = await grt.totalSupply()
-      const beforeCuratorTokens = await grt.balanceOf(curator.address)
-      const beforeCuratorShares = await curation.getCuratorShares(
-        curator.address,
-        subgraphDeploymentID,
-      )
-      const poolBefore = await curation.pools(subgraphDeploymentID)
-      const totalTokensBefore = await grt.balanceOf(curation.address)
-
-      // Calculations
-      const sharesToRedeem = toBN(1) // Curator want to sell 1 share
-      const tokensToRedeem = await curation.sharesToTokens(subgraphDeploymentID, sharesToRedeem)
-      const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
-      const withdrawalFees = withdrawalFeePercentage.mul(tokensToRedeem).div(toBN(MAX_PPM))
-
-      // Redeem
-      const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
-      await expect(tx)
-        .emit(curation, 'Redeemed')
-        .withArgs(
-          curator.address,
-          subgraphDeploymentID,
-          tokensToRedeem,
-          sharesToRedeem,
-          withdrawalFees,
-        )
-
-      // After balances
-      const afterTokenTotalSupply = await grt.totalSupply()
-      const afterCuratorTokens = await grt.balanceOf(curator.address)
-      const afterCuratorShares = await curation.getCuratorShares(
-        curator.address,
-        subgraphDeploymentID,
-      )
-      const afterPool = await curation.pools(subgraphDeploymentID)
-      const afterTotalTokens = await grt.balanceOf(curation.address)
-
-      // Curator balance updated
-      expect(afterCuratorTokens).eq(beforeCuratorTokens.add(tokensToRedeem))
-      expect(afterCuratorShares).eq(beforeCuratorShares.sub(sharesToRedeem))
-      // Curation balance updated
-      expect(afterPool.tokens).eq(poolBefore.tokens.sub(tokensToRedeem))
-      expect(afterPool.shares).eq(poolBefore.shares.sub(sharesToRedeem))
-      // Contract balance updated
-      expect(afterTotalTokens).eq(totalTokensBefore.sub(tokensToRedeem))
-      // Withdrawal fees are burned
-      expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(withdrawalFees))
+      // Redeem just one share
+      await shouldRedeem(toGRT('1'), toGRT('532.455532033675866536'))
     })
 
     it('should allow to redeem *fully*', async function() {
-      // Before state
-      const beforeTokenTotalSupply = await grt.totalSupply()
-      const beforePool = await curation.pools(subgraphDeploymentID)
-
-      // Calculations
-      const sharesToRedeem = beforePool.shares // we are selling all shares in the subgraph
-      const tokensToRedeem = beforePool.tokens // we are withdrawing all funds
-      const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
-      const withdrawalFees = withdrawalFeePercentage.mul(tokensToRedeem).div(toBN(MAX_PPM))
-
-      // Redeem
-      const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
-      await expect(tx)
-        .emit(curation, 'Redeemed')
-        .withArgs(
-          curator.address,
-          subgraphDeploymentID,
-          tokensToRedeem,
-          sharesToRedeem,
-          withdrawalFees,
-        )
-
-      // After state
-      const afterTokenTotalSupply = await grt.totalSupply()
-      const afterCuratorTokens = await grt.balanceOf(curator.address)
-      const afterCuratorShares = await curation.getCuratorShares(
-        curator.address,
-        subgraphDeploymentID,
-      )
-      const afterPool = await curation.pools(subgraphDeploymentID)
-      const afterTotalTokens = await grt.balanceOf(curation.address)
-
-      // Curator balance updated
-      expect(afterCuratorTokens).eq(tokensToRedeem)
-      expect(afterCuratorShares).eq(toBN(0))
-      // Curation deallocated
-      expect(afterPool.tokens).eq(toBN(0))
-      expect(afterPool.shares).eq(toBN(0))
-      expect(afterPool.reserveRatio).eq(toBN(0))
-      // Contract balance updated
-      expect(afterTotalTokens).eq(toBN(0))
-      // Withdrawal fees are burned
-      expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(withdrawalFees))
+      // Get all shares of the curator
+      const shares = await curation.getCuratorShares(curator.address, subgraphDeploymentID)
+      await shouldRedeem(shares, tokensToStake)
     })
   })
 })

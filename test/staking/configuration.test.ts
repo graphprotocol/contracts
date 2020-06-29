@@ -3,7 +3,6 @@ import { constants } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
@@ -20,12 +19,11 @@ describe('Staking', () => {
   const [me, other, governor, slasher] = provider().getWallets()
 
   let curation: Curation
-  let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
 
   beforeEach(async function() {
-    ;({ curation, epochManager, grt, staking } = await loadFixture(governor, slasher))
+    ;({ curation, grt, staking } = await loadFixture(governor, slasher))
   })
 
   describe('configuration', function() {

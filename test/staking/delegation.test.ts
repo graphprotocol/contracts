@@ -91,6 +91,7 @@ describe('Staking::Delegation', () => {
     const afterShares = await staking.getDelegationShares(indexer.address, sender.address)
     const afterTokens = await staking.getDelegationTokens(indexer.address, sender.address)
     const afterDelegatorBalance = await grt.balanceOf(sender.address)
+
     // State updated
     expect(afterPool.tokens).to.be.eq(beforePool.tokens.sub(tokens))
     expect(afterPool.shares).to.be.eq(beforePool.shares.sub(shares))
