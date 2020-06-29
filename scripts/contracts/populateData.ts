@@ -215,7 +215,7 @@ const populateCuration = async (signers: Array<Wallet>) => {
       curation.stakeWithOverrides(testDeploymentIDsBytes32[2], stakeAmountBig),
     )
   }
-  const redeemAmount = '2' // Redeeming SHARES/Signal, NOT tokens. 2 shares can be a lot of tokens
+  const redeemAmount = '1' // Redeeming SHARES/Signal, NOT tokens. 2 shares can be a lot of tokens
   console.log('Running 10 redeem transactions...')
   for (let i = 0; i < signers.length; i++) {
     const curation = new ConnectedCuration(true, undefined, undefined, signers[i])
@@ -361,12 +361,12 @@ const populateAll = async () => {
   const proxyAccounts = signers.slice(10, 20)
   // await sendEth(userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
   // await populateGraphToken(userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
-  await populateEthereumDIDRegistry(userAccounts)
-  await populateENS(userAccounts)
-  await populateGNS(userAccounts)
+  // await populateEthereumDIDRegistry(userAccounts)
+  // await populateENS(userAccounts)
+  // await populateGNS(userAccounts)
   await populateCuration(userAccounts)
-  await populateServiceRegistry(userAccounts)
-  await populateStaking(userAccounts, proxyAccounts)
+  // await populateServiceRegistry(userAccounts)
+  // await populateStaking(userAccounts, proxyAccounts)
 }
 
 const main = async () => {
