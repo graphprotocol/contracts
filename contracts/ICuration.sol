@@ -3,13 +3,13 @@ pragma solidity ^0.6.4;
 interface ICuration {
     // -- Configuration --
 
-    function setDefaultReserveRatio(uint256 _defaultReserveRatio) external;
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
 
     function setStaking(address _staking) external;
 
     function setMinimumCurationStake(uint256 _minimumCurationStake) external;
 
-    function setWithdrawalFeePercentage(uint256 _percentage) external;
+    function setWithdrawalFeePercentage(uint32 _percentage) external;
 
     // -- Curation --
 

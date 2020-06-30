@@ -21,31 +21,31 @@ contract Curation is ICuration, BancorFormula, Governed {
     // -- Curation --
 
     struct CurationPool {
-        uint256 reserveRatio; // Ratio for the bonding curve
         uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
         uint256 shares; // Shares issued for the SubgraphDeployment
+        uint32 reserveRatio; // Ratio for the bonding curve
         mapping(address => uint256) curatorShares; // Mapping of curator => shares
     }
 
     // 100% in parts per million
-    uint256 private constant MAX_PPM = 1000000;
+    uint32 private constant MAX_PPM = 1000000;
 
     // Amount of shares you get with your minimum token stake
     uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
 
     // -- State --
 
+    // Fee charged when curator withdraw stake
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public withdrawalFeePercentage;
+
     // Default reserve ratio to configure curator shares bonding curve
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public defaultReserveRatio;
+    uint32 public defaultReserveRatio;
 
     // Minimum amount allowed to be staked by curators
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
-
-    // Fee charged when curator withdraw stake
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public withdrawalFeePercentage;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeployment
@@ -99,7 +99,7 @@ contract Curation is ICuration, BancorFormula, Governed {
     constructor(
         address _governor,
         address _token,
-        uint256 _defaultReserveRatio,
+        uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
     ) public Governed(_governor) {
         token = IGraphToken(_token);
@@ -112,7 +112,7 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function setDefaultReserveRatio(uint256 _defaultReserveRatio) external override onlyGovernor {
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
         _setDefaultReserveRatio(_defaultReserveRatio);
     }
 
@@ -120,7 +120,7 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @dev Set the default reserve ratio percentage for a curation pool.
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function _setDefaultReserveRatio(uint256 _defaultReserveRatio) private {
+    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -165,7 +165,7 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
-    function setWithdrawalFeePercentage(uint256 _percentage) external override onlyGovernor {
+    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,
@@ -239,7 +239,7 @@ contract Curation is ICuration, BancorFormula, Governed {
         }
 
         // Calculate withdrawal fees and burn the tokens
-        uint256 withdrawalFees = withdrawalFeePercentage.mul(tokens).div(MAX_PPM);
+        uint256 withdrawalFees = uint256(withdrawalFeePercentage).mul(tokens).div(MAX_PPM);
         if (withdrawalFees > 0) {
             tokens = tokens.sub(withdrawalFees);
             token.burn(withdrawalFees);
@@ -300,9 +300,9 @@ contract Curation is ICuration, BancorFormula, Governed {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         if (curationPool.tokens == 0) {
             curationPool = CurationPool(
-                defaultReserveRatio,
                 minimumCurationStake,
-                SHARES_PER_MINIMUM_STAKE
+                SHARES_PER_MINIMUM_STAKE,
+                defaultReserveRatio
             );
             tokens = tokens.sub(curationPool.tokens);
             shares = curationPool.shares;
