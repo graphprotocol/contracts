@@ -2,13 +2,20 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
 
-import { ContractTransaction, utils, ContractReceipt, providers, Wallet, Overrides } from 'ethers'
+import {
+  ContractTransaction,
+  utils,
+  ContractReceipt,
+  providers,
+  Wallet,
+  Overrides,
+  BigNumberish,
+} from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
 dotenv.config()
 
-// TODO - implement ganache mnenomic, from scripts/cli/constants
 export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
   if (process.env.INFURA_KEY == undefined) {
     throw new Error(
@@ -25,7 +32,8 @@ export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
       wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
     } catch {
       throw new Error(
-        `Please create a .env file at the root of this project, and set MNEMONIC=<YOUR_12_WORD_MNEMONIC>`,
+        `Please create a .env file at the root of this project, and set 
+        MNEMONIC=<YOUR_12_WORD_MNEMONIC>. Or pass in an already created wallet`,
       )
     }
   }
@@ -33,8 +41,11 @@ export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
   return wallet
 }
 
-export const checkGovernor = (address: string): void => {
-  const governor = '0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd'
+// Check governor for the network
+export const checkGovernor = (address: string, network?: string): void => {
+  const networkAddresses = getNetworkAddresses(network)
+  const governor = networkAddresses.generatedAddresses.GraphToken.constructorArgs[0].value
+  console.log(governor)
   if (address == governor) {
     return
   } else {
@@ -64,6 +75,17 @@ export const basicOverrides = (): Overrides => {
   return {
     gasPrice: utils.parseUnits('25', 'gwei'),
     gasLimit: 1000000,
+  }
+}
+
+export const estimateOverrides = (gasLimit?: BigNumberish, gasPrice?: BigNumberish): Overrides => {
+  if (gasPrice == undefined) gasPrice = 25
+  if (gasLimit == undefined) gasLimit = 1000000
+  const multiplier = 1.5 // multiplier for safety
+  gasLimit = (gasLimit as number) * multiplier
+  return {
+    gasPrice: utils.parseUnits(gasPrice.toString(), 'gwei'),
+    gasLimit: Math.floor(gasLimit),
   }
 }
 
@@ -117,7 +139,44 @@ export class IPFS {
 
   static ipfsHashToBytes32(hash: string): string {
     const hashBytes = bs58.decode(hash).slice(2)
-    console.log(`base58 to bytes32: ${hash} -> ${utils.hexlify(hashBytes)}`)
     return utils.hexlify(hashBytes)
   }
 }
+export const mockDeploymentIDsBase58: Array<string> = [
+  'Qmb7e8bYoj93F9u33R3JY1H764626C8KHUgWMeVjWPiwdD', //compound
+  'QmXenxBqM7uBbRq6y7EAcy86mfcaBkWE53Tz53H3dVeeit', //used synthetix
+  'QmY8Uzg61ttrogeTyCKLcDDR4gKNK44g9qkGDqeProkSHE', //ens
+  'QmRkqEVeZ8bRmMfvBHJvoB4NbnPgXNcuszLZWNNF49skY8', //livepeer
+  'Qmb3hd2hYd2nWFgcmRswykF1dUBSrDUrinYCgN1dmE1tNy', //maker
+  'QmcqrL62BHSasBsk47tNT1G66BHbaANwY213cX841NWE61', //melon
+  'QmTXzATwNfgGVukV1fX2T6xw9f6LAYRVWpsdXyRWzUR2H9', // moloch
+  'QmNoMRb9c5nGi5gETeyeAc7V14XvubAMAA7sxEJzsXnpTF', //used aave
+  'QmUVKS3W7G7Kog6pGq2ttZtXfE89pRvw45vEJM2YEYwpQz', //thegraph
+  'QmNPKaPqgTqKdCv2k3SF9vAhbHo4PVb2cKx2Gs4PzNQkZx', //uniswap
+]
+
+export const mockDeploymentIDsBytes32: Array<string> = [
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[1]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+  IPFS.ipfsHashToBytes32(mockDeploymentIDsBase58[0]),
+]
+
+export const mockChannelPubKeys: Array<string> = [
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d50',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d51',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d52',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d54',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d55',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d56',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d57',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d58',
+  '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d59',
+]

@@ -18,11 +18,11 @@ Usage: ${path.basename(process.argv[1])}
 Function arguments:
   stake
     --id <bytes32>      - The subgraph deployment ID being curated on
-    --amount <number>   - Amount of tokens being signaled
+    --amount <number>   - Amount of tokens being signaled. CLI converts to a BN with 10^18
 
   redeem
     --id <bytes32>      - The subgraph deployment ID being curated on
-    --amount <number>   - Amount of shares being redeemed
+    --amount <number>   - Amount of shares being redeemed. CLI converts to a BN with 10^18
     `,
   )
   process.exit(1)

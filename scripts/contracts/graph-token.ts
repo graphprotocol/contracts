@@ -19,15 +19,15 @@ Usage: ${path.basename(process.argv[1])}
 Function arguments:
   mint
     --account <address> - Ethereum account to transfer to
-    --amount <number>   - Amount of GRT to mint
+    --amount <number>   - Amount of GRT to mint. CLI converts to BN with 10^18
 
   transfer
     --account <address> - Ethereum account to transfer to
-    --amount <number>   - Amount of GRT to transfer
+    --amount <number>   - Amount of GRT to transfer. CLI converts to BN with 10^18
 
   approve
     --account <address> - Ethereum account being approved to spend on behalf of
-    --amount <number>   - Amount of GRT to approve
+    --amount <number>   - Amount of GRT to approve. CLI converts to BN with 10^18
 `,
   )
   process.exit(1)

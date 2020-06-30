@@ -7,9 +7,6 @@ import * as minimist from 'minimist'
 import { executeTransaction } from './helpers'
 import { ConnectedENS } from './connectedContracts'
 
-///////////////////////
-// script /////////////
-///////////////////////
 const { func, name } = minimist.default(process.argv.slice(2), {
   string: ['func', 'name'],
 })
@@ -35,7 +32,7 @@ const main = async () => {
   const ens = new ConnectedENS(true)
   try {
     if (func == 'registerName') {
-      console.log(`Setting owner for ${name} ...`)
+      console.log(`Setting owner for ${name} and the text record...`)
       await executeTransaction(ens.setTestRecord(name))
       await executeTransaction(ens.setText(name))
     } else if (func == 'checkOwner') {

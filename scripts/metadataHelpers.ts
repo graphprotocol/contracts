@@ -42,7 +42,7 @@ const jsonToAccountMetadata = (json): AccountMetadata => {
 
 const checkString = (field): string => {
   if (typeof field != 'string') {
-    throw Error('Subgraph metadata is incorrect for one or more files')
+    throw Error('Metadata field is incorrect for one or more files')
   }
   return field
 }

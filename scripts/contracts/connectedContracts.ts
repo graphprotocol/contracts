@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { Wallet, BigNumberish, Overrides, utils, ContractTransaction, BytesLike } from 'ethers'
+import { Wallet, BigNumberish, utils, ContractTransaction, BytesLike } from 'ethers'
 
 // Contract factories
 import { CurationFactory } from '../../build/typechain/contracts/CurationContract'
@@ -9,22 +9,44 @@ import { StakingFactory } from '../../build/typechain/contracts/StakingContract'
 import { GraphTokenFactory } from '../../build/typechain/contracts/GraphTokenContract'
 import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEthereumDidRegistryContract'
 
-import { getNetworkAddresses, configureWallet, IPFS } from './helpers'
+import {
+  getNetworkAddresses,
+  configureWallet,
+  IPFS,
+  estimateOverrides,
+  basicOverrides,
+} from './helpers'
 import { connectContracts } from './connectedNetwork'
 import {
   SubgraphMetadata,
   AccountMetadata,
   jsonToAccountMetadata,
   jsonToSubgraphMetadata,
-} from '../common'
-// Connect to individual contracts that wrap the typescript bindings, to make development simpler
+} from '../metadataHelpers'
 
-// Passing gasPrice or gasLimit will default all txs to us this amount
-// If not passed, they default to 25 and 1,000,000
-// If estimate == true, all limits will be estimated by ethers.estimateGas()
-// Gets network addresses from the address.json. Defaults to kovan if nothing passed
-// Configures the Signer with a chosen network and mneumonic
-// Defaults to kovan, and .env mnemonic if none is passed
+/**** connectedContracts.ts Description
+ * Connect to individual contracts that wrap the typescript bindings, and add in extra functionality
+ * to make these one call functions more easily used in CLIs and the front end. For example:
+ *  - taking a JSON file for metadata, handling it, and uploading it to IPFS,
+ *  - applying BN to numbers
+ *  - applying overrides, with estimates
+ *  - and more
+ *  */
+
+/**
+ * @dev ConnectedContract
+ * @estimate Pass true if you wish for the functions to have their gas limit estimated by ethers.
+ * If false, it will default to 25gwei and 1,000,000 limit
+ * @gasPrice Pass a gas price to be used for all functions. Useful tie in for metamask when network is
+ * at a high price. TODO - tie into ethgasstation.io api
+ * @gasLimit Pass a gas limit to be used for all functions, if estimate is not true. Estimate can
+ * still fail, and this is used for default. If not passed, gasLimit is defaulted to 1,000,000
+ * @wallet Pass a wallet in, which will become the signer. If no wallet is passed, it defaults to
+ * the mnemonic in .env. This allows it to be used in CLI and front end.
+ * @network Pass in the network for the contract to be connected to. Defaults to the current network
+ * we are using for testing (i.e. kovan, next rinkeby)
+ * @note Connect to addresses in addresses.json for the chosen network
+ */
 class ConnectedContract {
   constructor(
     estimate: boolean,
@@ -42,17 +64,6 @@ class ConnectedContract {
   estimate: boolean
   addresses = getNetworkAddresses(this.network)
   configuredWallet = configureWallet(this.wallet, this.network)
-}
-
-const overrides = (gasLimit?: BigNumberish, gasPrice?: BigNumberish): Overrides => {
-  if (gasPrice == undefined) gasPrice = 25
-  if (gasLimit == undefined) gasLimit = 1000000
-  const multiplier = 1.5 // multiplier for safety
-  gasLimit = (gasLimit as number) * multiplier
-  return {
-    gasPrice: utils.parseUnits(gasPrice.toString(), 'gwei'),
-    gasLimit: Math.floor(gasLimit),
-  }
 }
 
 class ConnectedCuration extends ConnectedContract {
@@ -75,12 +86,10 @@ class ConnectedCuration extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const stakeOverrides = overrides(limit, this.gasPrice)
+    const stakeOverrides = estimateOverrides(limit, this.gasPrice)
     return this.curation.stake(deploymentID, amountParseDecimals, stakeOverrides)
   }
 
-  // Redeeming does not need Big Number right now
-  // TODO - new contracts have decimals for shares, so this will have to be updated
   redeemWithOverrides = async (
     deploymentID: string,
     amount: BigNumberish,
@@ -95,30 +104,26 @@ class ConnectedCuration extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const redeemOverrides = overrides(limit, this.gasPrice)
+    const redeemOverrides = estimateOverrides(limit, this.gasPrice)
     return this.curation.redeem(deploymentID, amountParseDecimals, redeemOverrides)
   }
 }
 
 // TODO - move away from TestRecord and use the real methods when we move to Rinkeby and mainnet
-// We don't use estimate gas here - since these functions are for testing only, and will never
-// be implemented elsewhere in our front end or other repositories
+// We don't use estimate gas here, since registering ENS names won't be part of our front end
 class ConnectedENS extends ConnectedContract {
-  // Must normalize name to lower case to get script to work with ethers namehash
-  // This is because in setTestRecord() - label uses the normal keccak
-  // TODO - follow UTS46 in scripts https://docs.ens.domains/contract-api-reference/name-processing
+  // We just lower case to normalize, but real normalization should follow:
+  // https://docs.ens.domains/contract-api-reference/name-processing
+  // We may not need this, as this is a convenience function,
   setTestRecord = async (name: string): Promise<ContractTransaction> => {
     const contracts = await connectContracts(this.configuredWallet, this.network)
     const normalizedName = name.toLowerCase()
-    // const node = utils.namehash('test')
-    // console.log('Namehash node for "test": ', node)
     const labelNameFull = `${normalizedName}.${'test'}`
     const labelHashFull = utils.namehash(labelNameFull)
     console.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
     const signerAddress = await contracts.testRegistrar.signer.getAddress()
-    const ensOverrides = overrides()
+    const ensOverrides = basicOverrides()
     const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
-    // console.log(`Hash of label being registered on ens ${name}: `, label)
     return contracts.testRegistrar.register(label, signerAddress, ensOverrides)
   }
 
@@ -129,7 +134,7 @@ class ConnectedENS extends ConnectedContract {
     const labelHashFull = utils.namehash(labelNameFull)
     console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
     const key = 'GRAPH NAME SERVICE'
-    const ensOverrides = overrides()
+    const ensOverrides = basicOverrides()
     const signerAddress = await contracts.publicResolver.signer.getAddress()
     return contracts.publicResolver.setText(labelHashFull, key, signerAddress, ensOverrides)
   }
@@ -167,7 +172,7 @@ class ConnectedGraphToken extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const mintOverrides = overrides(limit, this.gasPrice)
+    const mintOverrides = estimateOverrides(limit, this.gasPrice)
     return this.graphToken.mint(account, amountParseDecimals, mintOverrides)
   }
 
@@ -185,7 +190,7 @@ class ConnectedGraphToken extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const transferOverrides = overrides(limit, this.gasPrice)
+    const transferOverrides = estimateOverrides(limit, this.gasPrice)
     return this.graphToken.transfer(account, amountParseDecimals, transferOverrides)
   }
 
@@ -203,7 +208,7 @@ class ConnectedGraphToken extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const approveOverrides = overrides(limit, this.gasPrice)
+    const approveOverrides = estimateOverrides(limit, this.gasPrice)
     return this.graphToken.approve(account, amountParseDecimals, approveOverrides)
   }
 }
@@ -219,7 +224,7 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
   ): Promise<ContractTransaction> => {
     const metaHashBytes = await this.handleAccountMetadata(ipfs, pathOrData)
     const signerAddress = await this.ethereumDIDRegistry.signer.getAddress()
-    // name = keccak256("GRAPH NAME SERVICE")
+    // const name comes from: keccak256("GRAPH NAME SERVICE")
     const name = '0x72abcb436eed911d1b6046bbe645c235ec3767c842eb1005a6da9326c2347e4c'
 
     let limit
@@ -236,7 +241,7 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const edrOverrides = overrides(limit, this.gasPrice)
+    const edrOverrides = estimateOverrides(limit, this.gasPrice)
     return this.ethereumDIDRegistry.setAttribute(
       signerAddress,
       name,
@@ -246,6 +251,7 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
     )
   }
 
+  // Handles both a path to a JSON file, and already pre-configured AccountMetadata objects
   private handleAccountMetadata = async (
     ipfs: string,
     pathOrData: string | AccountMetadata,
@@ -264,7 +270,6 @@ class ConnectedEthereumDIDRegistry extends ConnectedContract {
     console.log('  Website:         ', metadata.website || '')
 
     const ipfsClient = IPFS.createIpfsClient(ipfs)
-
     console.log('\nUpload JSON meta data to IPFS...')
     const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
     const metaHash = result[0].hash
@@ -309,7 +314,7 @@ class ConnectedGNS extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const gnsOverrides = overrides(limit, this.gasPrice)
+    const gnsOverrides = estimateOverrides(limit, this.gasPrice)
 
     return this.gns.publishNewSubgraph(
       graphAccount,
@@ -348,7 +353,7 @@ class ConnectedGNS extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const gnsOverrides = overrides(limit, this.gasPrice)
+    const gnsOverrides = estimateOverrides(limit, this.gasPrice)
 
     return this.gns.publishNewVersion(
       graphAccount,
@@ -374,7 +379,7 @@ class ConnectedGNS extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const gnsOverrides = overrides(limit, this.gasPrice)
+    const gnsOverrides = estimateOverrides(limit, this.gasPrice)
     return this.gns.deprecate(graphAccount, subgraphNumber, gnsOverrides)
   }
 
@@ -431,7 +436,7 @@ class ConnectedServiceRegistry extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const registerOverrides = overrides(limit, this.gasPrice)
+    const registerOverrides = estimateOverrides(limit, this.gasPrice)
     return this.serviceRegistry.register(url, geoHash, registerOverrides)
   }
 
@@ -445,7 +450,7 @@ class ConnectedServiceRegistry extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const unRegisterOverrides = overrides(limit, this.gasPrice)
+    const unRegisterOverrides = estimateOverrides(limit, this.gasPrice)
     return this.serviceRegistry.unregister(unRegisterOverrides)
   }
 }
@@ -466,7 +471,7 @@ class ConnectedStaking extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const stakeOverrides = overrides(limit, this.gasPrice)
+    const stakeOverrides = estimateOverrides(limit, this.gasPrice)
     return this.staking.stake(amountParseDecimals, stakeOverrides)
   }
 
@@ -481,7 +486,7 @@ class ConnectedStaking extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const unstakeOverrides = overrides(limit, this.gasPrice)
+    const unstakeOverrides = estimateOverrides(limit, this.gasPrice)
     return this.staking.unstake(amountParseDecimals, unstakeOverrides)
   }
 
@@ -493,7 +498,7 @@ class ConnectedStaking extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const withdrawOverrides = overrides(limit, this.gasPrice)
+    const withdrawOverrides = estimateOverrides(limit, this.gasPrice)
     return this.staking.withdraw(withdrawOverrides)
   }
 
@@ -501,27 +506,16 @@ class ConnectedStaking extends ConnectedContract {
     amount: string,
     price: string,
     channelProxy: string,
-    subgraphDeploymentID?: string,
-    channelPubKey?: string,
+    subgraphDeploymentID: string,
+    channelPubKey: string,
   ): Promise<ContractTransaction> => {
-    let publicKey: string
-    let id: BytesLike
-
-    subgraphDeploymentID == undefined ? (id = utils.randomBytes(32)) : (id = subgraphDeploymentID)
-    channelPubKey == undefined
-      ? (publicKey = Wallet.createRandom().publicKey)
-      : (publicKey = channelPubKey)
-
-    console.log(`Subgraph Deployment ID: ${id}`)
-    console.log(`Channel Public Key:     ${publicKey}`)
-
     let limit
     try {
       this.estimate
         ? (limit = await this.staking.estimateGas.allocate(
-            id,
+            subgraphDeploymentID,
             utils.parseUnits(amount, 18),
-            publicKey,
+            channelPubKey,
             channelProxy,
             price,
           ))
@@ -530,11 +524,11 @@ class ConnectedStaking extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const allocateOverrides = overrides(limit, this.gasPrice)
+    const allocateOverrides = estimateOverrides(limit, this.gasPrice)
     return this.staking.allocate(
-      id,
+      subgraphDeploymentID,
       utils.parseUnits(amount, 18),
-      publicKey,
+      channelPubKey,
       channelProxy,
       price,
       allocateOverrides,
@@ -552,7 +546,7 @@ class ConnectedStaking extends ConnectedContract {
       console.warn('  Estimate gas failed. Using default gas limit')
       limit = this.gasLimit
     }
-    const settleOverrides = overrides(limit, this.gasPrice)
+    const settleOverrides = estimateOverrides(limit, this.gasPrice)
     return this.staking.settle(amountParseDecimals, settleOverrides)
   }
 }
