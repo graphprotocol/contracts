@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../MinimumViableMultisig.sol";
 
-
 contract MockStaking {
     IERC20 public token;
 
@@ -24,7 +23,7 @@ contract MockStaking {
         channels[channelID] = true;
     }
 
-    function settle(uint256 amount) public {
+    function collect(uint256 amount, address channelID) public {
         // TODO
         token.transferFrom(msg.sender, address(this), amount);
         emit SettleCalled(amount, msg.sender);

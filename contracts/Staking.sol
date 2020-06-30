@@ -44,9 +44,6 @@ contract Staking is IStaking, Governed {
     // Allocations : allocationID => Allocation
     mapping(address => Allocation) public allocations;
 
-    // Channels Proxy : Channel Multisig Proxy => channelID
-    mapping(address => address) public channelsProxy;
-
     // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
 
@@ -632,19 +629,16 @@ contract Staking is IStaking, Governed {
         // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
 
-        // Needs to have tokens in our stake to be able to allocate
-        require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
+        // Channel public key must be in uncompressed format
+        require(
+            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
+            "Allocation: invalid channel public key"
+        );
 
         // Needs to have free capacity not used for other purposes to allocate
         require(
             getIndexerCapacity(indexer) >= _tokens,
             "Allocation: not enough tokens available to allocate"
-        );
-
-        // Channel public key must be in uncompressed format
-        require(
-            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
-            "Allocation: invalid channel public key"
         );
 
         // A channel public key is derived by the indexer when creating the offchain payment channel.
@@ -656,25 +650,25 @@ contract Staking is IStaking, Governed {
         // Cannot reuse a channelID that has already been used in an allocation
         require(isChannel(channelID) == false, "Allocation: channel ID already used");
 
-        // TODO: track counter of multiple allocations allowed for the same (indexer,subgraphDeployment)
+        // TODO: track counter of multiple allocations allowed for the same (indexer,subgraphDeployment)?
 
         // Create allocation linked to the channel identifier
+        // Channel identifiers are not reused
+        // The channel proxy address is the contract that will send tokens to be collected to
+        // this contract
         allocations[channelID] = Allocation(
             indexer,
             _subgraphDeploymentID,
-            _tokens,
+            _tokens, // Tokens allocated
             epochManager.currentEpoch(), // createdAtEpoch
             0, // settledAtEpoch
-            0, // start we zero collected fees
-            0 // effective allocation
+            0, // Initialize with zero collected fees
+            0, // Initialize effective allocation
+            _channelProxy // Source address of channel funds
         );
 
         // Mark allocated tokens as used
         indexerStake.allocate(_tokens);
-
-        // The channel proxy address is the contract that will send tokens to be settled to
-        // this contract. Create a link to the channelID to properly assign funds settled.
-        channelsProxy[_channelProxy] = channelID;
 
         emit AllocationCreated(
             indexer,
@@ -698,12 +692,12 @@ contract Staking is IStaking, Governed {
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
-        // Allocation must exist
-        require(isChannel(_channelID), "Allocation: channel does not exist");
+        // Channel must exist and be allocated
+        require(alloc.indexer != address(0) && alloc.tokens > 0, "Settle: channel does not exist");
 
         // Validate that an allocation cannot be settled before one epoch
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
-        require(epochs > 0, "Allocation: must pass at least one epoch");
+        require(epochs > 0, "Settle: must pass at least one epoch");
 
         // Validate ownership
         if (epochs > maxAllocationEpochs + settlementGracePeriodEpochs) {
@@ -711,15 +705,15 @@ contract Staking is IStaking, Governed {
             require(
                 alloc.indexer == msg.sender ||
                     delegation[alloc.indexer].delegatorShares[msg.sender] > 0,
-                "Allocation: only indexer or delegator can settle"
+                "Settle: only indexer or delegator can settle"
             );
         } else {
             // Verify that the allocation owner is settling
-            require(alloc.indexer == msg.sender, "Allocation: only indexer can settle");
+            require(alloc.indexer == msg.sender, "Settle: only indexer can settle");
         }
 
         // Must be an active allocation
-        require(alloc.settledAtEpoch == 0, "Allocation: must be active");
+        require(alloc.settledAtEpoch == 0, "Settle: must be active");
 
         // Settle the allocation and start counting a period to finalize any other
         // withdrawal from the related channel.
@@ -750,16 +744,21 @@ contract Staking is IStaking, Governed {
      * Funds received are only accepted from a channel multisig proxy contract.
      * @param _tokens Amount of tokens to collect
      */
-    function collect(uint256 _tokens) external override {
-        // The contract caller must only be a channel proxy registered during allocation
-        // Get the channelID related to the caller channel proxy
-        address channelID = channelsProxy[msg.sender];
+    function collect(uint256 _tokens, address _channelID) external override {
+        Allocation memory alloc = allocations[_channelID];
 
-        // Channel validation
-        require(channelID != address(0), "Collect: caller not allowed to settle");
+        // Channel identifier validation
+        require(_channelID != address(0), "Collect: invalid channel");
 
-        // The channel identifier must exist and used in an allocation
-        require(isChannel(channelID), "Collect: does not exist");
+        // The channel must exist and be allocated
+        require(alloc.indexer != address(0) && alloc.tokens > 0, "Collect: channel does not exist");
+
+        // The contract caller must be a channel proxy registered during allocation
+        // The channelID must be related to the caller address
+        require(
+            alloc.channelProxy == msg.sender,
+            "Collect: caller is not related to the channel allocation"
+        );
 
         // Transfer tokens to collect from multisig to this contract
         require(
@@ -767,7 +766,7 @@ contract Staking is IStaking, Governed {
             "Collect: cannot transfer tokens to settle"
         );
 
-        _collect(channelID, msg.sender, _tokens);
+        _collect(_channelID, msg.sender, _tokens);
     }
 
     /**
@@ -798,7 +797,8 @@ contract Staking is IStaking, Governed {
         Allocation storage alloc = allocations[_channelID];
         Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
 
-        require(alloc.tokens > 0, "Rebate: channel does not exist");
+        // Channel must exist and be allocated
+        require(alloc.indexer != address(0) && alloc.tokens > 0, "Rebate: channel does not exist");
         require(alloc.settledAtEpoch != 0, "Rebate: channel must be settled");
 
         // Funds can be claimed only after a period of time passed since settlement
@@ -813,11 +813,20 @@ contract Staking is IStaking, Governed {
             delete rebates[alloc.settledAtEpoch];
         }
 
-        // TODO: delete allocation and channelProxy?
-
         // Calculate delegation fees and add them to the delegation pool
         uint256 delegationFees = _collectDelegationFees(indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationFees);
+
+        // Purgue allocation data except for:
+        // - indexer: used in disputes and to avoid reusing a channelID
+        // - subgraphDeploymentID: used in disputes
+        uint256 settledAtEpoch = alloc.settledAtEpoch;
+        alloc.tokens = 0; // This avoid collect() and settle() to be called
+        alloc.createdAtEpoch = 0;
+        alloc.settledAtEpoch = 0;
+        alloc.collectedFees = 0;
+        alloc.effectiveAllocation = 0;
+        alloc.channelProxy = address(0); // This avoid collect() to be called
 
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
@@ -835,7 +844,7 @@ contract Staking is IStaking, Governed {
             alloc.indexer,
             alloc.subgraphDeploymentID,
             currentEpoch,
-            alloc.settledAtEpoch,
+            settledAtEpoch,
             tokensToClaim,
             pool.settlementsCount,
             delegationFees

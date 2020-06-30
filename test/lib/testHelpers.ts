@@ -21,12 +21,9 @@ export const provider = () => buidler.provider
 export const getChainID = (): Promise<string | number> =>
   provider()
     .getNetwork()
-    .then(r => r.chainId)
+    .then((r) => r.chainId)
 
-export const latestBlock = (): Promise<BigNumber> =>
-  provider()
-    .getBlockNumber()
-    .then(toBN)
+export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])

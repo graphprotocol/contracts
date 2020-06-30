@@ -58,7 +58,7 @@ describe('Indexer Channel Operations', () => {
     sender?: ChannelSigner,
   ) => Promise<{ amount: BigNumber; sender: string }>
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const accounts = await ethers.getSigners()
     governer = accounts[0]
 
@@ -139,7 +139,7 @@ describe('Indexer Channel Operations', () => {
     }
   })
 
-  describe('funding + withdrawal', function() {
+  describe('funding + withdrawal', function () {
     // Establish test constants
     const ETH_DEPOSIT = BigNumber.from(180)
     const TOKEN_DEPOSIT = parseEther('4')
@@ -150,7 +150,7 @@ describe('Indexer Channel Operations', () => {
       isIndexerNodeChannel: boolean,
     ) => Promise<void>
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       // make sure staking contract is funded
       const tx = await token.transfer(mockStaking.address, TOKEN_DEPOSIT)
       await tx.wait()
@@ -213,7 +213,7 @@ describe('Indexer Channel Operations', () => {
       }
     })
 
-    it('node should be able to withdraw eth (no balance increase, transaction does not revert) in indexer/node channels', async function() {
+    it('node should be able to withdraw eth (no balance increase, transaction does not revert) in indexer/node channels', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -229,7 +229,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('node should be able to withdraw eth (no balance increase, transaction does not revert) in non-indexer/node channels', async function() {
+    it('node should be able to withdraw eth (no balance increase, transaction does not revert) in non-indexer/node channels', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(nonIndexerMultisig.address, [node, thirdparty])
 
@@ -245,7 +245,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('node should be able to withdraw tokens in indexer/node channels', async function() {
+    it('node should be able to withdraw tokens in indexer/node channels', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -261,7 +261,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it.skip('node should be able to withdraw tokens in non-indexer/node channels', async function() {
+    it.skip('node should be able to withdraw tokens in non-indexer/node channels', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(nonIndexerMultisig.address, [node, thirdparty])
 
@@ -277,7 +277,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('indexer should be able to withdraw eth (settle is not called)', async function() {
+    it('indexer should be able to withdraw eth (settle is not called)', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -293,7 +293,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('indexer should be able to withdraw tokens (settle is called with correct amount by multisig)', async function() {
+    it('indexer should be able to withdraw tokens (settle is called with correct amount by multisig)', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -310,17 +310,19 @@ describe('Indexer Channel Operations', () => {
         mockStaking.once('SettleCalled', (amount, sender) => {
           resolve({ amount, sender })
         })
-        sendWithdrawalCommitment(commitment, params, true).catch(e => reject(e.stack || e.message))
+        sendWithdrawalCommitment(commitment, params, true).catch((e) =>
+          reject(e.stack || e.message),
+        )
       })
       const { amount, sender } = (settleEvent as unknown) as any
       expect(amount).to.be.eq(params.amount)
       expect(sender).to.be.eq(indexerMultisig.address)
     })
 
-    it('node should be able to withdraw tokens in non-indexer/node channels', async function() {})
+    it('node should be able to withdraw tokens in non-indexer/node channels', async function () {})
   })
 
-  describe('disputes', function() {
+  describe('disputes', function () {
     // Establish test constants
     const ETH_DEPOSIT = BigNumber.from(180)
     const TOKEN_DEPOSIT = parseEther('4')
@@ -362,7 +364,7 @@ describe('Indexer Channel Operations', () => {
       beneficiary?: ChannelSigner,
     ) => Promise<void>
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       // Fund multisig and staking contract
       const tx = await token.transfer(mockStaking.address, TOKEN_DEPOSIT)
       await tx.wait()
@@ -382,7 +384,7 @@ describe('Indexer Channel Operations', () => {
         // Get state with deposit going to beneficiary (participants[0])
         const participants = [
           appBeneficiary.address,
-          multisigOwners.find(owner => owner !== appBeneficiary.address),
+          multisigOwners.find((owner) => owner !== appBeneficiary.address),
         ]
         const appInitialState = getAppInitialState(APP_DEPOSIT, participants)
 
@@ -476,8 +478,8 @@ describe('Indexer Channel Operations', () => {
         }
 
         // Verify all balances
-        Object.keys(postDisputeBalances).forEach(assetId => {
-          Object.keys(postDisputeBalances[assetId]).forEach(address => {
+        Object.keys(postDisputeBalances).forEach((assetId) => {
+          Object.keys(postDisputeBalances[assetId]).forEach((address) => {
             // if its the disputer, and its eth, account for gas
             if (address === disputer.address && assetId === AddressZero) {
               expect(postDisputeBalances[assetId][address]).to.be.at.most(
@@ -513,8 +515,8 @@ describe('Indexer Channel Operations', () => {
         }
 
         // Verify all balances
-        Object.keys(postDisputeBalances).forEach(assetId => {
-          Object.keys(postDisputeBalances[assetId]).forEach(address => {
+        Object.keys(postDisputeBalances).forEach((assetId) => {
+          Object.keys(postDisputeBalances[assetId]).forEach((address) => {
             // if its the disputer, and its eth, account for gas
             if (address === disputer.address && assetId === AddressZero) {
               expect(postDisputeBalances[assetId][address]).to.be.at.most(
@@ -595,7 +597,7 @@ describe('Indexer Channel Operations', () => {
       }
     })
 
-    it('indexer can execute a channel dispute (1 app where they are owed tokens, free balance)', async function() {
+    it('indexer can execute a channel dispute (1 app where they are owed tokens, free balance)', async function () {
       // Have indexer initiate both free balance and app dispute
       const { freeBalanceIdentityHash, appIdentityHash } = await createOnchainDisputes(
         true,
@@ -623,7 +625,7 @@ describe('Indexer Channel Operations', () => {
       await sendAndVerifySetup(true, params, commitment)
     })
 
-    it('node can execute a channel dispute (1 app where they are owed tokens, free balance)', async function() {
+    it('node can execute a channel dispute (1 app where they are owed tokens, free balance)', async function () {
       // Have indexer initiate both free balance and app dispute
       const { freeBalanceIdentityHash, appIdentityHash } = await createOnchainDisputes(true, node)
 

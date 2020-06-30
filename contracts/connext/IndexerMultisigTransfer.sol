@@ -42,7 +42,7 @@ contract IndexerMultisigTransfer is MultisigData {
                 IERC20(token).approve(staking, amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
-            Staking(staking).collect(amount);
+            Staking(staking).collect(amount, address(0)); // TODO: update with Connext changes
         }
     }
 

@@ -4,14 +4,25 @@ pragma experimental ABIEncoderV2;
 interface IStaking {
     // -- Allocation Data --
 
+    /**
+     * @dev GRT stake allocation to a channel
+     * An allocation is created in the allocate() function and consumed in claim()
+     * States:
+     * - EXISTED = indexer != address(0)
+     * - CREATED = EXISTED && tokens > 0
+     * - SETTLING = CREATED && settledAtEpoch != 0
+     * - SETTLED = SETTLING && settledAtEpoch > channelDisputeEpochs
+     * - CLAIMED = EXISTED && tokens = 0
+     */
     struct Allocation {
         address indexer;
         bytes32 subgraphDeploymentID;
         uint256 tokens; // Tokens allocated to a SubgraphDeployment
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 settledAtEpoch; // Epoch when it was settled
-        uint256 collectedFees;
-        uint256 effectiveAllocation;
+        uint256 collectedFees; // Collected fees from channels
+        uint256 effectiveAllocation; // Effective allocation when settled
+        address channelProxy; // Caller address of the collect() function
     }
 
     // -- Delegation Data --
@@ -91,7 +102,7 @@ interface IStaking {
 
     function settle(address _channelID) external;
 
-    function collect(uint256 _tokens) external;
+    function collect(uint256 _tokens, address _channelID) external;
 
     function claim(address _channelID, bool _restake) external;
 
