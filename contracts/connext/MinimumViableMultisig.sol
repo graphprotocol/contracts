@@ -30,8 +30,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     bool public locked;
 
     // Graph-specific constants
-    address payable public NODE_ADDRESS;
-    address payable public INDEXER_STAKING_ADDRESS;
+    address public NODE_ADDRESS;
+    address public INDEXER_STAKING_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;
     address public INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
     address public INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
@@ -49,8 +49,8 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
     /// @param multiAssetInterpreter Address of indexer-specific multiAssetInterpreter contract
     /// @param withdrawInterpreter Address of indexer-specific withdrawInterpreter contract
     constructor(
-        address payable node,
-        address payable staking,
+        address node,
+        address staking,
         address CTDT,
         address singleAssetInterpreter,
         address multiAssetInterpreter,
@@ -118,12 +118,12 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             );
         }
 
-        address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
+        Staking staking = Staking(MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS());
         address node = MinimumViableMultisig(masterCopy).NODE_ADDRESS();
 
         bool isNodeIndexerMultisig = _owners.length == 2 &&
-            ((_owners[0] == node && Staking(staking).isChannel(_owners[1])) ||
-                (_owners[1] == node && Staking(staking).isChannel(_owners[0])));
+            ((_owners[0] == node && staking.isChannel(_owners[1])) ||
+                (_owners[1] == node && staking.isChannel(_owners[0])));
 
         if (isNodeIndexerMultisig) {
             require(!locked, "Node-indexer multisig must be unlocked to execute transactions");

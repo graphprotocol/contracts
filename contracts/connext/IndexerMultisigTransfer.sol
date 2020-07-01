@@ -1,9 +1,8 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import "../Staking.sol";
+import "../IGraphToken.sol";
 
 import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";
@@ -19,30 +18,34 @@ contract IndexerMultisigTransfer is MultisigData {
     /// @param amount the amount to be transferred
 
     function multisigTransfer(
-        address payable recipient,
+        address recipient,
         address assetId,
         uint256 amount
     ) public {
-        address staking = MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS();
-        address token = address(Staking(staking).token());
-        require(staking != address(0), "multisigTransfer");
+        Staking staking = Staking(MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS());
+        IGraphToken token = staking.token();
 
-        if (assetId != token) {
+        if (assetId != address(token)) {
             return;
         }
 
-        // // Note, explicitly do NOT use safemath here. See discussion in: TODO
+        // Note, explicitly do NOT use safemath here. See discussion in: TODO
         totalAmountWithdrawn[assetId] += amount;
 
-        if (recipient == MinimumViableMultisig(masterCopy).NODE_ADDRESS()) {
-            IERC20(token).transfer(MinimumViableMultisig(masterCopy).NODE_ADDRESS(), amount);
+        (address node, address indexer) = getNodeAndIndexer();
+
+        if (recipient == node) {
+            require(
+                token.transfer(node, amount),
+                "IndexerMultisigTransfer: transferring tokens to node failed"
+            );
         } else {
             // transfer to staking contract
             require(
-                IERC20(token).approve(staking, amount),
+                token.approve(address(staking), amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
-            Staking(staking).collect(amount, address(0)); // TODO: update with Connext changes
+            staking.collect(amount, address(0)); // TODO: update with Connext changes
         }
     }
 
