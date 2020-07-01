@@ -45,7 +45,7 @@ contract IndexerMultisigTransfer is MultisigData {
                 token.approve(address(staking), amount),
                 "IndexerMultisigTransfer: approving tokens to staking contract failed"
             );
-            staking.collect(amount, address(0)); // TODO: update with Connext changes
+            staking.collect(amount, indexer);
         }
     }
 
