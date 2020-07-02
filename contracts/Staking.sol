@@ -38,9 +38,6 @@ contract Staking is IStaking, Governed {
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
-    // Grace period after delegator can settle a channel
-    uint256 public settlementGracePeriodEpochs;
-
     // Allocations : allocationID => Allocation
     mapping(address => Allocation) public allocations;
 
@@ -255,19 +252,6 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set a grace period after max allocation passed after delegator can settle a channel.
-     * @param _settlementGracePeriodEpochs Grace period in epochs
-     */
-    function setSettlementGracePeriodEpochs(uint256 _settlementGracePeriodEpochs)
-        external
-        override
-        onlyGovernor
-    {
-        settlementGracePeriodEpochs = _settlementGracePeriodEpochs;
-        emit ParameterUpdated("settlementGracePeriodEpochs");
-    }
-
-    /**
      * @dev Set the time in blocks an indexer needs to wait to change delegation parameters.
      * @param _blocks Number of blocks to set the delegation parameters cooldown period
      */
@@ -360,8 +344,8 @@ contract Staking is IStaking, Governed {
      * @param _channelID Address used as signer for indexer in channel
      * @return True if channelID already used
      */
-    function isChannel(address _channelID) public override view returns (bool) {
-        return allocations[_channelID].indexer != address(0);
+    function isChannel(address _channelID) external override view returns (bool) {
+        return _getAllocationState(_channelID) != AllocationState.Null;
     }
 
     /**
@@ -380,6 +364,20 @@ contract Staking is IStaking, Governed {
      */
     function getAllocation(address _channelID) external override view returns (Allocation memory) {
         return allocations[_channelID];
+    }
+
+    /**
+     * @dev Return the current state of an allocation
+     * @param _channelID Address used as the allocation channel identifier
+     * @return AllocationState
+     */
+    function getAllocationState(address _channelID)
+        external
+        override
+        view
+        returns (AllocationState)
+    {
+        return _getAllocationState(_channelID);
     }
 
     /**
@@ -648,9 +646,10 @@ contract Staking is IStaking, Governed {
         address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
 
         // Cannot reuse a channelID that has already been used in an allocation
-        require(isChannel(channelID) == false, "Allocation: channel ID already used");
-
-        // TODO: track counter of multiple allocations allowed for the same (indexer,subgraphDeployment)?
+        require(
+            _getAllocationState(channelID) == AllocationState.Null,
+            "Allocation: channel ID already used"
+        );
 
         // Create allocation linked to the channel identifier
         // Channel identifiers are not reused
@@ -688,19 +687,20 @@ contract Staking is IStaking, Governed {
     function settle(address _channelID) external override {
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
+        AllocationState allocState = _getAllocationState(_channelID);
 
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
         // Channel must exist and be allocated
-        require(alloc.indexer != address(0) && alloc.tokens > 0, "Settle: channel does not exist");
+        require(allocState == AllocationState.Active, "Settle: channel must be active");
 
         // Validate that an allocation cannot be settled before one epoch
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
         require(epochs > 0, "Settle: must pass at least one epoch");
 
         // Validate ownership
-        if (epochs > maxAllocationEpochs + settlementGracePeriodEpochs) {
+        if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is settling
             require(
                 alloc.indexer == msg.sender ||
@@ -712,13 +712,10 @@ contract Staking is IStaking, Governed {
             require(alloc.indexer == msg.sender, "Settle: only indexer can settle");
         }
 
-        // Must be an active allocation
-        require(alloc.settledAtEpoch == 0, "Settle: must be active");
-
         // Settle the allocation and start counting a period to finalize any other
         // withdrawal from the related channel.
         alloc.settledAtEpoch = currentEpoch;
-        alloc.effectiveAllocation = getEffectiveAllocation(alloc.tokens, epochs);
+        alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
 
         // Send funds to rebate pool and account the effective allocation
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
@@ -749,9 +746,6 @@ contract Staking is IStaking, Governed {
 
         // Channel identifier validation
         require(_channelID != address(0), "Collect: invalid channel");
-
-        // The channel must exist and be allocated
-        require(alloc.indexer != address(0) && alloc.tokens > 0, "Collect: channel does not exist");
 
         // The contract caller must be a channel proxy registered during allocation
         // The channelID must be related to the caller address
@@ -794,16 +788,18 @@ contract Staking is IStaking, Governed {
     function claim(address _channelID, bool _restake) external override {
         address indexer = msg.sender;
 
+        // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
+        AllocationState allocState = _getAllocationState(_channelID);
+
+        // Find a rebate pool for the settled epoch
         Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
 
-        // Channel must exist and be allocated
-        require(alloc.indexer != address(0) && alloc.tokens > 0, "Rebate: channel does not exist");
-        require(alloc.settledAtEpoch != 0, "Rebate: channel must be settled");
-
-        // Funds can be claimed only after a period of time passed since settlement
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
-        require(epochs >= channelDisputeEpochs, "Rebate: need to wait channel dispute period");
+        // Funds can only be claimed after a period of time passed since settlement
+        require(
+            allocState == AllocationState.Finalized,
+            "Rebate: channel must be in finalized state"
+        );
 
         // Process rebate
         uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
@@ -821,7 +817,7 @@ contract Staking is IStaking, Governed {
         // - indexer: used in disputes and to avoid reusing a channelID
         // - subgraphDeploymentID: used in disputes
         uint256 settledAtEpoch = alloc.settledAtEpoch;
-        alloc.tokens = 0; // This avoid collect() and settle() to be called
+        alloc.tokens = 0; // This avoid collect(), settle() and claim() to be called
         alloc.createdAtEpoch = 0;
         alloc.settledAtEpoch = 0;
         alloc.collectedFees = 0;
@@ -843,7 +839,7 @@ contract Staking is IStaking, Governed {
         emit RebateClaimed(
             alloc.indexer,
             alloc.subgraphDeploymentID,
-            currentEpoch,
+            epochManager.currentEpoch(),
             settledAtEpoch,
             tokensToClaim,
             pool.settlementsCount,
@@ -875,16 +871,13 @@ contract Staking is IStaking, Governed {
     ) private {
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
-        bool isAllocationSettling = alloc.settledAtEpoch > 0;
+        AllocationState allocState = _getAllocationState(_channelID);
 
-        // Validate the channel can still receive funds on a settled allocation
-        if (isAllocationSettling) {
-            (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
-            require(
-                epochs < channelDisputeEpochs,
-                "Collect: channel cannot collect funds after dispute period"
-            );
-        }
+        // The channel must be active or settled
+        require(
+            allocState == AllocationState.Active || allocState == AllocationState.Settled,
+            "Collect: channel must be active or settled"
+        );
 
         // Calculate curation fees only if the subgraph deployment is curated
         uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
@@ -895,8 +888,8 @@ contract Staking is IStaking, Governed {
         // Collect funds in the allocated channel
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
-        // When channel allocation is settled redirect funds to the rebate pool
-        if (isAllocationSettling) {
+        // When channel allocation is settling redirect funds to the rebate pool
+        if (allocState == AllocationState.Settled) {
             Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);
         }
@@ -935,7 +928,6 @@ contract Staking is IStaking, Governed {
     ) private returns (uint256) {
         // Can only delegate a non-zero amount of tokens
         require(_tokens > 0, "Delegation: cannot delegate zero tokens");
-
         // Can only delegate to non-empty address
         require(_indexer != address(0), "Delegation: cannot delegate to empty address");
 
@@ -1029,12 +1021,37 @@ contract Staking is IStaking, Governed {
     }
 
     /**
+     * @dev Return the current state of an allocation
+     * @param _channelID Address used as the allocation channel identifier
+     * @return AllocationState
+     */
+    function _getAllocationState(address _channelID) private view returns (AllocationState) {
+        Allocation memory alloc = allocations[_channelID];
+
+        if (alloc.indexer == address(0)) {
+            return AllocationState.Null;
+        }
+        if (alloc.tokens == 0) {
+            return AllocationState.Claimed;
+        }
+        if (alloc.settledAtEpoch == 0) {
+            return AllocationState.Active;
+        }
+
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
+        if (epochs >= channelDisputeEpochs) {
+            return AllocationState.Finalized;
+        }
+        return AllocationState.Settled;
+    }
+
+    /**
      * @dev Get the effective stake allocation considering epochs from allocation to settlement.
      * @param _tokens Amount of tokens allocated
      * @param _numEpochs Number of epochs that passed from allocation to settlement
      * @return Effective allocated tokens accross epochs
      */
-    function getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
+    function _getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
         private
         view
         returns (uint256)

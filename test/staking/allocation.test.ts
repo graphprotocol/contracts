@@ -17,6 +17,14 @@ const { computePublicKey } = utils
 
 const MAX_PPM = toBN('1000000')
 
+enum AllocationState {
+  Null,
+  Active,
+  Settled,
+  Finalized,
+  Claimed,
+}
+
 const calculateEffectiveAllocation = (
   tokens: BigNumber,
   numEpochs: BigNumber,
@@ -207,10 +215,15 @@ describe('Staking:Allocation', () => {
       await grt.connect(channelProxy).approve(staking.address, tokensToFund)
     })
 
+    it('reject collect if invalid channel', async function () {
+      const tx = staking.connect(indexer).collect(tokensToCollect, AddressZero)
+      await expect(tx).revertedWith('Collect: invalid channel')
+    })
+
     it('reject collect if channel does not exist', async function () {
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer).collect(tokensToCollect, invalidChannelID)
-      await expect(tx).revertedWith('Collect: channel does not exist')
+      await expect(tx).revertedWith('Collect: caller is not related to the channel allocation')
     })
 
     it('reject collect if caller not related to channel', async function () {
@@ -256,12 +269,13 @@ describe('Staking:Allocation', () => {
       const tx1 = staking.connect(channelProxy).collect(tokensToCollect, channelID)
       await tx1
 
-      // Advance blocks to get the channel in epoch where it can no longer collect funds
+      // Advance blocks to get channel in epoch where it can no longer collect funds (finalized)
       await advanceToNextEpoch(epochManager)
 
-      // Collect fees into the channel
+      // Revert if channel is finalized
+      expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
       const tx2 = staking.connect(channelProxy).collect(tokensToCollect, channelID)
-      await expect(tx2).revertedWith('Collect: channel cannot collect funds after dispute period')
+      await expect(tx2).revertedWith('Collect: channel must be active or settled')
     })
   })
 
@@ -278,7 +292,7 @@ describe('Staking:Allocation', () => {
     it('reject settle a non-existing channel allocation', async function () {
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer).settle(invalidChannelID)
-      await expect(tx).revertedWith('Settle: channel does not exist')
+      await expect(tx).revertedWith('Settle: channel must be active')
     })
 
     it('reject settle before at least one epoch has passed', async function () {
@@ -298,11 +312,13 @@ describe('Staking:Allocation', () => {
     it('reject settle if channel allocation is already settled', async function () {
       // Move at least one epoch to be able to settle
       await advanceToNextEpoch(epochManager)
+
       // First settlement
       await staking.connect(indexer).settle(channelID)
+
       // Second settlement
-      const tx = staking.connect(indexer).settle(channelID, { gasLimit: 800000 })
-      await expect(tx).revertedWith('Settle: must be active')
+      const tx = staking.connect(indexer).settle(channelID)
+      await expect(tx).revertedWith('Settle: channel must be active')
     })
 
     it('should settle a channel allocation', async function () {
@@ -438,14 +454,16 @@ describe('Staking:Allocation', () => {
     })
 
     it('reject claim for non-existing channel allocation', async function () {
+      expect(await staking.getAllocationState(channelID)).eq(AllocationState.Active)
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer).claim(invalidChannelID, false)
-      await expect(tx).revertedWith('Rebate: channel does not exist')
+      await expect(tx).revertedWith('Rebate: channel must be in finalized state')
     })
 
     it('reject claim if channel allocation is not settled', async function () {
+      expect(await staking.getAllocationState(channelID)).not.eq(AllocationState.Settled)
       const tx = staking.connect(indexer).claim(channelID, false)
-      await expect(tx).revertedWith('Rebate: channel must be settled')
+      await expect(tx).revertedWith('Rebate: channel must be in finalized state')
     })
 
     context('> when settled', function () {
@@ -460,16 +478,21 @@ describe('Staking:Allocation', () => {
         await staking.connect(indexer).settle(channelID)
       })
 
-      it('reject claim if channel dispute epochs has not passed', async function () {
+      it('reject claim if settled but channel dispute epochs has not passed', async function () {
+        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Settled)
         const tx = staking.connect(indexer).claim(channelID, false)
-        await expect(tx).revertedWith('Rebate: need to wait channel dispute period')
+        await expect(tx).revertedWith('Rebate: channel must be in finalized state')
       })
 
       it('should claim rebate', async function () {
+        // Advance blocks to get the channel finalized
+        await advanceToNextEpoch(epochManager)
+
         // Before state
         const beforeIndexerTokens = await grt.balanceOf(indexer.address)
 
         // Claim with no restake
+        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
         await shouldClaim(channelID, false)
 
         // Verify that the claimed tokens are transferred to the indexer
@@ -478,15 +501,32 @@ describe('Staking:Allocation', () => {
       })
 
       it('should claim rebate with restake', async function () {
+        // Advance blocks to get the channel finalized
+        await advanceToNextEpoch(epochManager)
+
         // Before state
         const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
 
         // Claim with restake
+        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
         await shouldClaim(channelID, true)
 
         // Verify that the claimed tokens are restaked
         const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
         expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToCollect))
+      })
+
+      it('reject claim if already claimed', async function () {
+        // Advance blocks to get the channel finalized
+        await advanceToNextEpoch(epochManager)
+
+        // First claim
+        await shouldClaim(channelID, false)
+
+        // Try to claim again
+        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Claimed)
+        const tx = staking.connect(indexer).claim(channelID, false)
+        await expect(tx).revertedWith('Rebate: channel must be in finalized state')
       })
     })
   })

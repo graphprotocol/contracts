@@ -5,14 +5,19 @@ interface IStaking {
     // -- Allocation Data --
 
     /**
+     * @dev Possible states an allocation can be
+     * States:
+     * - Null = indexer == address(0)
+     * - Active = not Null && tokens > 0
+     * - Settled = Active && settledAtEpoch != 0
+     * - Finalized = Settling && settledAtEpoch + channelDisputeEpochs > now()
+     * - Claimed = not Null && tokens == 0
+     */
+    enum AllocationState { Null, Active, Settled, Finalized, Claimed }
+
+    /**
      * @dev GRT stake allocation to a channel
      * An allocation is created in the allocate() function and consumed in claim()
-     * States:
-     * - EXISTED = indexer != address(0)
-     * - CREATED = EXISTED && tokens > 0
-     * - SETTLING = CREATED && settledAtEpoch != 0
-     * - SETTLED = SETTLING && settledAtEpoch > channelDisputeEpochs
-     * - CLAIMED = EXISTED && tokens = 0
      */
     struct Allocation {
         address indexer;
@@ -46,8 +51,6 @@ interface IStaking {
     function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external;
 
     function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external;
-
-    function setSettlementGracePeriodEpochs(uint256 _settlementGracePeriodEpochs) external;
 
     function setDelegationParametersCooldown(uint256 _blocks) external;
 
@@ -113,6 +116,8 @@ interface IStaking {
     function hasStake(address _indexer) external view returns (bool);
 
     function getAllocation(address _channelID) external view returns (Allocation memory);
+
+    function getAllocationState(address _channelID) external view returns (AllocationState);
 
     function getDelegationShares(address _indexer, address _delegator)
         external

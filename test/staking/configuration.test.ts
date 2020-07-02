@@ -111,20 +111,6 @@ describe('Staking:Config', () => {
     })
   })
 
-  describe('settlementGracePeriodEpochs', async function () {
-    it('should set `settlementGracePeriodEpochs`', async function () {
-      const newValue = toBN('5')
-      await staking.connect(governor).setSettlementGracePeriodEpochs(newValue)
-      expect(await staking.settlementGracePeriodEpochs()).eq(newValue)
-    })
-
-    it('reject set `settlementGracePeriodEpochs` if not allowed', async function () {
-      const newValue = toBN('5')
-      const tx = staking.connect(other).setSettlementGracePeriodEpochs(newValue)
-      await expect(tx).revertedWith('Only Governor can call')
-    })
-  })
-
   describe('thawingPeriod', function () {
     it('should set `thawingPeriod`', async function () {
       const newValue = toBN('5')
