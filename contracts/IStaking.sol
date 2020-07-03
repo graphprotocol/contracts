@@ -46,7 +46,9 @@ interface IStaking {
 
     function setCuration(address _curation) external;
 
-    function setCurationPercentage(uint256 _percentage) external;
+    function setCurationPercentage(uint32 _percentage) external;
+
+    function setProtocolPercentage(uint32 _percentage) external;
 
     function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external;
 

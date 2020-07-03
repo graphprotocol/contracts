@@ -30,7 +30,11 @@ contract Staking is IStaking, Governed {
 
     // Percentage of fees going to curators
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public curationPercentage;
+    uint32 public curationPercentage;
+
+    // Percentage of fees burned as protocol fee
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public protocolPercentage;
 
     // Need to pass this period for channel to be finalized
     uint256 public channelDisputeEpochs;
@@ -223,14 +227,25 @@ contract Staking is IStaking, Governed {
     }
 
     /**
-     * @dev Set the curation percentage of indexer fees sent to curators.
-     * @param _percentage Percentage of indexer fees sent to curators
+     * @dev Set the curation percentage of query fees sent to curators.
+     * @param _percentage Percentage of query fees sent to curators
      */
-    function setCurationPercentage(uint256 _percentage) external override onlyGovernor {
+    function setCurationPercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
         curationPercentage = _percentage;
         emit ParameterUpdated("curationPercentage");
+    }
+
+    /**
+     * @dev Set a protocol percentage to burn when collecting query fees.
+     * @param _percentage Percentage of query fees to burn as protocol fee
+     */
+    function setProtocolPercentage(uint32 _percentage) external override onlyGovernor {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, "Protocol percentage must be below or equal to MAX_PPM");
+        protocolPercentage = _percentage;
+        emit ParameterUpdated("protocolPercentage");
     }
 
     /**
@@ -867,6 +882,8 @@ contract Staking is IStaking, Governed {
         address _from,
         uint256 _tokens
     ) private {
+        uint256 rebateFees = _tokens;
+
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
         AllocationState allocState = _getAllocationState(_channelID);
@@ -877,11 +894,13 @@ contract Staking is IStaking, Governed {
             "Collect: channel must be active or settled"
         );
 
-        // Calculate curation fees only if the subgraph deployment is curated
-        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
+        // Collect protocol fees to be burned
+        uint256 protocolFees = _collectProtocolFees(rebateFees);
+        rebateFees = rebateFees.sub(protocolFees);
 
-        // Calculate rebate fees
-        uint256 rebateFees = _tokens.sub(curationFees);
+        // Calculate curation fees only if the subgraph deployment is curated
+        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, rebateFees);
+        rebateFees = rebateFees.sub(curationFees);
 
         // Collect funds in the allocated channel
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
@@ -1013,9 +1032,25 @@ contract Staking is IStaking, Governed {
     {
         bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            return curationPercentage.mul(_tokens).div(MAX_PPM);
+            return uint256(curationPercentage).mul(_tokens).div(MAX_PPM);
         }
         return 0;
+    }
+
+    /**
+     * @dev Collect and burn the protocol fees for an amount of tokens.
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of protocol fees
+     */
+    function _collectProtocolFees(uint256 _tokens) private returns (uint256) {
+        if (protocolPercentage == 0) {
+            return 0;
+        }
+        uint256 protocolFees = uint256(protocolPercentage).mul(_tokens).div(MAX_PPM);
+        if (protocolFees > 0) {
+            token.burn(protocolFees);
+        }
+        return protocolFees;
     }
 
     /**

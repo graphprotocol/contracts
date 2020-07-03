@@ -97,6 +97,26 @@ describe('Staking:Config', () => {
     })
   })
 
+  describe('protocolPercentage', function () {
+    it('should set `protocolPercentage`', async function () {
+      for (const newValue of [toBN('0'), toBN('5'), MAX_PPM]) {
+        await staking.connect(governor).setProtocolPercentage(newValue)
+        expect(await staking.protocolPercentage()).eq(newValue)
+      }
+    })
+
+    it('reject set `protocolPercentage` if out of bounds', async function () {
+      const newValue = MAX_PPM.add(toBN('1'))
+      const tx = staking.connect(governor).setProtocolPercentage(newValue)
+      await expect(tx).revertedWith('Protocol percentage must be below or equal to MAX_PPM')
+    })
+
+    it('reject set `protocolPercentage` if not allowed', async function () {
+      const tx = staking.connect(other).setProtocolPercentage(50)
+      await expect(tx).revertedWith('Only Governor can call')
+    })
+  })
+
   describe('maxAllocationEpochs', function () {
     it('should set `maxAllocationEpochs`', async function () {
       const newValue = toBN('5')
