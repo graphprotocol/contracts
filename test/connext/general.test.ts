@@ -53,10 +53,10 @@ describe('Indexer Channel Operations', () => {
     amount: BigNumberish,
     token?: GraphToken,
   ) => Promise<void>
-  let sendTransactionWithSettle: (
+  let sendTransactionWithCollect: (
     tx: MinimalTransaction,
     sender?: ChannelSigner,
-  ) => Promise<{ amount: BigNumber; sender: string }>
+  ) => Promise<{ amount: BigNumber; channelID: string; sender: string }>
 
   beforeEach(async function () {
     const accounts = await ethers.getSigners()
@@ -96,7 +96,7 @@ describe('Indexer Channel Operations', () => {
     nonIndexerMultisig = _nonIndexerMultisig
 
     // Add channel to mock staking contract for indexer only
-    await mockStaking.setChannel(indexer.address)
+    await mockStaking.setChannel(indexer.address, indexerMultisig.address)
 
     // Helpers
     fundMultisigAndAssert = async (
@@ -120,13 +120,13 @@ describe('Indexer Channel Operations', () => {
       expect(postDeposit.toString()).to.be.eq(preDeposit.add(amount).toString())
     }
 
-    sendTransactionWithSettle = async (
+    sendTransactionWithCollect = async (
       tx: MinimalTransaction,
       txSender: ChannelSigner = indexer,
-    ): Promise<{ amount: BigNumber; sender: string }> => {
-      const settleEvent = await new Promise(async (resolve, reject) => {
-        mockStaking.once('SettleCalled', (amount, sender) => {
-          resolve({ amount, sender })
+    ): Promise<{ amount: BigNumber; channelID: string; sender: string }> => {
+      const collectEvent = await new Promise(async (resolve, reject) => {
+        mockStaking.once('CollectCalled', (amount, channelID, sender) => {
+          resolve({ amount, channelID, sender })
         })
         try {
           const response = await txSender.sendTransaction(tx)
@@ -135,7 +135,7 @@ describe('Indexer Channel Operations', () => {
           return reject(e)
         }
       })
-      return settleEvent as any
+      return collectEvent as any
     }
   })
 
@@ -277,7 +277,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('indexer should be able to withdraw eth (settle is not called)', async function () {
+    it('indexer should be able to withdraw eth (collect is not called)', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -293,7 +293,7 @@ describe('Indexer Channel Operations', () => {
       await sendWithdrawalCommitment(commitment, params, true)
     })
 
-    it('indexer should be able to withdraw tokens (settle is called with correct amount by multisig)', async function () {
+    it('indexer should be able to withdraw tokens (collect is called with correct amount by multisig)', async function () {
       // Generate withdrawal commitment for node
       const commitment = new MiniCommitment(indexerMultisig.address, [node, indexer])
 
@@ -306,16 +306,17 @@ describe('Indexer Channel Operations', () => {
         ctdt: indexerCTDT,
       }
 
-      const settleEvent = await new Promise((resolve, reject) => {
-        mockStaking.once('SettleCalled', (amount, sender) => {
-          resolve({ amount, sender })
+      const collectEvent = await new Promise((resolve, reject) => {
+        mockStaking.once('CollectCalled', (amount, channelID, sender) => {
+          resolve({ amount, channelID, sender })
         })
         sendWithdrawalCommitment(commitment, params, true).catch((e) =>
           reject(e.stack || e.message),
         )
       })
-      const { amount, sender } = (settleEvent as unknown) as any
+      const { amount, channelID, sender } = (collectEvent as unknown) as any
       expect(amount).to.be.eq(params.amount)
+      expect(channelID).to.be.eq(indexer.address)
       expect(sender).to.be.eq(indexerMultisig.address)
     })
 
@@ -345,16 +346,16 @@ describe('Indexer Channel Operations', () => {
       isIndexerNodeChannel: boolean,
       preDisputeBalances: any,
       disputer: ChannelSigner,
-      nodeSettlement?: BigNumber,
-      counterpartySettlement?: BigNumber,
+      nodeAmount?: BigNumber,
+      counterpartyAmount?: BigNumber,
     ) => Promise<void>
     let sendAndVerifySetup: (
       isIndexerNodeChannel: boolean,
       params: any,
       commitment: MiniCommitment,
       disputer?: ChannelSigner,
-      counterpartySettlement?: BigNumber,
-      nodeSettlement?: BigNumber,
+      counterpartyAmount?: BigNumber,
+      nodeAmount?: BigNumber,
     ) => Promise<void>
     let sendAndVerifyConditional: (
       isIndexerNodeChannel: boolean,
@@ -496,8 +497,8 @@ describe('Indexer Channel Operations', () => {
         isIndexerNodeChannel: boolean,
         preDisputeBalances: any,
         disputer: ChannelSigner,
-        nodeSettlement: BigNumber = TOKEN_DEPOSIT.div(2),
-        counterpartySettlement: BigNumber = Zero,
+        nodeAmount: BigNumber = TOKEN_DEPOSIT.div(2),
+        counterpartyAmount: BigNumber = Zero,
       ) => {
         const postDisputeBalances = await getOnchainBalances(isIndexerNodeChannel)
         const multisig = isIndexerNodeChannel ? indexerMultisig : nonIndexerMultisig
@@ -507,9 +508,9 @@ describe('Indexer Channel Operations', () => {
           [token.address]: {
             ...preDisputeBalances[token.address],
             [multisig.address]: Zero,
-            [node.address]: preDisputeBalances[token.address][node.address].add(nodeSettlement),
+            [node.address]: preDisputeBalances[token.address][node.address].add(nodeAmount),
             [counterpartyAddr]: preDisputeBalances[token.address][counterpartyAddr].add(
-              counterpartySettlement,
+              counterpartyAmount,
             ),
           },
         }
@@ -544,11 +545,12 @@ describe('Indexer Channel Operations', () => {
           params,
         )
         if (isIndexerNodeChannel) {
-          const appSettleEvent = await sendTransactionWithSettle(conditionalTx, disputer)
-          expect(appSettleEvent.amount).to.be.eq(
+          const appCollectEvent = await sendTransactionWithCollect(conditionalTx, disputer)
+          expect(appCollectEvent.amount).to.be.eq(
             beneficiary.address === indexer.address ? params.amount : Zero,
           )
-          expect(appSettleEvent.sender).to.be.eq(multisig.address)
+          expect(appCollectEvent.channelID).to.be.eq(indexer.address)
+          expect(appCollectEvent.sender).to.be.eq(multisig.address)
         } else {
           const tx = await disputer.sendTransaction(conditionalTx)
           await tx.wait()
@@ -569,8 +571,8 @@ describe('Indexer Channel Operations', () => {
         params: any,
         commitment: MiniCommitment,
         disputer: ChannelSigner = indexer,
-        counterpartySettlement: BigNumber = TOKEN_DEPOSIT.div(2).sub(APP_DEPOSIT),
-        nodeSettlement: BigNumber = TOKEN_DEPOSIT.div(2),
+        counterpartyAmount: BigNumber = TOKEN_DEPOSIT.div(2).sub(APP_DEPOSIT),
+        nodeAmount: BigNumber = TOKEN_DEPOSIT.div(2),
       ) => {
         const multisig = isIndexerNodeChannel ? indexerMultisig : nonIndexerMultisig
         const preFreeBalanceDisputeBalances = await getOnchainBalances(isIndexerNodeChannel)
@@ -579,9 +581,10 @@ describe('Indexer Channel Operations', () => {
           interpreterAddr: multiAssetInterpreter.address,
         })
         if (isIndexerNodeChannel) {
-          const freeBalanceSettleEvent = await sendTransactionWithSettle(fbTx, disputer)
-          expect(freeBalanceSettleEvent.amount).to.be.eq(counterpartySettlement)
-          expect(freeBalanceSettleEvent.sender).to.be.eq(multisig.address)
+          const freeBalanceCollectEvent = await sendTransactionWithCollect(fbTx, disputer)
+          expect(freeBalanceCollectEvent.amount).to.be.eq(counterpartyAmount)
+          expect(freeBalanceCollectEvent.channelID).to.be.eq(indexer.address)
+          expect(freeBalanceCollectEvent.sender).to.be.eq(multisig.address)
         } else {
           const tx = await disputer.sendTransaction(fbTx)
           await tx.wait()
@@ -592,7 +595,7 @@ describe('Indexer Channel Operations', () => {
           isIndexerNodeChannel,
           preFreeBalanceDisputeBalances,
           disputer,
-          nodeSettlement,
+          nodeAmount,
         )
       }
     })

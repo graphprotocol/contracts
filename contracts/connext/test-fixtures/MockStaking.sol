@@ -1,32 +1,53 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../IGraphToken.sol";
 
 import "../MinimumViableMultisig.sol";
 
 contract MockStaking {
-    IERC20 public token;
+    IGraphToken public token;
 
-    event SettleCalled(uint256 amount, address sender);
+    event CollectCalled(uint256 amount, address channelID, address sender);
 
-    constructor(IERC20 _token) public {
+    constructor(IGraphToken _token) public {
         token = _token;
     }
 
-    mapping(address => bool) channels;
+    mapping(address => address) channelIDToChannelProxy;
 
     function isChannel(address channelID) public view returns (bool) {
-        return channels[channelID];
+        return channelIDToChannelProxy[channelID] != address(0);
     }
 
-    function setChannel(address channelID) public {
-        channels[channelID] = true;
+    function setChannel(address channelID, address channelProxy) public {
+        require(
+            channelID != address(0),
+            "MockStaking: channelID must not be zero"
+        );
+        require(
+            channelProxy != address(0),
+            "MockStaking: channelProxy must not be zero"
+        );
+
+        channelIDToChannelProxy[channelID] = channelProxy;
     }
 
     function collect(uint256 amount, address channelID) public {
-        // TODO
-        token.transferFrom(msg.sender, address(this), amount);
-        emit SettleCalled(amount, msg.sender);
+        require(
+            channelID != address(0),
+            "MockStaking: invalid channelID"
+        );
+        require(
+            channelIDToChannelProxy[channelID] == msg.sender,
+            "MockStaking: mismatch between channelID and caller"
+        );
+
+        require(
+            token.transferFrom(msg.sender, address(this), amount),
+            "MockStaking: token transfer failed"
+        );
+
+        emit CollectCalled(amount, channelID, msg.sender);
     }
 
     function lockMultisig(MinimumViableMultisig multisig) public {
