@@ -5,7 +5,7 @@ import { solidity } from 'ethereum-waffle'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
-import { loadFixture } from './fixture.test'
+import { NetworkFixture } from '../lib/fixtures'
 
 import {
   advanceBlockTo,
@@ -31,6 +31,8 @@ function weightedAverage(
 
 describe('Staking:Stakes', () => {
   const [me, governor, indexer, slasher, fisherman, channelProxy] = provider().getWallets()
+
+  let fixture: NetworkFixture
 
   let grt: GraphToken
   let staking: Staking
@@ -69,12 +71,21 @@ describe('Staking:Stakes', () => {
     expect(afterStakingBalance).eq(beforeStakingBalance.add(tokensToStake))
   }
 
-  beforeEach(async function () {
-    ;({ grt, staking } = await loadFixture(governor, slasher))
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ grt, staking } = await fixture.load(governor, slasher))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor).mint(indexer.address, indexerTokens)
     await grt.connect(indexer).approve(staking.address, indexerTokens)
+  })
+
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   context('> when not staked', function () {

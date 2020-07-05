@@ -6,8 +6,8 @@ import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
+import { NetworkFixture } from '../lib/fixtures'
 import { provider, toBN } from '../lib/testHelpers'
-import { loadFixture } from './fixture.test'
 
 use(solidity)
 
@@ -18,12 +18,23 @@ const MAX_PPM = toBN('1000000')
 describe('Staking:Config', () => {
   const [me, other, governor, slasher] = provider().getWallets()
 
+  let fixture: NetworkFixture
+
   let curation: Curation
   let grt: GraphToken
   let staking: Staking
 
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ curation, grt, staking } = await fixture.load(governor, slasher))
+  })
+
   beforeEach(async function () {
-    ;({ curation, grt, staking } = await loadFixture(governor, slasher))
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   it('should set `governor`', async function () {

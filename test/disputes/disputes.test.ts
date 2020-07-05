@@ -1,28 +1,26 @@
 import { expect, use } from 'chai'
-import { constants, utils } from 'ethers'
+import { utils } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 import { attestations } from '@graphprotocol/common-ts'
 
-import { DisputeManager } from '../build/typechain/contracts/DisputeManager'
-import { EpochManager } from '../build/typechain/contracts/EpochManager'
-import { GraphToken } from '../build/typechain/contracts/GraphToken'
-import { Staking } from '../build/typechain/contracts/Staking'
+import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
+import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+import { GraphToken } from '../../build/typechain/contracts/GraphToken'
+import { Staking } from '../../build/typechain/contracts/Staking'
 
-import * as deployment from './lib/deployment'
+import { NetworkFixture } from '../lib/fixtures'
 import {
-  advanceBlockTo,
+  advanceToNextEpoch,
   defaults,
   getChainID,
   randomHexBytes,
-  latestBlock,
   provider,
   toBN,
   toGRT,
-} from './lib/testHelpers'
+} from '../lib/testHelpers'
 
 use(solidity)
 
-const { AddressZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
 
 const MAX_PPM = 1000000
@@ -63,7 +61,7 @@ function encodeAttestation(attestation: attestations.Attestation): string {
   return hexlify(concat([data, sig]))
 }
 
-describe('Disputes', async () => {
+describe('DisputeManager:disputes', async () => {
   const [
     me,
     other,
@@ -75,8 +73,10 @@ describe('Disputes', async () => {
     channelProxy,
   ] = provider().getWallets()
 
-  let epochManager: EpochManager
+  let fixture: NetworkFixture
+
   let disputeManager: DisputeManager
+  let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
 
@@ -90,6 +90,12 @@ describe('Disputes', async () => {
   const otherIndexerChannelPubKey =
     '0x0447b5891c07679d40d6dfd3c4f8e1974e068da36ac76a6507dbaf5e432b879b3d4cd8c950b0df035e621f5a55b91a224ecdaef8cc8e6bb8cd8afff4a74c1904cd'
 
+  // Test values
+  const fishermanTokens = toGRT('100000')
+  const fishermanDeposit = toGRT('1000')
+  const indexerTokens = toGRT('100000')
+  const indexerAllocatedTokens = toGRT('10000')
+
   // Create an attesation receipt for the dispute
   const receipt: attestations.Receipt = {
     requestCID: randomHexBytes(),
@@ -99,37 +105,16 @@ describe('Disputes', async () => {
   let dispute: Dispute
 
   before(async function () {
-    // Helpers
-    this.advanceToNextEpoch = async () => {
-      const currentBlock = await latestBlock()
-      const epochLength = await epochManager.epochLength()
-      const nextEpochBlock = currentBlock.add(epochLength)
-      await advanceBlockTo(nextEpochBlock)
-    }
-  })
-
-  beforeEach(async function () {
-    // Deploy epoch contract
-    epochManager = await deployment.deployEpochManager(governor.address)
-
-    // Deploy graph token
-    grt = await deployment.deployGRT(governor.address)
-
-    // Deploy staking contract
-    staking = await deployment.deployStaking(
+    fixture = new NetworkFixture()
+    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
       governor,
-      grt.address,
-      epochManager.address,
-      AddressZero,
-    )
+      other,
+      arbitrator,
+    ))
 
-    // Deploy dispute contract
-    disputeManager = await deployment.deployDisputeManager(
-      governor.address,
-      grt.address,
-      arbitrator.address,
-      staking.address,
-    )
+    // Give some funds to the fisherman
+    await grt.connect(governor).mint(fisherman.address, fishermanTokens)
+    await grt.connect(fisherman).approve(disputeManager.address, fishermanTokens)
 
     // Create an attestation
     const attestation = await attestations.createAttestation(
@@ -149,131 +134,20 @@ describe('Disputes', async () => {
     }
   })
 
-  // TODO: move away config
-  describe('configuration', () => {
-    it('should set `governor`', async function () {
-      // Set right in the constructor
-      expect(await disputeManager.governor()).eq(governor.address)
-    })
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
 
-    it('should set `graphToken`', async function () {
-      // Set right in the constructor
-      expect(await disputeManager.token()).eq(grt.address)
-    })
-
-    describe('arbitrator', function () {
-      it('should set `arbitrator`', async function () {
-        // Set right in the constructor
-        expect(await disputeManager.arbitrator()).eq(arbitrator.address)
-
-        // Can set if allowed
-        await disputeManager.connect(governor).setArbitrator(other.address)
-        expect(await disputeManager.arbitrator()).eq(other.address)
-      })
-
-      it('reject set `arbitrator` if not allowed', async function () {
-        const tx = disputeManager.connect(other).setArbitrator(arbitrator.address)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
-
-    describe('minimumDeposit', function () {
-      it('should set `minimumDeposit`', async function () {
-        const oldValue = defaults.dispute.minimumDeposit
-        const newValue = toBN('1')
-
-        // Set right in the constructor
-        expect(await disputeManager.minimumDeposit()).eq(oldValue)
-
-        // Set new value
-        await disputeManager.connect(governor).setMinimumDeposit(newValue)
-        expect(await disputeManager.minimumDeposit()).eq(newValue)
-      })
-
-      it('reject set `minimumDeposit` if not allowed', async function () {
-        const newValue = toBN('1')
-        const tx = disputeManager.connect(other).setMinimumDeposit(newValue)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
-
-    describe('fishermanRewardPercentage', function () {
-      it('should set `fishermanRewardPercentage`', async function () {
-        const newValue = defaults.dispute.fishermanRewardPercentage
-
-        // Set right in the constructor
-        expect(await disputeManager.fishermanRewardPercentage()).eq(newValue)
-
-        // Set new value
-        await disputeManager.connect(governor).setFishermanRewardPercentage(0)
-        await disputeManager.connect(governor).setFishermanRewardPercentage(newValue)
-      })
-
-      it('reject set `fishermanRewardPercentage` if out of bounds', async function () {
-        const tx = disputeManager.connect(governor).setFishermanRewardPercentage(MAX_PPM + 1)
-        await expect(tx).revertedWith('Reward percentage must be below or equal to MAX_PPM')
-      })
-
-      it('reject set `fishermanRewardPercentage` if not allowed', async function () {
-        const tx = disputeManager.connect(other).setFishermanRewardPercentage(50)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
-
-    describe('slashingPercentage', function () {
-      it('should set `slashingPercentage`', async function () {
-        const newValue = defaults.dispute.slashingPercentage
-
-        // Set right in the constructor
-        expect(await disputeManager.slashingPercentage()).eq(newValue.toString())
-
-        // Set new value
-        await disputeManager.connect(governor).setSlashingPercentage(0)
-        await disputeManager.connect(governor).setSlashingPercentage(newValue)
-      })
-
-      it('reject set `slashingPercentage` if out of bounds', async function () {
-        const tx = disputeManager.connect(governor).setSlashingPercentage(MAX_PPM + 1)
-        await expect(tx).revertedWith('Slashing percentage must be below or equal to MAX_PPM')
-      })
-
-      it('reject set `slashingPercentage` if not allowed', async function () {
-        const tx = disputeManager.connect(other).setSlashingPercentage(50)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
-
-    describe('staking', function () {
-      it('should set `staking`', async function () {
-        // Set right in the constructor
-        expect(await disputeManager.staking()).eq(staking.address)
-
-        // Can set if allowed
-        await disputeManager.connect(governor).setStaking(grt.address)
-        expect(await disputeManager.staking()).eq(grt.address)
-      })
-
-      it('reject set `staking` if not allowed', async function () {
-        const tx = disputeManager.connect(other).setStaking(grt.address)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   describe('dispute lifecycle', function () {
-    beforeEach(async function () {
-      // Give some funds to the fisherman
-      this.fishermanTokens = toGRT('100000')
-      this.fishermanDeposit = toGRT('1000')
-      await grt.connect(governor).mint(fisherman.address, this.fishermanTokens)
-      await grt.connect(fisherman).approve(disputeManager.address, this.fishermanTokens)
-    })
-
     it('reject create a dispute if attestation does not refer to valid indexer', async function () {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman)
-        .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
+        .createDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Indexer cannot be found for the attestation')
     })
 
@@ -309,7 +183,7 @@ describe('Disputes', async () => {
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
-      await this.advanceToNextEpoch() // wait the required one epoch to settle
+      await advanceToNextEpoch(epochManager) // wait the required one epoch to settle
       await staking.connect(channelProxy).collect(indexerSettledTokens, event1.channelID)
       await staking.connect(indexer).settle(event1.channelID)
       await staking.connect(indexer).unstake(indexerTokens)
@@ -318,7 +192,7 @@ describe('Disputes', async () => {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman)
-        .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
+        .createDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Dispute has no stake by the indexer')
     })
 
@@ -328,8 +202,6 @@ describe('Disputes', async () => {
         await staking.connect(governor).setSlasher(disputeManager.address, true)
 
         // Stake
-        this.indexerTokens = toGRT('100000')
-        this.indexerAllocatedTokens = toGRT('10000')
         const indexerList = [
           { wallet: indexer, pubKey: indexerChannelPubKey },
           { wallet: otherIndexer, pubKey: otherIndexerChannelPubKey },
@@ -339,16 +211,16 @@ describe('Disputes', async () => {
           const indexerPubKey = activeIndexer.pubKey
 
           // Give some funds to the indexer
-          await grt.connect(governor).mint(indexerWallet.address, this.indexerTokens)
-          await grt.connect(indexerWallet).approve(staking.address, this.indexerTokens)
+          await grt.connect(governor).mint(indexerWallet.address, indexerTokens)
+          await grt.connect(indexerWallet).approve(staking.address, indexerTokens)
 
           // Indexer stake funds
-          await staking.connect(indexerWallet).stake(this.indexerTokens)
+          await staking.connect(indexerWallet).stake(indexerTokens)
           await staking
             .connect(indexerWallet)
             .allocate(
               dispute.receipt.subgraphDeploymentID,
-              this.indexerAllocatedTokens,
+              indexerAllocatedTokens,
               indexerPubKey,
               channelProxy.address,
               toBN('0'),
@@ -358,7 +230,7 @@ describe('Disputes', async () => {
 
       describe('reward calculation', function () {
         it('should calculate the reward for a stake', async function () {
-          const stakedAmount = this.indexerTokens
+          const stakedAmount = indexerTokens
           const trueReward = stakedAmount
             .mul(defaults.dispute.slashingPercentage)
             .div(toBN(MAX_PPM))
@@ -386,7 +258,7 @@ describe('Disputes', async () => {
           // Create dispute
           const tx = disputeManager
             .connect(fisherman)
-            .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
+            .createDispute(dispute.encodedAttestation, fishermanDeposit)
           await expect(tx)
             .emit(disputeManager, 'DisputeCreated')
             .withArgs(
@@ -394,7 +266,7 @@ describe('Disputes', async () => {
               dispute.receipt.subgraphDeploymentID,
               dispute.indexerAddress,
               fisherman.address,
-              this.fishermanDeposit,
+              fishermanDeposit,
               dispute.encodedAttestation,
             )
         })
@@ -426,7 +298,7 @@ describe('Disputes', async () => {
           // Create dispute
           await disputeManager
             .connect(fisherman)
-            .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
+            .createDispute(dispute.encodedAttestation, fishermanDeposit)
         })
 
         describe('create a dispute', function () {
@@ -446,17 +318,18 @@ describe('Disputes', async () => {
               receipt,
             }
 
+            // Create dispute
             const tx = disputeManager
               .connect(fisherman)
-              .createDispute(newDispute.encodedAttestation, this.fishermanDeposit)
-            expect(tx)
+              .createDispute(newDispute.encodedAttestation, fishermanDeposit)
+            await expect(tx)
               .emit(disputeManager, 'DisputeCreated')
               .withArgs(
                 newDispute.id,
                 newDispute.receipt.subgraphDeploymentID,
                 newDispute.indexerAddress,
                 fisherman.address,
-                this.fishermanDeposit,
+                fishermanDeposit,
                 newDispute.encodedAttestation,
               )
           })
@@ -464,7 +337,7 @@ describe('Disputes', async () => {
           it('reject create duplicated dispute', async function () {
             const tx = disputeManager
               .connect(fisherman)
-              .createDispute(dispute.encodedAttestation, this.fishermanDeposit)
+              .createDispute(dispute.encodedAttestation, fishermanDeposit)
             await expect(tx).revertedWith('Dispute already created')
           })
         })
@@ -491,10 +364,13 @@ describe('Disputes', async () => {
           })
 
           it('should resolve dispute, slash indexer and reward the fisherman', async function () {
-            const indexerStakeBefore = await staking.getIndexerStakedTokens(indexer.address)
+            // Before state
+            const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+            const beforeFishermanBalance = await grt.balanceOf(fisherman.address)
+            const beforeTotalSupply = await grt.totalSupply()
+
+            // Calculations
             const tokensToSlash = await disputeManager.getTokensToSlash(indexer.address)
-            const fishermanBalanceBefore = await grt.balanceOf(fisherman.address)
-            const totalSupplyBefore = await grt.totalSupply()
             const reward = await disputeManager.getTokensToReward(indexer.address)
 
             // Perform transaction (accept)
@@ -506,23 +382,23 @@ describe('Disputes', async () => {
                 dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
-                this.fishermanDeposit.add(reward),
+                fishermanDeposit.add(reward),
               )
 
+            // After state
+            const afterFishermanBalance = await grt.balanceOf(fisherman.address)
+            const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+            const afterTotalSupply = await grt.totalSupply()
+
             // Fisherman reward properly assigned + deposit returned
-            const fishermanBalanceAfter = await grt.balanceOf(fisherman.address)
-            expect(fishermanBalanceAfter).eq(
-              fishermanBalanceBefore.add(this.fishermanDeposit).add(reward),
+            expect(afterFishermanBalance).eq(
+              beforeFishermanBalance.add(fishermanDeposit).add(reward),
             )
-
             // Indexer slashed
-            const indexerStakeAfter = await staking.getIndexerStakedTokens(indexer.address)
-            expect(indexerStakeAfter).eq(indexerStakeBefore.sub(tokensToSlash))
-
+            expect(afterIndexerStake).eq(beforeIndexerStake.sub(tokensToSlash))
             // Slashed funds burned
             const tokensToBurn = tokensToSlash.sub(reward)
-            const totalSupplyAfter = await grt.totalSupply()
-            expect(totalSupplyAfter).eq(totalSupplyBefore.sub(tokensToBurn))
+            expect(afterTotalSupply).eq(beforeTotalSupply.sub(tokensToBurn))
           })
         })
 
@@ -533,8 +409,9 @@ describe('Disputes', async () => {
           })
 
           it('should reject a dispute and burn deposit', async function () {
-            const fishermanBalanceBefore = await grt.balanceOf(fisherman.address)
-            const totalSupplyBefore = await grt.totalSupply()
+            // Before state
+            const beforeFishermanBalance = await grt.balanceOf(fisherman.address)
+            const beforeTotalSupply = await grt.totalSupply()
 
             // Perform transaction (reject)
             const tx = disputeManager.connect(arbitrator).rejectDispute(dispute.id)
@@ -545,17 +422,18 @@ describe('Disputes', async () => {
                 dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
-                this.fishermanDeposit,
+                fishermanDeposit,
               )
 
-            // No change in fisherman balance
-            const fishermanBalanceAfter = await grt.balanceOf(fisherman.address)
-            expect(fishermanBalanceAfter).eq(fishermanBalanceBefore)
+            // After state
+            const afterTishermanBalance = await grt.balanceOf(fisherman.address)
+            const afterTotalSupply = await grt.totalSupply()
 
+            // No change in fisherman balance
+            expect(afterTishermanBalance).eq(beforeFishermanBalance)
             // Burn fisherman deposit
-            const totalSupplyAfter = await grt.totalSupply()
-            const burnedTokens = toBN(this.fishermanDeposit)
-            expect(totalSupplyAfter).eq(totalSupplyBefore.sub(burnedTokens))
+            const burnedTokens = fishermanDeposit
+            expect(afterTotalSupply).eq(beforeTotalSupply.sub(burnedTokens))
           })
         })
 
@@ -566,7 +444,8 @@ describe('Disputes', async () => {
           })
 
           it('should draw a dispute and return deposit', async function () {
-            const fishermanBalanceBefore = await grt.balanceOf(fisherman.address)
+            // Before state
+            const beforeFishermanBalance = await grt.balanceOf(fisherman.address)
 
             // Perform transaction (draw)
             const tx = disputeManager.connect(arbitrator).drawDispute(dispute.id)
@@ -577,12 +456,12 @@ describe('Disputes', async () => {
                 dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
-                this.fishermanDeposit,
+                fishermanDeposit,
               )
 
             // Fisherman should see the deposit returned
-            const fishermanBalanceAfter = await grt.balanceOf(fisherman.address)
-            expect(fishermanBalanceAfter).eq(fishermanBalanceBefore.add(this.fishermanDeposit))
+            const afterFishermanBalance = await grt.balanceOf(fisherman.address)
+            expect(afterFishermanBalance).eq(beforeFishermanBalance.add(fishermanDeposit))
           })
         })
       })
