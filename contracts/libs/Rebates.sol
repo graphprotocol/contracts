@@ -26,7 +26,7 @@ library Rebates {
      * @param _tokens Amount of fees collected in tokens
      * @param _allocation Effective stake allocated by the indexer for a period of epochs
      */
-    function add(
+    function addToPool(
         Rebates.Pool storage pool,
         uint256 _tokens,
         uint256 _allocation

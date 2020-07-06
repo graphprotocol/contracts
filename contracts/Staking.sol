@@ -689,11 +689,11 @@ contract Staking is IStaking, Governed {
         Allocation storage alloc = allocations[_channelID];
         AllocationState allocState = _getAllocationState(_channelID);
 
-        // Get indexer stakes
-        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
-
         // Channel must exist and be allocated
         require(allocState == AllocationState.Active, "Settle: channel must be active");
+
+        // Get indexer stakes
+        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
         // Validate that an allocation cannot be settled before one epoch
         (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
@@ -719,9 +719,7 @@ contract Staking is IStaking, Governed {
 
         // Send funds to rebate pool and account the effective allocation
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
-        rebatePool.fees = rebatePool.fees.add(alloc.collectedFees);
-        rebatePool.allocation = rebatePool.allocation.add(alloc.effectiveAllocation);
-        rebatePool.settlementsCount += 1;
+        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // Free allocated tokens from use
         indexerStake.unallocate(alloc.tokens);
@@ -792,14 +790,14 @@ contract Staking is IStaking, Governed {
         Allocation storage alloc = allocations[_channelID];
         AllocationState allocState = _getAllocationState(_channelID);
 
-        // Find a rebate pool for the settled epoch
-        Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
-
         // Funds can only be claimed after a period of time passed since settlement
         require(
             allocState == AllocationState.Finalized,
             "Rebate: channel must be in finalized state"
         );
+
+        // Find a rebate pool for the settled epoch
+        Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
 
         // Process rebate
         uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
