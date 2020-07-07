@@ -165,16 +165,22 @@ describe('Staking:Allocation', () => {
     // This function tests collect with state updates
     const shouldCollect = async (tokensToCollect: BigNumber) => {
       // Before state
+      const beforeTokenSupply = await grt.totalSupply()
       const beforePool = await curation.pools(subgraphDeploymentID)
       const beforeAlloc = await staking.getAllocation(channelID)
 
       // Advance blocks to get the channel in epoch where it can be settled
       await advanceToNextEpoch(epochManager)
 
-      // Calculate expected results
+      // Collect fees and calculate expected results
+      let rebateFees = tokensToCollect
+      const protocolPercentage = await staking.protocolPercentage()
+      const protocolFees = rebateFees.mul(protocolPercentage).div(MAX_PPM)
+      rebateFees = rebateFees.sub(protocolFees)
+
       const curationPercentage = await staking.curationPercentage()
-      const curationFees = tokensToCollect.mul(curationPercentage).div(MAX_PPM)
-      const rebateFees = tokensToCollect.sub(curationFees) // calculate expected fees
+      const curationFees = rebateFees.mul(curationPercentage).div(MAX_PPM)
+      rebateFees = rebateFees.sub(curationFees)
 
       // Collect tokens from channel
       const tx = staking.connect(channelProxy).collect(tokensToCollect, channelID)
@@ -192,9 +198,12 @@ describe('Staking:Allocation', () => {
         )
 
       // After state
+      const afterTokenSupply = await grt.totalSupply()
       const afterPool = await curation.pools(subgraphDeploymentID)
       const afterAlloc = await staking.getAllocation(channelID)
 
+      // Check that protocol fees are burnt
+      expect(afterTokenSupply).eq(beforeTokenSupply.sub(protocolFees))
       // Check that curation reserves increased for the SubgraphDeployment
       expect(afterPool.tokens).eq(beforePool.tokens.add(curationFees))
       // Verify allocation is updated and channel closed
@@ -246,6 +255,25 @@ describe('Staking:Allocation', () => {
       await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
 
       // Curation parameters
+      const curationPercentage = toBN('200000') // 20%
+      await staking.connect(governor).setCurationPercentage(curationPercentage)
+
+      // Collect
+      await shouldCollect(tokensToCollect)
+    })
+
+    it('should collect funds from channel + protocol fee + curation fees', async function () {
+      // Curate the subgraph from where we collect fees to get curation fees distributed
+      const tokensToSignal = toGRT('100')
+      await grt.connect(governor).mint(me.address, tokensToSignal)
+      await grt.connect(me).approve(curation.address, tokensToSignal)
+      await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
+
+      // Set a protocol fee percentage
+      const protocolPercentage = toBN('100000') // 10%
+      await staking.connect(governor).setProtocolPercentage(protocolPercentage)
+
+      // Set a curation fee percentage
       const curationPercentage = toBN('200000') // 20%
       await staking.connect(governor).setCurationPercentage(curationPercentage)
 
