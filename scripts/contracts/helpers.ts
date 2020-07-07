@@ -16,29 +16,60 @@ import * as bs58 from 'bs58'
 
 dotenv.config()
 
-export const configureWallet = (wallet?: Wallet, network?: string): Wallet => {
-  if (process.env.INFURA_KEY == undefined) {
-    throw new Error(
-      `Please create a .env file at the root of this project, and set INFURA_KEY=<YOUR_INFURA_KEY>`,
-    )
-  }
-  if (network == undefined) {
-    network = 'kovan'
-  }
-  const ethereum = `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
-  const eth = new providers.JsonRpcProvider(ethereum)
-  if (wallet == undefined) {
-    try {
-      wallet = Wallet.fromMnemonic(process.env.MNEMONIC)
-    } catch {
-      throw new Error(
-        `Please create a .env file at the root of this project, and set 
-        MNEMONIC=<YOUR_12_WORD_MNEMONIC>. Or pass in an already created wallet`,
-      )
+export const DEFAULT_MNEMONIC =
+  'myth like bonus scare over problem client lizard pioneer submit female collect'
+export const GANACHE_ENDPOINT = 'http://localhost:8545'
+
+export const buildNetworkEndpoint = (
+  network: string,
+  provider?: string,
+  providerAPIKey?: string,
+): string => {
+  if (network == 'ganache') return GANACHE_ENDPOINT
+  if (provider == 'infura') {
+    if (providerAPIKey == undefined) {
+      if (process.env.INFURA_KEY == undefined) {
+        throw new Error(
+          `Please create a .env file at the root of this project, and set INFURA_KEY=<YOUR_INFURA_KEY>, or pass in an API key`,
+        )
+      } else {
+        return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
+      }
+    } else {
+      return `https://${network}.infura.io/v3/${providerAPIKey}`
     }
+  } else {
+    throw new Error(`Only infura or local with ganache works for provider endpoint`)
   }
-  wallet = wallet.connect(eth)
-  return wallet
+}
+
+// Creates an array of wallets connected to a provider
+export const configureWallets = (
+  mnemonic: string,
+  providerEndpoint: string,
+  count: number,
+): Array<Wallet> => {
+  const signers: Array<Wallet> = []
+  for (let i = 0; i < count; i++) {
+    signers.push(configureWallet(mnemonic, providerEndpoint, i.toString()))
+  }
+  console.log(`Created ${count} wallets!`)
+  return signers
+}
+
+export const configureGanacheWallet = (): Wallet => {
+  return configureWallet(DEFAULT_MNEMONIC, GANACHE_ENDPOINT)
+}
+
+// Create a single wallet connected to a provider
+export const configureWallet = (
+  mnemonic: string,
+  providerEndpoint: string,
+  index = '0',
+): Wallet => {
+  const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${index}`)
+  const eth = new providers.JsonRpcProvider(providerEndpoint)
+  return wallet.connect(eth)
 }
 
 // Check governor for the network
@@ -66,8 +97,8 @@ export const getNetworkAddresses = (network?: string): any => {
     permanentAddresses = addresses.kovan // TODO - update address book so this doesn't happen
   }
   return {
-    generatedAddresses: generatedAddresses,
-    permanentAddresses: permanentAddresses,
+    generatedAddresses,
+    permanentAddresses,
   }
 }
 
@@ -78,9 +109,10 @@ export const basicOverrides = (): Overrides => {
   }
 }
 
-export const estimateOverrides = (gasLimit?: BigNumberish, gasPrice?: BigNumberish): Overrides => {
-  if (gasPrice == undefined) gasPrice = 25
-  if (gasLimit == undefined) gasLimit = 1000000
+export const estimateOverrides = (
+  gasLimit: BigNumberish = 1000000,
+  gasPrice: BigNumberish = 25,
+): Overrides => {
   const multiplier = 1.5 // multiplier for safety
   gasLimit = (gasLimit as number) * multiplier
   return {

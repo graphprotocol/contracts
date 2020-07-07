@@ -17,7 +17,7 @@ import { AccountMetadata, SubgraphMetadata } from '../metadataHelpers'
 import * as AccountDatas from '../mockData/account-metadata/accountMetadatas'
 import * as SubgraphDatas from '../mockData/subgraph-metadata/subgraphMetadatas'
 import {
-  configureWallet,
+  configureWallets,
   executeTransaction,
   checkGovernor,
   basicOverrides,
@@ -30,53 +30,39 @@ dotenv.config()
 const accountMetadatas = AccountDatas.default
 const subgraphMetadatas = SubgraphDatas.default
 
-// Creates an array of signers, that are not connected to providers
-const createManySigners = (count: number, mnemonic?: string): Array<Wallet> => {
-  if (mnemonic == undefined) {
-    const ganacheDeterministicMnemonic =
-      'myth like bonus scare over problem client lizard pioneer submit female collect'
-    mnemonic = ganacheDeterministicMnemonic
-  }
-  const createSigner = (index: number): Wallet => {
-    const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${index}`)
-    return wallet
-  }
-  const signers: Array<Wallet> = []
-  for (let i = 0; i < count; i++) {
-    signers.push(createSigner(i))
-  }
-  console.log(`Created ${count} wallets!`)
-  return signers
-}
-
 // Send ETH to accounts that will act as indexers, curators, etc, to interact with the contracts
-const sendEth = async (signers: Array<Wallet>, proxies: Array<Wallet>, amount: string) => {
-  checkGovernor(signers[0].address)
-  const sender = configureWallet(signers[0])
+const sendEth = async (
+  governor: Wallet,
+  signers: Array<Wallet>,
+  proxies: Array<Wallet>,
+  amount: string,
+) => {
+  checkGovernor(governor.address)
   const amountEther = utils.parseEther(amount)
   for (let i = 1; i < signers.length; i++) {
     const data = {
       to: signers[i].address,
       value: amountEther,
     }
-    await executeTransaction(sender.sendTransaction(data))
+    await executeTransaction(governor.sendTransaction(data))
   }
   for (let i = 0; i < proxies.length; i++) {
     const data = {
       to: proxies[i].address,
       value: amountEther,
     }
-    await executeTransaction(sender.sendTransaction(data))
+    await executeTransaction(governor.sendTransaction(data))
   }
 }
 
 // Send GRT to accounts that will act as indexers, curators, etc, to interact with the contracts
 const populateGraphToken = async (
+  network: string,
   signers: Array<Wallet>,
   proxies: Array<Wallet>,
   amount: string,
 ) => {
-  const graphToken = new ConnectedGraphToken(true) // defaults to governor
+  const graphToken = new ConnectedGraphToken(true, network, signers[0]) // defaults to governor
   console.log('Sending GRT to indexers, curators, and proxies...')
   for (let i = 0; i < signers.length; i++) {
     await executeTransaction(graphToken.transferWithOverrides(signers[i].address, amount))
@@ -85,13 +71,13 @@ const populateGraphToken = async (
 }
 
 // Call set attribute for the signers
-const populateEthereumDIDRegistry = async (signers: Array<Wallet>) => {
+const populateEthereumDIDRegistry = async (network: string, signers: Array<Wallet>) => {
   let i = 0
   for (const account in accountMetadatas) {
-    const edr = new ConnectedEthereumDIDRegistry(true, undefined, undefined, signers[i])
+    const edr = new ConnectedEthereumDIDRegistry(true, network, signers[i])
     const name = accountMetadatas[account].name
     console.log(
-      `Calling setAttribute on DID registry for ${name} and account ${edr.wallet.address} ...`,
+      `Calling setAttribute on DID registry for ${name} and account ${edr.configuredWallet.address} ...`,
     )
     const ipfs = 'https://api.thegraph.com/ipfs/'
     await executeTransaction(
@@ -102,14 +88,14 @@ const populateEthereumDIDRegistry = async (signers: Array<Wallet>) => {
 }
 
 // Register ENS names for the signers
-const populateENS = async (signers: Array<Wallet>) => {
+const populateENS = async (network: string, signers: Array<Wallet>) => {
   let i = 0
   for (const subgraph in subgraphMetadatas) {
-    const ens = new ConnectedENS(true, undefined, undefined, signers[i])
+    const ens = new ConnectedENS(true, network, signers[i])
     let name = subgraphMetadatas[subgraph].subgraphDisplayName
     // edge case - graph is only ens name that doesn't match display name in mock data
     if (name == 'The Graph') name = 'graphprotocol'
-    console.log(`Setting ${name} for ${ens.wallet.address} on ens ...`)
+    console.log(`Setting ${name} for ${ens.configuredWallet.address} on ens ...`)
     await executeTransaction(ens.setTestRecord(name))
     await executeTransaction(ens.setText(name))
     i++
@@ -119,31 +105,31 @@ const populateENS = async (signers: Array<Wallet>) => {
 // Publish 10 subgraphs
 // Publish new versions for them all
 // Deprecate 1
-const populateGNS = async (signers: Array<Wallet>) => {
+const populateGNS = async (network: string, signers: Array<Wallet>) => {
   let i = 0
   for (const subgraph in subgraphMetadatas) {
-    const gns = new ConnectedGNS(true, undefined, undefined, signers[i])
+    const gns = new ConnectedGNS(true, network, signers[i])
     const ipfs = 'https://api.thegraph.com/ipfs/'
     let name = subgraphMetadatas[subgraph].subgraphDisplayName
     // edge case - graph is only ens name that doesn't match display name in mock data
     if (name == 'The Graph') name = 'graphprotocol'
     const nameIdentifier = utils.namehash(`${name}.test`)
-    console.log(`Publishing ${name} for ${gns.wallet.address} on GNS ...`)
+    console.log(`Publishing ${name} for ${gns.configuredWallet.address} on GNS ...`)
     await executeTransaction(
       gns.publishNewSubgraphWithOverrides(
         ipfs,
-        gns.wallet.address,
+        gns.configuredWallet.address,
         mockDeploymentIDsBase58[i],
         nameIdentifier,
         name,
         subgraphMetadatas[subgraph] as SubgraphMetadata,
       ),
     )
-    console.log(`Updating version of ${name} for ${gns.wallet.address} on GNS ...`)
+    console.log(`Updating version of ${name} for ${gns.configuredWallet.address} on GNS ...`)
     await executeTransaction(
       gns.publishNewVersionWithOverrides(
         ipfs,
-        gns.wallet.address,
+        gns.configuredWallet.address,
         mockDeploymentIDsBase58[i],
         nameIdentifier,
         name,
@@ -155,20 +141,20 @@ const populateGNS = async (signers: Array<Wallet>) => {
   }
 
   // Deprecation one subgraph for account 5
-  const gns = new ConnectedGNS(true, undefined, undefined, signers[5])
-  await executeTransaction(gns.deprecateWithOverrides(gns.wallet.address, '0'))
+  const gns = new ConnectedGNS(true, network, signers[5])
+  await executeTransaction(gns.deprecateWithOverrides(gns.configuredWallet.address, '0'))
 }
 
 //  Each GraphAccount curates on their own
 //  Then we stake on a few to make them higher, and see bonding curves in action
 //  Then we run some redeems
-const populateCuration = async (signers: Array<Wallet>) => {
+const populateCuration = async (network: string, signers: Array<Wallet>) => {
   const stakeAmount = '5000'
   const stakeAmountBig = '10000'
   const totalAmount = '25000'
   for (let i = 0; i < signers.length; i++) {
-    const curation = new ConnectedCuration(true, undefined, undefined, signers[i])
-    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
+    const curation = new ConnectedCuration(true, network, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, network, signers[i])
     console.log('First calling approve() to ensure curation contract can call transferFrom()...')
     await executeTransaction(
       connectedGT.approveWithOverrides(curation.curation.address, totalAmount),
@@ -184,7 +170,7 @@ const populateCuration = async (signers: Array<Wallet>) => {
   const redeemAmount = '1' // Redeeming SHARES/Signal, NOT tokens. 1 share can be a lot of tokens
   console.log('Running redeem transactions...')
   for (let i = 0; i < signers.length / 2; i++) {
-    const curation = new ConnectedCuration(true, undefined, undefined, signers[i])
+    const curation = new ConnectedCuration(true, network, signers[i])
     await executeTransaction(
       curation.redeemWithOverrides(mockDeploymentIDsBytes32[1], redeemAmount),
     )
@@ -194,7 +180,7 @@ const populateCuration = async (signers: Array<Wallet>) => {
 // Register 10 indexers
 // Unregister them all
 // Register all 10 again
-const populateServiceRegistry = async (signers: Array<Wallet>) => {
+const populateServiceRegistry = async (network: string, signers: Array<Wallet>) => {
   // Lat = 43.651 Long = -79.382, resolves to the geohash dpz83d (downtown toronto)
   // TODO = implement GEOHASH in the exportable code. For now, we just use 10 geohashes
   const geoHashes: Array<string> = [
@@ -224,7 +210,7 @@ const populateServiceRegistry = async (signers: Array<Wallet>) => {
   ]
 
   for (let i = 0; i < signers.length; i++) {
-    const serviceRegistry = new ConnectedServiceRegistry(true, undefined, undefined, signers[i])
+    const serviceRegistry = new ConnectedServiceRegistry(true, network, signers[i])
     console.log(`Registering an indexer in the service registry...`)
     await executeTransaction(serviceRegistry.registerWithOverrides(urls[i], geoHashes[i]))
     if (i < 2) {
@@ -244,15 +230,15 @@ const populateServiceRegistry = async (signers: Array<Wallet>) => {
 // Create 10 allocations
 // Settle 5 allocations (Settle is called by the proxies)
 // Set back thawing period and epoch manager to default
-const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) => {
+const populateStaking = async (network: string, signers: Array<Wallet>, proxies: Array<Wallet>) => {
   checkGovernor(signers[0].address)
-  const networkContracts = await connectContracts(signers[0])
+  const networkContracts = await connectContracts(signers[0], network)
   const epochManager = networkContracts.epochManager
   const stakeAmount = '10000'
 
   for (let i = 0; i < signers.length; i++) {
-    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
-    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
+    const staking = new ConnectedStaking(true, network, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, network, signers[i])
     console.log(
       'First calling approve() to ensure staking contract can call transferFrom() from the stakers...',
     )
@@ -267,8 +253,8 @@ const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) =
   await executeTransaction(networkContracts.staking.setThawingPeriod(0, basicOverrides()))
   console.log('Approve, stake extra, initialize unstake and withdraw for 3 signers...')
   for (let i = 0; i < 3; i++) {
-    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
-    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, signers[i])
+    const staking = new ConnectedStaking(true, network, signers[i])
+    const connectedGT = new ConnectedGraphToken(true, network, signers[i])
     await executeTransaction(connectedGT.approveWithOverrides(staking.staking.address, stakeAmount))
     await executeTransaction(staking.stakeWithOverrides(stakeAmount))
     await executeTransaction(staking.unstakeWithOverrides(stakeAmount))
@@ -277,7 +263,7 @@ const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) =
 
   console.log('Create 10 allocations...')
   for (let i = 0; i < signers.length; i++) {
-    const staking = new ConnectedStaking(true, undefined, undefined, signers[i])
+    const staking = new ConnectedStaking(true, network, signers[i])
     await executeTransaction(
       staking.allocateWithOverrides(
         stakeAmount,
@@ -294,8 +280,8 @@ const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) =
   console.log('Settle 5 allocations...')
   for (let i = 0; i < 5; i++) {
     // Note that the array of proxy wallets is used, not the signers
-    const connectedGT = new ConnectedGraphToken(true, undefined, undefined, proxies[i])
-    const staking = new ConnectedStaking(true, undefined, undefined, proxies[i])
+    const connectedGT = new ConnectedGraphToken(true, network, proxies[i])
+    const staking = new ConnectedStaking(true, network, proxies[i])
     console.log(
       'First calling approve() to ensure staking contract can call transferFrom() from the proxies...',
     )
@@ -313,27 +299,19 @@ const populateStaking = async (signers: Array<Wallet>, proxies: Array<Wallet>) =
   )
 }
 
-const populateAll = async () => {
-  const signers = createManySigners(20, process.env.MNEMONIC)
+const populateAll = async (mnemonic: string, provider: string, network: string): Promise<void> => {
+  const signers = configureWallets(mnemonic, provider, 20)
   const userAccounts = signers.slice(0, 10)
   const proxyAccounts = signers.slice(10, 20)
-  // await sendEth(userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
+  const governor = signers[0]
+  // await sendEth(governor, userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
   // await populateGraphToken(userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
-  await populateEthereumDIDRegistry(userAccounts)
-  await populateENS(userAccounts)
-  await populateGNS(userAccounts)
-  await populateCuration(userAccounts)
-  await populateServiceRegistry(userAccounts)
-  await populateStaking(userAccounts, proxyAccounts)
+  await populateEthereumDIDRegistry(network, userAccounts)
+  await populateENS(network, userAccounts)
+  await populateGNS(network, userAccounts)
+  await populateCuration(network, userAccounts)
+  await populateServiceRegistry(network, userAccounts)
+  await populateStaking(network, userAccounts, proxyAccounts)
 }
 
-const main = async () => {
-  try {
-    await populateAll()
-  } catch (e) {
-    console.log(`  ..failed within main: ${e.message}`)
-    process.exit(1)
-  }
-}
-
-main()
+export default populateAll

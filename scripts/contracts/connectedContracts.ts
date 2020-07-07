@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { Wallet, BigNumberish, utils, ContractTransaction, BytesLike } from 'ethers'
+import { Wallet, BigNumberish, utils, ContractTransaction, Contract } from 'ethers'
 
 // Contract factories
 import { CurationFactory } from '../../build/typechain/contracts/CurationContract'
@@ -11,7 +11,6 @@ import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEt
 
 import {
   getNetworkAddresses,
-  configureWallet,
   IPFS,
   estimateOverrides,
   basicOverrides,
@@ -49,11 +48,11 @@ import {
  */
 class ConnectedContract {
   constructor(
-    estimate: boolean,
+    readonly estimate: boolean,
+    readonly network: string,
+    readonly configuredWallet: Wallet,
     gasPrice?: BigNumberish,
     gasLimit?: BigNumberish,
-    readonly wallet?: Wallet,
-    readonly network?: string,
   ) {
     this.gasPrice = gasPrice
     this.gasLimit = gasLimit
@@ -61,9 +60,8 @@ class ConnectedContract {
   }
   gasPrice: BigNumberish
   gasLimit: BigNumberish
-  estimate: boolean
   addresses = getNetworkAddresses(this.network)
-  configuredWallet = configureWallet(this.wallet, this.network)
+  // contract: Contract TODO NEW - implement ****
 }
 
 class ConnectedCuration extends ConnectedContract {

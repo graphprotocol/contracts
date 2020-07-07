@@ -28,7 +28,7 @@ import { IPublicResolverFactory } from '../../build/typechain/contracts/IPublicR
 import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEthereumDidRegistryContract'
 import { ITestRegistrarFactory } from '../../build/typechain/contracts/ITestRegistrarContract'
 
-import { getNetworkAddresses, configureWallet } from './helpers'
+import { getNetworkAddresses } from './helpers'
 
 interface ConnectedNetworkContracts {
   curation: Curation
@@ -47,7 +47,7 @@ interface ConnectedNetworkContracts {
 
 /**** connectedNetwork.ts Description
  * Connect to an object with the basic typescript bindings for all contracts. Useful to import
- * this from the npm package if you need just need a simple raw cal, or if you need to build up
+ * this from the npm package if you need just need a simple raw call, or if you need to build up
  * a complex tx with helpers. If you need to build a complex tx with helpers, it might belong
  * in connectedContracts.ts, since this file holds these types of complex txs that all repos
  * can import if needed.
@@ -55,18 +55,15 @@ interface ConnectedNetworkContracts {
 
 /**
  * @dev connectedContracts
- * @wallet Pass a wallet in, which will become the signer. If no wallet is passed, it defaults to
- * the mnemonic in .env. This allows it to be used in CLI and front end.
- * @network Pass in the network for the contract to be connected to. Defaults to the current network
- * we are using for testing (i.e. kovan, next rinkeby)
+ * @wallet Signer attached to a network
+ * @network Network passed in to get contract addresses
  * @note Connect to addresses in addresses.json for the chosen network
  */
 const connectContracts = async (
-  wallet?: Wallet,
-  network?: string,
+  configuredWallet: Wallet,
+  network: string,
 ): Promise<ConnectedNetworkContracts> => {
   const addresses = getNetworkAddresses(network)
-  const configuredWallet = configureWallet(wallet, network)
 
   return {
     curation: CurationFactory.connect(
