@@ -10,6 +10,7 @@ dotenv.config()
 
 // Plugins
 
+usePlugin('@nomiclabs/buidler-ethers')
 usePlugin('@nomiclabs/buidler-etherscan')
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('solidity-coverage')
@@ -69,7 +70,7 @@ const config: BuidlerConfig = {
     buidlerevm: {
       chainId: 31337,
       loggingEnabled: false,
-      gas: 'auto',
+      gas: 8000000,
       gasPrice: 'auto',
       blockGasLimit: 9500000,
       accounts: [

@@ -1,10 +1,11 @@
 pragma solidity ^0.6.4;
-pragma experimental ABIEncoderV2;
+
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./Governed.sol";
-import "./GraphToken.sol";
+import "./ICuration.sol";
+import "./IGraphToken.sol";
 import "./bancor/BancorFormula.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
  * @title Curation contract
@@ -14,37 +15,37 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  * A curators stake goes to a curation pool along with the stakes of other curators,
  * only one pool exists for each subgraph deployment.
  */
-contract Curation is Governed, BancorFormula {
+contract Curation is ICuration, BancorFormula, Governed {
     using SafeMath for uint256;
 
     // -- Curation --
 
     struct CurationPool {
-        uint256 reserveRatio; // Ratio for the bonding curve
         uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
         uint256 shares; // Shares issued for the SubgraphDeployment
+        uint32 reserveRatio; // Ratio for the bonding curve
         mapping(address => uint256) curatorShares; // Mapping of curator => shares
     }
 
     // 100% in parts per million
-    uint256 private constant MAX_PPM = 1000000;
+    uint32 private constant MAX_PPM = 1000000;
 
     // Amount of shares you get with your minimum token stake
     uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
 
     // -- State --
 
+    // Fee charged when curator withdraw stake
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public withdrawalFeePercentage;
+
     // Default reserve ratio to configure curator shares bonding curve
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public defaultReserveRatio;
+    uint32 public defaultReserveRatio;
 
     // Minimum amount allowed to be staked by curators
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
-
-    // Fee charged when curator withdraw stake
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public withdrawalFeePercentage;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeployment
@@ -54,7 +55,7 @@ contract Curation is Governed, BancorFormula {
     address public staking;
 
     // Token used for staking
-    GraphToken public token;
+    IGraphToken public token;
 
     // -- Events --
 
@@ -98,10 +99,10 @@ contract Curation is Governed, BancorFormula {
     constructor(
         address _governor,
         address _token,
-        uint256 _defaultReserveRatio,
+        uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
     ) public Governed(_governor) {
-        token = GraphToken(_token);
+        token = IGraphToken(_token);
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setMinimumCurationStake(_minimumCurationStake);
     }
@@ -111,7 +112,7 @@ contract Curation is Governed, BancorFormula {
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function setDefaultReserveRatio(uint256 _defaultReserveRatio) external onlyGovernor {
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
         _setDefaultReserveRatio(_defaultReserveRatio);
     }
 
@@ -119,7 +120,7 @@ contract Curation is Governed, BancorFormula {
      * @dev Set the default reserve ratio percentage for a curation pool.
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function _setDefaultReserveRatio(uint256 _defaultReserveRatio) private {
+    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -136,7 +137,7 @@ contract Curation is Governed, BancorFormula {
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
-    function setStaking(address _staking) external onlyGovernor {
+    function setStaking(address _staking) external override onlyGovernor {
         staking = _staking;
         emit ParameterUpdated("staking");
     }
@@ -146,7 +147,7 @@ contract Curation is Governed, BancorFormula {
      * @notice Update the minimum stake amount to `_minimumCurationStake`
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
-    function setMinimumCurationStake(uint256 _minimumCurationStake) external onlyGovernor {
+    function setMinimumCurationStake(uint256 _minimumCurationStake) external override onlyGovernor {
         _setMinimumCurationStake(_minimumCurationStake);
     }
 
@@ -164,7 +165,7 @@ contract Curation is Governed, BancorFormula {
      * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
-    function setWithdrawalFeePercentage(uint256 _percentage) external onlyGovernor {
+    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,
@@ -179,7 +180,7 @@ contract Curation is Governed, BancorFormula {
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
-    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external {
+    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
         require(msg.sender == staking, "Caller must be the staking contract");
 
         // Transfer tokens collected from the staking contract to this contract
@@ -197,7 +198,7 @@ contract Curation is Governed, BancorFormula {
      * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking Graph Tokens
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function stake(bytes32 _subgraphDeploymentID, uint256 _tokens) external {
+    function stake(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
         address curator = msg.sender;
 
         // Need to stake some funds
@@ -219,7 +220,7 @@ contract Curation is Governed, BancorFormula {
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning shares
      * @param _shares Amount of shares to return
      */
-    function redeem(bytes32 _subgraphDeploymentID, uint256 _shares) external {
+    function redeem(bytes32 _subgraphDeploymentID, uint256 _shares) external override {
         address curator = msg.sender;
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
@@ -238,7 +239,7 @@ contract Curation is Governed, BancorFormula {
         }
 
         // Calculate withdrawal fees and burn the tokens
-        uint256 withdrawalFees = percentageOf(withdrawalFeePercentage, tokens);
+        uint256 withdrawalFees = uint256(withdrawalFeePercentage).mul(tokens).div(MAX_PPM);
         if (withdrawalFees > 0) {
             tokens = tokens.sub(withdrawalFees);
             token.burn(withdrawalFees);
@@ -255,7 +256,16 @@ contract Curation is Governed, BancorFormula {
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
-    function isCurated(bytes32 _subgraphDeploymentID) public view returns (bool) {
+    function isCurated(bytes32 _subgraphDeploymentID) external override view returns (bool) {
+        return _isCurated(_subgraphDeploymentID);
+    }
+
+    /**
+     * @dev Check if any Graph tokens are staked for a SubgraphDeployment.
+     * @param _subgraphDeploymentID SubgraphDeployment to check if curated
+     * @return True if curated
+     */
+    function _isCurated(bytes32 _subgraphDeploymentID) private view returns (bool) {
         return pools[_subgraphDeploymentID].tokens > 0;
     }
 
@@ -290,9 +300,9 @@ contract Curation is Governed, BancorFormula {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         if (curationPool.tokens == 0) {
             curationPool = CurationPool(
-                defaultReserveRatio,
                 minimumCurationStake,
-                SHARES_PER_MINIMUM_STAKE
+                SHARES_PER_MINIMUM_STAKE,
+                defaultReserveRatio
             );
             tokens = tokens.sub(curationPool.tokens);
             shares = curationPool.shares;
@@ -393,7 +403,7 @@ contract Curation is Governed, BancorFormula {
      */
     function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
         require(
-            isCurated(_subgraphDeploymentID),
+            _isCurated(_subgraphDeploymentID),
             "SubgraphDeployment must be curated to collect fees"
         );
 
@@ -418,7 +428,7 @@ contract Curation is Governed, BancorFormula {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
-        if (!isCurated(_subgraphDeploymentID)) {
+        if (!_isCurated(_subgraphDeploymentID)) {
             require(_tokens >= minimumCurationStake, "Curation stake is below minimum required");
 
             // Initialize
@@ -429,15 +439,5 @@ contract Curation is Governed, BancorFormula {
         uint256 shares = _buyShares(_curator, _subgraphDeploymentID, _tokens);
 
         emit Staked(_curator, _subgraphDeploymentID, _tokens, shares);
-    }
-
-    /**
-     * @dev Calculate the percentage for value in parts per million (PPM)
-     * @param _ppm Parts per million
-     * @param _value Value to calculate percentage of
-     * @return Percentage of value
-     */
-    function percentageOf(uint256 _ppm, uint256 _value) private pure returns (uint256) {
-        return _ppm.mul(_value).div(MAX_PPM);
     }
 }

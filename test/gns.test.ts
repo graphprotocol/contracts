@@ -22,52 +22,52 @@ describe('GNS', () => {
     metadataHash: '0xeb50d096ba95573ae31640e38e4ef64fd02eec174f586624a37ea04e7bd8c751',
   }
 
-  beforeEach(async function() {
+  const publishNewSubgraph = (signer: Wallet, graphAccount: string) =>
+    gns
+      .connect(signer)
+      .publishNewSubgraph(
+        graphAccount,
+        newSubgraph.subgraphDeploymentID,
+        newSubgraph.nameIdentifier,
+        newSubgraph.name,
+        newSubgraph.metadataHash,
+      )
+
+  const publishNewVersion = (signer: Wallet, graphAccount: string, subgraphNumber: number) =>
+    gns
+      .connect(signer)
+      .publishNewVersion(
+        graphAccount,
+        subgraphNumber,
+        newSubgraph.subgraphDeploymentID,
+        newSubgraph.nameIdentifier,
+        newSubgraph.name,
+        newSubgraph.metadataHash,
+      )
+
+  const deprecate = (signer: Wallet, graphAccount: string, subgraphNumber: number) =>
+    gns.connect(signer).deprecate(graphAccount, subgraphNumber)
+
+  beforeEach(async function () {
     // No need to call the didRegistry and update owner, since an account is the owner of itself
     // by default. Thus, we don't even bother, but the contract still is needed in testing
     didRegistry = await deployment.deployEthereumDIDRegistry()
     gns = await deployment.deployGNS(governor.address, didRegistry.address)
-
-    this.publishNewSubgraph = (signer: Wallet, graphAccount: string) =>
-      gns
-        .connect(signer)
-        .publishNewSubgraph(
-          graphAccount,
-          newSubgraph.subgraphDeploymentID,
-          newSubgraph.nameIdentifier,
-          newSubgraph.name,
-          newSubgraph.metadataHash,
-        )
-
-    this.publishNewVersion = (signer: Wallet, graphAccount: string, subgraphNumber: number) =>
-      gns
-        .connect(signer)
-        .publishNewVersion(
-          graphAccount,
-          subgraphNumber,
-          newSubgraph.subgraphDeploymentID,
-          newSubgraph.nameIdentifier,
-          newSubgraph.name,
-          newSubgraph.metadataHash,
-        )
-
-    this.deprecate = (signer: Wallet, graphAccount: string, subgraphNumber: number) =>
-      gns.connect(signer).deprecate(graphAccount, subgraphNumber)
   })
 
-  describe('isPublished', function() {
-    it('should return if the subgraph is published', async function() {
-      expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).to.be.eq(false)
-      await this.publishNewSubgraph(me, me.address)
-      expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).to.be.eq(true)
+  describe('isPublished', function () {
+    it('should return if the subgraph is published', async function () {
+      expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).eq(false)
+      await publishNewSubgraph(me, me.address)
+      expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).eq(true)
     })
   })
 
-  describe('publishNewSubgraph', async function() {
-    it('should publish a new subgraph and first version with it', async function() {
-      const tx = this.publishNewSubgraph(me, me.address)
+  describe('publishNewSubgraph', async function () {
+    it('should publish a new subgraph and first version with it', async function () {
+      const tx = publishNewSubgraph(me, me.address)
       await expect(tx)
-        .to.emit(gns, 'SubgraphPublished')
+        .emit(gns, 'SubgraphPublished')
         .withArgs(
           newSubgraph.graphAccount.address,
           0,
@@ -80,24 +80,24 @@ describe('GNS', () => {
 
       // State updated
       const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 0)
-      expect(newSubgraph.subgraphDeploymentID).to.be.eq(deploymentID)
+      expect(newSubgraph.subgraphDeploymentID).eq(deploymentID)
     })
 
-    it('should publish a new subgraph with an incremented value', async function() {
+    it('should publish a new subgraph with an incremented value', async function () {
       // We publish the exact same subgraph here, with same name, This is okay
       // in the contract, but the subgraph would make decisions on how to resolve this
-      await this.publishNewSubgraph(me, me.address)
-      await this.publishNewSubgraph(me, me.address)
+      await publishNewSubgraph(me, me.address)
+      await publishNewSubgraph(me, me.address)
       const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 1)
-      expect(newSubgraph.subgraphDeploymentID).to.be.eq(deploymentID)
+      expect(newSubgraph.subgraphDeploymentID).eq(deploymentID)
     })
 
-    it('should reject publish if not sent from owner', async function() {
-      const tx = this.publishNewSubgraph(other, me.address)
-      await expect(tx).to.revertedWith('GNS: Only graph account owner can call')
+    it('should reject publish if not sent from owner', async function () {
+      const tx = publishNewSubgraph(other, me.address)
+      await expect(tx).revertedWith('GNS: Only graph account owner can call')
     })
 
-    it('should prevent subgraphDeploymentID of 0 to be used', async function() {
+    it('should prevent subgraphDeploymentID of 0 to be used', async function () {
       const tx = gns
         .connect(me)
         .publishNewSubgraph(
@@ -107,18 +107,18 @@ describe('GNS', () => {
           newSubgraph.name,
           newSubgraph.metadataHash,
         )
-      await expect(tx).to.revertedWith('GNS: Cannot set to 0 in publish')
+      await expect(tx).revertedWith('GNS: Cannot set to 0 in publish')
     })
   })
 
-  describe('publishNewVersion', async function() {
-    it('should publish a new version on an existing subgraph', async function() {
-      await this.publishNewSubgraph(me, me.address)
-      const tx = this.publishNewVersion(me, me.address, 0)
+  describe('publishNewVersion', async function () {
+    it('should publish a new version on an existing subgraph', async function () {
+      await publishNewSubgraph(me, me.address)
+      const tx = publishNewVersion(me, me.address, 0)
 
       // Event being emitted indicates version has been updated
       await expect(tx)
-        .to.emit(gns, 'SubgraphPublished')
+        .emit(gns, 'SubgraphPublished')
         .withArgs(
           newSubgraph.graphAccount.address,
           0,
@@ -130,41 +130,39 @@ describe('GNS', () => {
         )
     })
 
-    it('should reject publishing a version to a numbered subgraph that does not exist', async function() {
-      const tx = this.publishNewVersion(me, me.address, 0)
-      await expect(tx).to.revertedWith(
+    it('should reject publishing a version to a numbered subgraph that does not exist', async function () {
+      const tx = publishNewVersion(me, me.address, 0)
+      await expect(tx).revertedWith(
         'GNS: Cant publish a version directly for a subgraph that wasnt created yet',
       )
     })
 
-    it('reject if not the owner', async function() {
-      await this.publishNewSubgraph(me, me.address)
-      const tx = this.publishNewVersion(other, me.address, 0)
-      await expect(tx).to.revertedWith('GNS: Only graph account owner can call')
+    it('reject if not the owner', async function () {
+      await publishNewSubgraph(me, me.address)
+      const tx = publishNewVersion(other, me.address, 0)
+      await expect(tx).revertedWith('GNS: Only graph account owner can call')
     })
   })
 
-  describe('deprecate', async function() {
-    it('should deprecate a subgraph', async function() {
-      await this.publishNewSubgraph(me, me.address)
-      const tx = this.deprecate(me, me.address, 0)
-      await expect(tx)
-        .to.emit(gns, 'SubgraphDeprecated')
-        .withArgs(newSubgraph.graphAccount.address, 0)
+  describe('deprecate', async function () {
+    it('should deprecate a subgraph', async function () {
+      await publishNewSubgraph(me, me.address)
+      const tx = deprecate(me, me.address, 0)
+      await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(newSubgraph.graphAccount.address, 0)
 
       // State updated
       const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 0)
-      expect(ethers.constants.HashZero).to.be.eq(deploymentID)
+      expect(ethers.constants.HashZero).eq(deploymentID)
     })
 
-    it('should allow a deprecated subgraph to be republished', async function() {
-      await this.publishNewSubgraph(me, me.address)
-      await this.deprecate(me, me.address, 0)
-      const tx = this.publishNewVersion(me, me.address, 0)
+    it('should allow a deprecated subgraph to be republished', async function () {
+      await publishNewSubgraph(me, me.address)
+      await deprecate(me, me.address, 0)
+      const tx = publishNewVersion(me, me.address, 0)
 
       // Event being emitted indicates version has been updated
       await expect(tx)
-        .to.emit(gns, 'SubgraphPublished')
+        .emit(gns, 'SubgraphPublished')
         .withArgs(
           newSubgraph.graphAccount.address,
           0,
@@ -176,17 +174,17 @@ describe('GNS', () => {
         )
     })
 
-    it('reject if the subgraph does not exist', async function() {
-      const tx = this.deprecate(me, me.address, 0)
-      await expect(tx).to.revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
-      const tx2 = this.deprecate(me, me.address, 2340)
-      await expect(tx2).to.revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
+    it('reject if the subgraph does not exist', async function () {
+      const tx = deprecate(me, me.address, 0)
+      await expect(tx).revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
+      const tx2 = deprecate(me, me.address, 2340)
+      await expect(tx2).revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
     })
 
-    it('reject if not the owner', async function() {
-      await this.publishNewSubgraph(me, me.address)
-      const tx = this.deprecate(other, me.address, 0)
-      await expect(tx).to.revertedWith('GNS: Only graph account owner can call')
+    it('reject if not the owner', async function () {
+      await publishNewSubgraph(me, me.address)
+      const tx = deprecate(other, me.address, 0)
+      await expect(tx).revertedWith('GNS: Only graph account owner can call')
     })
   })
 })

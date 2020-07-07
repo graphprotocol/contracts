@@ -21,12 +21,9 @@ export const provider = () => buidler.provider
 export const getChainID = (): Promise<string | number> =>
   provider()
     .getNetwork()
-    .then(r => r.chainId)
+    .then((r) => r.chainId)
 
-export const latestBlock = (): Promise<BigNumber> =>
-  provider()
-    .getBlockNumber()
-    .then(toBN)
+export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
@@ -58,6 +55,9 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   await advanceBlockTo(nextEpochBlock)
 }
 
+export const snapshotEVM = async (): Promise<number> => provider().send('evm_snapshot', [])
+export const revertEVM = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
+
 // Default configuration used in tests
 
 export const defaults = {
@@ -72,7 +72,7 @@ export const defaults = {
     slashingPercentage: toBN('1000'), // in basis points
   },
   epochs: {
-    lengthInBlocks: toBN((5 * 60) / 15), // 5 minutes in blocks
+    lengthInBlocks: toBN((10 * 60) / 15), // 10 minutes in blocks
   },
   staking: {
     channelDisputeEpochs: 1,

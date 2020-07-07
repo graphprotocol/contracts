@@ -26,7 +26,7 @@ describe('MinimumViableMultisig.sol', () => {
   let staking: MockStaking
   let multisig: MinimumViableMultisig
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const accounts = await ethers.getSigners()
     governor = accounts[0]
 
@@ -52,45 +52,45 @@ describe('MinimumViableMultisig.sol', () => {
     multisig = channelContracts.multisig
   })
 
-  describe('constructor', function() {
-    it('correct node address', async function() {
+  describe('constructor', function () {
+    it('correct node address', async function () {
       expect(await masterCopy.NODE_ADDRESS()).to.be.eq(node.address)
     })
 
-    it('correct indexer staking address', async function() {
+    it('correct indexer staking address', async function () {
       expect(await masterCopy.INDEXER_STAKING_ADDRESS()).to.be.eq(staking.address)
     })
 
-    it('correct indexer conditional transaction delegate target (ctdt) address', async function() {
+    it('correct indexer conditional transaction delegate target (ctdt) address', async function () {
       expect(await masterCopy.INDEXER_CTDT_ADDRESS()).to.be.eq(indexerCTDT.address)
     })
 
-    it('correct indexer single asset interpreter', async function() {
+    it('correct indexer single asset interpreter', async function () {
       expect(await masterCopy.INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
         singleAssetInterpreter.address,
       )
     })
 
-    it('correct indexer multi asset interpreter', async function() {
+    it('correct indexer multi asset interpreter', async function () {
       expect(await masterCopy.INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS()).to.be.eq(
         multiAssetInterpreter.address,
       )
     })
 
-    it('correct indexer withdrawal interpreter', async function() {
+    it('correct indexer withdrawal interpreter', async function () {
       expect(await masterCopy.INDEXER_WITHDRAW_INTERPRETER_ADDRESS()).to.be.eq(
         withdrawInterpreter.address,
       )
     })
   })
 
-  describe('setup', function() {
-    it('should be able to setup', async function() {
+  describe('setup', function () {
+    it('should be able to setup', async function () {
       const owners = [node.address, indexer.address]
       const retrieved = await multisig.getOwners()
       expect(retrieved).to.be.deep.eq(owners)
     })
-    it('should fail if already setup', async function() {
+    it('should fail if already setup', async function () {
       const owners = [node.address, indexer.address]
       await expect(multisig.connect(node).setup(owners)).to.be.revertedWith(
         'Contract has been set up before',
@@ -98,25 +98,25 @@ describe('MinimumViableMultisig.sol', () => {
     })
   })
 
-  describe('lock', function() {
-    beforeEach(async function() {
+  describe('lock', function () {
+    beforeEach(async function () {
       // Set the multisig owners
       await masterCopy.setup([node.address, indexer.address])
     })
 
-    it('should lock', async function() {
+    it('should lock', async function () {
       const tx = await staking.functions.lockMultisig(multisig.address)
       await tx.wait()
       expect(await multisig.locked()).to.be.eq(true)
     })
 
-    it('should fail if not called by staking address', async function() {
+    it('should fail if not called by staking address', async function () {
       await expect(multisig.connect(governor).lock()).to.be.revertedWith(
         'Caller must be the staking contract',
       )
     })
 
-    it('should fail if already locked', async function() {
+    it('should fail if already locked', async function () {
       const tx = await staking.functions.lockMultisig(multisig.address)
       await tx.wait()
       await expect(staking.functions.lockMultisig(multisig.address)).to.be.revertedWith(

@@ -39,8 +39,8 @@ export const verify = async (wallet: Wallet, addressBookPath: string): Promise<v
     }
 
     const address = contract.address
-    const args = contract.constructorArgs ? contract.constructorArgs.map(e => e.value) : []
-    const argsList = args.map(e => `"${e}"`).join(' ')
+    const args = contract.constructorArgs ? contract.constructorArgs.map((e) => e.value) : []
+    const argsList = args.map((e) => `"${e}"`).join(' ')
     const cmd = `buidler verify-contract --contract-name ${contractName} --address ${address} ${argsList}`
 
     try {

@@ -1,9 +1,11 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 import "./Governed.sol";
-import "./GraphToken.sol";
-import "./Staking.sol";
+import "./IGraphToken.sol";
+import "./IStaking.sol";
 
 /*
  * @title DisputeManager
@@ -49,7 +51,8 @@ contract DisputeManager is Governed {
     );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
+    bytes32
+        private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
         "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
     );
@@ -80,10 +83,10 @@ contract DisputeManager is Governed {
     uint256 public slashingPercentage;
 
     // Graph Token address
-    GraphToken public token;
+    IGraphToken public token;
 
     // Staking contract used for slashing
-    Staking public staking;
+    IStaking public staking;
 
     // -- Events --
 
@@ -165,8 +168,8 @@ contract DisputeManager is Governed {
         uint256 _slashingPercentage
     ) public Governed(_governor) {
         arbitrator = _arbitrator;
-        token = GraphToken(_token);
-        staking = Staking(_staking);
+        token = IGraphToken(_token);
+        staking = IStaking(_staking);
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
@@ -288,8 +291,8 @@ contract DisputeManager is Governed {
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
-    function setStaking(Staking _staking) external onlyGovernor {
-        staking = _staking;
+    function setStaking(address _staking) external onlyGovernor {
+        staking = IStaking(_staking);
         emit ParameterUpdated("staking");
     }
 
@@ -300,8 +303,7 @@ contract DisputeManager is Governed {
      * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _deposit Amount of tokens staked as deposit
      */
-    function createDispute(bytes calldata _attestationData, uint256 _deposit) external
-    {
+    function createDispute(bytes calldata _attestationData, uint256 _deposit) external {
         address fisherman = msg.sender;
 
         // Ensure that fisherman has staked at least the minimum amount
@@ -412,9 +414,16 @@ contract DisputeManager is Governed {
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      */
-    function _createDispute(address _fisherman, uint256 _deposit, bytes memory _attestationData) private {
+    function _createDispute(
+        address _fisherman,
+        uint256 _deposit,
+        bytes memory _attestationData
+    ) private {
         // Check attestation data length
-        require(_attestationData.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
+        require(
+            _attestationData.length == ATTESTATION_SIZE_BYTES,
+            "Attestation must be 161 bytes long"
+        );
 
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
@@ -423,10 +432,10 @@ contract DisputeManager is Governed {
         address channelID = _recoverAttestationSigner(attestation);
 
         // Get the indexer that created the channel and signed the attestation
-        (address indexer, bytes32 subgraphDeploymentID) = staking.channels(channelID);
-        require(indexer != address(0), "Indexer cannot be found for the attestation");
+        IStaking.Allocation memory alloc = staking.getAllocation(channelID);
+        require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
-            subgraphDeploymentID == attestation.subgraphDeploymentID,
+            alloc.subgraphDeploymentID == attestation.subgraphDeploymentID,
             "Channel and attestation subgraphDeploymentID must match"
         );
 
@@ -436,12 +445,12 @@ contract DisputeManager is Governed {
                 attestation.requestCID,
                 attestation.responseCID,
                 attestation.subgraphDeploymentID,
-                indexer
+                alloc.indexer
             )
         );
 
         // This also validates that indexer exists
-        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
+        require(staking.hasStake(alloc.indexer), "Dispute has no stake by the indexer");
 
         // A fisherman can only open one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
@@ -449,7 +458,7 @@ contract DisputeManager is Governed {
         // Store dispute
         disputes[disputeID] = Dispute(
             attestation.subgraphDeploymentID,
-            indexer,
+            alloc.indexer,
             _fisherman,
             _deposit
         );
@@ -457,7 +466,7 @@ contract DisputeManager is Governed {
         emit DisputeCreated(
             disputeID,
             attestation.subgraphDeploymentID,
-            indexer,
+            alloc.indexer,
             _fisherman,
             _deposit,
             _attestationData
@@ -469,7 +478,11 @@ contract DisputeManager is Governed {
      * @param _attestation The attestation struct
      * @return Signer address
      */
-    function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
+    function _recoverAttestationSigner(Attestation memory _attestation)
+        private
+        view
+        returns (address)
+    {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         Receipt memory receipt = Receipt(
             _attestation.requestCID,
@@ -502,7 +515,8 @@ contract DisputeManager is Governed {
     function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
         // Decode receipt
         (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
-            _data, (bytes32, bytes32, bytes32)
+            _data,
+            (bytes32, bytes32, bytes32)
         );
 
         // Decode signature
@@ -519,7 +533,12 @@ contract DisputeManager is Governed {
      * signature `v`, `r', `s`. This address can then be used for verification purposes.
      * @return The address recovered from the hash and signature.
      */
-    function _recover(bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s) private pure returns (address) {
+    function _recover(
+        bytes32 _hash,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) private pure returns (address) {
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
         // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
         // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most

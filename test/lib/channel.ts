@@ -138,11 +138,11 @@ export const getFreeBalanceState = (
   appInfo: [{ identityHash: string; deposit: BigNumber; assetId: string }],
 ) => {
   // Generate active apps
-  const activeApps = appInfo.map(appInfo => appInfo.identityHash)
+  const activeApps = appInfo.map((appInfo) => appInfo.identityHash)
 
   // Generate token addresses
   const tokenAddresses = [AddressZero].concat(
-    appInfo.filter(app => app.assetId !== AddressZero).map(app => app.assetId),
+    appInfo.filter((app) => app.assetId !== AddressZero).map((app) => app.assetId),
   )
 
   // Get total app deposits
@@ -404,7 +404,7 @@ export class MiniCommitment {
 
     // Generate owner signatures
     const digest = this.getDigestFromDetails(details)
-    const signatures = await Promise.all(this.owners.map(owner => owner.signMessage(digest)))
+    const signatures = await Promise.all(this.owners.map((owner) => owner.signMessage(digest)))
 
     // Encode call to execute transaction
     const multisig = new Interface(MultisigArtifact.abi)

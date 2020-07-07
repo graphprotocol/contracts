@@ -1,20 +1,20 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./Curation.sol";
 import "./EpochManager.sol";
 import "./Governed.sol";
-import "./GraphToken.sol";
+import "./ICuration.sol";
+import "./IGraphToken.sol";
+import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
 /**
  * @title Staking contract
  */
-contract Staking is Governed {
+contract Staking is IStaking, Governed {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
-    using Stakes for Stakes.Allocation;
     using Rebates for Rebates.Pool;
 
     // 100% in parts per million
@@ -28,28 +28,18 @@ contract Staking is Governed {
     // Indexer stake tracking : indexer => Stake
     mapping(address => Stakes.Indexer) public stakes;
 
-    // -- Allocation and Channel --
-
-    struct Channel {
-        address indexer;
-        bytes32 subgraphDeploymentID;
-    }
-
     // Percentage of fees going to curators
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint256 public curationPercentage;
 
-    // Need to pass this period to claim fees in rebate pool
+    // Need to pass this period for channel to be finalized
     uint256 public channelDisputeEpochs;
 
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
-    // Channels : channelID => Channel
-    mapping(address => Channel) public channels;
-
-    // Channels Proxy : Channel Multisig Proxy => channelID
-    mapping(address => address) public channelsProxy;
+    // Allocations : allocationID => Allocation
+    mapping(address => Allocation) public allocations;
 
     // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
@@ -58,18 +48,6 @@ contract Staking is Governed {
 
     // List of addresses allowed to slash stakes
     mapping(address => bool) public slashers;
-
-    // -- Delegation --
-
-    struct DelegationPool {
-        uint256 cooldownBlocks;
-        uint256 indexingRewardCut; // in PPM
-        uint256 queryFeeCut; // in PPM
-        uint256 updatedAtBlock;
-        uint256 tokens;
-        uint256 shares;
-        mapping(address => uint256) delegatorShares; // Mapping of delegator => shares
-    }
 
     // Set the delegation capacity multiplier.
     // If delegation capacity is 100 GRT, and an Indexer has staked 5 GRT,
@@ -84,9 +62,9 @@ contract Staking is Governed {
 
     // -- Related contracts --
 
-    GraphToken public token;
+    IGraphToken public token;
     EpochManager public epochManager;
-    Curation public curation;
+    ICuration public curation;
 
     // -- Events --
 
@@ -165,12 +143,11 @@ contract Staking is Governed {
     );
 
     /**
-     * @dev Emitted when `indexer` settled an allocation of `tokens` amount to `subgraphDeploymentID`
-     * during `epoch` using `channelID` as channel.
-     *
-     * NOTE: `from` tracks the multisig contract from where it was settled.
+     * @dev Emitted when `indexer` withdrew `tokens` amount in `epoch` from `channelID` channel.
+     * The funds are related to `subgraphDeploymentID`.
+     * `from` attribute records the the multisig contract from where it was settled.
      */
-    event AllocationSettled(
+    event AllocationCollected(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
@@ -178,7 +155,20 @@ contract Staking is Governed {
         address channelID,
         address from,
         uint256 curationFees,
-        uint256 rebateFees,
+        uint256 rebateFees
+    );
+
+    /**
+     * @dev Emitted when `indexer` settled an allocation in `epoch` for `channelID` channel.
+     * The `tokens` getting unallocated from `subgraphDeploymentID`.
+     * The `effectiveAllocation` are the tokens allocated from creation to settlement.
+     */
+    event AllocationSettled(
+        address indexed indexer,
+        bytes32 indexed subgraphDeploymentID,
+        uint256 epoch,
+        uint256 tokens,
+        address channelID,
         uint256 effectiveAllocation
     );
 
@@ -209,7 +199,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Staking Contract Constructor
+     * @dev Staking Contract Constructor.
      * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
@@ -219,24 +209,24 @@ contract Staking is Governed {
         address _token,
         address _epochManager
     ) public Governed(_governor) {
-        token = GraphToken(_token);
+        token = IGraphToken(_token);
         epochManager = EpochManager(_epochManager);
     }
 
     /**
-     * @dev Set the curation contract where to send curation fees
+     * @dev Set the curation contract where to send curation fees.
      * @param _curation Address of the curation contract
      */
-    function setCuration(address _curation) external onlyGovernor {
-        curation = Curation(_curation);
+    function setCuration(address _curation) external override onlyGovernor {
+        curation = ICuration(_curation);
         emit ParameterUpdated("curation");
     }
 
     /**
-     * @dev Set the curation percentage of indexer fees sent to curators
+     * @dev Set the curation percentage of indexer fees sent to curators.
      * @param _percentage Percentage of indexer fees sent to curators
      */
-    function setCurationPercentage(uint256 _percentage) external onlyGovernor {
+    function setCurationPercentage(uint256 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
         curationPercentage = _percentage;
@@ -244,19 +234,19 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed
+     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed.
      * @param _channelDisputeEpochs Period in epochs
      */
-    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external onlyGovernor {
+    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external override onlyGovernor {
         channelDisputeEpochs = _channelDisputeEpochs;
         emit ParameterUpdated("channelDisputeEpochs");
     }
 
     /**
-     * @dev Set the max allocation time allowed for indexers
+     * @dev Set the max allocation time allowed for indexers stake on channels.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
-    function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external onlyGovernor {
+    function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external override onlyGovernor {
         maxAllocationEpochs = _maxAllocationEpochs;
         emit ParameterUpdated("maxAllocationEpochs");
     }
@@ -265,7 +255,7 @@ contract Staking is Governed {
      * @dev Set the time in blocks an indexer needs to wait to change delegation parameters.
      * @param _blocks Number of blocks to set the delegation parameters cooldown period
      */
-    function setDelegationParametersCooldown(uint256 _blocks) external onlyGovernor {
+    function setDelegationParametersCooldown(uint256 _blocks) external override onlyGovernor {
         delegationParametersCooldown = _blocks;
         emit ParameterUpdated("delegationParametersCooldown");
     }
@@ -274,7 +264,7 @@ contract Staking is Governed {
      * @dev Set the delegation capacity multiplier.
      * @param _delegationCapacity Delegation capacity multiplier
      */
-    function setDelegationCapacity(uint256 _delegationCapacity) external onlyGovernor {
+    function setDelegationCapacity(uint256 _delegationCapacity) external override onlyGovernor {
         delegationCapacity = _delegationCapacity;
         emit ParameterUpdated("delegationCapacity");
     }
@@ -289,7 +279,7 @@ contract Staking is Governed {
         uint256 _indexingRewardCut,
         uint256 _queryFeeCut,
         uint256 _cooldownBlocks
-    ) external {
+    ) external override {
         address indexer = msg.sender;
 
         // Incentives must be within bounds
@@ -335,7 +325,7 @@ contract Staking is Governed {
      * @param _slasher Address of the party allowed to slash indexers
      * @param _allowed True if slasher is allowed
      */
-    function setSlasher(address _slasher, bool _allowed) external onlyGovernor {
+    function setSlasher(address _slasher, bool _allowed) external override onlyGovernor {
         slashers[_slasher] = _allowed;
         emit SlasherUpdate(msg.sender, _slasher, _allowed);
     }
@@ -344,18 +334,18 @@ contract Staking is Governed {
      * @dev Set the thawing period for unstaking
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
-    function setThawingPeriod(uint256 _thawingPeriod) external onlyGovernor {
+    function setThawingPeriod(uint256 _thawingPeriod) external override onlyGovernor {
         thawingPeriod = _thawingPeriod;
         emit ParameterUpdated("thawingPeriod");
     }
 
     /**
-     * @dev Return if channelID (address) is already used
+     * @dev Return if channelID (address) was used as a channel in any allocation.
      * @param _channelID Address used as signer for indexer in channel
      * @return True if channelID already used
      */
-    function isChannel(address _channelID) public view returns (bool) {
-        return channels[_channelID].indexer != address(0);
+    function isChannel(address _channelID) external override view returns (bool) {
+        return _getAllocationState(_channelID) != AllocationState.Null;
     }
 
     /**
@@ -363,22 +353,31 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer
      * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexer) public view returns (bool) {
+    function hasStake(address _indexer) external override view returns (bool) {
         return stakes[_indexer].hasTokens();
     }
 
     /**
-     * @dev Get an allocation of tokens to a SubgraphDeployment
-     * @param _indexer Address of the indexer
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment to query
+     * @dev Return the allocation for a particular channel identifier
+     * @param _channelID Address used as channel identifier where stake has been allocated
      * @return Allocation data
      */
-    function getAllocation(address _indexer, bytes32 _subgraphDeploymentID)
-        public
+    function getAllocation(address _channelID) external override view returns (Allocation memory) {
+        return allocations[_channelID];
+    }
+
+    /**
+     * @dev Return the current state of an allocation
+     * @param _channelID Address used as the allocation channel identifier
+     * @return AllocationState
+     */
+    function getAllocationState(address _channelID)
+        external
+        override
         view
-        returns (Stakes.Allocation memory)
+        returns (AllocationState)
     {
-        return stakes[_indexer].allocations[_subgraphDeploymentID];
+        return _getAllocationState(_channelID);
     }
 
     /**
@@ -388,7 +387,8 @@ contract Staking is Governed {
      * @return Shares owned by delegator in a delegation pool
      */
     function getDelegationShares(address _indexer, address _delegator)
-        public
+        external
+        override
         view
         returns (uint256)
     {
@@ -402,7 +402,8 @@ contract Staking is Governed {
      * @return Tokens owned by delegator in a delegation pool
      */
     function getDelegationTokens(address _indexer, address _delegator)
-        public
+        external
+        override
         view
         returns (uint256)
     {
@@ -411,7 +412,7 @@ contract Staking is Governed {
         if (pool.shares == 0) {
             return 0;
         }
-        uint256 _shares = getDelegationShares(_indexer, _delegator);
+        uint256 _shares = delegation[_indexer].delegatorShares[_delegator];
         return _shares.mul(pool.tokens).div(pool.shares);
     }
 
@@ -420,7 +421,7 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakedTokens(address _indexer) public view returns (uint256) {
+    function getIndexerStakedTokens(address _indexer) external override view returns (uint256) {
         return stakes[_indexer].tokensStaked;
     }
 
@@ -429,7 +430,7 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerCapacity(address _indexer) public view returns (uint256) {
+    function getIndexerCapacity(address _indexer) public override view returns (uint256) {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         DelegationPool memory pool = delegation[_indexer];
 
@@ -455,21 +456,6 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Get an outstanding unclaimed settlement
-     * @param _epoch Epoch when the settlement ocurred
-     * @param _indexer Address of the indexer
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment settled
-     * @return Settlement data
-     */
-    function getSettlement(
-        uint256 _epoch,
-        address _indexer,
-        bytes32 _subgraphDeploymentID
-    ) public view returns (Rebates.Settlement memory) {
-        return rebates[_epoch].settlements[_indexer][_subgraphDeploymentID];
-    }
-
-    /**
      * @dev Slash the indexer stake
      * @param _indexer Address of indexer to slash
      * @param _tokens Amount of tokens to slash from the indexer stake
@@ -481,16 +467,23 @@ contract Staking is Governed {
         uint256 _tokens,
         uint256 _reward,
         address _beneficiary
-    ) external onlySlasher {
+    ) external override onlySlasher {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
+        // Only able to slash a non-zero number of tokens
         require(_tokens > 0, "Slashing: cannot slash zero tokens");
+
+        // Rewards comes from tokens slashed balance
         require(_tokens >= _reward, "Slashing: reward cannot be higher than slashed amount");
+
+        // Cannot slash stake of an indexer without any or enough stake
         require(indexerStake.hasTokens(), "Slashing: indexer has no stakes");
         require(
             _tokens <= indexerStake.tokensStaked,
             "Slashing: cannot slash more than staked amount"
         );
+
+        // Validate beneficiary of slashed tokens
         require(_beneficiary != address(0), "Slashing: beneficiary must not be an empty address");
 
         // Slashing more tokens than freely available (over allocation condition)
@@ -527,7 +520,7 @@ contract Staking is Governed {
      * @dev Deposit tokens on the indexer stake
      * @param _tokens Amount of tokens to stake
      */
-    function stake(uint256 _tokens) external {
+    function stake(uint256 _tokens) external override {
         address indexer = msg.sender;
 
         require(_tokens > 0, "Staking: cannot stake zero tokens");
@@ -535,7 +528,7 @@ contract Staking is Governed {
         // Transfer tokens to stake from indexer to this contract
         require(
             token.transferFrom(indexer, address(this), _tokens),
-            "Staking: Cannot transfer tokens to stake"
+            "Staking: cannot transfer tokens to stake"
         );
 
         // Stake the transferred tokens
@@ -546,7 +539,7 @@ contract Staking is Governed {
      * @dev Unstake tokens from the indexer stake, lock them until thawing period expires
      * @param _tokens Amount of tokens to unstake
      */
-    function unstake(uint256 _tokens) external {
+    function unstake(uint256 _tokens) external override {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
@@ -566,7 +559,7 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
      */
-    function delegate(address _indexer, uint256 _tokens) external {
+    function delegate(address _indexer, uint256 _tokens) external override {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
@@ -584,7 +577,7 @@ contract Staking is Governed {
      * @param _indexer Address of the indexer where tokens had been delegated
      * @param _shares Amount of shares to return and undelegate tokens
      */
-    function undelegate(address _indexer, uint256 _shares) external {
+    function undelegate(address _indexer, uint256 _shares) external override {
         address delegator = msg.sender;
 
         // Update state
@@ -604,7 +597,7 @@ contract Staking is Governed {
         address _srcIndexer,
         address _dstIndexer,
         uint256 _shares
-    ) external {
+    ) external override {
         address delegator = msg.sender;
 
         // Can only redelegate to a different indexer
@@ -614,7 +607,7 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Allocate available tokens to a SubgraphDeployment
+     * @dev Allocate available tokens to a SubgraphDeployment.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
@@ -627,27 +620,12 @@ contract Staking is Governed {
         bytes calldata _channelPubKey,
         address _channelProxy,
         uint256 _price
-    ) external {
+    ) external override {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        // Only allocations with a token amount are allowed
+        // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "Allocation: cannot allocate zero tokens");
-
-        // Need to have tokens in our stake to be able to allocate
-        require(indexerStake.hasTokens(), "Allocation: indexer has no stakes");
-
-        // Need to have free capacity not used for other purposes to allocate
-        require(
-            getIndexerCapacity(indexer) >= _tokens,
-            "Allocation: not enough tokens available to allocate"
-        );
-
-        // Can only allocate tokens to a SubgraphDeployment if not currently allocated
-        require(
-            indexerStake.hasAllocation(_subgraphDeploymentID) == false,
-            "Allocation: cannot allocate if already allocated"
-        );
 
         // Channel public key must be in uncompressed format
         require(
@@ -655,25 +633,47 @@ contract Staking is Governed {
             "Allocation: invalid channel public key"
         );
 
-        // Cannot reuse a channelID that has been used in the past
-        address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
-        require(isChannel(channelID) == false, "Allocation: channel ID already in use");
-
-        // Allocate and setup channel
-        Stakes.Allocation storage alloc = indexerStake.allocateTokens(
-            _subgraphDeploymentID,
-            _tokens
+        // Needs to have free capacity not used for other purposes to allocate
+        require(
+            getIndexerCapacity(indexer) >= _tokens,
+            "Allocation: not enough tokens available to allocate"
         );
-        alloc.channelID = channelID;
-        alloc.createdAtEpoch = epochManager.currentEpoch();
-        channels[channelID] = Channel(indexer, _subgraphDeploymentID);
-        channelsProxy[_channelProxy] = channelID;
+
+        // A channel public key is derived by the indexer when creating the offchain payment channel.
+        // Get the Ethereum address from the public key and use as channel identifier.
+        // The channel identifier is the address of the indexer signing party of a multisig that
+        // will hold the funds received when the channel is settled.
+        address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
+
+        // Cannot reuse a channelID that has already been used in an allocation
+        require(
+            _getAllocationState(channelID) == AllocationState.Null,
+            "Allocation: channel ID already used"
+        );
+
+        // Create allocation linked to the channel identifier
+        // Channel identifiers are not reused
+        // The channel proxy address is the contract that will send tokens to be collected to
+        // this contract
+        allocations[channelID] = Allocation(
+            indexer,
+            _subgraphDeploymentID,
+            _tokens, // Tokens allocated
+            epochManager.currentEpoch(), // createdAtEpoch
+            0, // settledAtEpoch
+            0, // Initialize with zero collected fees
+            0, // Initialize effective allocation
+            _channelProxy // Source address of channel funds
+        );
+
+        // Mark allocated tokens as used
+        indexerStake.allocate(_tokens);
 
         emit AllocationCreated(
             indexer,
             _subgraphDeploymentID,
-            alloc.createdAtEpoch,
-            alloc.tokens,
+            allocations[channelID].createdAtEpoch,
+            allocations[channelID].tokens,
             channelID,
             _channelPubKey,
             _price
@@ -681,32 +681,90 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Settle a channel after receiving collected query fees from it
-     * Funds are received from a channel multisig proxy contract
-     * @param _tokens Amount of tokens to settle
+     * @dev Settle a channel and unallocate the staked tokens.
+     * @param _channelID The channel identifier for the allocation
      */
-    function settle(uint256 _tokens) external {
-        // Get the channelID the caller is related
-        address channelID = channelsProxy[msg.sender];
+    function settle(address _channelID) external override {
+        // Get allocation related to the channel identifier
+        Allocation storage alloc = allocations[_channelID];
+        AllocationState allocState = _getAllocationState(_channelID);
 
-        // Receive funds from the channel multisig
-        // We use channelID to find the indexer owner of the channel
-        require(isChannel(channelID), "Channel: does not exist");
+        // Channel must exist and be allocated
+        require(allocState == AllocationState.Active, "Settle: channel must be active");
 
-        delete channelsProxy[msg.sender]; // Remove to avoid re-entrancy
+        // Get indexer stakes
+        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
-        // Transfer tokens to settle from multisig to this contract
+        // Validate that an allocation cannot be settled before one epoch
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
+        require(epochs > 0, "Settle: must pass at least one epoch");
+
+        // Validate ownership
+        if (epochs > maxAllocationEpochs) {
+            // Verify that the allocation owner or delegator is settling
+            require(
+                alloc.indexer == msg.sender ||
+                    delegation[alloc.indexer].delegatorShares[msg.sender] > 0,
+                "Settle: only indexer or delegator can settle"
+            );
+        } else {
+            // Verify that the allocation owner is settling
+            require(alloc.indexer == msg.sender, "Settle: only indexer can settle");
+        }
+
+        // Settle the allocation and start counting a period to finalize any other
+        // withdrawal from the related channel.
+        alloc.settledAtEpoch = currentEpoch;
+        alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
+
+        // Send funds to rebate pool and account the effective allocation
+        Rebates.Pool storage rebatePool = rebates[currentEpoch];
+        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
+
+        // Free allocated tokens from use
+        indexerStake.unallocate(alloc.tokens);
+
+        emit AllocationSettled(
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            alloc.settledAtEpoch,
+            alloc.tokens,
+            _channelID,
+            alloc.effectiveAllocation
+        );
+    }
+
+    /**
+     * @dev Collect query fees from a channel.
+     * Funds received are only accepted from a channel multisig proxy contract.
+     * @param _tokens Amount of tokens to collect
+     */
+    function collect(uint256 _tokens, address _channelID) external override {
+        Allocation memory alloc = allocations[_channelID];
+
+        // Channel identifier validation
+        require(_channelID != address(0), "Collect: invalid channel");
+
+        // The contract caller must be a channel proxy registered during allocation
+        // The channelID must be related to the caller address
+        require(
+            alloc.channelProxy == msg.sender,
+            "Collect: caller is not related to the channel allocation"
+        );
+
+        // Transfer tokens to collect from multisig to this contract
         require(
             token.transferFrom(msg.sender, address(this), _tokens),
-            "Channel: Cannot transfer tokens to settle"
+            "Collect: cannot transfer tokens to settle"
         );
-        _settle(channelID, msg.sender, _tokens);
+
+        _collect(_channelID, msg.sender, _tokens);
     }
 
     /**
      * @dev Withdraw tokens once the thawing period has passed
      */
-    function withdraw() external {
+    function withdraw() external override {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
@@ -721,40 +779,48 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Claim tokens from the rebate pool
-     * @param _epoch Epoch of the rebate pool we are claiming tokens from
-     * @param _subgraphDeploymentID SubgraphDeployment we are claiming tokens from
+     * @dev Claim tokens from the rebate pool.
+     * @param _channelID Identifier of the channel we are claiming funds from
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claim(
-        uint256 _epoch,
-        bytes32 _subgraphDeploymentID,
-        bool _restake
-    ) external {
+    function claim(address _channelID, bool _restake) external override {
         address indexer = msg.sender;
-        Rebates.Pool storage pool = rebates[_epoch];
-        Rebates.Settlement storage settlement = pool.settlements[indexer][_subgraphDeploymentID];
 
-        (uint256 epochsSinceSettlement, uint256 currentEpoch) = epochManager.epochsSince(_epoch);
+        // Get allocation related to the channel identifier
+        Allocation storage alloc = allocations[_channelID];
+        AllocationState allocState = _getAllocationState(_channelID);
 
+        // Funds can only be claimed after a period of time passed since settlement
         require(
-            epochsSinceSettlement >= channelDisputeEpochs,
-            "Rebate: need to wait channel dispute period"
+            allocState == AllocationState.Finalized,
+            "Rebate: channel must be in finalized state"
         );
 
-        require(settlement.allocation > 0, "Rebate: settlement does not exist");
+        // Find a rebate pool for the settled epoch
+        Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
 
         // Process rebate
-        uint256 tokensToClaim = pool.redeem(indexer, _subgraphDeploymentID);
+        uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
         // When all settlements processed then prune rebate pool
         if (pool.settlementsCount == 0) {
-            delete rebates[_epoch];
+            delete rebates[alloc.settledAtEpoch];
         }
 
         // Calculate delegation fees and add them to the delegation pool
         uint256 delegationFees = _collectDelegationFees(indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationFees);
+
+        // Purgue allocation data except for:
+        // - indexer: used in disputes and to avoid reusing a channelID
+        // - subgraphDeploymentID: used in disputes
+        uint256 settledAtEpoch = alloc.settledAtEpoch;
+        alloc.tokens = 0; // This avoid collect(), settle() and claim() to be called
+        alloc.createdAtEpoch = 0;
+        alloc.settledAtEpoch = 0;
+        alloc.collectedFees = 0;
+        alloc.effectiveAllocation = 0;
+        alloc.channelProxy = address(0); // This avoid collect() to be called
 
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
@@ -769,10 +835,10 @@ contract Staking is Governed {
         }
 
         emit RebateClaimed(
-            indexer,
-            _subgraphDeploymentID,
-            currentEpoch,
-            _epoch,
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            epochManager.currentEpoch(),
+            settledAtEpoch,
             tokensToClaim,
             pool.settlementsCount,
             delegationFees
@@ -791,66 +857,58 @@ contract Staking is Governed {
     }
 
     /**
-     * @dev Settle a channel after receiving collected query fees from it
-     * @param _channelID ChannelID - address of the indexer in the channel
-     * @param _from Multisig channel address that triggered settlement
-     * @param _tokens Amount of tokens to settle
+     * @dev Withdraw and collect funds from the channel.
+     * @param _channelID ChannelID address of the indexer in the channel
+     * @param _from Multisig channel address that triggered withdrawal
+     * @param _tokens Amount of tokens to withdraw
      */
-    function _settle(
+    function _collect(
         address _channelID,
         address _from,
         uint256 _tokens
     ) private {
-        address indexer = channels[_channelID].indexer;
-        bytes32 subgraphDeploymentID = channels[_channelID].subgraphDeploymentID;
-        Stakes.Allocation storage alloc = stakes[indexer].allocations[subgraphDeploymentID];
+        // Get allocation related to the channel identifier
+        Allocation storage alloc = allocations[_channelID];
+        AllocationState allocState = _getAllocationState(_channelID);
 
-        // Channel validation
-        require(_channelID != address(0), "Channel: ChannelID cannot be empty address");
+        // The channel must be active or settled
         require(
-            alloc.channelID == _channelID,
-            "Channel: The allocation has no channel, or the channel was already settled"
+            allocState == AllocationState.Active || allocState == AllocationState.Settled,
+            "Collect: channel must be active or settled"
         );
-
-        // Time conditions
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
-        require(epochs > 0, "Channel: Can only settle after one epoch passed");
 
         // Calculate curation fees only if the subgraph deployment is curated
-        uint256 curationFees = _collectCurationFees(subgraphDeploymentID, _tokens);
+        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, _tokens);
 
-        // Set apart fees into a rebate pool for the indexer
-        Rebates.Settlement memory settlement = rebates[currentEpoch].add(
-            indexer,
-            subgraphDeploymentID,
-            _tokens.sub(curationFees), // substract curation fees
-            alloc.getTokensEffectiveAllocation(epochs, maxAllocationEpochs) // effective allocation
-        );
+        // Calculate rebate fees
+        uint256 rebateFees = _tokens.sub(curationFees);
 
-        // Close channel
-        // NOTE: Channels used are never deleted from state tracked in `channels` var
-        stakes[indexer].unallocateTokens(subgraphDeploymentID, alloc.tokens);
-        alloc.channelID = address(0);
-        alloc.createdAtEpoch = 0;
+        // Collect funds in the allocated channel
+        alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
-        // Send curation fees to the curator SubgraphDeployment reserve
+        // When channel allocation is settling redirect funds to the rebate pool
+        if (allocState == AllocationState.Settled) {
+            Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
+            rebatePool.fees = rebatePool.fees.add(rebateFees);
+        }
+
+        // Send curation fees to the curator reserve pool
         if (curationFees > 0) {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             require(token.approve(address(curation), curationFees));
-            curation.collect(subgraphDeploymentID, curationFees);
+            curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
-        emit AllocationSettled(
-            indexer,
-            subgraphDeploymentID,
-            currentEpoch,
+        emit AllocationCollected(
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            epochManager.currentEpoch(),
             _tokens,
             _channelID,
             _from,
             curationFees,
-            settlement.fees,
-            settlement.allocation
+            rebateFees
         );
     }
 
@@ -868,7 +926,6 @@ contract Staking is Governed {
     ) private returns (uint256) {
         // Can only delegate a non-zero amount of tokens
         require(_tokens > 0, "Delegation: cannot delegate zero tokens");
-
         // Can only delegate to non-empty address
         require(_indexer != address(0), "Delegation: cannot delegate to empty address");
 
@@ -954,18 +1011,51 @@ contract Staking is Governed {
         view
         returns (uint256)
     {
-        if (isCurationEnabled() && curation.isCurated(_subgraphDeploymentID)) {
+        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
+        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             return curationPercentage.mul(_tokens).div(MAX_PPM);
         }
         return 0;
     }
 
     /**
-     * @dev Get whether curation rewards are active or not
-     * @return true if curation fees are enabled
+     * @dev Return the current state of an allocation
+     * @param _channelID Address used as the allocation channel identifier
+     * @return AllocationState
      */
-    function isCurationEnabled() private view returns (bool) {
-        return curationPercentage > 0 && address(curation) != address(0);
+    function _getAllocationState(address _channelID) private view returns (AllocationState) {
+        Allocation memory alloc = allocations[_channelID];
+
+        if (alloc.indexer == address(0)) {
+            return AllocationState.Null;
+        }
+        if (alloc.tokens == 0) {
+            return AllocationState.Claimed;
+        }
+        if (alloc.settledAtEpoch == 0) {
+            return AllocationState.Active;
+        }
+
+        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
+        if (epochs >= channelDisputeEpochs) {
+            return AllocationState.Finalized;
+        }
+        return AllocationState.Settled;
+    }
+
+    /**
+     * @dev Get the effective stake allocation considering epochs from allocation to settlement.
+     * @param _tokens Amount of tokens allocated
+     * @param _numEpochs Number of epochs that passed from allocation to settlement
+     * @return Effective allocated tokens accross epochs
+     */
+    function _getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
+        private
+        view
+        returns (uint256)
+    {
+        bool shouldCap = maxAllocationEpochs > 0 && _numEpochs > maxAllocationEpochs;
+        return _tokens.mul((shouldCap) ? maxAllocationEpochs : _numEpochs);
     }
 
     /**

@@ -48,7 +48,7 @@ export const deployContract = async (
 ): Promise<Contract> => {
   const artifact = loadArtifact(name)
   const factory = ContractFactory.fromSolidity(artifact)
-  const contract = await factory.connect(wallet).deploy(...args.map(a => a.value))
+  const contract = await factory.connect(wallet).deploy(...args.map((a) => a.value))
   const txHash = contract.deployTransaction.hash
   console.log(`Sent transaction to deploy ${name}, txHash: ${txHash}`)
   await wallet.provider.waitForTransaction(txHash!)
