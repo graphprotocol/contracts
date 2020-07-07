@@ -251,9 +251,7 @@ export async function deployMultisigWithProxy(
   } = ctx
   const tx = await proxyFactory.functions.createProxyWithNonce(
     masterCopy.address,
-    masterCopy.interface.encodeFunctionData('setup(address[])', [
-      owners.map((owner) => owner.address),
-    ]),
+    masterCopy.interface.encodeFunctionData('setup', [owners.map((owner) => owner.address)]),
     // hardcode ganache chainId
     solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
   )

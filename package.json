@@ -20,6 +20,7 @@
     "@nomiclabs/buidler-etherscan": "^1.3.3",
     "@nomiclabs/buidler-waffle": "^2.0.0",
     "@openzeppelin/contracts": "3.0.1",
+    "@typechain/ethers-v5": "0.0.2",
     "@types/bs58": "^4.0.1",
     "@types/dotenv": "^8.2.0",
     "@types/minimist": "^1.2.0",
@@ -55,7 +56,6 @@
     "ts-generator": "0.0.8",
     "ts-node": "^8.10.1",
     "typechain": "^2.0.0",
-    "typechain-target-abarmat-ethers-v5": "^1.0.0",
     "typescript": "^3.9.3",
     "yaml": "^1.10.0",
     "yargs": "^15.3.1"
@@ -82,7 +82,7 @@
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "flatten": "scripts/flatten",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
-    "typechain": "typechain --target abarmat-ethers-v5 --outDir build/typechain/contracts 'build/abis/*.json'",
+    "typechain": "typechain --target ethers-v5 --outDir build/typechain/contracts 'build/abis/*.json'",
     "verify": "buidler verify"
   },
   "lint-staged": {
