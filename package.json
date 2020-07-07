@@ -68,7 +68,7 @@
     "deploy": "npm run migrate",
     "deploy-kovan": "npm run migrate -- --force --network kovan",
     "migrate": "buidler migrate",
-    "test": "npm run build && buidler test",
+    "test": "scripts/test",
     "coverage": "SOLIDITY_COVERAGE=true npm run evm:test",
     "evm:test": "scripts/evm",
     "lint": "npm run lint:ts && npm run lint:sol",
