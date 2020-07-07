@@ -3,20 +3,27 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction } from './helpers'
+import {
+  executeTransaction,
+  configureGanacheWallet,
+  configureWallet,
+  buildNetworkEndpoint,
+} from './helpers'
 import { ConnectedGraphToken } from './connectedContracts'
 
-const { func, account, amount } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'account', 'amount'],
+const { network, func, account, amount } = minimist.default(process.argv.slice(2), {
+  string: ['network', 'func', 'account', 'amount'],
 })
 
-if (!func || !account || !amount) {
+if (!network || !func || !account || !amount) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-  --func <text> - options: mint, transfer, approve
+  --network  <string> - options: ganache, kovan, rinkeby
 
-Function arguments:
+  --func <text> - options: mint, transfer, approve
+  
+  Function arguments:
   mint
     --account <address> - Ethereum account to transfer to
     --amount <number>   - Amount of GRT to mint. CLI converts to BN with 10^18
@@ -33,7 +40,19 @@ Function arguments:
   process.exit(1)
 }
 const main = async () => {
-  const graphToken = new ConnectedGraphToken(true)
+  let graphToken
+  let provider
+  if (network == 'ganache') {
+    provider = buildNetworkEndpoint(network)
+    graphToken = new ConnectedGraphToken(true, network, configureGanacheWallet())
+  } else {
+    provider = buildNetworkEndpoint(network, 'infura')
+    graphToken = new ConnectedGraphToken(
+      true,
+      network,
+      configureWallet(process.env.MNEMONIC, provider),
+    )
+  }
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)

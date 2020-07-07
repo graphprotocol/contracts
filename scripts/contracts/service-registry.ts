@@ -2,33 +2,51 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction, checkFuncInputs } from './helpers'
+import {
+  executeTransaction,
+  checkFuncInputs,
+  configureGanacheWallet,
+  configureWallet,
+  buildNetworkEndpoint,
+} from './helpers'
 import { ConnectedServiceRegistry } from './connectedContracts'
 
-const { func, url, geoHash } = minimist.default(process.argv.slice(2), {
+const { network, func, url, geoHash } = minimist.default(process.argv.slice(2), {
   string: ['func', 'url', 'geoHash'],
 })
 
-if (!func) {
+if (!network || !func) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
+  --network  <string> - options: ganache, kovan, rinkeby
+  
   --func <text> - options: register, unregister
+    Function arguments:
+    register
+      --url <string>      - URL of the indexer service
+      --geoHash <string>  - geoHash of the indexer
 
-Function arguments:
-  register
-    --url <string>      - URL of the indexer service
-    --geoHash <string>  - geoHash of the indexer
-
-  unregister (no arguments passed with this function)
-
+    unregister (no arguments passed with this function)
   `,
   )
   process.exit(1)
 }
 
 const main = async () => {
-  const serviceRegistry = new ConnectedServiceRegistry(true)
+  let serviceRegistry
+  let provider
+  if (network == 'ganache') {
+    provider = buildNetworkEndpoint(network)
+    serviceRegistry = new ConnectedServiceRegistry(true, network, configureGanacheWallet())
+  } else {
+    provider = buildNetworkEndpoint(network, 'infura')
+    serviceRegistry = new ConnectedServiceRegistry(
+      true,
+      network,
+      configureWallet(process.env.MNEMONIC, provider),
+    )
+  }
   try {
     if (func == 'register') {
       checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')

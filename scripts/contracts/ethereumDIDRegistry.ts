@@ -2,37 +2,55 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction } from './helpers'
+import {
+  executeTransaction,
+  configureGanacheWallet,
+  configureWallet,
+  buildNetworkEndpoint,
+} from './helpers'
 import { ConnectedEthereumDIDRegistry } from './connectedContracts'
 
-const { func, ipfs, metadataPath } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'ipfs', 'metadataPath'],
+const { network, func, ipfs, metadataPath } = minimist.default(process.argv.slice(2), {
+  string: ['network', 'func', 'ipfs', 'metadataPath'],
 })
 
-if (!func || !metadataPath || !ipfs) {
+if (!network || !func || !metadataPath || !ipfs) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <text> - options: setAttribute
+  --network  <string> - options: ganache, kovan, rinkeby
+  --func <text> - options: setAttribute
 
-Function arguments:
-    setAttribute
-      --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/
-      --metadataPath <path>           - filepath to metadata. JSON format:
-            {
-              "codeRepository": "github.com/davekaj",
-              "description": "Dave Kajpusts graph account",
-              "image": "http://localhost:8080/ipfs/QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
-              "name": "Dave Kajpust",
-              "website": "https://kajpust.com/"
-            }
-    `,
+  Function arguments:
+  setAttribute
+    --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/
+    --metadataPath <path>           - filepath to metadata. JSON format:
+          {
+            "codeRepository": "github.com/davekaj",
+            "description": "Dave Kajpusts graph account",
+            "image": "http://localhost:8080/ipfs/QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
+            "name": "Dave Kajpust",
+            "website": "https://kajpust.com/"
+          }
+  `,
   )
   process.exit(1)
 }
 
 const main = async () => {
-  const ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(true)
+  let ethereumDIDRegistry
+  let provider
+  if (network == 'ganache') {
+    provider = buildNetworkEndpoint(network)
+    ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(true, network, configureGanacheWallet())
+  } else {
+    provider = buildNetworkEndpoint(network, 'infura')
+    ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(
+      true,
+      network,
+      configureWallet(process.env.MNEMONIC, provider),
+    )
+  }
   try {
     if (func == 'setAttribute') {
       console.log(`Setting attribute on ethereum DID registry ...`)

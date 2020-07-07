@@ -67,6 +67,9 @@ export const configureWallet = (
   providerEndpoint: string,
   index = '0',
 ): Wallet => {
+  if (mnemonic == undefined){
+    throw new Error(`Please set a mnemonic in a .env file at the root of the project`)
+  }
   const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${index}`)
   const eth = new providers.JsonRpcProvider(providerEndpoint)
   return wallet.connect(eth)

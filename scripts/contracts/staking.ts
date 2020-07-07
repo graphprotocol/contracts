@@ -2,23 +2,44 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction, checkFuncInputs } from './helpers'
+import {
+  executeTransaction,
+  configureGanacheWallet,
+  checkFuncInputs,
+  configureWallet,
+  buildNetworkEndpoint,
+} from './helpers'
 import { ConnectedStaking, ConnectedGraphToken } from './connectedContracts'
 
-const { func, amount, subgraphDeploymentID, channelPubKey, channelProxy, price } = minimist.default(
-  process.argv.slice(2),
-  {
-    string: ['func', 'amount', 'subgraphDeploymentID', 'channelPubKey', 'channelProxy', 'price'],
-  },
-)
+const {
+  network,
+  func,
+  amount,
+  subgraphDeploymentID,
+  channelPubKey,
+  channelProxy,
+  price,
+} = minimist.default(process.argv.slice(2), {
+  string: [
+    'network',
+    'func',
+    'amount',
+    'subgraphDeploymentID',
+    'channelPubKey',
+    'channelProxy',
+    'price',
+  ],
+})
 
-if (!func) {
+if (!network || !func) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
+  --network  <string> - options: ganache, kovan, rinkeby
+
   --func <text> - options: stake, unstake, withdraw, allocate, settle
 
-Function arguments:
+  Function arguments:
   stake
     --amount <number>   - Amount of tokens being staked (script adds 10^18)
 
@@ -43,8 +64,22 @@ Function arguments:
 }
 
 const main = async () => {
-  const staking = new ConnectedStaking(true)
-  const connectedGT = new ConnectedGraphToken(true)
+  let staking
+  let connectedGT
+  let provider
+  if (network == 'ganache') {
+    provider = buildNetworkEndpoint(network)
+    staking = new ConnectedStaking(true, network, configureGanacheWallet())
+    connectedGT = new ConnectedGraphToken(true, network, configureGanacheWallet())
+  } else {
+    provider = buildNetworkEndpoint(network, 'infura')
+    staking = new ConnectedStaking(true, network, configureWallet(process.env.MNEMONIC, provider))
+    connectedGT = new ConnectedGraphToken(
+      true,
+      network,
+      configureWallet(process.env.MNEMONIC, provider),
+    )
+  }
 
   try {
     if (func == 'stake') {

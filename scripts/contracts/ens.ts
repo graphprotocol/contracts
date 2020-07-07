@@ -1,23 +1,28 @@
 #!/usr/bin/env ts-node
 
-import { utils } from 'ethers'
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import { executeTransaction } from './helpers'
+import {
+  executeTransaction,
+  configureGanacheWallet,
+  configureWallet,
+  buildNetworkEndpoint,
+} from './helpers'
 import { ConnectedENS } from './connectedContracts'
 
-const { func, name } = minimist.default(process.argv.slice(2), {
-  string: ['func', 'name'],
+const { network, func, name } = minimist.default(process.argv.slice(2), {
+  string: ['network', 'func', 'name'],
 })
 
-if (!func || !name) {
+if (!network || !func || !name) {
   console.error(
     `
 Usage: ${path.basename(process.argv[1])}
-    --func <string> - options: registerName, checkOwner
+  --network  <string> - options: ganache, kovan, rinkeby
 
-Function arguments:
+  --func <string> - options: registerName, checkOwner
+    Function arguments:
     registerName
       --name <string>   - calls both setRecord and setText for one name
 
@@ -29,7 +34,15 @@ Function arguments:
 }
 
 const main = async () => {
-  const ens = new ConnectedENS(true)
+  let ens
+  let provider
+  if (network == 'ganache') {
+    provider = buildNetworkEndpoint(network)
+    ens = new ConnectedENS(true, network, configureGanacheWallet())
+  } else {
+    provider = buildNetworkEndpoint(network, 'infura')
+    ens = new ConnectedENS(true, network, configureWallet(process.env.MNEMONIC, provider))
+  }
   try {
     if (func == 'registerName') {
       console.log(`Setting owner for ${name} and the text record...`)
