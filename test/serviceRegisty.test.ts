@@ -1,9 +1,12 @@
-import { expect } from 'chai'
+import { expect, use } from 'chai'
+import { solidity } from 'ethereum-waffle'
 
 import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
 
 import * as deployment from './lib/deployment'
 import { provider } from './lib/testHelpers'
+
+use(solidity)
 
 describe('ServiceRegistry', () => {
   const [indexer] = provider().getWallets()

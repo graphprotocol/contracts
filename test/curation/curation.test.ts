@@ -5,10 +5,8 @@ import { solidity } from 'ethereum-waffle'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 
+import { NetworkFixture } from '../lib/fixtures'
 import { defaults, provider, randomHexBytes, toBN, toGRT } from '../lib/testHelpers'
-import { loadFixture } from './fixture.test'
-
-// const { formatEther } = utils
 
 use(solidity)
 
@@ -31,7 +29,9 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
 }
 
 describe('Curation', () => {
-  const [me, governor, curator, staking] = provider().getWallets()
+  const [me, governor, curator, stakingMock] = provider().getWallets()
+
+  let fixture: NetworkFixture
 
   let curation: Curation
   let grt: GraphToken
@@ -136,7 +136,7 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Source of tokens must be the staking for this to work
-    const tx = curation.connect(staking).collect(subgraphDeploymentID, tokensToCollect)
+    const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
     await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
 
     // After state
@@ -148,16 +148,28 @@ describe('Curation', () => {
     expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToCollect))
   }
 
-  beforeEach(async function () {
-    ;({ curation, grt } = await loadFixture(governor, staking))
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ curation, grt } = await fixture.load(governor))
+
+    // Replace the staking contract with a mock so we can call collect
+    await curation.connect(governor).setStaking(stakingMock.address)
 
     // Give some funds to the curator and approve the curation contract
     await grt.connect(governor).mint(curator.address, curatorTokens)
     await grt.connect(curator).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
-    await grt.connect(governor).mint(staking.address, tokensToCollect)
-    await grt.connect(staking).approve(curation.address, tokensToCollect)
+    await grt.connect(governor).mint(stakingMock.address, tokensToCollect)
+    await grt.connect(stakingMock).approve(curation.address, tokensToCollect)
+  })
+
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   describe('bonding curve', function () {
@@ -210,7 +222,7 @@ describe('Curation', () => {
     context('> not curated', async function () {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
-        const tx = curation.connect(staking).collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('SubgraphDeployment must be curated to collect fees')
       })
     })

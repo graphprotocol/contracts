@@ -1,21 +1,37 @@
-import { expect } from 'chai'
+import { expect, use } from 'chai'
+import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
+import { Staking } from '../../build/typechain/contracts/Staking'
 
+import { NetworkFixture } from '../lib/fixtures'
 import { defaults, provider, toBN } from '../lib/testHelpers'
-import { loadFixture } from './fixture.test'
+
+use(solidity)
 
 const MAX_PPM = 1000000
 
 describe('Curation:Config', () => {
-  const [me, governor, staking] = provider().getWallets()
+  const [me, governor] = provider().getWallets()
+
+  let fixture: NetworkFixture
 
   let curation: Curation
   let grt: GraphToken
+  let staking: Staking
+
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ curation, grt, staking } = await fixture.load(governor))
+  })
 
   beforeEach(async function () {
-    ;({ curation, grt } = await loadFixture(governor, staking))
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   it('should set `governor`', async function () {

@@ -1,5 +1,5 @@
-import { waffle as buidler } from '@nomiclabs/buidler'
 import { BigNumber, utils } from 'ethers'
+import builder from '@nomiclabs/buidler'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 
@@ -16,14 +16,17 @@ export const logStake = (stakes: any): void => {
 
 // Network
 
-export const provider = () => buidler.provider
+export const provider = () => builder.waffle.provider
 
 export const getChainID = (): Promise<string | number> =>
   provider()
     .getNetwork()
     .then((r) => r.chainId)
 
-export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
+// export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
+
+export const latestBlock = (): Promise<BigNumber> =>
+  provider().send('eth_blockNumber', []).then(toBN)
 
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
@@ -55,8 +58,8 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   await advanceBlockTo(nextEpochBlock)
 }
 
-export const snapshotEVM = async (): Promise<number> => provider().send('evm_snapshot', [])
-export const revertEVM = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
+export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
+export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
 
 // Default configuration used in tests
 

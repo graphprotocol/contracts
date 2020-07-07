@@ -7,7 +7,7 @@ import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
-import { loadFixture } from './fixture.test'
+import { NetworkFixture } from '../lib/fixtures'
 import { advanceToNextEpoch, randomHexBytes, provider, toBN, toGRT } from '../lib/testHelpers'
 
 use(solidity)
@@ -37,6 +37,8 @@ const calculateEffectiveAllocation = (
 describe('Staking:Allocation', () => {
   const [me, other, governor, indexer, slasher, channelProxy] = provider().getWallets()
 
+  let fixture: NetworkFixture
+
   let curation: Curation
   let epochManager: EpochManager
   let grt: GraphToken
@@ -60,12 +62,21 @@ describe('Staking:Allocation', () => {
       .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, price)
   }
 
-  beforeEach(async function () {
-    ;({ curation, epochManager, grt, staking } = await loadFixture(governor, slasher))
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ curation, epochManager, grt, staking } = await fixture.load(governor, slasher))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor).mint(indexer.address, indexerTokens)
     await grt.connect(indexer).approve(staking.address, indexerTokens)
+  })
+
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   /**

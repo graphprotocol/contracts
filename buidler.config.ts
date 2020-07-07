@@ -62,7 +62,7 @@ const config: BuidlerConfig = {
     version: '0.6.4',
     optimizer: {
       enabled: true,
-      runs: 500,
+      runs: 200,
     },
   },
   defaultNetwork: 'buidlerevm',

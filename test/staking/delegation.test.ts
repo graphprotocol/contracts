@@ -2,12 +2,11 @@ import { expect, use } from 'chai'
 import { constants, BigNumber, Wallet } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
-import * as deployment from '../lib/deployment'
+import { NetworkFixture } from '../lib/fixtures'
 import {
   advanceToNextEpoch,
   latestBlock,
@@ -17,12 +16,10 @@ import {
   toBN,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
-
 use(solidity)
 
+const { AddressZero } = constants
 const MAX_PPM = toBN('1000000')
-
 const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
@@ -36,7 +33,8 @@ describe('Staking::Delegation', () => {
     channelProxy,
   ] = provider().getWallets()
 
-  let curation: Curation
+  let fixture: NetworkFixture
+
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
@@ -101,23 +99,29 @@ describe('Staking::Delegation', () => {
     expect(afterDelegatorBalance).to.be.eq(beforeDelegatorBalance.add(tokens))
   }
 
+  before(async function () {
+    fixture = new NetworkFixture()
+    ;({ epochManager, grt, staking } = await fixture.load(governor))
+
+    // Distribute test funds
+    for (const wallet of [delegator, delegator2]) {
+      await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
+      await grt.connect(wallet).approve(staking.address, toGRT('10000000000000000000'))
+    }
+
+    // Distribute test funds
+    for (const wallet of [me, indexer, channelProxy]) {
+      await grt.connect(governor).mint(wallet.address, toGRT('1000000'))
+      await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
+    }
+  })
+
   beforeEach(async function () {
-    // Deploy epoch contract
-    epochManager = await deployment.deployEpochManager(governor.address)
+    await fixture.setUp()
+  })
 
-    // Deploy graph token
-    grt = await deployment.deployGRT(governor.address)
-
-    // Deploy curation contract
-    curation = await deployment.deployCuration(governor.address, grt.address)
-
-    // Deploy staking contract
-    staking = await deployment.deployStaking(
-      governor,
-      grt.address,
-      epochManager.address,
-      curation.address,
-    )
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   describe('configuration', function () {
@@ -216,14 +220,6 @@ describe('Staking::Delegation', () => {
   })
 
   describe('lifecycle', function () {
-    beforeEach(async function () {
-      // Distribute test funds
-      for (const wallet of [delegator, delegator2]) {
-        await grt.connect(governor).mint(wallet.address, toGRT('10000000000000000000'))
-        await grt.connect(wallet).approve(staking.address, toGRT('10000000000000000000'))
-      }
-    })
-
     describe('delegate', function () {
       it('reject to delegate zero tokens', async function () {
         const tokensToDelegate = toGRT('0')
@@ -350,12 +346,6 @@ describe('Staking::Delegation', () => {
     }
 
     beforeEach(async function () {
-      // Distribute test funds
-      for (const wallet of [delegator, me, indexer, channelProxy]) {
-        await grt.connect(governor).mint(wallet.address, toGRT('1000000'))
-        await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
-      }
-
       // Indexer stake tokens
       await staking.connect(indexer).stake(tokensToStake)
     })
@@ -429,7 +419,7 @@ describe('Staking::Delegation', () => {
       // Claim from rebate pool
       const currentEpoch = await epochManager.currentEpoch()
       const tx = staking.connect(indexer).claim(channelID, true)
-      expect(tx)
+      await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
           indexer.address,
