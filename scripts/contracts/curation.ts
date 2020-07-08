@@ -35,21 +35,17 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let curation
-  let connectedGT
+  let curation: ConnectedCuration
+  let connectedGT: ConnectedGraphToken
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    curation = new ConnectedCuration(true, network, configureGanacheWallet())
-    connectedGT = new ConnectedGraphToken(true, network, configureGanacheWallet())
+    curation = new ConnectedCuration(network, configureGanacheWallet())
+    connectedGT = new ConnectedGraphToken(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
-    curation = new ConnectedCuration(true, network, configureWallet(process.env.MNEMONIC, provider))
-    connectedGT = new ConnectedGraphToken(
-      true,
-      network,
-      configureWallet(process.env.MNEMONIC, provider),
-    )
+    curation = new ConnectedCuration(network, configureWallet(process.env.MNEMONIC, provider))
+    connectedGT = new ConnectedGraphToken(network, configureWallet(process.env.MNEMONIC, provider))
   }
 
   try {
@@ -58,12 +54,12 @@ const main = async () => {
       console.log(
         '  First calling approve() to ensure curation contract can call transferFrom()...',
       )
-      await executeTransaction(connectedGT.approveWithOverrides(curation.curation.address, amount))
+      await executeTransaction(connectedGT.approveWithDecimals(curation.contract.address, amount))
       console.log('  Now calling stake() on curation...')
-      await executeTransaction(curation.stakeWithOverrides(id, amount))
+      await executeTransaction(curation.stakeWithDecimals(id, amount))
     } else if (func == 'redeem') {
       console.log(`Redeeming ${amount} shares on ${id}...`)
-      await executeTransaction(curation.redeemWithOverrides(id, amount))
+      await executeTransaction(curation.redeemWithDecimals(id, amount))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

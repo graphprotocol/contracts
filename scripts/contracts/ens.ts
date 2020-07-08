@@ -34,14 +34,14 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let ens
+  let ens: ConnectedENS
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    ens = new ConnectedENS(true, network, configureGanacheWallet())
+    ens = new ConnectedENS(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
-    ens = new ConnectedENS(true, network, configureWallet(process.env.MNEMONIC, provider))
+    ens = new ConnectedENS(network, configureWallet(process.env.MNEMONIC, provider))
   }
   try {
     if (func == 'registerName') {

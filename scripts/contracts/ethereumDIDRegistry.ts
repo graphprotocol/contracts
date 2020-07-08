@@ -38,15 +38,14 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let ethereumDIDRegistry
+  let ethereumDIDRegistry: ConnectedEthereumDIDRegistry
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(true, network, configureGanacheWallet())
+    ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
     ethereumDIDRegistry = new ConnectedEthereumDIDRegistry(
-      true,
       network,
       configureWallet(process.env.MNEMONIC, provider),
     )
@@ -54,7 +53,7 @@ const main = async () => {
   try {
     if (func == 'setAttribute') {
       console.log(`Setting attribute on ethereum DID registry ...`)
-      await executeTransaction(ethereumDIDRegistry.setAttributeWithOverrides(ipfs, metadataPath))
+      await executeTransaction(ethereumDIDRegistry.pinIPFSAndSetAttribute(ipfs, metadataPath))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

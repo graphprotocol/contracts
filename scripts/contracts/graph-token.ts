@@ -40,29 +40,25 @@ Usage: ${path.basename(process.argv[1])}
   process.exit(1)
 }
 const main = async () => {
-  let graphToken
+  let graphToken: ConnectedGraphToken
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    graphToken = new ConnectedGraphToken(true, network, configureGanacheWallet())
+    graphToken = new ConnectedGraphToken(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
-    graphToken = new ConnectedGraphToken(
-      true,
-      network,
-      configureWallet(process.env.MNEMONIC, provider),
-    )
+    graphToken = new ConnectedGraphToken(network, configureWallet(process.env.MNEMONIC, provider))
   }
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)
-      await executeTransaction(graphToken.mintWithOverrides(account, amount))
+      await executeTransaction(graphToken.mintWithDecimals(account, amount))
     } else if (func == 'transfer') {
       console.log(`Transferring ${amount} tokens to user ${account}...`)
-      await executeTransaction(graphToken.transferWithOverrides(account, amount))
+      await executeTransaction(graphToken.transferWithDecimals(account, amount))
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
-      await executeTransaction(graphToken.approveWithOverrides(account, amount))
+      await executeTransaction(graphToken.approveWithDecimals(account, amount))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

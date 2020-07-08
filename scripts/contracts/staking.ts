@@ -64,42 +64,38 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let staking
-  let connectedGT
+  let staking: ConnectedStaking
+  let connectedGT: ConnectedGraphToken
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    staking = new ConnectedStaking(true, network, configureGanacheWallet())
-    connectedGT = new ConnectedGraphToken(true, network, configureGanacheWallet())
+    staking = new ConnectedStaking(network, configureGanacheWallet())
+    connectedGT = new ConnectedGraphToken(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
-    staking = new ConnectedStaking(true, network, configureWallet(process.env.MNEMONIC, provider))
-    connectedGT = new ConnectedGraphToken(
-      true,
-      network,
-      configureWallet(process.env.MNEMONIC, provider),
-    )
+    staking = new ConnectedStaking(network, configureWallet(process.env.MNEMONIC, provider))
+    connectedGT = new ConnectedGraphToken(network, configureWallet(process.env.MNEMONIC, provider))
   }
 
   try {
     if (func == 'stake') {
       checkFuncInputs([amount], ['amount'], 'stake')
       console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
-      await executeTransaction(connectedGT.approveWithOverrides(staking.staking.address, amount))
+      await executeTransaction(connectedGT.approveWithDecimals(staking.contract.address, amount))
       console.log(`Staking ${amount} tokens in the staking contract...`)
-      await executeTransaction(staking.stakeWithOverrides(amount))
+      await executeTransaction(staking.stakeWithDecimals(amount))
     } else if (func == 'unstake') {
       checkFuncInputs([amount], ['amount'], 'unstake')
       console.log(`Unstaking ${amount} tokens. Tokens will be locked...`)
-      await executeTransaction(staking.unstakeWithOverrides(amount))
+      await executeTransaction(staking.unstakeWithDecimals(amount))
     } else if (func == 'withdraw') {
       console.log(`Unlock tokens and withdraw them from the staking contract...`)
-      await executeTransaction(staking.withdrawWithOverrides())
+      await executeTransaction(staking.contract.withdraw())
     } else if (func == 'allocate') {
       checkFuncInputs([amount, price], ['amount', 'price'], 'allocate')
       console.log(`Allocating ${amount} tokens on state channel ${subgraphDeploymentID} ...`)
       await executeTransaction(
-        staking.allocateWithOverrides(
+        staking.allocateWithDecimals(
           amount,
           price,
           subgraphDeploymentID,
@@ -111,7 +107,7 @@ const main = async () => {
       // Note - this function must be called by the channel proxy eth address
       checkFuncInputs([amount], ['amount'], 'settle')
       console.log(`Settling ${amount} tokens on state channel with proxy address TODO`)
-      await executeTransaction(staking.settleWithOverrides(amount))
+      await executeTransaction(staking.settleWithDecimals(amount))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

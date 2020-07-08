@@ -34,15 +34,14 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let serviceRegistry
+  let serviceRegistry: ConnectedServiceRegistry
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    serviceRegistry = new ConnectedServiceRegistry(true, network, configureGanacheWallet())
+    serviceRegistry = new ConnectedServiceRegistry(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
     serviceRegistry = new ConnectedServiceRegistry(
-      true,
       network,
       configureWallet(process.env.MNEMONIC, provider),
     )
@@ -51,12 +50,12 @@ const main = async () => {
     if (func == 'register') {
       checkFuncInputs([url, geoHash], ['url', 'geoHash'], 'register')
       console.log(
-        `Registering ${await serviceRegistry.serviceRegistry.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
+        `Registering ${await serviceRegistry.contract.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
       )
-      await executeTransaction(serviceRegistry.registerWithOverrides(url, geoHash))
+      await executeTransaction(serviceRegistry.contract.register(url, geoHash))
     } else if (func == 'unregister') {
-      console.log(`Unregistering ${await serviceRegistry.serviceRegistry.signer.getAddress()}...`)
-      await executeTransaction(serviceRegistry.unRegisterWithOverrides())
+      console.log(`Unregistering ${await serviceRegistry.contract.signer.getAddress()}...`)
+      await executeTransaction(serviceRegistry.contract.unregister())
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

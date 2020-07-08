@@ -9,7 +9,6 @@ import {
   providers,
   Wallet,
   Overrides,
-  BigNumberish,
 } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
@@ -111,19 +110,7 @@ export const getNetworkAddresses = (network: string): any => {
 export const basicOverrides = (): Overrides => {
   return {
     gasPrice: utils.parseUnits('25', 'gwei'),
-    gasLimit: 1000000,
-  }
-}
-
-export const estimateOverrides = (
-  gasLimit: BigNumberish = 1000000,
-  gasPrice: BigNumberish = 25,
-): Overrides => {
-  const multiplier = 1.5 // multiplier for safety
-  gasLimit = (gasLimit as number) * multiplier
-  return {
-    gasPrice: utils.parseUnits(gasPrice.toString(), 'gwei'),
-    gasLimit: Math.floor(gasLimit),
+    gasLimit: 2000000,
   }
 }
 

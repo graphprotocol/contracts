@@ -77,14 +77,14 @@ Usage: ${path.basename(process.argv[1])}
 }
 
 const main = async () => {
-  let gns
+  let gns: ConnectedGNS
   let provider
   if (network == 'ganache') {
     provider = buildNetworkEndpoint(network)
-    gns = new ConnectedGNS(true, network, configureGanacheWallet())
+    gns = new ConnectedGNS(network, configureGanacheWallet())
   } else {
     provider = buildNetworkEndpoint(network, 'infura')
-    gns = new ConnectedGNS(true, network, configureWallet(process.env.MNEMONIC, provider))
+    gns = new ConnectedGNS(network, configureWallet(process.env.MNEMONIC, provider))
   }
 
   try {
@@ -96,7 +96,7 @@ const main = async () => {
       )
       console.log(`Publishing 1st version of subgraph ${name} ...`)
       await executeTransaction(
-        gns.publishNewSubgraphWithOverrides(
+        gns.pinIPFSAndNewSubgraph(
           ipfs,
           graphAccount,
           subgraphDeploymentID,
@@ -120,7 +120,7 @@ const main = async () => {
       )
       console.log(`Publishing a new version for subgraph ${name} ...`)
       await executeTransaction(
-        gns.publishNewVersionWithOverrides(
+        gns.pinIPFSAndNewVersion(
           ipfs,
           graphAccount,
           subgraphDeploymentID,
@@ -133,7 +133,7 @@ const main = async () => {
     } else if (func == 'deprecate') {
       checkFuncInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
       console.log(`Deprecating subgraph ${graphAccount}-${subgraphNumber}`)
-      await executeTransaction(gns.deprecateWithOverrides(graphAccount, subgraphNumber))
+      await executeTransaction(gns.gns.deprecate(graphAccount, subgraphNumber))
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
