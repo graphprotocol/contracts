@@ -67,7 +67,7 @@ export const configureWallet = (
   providerEndpoint: string,
   index = '0',
 ): Wallet => {
-  if (mnemonic == undefined){
+  if (mnemonic == undefined) {
     throw new Error(`Please set a mnemonic in a .env file at the root of the project`)
   }
   const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${index}`)
@@ -76,7 +76,7 @@ export const configureWallet = (
 }
 
 // Check governor for the network
-export const checkGovernor = (address: string, network?: string): void => {
+export const checkGovernor = (address: string, network: string): void => {
   const networkAddresses = getNetworkAddresses(network)
   const governor = networkAddresses.generatedAddresses.GraphToken.constructorArgs[0].value
   console.log(governor)
@@ -88,16 +88,19 @@ export const checkGovernor = (address: string, network?: string): void => {
 }
 
 // TODO - return address book type, not any
-export const getNetworkAddresses = (network?: string): any => {
+export const getNetworkAddresses = (network: string): any => {
   let generatedAddresses
   let permanentAddresses
   const addresses = JSON.parse(
     fs.readFileSync(path.join(__dirname, '../..', 'addresses.json'), 'utf-8'),
   )
-  if (network == undefined) {
-    network = 'kovan'
+  if (network == 'kovan') {
     generatedAddresses = addresses['42']
     permanentAddresses = addresses.kovan // TODO - update address book so this doesn't happen
+  } else if (network == 'ganache') {
+    generatedAddresses = addresses['1337']
+    // TODO - make this connect to ENS and etherDIDRegistry when it is working 
+    permanentAddresses = addresses.kovan
   }
   return {
     generatedAddresses,

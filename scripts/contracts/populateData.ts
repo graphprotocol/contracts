@@ -32,12 +32,14 @@ const subgraphMetadatas = SubgraphDatas.default
 
 // Send ETH to accounts that will act as indexers, curators, etc, to interact with the contracts
 const sendEth = async (
+  network: string,
   governor: Wallet,
   signers: Array<Wallet>,
   proxies: Array<Wallet>,
   amount: string,
 ) => {
-  checkGovernor(governor.address)
+  console.log('Sending ETH...')
+  checkGovernor(governor.address, network)
   const amountEther = utils.parseEther(amount)
   for (let i = 1; i < signers.length; i++) {
     const data = {
@@ -62,6 +64,7 @@ const populateGraphToken = async (
   proxies: Array<Wallet>,
   amount: string,
 ) => {
+  console.log('Running graph token contract calls...')
   const graphToken = new ConnectedGraphToken(true, network, signers[0]) // defaults to governor
   console.log('Sending GRT to indexers, curators, and proxies...')
   for (let i = 0; i < signers.length; i++) {
@@ -72,6 +75,7 @@ const populateGraphToken = async (
 
 // Call set attribute for the signers
 const populateEthereumDIDRegistry = async (network: string, signers: Array<Wallet>) => {
+  console.log('Running did registry contract calls...')
   let i = 0
   for (const account in accountMetadatas) {
     const edr = new ConnectedEthereumDIDRegistry(true, network, signers[i])
@@ -89,6 +93,7 @@ const populateEthereumDIDRegistry = async (network: string, signers: Array<Walle
 
 // Register ENS names for the signers
 const populateENS = async (network: string, signers: Array<Wallet>) => {
+  console.log('Running ENS contract calls...')
   let i = 0
   for (const subgraph in subgraphMetadatas) {
     const ens = new ConnectedENS(true, network, signers[i])
@@ -106,6 +111,7 @@ const populateENS = async (network: string, signers: Array<Wallet>) => {
 // Publish new versions for them all
 // Deprecate 1
 const populateGNS = async (network: string, signers: Array<Wallet>) => {
+  console.log('Running GNS contract calls...')
   let i = 0
   for (const subgraph in subgraphMetadatas) {
     const gns = new ConnectedGNS(true, network, signers[i])
@@ -149,6 +155,7 @@ const populateGNS = async (network: string, signers: Array<Wallet>) => {
 //  Then we stake on a few to make them higher, and see bonding curves in action
 //  Then we run some redeems
 const populateCuration = async (network: string, signers: Array<Wallet>) => {
+  console.log('Running curation contract calls...')
   const stakeAmount = '5000'
   const stakeAmountBig = '10000'
   const totalAmount = '25000'
@@ -181,6 +188,7 @@ const populateCuration = async (network: string, signers: Array<Wallet>) => {
 // Unregister them all
 // Register all 10 again
 const populateServiceRegistry = async (network: string, signers: Array<Wallet>) => {
+  console.log('Running service registry contract calls...')
   // Lat = 43.651 Long = -79.382, resolves to the geohash dpz83d (downtown toronto)
   // TODO = implement GEOHASH in the exportable code. For now, we just use 10 geohashes
   const geoHashes: Array<string> = [
@@ -231,7 +239,8 @@ const populateServiceRegistry = async (network: string, signers: Array<Wallet>) 
 // Settle 5 allocations (Settle is called by the proxies)
 // Set back thawing period and epoch manager to default
 const populateStaking = async (network: string, signers: Array<Wallet>, proxies: Array<Wallet>) => {
-  checkGovernor(signers[0].address)
+  console.log('Running staking contract calls...')
+  checkGovernor(signers[0].address, network)
   const networkContracts = await connectContracts(signers[0], network)
   const epochManager = networkContracts.epochManager
   const stakeAmount = '10000'
@@ -304,8 +313,8 @@ const populateAll = async (mnemonic: string, provider: string, network: string):
   const userAccounts = signers.slice(0, 10)
   const proxyAccounts = signers.slice(10, 20)
   const governor = signers[0]
-  // await sendEth(governor, userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
-  // await populateGraphToken(userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
+  // await sendEth(network, governor, userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
+  await populateGraphToken(network, userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
   await populateEthereumDIDRegistry(network, userAccounts)
   await populateENS(network, userAccounts)
   await populateGNS(network, userAccounts)

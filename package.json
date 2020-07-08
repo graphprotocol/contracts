@@ -65,7 +65,7 @@
     "build": "./scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
-    "deploy": "npm run migrate",
+    "deploy": "buidler migrate",
     "deploy-kovan": "npm run migrate -- --force --network kovan",
     "migrate": "buidler migrate",
     "test": "scripts/test",
