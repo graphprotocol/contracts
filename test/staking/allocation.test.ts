@@ -8,7 +8,14 @@ import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { advanceToNextEpoch, randomHexBytes, provider, toBN, toGRT } from '../lib/testHelpers'
+import {
+  advanceToNextEpoch,
+  getAccounts,
+  randomHexBytes,
+  toBN,
+  toGRT,
+  Account,
+} from '../lib/testHelpers'
 
 use(solidity)
 
@@ -35,7 +42,12 @@ const calculateEffectiveAllocation = (
 }
 
 describe('Staking:Allocation', () => {
-  const [me, other, governor, indexer, slasher, channelProxy] = provider().getWallets()
+  let me: Account
+  let other: Account
+  let governor: Account
+  let indexer: Account
+  let slasher: Account
+  let channelProxy: Account
 
   let fixture: NetworkFixture
 
@@ -58,17 +70,22 @@ describe('Staking:Allocation', () => {
   // Helpers
   const allocate = (tokens: BigNumber) => {
     return staking
-      .connect(indexer)
+      .connect(indexer.signer)
       .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, price)
   }
 
   before(async function () {
+    ;[me, other, governor, indexer, slasher, channelProxy] = await getAccounts()
+
     fixture = new NetworkFixture()
-    ;({ curation, epochManager, grt, staking } = await fixture.load(governor, slasher))
+    ;({ curation, epochManager, grt, staking } = await fixture.load(
+      governor.signer,
+      slasher.signer,
+    ))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
-    await grt.connect(governor).mint(indexer.address, indexerTokens)
-    await grt.connect(indexer).approve(staking.address, indexerTokens)
+    await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
+    await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
   })
 
   beforeEach(async function () {
@@ -128,7 +145,7 @@ describe('Staking:Allocation', () => {
     it('reject allocate with invalid public key', async function () {
       const invalidChannelPubKey = computePublicKey(channelPubKey, true)
       const tx = staking
-        .connect(indexer)
+        .connect(indexer.signer)
         .allocate(
           subgraphDeploymentID,
           tokensToAllocate,
@@ -147,7 +164,7 @@ describe('Staking:Allocation', () => {
 
     context('> when staked', function () {
       beforeEach(async function () {
-        await staking.connect(indexer).stake(tokensToStake)
+        await staking.connect(indexer.signer).stake(tokensToStake)
       })
 
       it('reject allocate more than available tokens', async function () {
@@ -194,7 +211,7 @@ describe('Staking:Allocation', () => {
       rebateFees = rebateFees.sub(curationFees)
 
       // Collect tokens from channel
-      const tx = staking.connect(channelProxy).collect(tokensToCollect, channelID)
+      const tx = staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
       await expect(tx)
         .emit(staking, 'AllocationCollected')
         .withArgs(
@@ -226,28 +243,28 @@ describe('Staking:Allocation', () => {
 
     beforeEach(async function () {
       // Create the allocation
-      await staking.connect(indexer).stake(tokensToStake)
+      await staking.connect(indexer.signer).stake(tokensToStake)
       await allocate(tokensToAllocate)
 
       // Fund channel wallet
       const tokensToFund = toGRT('100000')
-      await grt.connect(governor).mint(channelProxy.address, tokensToFund)
-      await grt.connect(channelProxy).approve(staking.address, tokensToFund)
+      await grt.connect(governor.signer).mint(channelProxy.address, tokensToFund)
+      await grt.connect(channelProxy.signer).approve(staking.address, tokensToFund)
     })
 
     it('reject collect if invalid channel', async function () {
-      const tx = staking.connect(indexer).collect(tokensToCollect, AddressZero)
+      const tx = staking.connect(indexer.signer).collect(tokensToCollect, AddressZero)
       await expect(tx).revertedWith('Collect: invalid channel')
     })
 
     it('reject collect if channel does not exist', async function () {
       const invalidChannelID = randomHexBytes(20)
-      const tx = staking.connect(indexer).collect(tokensToCollect, invalidChannelID)
+      const tx = staking.connect(indexer.signer).collect(tokensToCollect, invalidChannelID)
       await expect(tx).revertedWith('Collect: caller is not related to the channel allocation')
     })
 
     it('reject collect if caller not related to channel', async function () {
-      const tx = staking.connect(other).collect(tokensToCollect, channelID)
+      const tx = staking.connect(other.signer).collect(tokensToCollect, channelID)
       await expect(tx).revertedWith('Collect: caller is not related to the channel allocation')
     })
 
@@ -261,13 +278,13 @@ describe('Staking:Allocation', () => {
     it('should collect funds from channel and distribute curation fees', async function () {
       // Curate the subgraph from where we collect fees to get curation fees distributed
       const tokensToSignal = toGRT('100')
-      await grt.connect(governor).mint(me.address, tokensToSignal)
-      await grt.connect(me).approve(curation.address, tokensToSignal)
-      await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
+      await grt.connect(governor.signer).mint(me.address, tokensToSignal)
+      await grt.connect(me.signer).approve(curation.address, tokensToSignal)
+      await curation.connect(me.signer).stake(subgraphDeploymentID, tokensToSignal)
 
       // Curation parameters
       const curationPercentage = toBN('200000') // 20%
-      await staking.connect(governor).setCurationPercentage(curationPercentage)
+      await staking.connect(governor.signer).setCurationPercentage(curationPercentage)
 
       // Collect
       await shouldCollect(tokensToCollect)
@@ -276,17 +293,17 @@ describe('Staking:Allocation', () => {
     it('should collect funds from channel + protocol fee + curation fees', async function () {
       // Curate the subgraph from where we collect fees to get curation fees distributed
       const tokensToSignal = toGRT('100')
-      await grt.connect(governor).mint(me.address, tokensToSignal)
-      await grt.connect(me).approve(curation.address, tokensToSignal)
-      await curation.connect(me).stake(subgraphDeploymentID, tokensToSignal)
+      await grt.connect(governor.signer).mint(me.address, tokensToSignal)
+      await grt.connect(me.signer).approve(curation.address, tokensToSignal)
+      await curation.connect(me.signer).stake(subgraphDeploymentID, tokensToSignal)
 
       // Set a protocol fee percentage
       const protocolPercentage = toBN('100000') // 10%
-      await staking.connect(governor).setProtocolPercentage(protocolPercentage)
+      await staking.connect(governor.signer).setProtocolPercentage(protocolPercentage)
 
       // Set a curation fee percentage
       const curationPercentage = toBN('200000') // 20%
-      await staking.connect(governor).setCurationPercentage(curationPercentage)
+      await staking.connect(governor.signer).setCurationPercentage(curationPercentage)
 
       // Collect
       await shouldCollect(tokensToCollect)
@@ -298,14 +315,14 @@ describe('Staking:Allocation', () => {
 
     it('should collect from a settling channel but reject after dispute period', async function () {
       // Set channel dispute period to one epoch
-      await staking.connect(governor).setChannelDisputeEpochs(toBN('1'))
+      await staking.connect(governor.signer).setChannelDisputeEpochs(toBN('1'))
       // Advance blocks to get the channel in epoch where it can be settled
       await advanceToNextEpoch(epochManager)
       // Settle the channel
-      await staking.connect(indexer).settle(channelID)
+      await staking.connect(indexer.signer).settle(channelID)
 
       // Collect fees into the channel
-      const tx1 = staking.connect(channelProxy).collect(tokensToCollect, channelID)
+      const tx1 = staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
       await tx1
 
       // Advance blocks to get channel in epoch where it can no longer collect funds (finalized)
@@ -313,7 +330,7 @@ describe('Staking:Allocation', () => {
 
       // Revert if channel is finalized
       expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
-      const tx2 = staking.connect(channelProxy).collect(tokensToCollect, channelID)
+      const tx2 = staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
       await expect(tx2).revertedWith('Collect: channel must be active or settled')
     })
   })
@@ -324,18 +341,18 @@ describe('Staking:Allocation', () => {
   describe('settle', function () {
     beforeEach(async function () {
       // Stake and allocate channel
-      await staking.connect(indexer).stake(tokensToStake)
+      await staking.connect(indexer.signer).stake(tokensToStake)
       await allocate(tokensToAllocate)
     })
 
     it('reject settle a non-existing channel allocation', async function () {
       const invalidChannelID = randomHexBytes(20)
-      const tx = staking.connect(indexer).settle(invalidChannelID)
+      const tx = staking.connect(indexer.signer).settle(invalidChannelID)
       await expect(tx).revertedWith('Settle: channel must be active')
     })
 
     it('reject settle before at least one epoch has passed', async function () {
-      const tx = staking.connect(indexer).settle(channelID)
+      const tx = staking.connect(indexer.signer).settle(channelID)
       await expect(tx).revertedWith('Settle: must pass at least one epoch')
     })
 
@@ -344,7 +361,7 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Settle
-      const tx = staking.connect(me).settle(channelID)
+      const tx = staking.connect(me.signer).settle(channelID)
       await expect(tx).revertedWith('Settle: only indexer can settle')
     })
 
@@ -353,10 +370,10 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // First settlement
-      await staking.connect(indexer).settle(channelID)
+      await staking.connect(indexer.signer).settle(channelID)
 
       // Second settlement
-      const tx = staking.connect(indexer).settle(channelID)
+      const tx = staking.connect(indexer.signer).settle(channelID)
       await expect(tx).revertedWith('Settle: channel must be active')
     })
 
@@ -381,7 +398,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Settle
-      const tx = staking.connect(indexer).settle(channelID)
+      const tx = staking.connect(indexer.signer).settle(channelID)
       await expect(tx)
         .emit(staking, 'AllocationSettled')
         .withArgs(
@@ -428,7 +445,7 @@ describe('Staking:Allocation', () => {
       // Claim rebates
       const tokensToClaim = beforeAlloc.collectedFees
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer).claim(channelID, restake)
+      const tx = staking.connect(indexer.signer).claim(channelID, restake)
       await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
@@ -481,45 +498,45 @@ describe('Staking:Allocation', () => {
 
     beforeEach(async function () {
       // Stake and allocate channel
-      await staking.connect(indexer).stake(tokensToStake)
+      await staking.connect(indexer.signer).stake(tokensToStake)
       await allocate(tokensToAllocate)
 
       // Set channel dispute period to one epoch
-      await staking.connect(governor).setChannelDisputeEpochs(toBN('1'))
+      await staking.connect(governor.signer).setChannelDisputeEpochs(toBN('1'))
 
       // Fund wallets
-      await grt.connect(governor).mint(channelProxy.address, tokensToCollect)
-      await grt.connect(channelProxy).approve(staking.address, tokensToCollect)
+      await grt.connect(governor.signer).mint(channelProxy.address, tokensToCollect)
+      await grt.connect(channelProxy.signer).approve(staking.address, tokensToCollect)
     })
 
     it('reject claim for non-existing channel allocation', async function () {
       expect(await staking.getAllocationState(channelID)).eq(AllocationState.Active)
       const invalidChannelID = randomHexBytes(20)
-      const tx = staking.connect(indexer).claim(invalidChannelID, false)
+      const tx = staking.connect(indexer.signer).claim(invalidChannelID, false)
       await expect(tx).revertedWith('Rebate: channel must be in finalized state')
     })
 
     it('reject claim if channel allocation is not settled', async function () {
       expect(await staking.getAllocationState(channelID)).not.eq(AllocationState.Settled)
-      const tx = staking.connect(indexer).claim(channelID, false)
+      const tx = staking.connect(indexer.signer).claim(channelID, false)
       await expect(tx).revertedWith('Rebate: channel must be in finalized state')
     })
 
     context('> when settled', function () {
       beforeEach(async function () {
         // Collect some funds
-        await staking.connect(channelProxy).collect(tokensToCollect, channelID)
+        await staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
 
         // Advance blocks to get the channel in epoch where it can be settled
         await advanceToNextEpoch(epochManager)
 
         // Settle the channel allocation
-        await staking.connect(indexer).settle(channelID)
+        await staking.connect(indexer.signer).settle(channelID)
       })
 
       it('reject claim if settled but channel dispute epochs has not passed', async function () {
         expect(await staking.getAllocationState(channelID)).eq(AllocationState.Settled)
-        const tx = staking.connect(indexer).claim(channelID, false)
+        const tx = staking.connect(indexer.signer).claim(channelID, false)
         await expect(tx).revertedWith('Rebate: channel must be in finalized state')
       })
 
@@ -564,7 +581,7 @@ describe('Staking:Allocation', () => {
 
         // Try to claim again
         expect(await staking.getAllocationState(channelID)).eq(AllocationState.Claimed)
-        const tx = staking.connect(indexer).claim(channelID, false)
+        const tx = staking.connect(indexer.signer).claim(channelID, false)
         await expect(tx).revertedWith('Rebate: channel must be in finalized state')
       })
     })

@@ -1,4 +1,4 @@
-import { utils, Wallet, Contract } from 'ethers'
+import { utils, Wallet, Contract, Signer } from 'ethers'
 import { TransactionReceipt } from '@connext/types'
 import { ChannelSigner } from '@connext/utils'
 import { ethers, waffle } from '@nomiclabs/buidler'
@@ -86,13 +86,17 @@ export async function deployServiceRegistry(): Promise<ServiceRegistry> {
 }
 
 export async function deployStaking(
-  owner: Wallet,
+  owner: Signer,
   graphToken: string,
   epochManager: string,
   curation: string,
 ): Promise<Staking> {
   const Staking = await ethers.getContractFactory('Staking')
-  const contract = (await Staking.deploy(owner.address, graphToken, epochManager)) as Staking
+  const contract = (await Staking.deploy(
+    await owner.getAddress(),
+    graphToken,
+    epochManager,
+  )) as Staking
   await contract.connect(owner).setCuration(curation)
   await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)

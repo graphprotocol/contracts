@@ -4,19 +4,19 @@ import { solidity } from 'ethereum-waffle'
 import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
 
 import * as deployment from './lib/deployment'
-import { provider } from './lib/testHelpers'
+import { getAccounts, Account } from './lib/testHelpers'
 
 use(solidity)
 
 describe('ServiceRegistry', () => {
-  const [indexer] = provider().getWallets()
+  let indexer: Account
 
   let serviceRegistry: ServiceRegistry
   const geohash = '69y7hdrhm6mp'
 
   const shouldRegister = async (url: string, geohash: string) => {
     // Register the indexer service
-    const tx = serviceRegistry.connect(indexer).register(url, geohash)
+    const tx = serviceRegistry.connect(indexer.signer).register(url, geohash)
     await expect(tx)
       .emit(serviceRegistry, 'ServiceRegistered')
       .withArgs(indexer.address, url, geohash)
@@ -26,6 +26,10 @@ describe('ServiceRegistry', () => {
     expect(indexerService.url).eq(url)
     expect(indexerService.geohash).eq(geohash)
   }
+
+  before(async function () {
+    ;[indexer] = await getAccounts()
+  })
 
   beforeEach(async function () {
     serviceRegistry = await deployment.deployServiceRegistry()
@@ -50,7 +54,7 @@ describe('ServiceRegistry', () => {
     })
 
     it('reject registering empty URL', async function () {
-      const tx = serviceRegistry.connect(indexer).register('', '')
+      const tx = serviceRegistry.connect(indexer.signer).register('', '')
       await expect(tx).revertedWith('Service must specify a URL')
     })
   })
@@ -60,15 +64,15 @@ describe('ServiceRegistry', () => {
       const url = 'https://thegraph.com'
 
       // Register the indexer service
-      await serviceRegistry.connect(indexer).register(url, geohash)
+      await serviceRegistry.connect(indexer.signer).register(url, geohash)
 
       // Unregister the indexer service
-      const tx = serviceRegistry.connect(indexer).unregister()
+      const tx = serviceRegistry.connect(indexer.signer).unregister()
       await expect(tx).emit(serviceRegistry, 'ServiceUnregistered').withArgs(indexer.address)
     })
 
     it('reject unregister non-existing registration', async function () {
-      const tx = serviceRegistry.connect(indexer).unregister()
+      const tx = serviceRegistry.connect(indexer.signer).unregister()
       await expect(tx).revertedWith('Service already unregistered')
     })
   })

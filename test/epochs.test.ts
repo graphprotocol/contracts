@@ -10,18 +10,24 @@ import {
   advanceBlockTo,
   defaults,
   latestBlock,
-  provider,
+  getAccounts,
   toBN,
+  Account,
 } from './lib/testHelpers'
 
 use(solidity)
 
 describe('EpochManager', () => {
-  const [me, governor] = provider().getWallets()
+  let me: Account
+  let governor: Account
 
   let epochManager: EpochManager
 
   const epochLength: BigNumber = toBN('3')
+
+  before(async function () {
+    ;[me, governor] = await getAccounts()
+  })
 
   beforeEach(async function () {
     epochManager = await deployment.deployEpochManager(governor.address)
@@ -40,7 +46,7 @@ describe('EpochManager', () => {
       // Update and check new value
       const newEpochLength = toBN('4')
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = epochManager.connect(governor).setEpochLength(newEpochLength)
+      const tx = epochManager.connect(governor.signer).setEpochLength(newEpochLength)
       await expect(tx)
         .emit(epochManager, 'EpochLengthUpdate')
         .withArgs(currentEpoch, newEpochLength)
@@ -50,7 +56,7 @@ describe('EpochManager', () => {
     it('reject set `epochLength` if zero', async function () {
       // Update and check new value
       const newEpochLength = toBN('0')
-      const tx = epochManager.connect(governor).setEpochLength(newEpochLength)
+      const tx = epochManager.connect(governor.signer).setEpochLength(newEpochLength)
       await expect(tx).revertedWith('Epoch length cannot be 0')
     })
   })
@@ -60,7 +66,7 @@ describe('EpochManager', () => {
     // Blocks -> (1,2,3)(4,5,6)(7,8,9)
     // Epochs ->   1    2    3
     beforeEach(async function () {
-      await epochManager.connect(governor).setEpochLength(epochLength)
+      await epochManager.connect(governor.signer).setEpochLength(epochLength)
     })
 
     describe('calculations', () => {
@@ -120,7 +126,7 @@ describe('EpochManager', () => {
         it('should run new epoch', async function () {
           // Run epoch
           const currentEpoch = await epochManager.currentEpoch()
-          const tx = epochManager.connect(me).runEpoch()
+          const tx = epochManager.connect(me.signer).runEpoch()
           await expect(tx).emit(epochManager, 'EpochRun').withArgs(currentEpoch, me.address)
 
           // State

@@ -1,4 +1,4 @@
-import { Wallet } from 'ethers'
+import { Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
 import { evmSnapshot, evmRevert } from './testHelpers'
@@ -11,14 +11,18 @@ export class NetworkFixture {
   }
 
   async load(
-    governor: Wallet,
-    slasher: Wallet = Wallet.createRandom(),
-    arbitrator: Wallet = Wallet.createRandom(),
+    governor: Signer,
+    slasher: Signer = Wallet.createRandom() as Signer,
+    arbitrator: Signer = Wallet.createRandom() as Signer,
   ) {
+    const arbitratorAddress = await arbitrator.getAddress()
+    const governorAddress = await governor.getAddress()
+    const slasherAddress = await slasher.getAddress()
+
     // Deploy contracts
-    const epochManager = await deployment.deployEpochManager(governor.address)
-    const grt = await deployment.deployGRT(governor.address)
-    const curation = await deployment.deployCuration(governor.address, grt.address)
+    const epochManager = await deployment.deployEpochManager(governorAddress)
+    const grt = await deployment.deployGRT(governorAddress)
+    const curation = await deployment.deployCuration(governorAddress, grt.address)
     const staking = await deployment.deployStaking(
       governor,
       grt.address,
@@ -26,14 +30,14 @@ export class NetworkFixture {
       curation.address,
     )
     const disputeManager = await deployment.deployDisputeManager(
-      governor.address,
+      governorAddress,
       grt.address,
-      arbitrator.address,
+      arbitratorAddress,
       staking.address,
     )
 
     // Configuration
-    await staking.connect(governor).setSlasher(slasher.address, true)
+    await staking.connect(governor).setSlasher(slasherAddress, true)
     await curation.connect(governor).setStaking(staking.address)
 
     return {

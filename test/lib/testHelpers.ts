@@ -1,5 +1,5 @@
-import { BigNumber, utils } from 'ethers'
-import builder from '@nomiclabs/buidler'
+import { BigNumber, utils, Signer } from 'ethers'
+import buidler, { buidlerArguments } from '@nomiclabs/buidler'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 
@@ -16,12 +16,31 @@ export const logStake = (stakes: any): void => {
 
 // Network
 
-export const provider = () => builder.waffle.provider
+export interface Account {
+  readonly signer: Signer
+  readonly address: string
+}
 
-export const getChainID = (): Promise<string | number> =>
-  provider()
+export const provider = () => buidler.waffle.provider
+
+export const getAccounts = async (): Promise<Account[]> => {
+  const accounts = []
+  const signers: Signer[] = await buidler.ethers.getSigners()
+  for (const signer of signers) {
+    accounts.push({ signer, address: await signer.getAddress() })
+  }
+  return accounts
+}
+
+export const getChainID = (): Promise<number> => {
+  // HACK: this fixes ganache returning always 1 when a contract calls the chainid() opcode
+  if (buidler.network.name == 'ganache') {
+    return Promise.resolve(1)
+  }
+  return provider()
     .getNetwork()
     .then((r) => r.chainId)
+}
 
 // export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 
