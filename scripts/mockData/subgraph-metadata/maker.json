@@ -1,0 +1,9 @@
+{
+  "subgraphDescription": "Maker is a protocol for collateralized stable coin creation.",
+  "subgraphDisplayName": "Maker",
+  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmdJ2g7fbk1XDh24NBCwWNSUZ8jY1XxpG9ukXhLAhanP6C",
+  "subgraphCodeRepository": "https://github.com/makerdao",
+  "subgraphWebsite": "https://makerdao.com/en/",
+  "versionLabel": "v0.1.0",
+  "versionDescription": "First Version"
+}

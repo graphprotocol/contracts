@@ -1,5 +1,5 @@
-# Scripts
-
+# Scripts / CLI
+## Setup
 These are convenience scripts for interacting with the contracts.
 
 The scripts expect a `.env` file with the following setup:
@@ -16,51 +16,12 @@ npm run build
 `chmod+x` can be run on the files first, and then you will not need to pass `ts-node` in any of
 the script calls.
 
-To see specific functionality of the scripts, review the comments in each file,
-or run the scripts and see them printed out.
-
-## GNS
-```js
-publishNewSubgraph()
-publishNewVersion()
-deprecate()
-```
-
-## ENS
-```js
-setRecord()
-setText()
-checkOwner()
-```
-
-## Ethereum DID Registry
-```js
-setAttribute()
-```
-
-## Graph Token
-```js
-mint()
-approve()
-transfer()
-```
-
-## Service Registry
-```js
-register()
-unregister()
-```
-
-## Curation
-```js
-stake()
-redeem()
-```
-
-## Staking
-```js
-stake()
-unstake()
-withdraw()
-allocate()
-```
+## Usage
+There are two aspects to the CLI right now
+- `/cli`
+  - This folder is a CLI that allows for deploying contracts to ethereum networks
+- `/contracts`
+  - This is a CLI that allows for single calls to interact with deployed contracts
+  - It also has `populateData` , which calls all functions the subgraph ingests, so that whenever
+    contracts are lauched on a new network, we can quickly test, and get the front end filled
+    with data. This data is in `/mockdata`

@@ -1,7 +1,7 @@
 {
   "codeRepository": "github.com/davekaj",
   "description": "Dave Kajpusts graph account",
-  "image": "http://localhost:8080/ipfs/QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
+  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
   "name": "Dave Kajpust",
   "website": "https://kajpust.com/"
 }
