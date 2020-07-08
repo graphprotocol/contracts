@@ -9,7 +9,6 @@ const { scenario, network, mnemonic } = minimist.default(process.argv.slice(2), 
   string: ['scenario', 'provider', 'wallet'],
 })
 
-
 if (!scenario || !network || !mnemonic) {
   console.error(
     `

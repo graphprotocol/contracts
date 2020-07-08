@@ -215,7 +215,7 @@ const populateServiceRegistry = async (network: string, signers: Array<Wallet>) 
   ]
 
   for (let i = 0; i < signers.length; i++) {
-    const serviceRegistry = new ConnectedServiceRegistry( network, signers[i])
+    const serviceRegistry = new ConnectedServiceRegistry(network, signers[i])
     console.log(`Registering an indexer in the service registry...`)
     await executeTransaction(serviceRegistry.contract.register(urls[i], geoHashes[i]))
     if (i < 2) {

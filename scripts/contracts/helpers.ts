@@ -2,14 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
 
-import {
-  ContractTransaction,
-  utils,
-  ContractReceipt,
-  providers,
-  Wallet,
-  Overrides,
-} from 'ethers'
+import { ContractTransaction, utils, ContractReceipt, providers, Wallet, Overrides } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
@@ -98,7 +91,7 @@ export const getNetworkAddresses = (network: string): any => {
     permanentAddresses = addresses.kovan // TODO - update address book so this doesn't happen
   } else if (network == 'ganache') {
     generatedAddresses = addresses['1337']
-    // TODO - make this connect to ENS and etherDIDRegistry when it is working 
+    // TODO - make this connect to ENS and etherDIDRegistry when it is working
     permanentAddresses = addresses.kovan
   }
   return {

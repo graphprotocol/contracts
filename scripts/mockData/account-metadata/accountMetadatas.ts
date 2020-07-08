@@ -11,7 +11,6 @@ import origin from './origin.json'
 import thegraph from './thegraph.json'
 import uniswap from './uniswap.json'
 
-
 const compoundAccountMetadata = jsonToAccountMetadata(compound)
 const decentralandAccountMetadata = jsonToAccountMetadata(decentraland)
 const ensAccountMetadata = jsonToAccountMetadata(ens)

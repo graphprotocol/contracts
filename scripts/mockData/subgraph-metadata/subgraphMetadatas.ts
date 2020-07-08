@@ -11,8 +11,6 @@ import origin from './origin.json'
 import thegraph from './thegraph.json'
 import uniswap from './uniswap.json'
 
-
-
 const compoundMetadata = jsonToSubgraphMetadata(compound)
 const decentralandMetadata = jsonToSubgraphMetadata(decentraland)
 const ensMetadata = jsonToSubgraphMetadata(ens)
@@ -34,5 +32,5 @@ export default {
   molochMetadata,
   originMetadata,
   thegraphMetadata,
-  uniswapMetadata
+  uniswapMetadata,
 }
