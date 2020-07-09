@@ -1,11 +1,14 @@
-import { ethers, Wallet, Signer } from 'ethers'
-import { expect } from 'chai'
+import { expect, use } from 'chai'
+import { ethers, Signer } from 'ethers'
+import { solidity } from 'ethereum-waffle'
 
 import { Gns } from '../build/typechain/contracts/Gns'
 import { EthereumDidRegistry } from '../build/typechain/contracts/EthereumDidRegistry'
 
 import * as deployment from './lib/deployment'
 import { getAccounts, randomHexBytes, Account } from './lib/testHelpers'
+
+use(solidity)
 
 describe('GNS', () => {
   let me: Account
@@ -60,7 +63,7 @@ describe('GNS', () => {
     // No need to call the didRegistry and update owner, since an account is the owner of itself
     // by default. Thus, we don't even bother, but the contract still is needed in testing
     didRegistry = await deployment.deployEthereumDIDRegistry()
-    gns = await deployment.deployGNS(governor.address, didRegistry.address)
+    gns = await deployment.deployGNS(governor.signer, didRegistry.address)
   })
 
   describe('isPublished', function () {

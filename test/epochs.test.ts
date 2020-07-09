@@ -30,7 +30,7 @@ describe('EpochManager', () => {
   })
 
   beforeEach(async function () {
-    epochManager = await deployment.deployEpochManager(governor.address)
+    epochManager = await deployment.deployEpochManager(governor.signer)
   })
 
   describe('configuration', () => {

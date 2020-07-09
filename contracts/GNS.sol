@@ -62,10 +62,9 @@ contract GNS is Governed {
 
     /**
      * @dev Contract Constructor.
-     * @param _governor Owner address of this contract
      * @param _didRegistry Address of the Ethereum DID registry
      */
-    constructor(address _governor, address _didRegistry) public Governed(_governor) {
+    constructor(address _didRegistry) public {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
     }
 

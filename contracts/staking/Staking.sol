@@ -1,10 +1,10 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./EpochManager.sol";
-import "./Governed.sol";
-import "./ICuration.sol";
-import "./IGraphToken.sol";
+import "../EpochManager.sol";
+import "../Governed.sol";
+import "../curation/ICuration.sol";
+import "../IGraphToken.sol";
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
@@ -204,15 +204,10 @@ contract Staking is IStaking, Governed {
 
     /**
      * @dev Staking Contract Constructor.
-     * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      */
-    constructor(
-        address _governor,
-        address _token,
-        address _epochManager
-    ) public Governed(_governor) {
+    constructor(address _token, address _epochManager) public {
         token = IGraphToken(_token);
         epochManager = EpochManager(_epochManager);
     }

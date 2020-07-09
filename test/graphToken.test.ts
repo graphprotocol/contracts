@@ -111,7 +111,7 @@ describe('GraphToken', () => {
 
   beforeEach(async function () {
     // Deploy graph token
-    grt = await deployment.deployGRT(governor.address)
+    grt = await deployment.deployGRT(governor.signer)
 
     // Mint some tokens
     const tokens = toGRT('10000')

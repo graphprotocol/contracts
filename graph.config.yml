@@ -1,10 +1,9 @@
 general:
-  governor: &governor "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+  arbitrator: &arbitrator "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
   nodeSignerAddress: &nodeSignerAddress "0x0000000000000000000000000000000000000000"
 
 contracts:
   Curation:
-    governor: *governor
     token: "${{GraphToken.address}}"
     reserveRatio: 500000 # 50% bonding curve reserve ratio parameter
     minimumCurationStake: "100000000000000000000" # 100 GRT
@@ -12,26 +11,19 @@ contracts:
       - fn: "setWithdrawalFeePercentage"
         withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
   DisputeManager:
-    governor: *governor
-    arbitrator: *governor
+    arbitrator: *arbitrator
     token: "${{GraphToken.address}}"
     staking: "${{Staking.address}}"
     minimumDeposit: "100000000000000000000" # 100 GRT
     fishermanRewardPercentage: 1000 # in basis points
     slashingPercentage: 1000 # in basis points
   EpochManager:
-    governor: *governor
     lengthInBlocks: 5760 # One day in blocks
   GNS:
-    governor: *governor
     didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
   GraphToken:
-    governor: *governor
     initialSupply: "10000000000000000000000000" # 10000000 GRT
-  RewardsManager:
-    governor: *governor
   Staking:
-    governor: *governor
     token: "${{GraphToken.address}}"
     epochManager: "${{EpochManager.address}}"
     __calls:

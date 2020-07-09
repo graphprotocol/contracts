@@ -135,7 +135,7 @@ describe('Staking::Delegation', () => {
       })
 
       it('reject set `delegationCapacity` if not allowed', async function () {
-        const tx = staking.setDelegationCapacity(delegationCapacity)
+        const tx = staking.connect(me.signer).setDelegationCapacity(delegationCapacity)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
@@ -149,7 +149,7 @@ describe('Staking::Delegation', () => {
       })
 
       it('reject set `delegationParametersCooldown` if not allowed', async function () {
-        const tx = staking.setDelegationParametersCooldown(cooldown)
+        const tx = staking.connect(me.signer).setDelegationParametersCooldown(cooldown)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })

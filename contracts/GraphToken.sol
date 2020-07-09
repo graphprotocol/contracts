@@ -42,19 +42,14 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
 
     /**
      * @dev Graph Token Contract Constructor.
-     * @param _governor Owner address of this contract
      * @param _initialSupply Initial supply of GRT
      */
-    constructor(address _governor, uint256 _initialSupply)
-        public
-        ERC20("Graph Token", "GRT")
-        Governed(_governor)
-    {
+    constructor(uint256 _initialSupply) public ERC20("Graph Token", "GRT") {
         // The Governor has the initial supply of tokens
-        _mint(_governor, _initialSupply);
+        _mint(msg.sender, _initialSupply);
 
         // The Governor is the default minter
-        _addMinter(_governor);
+        _addMinter(msg.sender);
 
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(

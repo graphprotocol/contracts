@@ -2,10 +2,10 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Governed.sol";
+import "../Governed.sol";
+import "../GraphProxy.sol";
 import "./ICuration.sol";
-import "./IGraphToken.sol";
-import "./bancor/BancorFormula.sol";
+import "./CurationStorage.sol";
 
 /**
  * @title Curation contract
@@ -15,47 +15,14 @@ import "./bancor/BancorFormula.sol";
  * A curators stake goes to a curation pool along with the stakes of other curators,
  * only one pool exists for each subgraph deployment.
  */
-contract Curation is ICuration, BancorFormula, Governed {
+contract Curation is CurationV1Storage, ICuration, Governed {
     using SafeMath for uint256;
-
-    // -- Curation --
-
-    struct CurationPool {
-        uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
-        uint256 shares; // Shares issued for the SubgraphDeployment
-        uint32 reserveRatio; // Ratio for the bonding curve
-        mapping(address => uint256) curatorShares; // Mapping of curator => shares
-    }
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
     // Amount of shares you get with your minimum token stake
     uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
-
-    // -- State --
-
-    // Fee charged when curator withdraw stake
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public withdrawalFeePercentage;
-
-    // Default reserve ratio to configure curator shares bonding curve
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public defaultReserveRatio;
-
-    // Minimum amount allowed to be staked by curators
-    // This is the `startPoolBalance` for the bonding curve
-    uint256 public minimumCurationStake;
-
-    // Mapping of subgraphDeploymentID => CurationPool
-    // There is only one CurationPool per SubgraphDeployment
-    mapping(bytes32 => CurationPool) public pools;
-
-    // Address of the staking contract that will distribute fees to reserves
-    address public staking;
-
-    // Token used for staking
-    IGraphToken public token;
 
     // -- Events --
 
@@ -90,18 +57,38 @@ contract Curation is ICuration, BancorFormula, Governed {
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @dev Contract Constructor.
-     * @param _governor Owner address of this contract
+     * @dev Contract initializer.
      * @param _token Address of the Graph Protocol token
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationStake Minimum amount of tokens that curators can stake
      */
     constructor(
-        address _governor,
         address _token,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
-    ) public Governed(_governor) {
+    ) public {
+        token = IGraphToken(_token);
+        _setDefaultReserveRatio(_defaultReserveRatio);
+        _setMinimumCurationStake(_minimumCurationStake);
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
+     * @param _token Address of the Graph Protocol token
+     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
+     * @param _minimumCurationStake Minimum amount of tokens that curators can stake
+     */
+    function upgradeFrom(
+        GraphProxy _proxy,
+        address _token,
+        uint32 _defaultReserveRatio,
+        uint256 _minimumCurationStake
+    ) external {
+        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
+        _proxy.acceptImplementation();
+
+        // Initialization
         token = IGraphToken(_token);
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setMinimumCurationStake(_minimumCurationStake);

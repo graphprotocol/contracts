@@ -16,13 +16,12 @@ export class NetworkFixture {
     arbitrator: Signer = Wallet.createRandom() as Signer,
   ) {
     const arbitratorAddress = await arbitrator.getAddress()
-    const governorAddress = await governor.getAddress()
     const slasherAddress = await slasher.getAddress()
 
     // Deploy contracts
-    const epochManager = await deployment.deployEpochManager(governorAddress)
-    const grt = await deployment.deployGRT(governorAddress)
-    const curation = await deployment.deployCuration(governorAddress, grt.address)
+    const epochManager = await deployment.deployEpochManager(governor)
+    const grt = await deployment.deployGRT(governor)
+    const curation = await deployment.deployCuration(governor, grt.address)
     const staking = await deployment.deployStaking(
       governor,
       grt.address,
@@ -30,7 +29,7 @@ export class NetworkFixture {
       curation.address,
     )
     const disputeManager = await deployment.deployDisputeManager(
-      governorAddress,
+      governor,
       grt.address,
       arbitratorAddress,
       staking.address,

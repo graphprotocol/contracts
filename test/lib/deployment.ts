@@ -1,4 +1,4 @@
-import { utils, Wallet, Contract, Signer } from 'ethers'
+import { utils, Contract, Signer } from 'ethers'
 import { TransactionReceipt } from '@connext/types'
 import { ChannelSigner } from '@connext/utils'
 import { ethers, waffle } from '@nomiclabs/buidler'
@@ -32,15 +32,14 @@ import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 
 const { solidityKeccak256 } = utils
 
-export async function deployGRT(owner: string): Promise<GraphToken> {
+export async function deployGRT(owner: Signer): Promise<GraphToken> {
   const GraphToken = await ethers.getContractFactory('GraphToken')
-  return GraphToken.deploy(owner, defaults.token.initialSupply) as Promise<GraphToken>
+  return GraphToken.connect(owner).deploy(defaults.token.initialSupply) as Promise<GraphToken>
 }
 
-export async function deployCuration(owner: string, graphToken: string): Promise<Curation> {
+export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
   const Curation = await ethers.getContractFactory('Curation')
-  return Curation.deploy(
-    owner,
+  return Curation.connect(owner).deploy(
     graphToken,
     defaults.curation.reserveRatio,
     defaults.curation.minimumCurationStake,
@@ -48,14 +47,13 @@ export async function deployCuration(owner: string, graphToken: string): Promise
 }
 
 export async function deployDisputeManager(
-  owner: string,
+  owner: Signer,
   graphToken: string,
   arbitrator: string,
   staking: string,
 ): Promise<DisputeManager> {
   const DisputeManager = await ethers.getContractFactory('DisputeManager')
-  return DisputeManager.deploy(
-    owner,
+  return DisputeManager.connect(owner).deploy(
     arbitrator,
     graphToken,
     staking,
@@ -65,14 +63,14 @@ export async function deployDisputeManager(
   ) as Promise<DisputeManager>
 }
 
-export async function deployEpochManager(owner: string): Promise<EpochManager> {
+export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
   const EpochManager = await ethers.getContractFactory('EpochManager')
-  return EpochManager.deploy(owner, defaults.epochs.lengthInBlocks) as Promise<EpochManager>
+  return EpochManager.connect(owner).deploy(defaults.epochs.lengthInBlocks) as Promise<EpochManager>
 }
 
-export async function deployGNS(owner: string, didRegistry: string): Promise<Gns> {
+export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
   const GNS = await ethers.getContractFactory('GNS')
-  return GNS.deploy(owner, didRegistry) as Promise<Gns>
+  return GNS.connect(owner).deploy(didRegistry) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(): Promise<EthereumDidRegistry> {
@@ -92,11 +90,7 @@ export async function deployStaking(
   curation: string,
 ): Promise<Staking> {
   const Staking = await ethers.getContractFactory('Staking')
-  const contract = (await Staking.deploy(
-    await owner.getAddress(),
-    graphToken,
-    epochManager,
-  )) as Staking
+  const contract = (await Staking.connect(owner).deploy(graphToken, epochManager)) as Staking
   await contract.connect(owner).setCuration(curation)
   await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)

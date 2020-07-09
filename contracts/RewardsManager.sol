@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import "./Governed.sol";
 
-
 contract RewardsManager is Governed {
     /*
      * @title Graph Protocol Reward Manager contract
@@ -52,12 +51,6 @@ contract RewardsManager is Governed {
 
     // Mapping of indexChainID to queryAmount
     mapping(bytes32 => uint256) public indexChainQueryAmounts;
-
-    /**
-     * @dev Reward Manager Contract Constructor
-     * @param _governor <address> - Address of the multisig contract as Governor of this contract
-     */
-    constructor(address _governor) public Governed(_governor) {}
 
     /* Graph Protocol Functions */
     /**
