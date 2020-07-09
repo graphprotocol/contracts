@@ -6,7 +6,7 @@ import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { defaults, provider, randomHexBytes, toBN, toGRT } from '../lib/testHelpers'
+import { defaults, getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
 
 use(solidity)
 
@@ -29,7 +29,10 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
 }
 
 describe('Curation', () => {
-  const [me, governor, curator, stakingMock] = provider().getWallets()
+  let me: Account
+  let governor: Account
+  let curator: Account
+  let stakingMock: Account
 
   let fixture: NetworkFixture
 
@@ -54,7 +57,7 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Curate
-    const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+    const tx = curation.connect(curator.signer).stake(subgraphDeploymentID, tokensToStake)
     await expect(tx)
       .emit(curation, 'Staked')
       .withArgs(curator.address, subgraphDeploymentID, tokensToStake, expectedShares)
@@ -97,7 +100,7 @@ describe('Curation', () => {
     const withdrawalFees = toBN(withdrawalFeePercentage).mul(expectedTokens).div(toBN(MAX_PPM))
 
     // Redeem
-    const tx = curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
+    const tx = curation.connect(curator.signer).redeem(subgraphDeploymentID, sharesToRedeem)
     await expect(tx)
       .emit(curation, 'Redeemed')
       .withArgs(
@@ -136,7 +139,7 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Source of tokens must be the staking for this to work
-    const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
+    const tx = curation.connect(stakingMock.signer).collect(subgraphDeploymentID, tokensToCollect)
     await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
 
     // After state
@@ -149,19 +152,21 @@ describe('Curation', () => {
   }
 
   before(async function () {
+    ;[me, governor, curator, stakingMock] = await getAccounts()
+
     fixture = new NetworkFixture()
-    ;({ curation, grt } = await fixture.load(governor))
+    ;({ curation, grt } = await fixture.load(governor.signer))
 
     // Replace the staking contract with a mock so we can call collect
-    await curation.connect(governor).setStaking(stakingMock.address)
+    await curation.connect(governor.signer).setStaking(stakingMock.address)
 
     // Give some funds to the curator and approve the curation contract
-    await grt.connect(governor).mint(curator.address, curatorTokens)
-    await grt.connect(curator).approve(curation.address, curatorTokens)
+    await grt.connect(governor.signer).mint(curator.address, curatorTokens)
+    await grt.connect(curator.signer).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
-    await grt.connect(governor).mint(stakingMock.address, tokensToCollect)
-    await grt.connect(stakingMock).approve(curation.address, tokensToCollect)
+    await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
+    await grt.connect(stakingMock.signer).approve(curation.address, tokensToCollect)
   })
 
   beforeEach(async function () {
@@ -182,7 +187,7 @@ describe('Curation', () => {
 
     it('convert shares to tokens', async function () {
       // Curate
-      await curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+      await curation.connect(curator.signer).stake(subgraphDeploymentID, tokensToStake)
 
       // Conversion
       const shares = (await curation.pools(subgraphDeploymentID)).shares
@@ -201,7 +206,7 @@ describe('Curation', () => {
   describe('curate', async function () {
     it('reject stake below minimum tokens required', async function () {
       const tokensToStake = (await curation.minimumCurationStake()).sub(toBN(1))
-      const tx = curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+      const tx = curation.connect(curator.signer).stake(subgraphDeploymentID, tokensToStake)
       await expect(tx).revertedWith('Curation stake is below minimum required')
     })
 
@@ -222,18 +227,20 @@ describe('Curation', () => {
     context('> not curated', async function () {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
-        const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation
+          .connect(stakingMock.signer)
+          .collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('SubgraphDeployment must be curated to collect fees')
       })
     })
 
     context('> curated', async function () {
       beforeEach(async function () {
-        await curation.connect(curator).stake(subgraphDeploymentID, toGRT('1000'))
+        await curation.connect(curator.signer).stake(subgraphDeploymentID, toGRT('1000'))
       })
 
       it('reject collect tokens distributed from invalid address', async function () {
-        const tx = curation.connect(me).collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation.connect(me.signer).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('Caller must be the staking contract')
       })
 
@@ -249,16 +256,16 @@ describe('Curation', () => {
 
   describe('redeem', async function () {
     beforeEach(async function () {
-      await curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+      await curation.connect(curator.signer).stake(subgraphDeploymentID, tokensToStake)
     })
 
     it('reject redeem more than a curator owns', async function () {
-      const tx = curation.connect(me).redeem(subgraphDeploymentID, toGRT('1'))
+      const tx = curation.connect(me.signer).redeem(subgraphDeploymentID, toGRT('1'))
       await expect(tx).revertedWith('Cannot redeem more shares than you own')
     })
 
     it('reject redeem zero shares', async function () {
-      const tx = curation.connect(me).redeem(subgraphDeploymentID, toGRT('0'))
+      const tx = curation.connect(me.signer).redeem(subgraphDeploymentID, toGRT('0'))
       await expect(tx).revertedWith('Cannot redeem zero shares')
     })
 
@@ -294,7 +301,7 @@ describe('Curation', () => {
     })
 
     it('should allow to redeem and account for withdrawal fees', async function () {
-      await curation.connect(governor).setWithdrawalFeePercentage(50000)
+      await curation.connect(governor.signer).setWithdrawalFeePercentage(50000)
 
       // Get all shares of the curator
       const sharesToRedeem = await curation.getCuratorShares(curator.address, subgraphDeploymentID)
@@ -310,7 +317,7 @@ describe('Curation', () => {
       // Stake multiple times
       let totalShares = toGRT('0')
       for (const tokensToStake of chunkify(totalStakes, 10)) {
-        const tx = await curation.connect(curator).stake(subgraphDeploymentID, tokensToStake)
+        const tx = await curation.connect(curator.signer).stake(subgraphDeploymentID, tokensToStake)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const shares = event.args['shares']
@@ -321,7 +328,9 @@ describe('Curation', () => {
       // Redeem shares multiple times
       let totalTokens = toGRT('0')
       for (const sharesToRedeem of chunkify(totalShares, 10)) {
-        const tx = await curation.connect(curator).redeem(subgraphDeploymentID, sharesToRedeem)
+        const tx = await curation
+          .connect(curator.signer)
+          .redeem(subgraphDeploymentID, sharesToRedeem)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const tokens = event.args['tokens']

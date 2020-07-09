@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
-import { BuidlerConfig, task, usePlugin } from '@nomiclabs/buidler/config'
+import { task, usePlugin } from '@nomiclabs/buidler/config'
 
 import { cliOpts } from './scripts/cli/constants'
 import { migrate } from './scripts/cli/commands/migrate'
@@ -13,6 +13,7 @@ dotenv.config()
 usePlugin('@nomiclabs/buidler-ethers')
 usePlugin('@nomiclabs/buidler-etherscan')
 usePlugin('@nomiclabs/buidler-waffle')
+usePlugin('buidler-gas-reporter')
 usePlugin('solidity-coverage')
 
 // Helpers
@@ -52,7 +53,7 @@ task('verify', 'Verify contracts in Etherscan')
 
 // Config - Go to https://buidler.dev/config/ to learn more
 
-const config: BuidlerConfig = {
+const config = {
   paths: {
     sources: './contracts',
     tests: './test',
@@ -68,7 +69,7 @@ const config: BuidlerConfig = {
   defaultNetwork: 'buidlerevm',
   networks: {
     buidlerevm: {
-      chainId: 31337,
+      chainId: 1337,
       loggingEnabled: false,
       gas: 8000000,
       gasPrice: 'auto',
@@ -133,6 +134,11 @@ const config: BuidlerConfig = {
   etherscan: {
     url: 'https://api-kovan.etherscan.io/api',
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  gasReporter: {
+    currency: 'USD',
+    enabled: process.env.REPORT_GAS ? true : false,
+    outputFile: './gas-report.txt',
   },
 }
 

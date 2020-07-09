@@ -9,11 +9,12 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import {
   advanceBlockTo,
+  getAccounts,
   randomHexBytes,
   latestBlock,
-  provider,
   toBN,
   toGRT,
+  Account,
 } from '../lib/testHelpers'
 
 use(solidity)
@@ -30,7 +31,12 @@ function weightedAverage(
 }
 
 describe('Staking:Stakes', () => {
-  const [me, governor, indexer, slasher, fisherman, channelProxy] = provider().getWallets()
+  let me: Account
+  let governor: Account
+  let indexer: Account
+  let slasher: Account
+  let fisherman: Account
+  let channelProxy: Account
 
   let fixture: NetworkFixture
 
@@ -48,7 +54,7 @@ describe('Staking:Stakes', () => {
   // Allocate with test values
   const allocate = function (tokens: BigNumber) {
     return staking
-      .connect(indexer)
+      .connect(indexer.signer)
       .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, price)
   }
 
@@ -59,7 +65,7 @@ describe('Staking:Stakes', () => {
     const beforeStakingBalance = await grt.balanceOf(staking.address)
 
     // Stake
-    const tx = staking.connect(indexer).stake(tokensToStake)
+    const tx = staking.connect(indexer.signer).stake(tokensToStake)
     await expect(tx).emit(staking, 'StakeDeposited').withArgs(indexer.address, tokensToStake)
 
     // After state
@@ -72,12 +78,14 @@ describe('Staking:Stakes', () => {
   }
 
   before(async function () {
+    ;[me, governor, indexer, slasher, fisherman, channelProxy] = await getAccounts()
+
     fixture = new NetworkFixture()
-    ;({ grt, staking } = await fixture.load(governor, slasher))
+    ;({ grt, staking } = await fixture.load(governor.signer, slasher.signer))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
-    await grt.connect(governor).mint(indexer.address, indexerTokens)
-    await grt.connect(indexer).approve(staking.address, indexerTokens)
+    await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
+    await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
   })
 
   beforeEach(async function () {
@@ -97,7 +105,7 @@ describe('Staking:Stakes', () => {
 
     describe('stake', function () {
       it('reject stake zero tokens', async function () {
-        const tx = staking.connect(indexer).stake(toGRT('0'))
+        const tx = staking.connect(indexer.signer).stake(toGRT('0'))
         await expect(tx).revertedWith('Staking: cannot stake zero tokens')
       })
 
@@ -109,7 +117,7 @@ describe('Staking:Stakes', () => {
     describe('unstake', function () {
       it('reject unstake tokens', async function () {
         const tokensToUnstake = toGRT('2')
-        const tx = staking.connect(indexer).unstake(tokensToUnstake)
+        const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
         await expect(tx).revertedWith('Staking: indexer has no stakes')
       })
     })
@@ -119,7 +127,7 @@ describe('Staking:Stakes', () => {
         const tokensToSlash = toGRT('10')
         const tokensToReward = toGRT('10')
         const tx = staking
-          .connect(slasher)
+          .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
         await expect(tx).revertedWith('Slashing: indexer has no stakes')
       })
@@ -128,7 +136,7 @@ describe('Staking:Stakes', () => {
 
   context('> when staked', function () {
     beforeEach(async function () {
-      await staking.connect(indexer).stake(tokensToStake)
+      await staking.connect(indexer.signer).stake(tokensToStake)
     })
 
     describe('hasStake', function () {
@@ -151,7 +159,7 @@ describe('Staking:Stakes', () => {
         const until = currentBlock.add(thawingPeriod).add(toBN('1'))
 
         // Unstake
-        const tx = staking.connect(indexer).unstake(tokensToUnstake)
+        const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
         await expect(tx)
           .emit(staking, 'StakeLocked')
           .withArgs(indexer.address, tokensToUnstake, until)
@@ -162,7 +170,7 @@ describe('Staking:Stakes', () => {
         const thawingPeriod = await staking.thawingPeriod()
 
         // Unstake (1)
-        const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
+        const tx1 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
         const receipt1 = await tx1.wait()
         const event1: Event = receipt1.events.pop()
         const tokensLockedUntil1 = event1.args[2]
@@ -181,7 +189,7 @@ describe('Staking:Stakes', () => {
         const expectedLockedUntil = currentBlock.add(lockingPeriod).add(toBN('1'))
 
         // Unstake (2)
-        const tx2 = await staking.connect(indexer).unstake(tokensToUnstake)
+        const tx2 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
         const receipt2 = await tx2.wait()
         const event2: Event = receipt2.events.pop()
         const tokensLockedUntil2 = event2.args[2]
@@ -190,27 +198,27 @@ describe('Staking:Stakes', () => {
 
       it('reject unstake more than available tokens', async function () {
         const tokensOverCapacity = tokensToStake.add(toGRT('1'))
-        const tx = staking.connect(indexer).unstake(tokensOverCapacity)
+        const tx = staking.connect(indexer.signer).unstake(tokensOverCapacity)
         await expect(tx).revertedWith('Staking: not enough tokens available to unstake')
       })
     })
 
     describe('withdraw', function () {
       it('reject withdraw if no tokens available', async function () {
-        const tx = staking.connect(indexer).withdraw()
+        const tx = staking.connect(indexer.signer).withdraw()
         await expect(tx).revertedWith('Staking: no tokens available to withdraw')
       })
 
       it('should withdraw if tokens available', async function () {
         // Unstake
         const tokensToUnstake = toGRT('10')
-        const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
+        const tx1 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
         const receipt1 = await tx1.wait()
         const event1: Event = receipt1.events.pop()
         const tokensLockedUntil = event1.args['until']
 
         // Withdraw on locking period (should fail)
-        const tx2 = staking.connect(indexer).withdraw()
+        const tx2 = staking.connect(indexer.signer).withdraw()
         await expect(tx2).revertedWith('Staking: no tokens available to withdraw')
 
         // Move forward
@@ -218,7 +226,7 @@ describe('Staking:Stakes', () => {
 
         // Withdraw after locking period (all good)
         const beforeBalance = await grt.balanceOf(indexer.address)
-        const tx3 = staking.connect(indexer).withdraw()
+        const tx3 = staking.connect(indexer.signer).withdraw()
         await expect(tx3).emit(staking, 'StakeWithdrawn').withArgs(indexer.address, tokensToUnstake)
         const afterBalance = await grt.balanceOf(indexer.address)
         expect(afterBalance).eq(beforeBalance.add(tokensToUnstake))
@@ -228,10 +236,10 @@ describe('Staking:Stakes', () => {
     describe('slash', function () {
       // This function tests slashing behaviour under different conditions
       const shouldSlash = async function (
-        indexer: Wallet,
+        indexer: Account,
         tokensToSlash: BigNumber,
         tokensToReward: BigNumber,
-        fisherman: Wallet,
+        fisherman: Account,
       ) {
         // Before
         const beforeTotalSupply = await grt.totalSupply()
@@ -241,7 +249,7 @@ describe('Staking:Stakes', () => {
         // Slash indexer
         const tokensToBurn = tokensToSlash.sub(tokensToReward)
         const tx = staking
-          .connect(slasher)
+          .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
         await expect(tx)
           .emit(staking, 'StakeSlashed')
@@ -280,14 +288,14 @@ describe('Staking:Stakes', () => {
 
         // Unstake partially, these tokens will be locked
         const tokensToUnstake = toGRT('10')
-        await staking.connect(indexer).unstake(tokensToUnstake)
+        await staking.connect(indexer.signer).unstake(tokensToUnstake)
 
         // Allocate indexer stake
         const tokensToAllocate = toGRT('70')
         await allocate(tokensToAllocate)
 
         // State pre-slashing
-        // helpers.logStake(await staking.stakes(indexer))
+        // helpers.logStake(await staking.stakes(indexer.signer))
         // > Current state:
         // = Staked: 100
         // = Locked: 10
@@ -300,7 +308,7 @@ describe('Staking:Stakes', () => {
         await shouldSlash(indexer, tokensToSlash, tokensToReward, fisherman)
 
         // State post-slashing
-        // helpers.logStake(await staking.stakes(indexer))
+        // helpers.logStake(await staking.stakes(indexer.signer))
         // > Current state:
         // = Staked: 20
         // = Locked: 0
@@ -323,7 +331,7 @@ describe('Staking:Stakes', () => {
           .sub(stakes.tokensLocked)
         expect(tokensAvailable).eq(toGRT('-50'))
 
-        const tx = staking.connect(indexer).unstake(tokensToUnstake)
+        const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
         await expect(tx).revertedWith('Staking: not enough tokens available to unstake')
       })
 
@@ -331,7 +339,7 @@ describe('Staking:Stakes', () => {
         const tokensToSlash = toGRT('0')
         const tokensToReward = toGRT('0')
         const tx = staking
-          .connect(slasher)
+          .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, me.address)
         await expect(tx).revertedWith('Slashing: cannot slash zero tokens')
       })
@@ -340,7 +348,7 @@ describe('Staking:Stakes', () => {
         const tokensToSlash = toGRT('100')
         const tokensToReward = toGRT('10')
         const tx = staking
-          .connect(me)
+          .connect(me.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, me.address)
         await expect(tx).revertedWith('Caller is not a Slasher')
       })
@@ -349,7 +357,7 @@ describe('Staking:Stakes', () => {
         const tokensToSlash = toGRT('100')
         const tokensToReward = toGRT('10')
         const tx = staking
-          .connect(slasher)
+          .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, AddressZero)
         await expect(tx).revertedWith('Slashing: beneficiary must not be an empty address')
       })
@@ -358,7 +366,7 @@ describe('Staking:Stakes', () => {
         const tokensToSlash = toGRT('100')
         const tokensToReward = toGRT('200')
         const tx = staking
-          .connect(slasher)
+          .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
         await expect(tx).revertedWith('Slashing: reward cannot be higher than slashed amoun')
       })

@@ -6,7 +6,7 @@ import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
-import { getChainID, provider, toBN, toGRT } from './lib/testHelpers'
+import { getAccounts, getChainID, toBN, toGRT, Account } from './lib/testHelpers'
 
 use(solidity)
 
@@ -55,7 +55,12 @@ function signPermit(
 }
 
 describe('GraphToken', () => {
-  const [me, other, governor] = provider().getWallets()
+  let me: Account
+  let other: Account
+  let governor: Account
+
+  const mePrivateKey = '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d'
+  const otherPrivateKey = '0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1'
 
   let grt: GraphToken
 
@@ -87,9 +92,8 @@ describe('GraphToken', () => {
   }
 
   async function createPermitTransaction(permit: Permit, signer: string) {
-    const chainID = (await getChainID()) as number
+    const chainID = await getChainID()
     const signature: Signature = signPermit(signer, chainID, grt.address, permit)
-
     return grt.permit(
       permit.owner,
       permit.spender,
@@ -101,13 +105,17 @@ describe('GraphToken', () => {
     )
   }
 
+  before(async function () {
+    ;[me, other, governor] = await getAccounts()
+  })
+
   beforeEach(async function () {
     // Deploy graph token
     grt = await deployment.deployGRT(governor.address)
 
     // Mint some tokens
     const tokens = toGRT('10000')
-    await grt.connect(governor).mint(me.address, tokens)
+    await grt.connect(governor.signer).mint(me.address, tokens)
   })
 
   describe('permit', function () {
@@ -115,80 +123,78 @@ describe('GraphToken', () => {
       // Allow to transfer tokens
       const tokensToApprove = toGRT('1000')
       const permit = await permitOK(tokensToApprove)
-      const tx = createPermitTransaction(permit, me.privateKey)
-      await expect(tx)
-        .to.emit(grt, 'Approval')
-        .withArgs(permit.owner, permit.spender, tokensToApprove)
+      const tx = createPermitTransaction(permit, mePrivateKey)
+      await expect(tx).emit(grt, 'Approval').withArgs(permit.owner, permit.spender, tokensToApprove)
 
       // Allowance updated
       const allowance = await grt.allowance(me.address, other.address)
-      expect(allowance).to.be.eq(tokensToApprove)
+      expect(allowance).eq(tokensToApprove)
 
       // Transfer tokens should work
       const tokens = toGRT('100')
-      await grt.connect(other).transferFrom(me.address, other.address, tokens)
+      await grt.connect(other.signer).transferFrom(me.address, other.address, tokens)
     })
 
     it('should permit max token allowance', async function () {
       // Allow to transfer tokens
       const permit = await permitMaxOK()
-      const tx = createPermitTransaction(permit, me.privateKey)
+      const tx = createPermitTransaction(permit, mePrivateKey)
       await expect(tx).emit(grt, 'Approval').withArgs(permit.owner, permit.spender, MaxUint256)
 
       // Allowance updated
       const allowance = await grt.allowance(me.address, other.address)
-      expect(allowance).to.be.eq(MaxUint256)
+      expect(allowance).eq(MaxUint256)
 
       // Transfer tokens should work
       const tokens = toGRT('100')
-      await grt.connect(other).transferFrom(me.address, other.address, tokens)
+      await grt.connect(other.signer).transferFrom(me.address, other.address, tokens)
     })
 
     it('reject to transfer more tokens than approved by permit', async function () {
       // Allow to transfer tokens
       const tokensToApprove = toGRT('1000')
       const permit = await permitOK(tokensToApprove)
-      await createPermitTransaction(permit, me.privateKey)
+      await createPermitTransaction(permit, mePrivateKey)
 
       // Should not transfer more than approved
       const tooManyTokens = toGRT('1001')
-      const tx = grt.connect(other).transferFrom(me.address, other.address, tooManyTokens)
-      await expect(tx).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+      const tx = grt.connect(other.signer).transferFrom(me.address, other.address, tooManyTokens)
+      await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
 
       // Should transfer up to the approved amount
-      await grt.connect(other).transferFrom(me.address, other.address, tokensToApprove)
+      await grt.connect(other.signer).transferFrom(me.address, other.address, tokensToApprove)
     })
 
     it('reject use two permits with same nonce', async function () {
       // Allow to transfer tokens
       const permit = await permitMaxOK()
-      await createPermitTransaction(permit, me.privateKey)
+      await createPermitTransaction(permit, mePrivateKey)
 
       // Try to re-use the permit
-      const tx = createPermitTransaction(permit, me.privateKey)
+      const tx = createPermitTransaction(permit, mePrivateKey)
       await expect(tx).revertedWith('GRT: invalid permit')
     })
 
     it('reject use expired permit', async function () {
       const permit = await permitExpired()
-      const tx = createPermitTransaction(permit, me.privateKey)
+      const tx = createPermitTransaction(permit, mePrivateKey)
       await expect(tx).revertedWith('GRT: expired permit')
     })
 
     it('reject permit if holder address does not match', async function () {
       const permit = await permitMaxOK()
-      const tx = createPermitTransaction(permit, other.privateKey)
+      const tx = createPermitTransaction(permit, otherPrivateKey)
       await expect(tx).revertedWith('GRT: invalid permit')
     })
 
     it('should deny transfer from if permit was denied', async function () {
       // Allow to transfer tokens
       const permit1 = await permitMaxOK()
-      await createPermitTransaction(permit1, me.privateKey)
+      await createPermitTransaction(permit1, mePrivateKey)
 
       // Deny transfer tokens
       const permit2 = await permitDeny()
-      await createPermitTransaction(permit2, me.privateKey)
+      await createPermitTransaction(permit2, mePrivateKey)
 
       // Allowance updated
       const allowance = await grt.allowance(me.address, other.address)
@@ -196,7 +202,7 @@ describe('GraphToken', () => {
 
       // Try to transfer without permit should fail
       const tokens = toGRT('100')
-      const tx = grt.connect(other).transferFrom(me.address, other.address, tokens)
+      const tx = grt.connect(other.signer).transferFrom(me.address, other.address, tokens)
       await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
     })
   })
@@ -204,13 +210,13 @@ describe('GraphToken', () => {
   describe('mint', function () {
     describe('addMinter', function () {
       it('reject add a new minter if not allowed', async function () {
-        const tx = grt.connect(me).addMinter(me.address)
+        const tx = grt.connect(me.signer).addMinter(me.address)
         await expect(tx).revertedWith('Only Governor can call')
       })
 
       it('should add a new minter', async function () {
         expect(await grt.isMinter(me.address)).eq(false)
-        const tx = grt.connect(governor).addMinter(me.address)
+        const tx = grt.connect(governor.signer).addMinter(me.address)
         await expect(tx).emit(grt, 'MinterAdded').withArgs(me.address)
         expect(await grt.isMinter(me.address)).eq(true)
       })
@@ -218,14 +224,14 @@ describe('GraphToken', () => {
 
     describe('mint', async function () {
       it('reject mint if not minter', async function () {
-        const tx = grt.connect(me).mint(me.address, toGRT('100'))
+        const tx = grt.connect(me.signer).mint(me.address, toGRT('100'))
         await expect(tx).revertedWith('Only minter can call')
       })
     })
 
     context('> when is minter', function () {
       beforeEach(async function () {
-        await grt.connect(governor).addMinter(me.address)
+        await grt.connect(governor.signer).addMinter(me.address)
         expect(await grt.isMinter(me.address)).eq(true)
       })
 
@@ -234,7 +240,7 @@ describe('GraphToken', () => {
           const beforeTokens = await grt.balanceOf(me.address)
 
           const tokensToMint = toGRT('100')
-          const tx = grt.connect(me).mint(me.address, tokensToMint)
+          const tx = grt.connect(me.signer).mint(me.address, tokensToMint)
           await expect(tx).emit(grt, 'Transfer').withArgs(AddressZero, me.address, tokensToMint)
 
           const afterTokens = await grt.balanceOf(me.address)
@@ -243,18 +249,18 @@ describe('GraphToken', () => {
 
         it('should mint if governor', async function () {
           const tokensToMint = toGRT('100')
-          await grt.connect(governor).mint(me.address, tokensToMint)
+          await grt.connect(governor.signer).mint(me.address, tokensToMint)
         })
       })
 
       describe('removeMinter', function () {
         it('reject remove a minter if not allowed', async function () {
-          const tx = grt.connect(me).removeMinter(me.address)
+          const tx = grt.connect(me.signer).removeMinter(me.address)
           await expect(tx).revertedWith('Only Governor can call')
         })
 
         it('should remove a minter', async function () {
-          const tx = grt.connect(governor).removeMinter(me.address)
+          const tx = grt.connect(governor.signer).removeMinter(me.address)
           await expect(tx).emit(grt, 'MinterRemoved').withArgs(me.address)
           expect(await grt.isMinter(me.address)).eq(false)
         })
@@ -262,7 +268,7 @@ describe('GraphToken', () => {
 
       describe('renounceMinter', function () {
         it('should renounce to be a minter', async function () {
-          const tx = grt.connect(me).renounceMinter()
+          const tx = grt.connect(me.signer).renounceMinter()
           await expect(tx).emit(grt, 'MinterRemoved').withArgs(me.address)
           expect(await grt.isMinter(me.address)).eq(false)
         })

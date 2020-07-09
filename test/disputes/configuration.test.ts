@@ -6,14 +6,17 @@ import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { defaults, provider, toBN } from '../lib/testHelpers'
+import { defaults, getAccounts, toBN, Account } from '../lib/testHelpers'
 
 use(solidity)
 
 const MAX_PPM = 1000000
 
 describe('DisputeManager:Config', () => {
-  const [me, governor, slasher, arbitrator] = provider().getWallets()
+  let me: Account
+  let governor: Account
+  let slasher: Account
+  let arbitrator: Account
 
   let fixture: NetworkFixture
 
@@ -22,8 +25,14 @@ describe('DisputeManager:Config', () => {
   let staking: Staking
 
   before(async function () {
+    ;[me, governor, slasher, arbitrator] = await getAccounts()
+
     fixture = new NetworkFixture()
-    ;({ disputeManager, grt, staking } = await fixture.load(governor, slasher, arbitrator))
+    ;({ disputeManager, grt, staking } = await fixture.load(
+      governor.signer,
+      slasher.signer,
+      arbitrator.signer,
+    ))
   })
 
   beforeEach(async function () {
@@ -51,12 +60,12 @@ describe('DisputeManager:Config', () => {
         expect(await disputeManager.arbitrator()).eq(arbitrator.address)
 
         // Can set if allowed
-        await disputeManager.connect(governor).setArbitrator(me.address)
+        await disputeManager.connect(governor.signer).setArbitrator(me.address)
         expect(await disputeManager.arbitrator()).eq(me.address)
       })
 
       it('reject set `arbitrator` if not allowed', async function () {
-        const tx = disputeManager.connect(me).setArbitrator(arbitrator.address)
+        const tx = disputeManager.connect(me.signer).setArbitrator(arbitrator.address)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
@@ -70,13 +79,13 @@ describe('DisputeManager:Config', () => {
         expect(await disputeManager.minimumDeposit()).eq(oldValue)
 
         // Set new value
-        await disputeManager.connect(governor).setMinimumDeposit(newValue)
+        await disputeManager.connect(governor.signer).setMinimumDeposit(newValue)
         expect(await disputeManager.minimumDeposit()).eq(newValue)
       })
 
       it('reject set `minimumDeposit` if not allowed', async function () {
         const newValue = toBN('1')
-        const tx = disputeManager.connect(me).setMinimumDeposit(newValue)
+        const tx = disputeManager.connect(me.signer).setMinimumDeposit(newValue)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
@@ -89,17 +98,17 @@ describe('DisputeManager:Config', () => {
         expect(await disputeManager.fishermanRewardPercentage()).eq(newValue)
 
         // Set new value
-        await disputeManager.connect(governor).setFishermanRewardPercentage(0)
-        await disputeManager.connect(governor).setFishermanRewardPercentage(newValue)
+        await disputeManager.connect(governor.signer).setFishermanRewardPercentage(0)
+        await disputeManager.connect(governor.signer).setFishermanRewardPercentage(newValue)
       })
 
       it('reject set `fishermanRewardPercentage` if out of bounds', async function () {
-        const tx = disputeManager.connect(governor).setFishermanRewardPercentage(MAX_PPM + 1)
+        const tx = disputeManager.connect(governor.signer).setFishermanRewardPercentage(MAX_PPM + 1)
         await expect(tx).revertedWith('Reward percentage must be below or equal to MAX_PPM')
       })
 
       it('reject set `fishermanRewardPercentage` if not allowed', async function () {
-        const tx = disputeManager.connect(me).setFishermanRewardPercentage(50)
+        const tx = disputeManager.connect(me.signer).setFishermanRewardPercentage(50)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
@@ -112,17 +121,17 @@ describe('DisputeManager:Config', () => {
         expect(await disputeManager.slashingPercentage()).eq(newValue.toString())
 
         // Set new value
-        await disputeManager.connect(governor).setSlashingPercentage(0)
-        await disputeManager.connect(governor).setSlashingPercentage(newValue)
+        await disputeManager.connect(governor.signer).setSlashingPercentage(0)
+        await disputeManager.connect(governor.signer).setSlashingPercentage(newValue)
       })
 
       it('reject set `slashingPercentage` if out of bounds', async function () {
-        const tx = disputeManager.connect(governor).setSlashingPercentage(MAX_PPM + 1)
+        const tx = disputeManager.connect(governor.signer).setSlashingPercentage(MAX_PPM + 1)
         await expect(tx).revertedWith('Slashing percentage must be below or equal to MAX_PPM')
       })
 
       it('reject set `slashingPercentage` if not allowed', async function () {
-        const tx = disputeManager.connect(me).setSlashingPercentage(50)
+        const tx = disputeManager.connect(me.signer).setSlashingPercentage(50)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
@@ -133,12 +142,12 @@ describe('DisputeManager:Config', () => {
         expect(await disputeManager.staking()).eq(staking.address)
 
         // Can set if allowed
-        await disputeManager.connect(governor).setStaking(grt.address)
+        await disputeManager.connect(governor.signer).setStaking(grt.address)
         expect(await disputeManager.staking()).eq(grt.address)
       })
 
       it('reject set `staking` if not allowed', async function () {
-        const tx = disputeManager.connect(me).setStaking(grt.address)
+        const tx = disputeManager.connect(me.signer).setStaking(grt.address)
         await expect(tx).revertedWith('Only Governor can call')
       })
     })
