@@ -1,4 +1,4 @@
-import { utils, Contract, Signer } from 'ethers'
+import { utils, Contract, Signer, Wallet } from 'ethers'
 import { TransactionReceipt } from '@connext/types'
 import { ChannelSigner } from '@connext/utils'
 import { ethers, waffle } from '@nomiclabs/buidler'
@@ -9,6 +9,7 @@ import { defaults } from './testHelpers'
 import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
 
 // contracts definitions
+import { GraphProxy } from '../../build/typechain/contracts/GraphProxy'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -38,14 +39,27 @@ export async function deployGRT(owner: Signer): Promise<GraphToken> {
 }
 
 export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
+  // Impl
   const factory = await ethers.getContractFactory('Curation')
-  return factory
+  const contract = (await factory.connect(owner).deploy()) as Curation
+
+  // Proxy
+  const proxyFactory = await ethers.getContractFactory('GraphProxy')
+  const proxy = (await proxyFactory.connect(owner).deploy()) as GraphProxy
+  await proxy.connect(owner).upgradeTo(contract.address)
+
+  // Impl accept and initialize
+  await contract
     .connect(owner)
-    .deploy(
+    .upgradeFrom(
+      proxy.address,
       graphToken,
       defaults.curation.reserveRatio,
       defaults.curation.minimumCurationStake,
-    ) as Promise<Curation>
+    )
+
+  // Use proxy to forward calls to implementation contract
+  return Promise.resolve(factory.attach(proxy.address) as Curation)
 }
 
 export async function deployDisputeManager(

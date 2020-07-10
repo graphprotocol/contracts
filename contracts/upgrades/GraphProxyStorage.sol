@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "./GovernedStorage.sol";
+import "../governance/GovernedStorage.sol";
 
 /**
  * @title Graph Proxy storage

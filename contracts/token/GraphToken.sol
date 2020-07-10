@@ -3,7 +3,7 @@ pragma solidity ^0.6.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
-import "./Governed.sol";
+import "../governance/Governed.sol";
 
 /**
  * @title GraphToken contract

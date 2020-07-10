@@ -3,9 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Governed.sol";
-import "./IGraphToken.sol";
+import "./governance/Governed.sol";
 import "./staking/IStaking.sol";
+import "./token/IGraphToken.sol";
 
 /*
  * @title DisputeManager

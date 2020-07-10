@@ -1,9 +1,9 @@
 pragma solidity ^0.6.4;
 
-import "../IGraphToken.sol";
-import "../Governed.sol";
-import "../GraphProxyStorage.sol";
 import "../bancor/BancorFormula.sol";
+import "../staking/IStaking.sol";
+import "../token/IGraphToken.sol";
+import "../upgrades/GraphProxyStorage.sol";
 
 contract CurationV1Storage is GraphProxyStorage, BancorFormula {
     // -- Curation --
@@ -30,7 +30,7 @@ contract CurationV1Storage is GraphProxyStorage, BancorFormula {
     uint256 public minimumCurationStake;
 
     // Address of the staking contract that will distribute fees to reserves
-    address public staking;
+    IStaking public staking;
 
     // Token used for staking
     IGraphToken public token;

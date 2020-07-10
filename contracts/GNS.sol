@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./Governed.sol";
 import "./erc1056/IEthereumDIDRegistry.sol";
+import "./governance/Governed.sol";
 
 /**
  * @title GNS

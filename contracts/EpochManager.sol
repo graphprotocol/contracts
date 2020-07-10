@@ -2,7 +2,7 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Governed.sol";
+import "./governance/Governed.sol";
 
 /**
  * @title EpochManager contract

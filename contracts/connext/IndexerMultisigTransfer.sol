@@ -2,7 +2,7 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "../staking/Staking.sol";
-import "../IGraphToken.sol";
+import "../token/IGraphToken.sol";
 
 import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";

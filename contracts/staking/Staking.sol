@@ -2,9 +2,10 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "../EpochManager.sol";
-import "../Governed.sol";
 import "../curation/ICuration.sol";
-import "../IGraphToken.sol";
+import "../governance/Governed.sol";
+import "../token/IGraphToken.sol";
+
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";

@@ -13,6 +13,9 @@ contract Governed is GovernedStorage {
     event NewOwnership(address indexed from, address indexed to);
     event ParameterUpdated(string param);
 
+    /**
+     * @dev Check if the caller is the governor.
+     */
     modifier onlyGovernor {
         require(msg.sender == governor, "Only Governor can call");
         _;

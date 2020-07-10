@@ -2,10 +2,11 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../Governed.sol";
-import "../GraphProxy.sol";
-import "./ICuration.sol";
+import "../governance/Governed.sol";
+import "../upgrades/GraphProxy.sol";
+
 import "./CurationStorage.sol";
+import "./ICuration.sol";
 
 /**
  * @title Curation contract
@@ -57,19 +58,18 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @dev Contract initializer.
-     * @param _token Address of the Graph Protocol token
-     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
-     * @param _minimumCurationStake Minimum amount of tokens that curators can stake
+     * @dev Check if the caller is the governor or initializing the implementation.
      */
-    constructor(
-        address _token,
-        uint32 _defaultReserveRatio,
-        uint256 _minimumCurationStake
-    ) public {
-        token = IGraphToken(_token);
-        _setDefaultReserveRatio(_defaultReserveRatio);
-        _setMinimumCurationStake(_minimumCurationStake);
+    modifier onlyGovernorOrInit {
+        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
+        _;
+    }
+
+    /**
+     * @dev Initialize this contract.
+     */
+    function initialize() external onlyGovernorOrInit {
+        BancorFormula._initialize();
     }
 
     /**
@@ -86,12 +86,35 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         uint256 _minimumCurationStake
     ) external {
         require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
+
+        // Accept to be the implementation for this proxy
         _proxy.acceptImplementation();
 
         // Initialization
+        Curation(address(_proxy)).initialize();
+        Curation(address(_proxy)).setToken(_token);
+        Curation(address(_proxy)).setDefaultReserveRatio(_defaultReserveRatio);
+        Curation(address(_proxy)).setMinimumCurationStake(_minimumCurationStake);
+    }
+
+    /**
+     * @dev Set the staking contract used for fees distribution.
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
+     */
+    function setStaking(address _staking) external override onlyGovernorOrInit {
+        staking = IStaking(_staking);
+        emit ParameterUpdated("staking");
+    }
+
+    /**
+     * @dev Set the graph token contract.
+     * @notice Update the token contract to `_token`
+     * @param _token Address of the graph token contract
+     */
+    function setToken(address _token) external override onlyGovernorOrInit {
         token = IGraphToken(_token);
-        _setDefaultReserveRatio(_defaultReserveRatio);
-        _setMinimumCurationStake(_minimumCurationStake);
+        emit ParameterUpdated("token");
     }
 
     /**
@@ -99,15 +122,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
-        _setDefaultReserveRatio(_defaultReserveRatio);
-    }
-
-    /**
-     * @dev Set the default reserve ratio percentage for a curation pool.
-     * @param _defaultReserveRatio Reserve ratio (in PPM)
-     */
-    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio)
+        external
+        override
+        onlyGovernorOrInit
+    {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -120,29 +139,15 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Set the staking contract used for fees distribution.
-     * @notice Update the staking contract to `_staking`
-     * @param _staking Address of the staking contract
-     */
-    function setStaking(address _staking) external override onlyGovernor {
-        staking = _staking;
-        emit ParameterUpdated("staking");
-    }
-
-    /**
      * @dev Set the minimum stake amount for curators.
      * @notice Update the minimum stake amount to `_minimumCurationStake`
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
-    function setMinimumCurationStake(uint256 _minimumCurationStake) external override onlyGovernor {
-        _setMinimumCurationStake(_minimumCurationStake);
-    }
-
-    /**
-     * @dev Set the minimum stake amount for curators.
-     * @param _minimumCurationStake Minimum amount of tokens required stake
-     */
-    function _setMinimumCurationStake(uint256 _minimumCurationStake) private {
+    function setMinimumCurationStake(uint256 _minimumCurationStake)
+        external
+        override
+        onlyGovernorOrInit
+    {
         require(_minimumCurationStake > 0, "Minimum curation stake cannot be 0");
         minimumCurationStake = _minimumCurationStake;
         emit ParameterUpdated("minimumCurationStake");
@@ -152,7 +157,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
-    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
+    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernorOrInit {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,
@@ -168,11 +173,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
-        require(msg.sender == staking, "Caller must be the staking contract");
+        require(msg.sender == address(staking), "Caller must be the staking contract");
 
         // Transfer tokens collected from the staking contract to this contract
         require(
-            token.transferFrom(staking, address(this), _tokens),
+            token.transferFrom(address(staking), address(this), _tokens),
             "Cannot transfer tokens to collect"
         );
 
