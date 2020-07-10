@@ -5,71 +5,23 @@ import "../EpochManager.sol";
 import "../curation/ICuration.sol";
 import "../governance/Governed.sol";
 import "../token/IGraphToken.sol";
+import "../upgrades/GraphProxy.sol";
 
 import "./IStaking.sol";
+import "./StakingStorage.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
 /**
  * @title Staking contract
  */
-contract Staking is IStaking, Governed {
+contract Staking is StakingV1Storage, IStaking, Governed {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
 
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
-
-    // -- Staking --
-
-    // Time in blocks to unstake
-    uint256 public thawingPeriod; // in blocks
-
-    // Indexer stake tracking : indexer => Stake
-    mapping(address => Stakes.Indexer) public stakes;
-
-    // Percentage of fees going to curators
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public curationPercentage;
-
-    // Percentage of fees burned as protocol fee
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public protocolPercentage;
-
-    // Need to pass this period for channel to be finalized
-    uint256 public channelDisputeEpochs;
-
-    // Maximum allocation time
-    uint256 public maxAllocationEpochs;
-
-    // Allocations : allocationID => Allocation
-    mapping(address => Allocation) public allocations;
-
-    // Rebate pools : epoch => Pool
-    mapping(uint256 => Rebates.Pool) public rebates;
-
-    // -- Slashing --
-
-    // List of addresses allowed to slash stakes
-    mapping(address => bool) public slashers;
-
-    // Set the delegation capacity multiplier.
-    // If delegation capacity is 100 GRT, and an Indexer has staked 5 GRT,
-    // then they can accept 500 GRT as delegated stake.
-    uint256 public delegationCapacity;
-
-    // Time in blocks an indexer needs to wait to change delegation parameters
-    uint256 public delegationParametersCooldown;
-
-    // Delegation pools : indexer => DelegationPool
-    mapping(address => DelegationPool) public delegation;
-
-    // -- Related contracts --
-
-    IGraphToken public token;
-    EpochManager public epochManager;
-    ICuration public curation;
 
     // -- Events --
 
@@ -198,6 +150,17 @@ contract Staking is IStaking, Governed {
      */
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
+    /**
+     * @dev Check if the caller is the governor or initializing the implementation.
+     */
+    modifier onlyGovernorOrInit {
+        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
+        _;
+    }
+
+    /**
+     * @dev Check if the caller is the slasher.
+     */
     modifier onlySlasher {
         require(slashers[msg.sender] == true, "Caller is not a Slasher");
         _;
@@ -208,9 +171,29 @@ contract Staking is IStaking, Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      */
-    constructor(address _token, address _epochManager) public {
+    function initialize(address _token, address _epochManager) external onlyGovernorOrInit {
         token = IGraphToken(_token);
         epochManager = EpochManager(_epochManager);
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
+     * @param _token Address of the Graph Protocol token
+     * @param _epochManager Address of the EpochManager contract
+     */
+    function upgradeFrom(
+        GraphProxy _proxy,
+        address _token,
+        address _epochManager
+    ) external {
+        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
+
+        // Accept to be the implementation for this proxy
+        _proxy.acceptImplementation();
+
+        // Initialization
+        Staking(address(_proxy)).initialize(_token, _epochManager);
     }
 
     /**

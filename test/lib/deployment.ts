@@ -1,4 +1,4 @@
-import { utils, Contract, Signer, Wallet } from 'ethers'
+import { utils, Contract, Signer } from 'ethers'
 import { TransactionReceipt } from '@connext/types'
 import { ChannelSigner } from '@connext/utils'
 import { ethers, waffle } from '@nomiclabs/buidler'
@@ -107,13 +107,26 @@ export async function deployStaking(
   epochManager: string,
   curation: string,
 ): Promise<Staking> {
+  // Impl
   const factory = await ethers.getContractFactory('Staking')
-  const contract = (await factory.connect(owner).deploy(graphToken, epochManager)) as Staking
-  await contract.connect(owner).setCuration(curation)
-  await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
-  await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
-  await contract.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
-  return contract
+  const contract = (await factory.connect(owner).deploy()) as Staking
+
+  // Proxy
+  const proxyFactory = await ethers.getContractFactory('GraphProxy')
+  const proxy = (await proxyFactory.connect(owner).deploy()) as GraphProxy
+  await proxy.connect(owner).upgradeTo(contract.address)
+
+  // Impl accept and initialize
+  await contract.connect(owner).upgradeFrom(proxy.address, graphToken, epochManager)
+
+  // Configure
+  const staking = factory.attach(proxy.address) as Staking
+  await staking.connect(owner).setCuration(curation)
+  await staking.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
+  await staking.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
+  await staking.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
+
+  return staking
 }
 
 export async function deployIndexerMultisig(
