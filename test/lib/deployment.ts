@@ -33,17 +33,19 @@ import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
 const { solidityKeccak256 } = utils
 
 export async function deployGRT(owner: Signer): Promise<GraphToken> {
-  const GraphToken = await ethers.getContractFactory('GraphToken')
-  return GraphToken.connect(owner).deploy(defaults.token.initialSupply) as Promise<GraphToken>
+  const factory = await ethers.getContractFactory('GraphToken')
+  return factory.connect(owner).deploy(defaults.token.initialSupply) as Promise<GraphToken>
 }
 
 export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
-  const Curation = await ethers.getContractFactory('Curation')
-  return Curation.connect(owner).deploy(
-    graphToken,
-    defaults.curation.reserveRatio,
-    defaults.curation.minimumCurationStake,
-  ) as Promise<Curation>
+  const factory = await ethers.getContractFactory('Curation')
+  return factory
+    .connect(owner)
+    .deploy(
+      graphToken,
+      defaults.curation.reserveRatio,
+      defaults.curation.minimumCurationStake,
+    ) as Promise<Curation>
 }
 
 export async function deployDisputeManager(
@@ -52,35 +54,37 @@ export async function deployDisputeManager(
   arbitrator: string,
   staking: string,
 ): Promise<DisputeManager> {
-  const DisputeManager = await ethers.getContractFactory('DisputeManager')
-  return DisputeManager.connect(owner).deploy(
-    arbitrator,
-    graphToken,
-    staking,
-    defaults.dispute.minimumDeposit,
-    defaults.dispute.fishermanRewardPercentage,
-    defaults.dispute.slashingPercentage,
-  ) as Promise<DisputeManager>
+  const factory = await ethers.getContractFactory('DisputeManager')
+  return factory
+    .connect(owner)
+    .deploy(
+      arbitrator,
+      graphToken,
+      staking,
+      defaults.dispute.minimumDeposit,
+      defaults.dispute.fishermanRewardPercentage,
+      defaults.dispute.slashingPercentage,
+    ) as Promise<DisputeManager>
 }
 
 export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
-  const EpochManager = await ethers.getContractFactory('EpochManager')
-  return EpochManager.connect(owner).deploy(defaults.epochs.lengthInBlocks) as Promise<EpochManager>
+  const factory = await ethers.getContractFactory('EpochManager')
+  return factory.connect(owner).deploy(defaults.epochs.lengthInBlocks) as Promise<EpochManager>
 }
 
 export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
-  const GNS = await ethers.getContractFactory('GNS')
-  return GNS.connect(owner).deploy(didRegistry) as Promise<Gns>
+  const factory = await ethers.getContractFactory('GNS')
+  return factory.connect(owner).deploy(didRegistry) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(): Promise<EthereumDidRegistry> {
-  const EthereumDIDRegistry = await ethers.getContractFactory('EthereumDIDRegistry')
-  return EthereumDIDRegistry.deploy() as Promise<EthereumDidRegistry>
+  const factory = await ethers.getContractFactory('EthereumDIDRegistry')
+  return factory.deploy() as Promise<EthereumDidRegistry>
 }
 
 export async function deployServiceRegistry(): Promise<ServiceRegistry> {
-  const ServiceRegistry = await ethers.getContractFactory('ServiceRegistry')
-  return ServiceRegistry.deploy() as Promise<ServiceRegistry>
+  const factory = await ethers.getContractFactory('ServiceRegistry')
+  return factory.deploy() as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(
@@ -89,8 +93,8 @@ export async function deployStaking(
   epochManager: string,
   curation: string,
 ): Promise<Staking> {
-  const Staking = await ethers.getContractFactory('Staking')
-  const contract = (await Staking.connect(owner).deploy(graphToken, epochManager)) as Staking
+  const factory = await ethers.getContractFactory('Staking')
+  const contract = (await factory.connect(owner).deploy(graphToken, epochManager)) as Staking
   await contract.connect(owner).setCuration(curation)
   await contract.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await contract.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
@@ -106,8 +110,8 @@ export async function deployIndexerMultisig(
   multiAssetInterpreter: string,
   withdrawInterpreter: string,
 ): Promise<MinimumViableMultisig> {
-  const MinimumViableMultisig = await ethers.getContractFactory('MinimumViableMultisig')
-  const contract = await MinimumViableMultisig.deploy(
+  const factory = await ethers.getContractFactory('MinimumViableMultisig')
+  const contract = await factory.deploy(
     node,
     staking,
     ctdt,
@@ -120,76 +124,72 @@ export async function deployIndexerMultisig(
 }
 
 async function deployProxy(masterCopy: string): Promise<Proxy> {
-  const Proxy = await ethers.getContractFactory('Proxy')
-  const contract = await Proxy.deploy(masterCopy)
+  const factory = await ethers.getContractFactory('Proxy')
+  const contract = await factory.deploy(masterCopy)
   await contract.deployed()
   return contract as Proxy
 }
 
 // Note: this cannot be typed properly because "ProxyFactory" is generated by the Proxy contract
 async function deployProxyFactory(): Promise<Contract> {
-  const ProxyFactory = await ethers.getContractFactory('ProxyFactory')
-  const contract = await ProxyFactory.deploy()
+  const factory = await ethers.getContractFactory('ProxyFactory')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as Contract
 }
 
 async function deployIndexerCtdt(): Promise<IndexerCtdt> {
-  const IndexerCtdt = await ethers.getContractFactory('IndexerCtdt')
-  const contract = await IndexerCtdt.deploy()
+  const factory = await ethers.getContractFactory('IndexerCtdt')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as IndexerCtdt
 }
 
 async function deploySingleAssetInterpreter(): Promise<IndexerSingleAssetInterpreter> {
-  const IndexerSingleAssetInterpreter = await ethers.getContractFactory(
-    'IndexerSingleAssetInterpreter',
-  )
-  const contract = await IndexerSingleAssetInterpreter.deploy()
+  const factory = await ethers.getContractFactory('IndexerSingleAssetInterpreter')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as IndexerSingleAssetInterpreter
 }
 
 async function deployMultiAssetInterpreter(): Promise<IndexerMultiAssetInterpreter> {
-  const IndexerMultiAssetInterpreter = await ethers.getContractFactory(
-    'IndexerMultiAssetInterpreter',
-  )
-  const contract = await IndexerMultiAssetInterpreter.deploy()
+  const factory = await ethers.getContractFactory('IndexerMultiAssetInterpreter')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as IndexerMultiAssetInterpreter
 }
 
 async function deployWithdrawInterpreter(): Promise<IndexerWithdrawInterpreter> {
-  const IndexerWithdrawInterpreter = await ethers.getContractFactory('IndexerWithdrawInterpreter')
-  const contract = await IndexerWithdrawInterpreter.deploy()
+  const factory = await ethers.getContractFactory('IndexerWithdrawInterpreter')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as IndexerWithdrawInterpreter
 }
 
 async function deployMockStaking(tokenAddress: string): Promise<MockStaking> {
-  const MockStaking = await ethers.getContractFactory('MockStaking')
-  const contract = await MockStaking.deploy(tokenAddress)
+  const factory = await ethers.getContractFactory('MockStaking')
+  const contract = await factory.deploy(tokenAddress)
   await contract.deployed()
   return contract as MockStaking
 }
 
 async function deployMockDispute(): Promise<MockDispute> {
-  const MockDispute = await ethers.getContractFactory('MockDispute')
-  const contract = await MockDispute.deploy()
+  const factory = await ethers.getContractFactory('MockDispute')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as MockDispute
 }
 
 async function deployAppWithAction(): Promise<AppWithAction> {
-  const AppWithAction = await ethers.getContractFactory('AppWithAction')
-  const contract = await AppWithAction.deploy()
+  const factory = await ethers.getContractFactory('AppWithAction')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as AppWithAction
 }
 
 async function deployIdentityApp(): Promise<IdentityApp> {
-  const IdentityApp = await ethers.getContractFactory('IdentityApp')
-  const contract = await IdentityApp.deploy()
+  const factory = await ethers.getContractFactory('IdentityApp')
+  const contract = await factory.deploy()
   await contract.deployed()
   return contract as IdentityApp
 }

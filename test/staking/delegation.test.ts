@@ -1,5 +1,5 @@
 import { expect, use } from 'chai'
-import { constants, BigNumber, Wallet } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'

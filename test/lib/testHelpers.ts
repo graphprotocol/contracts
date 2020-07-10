@@ -1,5 +1,5 @@
 import { BigNumber, utils, Signer } from 'ethers'
-import buidler, { buidlerArguments } from '@nomiclabs/buidler'
+import buidler from '@nomiclabs/buidler'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 

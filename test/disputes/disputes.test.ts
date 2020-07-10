@@ -1,7 +1,7 @@
 import { expect, use } from 'chai'
 import { utils } from 'ethers'
 import { solidity } from 'ethereum-waffle'
-import { attestations } from '@graphprotocol/common-ts'
+import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -29,13 +29,13 @@ const NON_EXISTING_DISPUTE_ID = randomHexBytes()
 
 interface Dispute {
   id: string
-  attestation: attestations.Attestation
+  attestation: Attestation
   encodedAttestation: string
   indexerAddress: string
-  receipt: attestations.Receipt
+  receipt: Receipt
 }
 
-function createDisputeID(attestation: attestations.Attestation, indexerAddress: string) {
+function createDisputeID(attestation: Attestation, indexerAddress: string) {
   return solidityKeccak256(
     ['bytes32', 'bytes32', 'bytes32', 'address'],
     [
@@ -47,7 +47,7 @@ function createDisputeID(attestation: attestations.Attestation, indexerAddress: 
   )
 }
 
-function encodeAttestation(attestation: attestations.Attestation): string {
+function encodeAttestation(attestation: Attestation): string {
   const data = arrayify(
     abi.encode(
       ['bytes32', 'bytes32', 'bytes32'],
@@ -96,7 +96,7 @@ describe('DisputeManager:Disputes', async () => {
   const indexerAllocatedTokens = toGRT('10000')
 
   // Create an attesation receipt for the dispute
-  const receipt: attestations.Receipt = {
+  const receipt: Receipt = {
     requestCID: randomHexBytes(),
     responseCID: randomHexBytes(),
     subgraphDeploymentID: randomHexBytes(),
@@ -127,7 +127,7 @@ describe('DisputeManager:Disputes', async () => {
     await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
 
     // Create an attestation
-    const attestation = await attestations.createAttestation(
+    const attestation = await createAttestation(
       indexerChannelPrivKey,
       await getChainID(),
       disputeManager.address,
@@ -318,7 +318,7 @@ describe('DisputeManager:Disputes', async () => {
         describe('create a dispute', function () {
           it('should create dispute if receipt is equal but for other indexer', async function () {
             // Create dispute (same receipt but different indexer)
-            const attestation = await attestations.createAttestation(
+            const attestation = await createAttestation(
               otherIndexerChannelPrivKey,
               await getChainID(),
               disputeManager.address,
