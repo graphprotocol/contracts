@@ -182,7 +182,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      */
-    function upgradeFrom(
+    function acceptUpgrade(
         GraphProxy _proxy,
         address _token,
         address _epochManager

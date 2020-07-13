@@ -130,6 +130,15 @@ const config = {
         mnemonic: getAccountMnemonic(),
       },
     },
+    mainnet: {
+      chainId: 1,
+      url: getInfuraProviderURL('mainnet'),
+      gas: 'auto',
+      gasPrice: 'auto',
+      accounts: {
+        mnemonic: getAccountMnemonic(),
+      },
+    },
   },
   etherscan: {
     url: 'https://api-kovan.etherscan.io/api',

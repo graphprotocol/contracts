@@ -1,10 +1,10 @@
-import { Wallet, constants, utils, ContractTransaction } from 'ethers'
-
+import { Wallet } from 'ethers'
+import consola from 'consola'
 import { Argv } from 'yargs'
 
 import { getAddressBook } from '../address-book'
 import { getProvider } from '../utils'
-import { spawn, execSync, spawnSync } from 'child_process'
+import { execSync } from 'child_process'
 
 const coreContracts = [
   'EpochManager',
@@ -22,17 +22,19 @@ const coreContracts = [
   'MinimumViableMultisig',
 ]
 
+const logger = consola.create({})
+
 export const verify = async (wallet: Wallet, addressBookPath: string): Promise<void> => {
   const chainId = (await wallet.provider.getNetwork()).chainId
   const addressBook = getAddressBook(addressBookPath, chainId.toString())
-  console.log(
+  logger.log(
     `* Verifying contracts for chainId (${chainId}) using address-book (${addressBookPath})`,
   )
 
   for (const contractName of coreContracts) {
     const contract = addressBook.getEntry(contractName)
     if (!contract) {
-      console.log(
+      logger.log(
         `- ERROR: Contract ${contractName} not found in address-book for network ${chainId}`,
       )
       continue
@@ -44,11 +46,11 @@ export const verify = async (wallet: Wallet, addressBookPath: string): Promise<v
     const cmd = `buidler verify-contract --contract-name ${contractName} --address ${address} ${argsList}`
 
     try {
-      console.log(`> Verifying contract ${contractName}::${address} ...`)
+      logger.log(`> Verifying contract ${contractName}::${address} ...`)
       await execSync(cmd)
-      console.log(`+ Contract ${contractName}::${address} verified`)
+      logger.log(`+ Contract ${contractName}::${address} verified`)
     } catch (err) {
-      console.log(`- ERROR: ${contractName}::${address}`)
+      logger.log(`- ERROR: ${contractName}::${address}`)
     }
   }
 }

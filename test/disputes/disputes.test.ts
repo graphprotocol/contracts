@@ -11,7 +11,6 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import { NetworkFixture } from '../lib/fixtures'
 import {
   advanceToNextEpoch,
-  defaults,
   getAccounts,
   getChainID,
   randomHexBytes,
@@ -240,11 +239,14 @@ describe('DisputeManager:Disputes', async () => {
 
       describe('reward calculation', function () {
         it('should calculate the reward for a stake', async function () {
+          const fishermanRewardPercentage = await disputeManager.fishermanRewardPercentage()
+          const slashingPercentage = await disputeManager.slashingPercentage()
+
           const stakedAmount = indexerTokens
           const trueReward = stakedAmount
-            .mul(defaults.dispute.slashingPercentage)
+            .mul(slashingPercentage)
             .div(toBN(MAX_PPM))
-            .mul(defaults.dispute.fishermanRewardPercentage)
+            .mul(fishermanRewardPercentage)
             .div(toBN(MAX_PPM))
           const funcReward = await disputeManager.getTokensToReward(indexer.address)
           expect(funcReward).eq(trueReward.toString())

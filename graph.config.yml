@@ -7,6 +7,7 @@ contracts:
     token: "${{GraphToken.address}}"
     reserveRatio: 500000 # 50% bonding curve reserve ratio parameter
     minimumCurationStake: "100000000000000000000" # 100 GRT
+    __proxy: true
     __calls:
       - fn: "setWithdrawalFeePercentage"
         withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
@@ -15,8 +16,8 @@ contracts:
     token: "${{GraphToken.address}}"
     staking: "${{Staking.address}}"
     minimumDeposit: "100000000000000000000" # 100 GRT
-    fishermanRewardPercentage: 1000 # in basis points
-    slashingPercentage: 1000 # in basis points
+    fishermanRewardPercentage: 100000 # in basis points
+    slashingPercentage: 50000 # in basis points
   EpochManager:
     lengthInBlocks: 5760 # One day in blocks
   GNS:
@@ -26,6 +27,7 @@ contracts:
   Staking:
     token: "${{GraphToken.address}}"
     epochManager: "${{EpochManager.address}}"
+    __proxy: true
     __calls:
       - fn: "setCuration"
         curation: "${{Curation.address}}"

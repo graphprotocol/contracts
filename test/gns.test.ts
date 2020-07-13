@@ -62,7 +62,7 @@ describe('GNS', () => {
   beforeEach(async function () {
     // No need to call the didRegistry and update owner, since an account is the owner of itself
     // by default. Thus, we don't even bother, but the contract still is needed in testing
-    didRegistry = await deployment.deployEthereumDIDRegistry()
+    didRegistry = await deployment.deployEthereumDIDRegistry(governor.signer)
     gns = await deployment.deployGNS(governor.signer, didRegistry.address)
   })
 

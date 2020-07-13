@@ -79,7 +79,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationStake Minimum amount of tokens that curators can stake
      */
-    function upgradeFrom(
+    function acceptUpgrade(
         GraphProxy _proxy,
         address _token,
         uint32 _defaultReserveRatio,

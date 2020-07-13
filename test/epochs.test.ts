@@ -5,10 +5,10 @@ import { solidity } from 'ethereum-waffle'
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 
 import * as deployment from './lib/deployment'
+import { defaults } from './lib/deployment'
 import {
   advanceBlock,
   advanceBlockTo,
-  defaults,
   latestBlock,
   getAccounts,
   toBN,
