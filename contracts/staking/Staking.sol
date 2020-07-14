@@ -151,6 +151,11 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
 
     /**
+     * @dev Emitted when `indexer` set `operator` access.
+     */
+    event SetOperator(address indexed indexer, address operator, bool allowed);
+
+    /**
      * @dev Check if the caller is the governor or initializing the implementation.
      */
     modifier onlyGovernorOrInit {
@@ -164,6 +169,20 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     modifier onlySlasher {
         require(slashers[msg.sender] == true, "Caller is not a Slasher");
         _;
+    }
+
+    /**
+     * @dev Check if the caller is authorized (indexer or operator)
+     */
+    function _onlyAuth(address _indexer) private view returns (bool) {
+        return msg.sender == _indexer || operatorAuth[_indexer][msg.sender] == true;
+    }
+
+    /**
+     * @dev Check if the caller is authorized (indexer, operator or delegator)
+     */
+    function _onlyAuthOrDelegator(address _indexer) private view returns (bool) {
+        return _onlyAuth(_indexer) || delegation[_indexer].delegatorShares[msg.sender] > 0;
     }
 
     /**
@@ -450,7 +469,72 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     }
 
     /**
-     * @dev Slash the indexer stake
+     * @dev Authorize an address to be an operator.
+     * @param _operator Address to authorize
+     * @param _allowed Whether authorized or not
+     */
+    function setOperator(address _operator, bool _allowed) external override {
+        operatorAuth[msg.sender][_operator] = _allowed;
+        emit SetOperator(msg.sender, _operator, _allowed);
+    }
+
+    /**
+     * @dev Deposit tokens on the indexer stake.
+     * @param _tokens Amount of tokens to stake
+     */
+    function stake(uint256 _tokens) external override {
+        address indexer = msg.sender;
+
+        require(_tokens > 0, "Staking: cannot stake zero tokens");
+
+        // Transfer tokens to stake from indexer to this contract
+        require(
+            token.transferFrom(indexer, address(this), _tokens),
+            "Staking: cannot transfer tokens to stake"
+        );
+
+        // Stake the transferred tokens
+        _stake(indexer, _tokens);
+    }
+
+    /**
+     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires.
+     * @param _tokens Amount of tokens to unstake
+     */
+    function unstake(uint256 _tokens) external override {
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
+
+        require(indexerStake.hasTokens(), "Staking: indexer has no stakes");
+        require(
+            indexerStake.tokensAvailable() >= _tokens,
+            "Staking: not enough tokens available to unstake"
+        );
+
+        indexerStake.lockTokens(_tokens, thawingPeriod);
+
+        emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
+    }
+
+    /**
+     * @dev Withdraw tokens once the thawing period has passed.
+     */
+    function withdraw() external override {
+        address indexer = msg.sender;
+        Stakes.Indexer storage indexerStake = stakes[indexer];
+
+        // Get tokens available for withdraw and update balance
+        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
+        require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
+
+        // Return tokens to the indexer
+        require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
+
+        emit StakeWithdrawn(indexer, tokensToWithdraw);
+    }
+
+    /**
+     * @dev Slash the indexer stake.
      * @param _indexer Address of indexer to slash
      * @param _tokens Amount of tokens to slash from the indexer stake
      * @param _reward Amount of reward tokens to send to a beneficiary
@@ -511,44 +595,6 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     }
 
     /**
-     * @dev Deposit tokens on the indexer stake
-     * @param _tokens Amount of tokens to stake
-     */
-    function stake(uint256 _tokens) external override {
-        address indexer = msg.sender;
-
-        require(_tokens > 0, "Staking: cannot stake zero tokens");
-
-        // Transfer tokens to stake from indexer to this contract
-        require(
-            token.transferFrom(indexer, address(this), _tokens),
-            "Staking: cannot transfer tokens to stake"
-        );
-
-        // Stake the transferred tokens
-        _stake(indexer, _tokens);
-    }
-
-    /**
-     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires
-     * @param _tokens Amount of tokens to unstake
-     */
-    function unstake(uint256 _tokens) external override {
-        address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = stakes[indexer];
-
-        require(indexerStake.hasTokens(), "Staking: indexer has no stakes");
-        require(
-            indexerStake.tokensAvailable() >= _tokens,
-            "Staking: not enough tokens available to unstake"
-        );
-
-        indexerStake.lockTokens(_tokens, thawingPeriod);
-
-        emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
-    }
-
-    /**
      * @dev Delegate tokens to an indexer.
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
@@ -601,7 +647,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     }
 
     /**
-     * @dev Allocate available tokens to a SubgraphDeployment.
+     * @dev Allocate available tokens to a subgraph deployment.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
@@ -615,63 +661,34 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         address _channelProxy,
         uint256 _price
     ) external override {
-        address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = stakes[indexer];
-
-        // Only allocations with a non-zero token amount are allowed
-        require(_tokens > 0, "Allocation: cannot allocate zero tokens");
-
-        // Channel public key must be in uncompressed format
-        require(
-            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
-            "Allocation: invalid channel public key"
-        );
-
-        // Needs to have free capacity not used for other purposes to allocate
-        require(
-            getIndexerCapacity(indexer) >= _tokens,
-            "Allocation: not enough tokens available to allocate"
-        );
-
-        // A channel public key is derived by the indexer when creating the offchain payment channel.
-        // Get the Ethereum address from the public key and use as channel identifier.
-        // The channel identifier is the address of the indexer signing party of a multisig that
-        // will hold the funds received when the channel is settled.
-        address channelID = address(uint256(keccak256(bytes(_channelPubKey[1:])))); // solium-disable-line
-
-        // Cannot reuse a channelID that has already been used in an allocation
-        require(
-            _getAllocationState(channelID) == AllocationState.Null,
-            "Allocation: channel ID already used"
-        );
-
-        // Create allocation linked to the channel identifier
-        // Channel identifiers are not reused
-        // The channel proxy address is the contract that will send tokens to be collected to
-        // this contract
-        allocations[channelID] = Allocation(
-            indexer,
+        _allocate(
+            msg.sender,
             _subgraphDeploymentID,
-            _tokens, // Tokens allocated
-            epochManager.currentEpoch(), // createdAtEpoch
-            0, // settledAtEpoch
-            0, // Initialize with zero collected fees
-            0, // Initialize effective allocation
-            _channelProxy // Source address of channel funds
-        );
-
-        // Mark allocated tokens as used
-        indexerStake.allocate(_tokens);
-
-        emit AllocationCreated(
-            indexer,
-            _subgraphDeploymentID,
-            allocations[channelID].createdAtEpoch,
-            allocations[channelID].tokens,
-            channelID,
+            _tokens,
             _channelPubKey,
+            _channelProxy,
             _price
         );
+    }
+
+    /**
+     * @dev Allocate available tokens to a subgraph deployment.
+     * @param _indexer Indexer address to allocate funds from.
+     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param _tokens Amount of tokens to allocate
+     * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
+     * @param _channelProxy Address of the multisig proxy used to hold channel funds
+     * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
+     */
+    function allocateFrom(
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey,
+        address _channelProxy,
+        uint256 _price
+    ) external override {
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _channelProxy, _price);
     }
 
     /**
@@ -697,13 +714,12 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is settling
             require(
-                alloc.indexer == msg.sender ||
-                    delegation[alloc.indexer].delegatorShares[msg.sender] > 0,
-                "Settle: only indexer or delegator can settle"
+                _onlyAuthOrDelegator(alloc.indexer),
+                "Settle: only authorized or delegator can settle"
             );
         } else {
             // Verify that the allocation owner is settling
-            require(alloc.indexer == msg.sender, "Settle: only indexer can settle");
+            require(_onlyAuth(alloc.indexer), "Settle: only authorized can settle");
         }
 
         // Settle the allocation and start counting a period to finalize any other
@@ -756,33 +772,17 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     }
 
     /**
-     * @dev Withdraw tokens once the thawing period has passed
-     */
-    function withdraw() external override {
-        address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = stakes[indexer];
-
-        // Get tokens available for withdraw and update balance
-        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
-        require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
-
-        // Return tokens to the indexer
-        require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
-
-        emit StakeWithdrawn(indexer, tokensToWithdraw);
-    }
-
-    /**
      * @dev Claim tokens from the rebate pool.
      * @param _channelID Identifier of the channel we are claiming funds from
      * @param _restake True if restake fees instead of transfer to indexer
      */
     function claim(address _channelID, bool _restake) external override {
-        address indexer = msg.sender;
-
         // Get allocation related to the channel identifier
         Allocation storage alloc = allocations[_channelID];
         AllocationState allocState = _getAllocationState(_channelID);
+
+        // Validate ownership
+        require(_onlyAuthOrDelegator(alloc.indexer), "Rebate: caller must be authorized");
 
         // Funds can only be claimed after a period of time passed since settlement
         require(
@@ -802,7 +802,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         }
 
         // Calculate delegation fees and add them to the delegation pool
-        uint256 delegationFees = _collectDelegationFees(indexer, tokensToClaim);
+        uint256 delegationFees = _collectDelegationFees(alloc.indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationFees);
 
         // Purgue allocation data except for:
@@ -821,10 +821,13 @@ contract Staking is StakingV1Storage, IStaking, Governed {
             // Assign claimed tokens
             if (_restake) {
                 // Restake to place fees into the indexer stake
-                _stake(indexer, tokensToClaim);
+                _stake(alloc.indexer, tokensToClaim);
             } else {
                 // Transfer funds back to the indexer
-                require(token.transfer(indexer, tokensToClaim), "Rebate: cannot transfer tokens");
+                require(
+                    token.transfer(alloc.indexer, tokensToClaim),
+                    "Rebate: cannot transfer tokens"
+                );
             }
         }
 
@@ -848,6 +851,83 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
         indexerStake.deposit(_tokens);
         emit StakeDeposited(_indexer, _tokens);
+    }
+
+    /**
+     * @dev Allocate available tokens to a subgraph deployment.
+     * @param _indexer Indexer address to allocate funds from.
+     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param _tokens Amount of tokens to allocate
+     * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
+     * @param _channelProxy Address of the multisig proxy used to hold channel funds
+     * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
+     */
+    function _allocate(
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        bytes memory _channelPubKey,
+        address _channelProxy,
+        uint256 _price
+    ) private {
+        require(_onlyAuth(_indexer), "Allocation: caller must be authorized");
+
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+
+        // Only allocations with a non-zero token amount are allowed
+        require(_tokens > 0, "Allocation: cannot allocate zero tokens");
+
+        // Channel public key must be in uncompressed format
+        require(
+            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
+            "Allocation: invalid channel public key"
+        );
+
+        // Needs to have free capacity not used for other purposes to allocate
+        require(
+            getIndexerCapacity(_indexer) >= _tokens,
+            "Allocation: not enough tokens available to allocate"
+        );
+
+        // A channel public key is derived by the indexer when creating the offchain payment channel.
+        // Get the Ethereum address from the public key and use as channel identifier.
+        // The channel identifier is the address of the indexer signing party of a multisig that
+        // will hold the funds received when the channel is settled.
+        address channelID = address(uint256(keccak256(_sliceByte(bytes(_channelPubKey)))));
+
+        // Cannot reuse a channelID that has already been used in an allocation
+        require(
+            _getAllocationState(channelID) == AllocationState.Null,
+            "Allocation: channel ID already used"
+        );
+
+        // Create allocation linked to the channel identifier
+        // Channel identifiers are not reused
+        // The channel proxy address is the contract that will send tokens to be collected to
+        // this contract
+        allocations[channelID] = Allocation(
+            _indexer,
+            _subgraphDeploymentID,
+            _tokens, // Tokens allocated
+            epochManager.currentEpoch(), // createdAtEpoch
+            0, // settledAtEpoch
+            0, // Initialize with zero collected fees
+            0, // Initialize effective allocation
+            _channelProxy // Source address of channel funds
+        );
+
+        // Mark allocated tokens as used
+        indexerStake.allocate(_tokens);
+
+        emit AllocationCreated(
+            _indexer,
+            _subgraphDeploymentID,
+            allocations[channelID].createdAtEpoch,
+            allocations[channelID].tokens,
+            channelID,
+            _channelPubKey,
+            _price
+        );
     }
 
     /**
@@ -894,7 +974,10 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         if (curationFees > 0) {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
-            require(token.approve(address(curation), curationFees));
+            require(
+                token.approve(address(curation), curationFees),
+                "Collect: token approval failed"
+            );
             curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
@@ -1082,5 +1165,37 @@ contract Staking is StakingV1Storage, IStaking, Governed {
             id := chainid()
         }
         return id;
+    }
+
+    /**
+     * @dev Removes the first byte from a bytes array.
+     * @param _bytes Byte array to slice
+     * @return New bytes array
+     */
+    function _sliceByte(bytes memory _bytes) private pure returns (bytes memory) {
+        bytes memory tempBytes;
+        uint256 length = _bytes.length - 1;
+
+        assembly {
+            tempBytes := mload(0x40)
+
+            let lengthmod := and(length, 31)
+            let mc := add(add(tempBytes, lengthmod), mul(0x20, iszero(lengthmod)))
+            let end := add(mc, length)
+
+            for {
+                let cc := add(add(add(_bytes, lengthmod), mul(0x20, iszero(lengthmod))), 1)
+            } lt(mc, end) {
+                mc := add(mc, 0x20)
+                cc := add(cc, 0x20)
+            } {
+                mstore(mc, mload(cc))
+            }
+
+            mstore(tempBytes, length)
+            mstore(0x40, and(add(mc, 31), not(31)))
+        }
+
+        return tempBytes;
     }
 }

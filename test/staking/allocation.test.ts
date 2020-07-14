@@ -362,7 +362,7 @@ describe('Staking:Allocation', () => {
 
       // Settle
       const tx = staking.connect(me.signer).settle(channelID)
-      await expect(tx).revertedWith('Settle: only indexer can settle')
+      await expect(tx).revertedWith('Settle: only authorized can settle')
     })
 
     it('reject settle if channel allocation is already settled', async function () {
@@ -513,7 +513,7 @@ describe('Staking:Allocation', () => {
       expect(await staking.getAllocationState(channelID)).eq(AllocationState.Active)
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).claim(invalidChannelID, false)
-      await expect(tx).revertedWith('Rebate: channel must be in finalized state')
+      await expect(tx).revertedWith('Rebate: caller must be authorized')
     })
 
     it('reject claim if channel allocation is not settled', async function () {

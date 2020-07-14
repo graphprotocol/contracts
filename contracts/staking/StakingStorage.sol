@@ -59,7 +59,8 @@ contract StakingV1Storage is GraphProxyStorage {
 
     // -- Operators
 
-    mapping(address => mapping(address => bool)) public operatorApprovals;
+    // Operator auth : indexer => operator
+    mapping(address => mapping(address => bool)) public operatorAuth;
 
     // -- Related contracts --
 

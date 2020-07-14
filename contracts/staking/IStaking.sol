@@ -68,6 +68,10 @@ interface IStaking {
 
     function setThawingPeriod(uint256 _thawingPeriod) external;
 
+    // -- Operation --
+
+    function setOperator(address _operator, bool _allowed) external;
+
     // -- Staking --
 
     function stake(uint256 _tokens) external;
@@ -98,6 +102,15 @@ interface IStaking {
     // -- Channel management and allocations --
 
     function allocate(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey,
+        address _channelProxy,
+        uint256 _price
+    ) external;
+
+    function allocateFrom(
+        address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
