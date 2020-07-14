@@ -13,9 +13,9 @@ interface ICuration {
 
     // -- Curation --
 
-    function stake(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
+    function signal(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
 
-    function redeem(bytes32 _subgraphDeploymentID, uint256 _shares) external;
+    function redeem(bytes32 _subgraphDeploymentID, uint256 _signal) external;
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
 

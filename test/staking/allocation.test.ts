@@ -280,7 +280,7 @@ describe('Staking:Allocation', () => {
       const tokensToSignal = toGRT('100')
       await grt.connect(governor.signer).mint(me.address, tokensToSignal)
       await grt.connect(me.signer).approve(curation.address, tokensToSignal)
-      await curation.connect(me.signer).stake(subgraphDeploymentID, tokensToSignal)
+      await curation.connect(me.signer).signal(subgraphDeploymentID, tokensToSignal)
 
       // Curation parameters
       const curationPercentage = toBN('200000') // 20%
@@ -295,7 +295,7 @@ describe('Staking:Allocation', () => {
       const tokensToSignal = toGRT('100')
       await grt.connect(governor.signer).mint(me.address, tokensToSignal)
       await grt.connect(me.signer).approve(curation.address, tokensToSignal)
-      await curation.connect(me.signer).stake(subgraphDeploymentID, tokensToSignal)
+      await curation.connect(me.signer).signal(subgraphDeploymentID, tokensToSignal)
 
       // Set a protocol fee percentage
       const protocolPercentage = toBN('100000') // 10%
