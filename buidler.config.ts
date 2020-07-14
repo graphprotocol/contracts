@@ -3,6 +3,7 @@ import { Wallet } from 'ethers'
 import { task, usePlugin } from '@nomiclabs/buidler/config'
 
 import { cliOpts } from './scripts/cli/constants'
+import { loadEnv } from './scripts/cli/env'
 import { migrate } from './scripts/cli/commands/migrate'
 import { verify } from './scripts/cli/commands/verify'
 
@@ -41,14 +42,14 @@ task('migrate', 'Migrate contracts')
   .addFlag('force', cliOpts.force.description)
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()
-    await migrate(accounts[0] as Wallet, taskArgs.addressBook, taskArgs.graphConfig, taskArgs.force)
+    await migrate(await loadEnv(accounts[0] as Wallet, taskArgs), taskArgs)
   })
 
 task('verify', 'Verify contracts in Etherscan')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()
-    await verify(accounts[0] as Wallet, taskArgs.addressBook)
+    await verify(await loadEnv(accounts[0] as Wallet, taskArgs))
   })
 
 // Config - Go to https://buidler.dev/config/ to learn more

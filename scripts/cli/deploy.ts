@@ -3,8 +3,6 @@ import consola from 'consola'
 
 import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
-import { promisify } from 'util'
-import { pseudoRandomBytes } from 'crypto'
 
 const { keccak256 } = utils
 
@@ -27,8 +25,11 @@ export const isContractDeployed = async (
 
   const addressEntry = addressBook.getEntry(name)
 
+  // If the contract is behind a proxy we check the Proxy artifact instead
+  const artifact = addressEntry.proxy === true ? loadArtifact('GraphProxy') : loadArtifact(name)
+
   const savedCreationCodeHash = addressEntry.creationCodeHash
-  const creationCodeHash = hash(loadArtifact(name).bytecode)
+  const creationCodeHash = hash(artifact.bytecode)
   if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
     logger.warn(`creationCodeHash in our address book doen't match ${name} artifacts`)
     logger.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
@@ -62,28 +63,67 @@ export const sendTransaction = async (
   return receipt
 }
 
-export const deployProxy = async (wallet: Wallet): Promise<Contract> => {
-  const artifact = loadArtifact('GraphProxy')
-  const factory = ContractFactory.fromSolidity(artifact)
-  const contract = await factory.connect(wallet).deploy()
+export const getContractFactory = (name: string): ContractFactory => {
+  const artifact = loadArtifact(name)
+  return ContractFactory.fromSolidity(artifact)
+}
+
+export const getContractAt = (name: string, address: string): Contract => {
+  return getContractFactory(name).attach(address)
+}
+
+export const deployContract = async (
+  name: string,
+  args: Array<string>,
+  wallet: Wallet,
+): Promise<Contract> => {
+  const factory = getContractFactory(name)
+
+  const contract = await factory.connect(wallet).deploy(...args)
   const txHash = contract.deployTransaction.hash
-  logger.log(`> Sent transaction to deploy Proxy, txHash: ${txHash}`)
+  logger.log(`> Sent transaction to deploy ${name}, txHash: ${txHash}`)
   await wallet.provider.waitForTransaction(txHash)
-  const address = contract.address
-  logger.success(`Proxy has been deployed to address: ${address}`)
+  logger.success(`${name} has been deployed to address: ${contract.address}`)
+
   return contract
 }
 
-export const deployContractWithProxy = async (
+export const deployContractAndSave = async (
+  name: string,
+  args: Array<{ name: string; value: string }>,
+  wallet: Wallet,
+  addressBook: AddressBook,
+): Promise<Contract> => {
+  // Deploy the contract
+  const contract = await deployContract(
+    name,
+    args.map((a) => a.value),
+    wallet,
+  )
+
+  // Save address entry
+  const artifact = loadArtifact(name)
+  addressBook.setEntry(name, {
+    address: contract.address,
+    constructorArgs: args.length === 0 ? undefined : args,
+    creationCodeHash: hash(artifact.bytecode),
+    runtimeCodeHash: hash(await wallet.provider.getCode(contract.address)),
+    txHash: contract.deployTransaction.hash,
+  })
+
+  return contract
+}
+
+export const deployContractWithProxyAndSave = async (
   name: string,
   args: Array<{ name: string; value: string }>,
   wallet: Wallet,
   addressBook: AddressBook,
 ): Promise<Contract> => {
   // Deploy proxy
-  const proxy = await deployProxy(wallet)
+  const proxy = await deployContract('GraphProxy', [], wallet)
   // Deploy implementation
-  const contract = await deployContract(name, [], wallet, addressBook)
+  const contract = await deployContractAndSave(name, [], wallet, addressBook)
   // Upgrade to implementation
   await sendTransaction(wallet, proxy, 'upgradeTo', contract.address)
   // Implementation accepts upgrade
@@ -94,8 +134,8 @@ export const deployContractWithProxy = async (
     ...[proxy.address, ...args.map((a) => a.value)],
   )
 
-  // Overwrite address book entry with proxy
-  const artifact = loadArtifact('GraphToken')
+  // Overwrite address entry with proxy
+  const artifact = loadArtifact('GraphProxy')
   const contractEntry = addressBook.getEntry(name)
   addressBook.setEntry(name, {
     address: proxy.address,
@@ -109,31 +149,4 @@ export const deployContractWithProxy = async (
 
   // Use interface of contract but with the proxy address
   return contract.attach(proxy.address)
-}
-
-export const deployContract = async (
-  name: string,
-  args: Array<{ name: string; value: string }>,
-  wallet: Wallet,
-  addressBook: AddressBook,
-): Promise<Contract> => {
-  const artifact = loadArtifact(name)
-  const factory = ContractFactory.fromSolidity(artifact)
-  const contract = await factory.connect(wallet).deploy(...args.map((a) => a.value))
-  const txHash = contract.deployTransaction.hash
-  logger.log(`> Sent transaction to deploy ${name}, txHash: ${txHash}`)
-  await wallet.provider.waitForTransaction(txHash)
-  const address = contract.address
-  logger.success(`${name} has been deployed to address: ${address}`)
-  const runtimeCodeHash = hash(await wallet.provider.getCode(address))
-  const creationCodeHash = hash(artifact.bytecode)
-  addressBook.setEntry(name, {
-    address,
-    constructorArgs: args.length === 0 ? undefined : args,
-    creationCodeHash,
-    runtimeCodeHash,
-    txHash,
-  })
-
-  return contract
 }
