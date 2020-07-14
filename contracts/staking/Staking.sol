@@ -30,9 +30,9 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      */
     event DelegationParametersUpdated(
         address indexed indexer,
-        uint256 indexingRewardCut,
-        uint256 queryFeeCut,
-        uint256 cooldownBlocks
+        uint32 indexingRewardCut,
+        uint32 queryFeeCut,
+        uint32 cooldownBlocks
     );
 
     /**
@@ -249,7 +249,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @dev Set the time in blocks an indexer needs to wait to change delegation parameters.
      * @param _blocks Number of blocks to set the delegation parameters cooldown period
      */
-    function setDelegationParametersCooldown(uint256 _blocks) external override onlyGovernor {
+    function setDelegationParametersCooldown(uint32 _blocks) external override onlyGovernor {
         delegationParametersCooldown = _blocks;
         emit ParameterUpdated("delegationParametersCooldown");
     }
@@ -258,7 +258,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @dev Set the delegation capacity multiplier.
      * @param _delegationCapacity Delegation capacity multiplier
      */
-    function setDelegationCapacity(uint256 _delegationCapacity) external override onlyGovernor {
+    function setDelegationCapacity(uint32 _delegationCapacity) external override onlyGovernor {
         delegationCapacity = _delegationCapacity;
         emit ParameterUpdated("delegationCapacity");
     }
@@ -270,9 +270,9 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function setDelegationParameters(
-        uint256 _indexingRewardCut,
-        uint256 _queryFeeCut,
-        uint256 _cooldownBlocks
+        uint32 _indexingRewardCut,
+        uint32 _queryFeeCut,
+        uint32 _cooldownBlocks
     ) external override {
         address indexer = msg.sender;
 
@@ -296,7 +296,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         DelegationPool storage pool = delegation[indexer];
         require(
             pool.updatedAtBlock == 0 ||
-                pool.updatedAtBlock.add(pool.cooldownBlocks) <= block.number,
+                pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
             "Delegation: must expire cooldown period to update parameters"
         );
 
@@ -428,7 +428,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         DelegationPool memory pool = delegation[_indexer];
 
-        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(delegationCapacity);
+        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(uint256(delegationCapacity));
         uint256 tokensDelegated = (pool.tokens < tokensDelegatedMax)
             ? pool.tokens
             : tokensDelegatedMax;
@@ -991,7 +991,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegation[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = pool.queryFeeCut.mul(_tokens).div(MAX_PPM);
+            uint256 indexerCut = uint256(pool.queryFeeCut).mul(_tokens).div(MAX_PPM);
             delegationFees = _tokens.sub(indexerCut);
             pool.tokens = pool.tokens.add(delegationFees);
         }

@@ -33,9 +33,9 @@ interface IStaking {
     // -- Delegation Data --
 
     struct DelegationPool {
-        uint256 cooldownBlocks;
-        uint256 indexingRewardCut; // in PPM
-        uint256 queryFeeCut; // in PPM
+        uint32 cooldownBlocks;
+        uint32 indexingRewardCut; // in PPM
+        uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock;
         uint256 tokens;
         uint256 shares;
@@ -54,14 +54,14 @@ interface IStaking {
 
     function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external;
 
-    function setDelegationParametersCooldown(uint256 _blocks) external;
+    function setDelegationParametersCooldown(uint32 _blocks) external;
 
-    function setDelegationCapacity(uint256 _delegationCapacity) external;
+    function setDelegationCapacity(uint32 _delegationCapacity) external;
 
     function setDelegationParameters(
-        uint256 _indexingRewardCut,
-        uint256 _queryFeeCut,
-        uint256 _cooldownBlocks
+        uint32 _indexingRewardCut,
+        uint32 _queryFeeCut,
+        uint32 _cooldownBlocks
     ) external;
 
     function setSlasher(address _slasher, bool _allowed) external;
