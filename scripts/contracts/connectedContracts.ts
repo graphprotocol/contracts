@@ -60,12 +60,12 @@ class ConnectedCuration extends ConnectedContract {
     this.configuredWallet,
   )
 
-  stakeWithDecimals = async (
+  signalWithDecimals = async (
     deploymentID: string,
     amount: BigNumberish,
   ): Promise<ContractTransaction> => {
     const amountParseDecimals = utils.parseUnits(amount as string, 18).toString()
-    return this.contract.stake(deploymentID, amountParseDecimals)
+    return this.contract.signal(deploymentID, amountParseDecimals)
   }
 
   redeemWithDecimals = async (

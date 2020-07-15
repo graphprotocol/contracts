@@ -20,9 +20,9 @@ if (!network || !func || !id || !amount) {
 Usage: ${path.basename(process.argv[1])}
   --network  <string> - options: ganache, kovan, rinkeby
 
-  --func <text> - options: stake, redeem
+  --func <text> - options: signal, redeem
     Function arguments:
-    stake
+    signal
       --id <bytes32>      - The subgraph deployment ID being curated on
       --amount <number>   - Amount of tokens being signaled. CLI converts to a BN with 10^18
 
@@ -49,14 +49,14 @@ const main = async () => {
   }
 
   try {
-    if (func == 'stake') {
+    if (func == 'signal') {
       console.log(`Signaling on ${id} with ${amount} tokens...`)
       console.log(
         '  First calling approve() to ensure curation contract can call transferFrom()...',
       )
       await executeTransaction(connectedGT.approveWithDecimals(curation.contract.address, amount))
-      console.log('  Now calling stake() on curation...')
-      await executeTransaction(curation.stakeWithDecimals(id, amount))
+      console.log('  Now calling signal() on curation...')
+      await executeTransaction(curation.signalWithDecimals(id, amount))
     } else if (func == 'redeem') {
       console.log(`Redeeming ${amount} shares on ${id}...`)
       await executeTransaction(curation.redeemWithDecimals(id, amount))
