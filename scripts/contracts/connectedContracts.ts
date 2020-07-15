@@ -65,7 +65,7 @@ class ConnectedCuration extends ConnectedContract {
     amount: BigNumberish,
   ): Promise<ContractTransaction> => {
     const amountParseDecimals = utils.parseUnits(amount as string, 18).toString()
-    return this.contract.signal(deploymentID, amountParseDecimals)
+    return this.contract.mint(deploymentID, amountParseDecimals)
   }
 
   redeemWithDecimals = async (
@@ -73,7 +73,7 @@ class ConnectedCuration extends ConnectedContract {
     amount: BigNumberish,
   ): Promise<ContractTransaction> => {
     const amountParseDecimals = utils.parseUnits(amount as string, 18).toString()
-    return this.contract.redeem(deploymentID, amountParseDecimals)
+    return this.contract.burn(deploymentID, amountParseDecimals)
   }
 }
 

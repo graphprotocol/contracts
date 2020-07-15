@@ -39,11 +39,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     );
 
     /**
-     * @dev Emitted when `curator` redeemed `signal` for a `subgraphDeploymentID`.
+     * @dev Emitted when `curator` burned `signal` for a `subgraphDeploymentID`.
      * The curator will receive `tokens` according to the value of the bonding curve.
      * An amount of `withdrawalFees` will be collected and burned.
      */
-    event Redeemed(
+    event Burned(
         address indexed curator,
         bytes32 indexed subgraphDeploymentID,
         uint256 tokens,
@@ -177,10 +177,10 @@ contract Curation is CurationV1Storage, ICuration, Governed {
 
     /**
      * @dev Stake Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking Graph Tokens
+     * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function signal(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
+    function mint(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
         address curator = msg.sender;
 
         // Need to stake some funds
@@ -193,29 +193,29 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         );
 
         // Stake tokens to a curation pool reserve
-        _stake(curator, _subgraphDeploymentID, _tokens);
+        _mint(curator, _subgraphDeploymentID, _tokens);
     }
 
     /**
      * @dev Return an amount of signal to get tokens back.
-     * @notice Redeem _signal from the SubgraphDeployment curation pool
+     * @notice Burn _signal from the SubgraphDeployment curation pool
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
      * @param _signal Amount of signal to return
      */
-    function redeem(bytes32 _subgraphDeploymentID, uint256 _signal) external override {
+    function burn(bytes32 _subgraphDeploymentID, uint256 _signal) external override {
         address curator = msg.sender;
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
-        require(_signal > 0, "Cannot redeem zero signal");
+        require(_signal > 0, "Cannot burn zero signal");
         require(
             curationPool.curatorSignal[curator] >= _signal,
-            "Cannot redeem more signal than you own"
+            "Cannot burn more signal than you own"
         );
 
         // Update balance and get the amount of tokens to refund based on returned signal
-        uint256 tokens = _sellSignal(curator, _subgraphDeploymentID, _signal);
+        uint256 tokens = _burnSignal(curator, _subgraphDeploymentID, _signal);
 
-        // If all signal redeemed delete the curation pool
+        // If all signal burnt delete the curation pool
         if (curationPool.signal == 0) {
             delete pools[_subgraphDeploymentID];
         }
@@ -230,7 +230,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         // Return the tokens to the curator
         require(token.transfer(curator, tokens), "Error sending curator tokens");
 
-        emit Redeemed(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
+        emit Burned(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
     }
 
     /**
@@ -267,8 +267,8 @@ contract Curation is CurationV1Storage, ICuration, Governed {
 
     /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment to buy signal
-     * @param _tokens Amount of tokens used to buy signal
+     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _tokens Amount of tokens used to mint signal
      * @return Amount of signal that can be bought
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
@@ -300,10 +300,10 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Calculate number of tokens to get when selling signal from a curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment to sell signal
-     * @param _signal Amount of signal to sell
-     * @return Amount of tokens to get after selling signal
+     * @dev Calculate number of tokens to get when burning signal from a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment to burn signal
+     * @param _signal Amount of signal to burn
+     * @return Amount of tokens to get after burning signal
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
         public
@@ -329,13 +329,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Update balances after buy of signal and deposit of tokens.
-     * @param _curator Curator
-     * @param _subgraphDeploymentID SubgraphDeployment
+     * @dev Update balances after mint of signal and deposit of tokens.
+     * @param _curator Curator address
+     * @param _subgraphDeploymentID Subgraph deployment from where to mint signal
      * @param _tokens Amount of tokens
      * @return Amount of signal bought
      */
-    function _buySignal(
+    function _mintSignal(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
@@ -354,13 +354,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Update balances after sell of signal and return of tokens.
-     * @param _curator Curator
-     * @param _subgraphDeploymentID SubgraphDeployment
+     * @dev Update balances after burn of signal and return of tokens.
+     * @param _curator Curator address
+     * @param _subgraphDeploymentID Subgraph deployment pool to burn signal
      * @param _signal Amount of signal
      * @return Number of tokens received
      */
-    function _sellSignal(
+    function _burnSignal(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _signal
@@ -380,7 +380,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
 
     /**
      * @dev Assign Graph Tokens received from staking to the curation pool reserve.
-     * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
+     * @param _subgraphDeploymentID Subgraph deployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
@@ -399,10 +399,10 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     /**
      * @dev Deposit Graph Tokens in exchange for signal of a curation pool.
      * @param _curator Address of the staking party
-     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking tokens
+     * @param _subgraphDeploymentID Subgraph deployment from where the curator is minting
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function _stake(
+    function _mint(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
@@ -418,7 +418,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         }
 
         // Update balances
-        uint256 signal = _buySignal(_curator, _subgraphDeploymentID, _tokens);
+        uint256 signal = _mintSignal(_curator, _subgraphDeploymentID, _tokens);
 
         emit Signalled(_curator, _subgraphDeploymentID, _tokens, signal);
     }

@@ -59,7 +59,7 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Curate
-    const tx = curation.connect(curator.signer).signal(subgraphDeploymentID, tokensToStake)
+    const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
     await expect(tx)
       .emit(curation, 'Signalled')
       .withArgs(curator.address, subgraphDeploymentID, tokensToStake, expectedSignal)
@@ -102,9 +102,9 @@ describe('Curation', () => {
     const withdrawalFees = toBN(withdrawalFeePercentage).mul(expectedTokens).div(toBN(MAX_PPM))
 
     // Redeem
-    const tx = curation.connect(curator.signer).redeem(subgraphDeploymentID, signalToRedeem)
+    const tx = curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem)
     await expect(tx)
-      .emit(curation, 'Redeemed')
+      .emit(curation, 'Burned')
       .withArgs(
         curator.address,
         subgraphDeploymentID,
@@ -189,7 +189,7 @@ describe('Curation', () => {
 
     it('convert signal to tokens', async function () {
       // Curate
-      await curation.connect(curator.signer).signal(subgraphDeploymentID, tokensToStake)
+      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
 
       // Conversion
       const signal = (await curation.pools(subgraphDeploymentID)).signal
@@ -208,7 +208,7 @@ describe('Curation', () => {
   describe('curate', async function () {
     it('reject stake below minimum tokens required', async function () {
       const tokensToStake = (await curation.minimumCurationStake()).sub(toBN(1))
-      const tx = curation.connect(curator.signer).signal(subgraphDeploymentID, tokensToStake)
+      const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
       await expect(tx).revertedWith('Curation stake is below minimum required')
     })
 
@@ -238,7 +238,7 @@ describe('Curation', () => {
 
     context('> curated', async function () {
       beforeEach(async function () {
-        await curation.connect(curator.signer).signal(subgraphDeploymentID, toGRT('1000'))
+        await curation.connect(curator.signer).mint(subgraphDeploymentID, toGRT('1000'))
       })
 
       it('reject collect tokens distributed from invalid address', async function () {
@@ -258,17 +258,17 @@ describe('Curation', () => {
 
   describe('redeem', async function () {
     beforeEach(async function () {
-      await curation.connect(curator.signer).signal(subgraphDeploymentID, tokensToStake)
+      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
     })
 
     it('reject redeem more than a curator owns', async function () {
-      const tx = curation.connect(me.signer).redeem(subgraphDeploymentID, toGRT('1'))
-      await expect(tx).revertedWith('Cannot redeem more signal than you own')
+      const tx = curation.connect(me.signer).burn(subgraphDeploymentID, toGRT('1'))
+      await expect(tx).revertedWith('Cannot burn more signal than you own')
     })
 
     it('reject redeem zero signal', async function () {
-      const tx = curation.connect(me.signer).redeem(subgraphDeploymentID, toGRT('0'))
-      await expect(tx).revertedWith('Cannot redeem zero signal')
+      const tx = curation.connect(me.signer).burn(subgraphDeploymentID, toGRT('0'))
+      await expect(tx).revertedWith('Cannot burn zero signal')
     })
 
     it('should allow to redeem *partially*', async function () {
@@ -319,9 +319,7 @@ describe('Curation', () => {
       // Stake multiple times
       let totalSignal = toGRT('0')
       for (const tokensToStake of chunkify(totalStakes, 10)) {
-        const tx = await curation
-          .connect(curator.signer)
-          .signal(subgraphDeploymentID, tokensToStake)
+        const tx = await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
@@ -332,9 +330,7 @@ describe('Curation', () => {
       // Redeem signal multiple times
       let totalTokens = toGRT('0')
       for (const signalToRedeem of chunkify(totalSignal, 10)) {
-        const tx = await curation
-          .connect(curator.signer)
-          .redeem(subgraphDeploymentID, signalToRedeem)
+        const tx = await curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const tokens = event.args['tokens']
