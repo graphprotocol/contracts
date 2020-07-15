@@ -713,13 +713,10 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is settling
-            require(
-                _onlyAuthOrDelegator(alloc.indexer),
-                "Settle: only authorized or delegator can settle"
-            );
+            require(_onlyAuthOrDelegator(alloc.indexer), "Settle: caller must be authorized");
         } else {
             // Verify that the allocation owner is settling
-            require(_onlyAuth(alloc.indexer), "Settle: only authorized can settle");
+            require(_onlyAuth(alloc.indexer), "Settle: caller must be authorized");
         }
 
         // Settle the allocation and start counting a period to finalize any other

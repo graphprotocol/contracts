@@ -96,6 +96,42 @@ describe('Staking:Allocation', () => {
     await fixture.tearDown()
   })
 
+  describe('operators', function () {
+    it('should set operator', async function () {
+      // Before state
+      const beforeOperator = await staking.operatorAuth(indexer.address, me.address)
+
+      // Set operator
+      const tx = staking.connect(indexer.signer).setOperator(me.address, true)
+      await expect(tx).emit(staking, 'SetOperator').withArgs(indexer.address, me.address, true)
+
+      // After state
+      const afterOperator = await staking.operatorAuth(indexer.address, me.address)
+
+      // State updated
+      expect(beforeOperator).eq(false)
+      expect(afterOperator).eq(true)
+    })
+
+    it('should unset operator', async function () {
+      await staking.connect(indexer.signer).setOperator(me.address, true)
+
+      // Before state
+      const beforeOperator = await staking.operatorAuth(indexer.address, me.address)
+
+      // Set operator
+      const tx = staking.connect(indexer.signer).setOperator(me.address, false)
+      await expect(tx).emit(staking, 'SetOperator').withArgs(indexer.address, me.address, false)
+
+      // After state
+      const afterOperator = await staking.operatorAuth(indexer.address, me.address)
+
+      // State updated
+      expect(beforeOperator).eq(true)
+      expect(afterOperator).eq(false)
+    })
+  })
+
   /**
    * Allocate
    */
@@ -175,6 +211,34 @@ describe('Staking:Allocation', () => {
 
       it('should allocate', async function () {
         await shouldAllocate(tokensToAllocate)
+      })
+
+      it('should allocate on behalf of indexer', async function () {
+        // Reject to allocate if the address is not operator
+        const tx1 = staking
+          .connect(me.signer)
+          .allocateFrom(
+            indexer.address,
+            subgraphDeploymentID,
+            tokensToAllocate,
+            channelPubKey,
+            channelProxy.address,
+            price,
+          )
+        await expect(tx1).revertedWith('Allocation: caller must be authorized')
+
+        // Should allocate if given operator auth
+        await staking.connect(indexer.signer).setOperator(me.address, true)
+        await staking
+          .connect(me.signer)
+          .allocateFrom(
+            indexer.address,
+            subgraphDeploymentID,
+            tokensToAllocate,
+            channelPubKey,
+            channelProxy.address,
+            price,
+          )
       })
 
       it('reject allocate reusing a channel', async function () {
@@ -362,7 +426,7 @@ describe('Staking:Allocation', () => {
 
       // Settle
       const tx = staking.connect(me.signer).settle(channelID)
-      await expect(tx).revertedWith('Settle: only authorized can settle')
+      await expect(tx).revertedWith('Settle: caller must be authorized')
     })
 
     it('reject settle if channel allocation is already settled', async function () {
@@ -424,6 +488,20 @@ describe('Staking:Allocation', () => {
       expect(afterRebate.fees).eq(beforeRebate.fees.add(beforeAlloc.collectedFees))
       expect(afterRebate.allocation).eq(beforeRebate.allocation.add(effectiveAllocation))
       expect(afterRebate.settlementsCount).eq(beforeRebate.settlementsCount.add(toBN('1')))
+    })
+
+    it('should settle a channel allocation (by operator)', async function () {
+      // Move at least one epoch to be able to settle
+      await advanceToNextEpoch(epochManager)
+      await advanceToNextEpoch(epochManager)
+
+      // Reject to settle if the address is not operator
+      const tx1 = staking.connect(me.signer).settle(channelID)
+      await expect(tx1).revertedWith('Settle: caller must be authorized')
+
+      // Should settle if given operator auth
+      await staking.connect(indexer.signer).setOperator(me.address, true)
+      await staking.connect(me.signer).settle(channelID)
     })
   })
 
@@ -570,6 +648,19 @@ describe('Staking:Allocation', () => {
         // Verify that the claimed tokens are restaked
         const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
         expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToCollect))
+      })
+
+      it('should claim rebate (by operator)', async function () {
+        // Advance blocks to get the channel in epoch where it can be claimed
+        await advanceToNextEpoch(epochManager)
+
+        // Reject
+        const tx1 = staking.connect(me.signer).claim(channelID, false)
+        await expect(tx1).revertedWith('Rebate: caller must be authorized')
+
+        // Should claim if given operator auth
+        await staking.connect(indexer.signer).setOperator(me.address, true)
+        await staking.connect(me.signer).claim(channelID, false)
       })
 
       it('reject claim if already claimed', async function () {
