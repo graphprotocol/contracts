@@ -68,8 +68,9 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     /**
      * @dev Initialize this contract.
      */
-    function initialize() external onlyGovernorOrInit {
+    function initialize(address _token) external onlyGovernorOrInit {
         BancorFormula._initialize();
+        token = IGraphToken(_token);
     }
 
     /**
@@ -91,8 +92,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         _proxy.acceptImplementation();
 
         // Initialization
-        Curation(address(_proxy)).initialize();
-        Curation(address(_proxy)).setToken(_token);
+        Curation(address(_proxy)).initialize(_token);
         Curation(address(_proxy)).setDefaultReserveRatio(_defaultReserveRatio);
         Curation(address(_proxy)).setMinimumCurationStake(_minimumCurationStake);
     }
@@ -105,16 +105,6 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     function setStaking(address _staking) external override onlyGovernorOrInit {
         staking = IStaking(_staking);
         emit ParameterUpdated("staking");
-    }
-
-    /**
-     * @dev Set the graph token contract.
-     * @notice Update the token contract to `_token`
-     * @param _token Address of the graph token contract
-     */
-    function setToken(address _token) external override onlyGovernorOrInit {
-        token = IGraphToken(_token);
-        emit ParameterUpdated("token");
     }
 
     /**
