@@ -182,7 +182,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @dev Check if the caller is authorized (indexer, operator or delegator)
      */
     function _onlyAuthOrDelegator(address _indexer) private view returns (bool) {
-        return _onlyAuth(_indexer) || delegation[_indexer].delegatorShares[msg.sender] > 0;
+        return _onlyAuth(_indexer) || delegation[_indexer].delegators[msg.sender].shares > 0;
     }
 
     /**
@@ -405,7 +405,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         view
         returns (uint256)
     {
-        return delegation[_indexer].delegatorShares[_delegator];
+        return delegation[_indexer].delegators[_delegator].shares;
     }
 
     /**
@@ -425,7 +425,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         if (pool.shares == 0) {
             return 0;
         }
-        uint256 _shares = delegation[_indexer].delegatorShares[_delegator];
+        uint256 _shares = delegation[_indexer].delegators[_delegator].shares;
         return _shares.mul(pool.tokens).div(pool.shares);
     }
 
@@ -1012,6 +1012,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegation[_indexer];
+        Delegation storage delegator = pool.delegators[_delegator];
 
         // Calculate shares to issue
         uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.mul(pool.shares).div(pool.tokens);
@@ -1019,7 +1020,9 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         // Update the delegation pool
         pool.tokens = pool.tokens.add(_tokens);
         pool.shares = pool.shares.add(shares);
-        pool.delegatorShares[_delegator] = pool.delegatorShares[_delegator].add(shares);
+
+        // Update the delegation
+        delegator.shares = delegator.shares.add(shares);
 
         emit StakeDelegated(_indexer, _delegator, _tokens, shares);
 
@@ -1043,25 +1046,32 @@ contract Staking is StakingV1Storage, IStaking, Governed {
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegation[_indexer];
+        Delegation storage delegator = pool.delegators[_delegator];
 
         // Delegator need to have enough shares in the pool to undelegate
-        require(
-            pool.delegatorShares[_delegator] >= _shares,
-            "Delegation: delegator does not have enough shares"
-        );
+        require(delegator.shares >= _shares, "Delegation: delegator does not have enough shares");
 
         // Calculate tokens to get in exchange for the shares
         uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
 
+        // Sell shares and lock the tokens for withdrawal
+
         // Update the delegation pool
         pool.tokens = pool.tokens.sub(tokens);
         pool.shares = pool.shares.sub(_shares);
-        pool.delegatorShares[_delegator] = pool.delegatorShares[_delegator].sub(_shares);
+
+        // Update the delegation
+        delegator.shares = delegator.shares.sub(_shares);
+        delegator.tokensLocked = delegator.tokensLocked.add(tokens);
+        delegator.tokensLockedUntil = 0; // TODO:
 
         emit StakeUndelegated(_indexer, _delegator, tokens, _shares);
 
         return tokens;
     }
+
+    // TODO: add an unbonding period parameter (epochs)
+    // TODO: add a withdraw method for the delegator locked tokens
 
     /**
      * @dev Collect the delegation fees related to an indexer from an amount of tokens.

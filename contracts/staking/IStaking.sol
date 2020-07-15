@@ -32,14 +32,26 @@ interface IStaking {
 
     // -- Delegation Data --
 
+    /**
+     * @dev Delegation pool information. One per indexer.
+     */
     struct DelegationPool {
-        uint32 cooldownBlocks;
+        uint32 cooldownBlocks; // Blocks to wait before updating parameters
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
-        uint256 updatedAtBlock;
-        uint256 tokens;
-        uint256 shares;
-        mapping(address => uint256) delegatorShares; // Mapping of delegator => shares
+        uint256 updatedAtBlock; // Block when the pool was last updated
+        uint256 tokens; // Total tokens as pool reserves
+        uint256 shares; // Total shares minted in the pool
+        mapping(address => Delegation) delegators; // Mapping of delegator => Delegation
+    }
+
+    /**
+     * @dev Individual delegation data of a delegator in a pool.
+     */
+    struct Delegation {
+        uint256 shares; // Shares owned by a delegator in the pool
+        uint256 tokensLocked; // Tokens locked for undelegation
+        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
     }
 
     // -- Configuration --

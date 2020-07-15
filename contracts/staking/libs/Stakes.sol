@@ -16,7 +16,7 @@ library Stakes {
         uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
         uint256 tokensAllocated; // Tokens used in allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
-        uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
+        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
     }
 
     /**
