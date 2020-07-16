@@ -31,7 +31,7 @@ describe('MinimumViableMultisig.sol', () => {
     governor = accounts[0]
 
     // Deploy graph token
-    token = await deployGRT(await governor.getAddress())
+    token = await deployGRT(governor)
 
     // Get channel signers
     const [_node, _indexer] = await getRandomFundedChannelSigners(2, governor, token)

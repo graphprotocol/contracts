@@ -2,11 +2,10 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-
 contract BancorFormula {
     using SafeMath for uint256;
 
-    uint16 public version = 6;
+    uint16 public constant version = 6;
 
     uint256 private constant ONE = 1;
     uint32 private constant MAX_RATIO = 1000000;
@@ -37,7 +36,7 @@ contract BancorFormula {
      */
     uint256[128] private maxExpArray;
 
-    constructor() public {
+    function _initialize() internal {
         //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
         //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
         //  maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;
@@ -404,11 +403,12 @@ contract BancorFormula {
      *     This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
      *     Since we rely on unsigned-integer arithmetic and "base < 1" ==> "log(base) < 0", this function does not support "_baseN < _baseD".
      */
-    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD)
-        internal
-        view
-        returns (uint256, uint8)
-    {
+    function power(
+        uint256 _baseN,
+        uint256 _baseD,
+        uint32 _expN,
+        uint32 _expD
+    ) internal view returns (uint256, uint8) {
         require(_baseN < MAX_NUM);
 
         uint256 baseLog;

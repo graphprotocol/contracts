@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./Governed.sol";
 import "./erc1056/IEthereumDIDRegistry.sol";
+import "./governance/Governed.sol";
 
 /**
  * @title GNS
@@ -62,10 +62,9 @@ contract GNS is Governed {
 
     /**
      * @dev Contract Constructor.
-     * @param _governor Owner address of this contract
      * @param _didRegistry Address of the Ethereum DID registry
      */
-    constructor(address _governor, address _didRegistry) public Governed(_governor) {
+    constructor(address _didRegistry) public {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
     }
 

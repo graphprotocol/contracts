@@ -2,10 +2,11 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Governed.sol";
+import "../governance/Governed.sol";
+import "../upgrades/GraphProxy.sol";
+
+import "./CurationStorage.sol";
 import "./ICuration.sol";
-import "./IGraphToken.sol";
-import "./bancor/BancorFormula.sol";
 
 /**
  * @title Curation contract
@@ -15,47 +16,14 @@ import "./bancor/BancorFormula.sol";
  * A curators stake goes to a curation pool along with the stakes of other curators,
  * only one pool exists for each subgraph deployment.
  */
-contract Curation is ICuration, BancorFormula, Governed {
+contract Curation is CurationV1Storage, ICuration, Governed {
     using SafeMath for uint256;
-
-    // -- Curation --
-
-    struct CurationPool {
-        uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
-        uint256 shares; // Shares issued for the SubgraphDeployment
-        uint32 reserveRatio; // Ratio for the bonding curve
-        mapping(address => uint256) curatorShares; // Mapping of curator => shares
-    }
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
     // Amount of shares you get with your minimum token stake
     uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
-
-    // -- State --
-
-    // Fee charged when curator withdraw stake
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public withdrawalFeePercentage;
-
-    // Default reserve ratio to configure curator shares bonding curve
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public defaultReserveRatio;
-
-    // Minimum amount allowed to be staked by curators
-    // This is the `startPoolBalance` for the bonding curve
-    uint256 public minimumCurationStake;
-
-    // Mapping of subgraphDeploymentID => CurationPool
-    // There is only one CurationPool per SubgraphDeployment
-    mapping(bytes32 => CurationPool) public pools;
-
-    // Address of the staking contract that will distribute fees to reserves
-    address public staking;
-
-    // Token used for staking
-    IGraphToken public token;
 
     // -- Events --
 
@@ -90,21 +58,53 @@ contract Curation is ICuration, BancorFormula, Governed {
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @dev Contract Constructor.
-     * @param _governor Owner address of this contract
+     * @dev Check if the caller is the governor or initializing the implementation.
+     */
+    modifier onlyGovernorOrInit {
+        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
+        _;
+    }
+
+    /**
+     * @dev Initialize this contract.
+     */
+    function initialize(address _token) external onlyGovernorOrInit {
+        BancorFormula._initialize();
+        token = IGraphToken(_token);
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
      * @param _token Address of the Graph Protocol token
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationStake Minimum amount of tokens that curators can stake
      */
-    constructor(
-        address _governor,
+    function acceptUpgrade(
+        GraphProxy _proxy,
         address _token,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
-    ) public Governed(_governor) {
-        token = IGraphToken(_token);
-        _setDefaultReserveRatio(_defaultReserveRatio);
-        _setMinimumCurationStake(_minimumCurationStake);
+    ) external {
+        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
+
+        // Accept to be the implementation for this proxy
+        _proxy.acceptImplementation();
+
+        // Initialization
+        Curation(address(_proxy)).initialize(_token);
+        Curation(address(_proxy)).setDefaultReserveRatio(_defaultReserveRatio);
+        Curation(address(_proxy)).setMinimumCurationStake(_minimumCurationStake);
+    }
+
+    /**
+     * @dev Set the staking contract used for fees distribution.
+     * @notice Update the staking contract to `_staking`
+     * @param _staking Address of the staking contract
+     */
+    function setStaking(address _staking) external override onlyGovernorOrInit {
+        staking = IStaking(_staking);
+        emit ParameterUpdated("staking");
     }
 
     /**
@@ -112,15 +112,11 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
-        _setDefaultReserveRatio(_defaultReserveRatio);
-    }
-
-    /**
-     * @dev Set the default reserve ratio percentage for a curation pool.
-     * @param _defaultReserveRatio Reserve ratio (in PPM)
-     */
-    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio)
+        external
+        override
+        onlyGovernorOrInit
+    {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -133,29 +129,15 @@ contract Curation is ICuration, BancorFormula, Governed {
     }
 
     /**
-     * @dev Set the staking contract used for fees distribution.
-     * @notice Update the staking contract to `_staking`
-     * @param _staking Address of the staking contract
-     */
-    function setStaking(address _staking) external override onlyGovernor {
-        staking = _staking;
-        emit ParameterUpdated("staking");
-    }
-
-    /**
      * @dev Set the minimum stake amount for curators.
      * @notice Update the minimum stake amount to `_minimumCurationStake`
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
-    function setMinimumCurationStake(uint256 _minimumCurationStake) external override onlyGovernor {
-        _setMinimumCurationStake(_minimumCurationStake);
-    }
-
-    /**
-     * @dev Set the minimum stake amount for curators.
-     * @param _minimumCurationStake Minimum amount of tokens required stake
-     */
-    function _setMinimumCurationStake(uint256 _minimumCurationStake) private {
+    function setMinimumCurationStake(uint256 _minimumCurationStake)
+        external
+        override
+        onlyGovernorOrInit
+    {
         require(_minimumCurationStake > 0, "Minimum curation stake cannot be 0");
         minimumCurationStake = _minimumCurationStake;
         emit ParameterUpdated("minimumCurationStake");
@@ -165,7 +147,7 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
-    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
+    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernorOrInit {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,
@@ -181,11 +163,11 @@ contract Curation is ICuration, BancorFormula, Governed {
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
-        require(msg.sender == staking, "Caller must be the staking contract");
+        require(msg.sender == address(staking), "Caller must be the staking contract");
 
         // Transfer tokens collected from the staking contract to this contract
         require(
-            token.transferFrom(staking, address(this), _tokens),
+            token.transferFrom(address(staking), address(this), _tokens),
             "Cannot transfer tokens to collect"
         );
 

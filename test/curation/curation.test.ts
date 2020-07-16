@@ -6,7 +6,7 @@ import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { defaults, getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
 
 use(solidity)
 
@@ -47,6 +47,8 @@ describe('Curation', () => {
   const tokensToCollect = toGRT('2000')
 
   const shouldStake = async (tokensToStake: BigNumber, expectedShares: BigNumber) => {
+    const defaultReserveRatio = await curation.defaultReserveRatio()
+
     // Before state
     const beforeCuratorTokens = await grt.balanceOf(curator.address)
     const beforeCuratorShares = await curation.getCuratorShares(
@@ -77,7 +79,7 @@ describe('Curation', () => {
     // Allocated and balance updated
     expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToStake))
     expect(afterPool.shares).eq(beforePool.shares.add(expectedShares))
-    expect(afterPool.reserveRatio).eq(defaults.curation.reserveRatio)
+    expect(afterPool.reserveRatio).eq(defaultReserveRatio)
     // Contract balance updated
     expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToStake))
     // Uses default reserve ratio

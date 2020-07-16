@@ -9,6 +9,7 @@ import { getAccounts, Account } from './lib/testHelpers'
 use(solidity)
 
 describe('ServiceRegistry', () => {
+  let me: Account
   let indexer: Account
 
   let serviceRegistry: ServiceRegistry
@@ -28,11 +29,11 @@ describe('ServiceRegistry', () => {
   }
 
   before(async function () {
-    ;[indexer] = await getAccounts()
+    ;[me, indexer] = await getAccounts()
   })
 
   beforeEach(async function () {
-    serviceRegistry = await deployment.deployServiceRegistry()
+    serviceRegistry = await deployment.deployServiceRegistry(me.signer)
   })
 
   describe('register', function () {

@@ -63,7 +63,7 @@ describe('Indexer Channel Operations', () => {
     governer = accounts[0]
 
     // Deploy graph token
-    token = await deployGRT(await governer.getAddress())
+    token = await deployGRT(governer)
 
     // Get channel signers
     const [_node, _indexer, _thirdparty] = await getRandomFundedChannelSigners(3, governer, token)

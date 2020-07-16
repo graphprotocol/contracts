@@ -1,5 +1,5 @@
 import { expect, use } from 'chai'
-import { constants, BigNumber, Event, Wallet } from 'ethers'
+import { constants, BigNumber, Event } from 'ethers'
 import { solidity } from 'ethereum-waffle'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'

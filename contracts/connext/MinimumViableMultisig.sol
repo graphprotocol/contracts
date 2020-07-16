@@ -4,10 +4,9 @@ pragma experimental ABIEncoderV2;
 import "@connext/contracts/src.sol/shared/libs/LibChannelCrypto.sol";
 import "@connext/contracts/src.sol/shared/libs/LibCommitment.sol";
 
-import "../Staking.sol";
+import "../staking/Staking.sol";
 
 import "./MultisigData.sol";
-
 
 /**
  * This file is excluded from ethlint/solium because of this issue:

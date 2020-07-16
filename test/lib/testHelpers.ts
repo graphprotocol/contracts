@@ -1,5 +1,5 @@
-import { BigNumber, utils, Signer } from 'ethers'
-import buidler, { buidlerArguments } from '@nomiclabs/buidler'
+import { providers, utils, BigNumber, Signer } from 'ethers'
+import buidler from '@nomiclabs/buidler'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 
@@ -21,7 +21,7 @@ export interface Account {
   readonly address: string
 }
 
-export const provider = () => buidler.waffle.provider
+export const provider = (): providers.JsonRpcProvider => buidler.waffle.provider
 
 export const getAccounts = async (): Promise<Account[]> => {
   const accounts = []
@@ -41,8 +41,6 @@ export const getChainID = (): Promise<number> => {
     .getNetwork()
     .then((r) => r.chainId)
 }
-
-// export const latestBlock = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 
 export const latestBlock = (): Promise<BigNumber> =>
   provider().send('eth_blockNumber', []).then(toBN)
@@ -79,29 +77,3 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
 export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
-
-// Default configuration used in tests
-
-export const defaults = {
-  curation: {
-    reserveRatio: toBN('500000'),
-    minimumCurationStake: toGRT('100'),
-    withdrawalFeePercentage: 50000,
-  },
-  dispute: {
-    minimumDeposit: toGRT('100'),
-    fishermanRewardPercentage: toBN('1000'), // in basis points
-    slashingPercentage: toBN('1000'), // in basis points
-  },
-  epochs: {
-    lengthInBlocks: toBN((10 * 60) / 15), // 10 minutes in blocks
-  },
-  staking: {
-    channelDisputeEpochs: 1,
-    maxAllocationEpochs: 5,
-    thawingPeriod: 20, // in blocks
-  },
-  token: {
-    initialSupply: toGRT('10000000'),
-  },
-}

@@ -3,9 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Governed.sol";
-import "./IGraphToken.sol";
-import "./IStaking.sol";
+import "./governance/Governed.sol";
+import "./staking/IStaking.sol";
+import "./token/IGraphToken.sol";
 
 /*
  * @title DisputeManager
@@ -150,7 +150,6 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Contract Constructor
-     * @param _governor Owner address of this contract
      * @param _token Address of the Graph Protocol token
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
@@ -159,14 +158,13 @@ contract DisputeManager is Governed {
      * @param _slashingPercentage Percentage of indexer stake slashed after a dispute
      */
     constructor(
-        address _governor,
         address _arbitrator,
         address _token,
         address _staking,
         uint256 _minimumDeposit,
         uint256 _fishermanRewardPercentage,
         uint256 _slashingPercentage
-    ) public Governed(_governor) {
+    ) public {
         arbitrator = _arbitrator;
         token = IGraphToken(_token);
         staking = IStaking(_staking);

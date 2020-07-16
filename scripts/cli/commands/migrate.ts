@@ -1,17 +1,22 @@
-import { Wallet, constants, utils, ContractTransaction } from 'ethers'
-
+import consola from 'consola'
+import { Wallet, constants, utils } from 'ethers'
 import { Argv } from 'yargs'
 
-import { getAddressBook } from '../address-book'
 import { readConfig, getContractConfig } from '../config'
 import { cliOpts } from '../constants'
-import { isContractDeployed, deployContract } from '../deploy'
+import {
+  isContractDeployed,
+  deployContractAndSave,
+  deployContractWithProxyAndSave,
+  sendTransaction,
+} from '../deploy'
+import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { getProvider } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
 
-const coreContracts = [
+const allContracts = [
   'EpochManager',
   'GNS',
   'GraphToken',
@@ -27,84 +32,109 @@ const coreContracts = [
   'MinimumViableMultisig',
 ]
 
-export const migrate = async (
-  wallet: Wallet,
-  addressBookPath: string,
-  graphConfigPath: string,
-  force = false,
-): Promise<void> => {
-  ////////////////////////////////////////
-  // Environment Setup
+const logger = consola.create({})
 
-  const balance = await wallet.getBalance()
-  const chainId = (await wallet.provider.getNetwork()).chainId
-  const nonce = await wallet.getTransactionCount()
-  const walletAddress = await wallet.getAddress()
+export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const graphConfigPath = cliArgs.graphConfig
+  const force = cliArgs.force
+  const contractName = cliArgs.contract
 
-  console.log(`\nPreparing to migrate contracts to chain w id: ${chainId}`)
-  console.log(
-    `Deployer Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
-  )
+  logger.info(`Migrating contracts...`)
 
-  const addressBook = getAddressBook(addressBookPath, chainId.toString())
   const graphConfig = readConfig(graphConfigPath)
 
   ////////////////////////////////////////
   // Deploy contracts
 
+  // Filter contracts to be deployed
+  if (contractName && !allContracts.includes(contractName)) {
+    logger.error(`Contract ${contractName} not found in address book`)
+    return
+  }
+  const deployContracts = contractName ? [contractName] : allContracts
   const pendingContractCalls = []
 
-  for (const name of coreContracts) {
-    const addressEntry = addressBook.getEntry(name)
+  logger.log(`== Contracts deployment\n`)
+  for (const name of deployContracts) {
+    // Get address book info
+    const addressEntry = cli.addressBook.getEntry(name)
     const savedAddress = addressEntry && addressEntry.address
-    if (!force && (await isContractDeployed(name, savedAddress, addressBook, wallet.provider))) {
-      console.log(`${name} is up to date, no action required`)
-      console.log(`Address: ${savedAddress}\n`)
-    } else {
-      const contractConfig = getContractConfig(graphConfig, addressBook, name)
-      const contract = await deployContract(name, contractConfig.params, wallet, addressBook)
-      if (contractConfig.calls) {
-        pendingContractCalls.push({ name, contract, calls: contractConfig.calls })
-      }
+
+    logger.info(`Deploying ${name}...`)
+
+    // Check if contract already deployed
+    const isDeployed = await isContractDeployed(
+      name,
+      savedAddress,
+      cli.addressBook,
+      cli.wallet.provider,
+    )
+    if (!force && isDeployed) {
+      logger.info(`${name} is up to date, no action required`)
+      logger.log(`Address: ${savedAddress}\n`)
+      continue
+    }
+
+    // Get config and deploy contract
+    const contractConfig = getContractConfig(graphConfig, cli.addressBook, name)
+    const contract = contractConfig.proxy
+      ? await deployContractWithProxyAndSave(
+          name,
+          contractConfig.params,
+          cli.wallet,
+          cli.addressBook,
+        )
+      : await deployContractAndSave(name, contractConfig.params, cli.wallet, cli.addressBook)
+    logger.log('')
+
+    // Defer contract calls after deploying every contract
+    if (contractConfig.calls) {
+      pendingContractCalls.push({ name, contract, calls: contractConfig.calls })
     }
   }
-  console.log('Contract deployments done! Contract calls are next')
+  logger.success('Contract deployments done! Contract calls are next')
 
   ////////////////////////////////////////
   // Run contracts calls
 
-  for (const entry of pendingContractCalls) {
-    for (const call of entry.calls) {
-      const tx: ContractTransaction = await entry.contract.functions[call.fn](...call.params)
-      console.log(
-        `Sent transaction to ${entry.name}.${call.fn}: ${call.params}, txHash: ${tx.hash}`,
-      )
-      await wallet.provider.waitForTransaction(tx.hash!)
-      console.log(`Transaction mined ${tx.hash}`)
+  logger.log('')
+  logger.log(`== Contracts calls\n`)
+  if (pendingContractCalls.length > 0) {
+    for (const entry of pendingContractCalls) {
+      if (entry.calls.length == 0) continue
+
+      logger.info(`Configuring ${entry.name}...`)
+      for (const call of entry.calls) {
+        await sendTransaction(cli.wallet, entry.contract, call.fn, ...call.params)
+      }
+      logger.log('')
     }
+  } else {
+    logger.info('Nothing to do')
   }
 
   ////////////////////////////////////////
   // Print summary
-
-  console.log('All done!')
-  const spent = formatEther(balance.sub(await wallet.getBalance()))
-  const nTx = (await wallet.getTransactionCount()) - nonce
-  console.log(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
+  logger.log('')
+  logger.log(`== Summary\n`)
+  logger.success('All done!')
+  const spent = formatEther(cli.balance.sub(await cli.wallet.getBalance()))
+  const nTx = (await cli.wallet.getTransactionCount()) - cli.nonce
+  logger.success(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
 }
 
 export const migrateCommand = {
   command: 'migrate',
   describe: 'Migrate contracts',
   builder: (yargs: Argv) => {
-    return yargs.option('c', cliOpts.graphConfig)
+    return yargs.option('c', cliOpts.graphConfig).option('n', {
+      alias: 'contract',
+      description: 'Contract name to deploy (all if not set)',
+      type: 'string',
+    })
   },
-  handler: async (argv: { [key: string]: any } & Argv['argv']) => {
-    await migrate(
-      Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider)),
-      argv.addressBook,
-      argv.graphConfig,
-      argv.force,
-    )
+  handler: async (argv: CLIArgs): Promise<void> => {
+    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
+    return migrate(await loadEnv(wallet, argv), argv)
   },
 }

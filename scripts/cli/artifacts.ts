@@ -10,8 +10,6 @@ type Artifact = {
   deployedBytecode: string
 }
 
-type Artifacts = { [contractName: string]: Artifact }
-
 const ARTIFACTS_PATH = './build/contracts/'
 
 export const loadArtifact = (name: string): Artifact => {

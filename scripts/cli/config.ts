@@ -11,6 +11,7 @@ type ContractCalls = Array<{ fn: string; params: Array<any> }>
 interface ContractConfig {
   params: ContractParams
   calls: ContractCalls
+  proxy: boolean
 }
 
 function parseConfigValue(value: string, addressBook: AddressBook) {
@@ -44,19 +45,28 @@ export function getContractConfig(
   const contractConfig = config.contracts[name] || {}
   const contractParams: ContractParams = []
   const contractCalls: ContractCalls = []
+  let proxy = false
 
   for (const [name, value] of Object.entries(contractConfig) as Array<Array<string>>) {
+    // Process contract calls
     if (name.startsWith('__calls')) {
       for (const entry of contractConfig.__calls) {
         const fn = entry['fn']
         const params = Object.entries(entry)
-          .slice(1)
+          .slice(1) // skip fn
           .map(([, value]) => parseConfigValue(value as string, addressBook))
         contractCalls.push({ fn, params })
       }
       continue
     }
 
+    // Process proxy
+    if (name.startsWith('__proxy')) {
+      proxy = Boolean(value)
+      continue
+    }
+
+    // Process constructor params
     contractParams.push({ name, value: parseConfigValue(value, addressBook) } as {
       name: string
       value: string
@@ -66,5 +76,6 @@ export function getContractConfig(
   return {
     params: contractParams,
     calls: contractCalls,
+    proxy,
   }
 }

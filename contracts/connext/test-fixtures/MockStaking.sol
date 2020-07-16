@@ -1,7 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "../../IGraphToken.sol";
-
+import "../../token/IGraphToken.sol";
 import "../MinimumViableMultisig.sol";
 
 contract MockStaking {
@@ -20,23 +19,14 @@ contract MockStaking {
     }
 
     function setChannel(address channelID, address channelProxy) public {
-        require(
-            channelID != address(0),
-            "MockStaking: channelID must not be zero"
-        );
-        require(
-            channelProxy != address(0),
-            "MockStaking: channelProxy must not be zero"
-        );
+        require(channelID != address(0), "MockStaking: channelID must not be zero");
+        require(channelProxy != address(0), "MockStaking: channelProxy must not be zero");
 
         channelIDToChannelProxy[channelID] = channelProxy;
     }
 
     function collect(uint256 amount, address channelID) public {
-        require(
-            channelID != address(0),
-            "MockStaking: invalid channelID"
-        );
+        require(channelID != address(0), "MockStaking: invalid channelID");
         require(
             channelIDToChannelProxy[channelID] == msg.sender,
             "MockStaking: mismatch between channelID and caller"

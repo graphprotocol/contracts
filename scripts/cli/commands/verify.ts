@@ -1,10 +1,9 @@
-import { Wallet, constants, utils, ContractTransaction } from 'ethers'
+import consola from 'consola'
+import { execSync } from 'child_process'
+import { Wallet } from 'ethers'
 
-import { Argv } from 'yargs'
-
-import { getAddressBook } from '../address-book'
+import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { getProvider } from '../utils'
-import { spawn, execSync, spawnSync } from 'child_process'
 
 const coreContracts = [
   'EpochManager',
@@ -22,18 +21,16 @@ const coreContracts = [
   'MinimumViableMultisig',
 ]
 
-export const verify = async (wallet: Wallet, addressBookPath: string): Promise<void> => {
-  const chainId = (await wallet.provider.getNetwork()).chainId
-  const addressBook = getAddressBook(addressBookPath, chainId.toString())
-  console.log(
-    `* Verifying contracts for chainId (${chainId}) using address-book (${addressBookPath})`,
-  )
+const logger = consola.create({})
+
+export const verify = async (cli: CLIEnvironment): Promise<void> => {
+  logger.info(`Verifying contracts for chainId ${cli.chainId}...`)
 
   for (const contractName of coreContracts) {
-    const contract = addressBook.getEntry(contractName)
+    const contract = cli.addressBook.getEntry(contractName)
     if (!contract) {
-      console.log(
-        `- ERROR: Contract ${contractName} not found in address-book for network ${chainId}`,
+      logger.log(
+        `- ERROR: Contract ${contractName} not found in address-book for network ${cli.chainId}`,
       )
       continue
     }
@@ -44,11 +41,11 @@ export const verify = async (wallet: Wallet, addressBookPath: string): Promise<v
     const cmd = `buidler verify-contract --contract-name ${contractName} --address ${address} ${argsList}`
 
     try {
-      console.log(`> Verifying contract ${contractName}::${address} ...`)
+      logger.log(`> Verifying contract ${contractName}::${address} ...`)
       await execSync(cmd)
-      console.log(`+ Contract ${contractName}::${address} verified`)
+      logger.log(`+ Contract ${contractName}::${address} verified`)
     } catch (err) {
-      console.log(`- ERROR: ${contractName}::${address}`)
+      logger.log(`- ERROR: ${contractName}::${address}`)
     }
   }
 }
@@ -56,10 +53,8 @@ export const verify = async (wallet: Wallet, addressBookPath: string): Promise<v
 export const verifyCommand = {
   command: 'verify',
   describe: 'Verify contracts',
-  handler: async (argv: { [key: string]: any } & Argv['argv']) => {
-    await verify(
-      Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider)),
-      argv.addressBook,
-    )
+  handler: async (argv: CLIArgs): Promise<void> => {
+    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
+    return verify(await loadEnv(wallet, argv))
   },
 }
