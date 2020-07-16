@@ -2,9 +2,6 @@ import { expect } from 'chai'
 import { ethers, Signer } from 'ethers'
 
 import { Gns } from '../build/typechain/contracts/Gns'
-import { EthereumDidRegistry } from '../build/typechain/contracts/EthereumDidRegistry'
-
-import * as deployment from './lib/deployment'
 import { getAccounts, randomHexBytes, Account } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 
@@ -205,20 +202,110 @@ describe('GNS', () => {
     })
   })
   describe('Curating on names', async function () {
-    describe('createNameSignal()', async function () {})
-    describe('upgradeNameSignal()', async function () {})
-    describe('depositIntoNameSignal()', async function () {})
-    describe('withdrawFromNameSignal()', async function () {})
-    describe('deprecateNameSignal()', async function () {})
-    describe('withdrawGRT()', async function () {})
+    describe('createNameSignal()', async function () {
+      it('should create a name signal', async function () {
+        // todo
+        // check event
+      })
+      it('should fail to create a name signal on the same subgraph number', async function () {
+        // todo
+      })
+      it('should fail when the subgraph was previously deprecated, and all nSignal withdrawn', async function () {
+        // todo
+      })
+      it('should fail when the subgraph has no nSignal left, but was created and not deprecated', async function () {
+        // todo
+      })
+      it('should fail if the subgraphDeploymentID was not set by the owner', async function () {
+        // todo
+      })
+    })
+    describe('upgradeNameSignal()', async function () {
+      it('should upgrade the name signal and migrate old vSignal to new vSignal', async function () {
+        // todo
+        // check event
+      })
+      it('should fail when subgraph deployment ids do not match', async function () {
+        // todo
+      })
+      it('should fail when upgrade tries to point to a pre-curated', async function () {
+        // todo
+      })
+      it('should fail when trying to upgrade when there is no nSignal', async function () {
+        // todo
+      })
+      it('should fail when name signal is deprecated', async function () {
+        // todo
+      })
+    })
+    describe('depositIntoNameSignal()', async function () {
+      it('should deposit into the name signal curve', async function () {
+        // todo
+        // check event
+      })
+      it('should fail when name signal is deprecated', async function () {
+        // todo
+      })
+      it('should fail if the owner updated the subgraph number deployment ID, but not the name signal', async function () {
+        // todo
+      })
+    })
+    describe('withdrawFromNameSignal()', async function () {
+      it('should withdraw from the name signal curve', async function () {
+        // todo
+        // check event
+      })
+      it('should fail when name signal is deprecated', async function () {
+        // todo
+      })
+      it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
+        // todo
+      })
+      it('should', async function () {
+        // todo
+      })
+      it('should', async function () {
+        // todo
+      })
+    })
+    describe('deprecateNameSignal()', async function () {
+      it('should deprecate the name signal', async function () {
+        // todo
+        // check event
+      })
+      it('should fail upon trying to deprecate twice', async function () {
+        // todo
+      })
+    })
+    describe('withdrawGRT()', async function () {
+      it('should withdraw GRT from a deprecated name signal', async function () {
+        // todo
+        // check event
+      })
+      it('should fail when there is no more GRT to withdraw', async function () {
+        // todo
+      })
+      it('should fail if the curator has no nSignal', async function () {
+        // todo
+      })
+      it('should', async function () {
+        // todo
+      })
+      it('should', async function () {
+        // todo
+      })
+    })
+    describe('tokensToNSignal()', async function () {
+      it('should work as a getter function', async function () {
+        // todo
+        // check event
+      })
+    })
+    describe('nSignalToTokens()', async function () {
+      it('should work as a getter function', async function () {
+        // todo
+        // check event
+      })
+    })
   })
 })
-
-// TODO - also test nSignalToTokens and tokensToNsignal
-// which are getters for the front end
-// nSignalToVSignal and vSignalToNSignal are tested in mint and burn
-
-// TODO - test scenarios
-// - test negatives
-// test requires
-// add new requires

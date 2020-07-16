@@ -146,6 +146,7 @@ contract GNS is Governed, BancorFormula {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
         curation = Curation(_curation);
         token = IGraphToken(_token);
+        token.approve(address(curation), uint256(-1));
     }
 
     /**
@@ -331,7 +332,10 @@ contract GNS is Governed, BancorFormula {
         // This is to prevent the owner from front running their name curators signal by posting
         // their own signal ahead, bringing the name curators in, and dumping on them
         (, uint256 poolShares, ) = curation.pools(_newSubgraphDeploymentID);
-        require(poolShares == 0, "GNS: Owner cannot point to a subgraphID that has been prestaked");
+        require(
+            poolShares == 0,
+            "GNS: Owner cannot point to a subgraphID that has been pre-curated"
+        );
 
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.nSignal > 0, "GNS: There must be nSignal on this subgraph");
@@ -361,8 +365,6 @@ contract GNS is Governed, BancorFormula {
         uint256 _tokens
     ) external {
         address nameCurator = msg.sender;
-        require(_tokens > 0, "GNS: Cannot stake zero tokens");
-
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.deprecated == false, "GNS: Cannot be deprecated");
         require(
@@ -401,7 +403,6 @@ contract GNS is Governed, BancorFormula {
         uint256 _subgraphNumber,
         uint256 _nSignal
     ) external {
-        require(_nSignal > 0, "GNS: Cannot redeem zero shares");
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 curatorNSignal = namePool.curatorNSignal[nameCurator];
@@ -459,6 +460,7 @@ contract GNS is Governed, BancorFormula {
         require(namePool.deprecated == true, "GNS: Name bonding curve must be deprecated first");
         require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
         uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
+        require(curatorNSignal > 0, "GNS: Curator must have some nSignal to withdraw GRT");
         uint256 tokens = curatorNSignal.mul(namePool.withdrawableGRT).div(namePool.nSignal);
         namePool.curatorNSignal[msg.sender] = 0;
         namePool.nSignal = namePool.nSignal.sub(curatorNSignal);
