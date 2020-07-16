@@ -69,7 +69,7 @@
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
     "deploy": "buidler migrate",
-    "deploy-kovan": "npm run migrate -- --force --network kovan",
+    "deploy-kovan": "npm run deploy -- --force --network kovan",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "coverage": "scripts/coverage",

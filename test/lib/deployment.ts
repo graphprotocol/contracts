@@ -124,8 +124,13 @@ export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
   return contract.attach(proxy.address)
 }
 
-export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
-  return deployContract('GNS', owner, didRegistry) as Promise<Gns>
+export async function deployGNS(
+  owner: Signer,
+  didRegistry: string,
+  graphToken: string,
+  curation: string,
+): Promise<Gns> {
+  return deployContract('GNS', owner, didRegistry, graphToken, curation) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(owner: Signer): Promise<EthereumDidRegistry> {

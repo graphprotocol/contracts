@@ -512,7 +512,13 @@ contract GNS is Governed, BancorFormula {
         return (vSignal, tokens);
     }
 
-    // GETTER
+    /**
+     * @dev Calculate nSignal to be returned for an amount of tokens
+     * @param _graphAccount Subgraph owner
+     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
+     * @param _tokens Tokens being exchanged for nSignal
+     * @return Amount of vSignal and nSignal that can be returned
+     */
     function tokensToNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
@@ -524,7 +530,13 @@ contract GNS is Governed, BancorFormula {
         return (vSignal, nSignal);
     }
 
-    // GETTER
+    /**
+     * @dev Calculate n signal to be returned for an amount of tokens
+     * @param _graphAccount Subgraph owner
+     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
+     * @param _nSignal nSignal being exchanged for tokens
+     * @return Amount of vSignal and tokens that can be returned
+     */
     function nSignalToTokens(
         address _graphAccount,
         uint256 _subgraphNumber,
