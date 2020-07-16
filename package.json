@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "0.3.0-beta",
+  "version": "0.4.1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -8,7 +8,8 @@
   "files": [
     "dist/**/*",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "addresses.json"
   ],
   "devDependencies": {
     "@connext/contracts": "^3.3.1",
