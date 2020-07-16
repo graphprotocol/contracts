@@ -1,14 +1,17 @@
 #!/bin/bash
 
 OUT_DIR="build/full"
+IFS='/'
 
 mkdir -p ${OUT_DIR}/contracts
 
 echo "Flattening contracts..."
 
-for path in contracts/*.sol; do
-    echo ${path}
-    truffle-flattener ${path} > ${OUT_DIR}/${path}
+for path in contracts/**/*.sol; do
+    parts=( $path )
+    name=${parts[${#parts[@]}-1]}
+    echo "${path}"
+    truffle-flattener "${path}" > "${OUT_DIR}/${name}"
 done
 
 echo "Done."
