@@ -10,9 +10,9 @@ contract CurationV1Storage is GraphProxyStorage, BancorFormula {
 
     struct CurationPool {
         uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
-        uint256 shares; // Shares issued for the SubgraphDeployment
+        uint256 signal; // Signal issued for the SubgraphDeployment
         uint32 reserveRatio; // Ratio for the bonding curve
-        mapping(address => uint256) curatorShares; // Mapping of curator => shares
+        mapping(address => uint256) curatorSignal; // Mapping of curator => signal
     }
 
     // -- State --

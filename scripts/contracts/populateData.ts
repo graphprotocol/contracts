@@ -151,12 +151,12 @@ const populateGNS = async (network: string, signers: Array<Wallet>) => {
 }
 
 //  Each GraphAccount curates on their own
-//  Then we stake on a few to make them higher, and see bonding curves in action
+//  Then we signal on a few to make them higher, and see bonding curves in action
 //  Then we run some redeems
 const populateCuration = async (network: string, signers: Array<Wallet>) => {
   console.log('Running curation contract calls...')
-  const stakeAmount = '5000'
-  const stakeAmountBig = '10000'
+  const signalAmount = '5000'
+  const signalAmountBig = '10000'
   const totalAmount = '25000'
   for (let i = 0; i < signers.length; i++) {
     const curation = new ConnectedCuration(network, signers[i])
@@ -165,12 +165,12 @@ const populateCuration = async (network: string, signers: Array<Wallet>) => {
     await executeTransaction(
       connectedGT.approveWithDecimals(curation.contract.address, totalAmount),
     )
-    console.log('Now calling multiple stake() txs on curation...')
-    await executeTransaction(curation.stakeWithDecimals(mockDeploymentIDsBytes32[i], stakeAmount))
-    await executeTransaction(curation.stakeWithDecimals(mockDeploymentIDsBytes32[0], stakeAmount))
-    await executeTransaction(curation.stakeWithDecimals(mockDeploymentIDsBytes32[1], stakeAmount))
+    console.log('Now calling multiple signal() txs on curation...')
+    await executeTransaction(curation.signalWithDecimals(mockDeploymentIDsBytes32[i], signalAmount))
+    await executeTransaction(curation.signalWithDecimals(mockDeploymentIDsBytes32[0], signalAmount))
+    await executeTransaction(curation.signalWithDecimals(mockDeploymentIDsBytes32[1], signalAmount))
     await executeTransaction(
-      curation.stakeWithDecimals(mockDeploymentIDsBytes32[2], stakeAmountBig),
+      curation.signalWithDecimals(mockDeploymentIDsBytes32[2], signalAmountBig),
     )
   }
   const redeemAmount = '1' // Redeeming SHARES/Signal, NOT tokens. 1 share can be a lot of tokens

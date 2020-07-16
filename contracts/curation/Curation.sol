@@ -22,32 +22,32 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // Amount of shares you get with your minimum token stake
-    uint256 private constant SHARES_PER_MINIMUM_STAKE = 1 ether;
+    // Amount of signal you get with your minimum token stake
+    uint256 private constant SIGNAL_PER_MINIMUM_STAKE = 1 ether;
 
     // -- Events --
 
     /**
      * @dev Emitted when `curator` staked `tokens` on `subgraphDeploymentID` as curation signal.
-     * The `curator` receives `shares` amount according to the curation pool bonding curve.
+     * The `curator` receives `signal` amount according to the curation pool bonding curve.
      */
-    event Staked(
+    event Signalled(
         address indexed curator,
         bytes32 indexed subgraphDeploymentID,
         uint256 tokens,
-        uint256 shares
+        uint256 signal
     );
 
     /**
-     * @dev Emitted when `curator` redeemed `shares` for a `subgraphDeploymentID`.
+     * @dev Emitted when `curator` burned `signal` for a `subgraphDeploymentID`.
      * The curator will receive `tokens` according to the value of the bonding curve.
      * An amount of `withdrawalFees` will be collected and burned.
      */
-    event Redeemed(
+    event Burned(
         address indexed curator,
         bytes32 indexed subgraphDeploymentID,
         uint256 tokens,
-        uint256 shares,
+        uint256 signal,
         uint256 withdrawalFees
     );
 
@@ -176,11 +176,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Stake Graph Tokens in exchange for shares of a SubgraphDeployment curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking Graph Tokens
+     * @dev Stake Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function stake(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
+    function mint(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
         address curator = msg.sender;
 
         // Need to stake some funds
@@ -193,30 +193,30 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         );
 
         // Stake tokens to a curation pool reserve
-        _stake(curator, _subgraphDeploymentID, _tokens);
+        _mint(curator, _subgraphDeploymentID, _tokens);
     }
 
     /**
-     * @dev Return an amount of shares to get tokens back.
-     * @notice Redeem _shares from the SubgraphDeployment curation pool
-     * @param _subgraphDeploymentID SubgraphDeployment the curator is returning shares
-     * @param _shares Amount of shares to return
+     * @dev Return an amount of signal to get tokens back.
+     * @notice Burn _signal from the SubgraphDeployment curation pool
+     * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
+     * @param _signal Amount of signal to return
      */
-    function redeem(bytes32 _subgraphDeploymentID, uint256 _shares) external override {
+    function burn(bytes32 _subgraphDeploymentID, uint256 _signal) external override {
         address curator = msg.sender;
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
-        require(_shares > 0, "Cannot redeem zero shares");
+        require(_signal > 0, "Cannot burn zero signal");
         require(
-            curationPool.curatorShares[curator] >= _shares,
-            "Cannot redeem more shares than you own"
+            curationPool.curatorSignal[curator] >= _signal,
+            "Cannot burn more signal than you own"
         );
 
-        // Update balance and get the amount of tokens to refund based on returned shares
-        uint256 tokens = _sellShares(curator, _subgraphDeploymentID, _shares);
+        // Update balance and get the amount of tokens to refund based on returned signal
+        uint256 tokens = _burnSignal(curator, _subgraphDeploymentID, _signal);
 
-        // If all shares redeemed delete the curation pool
-        if (curationPool.shares == 0) {
+        // If all signal burnt delete the curation pool
+        if (curationPool.signal == 0) {
             delete pools[_subgraphDeploymentID];
         }
 
@@ -230,7 +230,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         // Return the tokens to the curator
         require(token.transfer(curator, tokens), "Error sending curator tokens");
 
-        emit Redeemed(curator, _subgraphDeploymentID, tokens, _shares, withdrawalFees);
+        emit Burned(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
     }
 
     /**
@@ -252,60 +252,60 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Get the number of shares a curator has on a curation pool.
-     * @param _curator Curator owning the shares
-     * @param _subgraphDeploymentID SubgraphDeployment of issued shares
-     * @return Number of shares owned by a curator for the SubgraphDeployment
+     * @dev Get the amount of signal a curator has on a curation pool.
+     * @param _curator Curator owning signal
+     * @param _subgraphDeploymentID SubgraphDeployment of issued signal
+     * @return Amount of signal owned by a curator for the SubgraphDeployment
      */
-    function getCuratorShares(address _curator, bytes32 _subgraphDeploymentID)
+    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
         public
         view
         returns (uint256)
     {
-        return pools[_subgraphDeploymentID].curatorShares[_curator];
+        return pools[_subgraphDeploymentID].curatorSignal[_curator];
     }
 
     /**
-     * @dev Calculate number of shares that can be bought with tokens in a curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment to buy shares
-     * @param _tokens Amount of tokens used to buy shares
-     * @return Amount of shares that can be bought
+     * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _tokens Amount of tokens used to mint signal
+     * @return Amount of signal that can be bought
      */
-    function tokensToShares(bytes32 _subgraphDeploymentID, uint256 _tokens)
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
         public
         view
         returns (uint256)
     {
         // Handle initialization of bonding curve
         uint256 tokens = _tokens;
-        uint256 shares = 0;
+        uint256 signal = 0;
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         if (curationPool.tokens == 0) {
             curationPool = CurationPool(
                 minimumCurationStake,
-                SHARES_PER_MINIMUM_STAKE,
+                SIGNAL_PER_MINIMUM_STAKE,
                 defaultReserveRatio
             );
             tokens = tokens.sub(curationPool.tokens);
-            shares = curationPool.shares;
+            signal = curationPool.signal;
         }
 
         return
             calculatePurchaseReturn(
-                curationPool.shares,
+                curationPool.signal,
                 curationPool.tokens,
                 uint32(curationPool.reserveRatio),
                 tokens
-            ) + shares;
+            ) + signal;
     }
 
     /**
-     * @dev Calculate number of tokens to get when selling shares from a curation pool.
-     * @param _subgraphDeploymentID SubgraphDeployment to sell shares
-     * @param _shares Amount of shares to sell
-     * @return Amount of tokens to get after selling shares
+     * @dev Calculate number of tokens to get when burning signal from a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment to burn signal
+     * @param _signal Amount of signal to burn
+     * @return Amount of tokens to get after burning signal
      */
-    function sharesToTokens(bytes32 _subgraphDeploymentID, uint256 _shares)
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
         public
         view
         returns (uint256)
@@ -313,80 +313,80 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         require(
             curationPool.tokens > 0,
-            "SubgraphDeployment must be curated to perform calculations"
+            "Subgraph deployment must be curated to perform calculations"
         );
         require(
-            curationPool.shares >= _shares,
-            "Shares must be above or equal to shares issued in the curation pool"
+            curationPool.signal >= _signal,
+            "Signal must be above or equal to signal issued in the curation pool"
         );
         return
             calculateSaleReturn(
-                curationPool.shares,
+                curationPool.signal,
                 curationPool.tokens,
                 uint32(curationPool.reserveRatio),
-                _shares
+                _signal
             );
     }
 
     /**
-     * @dev Update balances after buy of shares and deposit of tokens.
-     * @param _curator Curator
-     * @param _subgraphDeploymentID SubgraphDeployment
+     * @dev Update balances after mint of signal and deposit of tokens.
+     * @param _curator Curator address
+     * @param _subgraphDeploymentID Subgraph deployment from where to mint signal
      * @param _tokens Amount of tokens
-     * @return Number of shares bought
+     * @return Amount of signal bought
      */
-    function _buyShares(
+    function _mintSignal(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
     ) private returns (uint256) {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        uint256 shares = tokensToShares(_subgraphDeploymentID, _tokens);
+        uint256 signal = tokensToSignal(_subgraphDeploymentID, _tokens);
 
         // Update tokens
         curationPool.tokens = curationPool.tokens.add(_tokens);
 
-        // Update shares
-        curationPool.shares = curationPool.shares.add(shares);
-        curationPool.curatorShares[_curator] = curationPool.curatorShares[_curator].add(shares);
+        // Update signal
+        curationPool.signal = curationPool.signal.add(signal);
+        curationPool.curatorSignal[_curator] = curationPool.curatorSignal[_curator].add(signal);
 
-        return shares;
+        return signal;
     }
 
     /**
-     * @dev Update balances after sell of shares and return of tokens.
-     * @param _curator Curator
-     * @param _subgraphDeploymentID SubgraphDeployment
-     * @param _shares Amount of shares
+     * @dev Update balances after burn of signal and return of tokens.
+     * @param _curator Curator address
+     * @param _subgraphDeploymentID Subgraph deployment pool to burn signal
+     * @param _signal Amount of signal
      * @return Number of tokens received
      */
-    function _sellShares(
+    function _burnSignal(
         address _curator,
         bytes32 _subgraphDeploymentID,
-        uint256 _shares
+        uint256 _signal
     ) private returns (uint256) {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        uint256 tokens = sharesToTokens(_subgraphDeploymentID, _shares);
+        uint256 tokens = signalToTokens(_subgraphDeploymentID, _signal);
 
         // Update tokens
         curationPool.tokens = curationPool.tokens.sub(tokens);
 
-        // Update shares
-        curationPool.shares = curationPool.shares.sub(_shares);
-        curationPool.curatorShares[_curator] = curationPool.curatorShares[_curator].sub(_shares);
+        // Update signal
+        curationPool.signal = curationPool.signal.sub(_signal);
+        curationPool.curatorSignal[_curator] = curationPool.curatorSignal[_curator].sub(_signal);
 
         return tokens;
     }
 
     /**
      * @dev Assign Graph Tokens received from staking to the curation pool reserve.
-     * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
+     * @param _subgraphDeploymentID Subgraph deployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
         require(
             _isCurated(_subgraphDeploymentID),
-            "SubgraphDeployment must be curated to collect fees"
+            "Subgraph deployment must be curated to collect fees"
         );
 
         // Collect new funds into reserve
@@ -397,12 +397,12 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     }
 
     /**
-     * @dev Deposit Graph Tokens in exchange for shares of a curation pool.
+     * @dev Deposit Graph Tokens in exchange for signal of a curation pool.
      * @param _curator Address of the staking party
-     * @param _subgraphDeploymentID SubgraphDeployment where the curator is staking tokens
+     * @param _subgraphDeploymentID Subgraph deployment from where the curator is minting
      * @param _tokens Amount of Graph Tokens to stake
      */
-    function _stake(
+    function _mint(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
@@ -418,8 +418,8 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         }
 
         // Update balances
-        uint256 shares = _buyShares(_curator, _subgraphDeploymentID, _tokens);
+        uint256 signal = _mintSignal(_curator, _subgraphDeploymentID, _tokens);
 
-        emit Staked(_curator, _subgraphDeploymentID, _tokens, shares);
+        emit Signalled(_curator, _subgraphDeploymentID, _tokens, signal);
     }
 }
