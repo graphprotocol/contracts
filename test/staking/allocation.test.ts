@@ -452,9 +452,8 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Calculations
-      const { 0: currentEpoch, 1: epochs } = await epochManager.epochsSince(
-        beforeAlloc.createdAtEpoch,
-      )
+      const currentEpoch = await epochManager.currentEpoch()
+      const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
       const effectiveAllocation = calculateEffectiveAllocation(
         beforeAlloc.tokens,
         epochs,

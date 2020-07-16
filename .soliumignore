@@ -6,7 +6,6 @@ contracts/ens
 contracts/erc1056
 contracts/openzeppelin
 
-contracts/staking/Staking.sol
 contracts/token/IGraphToken.sol
 contracts/upgrades/GraphProxy.sol
 

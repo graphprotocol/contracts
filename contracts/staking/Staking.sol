@@ -707,7 +707,10 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
         // Validate that an allocation cannot be settled before one epoch
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.createdAtEpoch);
+        uint256 currentEpoch = epochManager.currentEpoch();
+        uint256 epochs = alloc.createdAtEpoch < currentEpoch
+            ? currentEpoch.sub(alloc.createdAtEpoch)
+            : 0;
         require(epochs > 0, "Settle: must pass at least one epoch");
 
         // Validate ownership
@@ -1130,7 +1133,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
             return AllocationState.Active;
         }
 
-        (uint256 epochs, uint256 currentEpoch) = epochManager.epochsSince(alloc.settledAtEpoch);
+        uint256 epochs = epochManager.epochsSince(alloc.settledAtEpoch);
         if (epochs >= channelDisputeEpochs) {
             return AllocationState.Finalized;
         }
