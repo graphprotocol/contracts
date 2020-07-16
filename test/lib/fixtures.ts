@@ -26,8 +26,8 @@ export class NetworkFixture {
     const gns = await deployment.deployGNS(
       governor,
       didRegistry.address,
-      grt.address,
       curation.address,
+      grt.address,
     )
     const staking = await deployment.deployStaking(
       governor,
