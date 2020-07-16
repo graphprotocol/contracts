@@ -16,9 +16,6 @@ contract StakingV1Storage is GraphProxyStorage {
     // Time in blocks to unstake
     uint256 public thawingPeriod; // in blocks
 
-    // Indexer stake tracking : indexer => Stake
-    mapping(address => Stakes.Indexer) public stakes;
-
     // Percentage of fees going to curators
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public curationPercentage;
@@ -33,6 +30,9 @@ contract StakingV1Storage is GraphProxyStorage {
     // Maximum allocation time
     uint256 public maxAllocationEpochs;
 
+    // Indexer stakes : indexer => Stake
+    mapping(address => Stakes.Indexer) public stakes;
+
     // Allocations : allocationID => Allocation
     mapping(address => IStaking.Allocation) public allocations;
 
@@ -44,16 +44,23 @@ contract StakingV1Storage is GraphProxyStorage {
     // List of addresses allowed to slash stakes
     mapping(address => bool) public slashers;
 
+    // -- Delegation --
+
     // Set the delegation capacity multiplier.
     // If delegation capacity is 100 GRT, and an Indexer has staked 5 GRT,
     // then they can accept 500 GRT as delegated stake.
-    uint256 public delegationCapacity;
+    uint32 public delegationCapacity;
 
     // Time in blocks an indexer needs to wait to change delegation parameters
-    uint256 public delegationParametersCooldown;
+    uint32 public delegationParametersCooldown;
 
     // Delegation pools : indexer => DelegationPool
     mapping(address => IStaking.DelegationPool) public delegation;
+
+    // -- Operators
+
+    // Operator auth : indexer => operator
+    mapping(address => mapping(address => bool)) public operatorAuth;
 
     // -- Related contracts --
 
