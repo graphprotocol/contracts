@@ -1,14 +1,11 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { constants, utils, BytesLike, BigNumber, Signature } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 
 import * as deployment from './lib/deployment'
 import { getAccounts, getChainID, toBN, toGRT, Account } from './lib/testHelpers'
-
-use(solidity)
 
 const { AddressZero, MaxUint256 } = constants
 const { keccak256, SigningKey } = utils

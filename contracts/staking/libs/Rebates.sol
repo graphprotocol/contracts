@@ -2,7 +2,8 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abdk-libraries-solidity/ABDKMath64x64.sol";
+
+import "../../abdk-libraries-solidity/ABDKMathQuad.sol";
 
 /**
  * @title A collection of data structures and functions to manage Rebates
@@ -11,13 +12,13 @@ import "../../abdk-libraries-solidity/ABDKMath64x64.sol";
  */
 library Rebates {
     using SafeMath for uint256;
-    using ABDKMath64x64 for uint256;
-    using ABDKMath64x64 for int128;
+    using ABDKMathQuad for uint256;
+    using ABDKMathQuad for bytes16;
 
     // Tracks allocation settlements in a Pool per epoch
     struct Pool {
-        uint256 fees;
-        uint256 allocation;
+        uint256 fees; // total fees in the rebate pool
+        uint256 allocation; // total effective allocation accumulated
         uint256 settlementsCount;
     }
 
@@ -78,13 +79,22 @@ library Rebates {
             return 0;
         }
 
-        // Here we use ABDKMath64x64 to do the square root of terms
-        // We have to covert it to a 64.64 fixed point number, do sqrt(), then convert it
+        // Here we use ABDKMathQuad to do the square root of terms
+        // We have to covert it to a bytes16 fixed point number, do sqrt(), then convert it
         // back to uint256. uint256 wraps the result of toUInt(), since it returns uint64
-        uint256 allocRatio = _indexerAlloc.div(_poolAlloc);
-        uint256 feesRatio = _indexerFees.div(_poolFees);
-        uint256 termA = uint256(allocRatio.fromUInt().sqrt().toUInt());
-        uint256 termB = uint256(feesRatio.fromUInt().sqrt().toUInt());
-        return _poolFees.mul(termA.mul(termB));
+        bytes16 iAlloc = _indexerAlloc.fromUInt();
+        bytes16 pAlloc = _poolAlloc.fromUInt();
+        bytes16 aRatio = iAlloc.div(pAlloc);
+
+        bytes16 iFees = _indexerFees.fromUInt();
+        bytes16 pFees = _poolFees.fromUInt();
+        bytes16 fRatio = iFees.div(pFees);
+
+        bytes16 termA = aRatio.sqrt();
+        bytes16 termB = fRatio.sqrt();
+
+        bytes16 reward = termA.mul(termB);
+
+        return uint256(pFees.mul(reward).toUInt());
     }
 }

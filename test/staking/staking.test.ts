@@ -1,6 +1,5 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { constants, BigNumber, Event } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
@@ -16,8 +15,6 @@ import {
   toGRT,
   Account,
 } from '../lib/testHelpers'
-
-use(solidity)
 
 const { AddressZero } = constants
 
@@ -154,7 +151,7 @@ describe('Staking:Stakes', () => {
     describe('unstake', function () {
       it('should unstake and lock tokens for thawing period', async function () {
         const tokensToUnstake = toGRT('2')
-        const thawingPeriod = await staking.thawingPeriod()
+        const thawingPeriod = toBN(await staking.thawingPeriod())
         const currentBlock = await latestBlock()
         const until = currentBlock.add(thawingPeriod).add(toBN('1'))
 
@@ -167,7 +164,7 @@ describe('Staking:Stakes', () => {
 
       it('should unstake and lock tokens for (weighted avg) thawing period if repeated', async function () {
         const tokensToUnstake = toGRT('10')
-        const thawingPeriod = await staking.thawingPeriod()
+        const thawingPeriod = toBN(await staking.thawingPeriod())
 
         // Unstake (1)
         const tx1 = await staking.connect(indexer.signer).unstake(tokensToUnstake)

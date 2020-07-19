@@ -1,6 +1,5 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { constants } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
@@ -8,8 +7,6 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, Account } from '../lib/testHelpers'
-
-use(solidity)
 
 const { AddressZero } = constants
 

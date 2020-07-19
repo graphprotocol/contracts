@@ -1,6 +1,5 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { utils } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -18,8 +17,6 @@ import {
   toGRT,
   Account,
 } from '../lib/testHelpers'
-
-use(solidity)
 
 const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
 

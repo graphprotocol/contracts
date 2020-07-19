@@ -1,12 +1,9 @@
-import { expect, use } from 'chai'
-import { solidity } from 'ethereum-waffle'
+import { expect } from 'chai'
 
 import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
 
 import * as deployment from './lib/deployment'
 import { getAccounts, Account } from './lib/testHelpers'
-
-use(solidity)
 
 describe('ServiceRegistry', () => {
   let me: Account

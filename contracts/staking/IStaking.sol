@@ -62,11 +62,9 @@ interface IStaking {
 
     function setProtocolPercentage(uint32 _percentage) external;
 
-    function setChannelDisputeEpochs(uint256 _channelDisputeEpochs) external;
+    function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external;
 
-    function setMaxAllocationEpochs(uint256 _maxAllocationEpochs) external;
-
-    function setDelegationParametersCooldown(uint32 _blocks) external;
+    function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
 
     function setDelegationCapacity(uint32 _delegationCapacity) external;
 
@@ -76,9 +74,13 @@ interface IStaking {
         uint32 _cooldownBlocks
     ) external;
 
+    function setDelegationParametersCooldown(uint32 _blocks) external;
+
+    function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external;
+
     function setSlasher(address _slasher, bool _allowed) external;
 
-    function setThawingPeriod(uint256 _thawingPeriod) external;
+    function setThawingPeriod(uint32 _thawingPeriod) external;
 
     // -- Operation --
 
@@ -105,11 +107,7 @@ interface IStaking {
 
     function undelegate(address _indexer, uint256 _shares) external;
 
-    function redelegate(
-        address _srcIndexer,
-        address _dstIndexer,
-        uint256 _shares
-    ) external;
+    function withdrawDelegated(address _indexer, address _newIndexer) external;
 
     // -- Channel management and allocations --
 
@@ -138,13 +136,22 @@ interface IStaking {
 
     // -- Getters and calculations --
 
-    function isChannel(address _channelID) external view returns (bool);
-
     function hasStake(address _indexer) external view returns (bool);
+
+    function getIndexerStakedTokens(address _indexer) external view returns (uint256);
+
+    function getIndexerCapacity(address _indexer) external view returns (uint256);
 
     function getAllocation(address _channelID) external view returns (Allocation memory);
 
     function getAllocationState(address _channelID) external view returns (AllocationState);
+
+    function isChannel(address _channelID) external view returns (bool);
+
+    function getDelegation(address _indexer, address _delegator)
+        external
+        view
+        returns (Delegation memory);
 
     function getDelegationShares(address _indexer, address _delegator)
         external
@@ -155,8 +162,4 @@ interface IStaking {
         external
         view
         returns (uint256);
-
-    function getIndexerStakedTokens(address _indexer) external view returns (uint256);
-
-    function getIndexerCapacity(address _indexer) external view returns (uint256);
 }

@@ -1,5 +1,4 @@
-import { expect, use } from 'chai'
-import { solidity } from 'ethereum-waffle'
+import { expect } from 'chai'
 import { ethers } from '@nomiclabs/buidler'
 
 import { Governed } from '../../build/typechain/contracts/Governed'
@@ -7,8 +6,6 @@ import { Governed } from '../../build/typechain/contracts/Governed'
 import { getAccounts, Account } from '../lib/testHelpers'
 
 const { AddressZero } = ethers.constants
-
-use(solidity)
 
 describe('Governed', () => {
   let me: Account
