@@ -5,14 +5,15 @@ import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 import "../upgrades/GraphProxyStorage.sol";
 
+import "./GraphSignalToken.sol";
+
 contract CurationV1Storage is GraphProxyStorage, BancorFormula {
-    // -- Curation --
+    // -- Pool --
 
     struct CurationPool {
-        uint256 tokens; // Tokens stored as reserves for the SubgraphDeployment
-        uint256 signal; // Signal issued for the SubgraphDeployment
+        uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
         uint32 reserveRatio; // Ratio for the bonding curve
-        mapping(address => uint256) curatorSignal; // Mapping of curator => signal
+        GraphSignalToken gst; // Signal token contract for this curation pool
     }
 
     // -- State --
@@ -29,13 +30,15 @@ contract CurationV1Storage is GraphProxyStorage, BancorFormula {
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationStake;
 
+    // Mapping of subgraphDeploymentID => CurationPool
+    // There is only one CurationPool per SubgraphDeploymentID
+    mapping(bytes32 => CurationPool) public pools;
+
+    // -- Related contracts --
+
     // Address of the staking contract that will distribute fees to reserves
     IStaking public staking;
 
     // Token used for staking
     IGraphToken public token;
-
-    // Mapping of subgraphDeploymentID => CurationPool
-    // There is only one CurationPool per SubgraphDeployment
-    mapping(bytes32 => CurationPool) public pools;
 }
