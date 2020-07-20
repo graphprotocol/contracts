@@ -1,9 +1,19 @@
 import { expect } from 'chai'
-import { ethers, Signer } from 'ethers'
+import { ethers, ContractTransaction, BigNumber } from 'ethers'
 
 import { Gns } from '../build/typechain/contracts/Gns'
-import { getAccounts, randomHexBytes, Account } from './lib/testHelpers'
+import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
+import { GraphToken } from '../build/typechain/contracts/GraphToken'
+import { Curation } from '../build/typechain/contracts/Curation'
+
+interface Subgraph {
+  graphAccount: Account
+  subgraphDeploymentID: string
+  name: string
+  nameIdentifier: string
+  metadataHash: string
+}
 
 describe('GNS', () => {
   let me: Account
@@ -13,48 +23,375 @@ describe('GNS', () => {
   let fixture: NetworkFixture
 
   let gns: Gns
+  let grt: GraphToken
+  let curation: Curation
 
   const name = 'graph'
+  const tokens1000 = toGRT('1000')
+  const tokens10000 = toGRT('10000')
+  const withdrawalPercentage = 50000
+  let subgraph1: Subgraph
 
-  const newSubgraph = {
-    graphAccount: me,
-    subgraphDeploymentID: randomHexBytes(),
-    name: name,
-    nameIdentifier: ethers.utils.namehash(name),
-    metadataHash: '0xeb50d096ba95573ae31640e38e4ef64fd02eec174f586624a37ea04e7bd8c751', // TODO - make this randomHexBytes
+  const createSubgraph = (account: Account): Subgraph => {
+    return {
+      graphAccount: account,
+      subgraphDeploymentID: randomHexBytes(),
+      name: name,
+      nameIdentifier: ethers.utils.namehash(name),
+      metadataHash: randomHexBytes(),
+    }
   }
 
-  const publishNewSubgraph = (signer: Signer, graphAccount: string) =>
-    gns
-      .connect(signer)
+  const publishNewSubgraph = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+    subgraphToPublish = subgraph1, // Defaults to subgraph created in before()
+  ): Promise<ContractTransaction> => {
+    const tx = gns
+      .connect(account.signer)
       .publishNewSubgraph(
         graphAccount,
-        newSubgraph.subgraphDeploymentID,
-        newSubgraph.nameIdentifier,
-        newSubgraph.name,
-        newSubgraph.metadataHash,
+        subgraphToPublish.subgraphDeploymentID,
+        subgraphToPublish.nameIdentifier,
+        subgraphToPublish.name,
+        subgraphToPublish.metadataHash,
       )
-
-  const publishNewVersion = (signer: Signer, graphAccount: string, subgraphNumber: number) =>
+    await expect(tx)
+      .emit(gns, 'SubgraphPublished')
+      .withArgs(
+        subgraphToPublish.graphAccount.address,
+        subgraphNumber0,
+        subgraphToPublish.subgraphDeploymentID,
+        0,
+        subgraphToPublish.nameIdentifier,
+        subgraphToPublish.name,
+        subgraphToPublish.metadataHash,
+      )
+    return tx
+  }
+  const publishNewVersion = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+    subgraphToPublish = subgraph1, // Defaults to subgraph created in before()
+  ) =>
     gns
-      .connect(signer)
+      .connect(account.signer)
       .publishNewVersion(
         graphAccount,
-        subgraphNumber,
-        newSubgraph.subgraphDeploymentID,
-        newSubgraph.nameIdentifier,
-        newSubgraph.name,
-        newSubgraph.metadataHash,
+        subgraphNumber0,
+        subgraphToPublish.subgraphDeploymentID,
+        subgraphToPublish.nameIdentifier,
+        subgraphToPublish.name,
+        subgraphToPublish.metadataHash,
       )
 
-  const deprecateSubgraph = (signer: Signer, graphAccount: string, subgraphNumber: number) =>
-    gns.connect(signer).deprecateSubgraph(graphAccount, subgraphNumber)
+  const deprecateSubgraph = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+  ) => gns.connect(account.signer).deprecateSubgraph(graphAccount, subgraphNumber0)
+
+  const createNameSignal = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+    graphTokens: BigNumber,
+  ): Promise<ContractTransaction> => {
+    await publishNewSubgraph(account, graphAccount, subgraphNumber0)
+    const signals = await gns
+      .connect(account.signer)
+      .tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
+    const vSigEstimate = signals[0]
+    const nSigEstimate = signals[1]
+    const tx = gns
+      .connect(account.signer)
+      .createNameSignal(graphAccount, subgraphNumber0, graphTokens)
+
+    const tokensVSig = await curation.connect(account.signer).pools(subgraph1.subgraphDeploymentID)
+    const tokensAfter = tokensVSig[0]
+    const vSigCuration = tokensVSig[1]
+    expect(graphTokens).eq(tokensAfter)
+
+    const pool = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const vSigPool = pool[0]
+    const nSig = pool[1]
+    expect(vSigCuration).eq(vSigPool).eq(vSigEstimate)
+    expect(nSigEstimate).eq(nSig)
+    const deploymentID = pool[2]
+    const reserveRatio = pool[3]
+    await expect(tx)
+      .emit(gns, 'NameSignalCreated')
+      .withArgs(graphAccount, subgraphNumber0, vSigPool, nSig, deploymentID, reserveRatio)
+    return tx
+  }
+
+  const upgradeNameSignal = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+    newSubgraphDeplyomentID: string,
+  ): Promise<ContractTransaction> => {
+    // Before stats for the old vSignal curve
+    const tokensBeforeVSigOldCuration = await curation
+      .connect(account.signer)
+      .pools(subgraph1.subgraphDeploymentID)
+    const tokensBeforeOldCuration = tokensBeforeVSigOldCuration[0]
+    const vSigBeforeOldCuration = tokensBeforeVSigOldCuration[1]
+
+    // Before stats for the name curve
+    const poolBefore = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const nSigBefore = poolBefore[1]
+
+    // Check what selling all nSignal, which == selling all vSignal, should return for tokens
+    const nSignalToTokensResult = await gns
+      .connect(account.signer)
+      .nSignalToTokens(graphAccount, subgraphNumber0, nSigBefore)
+    const vSignalBurnEstimate = nSignalToTokensResult[0]
+    const tokensReceivedEstimate = nSignalToTokensResult[1]
+
+    // Get the value for new vSignal that should be created on the new curve
+    const newVSignalEstimate = await curation
+      .connect(account.signer)
+      .tokensToSignal(newSubgraphDeplyomentID, tokensReceivedEstimate)
+
+    // Do the upgrade
+    const tx = gns
+      .connect(account.signer)
+      .upgradeNameSignal(graphAccount, subgraphNumber0, newSubgraphDeplyomentID)
+    await expect(tx)
+      .emit(gns, 'NameSignalUpgrade')
+      .withArgs(
+        graphAccount,
+        subgraphNumber0,
+        newVSignalEstimate,
+        tokensReceivedEstimate,
+        newSubgraphDeplyomentID,
+      )
+
+    // Check curation vSignal old was lowered and tokens too
+    const tokensVSigOldCuration = await curation
+      .connect(account.signer)
+      .pools(subgraph1.subgraphDeploymentID)
+    const tokensAfterOldCuration = tokensVSigOldCuration[0]
+    const vSigAfterOldCuration = tokensVSigOldCuration[1]
+    expect(tokensAfterOldCuration).eq(tokensBeforeOldCuration.sub(tokensReceivedEstimate))
+    expect(vSigAfterOldCuration).eq(vSigBeforeOldCuration.sub(vSignalBurnEstimate))
+
+    // Check the vSignal of the new curation curve, amd tokens
+    const tokensVSigNewCuration = await curation
+      .connect(account.signer)
+      .pools(newSubgraphDeplyomentID)
+    const tokensAfterNewCurve = tokensVSigNewCuration[0]
+    const vSigAfterNewCurve = tokensVSigNewCuration[1]
+    expect(tokensAfterNewCurve).eq(tokensReceivedEstimate)
+    expect(vSigAfterNewCurve).eq(newVSignalEstimate)
+
+    // Check the nSignal pool
+    const pool = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const vSigPool = pool[0]
+    const nSigAfter = pool[1]
+    const deploymentID = pool[2]
+    expect(vSigAfterNewCurve).eq(vSigPool).eq(newVSignalEstimate)
+    expect(nSigBefore).eq(nSigAfter) // should not change
+    expect(deploymentID).eq(newSubgraphDeplyomentID)
+
+    return tx
+  }
+
+  const depositIntoNameSignal = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+    graphTokens: BigNumber,
+  ): Promise<ContractTransaction> => {
+    // Before checks
+    const curationBefore = await curation
+      .connect(account.signer)
+      .pools(subgraph1.subgraphDeploymentID)
+    const tokensBefore = curationBefore[0]
+    const vSigBefore = curationBefore[1]
+    const poolBefore = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const nSigBefore = poolBefore[1]
+
+    // Deposit
+    const signals = await gns
+      .connect(account.signer)
+      .tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
+    const vSigEstimate = signals[0]
+    const nSigEstimate = signals[1]
+    const tx = gns
+      .connect(account.signer)
+      .depositIntoNameSignal(graphAccount, subgraphNumber0, graphTokens)
+
+    const tokensVSig = await curation.connect(account.signer).pools(subgraph1.subgraphDeploymentID)
+    const tokensAfter = tokensVSig[0]
+    const vSigCuration = tokensVSig[1]
+    expect(graphTokens.add(tokensBefore)).eq(tokensAfter)
+
+    const poolAfter = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const nSig = poolAfter[1]
+    expect(vSigCuration).eq(vSigEstimate.add(vSigBefore))
+    expect(nSigEstimate.add(nSigBefore)).eq(nSig)
+    await expect(tx)
+      .emit(gns, 'DepositIntoNameSignalPool')
+      .withArgs(graphAccount, subgraphNumber0, other.address, nSigEstimate, vSigEstimate)
+    return tx
+  }
+
+  const withdrawFromNameSignal = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+  ): Promise<ContractTransaction> => {
+    // Before checks
+    const curationBefore = await curation
+      .connect(account.signer)
+      .pools(subgraph1.subgraphDeploymentID)
+    const tokensBefore = curationBefore[0]
+    const vSigBefore = curationBefore[1]
+    const poolBefore = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const nSigBefore = poolBefore[1]
+
+    const usersNSigBefore = await gns
+      .connect(account.signer)
+      .getCuratorNSignal(graphAccount, subgraphNumber0, account.address)
+
+    // Withdraw
+    const vSigAndTokensEstimate = await gns
+      .connect(account.signer)
+      .nSignalToTokens(graphAccount, subgraphNumber0, usersNSigBefore)
+    const vSigEstimate = vSigAndTokensEstimate[0]
+    const tokensEstimate = vSigAndTokensEstimate[1]
+
+    // Do withdraw tx
+    const tx = gns
+      .connect(account.signer)
+      .withdrawFromNameSignal(graphAccount, subgraphNumber0, usersNSigBefore)
+
+    // After checks
+    const tokensVSig = await curation.connect(account.signer).pools(subgraph1.subgraphDeploymentID)
+    const tokensAfter = tokensVSig[0]
+    const vSigCurationAfter = tokensVSig[1]
+    expect(tokensBefore).eq(tokensAfter.add(tokensEstimate))
+
+    const poolAfter = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const nSig = poolAfter[1]
+    expect(vSigCurationAfter).eq(vSigBefore.sub(vSigEstimate))
+    expect(nSigBefore.sub(usersNSigBefore)).eq(nSig)
+    const withdrawalFeeVSignal = tokensEstimate.div(
+      BigNumber.from(1000000).div(BigNumber.from(withdrawalPercentage)),
+    )
+    await expect(tx).emit(gns, 'WithdrawFromNameSignalPool').withArgs(
+      graphAccount,
+      subgraphNumber0,
+      account.address,
+      usersNSigBefore,
+      vSigEstimate,
+      // Need to manually remove 5%, until curation.signalToTokens fixes for this
+      tokensEstimate.sub(withdrawalFeeVSignal),
+    )
+    return tx
+  }
+
+  const deprecateNameSignal = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+  ): Promise<ContractTransaction> => {
+    const curationBefore = await curation
+      .connect(account.signer)
+      .pools(subgraph1.subgraphDeploymentID)
+    // We can use the whole amount, since in this test suite all vSignal is used to be staked on nSignal
+    const tokensBefore = curationBefore[0]
+    const ownerBalanceBefore = await grt.connect(account.signer).balanceOf(account.address)
+
+    // Do tx and check event
+    const tx = gns.connect(account.signer).deprecateNameSignal(graphAccount, subgraphNumber0)
+    await expect(tx)
+      .emit(gns, 'NameSignalDeprecated')
+      .withArgs(graphAccount, subgraphNumber0, tokensBefore)
+
+    // Check that vSignal is set to 0
+    const poolAfter = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const poolVSignalAfter = poolAfter.vSignal
+    expect(poolVSignalAfter.eq(BigNumber.from('0')))
+    // Check that the owner balance decreased by the withdrawal fee
+    const ownerBalanceAfter = await grt.connect(account.signer).balanceOf(account.address)
+    expect(
+      ownerBalanceBefore.sub(tokensBefore.div(BigNumber.from(1000000 / withdrawalPercentage))),
+    ).eq(ownerBalanceAfter)
+    // Should be equal since owner pays withdrawal fees
+    expect(poolAfter.withdrawableGRT).eq(tokensBefore)
+    // Check that deprecated is true
+    expect(poolAfter.deprecated).eq(true)
+    // Check balance of gns increase by withdrawalFees from owner being added
+    const gnsBalanceAfter = await grt.connect(account.signer).balanceOf(gns.address)
+    expect(gnsBalanceAfter).eq(poolAfter.withdrawableGRT)
+    return tx
+  }
+
+  const withdrawGRT = async (
+    account: Account,
+    graphAccount: string,
+    subgraphNumber0: number,
+  ): Promise<ContractTransaction> => {
+    const curatorNSignalBefore = await gns
+      .connect(account.signer)
+      .getCuratorNSignal(graphAccount, subgraphNumber0, account.address)
+    const poolBefore = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    const gnsBalanceBefore = await grt.connect(account.signer).balanceOf(gns.address)
+    const tokensEstimate = poolBefore.withdrawableGRT
+      .mul(curatorNSignalBefore)
+      .div(poolBefore.nSignal)
+
+    // Run tx
+    const tx = gns.connect(account.signer).withdrawGRT(graphAccount, subgraphNumber0)
+    await expect(tx)
+      .emit(gns, 'GRTWithdrawn')
+      .withArgs(
+        graphAccount,
+        subgraphNumber0,
+        account.address,
+        curatorNSignalBefore,
+        tokensEstimate,
+      )
+
+    // curator nSignal should be updated
+    const curatorNSignalAfter = await gns
+      .connect(account.signer)
+      .getCuratorNSignal(graphAccount, subgraphNumber0, account.address)
+
+    expect(curatorNSignalAfter).eq(BigNumber.from(0))
+
+    // overall n signal should be updated
+    const poolAfter = await gns.connect(account.signer).nameSignals(graphAccount, subgraphNumber0)
+    expect(poolAfter.nSignal).eq(poolBefore.nSignal.sub(curatorNSignalBefore))
+    // withdrawableGRT should be updated
+
+    // Token balance should be updated
+    const gnsBalanceAfter = await grt.connect(account.signer).balanceOf(gns.address)
+    expect(gnsBalanceAfter).eq(gnsBalanceBefore.sub(tokensEstimate))
+
+    return tx
+  }
 
   before(async function () {
     ;[me, other, governor] = await getAccounts()
     fixture = new NetworkFixture()
-    ;({ gns } = await fixture.load(governor.signer))
-    newSubgraph.graphAccount = me
+    ;({ grt, curation, gns } = await fixture.load(governor.signer))
+    subgraph1 = createSubgraph(me)
+    // Give some funds to the signers and approve gns contract to use funds on signers behalf
+    await grt.connect(governor.signer).mint(me.address, tokens10000)
+    await grt.connect(governor.signer).mint(other.address, tokens10000)
+    await grt.connect(me.signer).approve(gns.address, tokens10000)
+    await grt.connect(me.signer).approve(curation.address, tokens10000)
+    await grt.connect(other.signer).approve(gns.address, tokens10000)
+    await grt.connect(other.signer).approve(curation.address, tokens10000)
+
+    // Update withdrawal fee to test the functionality of it in deprecateNameSignal()
+    await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalPercentage)
   })
 
   beforeEach(async function () {
@@ -68,43 +405,30 @@ describe('GNS', () => {
   describe('Publishing names', function () {
     describe('isPublished', function () {
       it('should return if the subgraph is published', async function () {
-        expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).eq(false)
-        await publishNewSubgraph(me.signer, me.address)
-        expect(await gns.isPublished(newSubgraph.graphAccount.address, 0)).eq(true)
+        expect(await gns.isPublished(subgraph1.graphAccount.address, 0)).eq(false)
+        await publishNewSubgraph(me, me.address, 0)
+        expect(await gns.isPublished(subgraph1.graphAccount.address, 0)).eq(true)
       })
     })
 
     describe('publishNewSubgraph', async function () {
       it('should publish a new subgraph and first version with it', async function () {
-        const tx = publishNewSubgraph(me.signer, me.address)
-        await expect(tx)
-          .emit(gns, 'SubgraphPublished')
-          .withArgs(
-            newSubgraph.graphAccount.address,
-            0,
-            newSubgraph.subgraphDeploymentID,
-            0,
-            newSubgraph.nameIdentifier,
-            newSubgraph.name,
-            newSubgraph.metadataHash,
-          )
-
+        await publishNewSubgraph(me, me.address, 0)
         // State updated
-        const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 0)
-        expect(newSubgraph.subgraphDeploymentID).eq(deploymentID)
+        const deploymentID = await gns.subgraphs(subgraph1.graphAccount.address, 0)
+        expect(subgraph1.subgraphDeploymentID).eq(deploymentID)
       })
 
       it('should publish a new subgraph with an incremented value', async function () {
-        // We publish the exact same subgraph here, with same name, This is okay
-        // in the contract, but the subgraph would make decisions on how to resolve this
-        await publishNewSubgraph(me.signer, me.address)
-        await publishNewSubgraph(me.signer, me.address)
-        const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 1)
-        expect(newSubgraph.subgraphDeploymentID).eq(deploymentID)
+        await publishNewSubgraph(me, me.address, 0)
+        const subgraph2 = createSubgraph(me)
+        await publishNewSubgraph(me, me.address, 1, subgraph2)
+        const deploymentID = await gns.subgraphs(subgraph2.graphAccount.address, 1)
+        expect(subgraph2.subgraphDeploymentID).eq(deploymentID)
       })
 
       it('should reject publish if not sent from owner', async function () {
-        const tx = publishNewSubgraph(other.signer, me.address)
+        const tx = publishNewSubgraph(other, me.address, 0)
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
 
@@ -112,11 +436,11 @@ describe('GNS', () => {
         const tx = gns
           .connect(me.signer)
           .publishNewSubgraph(
-            newSubgraph.graphAccount.address,
+            subgraph1.graphAccount.address,
             ethers.constants.HashZero,
-            newSubgraph.nameIdentifier,
-            newSubgraph.name,
-            newSubgraph.metadataHash,
+            subgraph1.nameIdentifier,
+            subgraph1.name,
+            subgraph1.metadataHash,
           )
         await expect(tx).revertedWith('GNS: Cannot set to 0 in publish')
       })
@@ -124,187 +448,280 @@ describe('GNS', () => {
 
     describe('publishNewVersion', async function () {
       it('should publish a new version on an existing subgraph', async function () {
-        await publishNewSubgraph(me.signer, me.address)
-        const tx = publishNewVersion(me.signer, me.address, 0)
+        await publishNewSubgraph(me, me.address, 0)
+        const tx = publishNewVersion(me, me.address, 0)
 
         // Event being emitted indicates version has been updated
         await expect(tx)
           .emit(gns, 'SubgraphPublished')
           .withArgs(
-            newSubgraph.graphAccount.address,
+            subgraph1.graphAccount.address,
             0,
-            newSubgraph.subgraphDeploymentID,
+            subgraph1.subgraphDeploymentID,
             0,
-            newSubgraph.nameIdentifier,
-            newSubgraph.name,
-            newSubgraph.metadataHash,
+            subgraph1.nameIdentifier,
+            subgraph1.name,
+            subgraph1.metadataHash,
           )
       })
 
       it('should reject publishing a version to a numbered subgraph that does not exist', async function () {
-        const tx = publishNewVersion(me.signer, me.address, 0)
+        const tx = publishNewVersion(me, me.address, 0)
         await expect(tx).revertedWith(
           'GNS: Cant publish a version directly for a subgraph that wasnt created yet',
         )
       })
 
       it('reject if not the owner', async function () {
-        await publishNewSubgraph(me.signer, me.address)
-        const tx = publishNewVersion(other.signer, me.address, 0)
+        await publishNewSubgraph(me, me.address, 0)
+        const tx = publishNewVersion(other, me.address, 0)
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
 
     describe('deprecateSubgraph', async function () {
       it('should deprecate a subgraph', async function () {
-        await publishNewSubgraph(me.signer, me.address)
-        const tx = deprecateSubgraph(me.signer, me.address, 0)
-        await expect(tx)
-          .emit(gns, 'SubgraphDeprecated')
-          .withArgs(newSubgraph.graphAccount.address, 0)
+        await publishNewSubgraph(me, me.address, 0)
+        const tx = deprecateSubgraph(me, me.address, 0)
+        await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(subgraph1.graphAccount.address, 0)
 
         // State updated
-        const deploymentID = await gns.subgraphs(newSubgraph.graphAccount.address, 0)
+        const deploymentID = await gns.subgraphs(subgraph1.graphAccount.address, 0)
         expect(ethers.constants.HashZero).eq(deploymentID)
       })
 
       it('should allow a deprecated subgraph to be republished', async function () {
-        await publishNewSubgraph(me.signer, me.address)
-        await deprecateSubgraph(me.signer, me.address, 0)
-        const tx = publishNewVersion(me.signer, me.address, 0)
+        await publishNewSubgraph(me, me.address, 0)
+        await deprecateSubgraph(me, me.address, 0)
+        const tx = publishNewVersion(me, me.address, 0)
 
         // Event being emitted indicates version has been updated
         await expect(tx)
           .emit(gns, 'SubgraphPublished')
           .withArgs(
-            newSubgraph.graphAccount.address,
+            subgraph1.graphAccount.address,
             0,
-            newSubgraph.subgraphDeploymentID,
+            subgraph1.subgraphDeploymentID,
             0,
-            newSubgraph.nameIdentifier,
-            newSubgraph.name,
-            newSubgraph.metadataHash,
+            subgraph1.nameIdentifier,
+            subgraph1.name,
+            subgraph1.metadataHash,
           )
       })
 
       it('reject if the subgraph does not exist', async function () {
-        const tx = deprecateSubgraph(me.signer, me.address, 0)
+        const tx = deprecateSubgraph(me, me.address, 0)
         await expect(tx).revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
-        const tx2 = deprecateSubgraph(me.signer, me.address, 2340)
+        const tx2 = deprecateSubgraph(me, me.address, 2340)
         await expect(tx2).revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
       })
 
-      it('reject if not the owner', async function () {
-        await publishNewSubgraph(me.signer, me.address)
-        const tx = deprecateSubgraph(other.signer, me.address, 0)
+      it('reject deprecate if not the owner', async function () {
+        await publishNewSubgraph(me, me.address, 0)
+        const tx = deprecateSubgraph(other, me.address, 0)
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
   })
   describe('Curating on names', async function () {
+    const subgraphNumber0 = 0
     describe('createNameSignal()', async function () {
       it('should create a name signal', async function () {
-        // todo
-        // check event
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        const vSignals = await curation.connect(me.signer).pools(subgraph1.subgraphDeploymentID)
+        const pool = await gns.connect(me.signer).nameSignals(me.address, subgraphNumber0)
+        expect(
+          vSignals[1].eq(pool[0]),
+          'stored vSignals should match upon brand new creation, where there was no vSignal there before',
+        )
       })
-      it('should fail to create a name signal on the same subgraph number', async function () {
-        // todo
-      })
-      it('should fail when the subgraph was previously deprecated, and all nSignal withdrawn', async function () {
-        // todo
-      })
-      it('should fail when the subgraph has no nSignal left, but was created and not deprecated', async function () {
-        // todo
+      it('should fail to create a name signal on the same subgraph numbe', async function () {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        const tx = gns.connect(me.signer).createNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith(
+          'GNS: Create name signal was already called for this subgraph number',
+        )
       })
       it('should fail if the subgraphDeploymentID was not set by the owner', async function () {
-        // todo
+        const tx = gns.connect(me.signer).createNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith(
+          'GNS: Cannot create nSignal on a subgraph without a deployment ID',
+        )
       })
-    })
-    describe('upgradeNameSignal()', async function () {
-      it('should upgrade the name signal and migrate old vSignal to new vSignal', async function () {
-        // todo
-        // check event
-      })
-      it('should fail when subgraph deployment ids do not match', async function () {
-        // todo
-      })
-      it('should fail when upgrade tries to point to a pre-curated', async function () {
-        // todo
-      })
-      it('should fail when trying to upgrade when there is no nSignal', async function () {
-        // todo
-      })
-      it('should fail when name signal is deprecated', async function () {
-        // todo
+      it('should fail if not called by name owner', async function () {
+        const tx = gns
+          .connect(other.signer)
+          .createNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
     describe('depositIntoNameSignal()', async function () {
       it('should deposit into the name signal curve', async function () {
-        // todo
-        // check event
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await depositIntoNameSignal(other, me.address, subgraphNumber0, tokens10000)
       })
       it('should fail when name signal is deprecated', async function () {
-        // todo
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+        const tx = gns
+          .connect(me.signer)
+          .depositIntoNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith('GNS: Cannot be deprecated')
+      })
+      it('should fail if you try to deposit on a non existing name', async function () {
+        const tx = gns
+          .connect(me.signer)
+          .depositIntoNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith('GNS: Must deposit on a name signal that exists')
       })
       it('should fail if the owner updated the subgraph number deployment ID, but not the name signal', async function () {
-        // todo
+        const subgraph2 = createSubgraph(me)
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(me.signer)
+          .depositIntoNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith(
+          'GNS: Name owner updated version without updating name signal',
+        )
       })
     })
     describe('withdrawFromNameSignal()', async function () {
+      beforeEach(async () => {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await depositIntoNameSignal(other, me.address, subgraphNumber0, tokens10000)
+      })
       it('should withdraw from the name signal curve', async function () {
-        // todo
-        // check event
+        await withdrawFromNameSignal(other, me.address, subgraphNumber0)
       })
       it('should fail when name signal is deprecated', async function () {
-        // todo
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+        // just test 1 since it will fail
+        const tx = gns.connect(me.signer).withdrawFromNameSignal(me.address, subgraphNumber0, 1)
+        await expect(tx).revertedWith('GNS: Cannot be deprecated')
+      })
+      it('should fail if the owner updated the subgraph number deployment ID, but not the name signal', async function () {
+        const subgraph2 = createSubgraph(me)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(me.signer)
+          .withdrawFromNameSignal(me.address, subgraphNumber0, tokens1000)
+        await expect(tx).revertedWith(
+          'GNS: Name owner updated version without updating name signal',
+        )
       })
       it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
-        // todo
+        const tx = gns.connect(me.signer).withdrawFromNameSignal(
+          me.address,
+          subgraphNumber0,
+          // 1000000 * 10^18 nSignal is a lot, and will cause fail
+          BigNumber.from('1000000000000000000000000'),
+        )
+        await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
       })
-      it('should', async function () {
-        // todo
+    })
+    describe('upgradeNameSignal()', async function () {
+      const subgraph2 = createSubgraph(me)
+
+      beforeEach(async () => {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await depositIntoNameSignal(other, me.address, subgraphNumber0, tokens10000)
       })
-      it('should', async function () {
-        // todo
+
+      it('should upgrade the name signal and migrate old vSignal to new vSignal', async function () {
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        await upgradeNameSignal(me, me.address, subgraphNumber0, subgraph2.subgraphDeploymentID)
+      })
+      it('should fail when subgraph deployment ids do not match', async function () {
+        const subgraph3 = createSubgraph(me)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(me.signer)
+          .upgradeNameSignal(me.address, subgraphNumber0, subgraph3.subgraphDeploymentID)
+        await expect(tx).revertedWith('GNS: Owner did not update subgraph deployment ID')
+      })
+      it('should fail when upgrade tries to point to a pre-curated', async function () {
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        await curation.connect(me.signer).mint(subgraph2.subgraphDeploymentID, tokens1000)
+        const tx = gns
+          .connect(me.signer)
+          .upgradeNameSignal(me.address, subgraphNumber0, subgraph2.subgraphDeploymentID)
+        await expect(tx).revertedWith(
+          'GNS: Owner cannot point to a subgraphID that has been pre-curated',
+        )
+      })
+      it('should fail when trying to upgrade when there is no nSignal', async function () {
+        await withdrawFromNameSignal(me, me.address, subgraphNumber0)
+        await withdrawFromNameSignal(other, me.address, subgraphNumber0)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(me.signer)
+          .upgradeNameSignal(me.address, subgraphNumber0, subgraph2.subgraphDeploymentID)
+        await expect(tx).revertedWith(
+          'GNS: There must be nSignal on this subgraph for curve math to work',
+        )
+      })
+      it('should fail when name signal is deprecated', async function () {
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(me.signer)
+          .upgradeNameSignal(me.address, subgraphNumber0, subgraph2.subgraphDeploymentID)
+        await expect(tx).revertedWith('GNS: Cannot be deprecated')
+      })
+      it('should fail if not called by name owner', async function () {
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns
+          .connect(other.signer)
+          .upgradeNameSignal(me.address, subgraphNumber0, subgraph2.subgraphDeploymentID)
+        await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
     describe('deprecateNameSignal()', async function () {
       it('should deprecate the name signal', async function () {
-        // todo
-        // check event
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+      })
+      it('should fail if the owner updated the subgraph number deployment ID, but not the name signal', async function () {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        const subgraph2 = createSubgraph(me)
+        await publishNewVersion(me, me.address, subgraphNumber0, subgraph2)
+        const tx = gns.connect(me.signer).deprecateNameSignal(me.address, subgraphNumber0)
+        await expect(tx).revertedWith(
+          'GNS: Name owner updated version without updating name signal',
+        )
       })
       it('should fail upon trying to deprecate twice', async function () {
-        // todo
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+        const tx = gns.connect(me.signer).deprecateNameSignal(me.address, subgraphNumber0)
+        await expect(tx).revertedWith('GNS: Cannot be deprecated twice')
+      })
+      it('should fail if not called by name owner', async function () {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        const tx = gns.connect(other.signer).deprecateNameSignal(me.address, subgraphNumber0)
+        await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
     describe('withdrawGRT()', async function () {
+      beforeEach(async () => {
+        await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
+        await depositIntoNameSignal(other, me.address, subgraphNumber0, tokens10000)
+        await deprecateNameSignal(me, me.address, subgraphNumber0)
+      })
       it('should withdraw GRT from a deprecated name signal', async function () {
-        // todo
-        // check event
+        await withdrawGRT(other, me.address, subgraphNumber0)
       })
       it('should fail when there is no more GRT to withdraw', async function () {
-        // todo
+        await withdrawGRT(other, me.address, subgraphNumber0)
+        await withdrawGRT(me, me.address, subgraphNumber0)
+        const tx = gns.connect(other.signer).withdrawGRT(me.address, subgraphNumber0)
+        await expect(tx).revertedWith('GNS: No more GRT to withdraw')
       })
       it('should fail if the curator has no nSignal', async function () {
-        // todo
-      })
-      it('should', async function () {
-        // todo
-      })
-      it('should', async function () {
-        // todo
-      })
-    })
-    describe('tokensToNSignal()', async function () {
-      it('should work as a getter function', async function () {
-        // todo
-        // check event
-      })
-    })
-    describe('nSignalToTokens()', async function () {
-      it('should work as a getter function', async function () {
-        // todo
-        // check event
+        await withdrawGRT(me, me.address, subgraphNumber0)
+        const tx = gns.connect(me.signer).withdrawGRT(me.address, subgraphNumber0)
+        await expect(tx).revertedWith('GNS: Curator must have some nSignal to withdraw GRT')
       })
     })
   })
