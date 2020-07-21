@@ -16,7 +16,7 @@ library Stakes {
         uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
         uint256 tokensAllocated; // Tokens used in allocations
         uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
-        uint256 tokensLockedUntil; // Time when locked tokens can be withdrawn
+        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
     }
 
     /**
@@ -156,7 +156,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensAvailable(Stakes.Indexer memory stake) internal view returns (uint256) {
+    function tokensAvailable(Stakes.Indexer memory stake) internal pure returns (uint256) {
         uint256 _tokensUsed = stake.tokensUsed();
         // Indexer stake is over allocated: return 0 to avoid stake to be used until
         // the overallocation is restored by staking more tokens or unallocating tokens

@@ -33,10 +33,6 @@ if [ "$RUN_EVM" = true  ]; then
   sleep 5
 fi
 
-# Exit error mode so the evm instance always gets killed
-set +e
-result=0
-
 ### Main
 
 npm run compile
@@ -53,6 +49,10 @@ else
 fi
 
 ### Cleanup
+
+# Exit error mode so the evm instance always gets killed
+set +e
+result=0
 
 if [ "$RUN_EVM" = true ]; then
   evm_kill

@@ -1,14 +1,11 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { ethers, Signer } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { Gns } from '../build/typechain/contracts/Gns'
 import { EthereumDidRegistry } from '../build/typechain/contracts/EthereumDidRegistry'
 
 import * as deployment from './lib/deployment'
 import { getAccounts, randomHexBytes, Account } from './lib/testHelpers'
-
-use(solidity)
 
 describe('GNS', () => {
   let me: Account

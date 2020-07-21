@@ -1,14 +1,11 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { BigNumber, Event } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
-
-use(solidity)
 
 const MAX_PPM = 1000000
 

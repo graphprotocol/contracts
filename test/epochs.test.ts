@@ -1,6 +1,5 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { BigNumber } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { EpochManager } from '../build/typechain/contracts/EpochManager'
 
@@ -14,8 +13,6 @@ import {
   toBN,
   Account,
 } from './lib/testHelpers'
-
-use(solidity)
 
 describe('EpochManager', () => {
   let me: Account

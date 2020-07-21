@@ -1,6 +1,5 @@
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { constants, utils, BigNumber } from 'ethers'
-import { solidity } from 'ethereum-waffle'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -16,8 +15,6 @@ import {
   toGRT,
   Account,
 } from '../lib/testHelpers'
-
-use(solidity)
 
 const { AddressZero } = constants
 const { computePublicKey } = utils
@@ -454,10 +451,11 @@ describe('Staking:Allocation', () => {
       // Calculations
       const currentEpoch = await epochManager.currentEpoch()
       const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
+      const maxAllocationEpochs = toBN(await staking.maxAllocationEpochs())
       const effectiveAllocation = calculateEffectiveAllocation(
         beforeAlloc.tokens,
         epochs,
-        await staking.maxAllocationEpochs(),
+        maxAllocationEpochs,
       )
 
       // Settle

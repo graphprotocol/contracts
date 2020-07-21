@@ -1,5 +1,4 @@
-import { expect, use } from 'chai'
-import { solidity } from 'ethereum-waffle'
+import { expect } from 'chai'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
@@ -8,8 +7,6 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, Account } from '../lib/testHelpers'
-
-use(solidity)
 
 const MAX_PPM = 1000000
 
