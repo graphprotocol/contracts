@@ -247,11 +247,7 @@ contract GNS is Governed, BancorFormula {
     ) external onlyGraphAccountOwner(_graphAccount) {
         require(
             isPublished(_graphAccount, _subgraphNumber),
-            "GNS: Cannot update version if not published"
-        );
-        require(
-            !subgraphIsDeprecated(_graphAccount, _subgraphNumber),
-            "GNS: Cannot update version if it was deprecated"
+            "GNS: Cannot update version if not published, or has been deprecated"
         );
         publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
     }
@@ -731,24 +727,5 @@ contract GNS is Governed, BancorFormula {
         returns (bool)
     {
         return subgraphs[_graphAccount][_subgraphNumber] != 0;
-    }
-
-    /**
-     * @dev Return whether a subgraph is deprecated.
-     * @param _graphAccount Account being checked
-     * @param _subgraphNumber Subgraph number being checked for deprecation
-     * @return Return true if subgraph is deprecated
-     */
-    function subgraphIsDeprecated(address _graphAccount, uint256 _subgraphNumber)
-        public
-        view
-        returns (bool)
-    {
-        // If it was set to 0, it was deprecated, unless it was never created
-        // If the account subgraph number is bigger than the number we are looking at, then we
-        // know it was created, and we know it is truly deprecated
-        return
-            subgraphs[_graphAccount][_subgraphNumber] == 0 &&
-            graphAccountSubgraphNumbers[_graphAccount] > _subgraphNumber;
     }
 }
