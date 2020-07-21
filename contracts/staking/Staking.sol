@@ -23,7 +23,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     using Rebates for Rebates.Pool;
 
     // 100% in parts per million
-    uint256 private constant MAX_PPM = 1000000;
+    uint32 private constant MAX_PPM = 1000000;
 
     // -- Events --
 
@@ -908,8 +908,18 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @param _tokens Amount of tokens to stake
      */
     function _stake(address _indexer, uint256 _tokens) private {
+        // Deposit tokens into the indexer stake
         Stakes.Indexer storage indexerStake = stakes[_indexer];
         indexerStake.deposit(_tokens);
+
+        // Initialize the delegation pool the first time
+        DelegationPool storage pool = delegationPools[_indexer];
+        if (pool.updatedAtBlock == 0) {
+            pool.indexingRewardCut = MAX_PPM;
+            pool.queryFeeCut = MAX_PPM;
+            pool.updatedAtBlock = block.number;
+        }
+
         emit StakeDeposited(_indexer, _tokens);
     }
 
