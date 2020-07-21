@@ -12,7 +12,8 @@ interface Subgraph {
   subgraphDeploymentID: string
   name: string
   nameIdentifier: string
-  metadataHash: string
+  versionMetadata: string
+  subgraphMetadata: string
 }
 
 describe('GNS', () => {
@@ -38,7 +39,8 @@ describe('GNS', () => {
       subgraphDeploymentID: randomHexBytes(),
       name: name,
       nameIdentifier: ethers.utils.namehash(name),
-      metadataHash: randomHexBytes(),
+      versionMetadata: randomHexBytes(),
+      subgraphMetadata: randomHexBytes(),
     }
   }
 
@@ -63,9 +65,7 @@ describe('GNS', () => {
       .publishNewSubgraph(
         graphAccount,
         subgraphToPublish.subgraphDeploymentID,
-        subgraphToPublish.nameIdentifier,
-        subgraphToPublish.name,
-        subgraphToPublish.metadataHash,
+        subgraphToPublish.versionMetadata,
       )
     await expect(tx)
       .emit(gns, 'SubgraphPublished')
@@ -73,10 +73,7 @@ describe('GNS', () => {
         subgraphToPublish.graphAccount.address,
         subgraphNumber0,
         subgraphToPublish.subgraphDeploymentID,
-        0,
-        subgraphToPublish.nameIdentifier,
-        subgraphToPublish.name,
-        subgraphToPublish.metadataHash,
+        subgraphToPublish.versionMetadata,
       )
     return tx
   }
@@ -92,9 +89,7 @@ describe('GNS', () => {
         graphAccount,
         subgraphNumber0,
         subgraphToPublish.subgraphDeploymentID,
-        subgraphToPublish.nameIdentifier,
-        subgraphToPublish.name,
-        subgraphToPublish.metadataHash,
+        subgraphToPublish.versionMetadata,
       )
 
   const deprecateSubgraph = async (
@@ -401,7 +396,39 @@ describe('GNS', () => {
     await fixture.tearDown()
   })
 
-  describe('Publishing names', function () {
+  describe('Publishing names and versions', function () {
+    describe('setDefaultName', function () {
+      it('setDefaultName emits the event', async function () {
+        const tx = gns
+          .connect(me.signer)
+          .setDefaultName(me.address, 0, subgraph1.nameIdentifier, subgraph1.name)
+        await expect(tx)
+          .emit(gns, 'SetDefaultName')
+          .withArgs(subgraph1.graphAccount.address, 0, subgraph1.nameIdentifier, subgraph1.name)
+      })
+      it('setDefaultName fails if not owner', async function () {
+        const tx = gns
+          .connect(other.signer)
+          .setDefaultName(me.address, 0, subgraph1.nameIdentifier, subgraph1.name)
+        await expect(tx).revertedWith('GNS: Only graph account owner can call')
+      })
+    })
+    describe('updateSubgraphMetadata', function () {
+      it('updateSubgraphMetadata emits the event', async function () {
+        const tx = gns
+          .connect(me.signer)
+          .updateSubgraphMetadata(me.address, 0, subgraph1.subgraphMetadata)
+        await expect(tx)
+          .emit(gns, 'SubgraphMetadataUpdated')
+          .withArgs(subgraph1.graphAccount.address, 0, subgraph1.subgraphMetadata)
+      })
+      it('updateSubgraphMetadata fails if not owner', async function () {
+        const tx = gns
+          .connect(other.signer)
+          .updateSubgraphMetadata(me.address, 0, subgraph1.subgraphMetadata)
+        await expect(tx).revertedWith('GNS: Only graph account owner can call')
+      })
+    })
     describe('isPublished', function () {
       it('should return if the subgraph is published', async function () {
         expect(await gns.isPublished(subgraph1.graphAccount.address, 0)).eq(false)
@@ -437,11 +464,9 @@ describe('GNS', () => {
           .publishNewSubgraph(
             subgraph1.graphAccount.address,
             ethers.constants.HashZero,
-            subgraph1.nameIdentifier,
-            subgraph1.name,
-            subgraph1.metadataHash,
+            subgraph1.versionMetadata,
           )
-        await expect(tx).revertedWith('GNS: Cannot set to 0 in publish')
+        await expect(tx).revertedWith('GNS: Cannot set deploymentID to 0 in publish')
       })
     })
 
@@ -457,18 +482,13 @@ describe('GNS', () => {
             subgraph1.graphAccount.address,
             0,
             subgraph1.subgraphDeploymentID,
-            0,
-            subgraph1.nameIdentifier,
-            subgraph1.name,
-            subgraph1.metadataHash,
+            subgraph1.versionMetadata,
           )
       })
 
       it('should reject publishing a version to a numbered subgraph that does not exist', async function () {
-        const tx = publishNewVersion(me, me.address, 0)
-        await expect(tx).revertedWith(
-          'GNS: Cant publish a version directly for a subgraph that wasnt created yet',
-        )
+        const tx = publishNewVersion(me, me.address, 9999)
+        await expect(tx).revertedWith('GNS: Cannot update version if not published')
       })
 
       it('reject if not the owner', async function () {
@@ -489,23 +509,13 @@ describe('GNS', () => {
         expect(ethers.constants.HashZero).eq(deploymentID)
       })
 
-      it('should allow a deprecated subgraph to be republished', async function () {
+      it('should prevent a deprecated subgraph from being republished', async function () {
         await publishNewSubgraph(me, me.address, 0)
         await deprecateSubgraph(me, me.address, 0)
         const tx = publishNewVersion(me, me.address, 0)
-
-        // Event being emitted indicates version has been updated
-        await expect(tx)
-          .emit(gns, 'SubgraphPublished')
-          .withArgs(
-            subgraph1.graphAccount.address,
-            0,
-            subgraph1.subgraphDeploymentID,
-            0,
-            subgraph1.nameIdentifier,
-            subgraph1.name,
-            subgraph1.metadataHash,
-          )
+        await expect(tx).revertedWith(
+          'Cannot update version if not published, or has been deprecated',
+        )
       })
 
       it('reject if the subgraph does not exist', async function () {
