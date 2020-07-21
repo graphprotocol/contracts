@@ -688,6 +688,8 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         delegation.tokensLocked = 0;
         delegation.tokensLockedUntil = 0;
 
+        emit StakeDelegatedWithdrawn(_indexer, delegator, tokensToWithdraw);
+
         if (_newIndexer != address(0)) {
             // Re-delegate tokens to a new indexer
             _delegate(delegator, _newIndexer, tokensToWithdraw);
@@ -698,8 +700,6 @@ contract Staking is StakingV1Storage, IStaking, Governed {
                 "Delegation: cannot transfer tokens"
             );
         }
-
-        emit StakeDelegatedWithdrawn(_indexer, delegator, tokensToWithdraw);
     }
 
     /**
@@ -1108,8 +1108,6 @@ contract Staking is StakingV1Storage, IStaking, Governed {
 
         // Delegator need to have enough shares in the pool to undelegate
         require(delegation.shares >= _shares, "Delegation: delegator does not have enough shares");
-
-        // >> Sell shares and lock the tokens for withdrawal
 
         // Calculate tokens to get in exchange for the shares
         uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
