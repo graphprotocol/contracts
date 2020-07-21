@@ -11,10 +11,14 @@ import "./ICuration.sol";
 /**
  * @title Curation contract
  * @dev Allows curators to signal on subgraph deployments that might be relevant to indexers by
- * staking Graph Tokens. Additionally, curators earn fees from the Query Market related to the
+ * staking Graph Tokens (GRT). Additionally, curators earn fees from the Query Market related to the
  * subgraph deployment they curate.
  * A curators stake goes to a curation pool along with the stakes of other curators,
- * only one pool exists for each subgraph deployment.
+ * only one such pool exists for each subgraph deployment.
+ * The contract mints Graph Signal Tokens (GST) according to a bonding curve for each individual
+ * curation pool where GRT is deposited.
+ * Holders can burn GST tokens using this contract to get GRT tokens back according to the
+ * bonding curve.
  */
 contract Curation is CurationV1Storage, ICuration, Governed {
     using SafeMath for uint256;
@@ -204,11 +208,10 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      */
     function burn(bytes32 _subgraphDeploymentID, uint256 _signal) external override {
         address curator = msg.sender;
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         require(_signal > 0, "Cannot burn zero signal");
         require(
-            curationPool.curatorSignal[curator] >= _signal,
+            getCuratorSignal(curator, _subgraphDeploymentID) >= _signal,
             "Cannot burn more signal than you own"
         );
 
@@ -216,7 +219,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         uint256 tokens = _burnSignal(curator, _subgraphDeploymentID, _signal);
 
         // If all signal burnt delete the curation pool
-        if (curationPool.signal == 0) {
+        if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
             delete pools[_subgraphDeploymentID];
         }
 
@@ -238,31 +241,43 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
-    function isCurated(bytes32 _subgraphDeploymentID) external override view returns (bool) {
-        return _isCurated(_subgraphDeploymentID);
-    }
-
-    /**
-     * @dev Check if any Graph tokens are staked for a SubgraphDeployment.
-     * @param _subgraphDeploymentID SubgraphDeployment to check if curated
-     * @return True if curated
-     */
-    function _isCurated(bytes32 _subgraphDeploymentID) private view returns (bool) {
+    function isCurated(bytes32 _subgraphDeploymentID) public override view returns (bool) {
         return pools[_subgraphDeploymentID].tokens > 0;
     }
 
     /**
-     * @dev Get the amount of signal a curator has on a curation pool.
-     * @param _curator Curator owning signal
-     * @param _subgraphDeploymentID SubgraphDeployment of issued signal
-     * @return Amount of signal owned by a curator for the SubgraphDeployment
+     * @dev Get the amount of signal a curator has in a curation pool.
+     * @param _curator Curator owning the signal tokens
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
+     * @return Amount of signal owned by a curator for the subgraph deployment
      */
     function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
         public
+        override
         view
         returns (uint256)
     {
-        return pools[_subgraphDeploymentID].curatorSignal[_curator];
+        if (address(pools[_subgraphDeploymentID].gst) == address(0)) {
+            return 0;
+        }
+        return pools[_subgraphDeploymentID].gst.balanceOf(_curator);
+    }
+
+    /**
+     * @dev Get the amount of signal in a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @return Amount of signal owned by a curator for the subgraph deployment
+     */
+    function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
+        public
+        override
+        view
+        returns (uint256)
+    {
+        if (address(pools[_subgraphDeploymentID].gst) == address(0)) {
+            return 0;
+        }
+        return pools[_subgraphDeploymentID].gst.totalSupply();
     }
 
     /**
@@ -273,30 +288,28 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
         public
+        override
         view
         returns (uint256)
     {
-        // Handle initialization of bonding curve
-        uint256 tokens = _tokens;
-        uint256 signal = 0;
+        // Get current tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        uint256 newTokens = _tokens;
+        uint256 curTokens = curationPool.tokens;
+        uint256 curSignal = getCurationPoolSignal(_subgraphDeploymentID);
+        uint32 reserveRatio = curationPool.reserveRatio;
+
+        // Init curation pool
         if (curationPool.tokens == 0) {
-            curationPool = CurationPool(
-                minimumCurationStake,
-                SIGNAL_PER_MINIMUM_STAKE,
-                defaultReserveRatio
-            );
-            tokens = tokens.sub(curationPool.tokens);
-            signal = curationPool.signal;
+            newTokens = newTokens.sub(minimumCurationStake);
+            curTokens = minimumCurationStake;
+            curSignal = SIGNAL_PER_MINIMUM_STAKE;
+            reserveRatio = defaultReserveRatio;
         }
 
-        return
-            calculatePurchaseReturn(
-                curationPool.signal,
-                curationPool.tokens,
-                uint32(curationPool.reserveRatio),
-                tokens
-            ) + signal;
+        // Calculate new signal
+        uint256 newSignal = calculatePurchaseReturn(curSignal, curTokens, reserveRatio, newTokens);
+        return newSignal.add(curSignal);
     }
 
     /**
@@ -307,21 +320,23 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
         public
+        override
         view
         returns (uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
             curationPool.tokens > 0,
             "Subgraph deployment must be curated to perform calculations"
         );
         require(
-            curationPool.signal >= _signal,
+            curationPoolSignal >= _signal,
             "Signal must be above or equal to signal issued in the curation pool"
         );
         return
             calculateSaleReturn(
-                curationPool.signal,
+                curationPoolSignal,
                 curationPool.tokens,
                 uint32(curationPool.reserveRatio),
                 _signal
@@ -332,8 +347,8 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Update balances after mint of signal and deposit of tokens.
      * @param _curator Curator address
      * @param _subgraphDeploymentID Subgraph deployment from where to mint signal
-     * @param _tokens Amount of tokens
-     * @return Amount of signal bought
+     * @param _tokens Amount of tokens to deposit
+     * @return Amount of signal minted
      */
     function _mintSignal(
         address _curator,
@@ -343,12 +358,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
         uint256 signal = tokensToSignal(_subgraphDeploymentID, _tokens);
 
-        // Update tokens
+        // Update GRT tokens held as reserves
         curationPool.tokens = curationPool.tokens.add(_tokens);
 
-        // Update signal
-        curationPool.signal = curationPool.signal.add(signal);
-        curationPool.curatorSignal[_curator] = curationPool.curatorSignal[_curator].add(signal);
+        // Mint signal to the curator
+        curationPool.gst.mint(_curator, signal);
 
         return signal;
     }
@@ -357,7 +371,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Update balances after burn of signal and return of tokens.
      * @param _curator Curator address
      * @param _subgraphDeploymentID Subgraph deployment pool to burn signal
-     * @param _signal Amount of signal
+     * @param _signal Amount of signal to burn
      * @return Number of tokens received
      */
     function _burnSignal(
@@ -368,12 +382,11 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
         uint256 tokens = signalToTokens(_subgraphDeploymentID, _signal);
 
-        // Update tokens
+        // Update GRT tokens held as reserves
         curationPool.tokens = curationPool.tokens.sub(tokens);
 
-        // Update signal
-        curationPool.signal = curationPool.signal.sub(_signal);
-        curationPool.curatorSignal[_curator] = curationPool.curatorSignal[_curator].sub(_signal);
+        // Burn signal from curator
+        curationPool.gst.burnFrom(_curator, _signal);
 
         return tokens;
     }
@@ -385,7 +398,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      */
     function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
         require(
-            _isCurated(_subgraphDeploymentID),
+            isCurated(_subgraphDeploymentID),
             "Subgraph deployment must be curated to collect fees"
         );
 
@@ -410,11 +423,17 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
-        if (!_isCurated(_subgraphDeploymentID)) {
+        if (!isCurated(_subgraphDeploymentID)) {
             require(_tokens >= minimumCurationStake, "Curation stake is below minimum required");
 
             // Initialize
             curationPool.reserveRatio = defaultReserveRatio;
+
+            // If no signal token for the pool - create one
+            if (address(curationPool.gst) == address(0)) {
+                string memory symbol = string(abi.encodePacked("GST-", _subgraphDeploymentID));
+                curationPool.gst = new GraphSignalToken(symbol, address(this));
+            }
         }
 
         // Update balances

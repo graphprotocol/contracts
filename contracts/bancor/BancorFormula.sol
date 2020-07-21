@@ -189,7 +189,8 @@ contract BancorFormula {
     ) public view returns (uint256) {
         // validate input
         require(
-            _supply > 0 && _reserveBalance > 0 && _reserveRatio > 0 && _reserveRatio <= MAX_RATIO
+            _supply > 0 && _reserveBalance > 0 && _reserveRatio > 0 && _reserveRatio <= MAX_RATIO,
+            "invalid parameters"
         );
 
         // special case for 0 deposit amount

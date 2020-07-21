@@ -53,6 +53,7 @@ describe('Curation', () => {
       subgraphDeploymentID,
     )
     const beforePool = await curation.pools(subgraphDeploymentID)
+    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Curate
@@ -68,6 +69,7 @@ describe('Curation', () => {
       subgraphDeploymentID,
     )
     const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     const afterTotalBalance = await grt.balanceOf(curation.address)
 
     // Tokens transferred properly
@@ -75,7 +77,7 @@ describe('Curation', () => {
     expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
     // Allocated and balance updated
     expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToStake))
-    expect(afterPool.signal).eq(beforePool.signal.add(expectedSignal))
+    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
     expect(afterPool.reserveRatio).eq(defaultReserveRatio)
     // Contract balance updated
     expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToStake))
@@ -91,8 +93,9 @@ describe('Curation', () => {
       curator.address,
       subgraphDeploymentID,
     )
-    const poolBefore = await curation.pools(subgraphDeploymentID)
-    const totalTokensBefore = await grt.balanceOf(curation.address)
+    const beforePool = await curation.pools(subgraphDeploymentID)
+    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Calculations
     const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
@@ -118,16 +121,17 @@ describe('Curation', () => {
       subgraphDeploymentID,
     )
     const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     const afterTotalTokens = await grt.balanceOf(curation.address)
 
     // Curator balance updated
     expect(afterCuratorTokens).eq(beforeCuratorTokens.add(expectedTokens).sub(withdrawalFees))
     expect(afterCuratorSignal).eq(beforeCuratorSignal.sub(signalToRedeem))
     // Curation balance updated
-    expect(afterPool.tokens).eq(poolBefore.tokens.sub(expectedTokens))
-    expect(afterPool.signal).eq(poolBefore.signal.sub(signalToRedeem))
+    expect(afterPool.tokens).eq(beforePool.tokens.sub(expectedTokens))
+    expect(afterPoolSignal).eq(beforePoolSignal.sub(signalToRedeem))
     // Contract balance updated
-    expect(afterTotalTokens).eq(totalTokensBefore.sub(expectedTokens))
+    expect(afterTotalTokens).eq(beforeTotalTokens.sub(expectedTokens))
     // Withdrawal fees are burned
     expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(withdrawalFees))
   }
@@ -189,7 +193,7 @@ describe('Curation', () => {
       await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
 
       // Conversion
-      const signal = (await curation.pools(subgraphDeploymentID)).signal
+      const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
       const tokens = await curation.signalToTokens(subgraphDeploymentID, signal)
       expect(tokens).eq(tokensToStake)
     })
@@ -337,8 +341,9 @@ describe('Curation', () => {
 
       // Conservation of work
       const afterPool = await curation.pools(subgraphDeploymentID)
+      const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
       expect(afterPool.tokens).eq(toGRT('0'))
-      expect(afterPool.signal).eq(toGRT('0'))
+      expect(afterPoolSignal).eq(toGRT('0'))
       expect(await curation.isCurated(subgraphDeploymentID)).eq(false)
       expect(totalStakes).eq(totalTokens)
     })

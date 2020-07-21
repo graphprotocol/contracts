@@ -22,4 +22,21 @@ interface ICuration {
     // -- Getters --
 
     function isCurated(bytes32 _subgraphDeploymentID) external view returns (bool);
+
+    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
+        external
+        view
+        returns (uint256);
+
+    function getCurationPoolSignal(bytes32 _subgraphDeploymentID) external view returns (uint256);
+
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
+        external
+        view
+        returns (uint256);
+
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
+        external
+        view
+        returns (uint256);
 }

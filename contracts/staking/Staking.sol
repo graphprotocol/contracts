@@ -1022,7 +1022,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         // Collect funds in the allocated channel
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
-        // When channel allocation is settling redirect funds to the rebate pool
+        // When channel allocation is settled redirect funds to the rebate pool
         if (allocState == AllocationState.Settled) {
             Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);

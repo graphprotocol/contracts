@@ -60,7 +60,7 @@ contract StakingV1Storage is GraphProxyStorage {
     // Delegation pools : indexer => DelegationPool
     mapping(address => IStaking.DelegationPool) public delegationPools;
 
-    // -- Operators
+    // -- Operators --
 
     // Operator auth : indexer => operator
     mapping(address => mapping(address => bool)) public operatorAuth;
