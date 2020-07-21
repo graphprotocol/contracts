@@ -2,31 +2,31 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./governance/Governed.sol";
+import "../governance/Governed.sol";
+import "../upgrades/GraphProxy.sol";
+
+import "./EpochManagerStorage.sol";
+import "./IEpochManager.sol";
 
 /**
  * @title EpochManager contract
  * @dev Tracks epochs based on its block duration to sync contracts in the protocol.
  */
-contract EpochManager is Governed {
+contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
     using SafeMath for uint256;
-
-    // -- State --
-
-    // Epoch length in blocks
-    uint256 public epochLength;
-
-    // Epoch that was last run
-    uint256 public lastRunEpoch;
-
-    // Block and epoch when epoch length was last updated
-    uint256 public lastLengthUpdateEpoch;
-    uint256 public lastLengthUpdateBlock;
 
     // -- Events --
 
     event EpochRun(uint256 indexed epoch, address caller);
     event EpochLengthUpdate(uint256 indexed epoch, uint256 epochLength);
+
+    /**
+     * @dev Check if the caller is the governor or initializing the implementation.
+     */
+    modifier onlyGovernorOrInit {
+        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
+        _;
+    }
 
     /**
      * @dev Contract Constructor.
@@ -40,6 +40,31 @@ contract EpochManager is Governed {
         epochLength = _epochLength;
 
         emit EpochLengthUpdate(lastLengthUpdateEpoch, epochLength);
+    }
+
+    /**
+     * @dev Initialize this contract.
+     */
+    function initialize(address _token) external onlyGovernorOrInit {
+        BancorFormula._initialize();
+        token = IGraphToken(_token);
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
+     * @param _token Address of the Graph Protocol token
+     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
+     * @param _minimumCurationStake Minimum amount of tokens that curators can stake
+     */
+    function acceptUpgrade(GraphProxy _proxy, uint256 _epochLength) external {
+        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
+
+        // Accept to be the implementation for this proxy
+        _proxy.acceptImplementation();
+
+        // Initialization
+        EpochManager(address(_proxy)).initialize(_epochLength);
     }
 
     /**
