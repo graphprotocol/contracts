@@ -11,10 +11,14 @@ import "./ICuration.sol";
 /**
  * @title Curation contract
  * @dev Allows curators to signal on subgraph deployments that might be relevant to indexers by
- * staking Graph Tokens. Additionally, curators earn fees from the Query Market related to the
+ * staking Graph Tokens (GRT). Additionally, curators earn fees from the Query Market related to the
  * subgraph deployment they curate.
  * A curators stake goes to a curation pool along with the stakes of other curators,
- * only one pool exists for each subgraph deployment.
+ * only one such pool exists for each subgraph deployment.
+ * The contract mints Graph Signal Tokens (GST) according to a bonding curve for each individual
+ * curation pool where GRT is deposited.
+ * Holders can burn GST tokens using this contract to get GRT tokens back according to the
+ * bonding curve.
  */
 contract Curation is CurationV1Storage, ICuration, Governed {
     using SafeMath for uint256;

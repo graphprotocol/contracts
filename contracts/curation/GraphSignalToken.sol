@@ -4,7 +4,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title GraphSignalToken contract
- * @dev This is the implementation of Curation Signal as ERC20 token.
+ * @dev This is the implementation of the Curation Signal ERC20 token (GST).
+ * GST tokens are created for each subgraph deployment curated in the Curation contract.
+ * The Curation contract is the owner of GST tokens and the only one allowed to mint or
+ * burn them. GST tokens are transferrable and their holders can do any action allowed
+ * in a standard ERC20 token implementation except for burning them.
  */
 contract GraphSignalToken is ERC20 {
     address public owner;
@@ -32,11 +36,12 @@ contract GraphSignalToken is ERC20 {
         _mint(_to, _amount);
     }
 
-    function burn(uint256 amount) public onlyOwner {
-        _burn(msg.sender, amount);
-    }
-
-    function burnFrom(address account, uint256 amount) public onlyOwner {
-        _burn(account, amount);
+    /**
+     * @dev Burn tokens from an address.
+     * @param _account Address from where tokens will be burned
+     * @param _amount Amount of tokens to burn
+     */
+    function burnFrom(address _account, uint256 _amount) public onlyOwner {
+        _burn(_account, _amount);
     }
 }
