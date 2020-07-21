@@ -60,6 +60,22 @@ contract GNS is Governed, BancorFormula {
     // -- Events --
 
     /**
+     * @dev TODO
+     */
+    event SetDefaultName(
+        address graphAccount,
+        uint256 nameSystem, // only ENS for now
+        bytes32 nameIdentifier,
+        string name
+    );
+
+    event SubgraphMetadataUpdated(
+        address graphAccount,
+        uint256 subgraphNumber,
+        bytes32 subgraphMetadata
+    );
+
+    /**
      * @dev Emitted when a `graph account` publishes a `subgraph` with a `version`.
      * Every time this event is emitted, indicates a new version has been created.
      * The event also emits a `metadataHash` with subgraph details and version details.
@@ -68,10 +84,7 @@ contract GNS is Governed, BancorFormula {
         address graphAccount,
         uint256 subgraphNumber,
         bytes32 subgraphDeploymentID,
-        uint256 nameSystem, // only ENS for now
-        bytes32 nameIdentifier,
-        string name,
-        bytes32 metadataHash
+        bytes32 versionMetadata
     );
 
     /**
@@ -183,70 +196,64 @@ contract GNS is Governed, BancorFormula {
         emit ParameterUpdated("minimumVSignalStake");
     }
 
+    function setDefaultName(
+        address _graphAccount,
+        uint8 _nameSystem,
+        bytes32 _nameIdentifier,
+        string calldata _name
+    ) external onlyGraphAccountOwner(_graphAccount) {
+        emit SetDefaultName(_graphAccount, _nameSystem, _nameIdentifier, _name);
+    }
+
+    function updateSubgraphMetadata(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        bytes32 _metadataHash
+    ) public onlyGraphAccountOwner(_graphAccount) {
+        emit SubgraphMetadataUpdated(_graphAccount, _subgraphNumber, _metadataHash);
+    }
+
     /**
      * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
-     * will be used. It then will call publish version. Subsequent versions can be created
-     * by calling publishVersion() directly.
+     * will be used.
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
-     * @param _nameIdentifier The value used to look up ownership in the naming system
-     * @param _name Name of the subgraph, from any valid system
-     * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
+     * @param _versionMetadata IPFS hash for the subgraph version metadata
      */
     function publishNewSubgraph(
         address _graphAccount,
         bytes32 _subgraphDeploymentID,
-        bytes32 _nameIdentifier,
-        string calldata _name,
-        bytes32 _metadataHash
+        bytes32 _versionMetadata
     ) external onlyGraphAccountOwner(_graphAccount) {
         uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
-        publishVersion(
-            _graphAccount,
-            subgraphNumber,
-            _subgraphDeploymentID,
-            _nameIdentifier,
-            _name,
-            _metadataHash
-        );
+        publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         graphAccountSubgraphNumbers[_graphAccount]++;
     }
 
     /**
-     * @dev Allows a graph account to publish a subgraph, with a version, a name, and metadata
-     * Graph account must own the name of the name system they are linking to the subgraph
-     * Version is derived from the occurance of SubgraphPublish being emitted. i.e. version 0
-     * is the first time the event is emitted for the graph account and subgraph number
-     * combination.
+     * @dev Allows a graph account to publish a new version of their subgraph.
+     * Version is derived from the occurance of SubgraphPublished being emitted.
+     * The first time SubgraphPublished is called would be Version 0
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
-     * @param _nameIdentifier The value used to look up ownership in the naming system
-     * @param _name Name of the subgraph, from any valid system
-     * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
+     * @param _versionMetadata IPFS hash for the subgraph version metadata
      */
     function publishNewVersion(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
-        bytes32 _nameIdentifier,
-        string calldata _name,
-        bytes32 _metadataHash
+        bytes32 _versionMetadata
     ) external onlyGraphAccountOwner(_graphAccount) {
         require(
-            isPublished(_graphAccount, _subgraphNumber) || // Hasn't been created yet
-                _subgraphNumber < graphAccountSubgraphNumbers[_graphAccount], // Was created, but deprecated
-            "GNS: Cant publish a version directly for a subgraph that wasnt created yet"
+            isPublished(_graphAccount, _subgraphNumber),
+            "GNS: Cannot update version if not published"
         );
-
-        publishVersion(
-            _graphAccount,
-            _subgraphNumber,
-            _subgraphDeploymentID,
-            _nameIdentifier,
-            _name,
-            _metadataHash
+        require(
+            !subgraphIsDeprecated(_graphAccount, _subgraphNumber),
+            "GNS: Cannot update version if it was deprecated"
         );
+        publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
     }
 
     /**
@@ -254,19 +261,15 @@ contract GNS is Governed, BancorFormula {
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
-     * @param _nameIdentifier The value used to look up ownership in the naming system
-     * @param _name Name of the subgraph, from any valid system
-     * @param _metadataHash IPFS hash for the subgraph, and subgraph version metadata
+     * @param _versionMetadata IPFS hash for the subgraph version metadata
      */
     function publishVersion(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
-        bytes32 _nameIdentifier,
-        string memory _name,
-        bytes32 _metadataHash
+        bytes32 _versionMetadata
     ) internal {
-        require(_subgraphDeploymentID != 0, "GNS: Cannot set to 0 in publish");
+        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0 in publish");
 
         // Stores a subgraph deployment ID, which indicates a version has been created
         subgraphs[_graphAccount][_subgraphNumber] = _subgraphDeploymentID;
@@ -275,10 +278,7 @@ contract GNS is Governed, BancorFormula {
             _graphAccount,
             _subgraphNumber,
             _subgraphDeploymentID,
-            0,
-            _nameIdentifier,
-            _name,
-            _metadataHash
+            _versionMetadata
         );
     }
 
@@ -353,6 +353,7 @@ contract GNS is Governed, BancorFormula {
         uint256 _subgraphNumber,
         bytes32 _newSubgraphDeploymentID
     ) external onlyGraphAccountOwner(_graphAccount) {
+        require(_newSubgraphDeploymentID != 0, "GNS: Deployment ID cannot be 0");
         bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         // Subgraph owner must first update the numbered subgraph to point to this deploymentID
         // Then they can direct the name curators vSignal to this new name curation curve
@@ -486,7 +487,7 @@ contract GNS is Governed, BancorFormula {
         bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(
-            namePool.subgraphDeploymentID == subgraphDeploymentID,
+            namePool.subgraphDeploymentID == subgraphDeploymentID, // TODO EDGE CASE - when both subgraph ids are 0, this will fail, leading something to be deprecated before it exists
             "GNS: Name owner updated version without updating name signal"
         );
         require(namePool.disabled == false, "GNS: Cannot be disabled twice");
@@ -730,5 +731,24 @@ contract GNS is Governed, BancorFormula {
         returns (bool)
     {
         return subgraphs[_graphAccount][_subgraphNumber] != 0;
+    }
+
+    /**
+     * @dev Return whether a subgraph is deprecated.
+     * @param _graphAccount Account being checked
+     * @param _subgraphNumber Subgraph number being checked for deprecation
+     * @return Return true if subgraph is deprecated
+     */
+    function subgraphIsDeprecated(address _graphAccount, uint256 _subgraphNumber)
+        public
+        view
+        returns (bool)
+    {
+        // If it was set to 0, it was deprecated, unless it was never created
+        // If the account subgraph number is bigger than the number we are looking at, then we
+        // know it was created, and we know it is truly deprecated
+        return
+            subgraphs[_graphAccount][_subgraphNumber] == 0 &&
+            graphAccountSubgraphNumbers[_graphAccount] > _subgraphNumber;
     }
 }
