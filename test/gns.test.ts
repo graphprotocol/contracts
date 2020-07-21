@@ -535,7 +535,7 @@ describe('GNS', () => {
           'stored vSignals should match upon brand new creation, where there was no vSignal there before',
         )
       })
-      it('should fail to create a name signal on the same subgraph numbe', async function () {
+      it('should fail to create a name signal on the same subgraph number', async function () {
         await createNameSignal(me, me.address, subgraphNumber0, tokens1000)
         const tx = gns.connect(me.signer).createNameSignal(me.address, subgraphNumber0, tokens1000)
         await expect(tx).revertedWith(
