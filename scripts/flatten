@@ -1,11 +1,13 @@
 #!/bin/bash
 
 OUT_DIR="build/full"
-IFS='/'
 
+echo ${OUT_DIR}/contracts
 mkdir -p ${OUT_DIR}/contracts
 
 echo "Flattening contracts..."
+
+IFS='/'
 
 for path in contracts/**/*.sol; do
     parts=( $path )

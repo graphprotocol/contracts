@@ -206,8 +206,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         );
 
         // Stake tokens to a curation pool reserve
-        uint256 signal = _mint(curator, _subgraphDeploymentID, _tokens);
-        return signal;
+        return _mint(curator, _subgraphDeploymentID, _tokens);
     }
 
     /**
@@ -231,17 +230,19 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         );
 
         // Update balance and get the amount of tokens to refund based on returned signal
-        uint256 tokens = _burnSignal(curator, _subgraphDeploymentID, _signal);
+        (uint256 tokens, uint256 withdrawalFees) = _burnSignal(
+            curator,
+            _subgraphDeploymentID,
+            _signal
+        );
 
         // If all signal burnt delete the curation pool
         if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
             delete pools[_subgraphDeploymentID];
         }
 
-        // Calculate withdrawal fees and burn the tokens
-        uint256 withdrawalFees = uint256(withdrawalFeePercentage).mul(tokens).div(MAX_PPM);
+        // Burn withdrawal fees
         if (withdrawalFees > 0) {
-            tokens = tokens.sub(withdrawalFees);
             token.burn(withdrawalFees);
         }
 
@@ -332,13 +333,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Calculate number of tokens to get when burning signal from a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to burn signal
      * @param _signal Amount of signal to burn
-     * @return Amount of tokens to get after burning signal
+     * @return Amount of tokens to get after burning signal and withdrawal fees
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
         public
         override
         view
-        returns (uint256)
+        returns (uint256, uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
@@ -350,13 +351,16 @@ contract Curation is CurationV1Storage, ICuration, Governed {
             curationPoolSignal >= _signal,
             "Signal must be above or equal to signal issued in the curation pool"
         );
-        return
-            calculateSaleReturn(
-                curationPoolSignal,
-                curationPool.tokens,
-                uint32(curationPool.reserveRatio),
-                _signal
-            );
+
+        uint256 tokens = calculateSaleReturn(
+            curationPoolSignal,
+            curationPool.tokens,
+            curationPool.reserveRatio,
+            _signal
+        );
+        uint256 withdrawalFees = tokens.mul(uint256(withdrawalFeePercentage)).div(MAX_PPM);
+
+        return (tokens.sub(withdrawalFees), withdrawalFees);
     }
 
     /**
@@ -388,23 +392,23 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _curator Curator address
      * @param _subgraphDeploymentID Subgraph deployment pool to burn signal
      * @param _signal Amount of signal to burn
-     * @return Number of tokens received
+     * @return Number of tokens received and withdrawal fees
      */
     function _burnSignal(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _signal
-    ) private returns (uint256) {
+    ) private returns (uint256, uint256) {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        uint256 tokens = signalToTokens(_subgraphDeploymentID, _signal);
+        (uint256 tokens, uint256 withdrawalFees) = signalToTokens(_subgraphDeploymentID, _signal);
 
         // Update GRT tokens held as reserves
-        curationPool.tokens = curationPool.tokens.sub(tokens);
+        curationPool.tokens = curationPool.tokens.sub(tokens.add(withdrawalFees));
 
         // Burn signal from curator
         curationPool.gst.burnFrom(_curator, _signal);
 
-        return tokens;
+        return (tokens, withdrawalFees);
     }
 
     /**

@@ -628,7 +628,10 @@ contract GNS is Governed, BancorFormula {
     ) public view returns (uint256, uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        uint256 tokens = curation.signalToTokens(namePool.subgraphDeploymentID, vSignal);
+        (uint256 tokens, uint256 _) = curation.signalToTokens(
+            namePool.subgraphDeploymentID,
+            vSignal
+        );
         return (vSignal, tokens);
     }
 

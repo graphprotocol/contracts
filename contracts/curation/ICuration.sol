@@ -40,5 +40,5 @@ interface ICuration {
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
         external
         view
-        returns (uint256);
+        returns (uint256, uint256);
 }

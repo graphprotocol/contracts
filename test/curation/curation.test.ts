@@ -99,7 +99,7 @@ describe('Curation', () => {
 
     // Calculations
     const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
-    const withdrawalFees = toBN(withdrawalFeePercentage).mul(expectedTokens).div(toBN(MAX_PPM))
+    const withdrawalFees = expectedTokens.mul(toBN(withdrawalFeePercentage)).div(toBN(MAX_PPM))
 
     // Redeem
     const tx = curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem)
@@ -194,8 +194,29 @@ describe('Curation', () => {
 
       // Conversion
       const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-      const tokens = await curation.signalToTokens(subgraphDeploymentID, signal)
-      expect(tokens).eq(tokensToStake)
+      const { 0: expectedTokens } = await curation.signalToTokens(subgraphDeploymentID, signal)
+      expect(expectedTokens).eq(tokensToStake)
+    })
+
+    it('convert signal to tokens (with withdrawal fees)', async function () {
+      // Set fees for withdrawal
+      const withdrawalFeePercentage = 50000 // 5%
+      await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalFeePercentage)
+
+      // Curate
+      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToStake)
+
+      // Expected
+      const expectedWithdrawalFees = tokensToStake.mul(withdrawalFeePercentage).div(MAX_PPM)
+
+      // Conversion
+      const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+      const { 0: tokens, 1: withdrawalFees } = await curation.signalToTokens(
+        subgraphDeploymentID,
+        signal,
+      )
+      expect(tokens).eq(tokensToStake.sub(expectedWithdrawalFees))
+      expect(withdrawalFees).eq(expectedWithdrawalFees)
     })
 
     it('convert tokens to signal', async function () {
@@ -290,7 +311,10 @@ describe('Curation', () => {
       // Redeem "almost" all signal
       const signal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const signalToRedeem = signal.sub(toGRT('0.000001'))
-      const expectedTokens = await curation.signalToTokens(subgraphDeploymentID, signalToRedeem)
+      const { 0: expectedTokens } = await curation.signalToTokens(
+        subgraphDeploymentID,
+        signalToRedeem,
+      )
       await shouldRedeem(signalToRedeem, expectedTokens)
 
       // The pool should have less tokens that required by minimumCurationStake
@@ -304,7 +328,8 @@ describe('Curation', () => {
     })
 
     it('should allow to redeem and account for withdrawal fees', async function () {
-      await curation.connect(governor.signer).setWithdrawalFeePercentage(50000)
+      // Set fees for withdrawal
+      await curation.connect(governor.signer).setWithdrawalFeePercentage(50000) // 5%
 
       // Get all signal of the curator
       const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
