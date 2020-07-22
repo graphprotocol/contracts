@@ -2,7 +2,8 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "./governance/Governed.sol";
-import "./curation/Curation.sol";
+import "./curation/ICuration.sol";
+import "./token/IGraphToken.sol";
 import "./erc1056/IEthereumDIDRegistry.sol";
 import "./bancor/BancorFormula.sol";
 
@@ -21,13 +22,13 @@ contract GNS is Governed, BancorFormula {
         uint256 nSignal; // The token of the name curation bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
-        uint256 reserveRatio;
-        bool deprecated;
+        uint32 reserveRatio;
+        bool disabled;
         uint256 withdrawableGRT;
     }
 
     // Equates to Connector weight on bancor formula to be CW = 1
-    uint256 private constant defaultReserveRatio = 1000000;
+    uint32 private constant defaultReserveRatio = 1000000;
 
     // Amount of nSignal you get with your minimum vSignal stake
     uint256 private constant VSIGNAL_PER_MINIMUM_NSIGNAL = 1 ether;
@@ -51,7 +52,7 @@ contract GNS is Governed, BancorFormula {
     IEthereumDIDRegistry public erc1056Registry;
 
     // Curation contract reference
-    Curation public curation;
+    ICuration public curation;
 
     // Token used for staking
     IGraphToken public token;
@@ -82,19 +83,19 @@ contract GNS is Governed, BancorFormula {
      * @dev Emitted when a graphAccount creates an nSignal bonding curve that
      * points to a subgraph deployment
      */
-    event NameSignalCreated(
+    event NameSignalEnabled(
         address graphAccount,
         uint256 subgraphNumber,
         uint256 vSignalCreated,
         uint256 nSignalCreated,
         bytes32 subgraphDeploymentID,
-        uint256 reserveRatio
+        uint32 reserveRatio
     );
 
     /**
-     * @dev Emitted when a name curator deposits their vSignal into an nSignal curve
+     * @dev Emitted when a name curator deposits their vSignal into an nSignal curve to mint nSignal
      */
-    event DepositIntoNameSignalPool(
+    event NSignalMinted(
         address graphAccount,
         uint256 subgraphNumber,
         address nameCurator,
@@ -103,10 +104,10 @@ contract GNS is Governed, BancorFormula {
     );
 
     /**
-     * @dev Emitted when a name curator withdraws their nSignal from a curve, burns
+     * @dev Emitted when a name curator burns their nSignal, which in turn burns
      * the vSignal, and receives GRT
      */
-    event WithdrawFromNameSignalPool(
+    event NSignalBurned(
         address graphAccount,
         uint256 subgraphNumber,
         address nameCurator,
@@ -129,13 +130,9 @@ contract GNS is Governed, BancorFormula {
     );
 
     /**
-     * @dev Emitted when an nSignal curve has been permanently deprecated
+     * @dev Emitted when an nSignal curve has been permanently disabled
      */
-    event NameSignalDeprecated(
-        address graphAccount,
-        uint256 subgraphNumber,
-        uint256 withdrawableGRT
-    );
+    event NameSignalDisabled(address graphAccount, uint256 subgraphNumber, uint256 withdrawableGRT);
 
     /**
      * @dev Emitted when a nameCurator withdraws their GRT from a deprecated name signal pool
@@ -170,17 +167,17 @@ contract GNS is Governed, BancorFormula {
         address _token
     ) public {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
-        curation = Curation(_curation);
+        curation = ICuration(_curation);
         token = IGraphToken(_token);
-        token.approve(address(curation), uint256(-1));
+        token.approve(_curation, uint256(-1));
     }
 
     /**
      * @dev Set the minimum vSignal to be staked to create nSignal
-     * @notice Update the minimum vSignal amount to `_minimumCurationStake`
+     * @notice Update the minimum vSignal amount to `_minimumVSignalStake`
      * @param _minimumVSignalStake Minimum amount of vSignal required
      */
-    function setMinimumVsignal(uint256 _minimumVSignalStake) private {
+    function setMinimumVsignal(uint256 _minimumVSignalStake) external onlyGovernor {
         require(_minimumVSignalStake > 0, "Minimum vSignal cannot be 0");
         minimumVSignalStake = _minimumVSignalStake;
         emit ParameterUpdated("minimumVSignalStake");
@@ -303,12 +300,13 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Create a name signal on a graph accounts numbered subgraph
-     * @param _graphAccount Graph account creating name signal
+     * @dev Enable name signal on a graph accounts numbered subgraph, which points to a subgraph
+     * deployment
+     * @param _graphAccount Graph account enabling name signal
      * @param _subgraphNumber Subgraph number being used
      * @param _graphTokens Graph tokens deposited to initialze the curve
      */
-    function createNameSignal(
+    function enableNameSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _graphTokens
@@ -317,18 +315,12 @@ contract GNS is Governed, BancorFormula {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(
             namePool.reserveRatio == 0,
-            "GNS: Create name signal was already called for this subgraph number"
+            "GNS: Enable name signal was already called for this subgraph number"
         );
         bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         require(
             subgraphDeploymentID != 0,
-            "GNS: Cannot create nSignal on a subgraph without a deployment ID"
-        );
-
-        // Transfer tokens from the creator to this contract
-        require(
-            token.transferFrom(_graphAccount, address(this), _graphTokens),
-            "GNS: Cannot transfer tokens to stake"
+            "GNS: Cannot enable name signal on a subgraph without a deployment ID"
         );
 
         namePool.reserveRatio = defaultReserveRatio;
@@ -340,7 +332,7 @@ contract GNS is Governed, BancorFormula {
             _subgraphNumber,
             _graphTokens
         );
-        emit NameSignalCreated(
+        emit NameSignalEnabled(
             _graphAccount,
             _subgraphNumber,
             vSignal,
@@ -371,18 +363,21 @@ contract GNS is Governed, BancorFormula {
 
         // This is to prevent the owner from front running their name curators signal by posting
         // their own signal ahead, bringing the name curators in, and dumping on them
-        (, uint256 poolVSignal, ) = curation.pools(_newSubgraphDeploymentID);
         require(
-            poolVSignal == 0,
+            !curation.isCurated(_newSubgraphDeploymentID),
             "GNS: Owner cannot point to a subgraphID that has been pre-curated"
         );
 
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(
+            _newSubgraphDeploymentID != namePool.subgraphDeploymentID,
+            "GNS: Cannot upgrade to the exact same subgraph deployment ID"
+        );
+        require(
             namePool.nSignal > 0,
             "GNS: There must be nSignal on this subgraph for curve math to work"
         );
-        require(namePool.deprecated == false, "GNS: Cannot be deprecated");
+        require(namePool.disabled == false, "GNS: Cannot be disabled");
 
         uint256 vSignalOld = nSignalToVSignal(_graphAccount, _subgraphNumber, namePool.nSignal);
         (uint256 tokens, uint256 withdrawalFees) = _burnVSignal(
@@ -410,19 +405,19 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Allow a nameCurator to mint some nSignal by depositing GRT
+     * @dev Allow a name curator to mint some nSignal by depositing GRT
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number
      * @param _tokens The amount of tokens the nameCurator wants to deposit
      */
-    function depositIntoNameSignal(
+    function mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _tokens
     ) external {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(namePool.deprecated == false, "GNS: Cannot be deprecated");
+        require(namePool.disabled == false, "GNS: Cannot be disabled");
         require(
             namePool.subgraphDeploymentID != 0,
             "GNS: Must deposit on a name signal that exists"
@@ -438,29 +433,17 @@ contract GNS is Governed, BancorFormula {
             "GNS: Name owner updated version without updating name signal"
         );
 
-        // Transfer tokens from the name signaller to this contract
-        require(
-            token.transferFrom(nameCurator, address(this), _tokens),
-            "GNS: Cannot transfer tokens to stake"
-        );
-
         (uint256 vSignal, uint256 nSignal) = _mintNSignal(_graphAccount, _subgraphNumber, _tokens);
-        emit DepositIntoNameSignalPool(
-            _graphAccount,
-            _subgraphNumber,
-            msg.sender,
-            nSignal,
-            vSignal
-        );
+        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal);
     }
 
     /**
-     * @dev Allow a nameCurator to withdraw some of their nSignal
+     * @dev Allow a nameCurator to burn some of their nSignal and get GRT in return
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignal The amount of nSignal the nameCurator wants to withdraw
+     * @param _nSignal The amount of nSignal the nameCurator wants to burn
      */
-    function withdrawFromNameSignal(
+    function burnNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignal
@@ -468,7 +451,7 @@ contract GNS is Governed, BancorFormula {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 curatorNSignal = namePool.curatorNSignal[nameCurator];
-        require(namePool.deprecated == false, "GNS: Cannot be deprecated");
+        require(namePool.disabled == false, "GNS: Cannot be disabled");
         bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
 
         // This happens when the owner updates the deploymentID, but has not yet updated the
@@ -486,24 +469,17 @@ contract GNS is Governed, BancorFormula {
         (uint256 vSignal, uint256 tokens) = _burnNSignal(_graphAccount, _subgraphNumber, _nSignal);
         // Return the tokens to the nameCurator
         require(token.transfer(nameCurator, tokens), "GNS: Error sending nameCurators tokens");
-        emit WithdrawFromNameSignalPool(
-            _graphAccount,
-            _subgraphNumber,
-            msg.sender,
-            _nSignal,
-            vSignal,
-            tokens
-        );
+        emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
     }
 
     /**
-     * @dev Owner deprecates the subgraph. This means the subgraph-number combination can no longer
+     * @dev Owner disables the subgraph. This means the subgraph-number combination can no longer
      * be used for name signal. The nSignal curve is destroyed, the vSignal is burned, and the GNS
      * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
      * @param _graphAccount Account that is deprecating their name curation
      * @param _subgraphNumber Subgraph number
      */
-    function deprecateNameSignal(address _graphAccount, uint256 _subgraphNumber)
+    function disableNameSignal(address _graphAccount, uint256 _subgraphNumber)
         external
         onlyGraphAccountOwner(_graphAccount)
     {
@@ -513,7 +489,7 @@ contract GNS is Governed, BancorFormula {
             namePool.subgraphDeploymentID == subgraphDeploymentID,
             "GNS: Name owner updated version without updating name signal"
         );
-        require(namePool.deprecated == false, "GNS: Cannot be deprecated twice");
+        require(namePool.disabled == false, "GNS: Cannot be disabled twice");
         uint256 vSignal = namePool.vSignal;
         namePool.vSignal = 0;
         (uint256 tokens, uint256 withdrawalFees) = curation.burn(subgraphDeploymentID, vSignal);
@@ -524,21 +500,21 @@ contract GNS is Governed, BancorFormula {
             "GNS: Error reimbursing withdrawal fees"
         );
 
-        // Set the NameCurationPool fields to make it deprecated
-        namePool.deprecated = true;
+        // Set the NameCurationPool fields to make it disabled
+        namePool.disabled = true;
         namePool.withdrawableGRT = tokens + withdrawalFees;
-        emit NameSignalDeprecated(_graphAccount, _subgraphNumber, namePool.withdrawableGRT);
+        emit NameSignalDisabled(_graphAccount, _subgraphNumber, namePool.withdrawableGRT);
     }
 
     /**
-     * @dev When the subgraph curve is deprecated, all nameCurators can call this function and
+     * @dev When the subgraph curve is disabled, all nameCurators can call this function and
      * withdraw the GRT they are entitled for their original deposit of vSignal
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      */
-    function withdrawGRT(address _graphAccount, uint256 _subgraphNumber) external {
+    function withdraw(address _graphAccount, uint256 _subgraphNumber) external {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(namePool.deprecated == true, "GNS: Name bonding curve must be deprecated first");
+        require(namePool.disabled == true, "GNS: Name bonding curve must be disabled first");
         require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
         uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
         require(curatorNSignal > 0, "GNS: Curator must have some nSignal to withdraw GRT");
@@ -565,6 +541,10 @@ contract GNS is Governed, BancorFormula {
         uint256 _subgraphNumber,
         uint256 _tokens
     ) private returns (uint256, uint256) {
+        require(
+            token.transferFrom(msg.sender, address(this), _tokens),
+            "GNS: Cannot transfer tokens to stake"
+        );
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = curation.mint(namePool.subgraphDeploymentID, _tokens);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
@@ -596,7 +576,7 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Calculations burning vSignal from deprecate or upgrade, and takes the withdrawal fee
+     * @dev Calculations burning vSignal from disabled or upgrade, and takes the withdrawal fee
      * from the name curator owner so they cannot grief all the name curators stake
      * @param _graphAccount Subgraph owner
      * @param _subgraphDeploymentID Subgraph deployment to burn all vSignal from
@@ -666,12 +646,12 @@ contract GNS is Governed, BancorFormula {
     ) public view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(
-            namePool.deprecated == false,
-            "GNS: Name cannot be deprecated to call vSignalToNSignal()"
+            namePool.disabled == false,
+            "GNS: Name cannot be disabled to call vSignalToNSignal()"
         );
         uint256 vSignal = _vSignal;
         uint256 nSignalInit = 0;
-        uint256 reserveRatio = namePool.reserveRatio;
+        uint32 reserveRatio = namePool.reserveRatio;
         // Handle initialization of bonding curve
         if (namePool.vSignal == 0) {
             namePool.vSignal = minimumVSignalStake;
@@ -685,7 +665,7 @@ contract GNS is Governed, BancorFormula {
             calculatePurchaseReturn(
                 namePool.nSignal,
                 namePool.vSignal,
-                uint32(reserveRatio),
+                reserveRatio,
                 vSignal // deposit the vSignal into the nSignal bonding curve
             ) + nSignalInit;
     }
@@ -707,7 +687,7 @@ contract GNS is Governed, BancorFormula {
             calculateSaleReturn(
                 namePool.nSignal,
                 namePool.vSignal,
-                uint32(namePool.reserveRatio),
+                namePool.reserveRatio,
                 _nSignal
             );
     }
