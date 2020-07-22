@@ -31,7 +31,7 @@ export const isContractDeployed = async (
   const savedCreationCodeHash = addressEntry.creationCodeHash
   const creationCodeHash = hash(artifact.bytecode)
   if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
-    logger.warn(`creationCodeHash in our address book doen't match ${name} artifacts`)
+    logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
     logger.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
     return false
   }

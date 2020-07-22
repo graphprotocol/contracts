@@ -18,10 +18,10 @@ const { formatEther } = utils
 
 const allContracts = [
   'EpochManager',
-  'GNS',
   'GraphToken',
   'ServiceRegistry',
   'Curation',
+  'GNS',
   'RewardsManager',
   'Staking',
   'DisputeManager',

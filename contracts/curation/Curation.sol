@@ -187,8 +187,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Stake Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokens Amount of Graph Tokens to stake
+     * @return Signal minted
      */
-    function mint(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
+    function mint(bytes32 _subgraphDeploymentID, uint256 _tokens)
+        external
+        override
+        returns (uint256)
+    {
         address curator = msg.sender;
 
         // Need to stake some funds
@@ -201,7 +206,8 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         );
 
         // Stake tokens to a curation pool reserve
-        _mint(curator, _subgraphDeploymentID, _tokens);
+        uint256 signal = _mint(curator, _subgraphDeploymentID, _tokens);
+        return signal;
     }
 
     /**
@@ -209,8 +215,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @notice Burn _signal from the SubgraphDeployment curation pool
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
      * @param _signal Amount of signal to return
+     * @return Tokens returned and withdrawal fees
      */
-    function burn(bytes32 _subgraphDeploymentID, uint256 _signal) external override {
+    function burn(bytes32 _subgraphDeploymentID, uint256 _signal)
+        external
+        override
+        returns (uint256, uint256)
+    {
         address curator = msg.sender;
 
         require(_signal > 0, "Cannot burn zero signal");
@@ -238,6 +249,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         require(token.transfer(curator, tokens), "Error sending curator tokens");
 
         emit Burned(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
+        return (tokens, withdrawalFees);
     }
 
     /**
@@ -418,12 +430,13 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _curator Address of the staking party
      * @param _subgraphDeploymentID Subgraph deployment from where the curator is minting
      * @param _tokens Amount of Graph Tokens to stake
+     * @return Signal minted
      */
     function _mint(
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
-    ) private {
+    ) private returns (uint256) {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
@@ -444,5 +457,6 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         uint256 signal = _mintSignal(_curator, _subgraphDeploymentID, _tokens);
 
         emit Signalled(_curator, _subgraphDeploymentID, _tokens, signal);
+        return signal;
     }
 }

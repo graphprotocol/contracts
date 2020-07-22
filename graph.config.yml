@@ -27,6 +27,8 @@ contracts:
   GNS:
     init:
       didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+      token: "${{GraphToken.address}}"
+      curation: "${{Curation.address}}"
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000" # 10000000 GRT

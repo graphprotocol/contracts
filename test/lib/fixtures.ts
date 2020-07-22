@@ -22,6 +22,13 @@ export class NetworkFixture {
     const epochManager = await deployment.deployEpochManager(governor)
     const grt = await deployment.deployGRT(governor)
     const curation = await deployment.deployCuration(governor, grt.address)
+    const didRegistry = await deployment.deployEthereumDIDRegistry(governor)
+    const gns = await deployment.deployGNS(
+      governor,
+      didRegistry.address,
+      curation.address,
+      grt.address,
+    )
     const staking = await deployment.deployStaking(
       governor,
       grt.address,
@@ -44,6 +51,7 @@ export class NetworkFixture {
       epochManager,
       grt,
       curation,
+      gns,
       staking,
     }
   }
