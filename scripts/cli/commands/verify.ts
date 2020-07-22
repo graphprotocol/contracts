@@ -24,7 +24,7 @@ const coreContracts = [
 const logger = consola.create({})
 
 export const verify = async (cli: CLIEnvironment): Promise<void> => {
-  logger.info(`Verifying contracts for chainId ${cli.chainId}...`)
+  logger.log(`Verifying contracts for chainId ${cli.chainId}...`)
 
   for (const contractName of coreContracts) {
     const contract = cli.addressBook.getEntry(contractName)

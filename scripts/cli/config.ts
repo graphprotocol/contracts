@@ -47,10 +47,23 @@ export function getContractConfig(
   const contractCalls: ContractCalls = []
   let proxy = false
 
-  for (const [name, value] of Object.entries(contractConfig) as Array<Array<string>>) {
+  const optsList = Object.entries(contractConfig) as Array<Array<string>>
+  for (const [name, value] of optsList) {
+    // Process constructor params
+    if (name.startsWith('init')) {
+      const initList = Object.entries(contractConfig.init) as Array<Array<string>>
+      for (const [initName, initValue] of initList) {
+        contractParams.push({ name: initName, value: parseConfigValue(initValue, addressBook) } as {
+          name: string
+          value: string
+        })
+      }
+      continue
+    }
+
     // Process contract calls
-    if (name.startsWith('__calls')) {
-      for (const entry of contractConfig.__calls) {
+    if (name.startsWith('calls')) {
+      for (const entry of contractConfig.calls) {
         const fn = entry['fn']
         const params = Object.entries(entry)
           .slice(1) // skip fn
@@ -61,16 +74,10 @@ export function getContractConfig(
     }
 
     // Process proxy
-    if (name.startsWith('__proxy')) {
+    if (name.startsWith('proxy')) {
       proxy = Boolean(value)
       continue
     }
-
-    // Process constructor params
-    contractParams.push({ name, value: parseConfigValue(value, addressBook) } as {
-      name: string
-      value: string
-    })
   }
 
   return {

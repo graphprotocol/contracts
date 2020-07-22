@@ -13,7 +13,7 @@ export const upgrade = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const implAddress = cliArgs.impl
   const initArgs = cliArgs.init
 
-  logger.info(`Upgrading contract ${contractName}...`)
+  logger.log(`Upgrading contract ${contractName}...`)
 
   // Get address book info
   const addressEntry = cli.addressBook.getEntry(contractName)
