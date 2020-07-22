@@ -3,8 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import "@nomiclabs/buidler/console.sol";
 
-import "../EpochManager.sol";
 import "../curation/ICuration.sol";
+import "../epochs/IEpochManager.sol";
 import "../governance/Governed.sol";
 import "../token/IGraphToken.sol";
 import "../upgrades/GraphProxy.sol";
@@ -205,7 +205,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      */
     function initialize(address _token, address _epochManager) external onlyGovernorOrInit {
         token = IGraphToken(_token);
-        epochManager = EpochManager(_epochManager);
+        epochManager = IEpochManager(_epochManager);
     }
 
     /**
@@ -214,7 +214,7 @@ contract Staking is StakingV1Storage, IStaking, Governed {
      * @param _token Address of the Graph Protocol token
      * @param _epochManager Address of the EpochManager contract
      */
-    function acceptUpgrade(
+    function acceptProxy(
         GraphProxy _proxy,
         address _token,
         address _epochManager

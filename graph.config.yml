@@ -20,6 +20,7 @@ contracts:
     slashingPercentage: 50000 # in basis points
   EpochManager:
     lengthInBlocks: 5760 # One day in blocks
+    __proxy: true
   GNS:
     didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
   GraphToken:

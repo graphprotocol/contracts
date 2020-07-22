@@ -29,10 +29,9 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
     }
 
     /**
-     * @dev Contract Constructor.
-     * @param _epochLength Epoch length in blocks
+     * @dev Initialize this contract.
      */
-    constructor(uint256 _epochLength) public {
+    function initialize(uint256 _epochLength) external onlyGovernorOrInit {
         require(_epochLength > 0, "Epoch length cannot be 0");
 
         lastLengthUpdateEpoch = 0;
@@ -43,21 +42,11 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
     }
 
     /**
-     * @dev Initialize this contract.
-     */
-    function initialize(address _token) external onlyGovernorOrInit {
-        BancorFormula._initialize();
-        token = IGraphToken(_token);
-    }
-
-    /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
-     * @param _token Address of the Graph Protocol token
-     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
-     * @param _minimumCurationStake Minimum amount of tokens that curators can stake
+     * @param _epochLength Epoch length in blocks
      */
-    function acceptUpgrade(GraphProxy _proxy, uint256 _epochLength) external {
+    function acceptProxy(GraphProxy _proxy, uint256 _epochLength) external {
         require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
 
         // Accept to be the implementation for this proxy
@@ -72,7 +61,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @notice Set epoch length to `_epochLength` blocks
      * @param _epochLength Epoch length in blocks
      */
-    function setEpochLength(uint256 _epochLength) external onlyGovernor {
+    function setEpochLength(uint256 _epochLength) external override onlyGovernor {
         require(_epochLength > 0, "Epoch length cannot be 0");
         require(_epochLength != epochLength, "Epoch length must be different to current");
 
@@ -87,7 +76,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Run a new epoch, should be called once at the start of any epoch.
      * @notice Perform state changes for the current epoch
      */
-    function runEpoch() external {
+    function runEpoch() external override {
         // Check if already called for the current epoch
         require(!isCurrentEpochRun(), "Current epoch already run");
 
@@ -102,7 +91,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return true if the current epoch has already run.
      * @return Return true if epoch has run
      */
-    function isCurrentEpochRun() public view returns (bool) {
+    function isCurrentEpochRun() public override view returns (bool) {
         return lastRunEpoch == currentEpoch();
     }
 
@@ -110,7 +99,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return current block number.
      * @return Block number
      */
-    function blockNum() public view returns (uint256) {
+    function blockNum() public override view returns (uint256) {
         return block.number;
     }
 
@@ -118,7 +107,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return blockhash for a block.
      * @return BlockHash for `_block` number
      */
-    function blockHash(uint256 _block) public view returns (bytes32) {
+    function blockHash(uint256 _block) public override view returns (bytes32) {
         uint256 currentBlock = blockNum();
 
         require(_block < currentBlock, "Can only retrieve past block hashes");
@@ -134,7 +123,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return the current epoch, it may have not been run yet.
      * @return The current epoch based on epoch length
      */
-    function currentEpoch() public view returns (uint256) {
+    function currentEpoch() public override view returns (uint256) {
         return lastLengthUpdateEpoch.add(epochsSinceUpdate());
     }
 
@@ -142,7 +131,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return block where the current epoch started.
      * @return The block number when the current epoch started
      */
-    function currentEpochBlock() public view returns (uint256) {
+    function currentEpochBlock() public override view returns (uint256) {
         return lastLengthUpdateBlock.add(epochsSinceUpdate().mul(epochLength));
     }
 
@@ -150,7 +139,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return the number of blocks that passed since current epoch started.
      * @return Blocks that passed since start of epoch
      */
-    function currentEpochBlockSinceStart() public view returns (uint256) {
+    function currentEpochBlockSinceStart() public override view returns (uint256) {
         return blockNum() - currentEpochBlock();
     }
 
@@ -159,7 +148,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @param _epoch Epoch to use as since epoch value
      * @return Number of epochs and current epoch
      */
-    function epochsSince(uint256 _epoch) public view returns (uint256) {
+    function epochsSince(uint256 _epoch) public override view returns (uint256) {
         uint256 epoch = currentEpoch();
         return _epoch < epoch ? epoch.sub(_epoch) : 0;
     }
@@ -168,7 +157,7 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @dev Return number of epochs passed since last epoch length update.
      * @return The number of epoch that passed since last epoch length update
      */
-    function epochsSinceUpdate() public view returns (uint256) {
+    function epochsSinceUpdate() public override view returns (uint256) {
         return blockNum().sub(lastLengthUpdateBlock).div(epochLength);
     }
 }
