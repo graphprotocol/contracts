@@ -39,7 +39,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const force = cliArgs.force
   const contractName = cliArgs.contract
 
-  logger.info(`Migrating contracts...`)
+  logger.log(`>>> Migrating contracts <<<\n`)
 
   const graphConfig = readConfig(graphConfigPath)
 
@@ -54,13 +54,13 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const deployContracts = contractName ? [contractName] : allContracts
   const pendingContractCalls = []
 
-  logger.log(`== Contracts deployment\n`)
+  logger.log(`>>> Contracts deployment\n`)
   for (const name of deployContracts) {
     // Get address book info
     const addressEntry = cli.addressBook.getEntry(name)
     const savedAddress = addressEntry && addressEntry.address
 
-    logger.info(`Deploying ${name}...`)
+    logger.info(`[Deploying ${name}]`)
 
     // Check if contract already deployed
     const isDeployed = await isContractDeployed(
@@ -70,7 +70,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
       cli.wallet.provider,
     )
     if (!force && isDeployed) {
-      logger.info(`${name} is up to date, no action required`)
+      logger.log(`${name} is up to date, no action required`)
       logger.log(`Address: ${savedAddress}\n`)
       continue
     }
@@ -98,12 +98,12 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   // Run contracts calls
 
   logger.log('')
-  logger.log(`== Contracts calls\n`)
+  logger.log(`>>> Contracts calls\n`)
   if (pendingContractCalls.length > 0) {
     for (const entry of pendingContractCalls) {
       if (entry.calls.length == 0) continue
 
-      logger.info(`Configuring ${entry.name}...`)
+      logger.info(`[Configuring ${entry.name}]`)
       for (const call of entry.calls) {
         await sendTransaction(cli.wallet, entry.contract, call.fn, ...call.params)
       }
@@ -116,7 +116,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   ////////////////////////////////////////
   // Print summary
   logger.log('')
-  logger.log(`== Summary\n`)
+  logger.log(`>>> Summary\n`)
   logger.success('All done!')
   const spent = formatEther(cli.balance.sub(await cli.wallet.getBalance()))
   const nTx = (await cli.wallet.getTransactionCount()) - cli.nonce

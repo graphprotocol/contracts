@@ -12,7 +12,7 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const contractName = cliArgs.contract
   const initArgs = cliArgs.init
 
-  logger.info(`Deploying contract ${contractName}...`)
+  logger.log(`Deploying contract ${contractName}...`)
 
   // Deploy contract
   const contractArgs = initArgs ? initArgs.split(',') : []
