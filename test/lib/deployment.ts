@@ -76,12 +76,12 @@ export async function deployCuration(owner: Signer, graphToken: string): Promise
 
   // Proxy
   const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
-  await proxy.connect(owner).upgradeTo(contract.address)
+  await proxy.connect(owner).setImplementation(contract.address)
 
   // Impl accept and initialize
   await contract
     .connect(owner)
-    .acceptUpgrade(
+    .acceptProxy(
       proxy.address,
       graphToken,
       defaults.curation.reserveRatio,
@@ -111,9 +111,17 @@ export async function deployDisputeManager(
 }
 
 export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
-  return deployContract('EpochManager', owner, defaults.epochs.lengthInBlocks) as Promise<
-    EpochManager
-  >
+  // Impl
+  const contract = (await deployContract('EpochManager', owner)) as EpochManager
+
+  // Proxy
+  const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
+  await proxy.connect(owner).setImplementation(contract.address)
+
+  // Impl accept and initialize
+  await contract.connect(owner).acceptProxy(proxy.address, defaults.epochs.lengthInBlocks)
+
+  return contract.attach(proxy.address)
 }
 
 export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
@@ -139,10 +147,10 @@ export async function deployStaking(
 
   // Proxy
   const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
-  await proxy.connect(owner).upgradeTo(contract.address)
+  await proxy.connect(owner).setImplementation(contract.address)
 
   // Impl accept and initialize
-  await contract.connect(owner).acceptUpgrade(proxy.address, graphToken, epochManager)
+  await contract.connect(owner).acceptProxy(proxy.address, graphToken, epochManager)
 
   // Configure
   const staking = contract.attach(proxy.address)

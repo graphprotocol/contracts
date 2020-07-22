@@ -27,7 +27,7 @@ contract GraphProxy is GraphProxyStorage, Governed {
      * @dev Upgrades to a new implementation contract.
      * @param _newImplementation Address of implementation contract
      */
-    function upgradeTo(address _newImplementation) external onlyGovernor {
+    function setImplementation(address _newImplementation) external onlyGovernor {
         address oldPendingImplementation = pendingImplementation;
         pendingImplementation = _newImplementation;
 

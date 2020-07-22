@@ -72,9 +72,15 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _token) external onlyGovernorOrInit {
+    function initialize(
+        address _token,
+        uint32 _defaultReserveRatio,
+        uint256 _minimumCurationStake
+    ) external onlyGovernorOrInit {
         BancorFormula._initialize();
         token = IGraphToken(_token);
+        defaultReserveRatio = _defaultReserveRatio;
+        minimumCurationStake = _minimumCurationStake;
     }
 
     /**
@@ -84,7 +90,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationStake Minimum amount of tokens that curators can stake
      */
-    function acceptUpgrade(
+    function acceptProxy(
         GraphProxy _proxy,
         address _token,
         uint32 _defaultReserveRatio,
@@ -96,9 +102,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         _proxy.acceptImplementation();
 
         // Initialization
-        Curation(address(_proxy)).initialize(_token);
-        Curation(address(_proxy)).setDefaultReserveRatio(_defaultReserveRatio);
-        Curation(address(_proxy)).setMinimumCurationStake(_minimumCurationStake);
+        Curation(address(_proxy)).initialize(_token, _defaultReserveRatio, _minimumCurationStake);
     }
 
     /**

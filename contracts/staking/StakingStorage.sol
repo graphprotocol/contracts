@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
-import "../EpochManager.sol";
 import "../curation/ICuration.sol";
+import "../epochs/IEpochManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 import "../upgrades/GraphProxyStorage.sol";
@@ -68,6 +68,6 @@ contract StakingV1Storage is GraphProxyStorage {
     // -- Related contracts --
 
     IGraphToken public token;
-    EpochManager public epochManager;
+    IEpochManager public epochManager;
     ICuration public curation;
 }
