@@ -112,9 +112,20 @@ describe('GNS', () => {
     const signals = await gns.tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
     const vSigEstimate = signals[0]
     const nSigEstimate = signals[1]
+
     const tx = gns
       .connect(account.signer)
       .enableNameSignal(graphAccount, subgraphNumber0, graphTokens)
+    await expect(tx)
+      .emit(gns, 'NameSignalEnabled')
+      .withArgs(
+        graphAccount,
+        subgraphNumber0,
+        vSigEstimate,
+        nSigEstimate,
+        subgraph1.subgraphDeploymentID,
+        1000000,
+      )
 
     const tokensVSig = await getTokensAndVSig(subgraph1.subgraphDeploymentID)
     const tokensAfter = tokensVSig[0]
@@ -128,9 +139,7 @@ describe('GNS', () => {
     expect(nSigEstimate).eq(nSig)
     const deploymentID = pool[2]
     const reserveRatio = pool[3]
-    await expect(tx)
-      .emit(gns, 'NameSignalEnabled')
-      .withArgs(graphAccount, subgraphNumber0, vSigPool, nSig, deploymentID, reserveRatio)
+
     return tx
   }
 
@@ -275,6 +284,16 @@ describe('GNS', () => {
     const tx = gns
       .connect(account.signer)
       .burnNSignal(graphAccount, subgraphNumber0, usersNSigBefore)
+    await expect(tx)
+      .emit(gns, 'NSignalBurned')
+      .withArgs(
+        graphAccount,
+        subgraphNumber0,
+        account.address,
+        usersNSigBefore,
+        vSigEstimate,
+        tokensEstimate,
+      )
 
     // After checks
     const tokensVSig = await getTokensAndVSig(subgraph1.subgraphDeploymentID)
@@ -287,16 +306,7 @@ describe('GNS', () => {
     const nSig = poolAfter[1]
     expect(vSigCurationAfter).eq(vSigBefore.sub(vSigEstimate))
     expect(nSigBefore.sub(usersNSigBefore)).eq(nSig)
-    await expect(tx)
-      .emit(gns, 'NSignalBurned')
-      .withArgs(
-        graphAccount,
-        subgraphNumber0,
-        account.address,
-        usersNSigBefore,
-        vSigEstimate,
-        tokensEstimate,
-      )
+
     return tx
   }
 
