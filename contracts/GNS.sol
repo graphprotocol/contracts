@@ -555,7 +555,7 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Calculations for buying name signal
+     * @dev Calculations for burning name signal
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      * @param _nSignal nSignal being burnt to receive vSignal to be burnt into GRT
@@ -576,8 +576,8 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Calculations burning vSignal from disabled or upgrade, and takes the withdrawal fee
-     * from the name curator owner so they cannot grief all the name curators stake
+     * @dev Calculations burning vSignal from disabled or upgrade, while keeping n signal constant.
+     * Takes the withdrawal fee from the name owner so they cannot grief all the name curators
      * @param _graphAccount Subgraph owner
      * @param _subgraphDeploymentID Subgraph deployment to burn all vSignal from
      * @param _vSignal vSignal being burnt
@@ -625,14 +625,22 @@ contract GNS is Governed, BancorFormula {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignal
-    ) public view returns (uint256, uint256) {
+    )
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, uint256 _) = curation.signalToTokens(
+        (uint256 tokens, uint256 withdrawalFees) = curation.signalToTokens(
             namePool.subgraphDeploymentID,
             vSignal
         );
-        return (vSignal, tokens);
+        return (vSignal, tokens, withdrawalFees);
     }
 
     /**
