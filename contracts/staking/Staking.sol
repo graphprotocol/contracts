@@ -8,6 +8,7 @@ import "../epochs/IEpochManager.sol";
 import "../governance/Governed.sol";
 import "../token/IGraphToken.sol";
 import "../upgrades/GraphProxy.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
 import "./IStaking.sol";
 import "./StakingStorage.sol";
@@ -17,7 +18,7 @@ import "./libs/Stakes.sol";
 /**
  * @title Staking contract
  */
-contract Staking is StakingV1Storage, IStaking, Governed {
+contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
@@ -169,14 +170,6 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     event SetOperator(address indexed indexer, address operator, bool allowed);
 
     /**
-     * @dev Check if the caller is the governor or initializing the implementation.
-     */
-    modifier onlyGovernorOrInit {
-        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
-        _;
-    }
-
-    /**
      * @dev Check if the caller is the slasher.
      */
     modifier onlySlasher {
@@ -199,11 +192,15 @@ contract Staking is StakingV1Storage, IStaking, Governed {
     }
 
     /**
-     * @dev Staking Contract Constructor.
-     * @param _token Address of the Graph Protocol token
-     * @param _epochManager Address of the EpochManager contract
+     * @dev Initialize this contract.
      */
-    function initialize(address _token, address _epochManager) external onlyGovernorOrInit {
+    function initialize(
+        address _governor,
+        address _token,
+        address _epochManager
+    ) external onlyImpl {
+        Governed._initialize(_governor);
+
         token = IGraphToken(_token);
         epochManager = IEpochManager(_epochManager);
     }
@@ -219,13 +216,11 @@ contract Staking is StakingV1Storage, IStaking, Governed {
         address _token,
         address _epochManager
     ) external {
-        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
-
         // Accept to be the implementation for this proxy
-        _proxy.acceptImplementation();
+        _acceptUpgrade(_proxy);
 
         // Initialization
-        Staking(address(_proxy)).initialize(_token, _epochManager);
+        Staking(address(_proxy)).initialize(_proxy.admin(), _token, _epochManager);
     }
 
     /**

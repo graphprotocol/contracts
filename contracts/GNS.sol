@@ -179,6 +179,7 @@ contract GNS is Governed, BancorFormula {
         address _curation,
         address _token
     ) public {
+        Governed._initialize(msg.sender);
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
         curation = ICuration(_curation);
         token = IGraphToken(_token);

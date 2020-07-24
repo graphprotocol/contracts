@@ -143,6 +143,9 @@ contract DisputeManager is Governed {
         uint256 tokens
     );
 
+    /**
+     * @dev Check if the caller is the arbitrator.
+     */
     modifier onlyArbitrator {
         require(msg.sender == arbitrator, "Caller is not the Arbitrator");
         _;
@@ -165,6 +168,7 @@ contract DisputeManager is Governed {
         uint256 _fishermanRewardPercentage,
         uint256 _slashingPercentage
     ) public {
+        Governed._initialize(msg.sender);
         arbitrator = _arbitrator;
         token = IGraphToken(_token);
         staking = IStaking(_staking);

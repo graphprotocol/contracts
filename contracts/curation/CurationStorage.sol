@@ -3,11 +3,10 @@ pragma solidity ^0.6.4;
 import "../bancor/BancorFormula.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
-import "../upgrades/GraphProxyStorage.sol";
 
 import "./GraphSignalToken.sol";
 
-contract CurationV1Storage is GraphProxyStorage, BancorFormula {
+contract CurationV1Storage is BancorFormula {
     // -- Pool --
 
     struct CurationPool {

@@ -75,8 +75,7 @@ export async function deployCuration(owner: Signer, graphToken: string): Promise
   const contract = (await deployContract('Curation', owner)) as Curation
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
-  await proxy.connect(owner).setImplementation(contract.address)
+  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
 
   // Impl accept and initialize
   await contract
@@ -115,8 +114,7 @@ export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
   const contract = (await deployContract('EpochManager', owner)) as EpochManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
-  await proxy.connect(owner).setImplementation(contract.address)
+  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(owner).acceptProxy(proxy.address, defaults.epochs.lengthInBlocks)
@@ -151,8 +149,7 @@ export async function deployStaking(
   const contract = (await deployContract('Staking', owner)) as Staking
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner)) as GraphProxy
-  await proxy.connect(owner).setImplementation(contract.address)
+  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(owner).acceptProxy(proxy.address, graphToken, epochManager)

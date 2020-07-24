@@ -45,6 +45,8 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @param _initialSupply Initial supply of GRT
      */
     constructor(uint256 _initialSupply) public ERC20("Graph Token", "GRT") {
+        Governed._initialize(msg.sender);
+
         // The Governor has the initial supply of tokens
         _mint(msg.sender, _initialSupply);
 
