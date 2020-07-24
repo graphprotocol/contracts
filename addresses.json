@@ -1,243 +1,46 @@
 {
   "42": {
     "EpochManager": {
-      "address": "0xe18D453563d367984fb214d90BDCDd3743Ef5719",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
+      "address": "0xa65F267E7Da767268dC8ACf8CBBe1b2C8Fb81a1c",
+      "initArgs": [
         {
           "name": "lengthInBlocks",
           "value": 5760
         }
       ],
-      "creationCodeHash": "0xdf77b4cdcdb26fb0036b5d6ad41c42e6691caa0ea614d5c918ff81445966a8cb",
-      "runtimeCodeHash": "0x2b573256df4f4a98b977edccd50581264257196731b3f29150a3359bc166a219",
-      "txHash": "0x2c8cc32d318ecd1c1ff07aa0bdfb0dbde02709498940a7ee6f8f1a26c8a2215d"
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0x990d78aa1a42b3c14bf7b894754d2a2f89c22da5bb973b015a6508bb19fbbdcd",
+      "proxy": true,
+      "implementation": {
+        "address": "0x192151EA65e210a3567A779aDF423a23ceA0644d",
+        "creationCodeHash": "0x31165a28dbee9a7d2aa7cc428addc4577200f275f9009274ea7cb4714f60639b",
+        "runtimeCodeHash": "0xc84171160811639a39b9139df9522e566fcfe0864927ce1cffb5e4a96a3a5f39",
+        "txHash": "0x44c07ed5e3007adec6987d5babdfd1ba6eb895c38492cf6a99626ec4625ca503"
+      }
     },
     "GNS": {
-      "address": "0x094807C86162329eFF3d1781F46eF6Bd5580e766",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "didRegistry",
-          "value": "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
-        }
-      ],
-      "creationCodeHash": "0xd945cfeb350eafa39bf050b6cb5208eaf1890bb37f92a78ac176f5d584bc0918",
-      "runtimeCodeHash": "0x62f4a637a2896da4365f72adeefe32b57ee155ff98c0d24132910e0d0588b079",
-      "txHash": "0x86b9becc7d8da21a2141d154a6e7bf1b16913d47715b171a5de75d4f91b861c3"
-    },
-    "GraphToken": {
-      "address": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "initialSupply",
-          "value": "10000000000000000000000000"
-        }
-      ],
-      "creationCodeHash": "0x7a3b41088c34a6d9d2233acb63426725b91196f4859f0aee191a1f9ce6d66790",
-      "runtimeCodeHash": "0x5ae50683bfd5bb06f4bb849eeea7d0085e6c15797fa96f7272ba3d5acc50568b",
-      "txHash": "0xc4765511d24987562169e54d37f77727ecb5d9d5b2d5d0528723417f71a70912"
-    },
-    "ServiceRegistry": {
-      "address": "0x2538f2107222e45e2074A337C5f6a4e3dC44c5C6",
-      "creationCodeHash": "0x0bba22e30783c4b2acc78b906bbc784e741b5b7d94e2c9caff0033e873214153",
-      "runtimeCodeHash": "0x71293814a2ba0b4bf9a29dac340eef2a38ff554ae423aff85a211ad7d019448d",
-      "txHash": "0x0406f81dd550ff375ea2092a741b04a2c13849e21c3ed7198ba002e382ffc99a"
-    },
-    "Curation": {
-      "address": "0x5A8b493f9cf79ca22452b4511b55e0Ff91C850d9",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "token",
-          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
-        },
-        {
-          "name": "reserveRatio",
-          "value": 500000
-        },
-        {
-          "name": "minimumCurationStake",
-          "value": "100000000000000000000"
-        }
-      ],
-      "creationCodeHash": "0xf7c9eeda8efefca0d25aeee82535008f33fd252dc60f5d146dd3dfc3c52d6cc7",
-      "runtimeCodeHash": "0xc69fa19913f7d2bc0b90e49443958d185825e9d6ad1da1eae27e68dad55d94b5",
-      "txHash": "0x3f0f7051fbe5ec7aa246d398aec48a8554a5450ecc13b473c32ae7018a58e3b2"
-    },
-    "RewardsManager": {
-      "address": "0x6304AE0C965B54724C0B34B2611c93c24Ed4B98d",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        }
-      ],
-      "creationCodeHash": "0x3554999ca479cb97bfb0f74eedb5a7056b4c055a7a8f27d2eca1c55e280c0e78",
-      "runtimeCodeHash": "0xbdfa9b703de03a1d712594d47a46f08900c37fefcc66f0e0f2b0743c21a3636e",
-      "txHash": "0xe69ad34fcde1256e736922ce45cd3017b7b10a01e4f44236972b9d46cb826baf"
-    },
-    "Staking": {
-      "address": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "token",
-          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
-        },
-        {
-          "name": "epochManager",
-          "value": "0xe18D453563d367984fb214d90BDCDd3743Ef5719"
-        }
-      ],
-      "creationCodeHash": "0x63c2da6b34be2919f8ed446c310f4353a784db6933645d3175e24bbbb12dd73c",
-      "runtimeCodeHash": "0x6a7f66f97dbb741a812047441884e936a34a50b539c754963470e76d1bfd32ea",
-      "txHash": "0x3cdfefd785d755183dee01a7fd91124cea1f076b81aa724c7032fde03c93b245"
-    },
-    "DisputeManager": {
-      "address": "0xCb3bA107b7096Fe8CF69d4b83b122e0e0BAEaACe",
-      "constructorArgs": [
-        {
-          "name": "governor",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "arbitrator",
-          "value": "0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd"
-        },
-        {
-          "name": "token",
-          "value": "0x9db7918f1E54ab644ee438FAE5FC670B71E0d528"
-        },
-        {
-          "name": "staking",
-          "value": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1"
-        },
-        {
-          "name": "minimumDeposit",
-          "value": "100000000000000000000"
-        },
-        {
-          "name": "fishermanRewardPercentage",
-          "value": 1000
-        },
-        {
-          "name": "slashingPercentage",
-          "value": 1000
-        }
-      ],
-      "creationCodeHash": "0x5f0f60b3a52a4ca320bba2ae9160e36c900050443e2e68c5685a03c39ce254d3",
-      "runtimeCodeHash": "0xe2d13b28f3a5518ee95e13b53ab27d435efdc4b35fa03432b40bf438c68119c5",
-      "txHash": "0x317f51e2372189fc92de081ade980109322ba23ff3fc6205fb829c3af3a0f9b1"
-    },
-    "IndexerCTDT": {
-      "address": "0xF537B2b434840D021b92fD99f51ae85c5c6672C1",
-      "creationCodeHash": "0x545816357620fe4b754c6762a145897f6bb3a1dbc9fd8f84592e4dad381b5c78",
-      "runtimeCodeHash": "0x6efbe2de686d7a695463f0a427a3f37ce556ec438d09e105f37fadd31565a30e",
-      "txHash": "0xdc780890c5e256294699e8d19af585b6f7d4e31ac9e3aa1b3ef093f9518488a7"
-    },
-    "IndexerSingleAssetInterpreter": {
-      "address": "0xe64E6ecf07C81d88bc344284888F772431c4e98c",
-      "creationCodeHash": "0xcbc980af13c5d2f76e8277429dcbcf10d16d1616731a5c24481dbf13eb065357",
-      "runtimeCodeHash": "0x8235a58e9ee9a6057b9b40749c3bc7a0da6f7f0e98c715287042cb219eed12c7",
-      "txHash": "0xacf66e3982d206096c12cdf30bcbfcdfed749701884a656a100124f578455260"
-    },
-    "IndexerMultiAssetInterpreter": {
-      "address": "0x9C62F260D7CCfbf8C553f17140a94C76083958ea",
-      "creationCodeHash": "0xcf680c95414066ae46789c3f56befffb0ccf53128e20e47d11163eabdca7eadd",
-      "runtimeCodeHash": "0x4f0c291f8a7bf98accde0c58a1a93eec0bed054d5fa2d04c87c17d7716283b21",
-      "txHash": "0xf6eadc68890a3e3f4b9428621c59f99565d30f891bea14c3ad9c8d673c7c4121"
-    },
-    "IndexerWithdrawInterpreter": {
-      "address": "0xAB0cCB064DAaa462cBbCF25073A0E70778c79361",
-      "creationCodeHash": "0x6fb667bf67a16df6880624be4ed5585f4c3b0d30aeb8e7d8abf01cacbb7f5993",
-      "runtimeCodeHash": "0xe91f02039850e2776be90485801baedb5ae89d77828ccd5bcfa0a726a9364edb",
-      "txHash": "0x9c724a9e5db720a79709206773676158a6f567ccd2202a17f8b7d0a900c03b2f"
-    },
-    "MinimumViableMultisig": {
-      "address": "0xBcdd062Aa401d12762D39a78eCD407e9Aa38Dcaa",
-      "constructorArgs": [
-        {
-          "name": "node",
-          "value": "0x0000000000000000000000000000000000000000"
-        },
-        {
-          "name": "staking",
-          "value": "0xCDC02fBf4dc559923A82CfCf8116442b542e86c1"
-        },
-        {
-          "name": "CTDT",
-          "value": "0xF537B2b434840D021b92fD99f51ae85c5c6672C1"
-        },
-        {
-          "name": "singleAssetInterpreter",
-          "value": "0xe64E6ecf07C81d88bc344284888F772431c4e98c"
-        },
-        {
-          "name": "multiAssetInterpreter",
-          "value": "0x9C62F260D7CCfbf8C553f17140a94C76083958ea"
-        },
-        {
-          "name": "withdrawInterpreter",
-          "value": "0xAB0cCB064DAaa462cBbCF25073A0E70778c79361"
-        }
-      ],
-      "creationCodeHash": "0xe0038bd2d6a782a6992d6694508e9ddb297328d11d896c1b03a45321ab80b53a",
-      "runtimeCodeHash": "0xf1a4aef85dc2fa6fa33a2d4ed683bbcd50857b779010eed187ed888cbafc15b2",
-      "txHash": "0x2be17f242352c6c31d2c24c8d17693e251defba8dea7a3fb8ef3a51c1f860f0b"
-    }
-  },
-  "1337": {
-    "EpochManager": {
-      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-      "constructorArgs": [
-        {
-          "name": "lengthInBlocks",
-          "value": 5760
-        }
-      ],
-      "creationCodeHash": "0x3711ded1290987b54cbbb15cf49122c6979661942c82b688e23c7b8839ed2fb2",
-      "runtimeCodeHash": "0x244e7669e2a96269853dd7de7fcc35cc73d127dece5a5e6e533f494f2963d18d",
-      "txHash": "0xf16a2b14fc22e94dc399780e0b7bb27bac8497b7b93ea0cf4cf261dbfc4055d1"
-    },
-    "GNS": {
-      "address": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+      "address": "0xa19Dea85457c22dfCA62F1A5Caeb4A9c8F0cE523",
       "constructorArgs": [
         {
           "name": "didRegistry",
           "value": "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
-        },
-        {
-          "name": "token",
-          "value": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
         },
         {
           "name": "curation",
-          "value": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
+          "value": "0xeb10Fb85a52129dD8243F2F0A671e1ba8BAeE2D5"
+        },
+        {
+          "name": "token",
+          "value": "0x6863Ca246A98b5777C058a6ebCdd99155a2f4e23"
         }
       ],
-      "creationCodeHash": "0x8f30e7767ef818d20ddfce32be6d2a310b03b9a9b70fa78a329b2d6ae7fe1cc1",
-      "runtimeCodeHash": "0x7c4e3426f57cd2b4493cc564ccc8a02499d7009bf2dc09dfe4d4f4a1659ee5d0",
-      "txHash": "0x07b25428331eb44161a6546cf2256adf89a44ee6e80649e811008071da56eaff"
+      "creationCodeHash": "0x4688c106d6ebf4ceaf11a5fe3014ecf6c3481a23db19d3ad86d38c373274f536",
+      "runtimeCodeHash": "0xdbe2eb22c668e7b2b21f1a0a010c798dbdcaa163bfa55009c6faf33f77d7765b",
+      "txHash": "0x80b35d13b7466ac957bc5c9434757953278f47029d06d0f643f1c28be82f7c1c"
     },
     "GraphToken": {
-      "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+      "address": "0x6863Ca246A98b5777C058a6ebCdd99155a2f4e23",
       "constructorArgs": [
         {
           "name": "initialSupply",
@@ -246,20 +49,20 @@
       ],
       "creationCodeHash": "0x42ecc02676d4db7323556709ef5014d9499c02930bdbff3c0c64892a7c2adff8",
       "runtimeCodeHash": "0x6bd1f7ba249970bf7fb28da7b836a546d09c71e26ce7804b8989bcb680798fb9",
-      "txHash": "0x21a38bcb787306c48e1539c56d19d8f0138f7b425b7a10621698b29f82255004"
+      "txHash": "0x439d125d02618b11243b401362e75f120191fa1364bf10991f65bb60e6bc9bf5"
     },
     "ServiceRegistry": {
-      "address": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
+      "address": "0x940DB7B10392d175a2D635ea81Bf62F7D21F2F6f",
       "creationCodeHash": "0xc2bd8e7492bb3bbe975004091e2f76943f04261783cb4d0bcc6de4d4b05f1db2",
       "runtimeCodeHash": "0x400ec2dfd9237d62c8fbd82e916fb1c2d9f9c2530a98a6862e249400e199f4ea",
-      "txHash": "0x4e7e73c6443cfeec0378a645be0bcdc42d7c72115a6c4ae3cc8b52bc6af0650e"
+      "txHash": "0xecbf7643f5424b74e2142ee480e7018033e760c164a03aa7213eb94fd25dc51a"
     },
     "Curation": {
-      "address": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
+      "address": "0xeb10Fb85a52129dD8243F2F0A671e1ba8BAeE2D5",
       "initArgs": [
         {
           "name": "token",
-          "value": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
+          "value": "0x6863Ca246A98b5777C058a6ebCdd99155a2f4e23"
         },
         {
           "name": "reserveRatio",
@@ -270,48 +73,48 @@
           "value": "100000000000000000000"
         }
       ],
-      "creationCodeHash": "0x8d0ce4c63f92ebde71a4c13238fcbf57c99d7cb1c96df6f1e59dac0694fd26c6",
-      "runtimeCodeHash": "0xdd4f1149e7ba5cf8052d08684dafadc077748ebc622ed91f508077dc898826e8",
-      "txHash": "0xce773f692cdd95312ae97729301115195da3f8982f44b0d9b3f4038b6542a15c",
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0xd63ecfe52ad421cb81b1f48680aa127222538e0cf04276a0e4e0e6b0430a967c",
       "proxy": true,
       "implementation": {
-        "address": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550",
-        "creationCodeHash": "0xab31c7abdf9822b32904cf110d3b0716d485d44b7db4f5a6e5365f6ab4cc76a8",
-        "runtimeCodeHash": "0xacc22966ba464407e4c4bc441fc2960a664d6c3fdfdb7ce8e75fd639627d432b",
-        "txHash": "0xabda5ced07d5157374d4388e86061f06a5a47c2ea2248bab31ff9411a3dc9817"
+        "address": "0xa937a32Ca3bAc36bd8081cbee13c65F7f87b7a34",
+        "creationCodeHash": "0xc24a6ea1c30765de52dd053d4a631e145536504b61da049cf0ea59557635575c",
+        "runtimeCodeHash": "0x0b3f65b8d156b14dc56546769efe9709f431b204691bfdb52482fe3e23a31e20",
+        "txHash": "0x71271d8894f9b9337824f35df2038519fca801bd1594bc8a2e520ccedc2e1665"
       }
     },
     "RewardsManager": {
-      "address": "0x59d3631c86BbE35EF041872d502F218A39FBa150",
+      "address": "0x36704cA0E466FD6a3Be03bF8CCa9721226f6BA80",
       "creationCodeHash": "0x7499addf981a9582f77bdbf1230942d20eb13fd00cd2154a345725a5bf96aa27",
       "runtimeCodeHash": "0x1634973cdaa3ade7866fbf2161e136a4d7684239ce50be5dbf9061adf87ec251",
-      "txHash": "0xc4d44b8ae8559a175ee2305efaa3502e41a4c8fa31d89d17532af2ac2f482b9f"
+      "txHash": "0xf3919b49bf98094899424776684912d7fee7fb64622b7c2bc9fa7a18c2f3d845"
     },
     "Staking": {
-      "address": "0x0290FB167208Af455bB137780163b7B7a9a10C16",
+      "address": "0xA08a2f4721e832aACd71904bFaf6b6A9c5CAa72c",
       "initArgs": [
         {
           "name": "token",
-          "value": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
+          "value": "0x6863Ca246A98b5777C058a6ebCdd99155a2f4e23"
         },
         {
           "name": "epochManager",
-          "value": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
+          "value": "0xa65F267E7Da767268dC8ACf8CBBe1b2C8Fb81a1c"
         }
       ],
-      "creationCodeHash": "0x8d0ce4c63f92ebde71a4c13238fcbf57c99d7cb1c96df6f1e59dac0694fd26c6",
-      "runtimeCodeHash": "0xdd4f1149e7ba5cf8052d08684dafadc077748ebc622ed91f508077dc898826e8",
-      "txHash": "0xc0e68e4a4a31f6d32c8234334858784eaef70cb12cf67d3d3b7aca25de645192",
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0x95c03903c8af0fee8abbc53ce215e4d06d71b3ae3ee450150c59fa40cafe9a2d",
       "proxy": true,
       "implementation": {
-        "address": "0x9b1f7F645351AF3631a656421eD2e40f2802E6c0",
-        "creationCodeHash": "0xd75b1fbbdc928bb62b4345f0d38e7dc44d04fb123decbe75d7de1d6f8ce6ffa6",
-        "runtimeCodeHash": "0xd14bc02e29b15438fae500002edf14557e77a021365b82f8f22741e7522a25b8",
-        "txHash": "0xd948d9a7689319a96be1311784bcdaafe6bd6691a60c87b65583c3440d7d525b"
+        "address": "0x2028A0ca32809C43809d1030144e11c5bc9A6637",
+        "creationCodeHash": "0x69ae575623fec68c5ee99723d860f8efbe753e971cf8711b6b4cf7d13c034d2b",
+        "runtimeCodeHash": "0xb26897d28b397cf9c6a4cd8b175cd811dad67a68f909653721207783ecb6635a",
+        "txHash": "0x7c09d61bb9a6c24a81e250e8281989bfe1d9b14e7235052429b3e521207f4f9a"
       }
     },
     "DisputeManager": {
-      "address": "0xA57B8a5584442B467b4689F1144D269d096A3daF",
+      "address": "0xd67fE33E31Ca682afdCA5040Ff69aEBB6679a809",
       "constructorArgs": [
         {
           "name": "arbitrator",
@@ -319,11 +122,11 @@
         },
         {
           "name": "token",
-          "value": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
+          "value": "0x6863Ca246A98b5777C058a6ebCdd99155a2f4e23"
         },
         {
           "name": "staking",
-          "value": "0x0290FB167208Af455bB137780163b7B7a9a10C16"
+          "value": "0xA08a2f4721e832aACd71904bFaf6b6A9c5CAa72c"
         },
         {
           "name": "minimumDeposit",
@@ -338,36 +141,36 @@
           "value": 50000
         }
       ],
-      "creationCodeHash": "0x6b7644e786eb8162d0624f86ed7c61fbed4b6898ff9b8c33436aa9ce5afca85e",
-      "runtimeCodeHash": "0xd14dfdd283f39c9a22c321d382f2b915ea90c8e062b3aef9e6abc289ba1103bb",
-      "txHash": "0x8d9cac5f05da6bfcc813ccf90068a7b737d21683632a50f7d4b7d5a90af70bab"
+      "creationCodeHash": "0x68c8441db86d14a492489a051157f9dc99c412be14e9870705cbc3a18ed6c10e",
+      "runtimeCodeHash": "0x378073d02efeec4e0d67195c91234e025885f9cd69ff23f20b63696a2beb09de",
+      "txHash": "0x7bf6de578e5d0c526b55bf84ab3ee0ee5f85663c6480b42c9cc27b6e52b77c75"
     },
     "IndexerCTDT": {
-      "address": "0x26b4AFb60d6C903165150C6F0AA14F8016bE4aec",
-      "creationCodeHash": "0x337eea244aea5d4c3b38d80b7899697f0c63f680ee00aed08a7029635c71e187",
-      "runtimeCodeHash": "0xcc47d8debe6fd4833a6bf622a48179ef9c8ffc7b52858613a2fd83887e3a826b",
-      "txHash": "0x9504dac3f7f231e08e806ceee44924810c4122db5a9701ab62c331ab8f9f34cc"
+      "address": "0x6f1a6A16bB0B5E711615Cf495bFa1F82612C33B4",
+      "creationCodeHash": "0x8deb4534bd649685131bebe0e8f2b33e133efb76617b2566f7e90d91ded9f6d4",
+      "runtimeCodeHash": "0x046741c41299ff98f975f430277c3e62a181210f63109e2a59b414adf6287b7b",
+      "txHash": "0xfc396e1ad6198f18acf9fa4c2cdfd7845b32ed3acf85d0fed6438bbfcfee80c0"
     },
     "IndexerSingleAssetInterpreter": {
-      "address": "0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe",
-      "creationCodeHash": "0x3161b109cec45b116dd57b0e483cb530d5b2827f30f7a9403380ac221acf0186",
-      "runtimeCodeHash": "0x426111b6e5ee95f95aefea77b3daf1f6f0835dcebfb948f88e266207960e8223",
-      "txHash": "0x9f1d259766d611c316accb69f670089c1d077765b2da8f923457b402d8228f5c"
+      "address": "0x1A777305a461D3390273e29b66946593A8272804",
+      "creationCodeHash": "0x4029a72d7804bb2f1ab39b05a6f9cecbef21a744524453f7e7c904aab59ece4f",
+      "runtimeCodeHash": "0xadb67db5a9afd8596dce145277b1327bfc04592108a6aed404fd20857a52a84a",
+      "txHash": "0x81aba949dea66927d9e45e732aafe87b24cb29e8e8254f23e528b7b06ae7f4ce"
     },
     "IndexerMultiAssetInterpreter": {
-      "address": "0x0E696947A06550DEf604e82C26fd9E493e576337",
-      "creationCodeHash": "0xd44a3de6a2fca66467fb6848b41ad018c6b97df53b79a4bf39c8c484913101f1",
-      "runtimeCodeHash": "0xd086e4566baf12432186ab3a9d64a8b18aa987e5b207a358ee48ec32703425a3",
-      "txHash": "0xab4b28f601fbca12ffef6051927078088aba790d15a7b8663fea89b79c940dcf"
+      "address": "0xcfa5eE9BE8b8E43f106a1b3AB99b55d32D44DC24",
+      "creationCodeHash": "0xd92e432a74dbe545b610819ae634cc031906b986239d3f07685e1be5c50a8ed3",
+      "runtimeCodeHash": "0x9b66e29446dd9e92dd26064346c56c504f754a1294ccdcbdd499d7e7860bc85c",
+      "txHash": "0xd1aa5435eac68c6bcd6590f59aeff176d4d1f21d26c6fcec25be8ad2517400c7"
     },
     "IndexerWithdrawInterpreter": {
-      "address": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
-      "creationCodeHash": "0xa02b723f655e68583b08c678353872a739ac9defeb756bb66192835dc5dda4f1",
-      "runtimeCodeHash": "0x95a8e2ccaffd34062d266b7412ac50d306d29866f3f97258e6cf51f260158086",
-      "txHash": "0x54a574ffebb20fe7b0febd842578af5eb3250923de5fc3019c451b7b78e88cfc"
+      "address": "0x11d92863e8344C87E0a4df1559496E9142ae06eE",
+      "creationCodeHash": "0xe3115209e2cd3e22dc079e7b16a7b6633af0e74b086c149b364cae56fd7f2e5d",
+      "runtimeCodeHash": "0xc19f5b5b769296e95f969e758b31aa24991b5cc8779038e8e84a5fed69b8fd7e",
+      "txHash": "0x4d0baf2946fa6e250d3352d54405009397675ee98cbf8d6121e9a2648f29e0f8"
     },
     "MinimumViableMultisig": {
-      "address": "0xA94B7f0465E98609391C623d0560C5720a3f2D33",
+      "address": "0xeDF16993608357B4028EB47Af2239660A57DFAf7",
       "constructorArgs": [
         {
           "name": "node",
@@ -375,28 +178,231 @@
         },
         {
           "name": "staking",
-          "value": "0x0290FB167208Af455bB137780163b7B7a9a10C16"
+          "value": "0xA08a2f4721e832aACd71904bFaf6b6A9c5CAa72c"
         },
         {
           "name": "CTDT",
-          "value": "0x26b4AFb60d6C903165150C6F0AA14F8016bE4aec"
+          "value": "0x6f1a6A16bB0B5E711615Cf495bFa1F82612C33B4"
         },
         {
           "name": "singleAssetInterpreter",
-          "value": "0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe"
+          "value": "0x1A777305a461D3390273e29b66946593A8272804"
         },
         {
           "name": "multiAssetInterpreter",
-          "value": "0x0E696947A06550DEf604e82C26fd9E493e576337"
+          "value": "0xcfa5eE9BE8b8E43f106a1b3AB99b55d32D44DC24"
         },
         {
           "name": "withdrawInterpreter",
-          "value": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15"
+          "value": "0x11d92863e8344C87E0a4df1559496E9142ae06eE"
         }
       ],
-      "creationCodeHash": "0x480e6ecb0a3e68919870cc1c9e67984a3f2f8452ff2cd6ed1aa7f10a11f8040f",
-      "runtimeCodeHash": "0x55ebee7b0594c0d21c464670dca8ed13fca9f572e1d7b7a281145943d5c99768",
-      "txHash": "0xfe0f673fb28a5068f16948bad4486bf2ede457951dfb1a62a8a1c2e5aaf32009"
+      "creationCodeHash": "0xf22b68f30dd0ec350089fe28c74fd3700b765da9650abe09ef5719f10825d9ee",
+      "runtimeCodeHash": "0xcef6b12b9620ef40dac997cd0dcedaa2e4b48d8d3a66d34991401ae46967eb15",
+      "txHash": "0x05e77f0de805f54d69a626a306ffadf2fa0537e93f255773fe4ff5458a2d3300"
+    }
+  },
+  "1337": {
+    "EpochManager": {
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "initArgs": [
+        {
+          "name": "lengthInBlocks",
+          "value": 5760
+        }
+      ],
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0x3dae6f32b5f2eb18abab2c3b5178f911636cf82d3d60c42bfb9c414f131d8dfd",
+      "proxy": true,
+      "implementation": {
+        "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+        "creationCodeHash": "0x31165a28dbee9a7d2aa7cc428addc4577200f275f9009274ea7cb4714f60639b",
+        "runtimeCodeHash": "0xc84171160811639a39b9139df9522e566fcfe0864927ce1cffb5e4a96a3a5f39",
+        "txHash": "0xf0bc52b02c4afa0f6d1334cf1cebd96da7c88d8855985bdcef3139a578cbfdf9"
+      }
+    },
+    "GNS": {
+      "address": "0x9b1f7F645351AF3631a656421eD2e40f2802E6c0",
+      "constructorArgs": [
+        {
+          "name": "didRegistry",
+          "value": "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+        },
+        {
+          "name": "curation",
+          "value": "0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7"
+        },
+        {
+          "name": "token",
+          "value": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
+        }
+      ],
+      "creationCodeHash": "0x4688c106d6ebf4ceaf11a5fe3014ecf6c3481a23db19d3ad86d38c373274f536",
+      "runtimeCodeHash": "0xdbe2eb22c668e7b2b21f1a0a010c798dbdcaa163bfa55009c6faf33f77d7765b",
+      "txHash": "0x4719985a0c41d8be2aa2357a7f830ecbb417e3c50147b2b1a047208d45e98b49"
+    },
+    "GraphToken": {
+      "address": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550",
+      "constructorArgs": [
+        {
+          "name": "initialSupply",
+          "value": "10000000000000000000000000"
+        }
+      ],
+      "creationCodeHash": "0x42ecc02676d4db7323556709ef5014d9499c02930bdbff3c0c64892a7c2adff8",
+      "runtimeCodeHash": "0x6bd1f7ba249970bf7fb28da7b836a546d09c71e26ce7804b8989bcb680798fb9",
+      "txHash": "0xc813608155712a7a63656aca95ee4457cc60f4df6cedcc929e4ec2f0a286781d"
+    },
+    "ServiceRegistry": {
+      "address": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
+      "creationCodeHash": "0xc2bd8e7492bb3bbe975004091e2f76943f04261783cb4d0bcc6de4d4b05f1db2",
+      "runtimeCodeHash": "0x400ec2dfd9237d62c8fbd82e916fb1c2d9f9c2530a98a6862e249400e199f4ea",
+      "txHash": "0x1ca22d19350bdc516e2ba5d3699e78b0392db5f450e8e47e7eda9abbc5fee793"
+    },
+    "Curation": {
+      "address": "0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7",
+      "initArgs": [
+        {
+          "name": "token",
+          "value": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
+        },
+        {
+          "name": "reserveRatio",
+          "value": 500000
+        },
+        {
+          "name": "minimumCurationStake",
+          "value": "100000000000000000000"
+        }
+      ],
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0x98d89ebbc5ce9e91310a928fa0b95ce6eb543a83a0aa9242a279c48ee0274e12",
+      "proxy": true,
+      "implementation": {
+        "address": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+        "creationCodeHash": "0xc24a6ea1c30765de52dd053d4a631e145536504b61da049cf0ea59557635575c",
+        "runtimeCodeHash": "0x0b3f65b8d156b14dc56546769efe9709f431b204691bfdb52482fe3e23a31e20",
+        "txHash": "0x4a43fabe685f85e77f80efbac5ac3a4e83c69d2d784cda0ee9edcc89e033af59"
+      }
+    },
+    "RewardsManager": {
+      "address": "0x67B5656d60a809915323Bf2C40A8bEF15A152e3e",
+      "creationCodeHash": "0x7499addf981a9582f77bdbf1230942d20eb13fd00cd2154a345725a5bf96aa27",
+      "runtimeCodeHash": "0x1634973cdaa3ade7866fbf2161e136a4d7684239ce50be5dbf9061adf87ec251",
+      "txHash": "0x82218f684804b16092269da746cb1e3e3ba79be29cfe6bfe60f0ff7d21281f43"
+    },
+    "Staking": {
+      "address": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66",
+      "initArgs": [
+        {
+          "name": "token",
+          "value": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
+        },
+        {
+          "name": "epochManager",
+          "value": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
+        }
+      ],
+      "creationCodeHash": "0x3b538be0a3ab549cf59597328009b163d1ed633404c3705bbe37d75d5fbea037",
+      "runtimeCodeHash": "0xd356453c7271dfee72289743debac9bb3530104607a4c4b17c596ac1386336fd",
+      "txHash": "0xba48970779e182477c4a8f2bb28fc55e57cff05721a977c9fac50e93969d9546",
+      "proxy": true,
+      "implementation": {
+        "address": "0xA57B8a5584442B467b4689F1144D269d096A3daF",
+        "creationCodeHash": "0x69ae575623fec68c5ee99723d860f8efbe753e971cf8711b6b4cf7d13c034d2b",
+        "runtimeCodeHash": "0xb26897d28b397cf9c6a4cd8b175cd811dad67a68f909653721207783ecb6635a",
+        "txHash": "0xaf7b349f91487c41d6c406bb35cb2bac8438e2df47887e482de38f9cb38ecf67"
+      }
+    },
+    "DisputeManager": {
+      "address": "0x0E696947A06550DEf604e82C26fd9E493e576337",
+      "constructorArgs": [
+        {
+          "name": "arbitrator",
+          "value": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+        },
+        {
+          "name": "token",
+          "value": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
+        },
+        {
+          "name": "staking",
+          "value": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66"
+        },
+        {
+          "name": "minimumDeposit",
+          "value": "100000000000000000000"
+        },
+        {
+          "name": "fishermanRewardPercentage",
+          "value": 100000
+        },
+        {
+          "name": "slashingPercentage",
+          "value": 50000
+        }
+      ],
+      "creationCodeHash": "0x68c8441db86d14a492489a051157f9dc99c412be14e9870705cbc3a18ed6c10e",
+      "runtimeCodeHash": "0x378073d02efeec4e0d67195c91234e025885f9cd69ff23f20b63696a2beb09de",
+      "txHash": "0x8e12387e224a4035d19964dc2bc843190a2e5d9a25d4298adffbd72645ba1253"
+    },
+    "IndexerCTDT": {
+      "address": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
+      "creationCodeHash": "0x8deb4534bd649685131bebe0e8f2b33e133efb76617b2566f7e90d91ded9f6d4",
+      "runtimeCodeHash": "0x046741c41299ff98f975f430277c3e62a181210f63109e2a59b414adf6287b7b",
+      "txHash": "0x5173af240c56f2f39f5f950ae3706dcccac08b6472b1eeb14871b1b76e109963"
+    },
+    "IndexerSingleAssetInterpreter": {
+      "address": "0xA94B7f0465E98609391C623d0560C5720a3f2D33",
+      "creationCodeHash": "0x4029a72d7804bb2f1ab39b05a6f9cecbef21a744524453f7e7c904aab59ece4f",
+      "runtimeCodeHash": "0xadb67db5a9afd8596dce145277b1327bfc04592108a6aed404fd20857a52a84a",
+      "txHash": "0xc4945c0370a047ff13806d2046bff908ae5028800a17de80ac8befca3d1a4bed"
+    },
+    "IndexerMultiAssetInterpreter": {
+      "address": "0x6eD79Aa1c71FD7BdBC515EfdA3Bd4e26394435cC",
+      "creationCodeHash": "0xd92e432a74dbe545b610819ae634cc031906b986239d3f07685e1be5c50a8ed3",
+      "runtimeCodeHash": "0x9b66e29446dd9e92dd26064346c56c504f754a1294ccdcbdd499d7e7860bc85c",
+      "txHash": "0x706bb587f7c7d889739e443544d9e92aec86566fe6b598ea560ba64d70be02f8"
+    },
+    "IndexerWithdrawInterpreter": {
+      "address": "0xb09bCc172050fBd4562da8b229Cf3E45Dc3045A6",
+      "creationCodeHash": "0xe3115209e2cd3e22dc079e7b16a7b6633af0e74b086c149b364cae56fd7f2e5d",
+      "runtimeCodeHash": "0xc19f5b5b769296e95f969e758b31aa24991b5cc8779038e8e84a5fed69b8fd7e",
+      "txHash": "0xaec539bb7354964a353da139e79a58105f7fb37a710d747eb5b8bdc38efd0743"
+    },
+    "MinimumViableMultisig": {
+      "address": "0xFC628dd79137395F3C9744e33b1c5DE554D94882",
+      "constructorArgs": [
+        {
+          "name": "node",
+          "value": "0x0000000000000000000000000000000000000000"
+        },
+        {
+          "name": "staking",
+          "value": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66"
+        },
+        {
+          "name": "CTDT",
+          "value": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15"
+        },
+        {
+          "name": "singleAssetInterpreter",
+          "value": "0xA94B7f0465E98609391C623d0560C5720a3f2D33"
+        },
+        {
+          "name": "multiAssetInterpreter",
+          "value": "0x6eD79Aa1c71FD7BdBC515EfdA3Bd4e26394435cC"
+        },
+        {
+          "name": "withdrawInterpreter",
+          "value": "0xb09bCc172050fBd4562da8b229Cf3E45Dc3045A6"
+        }
+      ],
+      "creationCodeHash": "0xf22b68f30dd0ec350089fe28c74fd3700b765da9650abe09ef5719f10825d9ee",
+      "runtimeCodeHash": "0xcef6b12b9620ef40dac997cd0dcedaa2e4b48d8d3a66d34991401ae46967eb15",
+      "txHash": "0x21bf68df5054b8c2ec8c536f8b13bce1c0981104df0409f948f7b6493d98c5d6"
     }
   },
   "kovan": {

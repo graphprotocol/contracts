@@ -131,6 +131,15 @@ const config = {
         mnemonic: getAccountMnemonic(),
       },
     },
+    rinkeby: {
+      chainId: 4,
+      url: getInfuraProviderURL('rinkeby'),
+      gas: 'auto',
+      gasPrice: 'auto',
+      accounts: {
+        mnemonic: getAccountMnemonic(),
+      },
+    },
     mainnet: {
       chainId: 1,
       url: getInfuraProviderURL('mainnet'),
