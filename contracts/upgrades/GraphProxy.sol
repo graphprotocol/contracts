@@ -1,56 +1,74 @@
 pragma solidity ^0.6.4;
 
-import "../governance/Governed.sol";
-
 import "./GraphProxyStorage.sol";
 
 /**
  * @title Graph Proxy
  * @dev Graph Proxy contract used to delegate call implementation contracts and support upgrades.
+ * This contract should NOT define storage as it is managed by GraphProxyStorage.
  */
-contract GraphProxy is GraphProxyStorage, Governed {
+contract GraphProxy is GraphProxyStorage {
     /**
-     * @dev Emitted when pendingImplementation is changed.
+     * @dev Contract constructor.
+     * @param _impl Address of the initial implementation
      */
-    event NewPendingImplementation(
-        address oldPendingImplementation,
-        address newPendingImplementation
-    );
+    constructor(address _impl) public {
+        assert(ADMIN_SLOT == bytes32(uint256(keccak256("eip1967.proxy.admin")) - 1));
+        assert(
+            IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
+        );
+        assert(
+            PENDING_IMPLEMENTATION_SLOT ==
+                bytes32(uint256(keccak256("eip1967.proxy.pendingImplementation")) - 1)
+        );
+
+        _setAdmin(msg.sender);
+        upgradeTo(_impl);
+    }
 
     /**
-     * @dev Emitted when pendingImplementation is accepted,
-     * which means contract implementation is updated.
+     * @return adm Get the current admin.
      */
-    event NewImplementation(address oldImplementation, address newImplementation);
+    function admin() external view returns (address) {
+        return _admin();
+    }
+
+    /**
+     * @dev Sets the address of the proxy admin.
+     * @param _newAdmin Address of the new proxy admin
+     */
+    function setAdmin(address _newAdmin) external onlyAdmin {
+        require(_newAdmin != address(0), "Cannot change the admin of a proxy to the zero address");
+        _setAdmin(_newAdmin);
+    }
+
+    /**
+     * @return The address of the implementation.
+     */
+    function implementation() external view returns (address) {
+        return _implementation();
+    }
 
     /**
      * @dev Upgrades to a new implementation contract.
      * @param _newImplementation Address of implementation contract
      */
-    function setImplementation(address _newImplementation) external onlyGovernor {
-        address oldPendingImplementation = pendingImplementation;
-        pendingImplementation = _newImplementation;
-
-        emit NewPendingImplementation(oldPendingImplementation, pendingImplementation);
+    function upgradeTo(address _newImplementation) public onlyAdmin {
+        _setPendingImplementation(_newImplementation);
     }
 
     /**
-     * @dev Admin function for new implementation to accept it's role as implementation
+     * @dev Admin function for new implementation to accept its role as implementation.
      */
-    function acceptImplementation() external {
+    function acceptUpgrade() external {
+        address pendingImplementation = _pendingimplementation();
         require(
             pendingImplementation != address(0) && msg.sender == pendingImplementation,
-            "Caller must be pending implementation"
+            "Caller must be the pending implementation"
         );
 
-        address oldImplementation = implementation;
-        address oldPendingImplementation = pendingImplementation;
-
-        implementation = pendingImplementation;
-        pendingImplementation = address(0);
-
-        emit NewImplementation(oldImplementation, implementation);
-        emit NewPendingImplementation(oldPendingImplementation, pendingImplementation);
+        _setImplementation(pendingImplementation);
+        _setPendingImplementation(address(0));
     }
 
     /**
@@ -64,7 +82,7 @@ contract GraphProxy is GraphProxyStorage, Governed {
             let ptr := mload(0x40)
 
             // (b) get address of the implementation
-            let impl := and(sload(implementation_slot), 0xffffffffffffffffffffffffffffffffffffffff)
+            let impl := and(sload(IMPLEMENTATION_SLOT), 0xffffffffffffffffffffffffffffffffffffffff)
 
             // (1) copy incoming call data
             calldatacopy(ptr, 0, calldatasize())

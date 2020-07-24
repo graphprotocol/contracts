@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../governance/Governed.sol";
 import "../upgrades/GraphProxy.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
 import "./EpochManagerStorage.sol";
 import "./IEpochManager.sol";
@@ -12,7 +13,7 @@ import "./IEpochManager.sol";
  * @title EpochManager contract
  * @dev Tracks epochs based on its block duration to sync contracts in the protocol.
  */
-contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
+contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager, Governed {
     using SafeMath for uint256;
 
     // -- Events --
@@ -21,18 +22,12 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
     event EpochLengthUpdate(uint256 indexed epoch, uint256 epochLength);
 
     /**
-     * @dev Check if the caller is the governor or initializing the implementation.
-     */
-    modifier onlyGovernorOrInit {
-        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
-        _;
-    }
-
-    /**
      * @dev Initialize this contract.
      */
-    function initialize(uint256 _epochLength) external onlyGovernorOrInit {
+    function initialize(address _governor, uint256 _epochLength) external onlyImpl {
         require(_epochLength > 0, "Epoch length cannot be 0");
+
+        Governed._initialize(_governor);
 
         lastLengthUpdateEpoch = 0;
         lastLengthUpdateBlock = blockNum();
@@ -47,13 +42,11 @@ contract EpochManager is EpochManagerV1Storage, IEpochManager, Governed {
      * @param _epochLength Epoch length in blocks
      */
     function acceptProxy(GraphProxy _proxy, uint256 _epochLength) external {
-        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
-
         // Accept to be the implementation for this proxy
-        _proxy.acceptImplementation();
+        _acceptUpgrade(_proxy);
 
         // Initialization
-        EpochManager(address(_proxy)).initialize(_epochLength);
+        EpochManager(address(_proxy)).initialize(_proxy.admin(), _epochLength);
     }
 
     /**

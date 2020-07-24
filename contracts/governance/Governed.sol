@@ -1,12 +1,15 @@
 pragma solidity ^0.6.4;
 
-import "./GovernedStorage.sol";
-
 /**
  * @title Graph Governance contract
  * @dev All contracts that will be owned by a Governor entity should extend this contract.
  */
-contract Governed is GovernedStorage {
+contract Governed {
+    // -- State --
+
+    address public governor;
+    address public pendingGovernor;
+
     // -- Events --
 
     event NewPendingOwnership(address indexed from, address indexed to);
@@ -22,10 +25,10 @@ contract Governed is GovernedStorage {
     }
 
     /**
-     * @dev Constructor. Set the governor to the contract caller.
+     * @dev Initialize the governor to the contract caller.
      */
-    constructor() public {
-        governor = msg.sender;
+    function _initialize(address _governor) internal {
+        governor = _governor;
     }
 
     /**

@@ -1,8 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "../upgrades/GraphProxyStorage.sol";
-
-contract EpochManagerV1Storage is GraphProxyStorage {
+contract EpochManagerV1Storage {
     // -- State --
 
     // Epoch length in blocks

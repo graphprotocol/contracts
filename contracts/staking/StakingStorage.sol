@@ -4,13 +4,12 @@ import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
-import "../upgrades/GraphProxyStorage.sol";
 
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
-contract StakingV1Storage is GraphProxyStorage {
+contract StakingV1Storage {
     // -- Staking --
 
     // Time in blocks to unstake

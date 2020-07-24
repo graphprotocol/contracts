@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../governance/Governed.sol";
 import "../upgrades/GraphProxy.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
 import "./CurationStorage.sol";
 import "./ICuration.sol";
@@ -20,7 +21,7 @@ import "./ICuration.sol";
  * Holders can burn GST tokens using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, ICuration, Governed {
+contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     using SafeMath for uint256;
 
     // 100% in parts per million
@@ -62,22 +63,17 @@ contract Curation is CurationV1Storage, ICuration, Governed {
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @dev Check if the caller is the governor or initializing the implementation.
-     */
-    modifier onlyGovernorOrInit {
-        require(msg.sender == governor || msg.sender == implementation, "Only Governor can call");
-        _;
-    }
-
-    /**
      * @dev Initialize this contract.
      */
     function initialize(
+        address _governor,
         address _token,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
-    ) external onlyGovernorOrInit {
+    ) external onlyImpl {
+        Governed._initialize(_governor);
         BancorFormula._initialize();
+
         token = IGraphToken(_token);
         defaultReserveRatio = _defaultReserveRatio;
         minimumCurationStake = _minimumCurationStake;
@@ -96,13 +92,16 @@ contract Curation is CurationV1Storage, ICuration, Governed {
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationStake
     ) external {
-        require(msg.sender == _proxy.governor(), "Only proxy governor can upgrade");
-
         // Accept to be the implementation for this proxy
-        _proxy.acceptImplementation();
+        _acceptUpgrade(_proxy);
 
         // Initialization
-        Curation(address(_proxy)).initialize(_token, _defaultReserveRatio, _minimumCurationStake);
+        Curation(address(_proxy)).initialize(
+            _proxy.admin(), // default governor is proxy admin
+            _token,
+            _defaultReserveRatio,
+            _minimumCurationStake
+        );
     }
 
     /**
@@ -110,7 +109,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
-    function setStaking(address _staking) external override onlyGovernorOrInit {
+    function setStaking(address _staking) external override onlyGovernor {
         staking = IStaking(_staking);
         emit ParameterUpdated("staking");
     }
@@ -120,11 +119,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
-    function setDefaultReserveRatio(uint32 _defaultReserveRatio)
-        external
-        override
-        onlyGovernorOrInit
-    {
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -141,11 +136,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @notice Update the minimum stake amount to `_minimumCurationStake`
      * @param _minimumCurationStake Minimum amount of tokens required stake
      */
-    function setMinimumCurationStake(uint256 _minimumCurationStake)
-        external
-        override
-        onlyGovernorOrInit
-    {
+    function setMinimumCurationStake(uint256 _minimumCurationStake) external override onlyGovernor {
         require(_minimumCurationStake > 0, "Minimum curation stake cannot be 0");
         minimumCurationStake = _minimumCurationStake;
         emit ParameterUpdated("minimumCurationStake");
@@ -155,7 +146,7 @@ contract Curation is CurationV1Storage, ICuration, Governed {
      * @dev Set the fee percentage to charge when a curator withdraws stake.
      * @param _percentage Percentage fee charged when withdrawing stake
      */
-    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernorOrInit {
+    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,

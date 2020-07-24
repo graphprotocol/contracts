@@ -120,12 +120,10 @@ export const deployContractWithProxyAndSave = async (
   wallet: Wallet,
   addressBook: AddressBook,
 ): Promise<Contract> => {
-  // Deploy proxy
-  const proxy = await deployContract('GraphProxy', [], wallet)
   // Deploy implementation
   const contract = await deployContractAndSave(name, [], wallet, addressBook)
-  // Upgrade to implementation
-  await sendTransaction(wallet, proxy, 'setImplementation', contract.address)
+  // Deploy proxy
+  const proxy = await deployContract('GraphProxy', [contract.address], wallet)
   // Implementation accepts upgrade
   await sendTransaction(
     wallet,
