@@ -411,5 +411,14 @@
     "ensPublicResolver": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7",
     "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
   },
-  "mainnet": {}
+  "rinkeby": {
+    "ens": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    "ensTestRegistrar": "0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b",
+    "ensPublicResolver": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7",
+    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
+  },
+  "mainnet": {
+    "ens": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
+  }
 }
