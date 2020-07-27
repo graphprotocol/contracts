@@ -233,7 +233,8 @@ contract BancorFormula {
                 _reserveBalance > 0 &&
                 _reserveRatio > 0 &&
                 _reserveRatio <= MAX_RATIO &&
-                _sellAmount <= _supply
+                _sellAmount <= _supply,
+            "invalid parameters"
         );
 
         // special case for 0 sell amount
