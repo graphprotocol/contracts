@@ -198,9 +198,8 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
-     * will be used.
-     * @param _graphAccount Account that is publishing the subgraph
+     * @dev Allows a graph account to set a default name
+     * @param _graphAccount Account that is setting their name
      * @param _nameSystem Name system account already has ownership of a name in
      * @param _nameIdentifier The unique identifier that is used to identify the name in the system
      * @param _name The name being set as default
@@ -215,10 +214,9 @@ contract GNS is Governed, BancorFormula {
     }
 
     /**
-     * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
-     * will be used.
-     * @param _graphAccount Account that is publishing the subgraph
-     * @param _subgraphNumber Subgraph deployment ID of the version, linked to the name
+     * @dev Allows a graph account update the metadata of a subgraph they have published
+     * @param _graphAccount Account that owns the subgraph
+     * @param _subgraphNumber Subgraph number
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
     function updateSubgraphMetadata(
@@ -236,20 +234,18 @@ contract GNS is Governed, BancorFormula {
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
      * @param _versionMetadata IPFS hash for the subgraph version metadata
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
-     * @param _graphTokens Graph tokens deposited to initialze the curve
      */
     function publishNewSubgraph(
         address _graphAccount,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata,
-        bytes32 _subgraphMetadata,
-        uint256 _graphTokens
+        bytes32 _subgraphMetadata
     ) external onlyGraphAccountOwner(_graphAccount) {
         uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
-        publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
+        _publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         graphAccountSubgraphNumbers[_graphAccount]++;
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
-        enableNameSignal(_graphAccount, subgraphNumber, _graphTokens);
+        _enableNameSignal(_graphAccount, subgraphNumber);
     }
 
     /**
@@ -276,8 +272,8 @@ contract GNS is Governed, BancorFormula {
             _subgraphDeploymentID != oldSubgraphDeploymentID,
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
-        publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
-        upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
+        _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
+        _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
     }
 
     /**
@@ -287,7 +283,7 @@ contract GNS is Governed, BancorFormula {
      * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
      * @param _versionMetadata IPFS hash for the subgraph version metadata
      */
-    function publishVersion(
+    function _publishVersion(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
@@ -323,7 +319,7 @@ contract GNS is Governed, BancorFormula {
         delete subgraphs[_graphAccount][_subgraphNumber];
         emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
 
-        disableNameSignal(_graphAccount, _subgraphNumber, subgraphDeploymentID);
+        _disableNameSignal(_graphAccount, _subgraphNumber, subgraphDeploymentID);
     }
 
     /**
@@ -331,13 +327,8 @@ contract GNS is Governed, BancorFormula {
      * deployment
      * @param _graphAccount Graph account enabling name signal
      * @param _subgraphNumber Subgraph number being used
-     * @param _graphTokens Graph tokens deposited to initialze the curve
      */
-    function enableNameSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _graphTokens
-    ) private {
+    function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         namePool.reserveRatio = defaultReserveRatio;
@@ -348,8 +339,6 @@ contract GNS is Governed, BancorFormula {
             subgraphDeploymentID,
             defaultReserveRatio
         );
-
-        _mintNSignal(_graphAccount, _subgraphNumber, _graphTokens);
     }
 
     /**
@@ -358,7 +347,7 @@ contract GNS is Governed, BancorFormula {
      * @param _subgraphNumber Subgraph number being used
      * @param _newSubgraphDeploymentID Deployment ID being upgraded to
      */
-    function upgradeNameSignal(
+    function _upgradeNameSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _newSubgraphDeploymentID
@@ -452,7 +441,7 @@ contract GNS is Governed, BancorFormula {
      * @param _subgraphNumber Subgraph number
      * @param _subgraphDeploymentID Subgraph deployment ID of the deprecating subgraph
      */
-    function disableNameSignal(
+    function _disableNameSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID
@@ -460,17 +449,22 @@ contract GNS is Governed, BancorFormula {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = namePool.vSignal;
         namePool.vSignal = 0;
-        (uint256 tokens, uint256 withdrawalFees) = curation.burn(_subgraphDeploymentID, vSignal);
+        // If no nSignal, then no need to burn vSignal
+        if (namePool.nSignal != 0) {
+            (uint256 tokens, uint256 withdrawalFees) = curation.burn(
+                _subgraphDeploymentID,
+                vSignal
+            );
 
-        // Get the owner of the Name to reimburse the withdrawal fee
-        require(
-            token.transferFrom(_graphAccount, address(this), withdrawalFees),
-            "GNS: Error reimbursing withdrawal fees"
-        );
-
+            // Get the owner of the Name to reimburse the withdrawal fee
+            require(
+                token.transferFrom(_graphAccount, address(this), withdrawalFees),
+                "GNS: Error reimbursing withdrawal fees"
+            );
+            namePool.withdrawableGRT = tokens + withdrawalFees;
+        }
         // Set the NameCurationPool fields to make it disabled
         namePool.disabled = true;
-        namePool.withdrawableGRT = tokens + withdrawalFees;
         emit NameSignalDisabled(_graphAccount, _subgraphNumber, namePool.withdrawableGRT);
     }
 
@@ -629,10 +623,6 @@ contract GNS is Governed, BancorFormula {
         uint256 _vSignal
     ) public view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(
-            namePool.disabled == false,
-            "GNS: Name cannot be disabled to call vSignalToNSignal()"
-        );
         uint256 vSignal = _vSignal;
         uint256 nSignalInit = 0;
         uint32 reserveRatio = namePool.reserveRatio;

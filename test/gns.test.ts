@@ -35,6 +35,7 @@ describe('GNS', () => {
 
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
+  const tokens100000 = toGRT('100000')
   const withdrawalPercentage = 50000
   let subgraph0: Subgraph
   let subgraph1: Subgraph
@@ -69,13 +70,8 @@ describe('GNS', () => {
     account: Account,
     graphAccount: string,
     subgraphNumber: number,
-    graphTokens: BigNumber,
     subgraphToPublish = subgraph0, // Defaults to subgraph created in before()
   ): Promise<ContractTransaction> => {
-    const signals = await gns.tokensToNSignal(graphAccount, subgraphNumber, graphTokens)
-    const vSigEstimate = signals[0]
-    const nSigEstimate = signals[1]
-
     const tx = gns
       .connect(account.signer)
       .publishNewSubgraph(
@@ -83,7 +79,6 @@ describe('GNS', () => {
         subgraphToPublish.subgraphDeploymentID,
         subgraphToPublish.versionMetadata,
         subgraphToPublish.subgraphMetadata,
-        graphTokens,
       )
     await expect(tx)
       .emit(gns, 'SubgraphPublished')
@@ -102,17 +97,9 @@ describe('GNS', () => {
         subgraphToPublish.subgraphMetadata,
       )
 
-    const tokensVSig = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensAfter = tokensVSig[0]
-    const vSigCuration = tokensVSig[1]
-    expect(graphTokens).eq(tokensAfter)
-
     const pool = await gns.nameSignals(graphAccount, subgraphNumber)
-    const vSigPool = pool[0]
-    const nSig = pool[1]
-    expect(vSigCuration).eq(vSigPool).eq(vSigEstimate)
-    expect(nSigEstimate).eq(nSig)
-
+    const reserveRatio = pool[3]
+    expect(reserveRatio).eq(1000000)
     return tx
   }
   const publishNewVersion = async (
@@ -332,7 +319,7 @@ describe('GNS', () => {
     const tx = gns.connect(account.signer).mintNSignal(graphAccount, subgraphNumber0, graphTokens)
     await expect(tx)
       .emit(gns, 'NSignalMinted')
-      .withArgs(graphAccount, subgraphNumber0, other.address, nSigEstimate, vSigEstimate)
+      .withArgs(graphAccount, subgraphNumber0, account.address, nSigEstimate, vSigEstimate)
 
     const tokensVSig = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
     const tokensAfter = tokensVSig[0]
@@ -462,12 +449,12 @@ describe('GNS', () => {
     subgraph1 = createSubgraph(me, '1')
     defaultName = createDefaultName('graph')
     // Give some funds to the signers and approve gns contract to use funds on signers behalf
-    await grt.connect(governor.signer).mint(me.address, tokens10000)
-    await grt.connect(governor.signer).mint(other.address, tokens10000)
-    await grt.connect(me.signer).approve(gns.address, tokens10000)
-    await grt.connect(me.signer).approve(curation.address, tokens10000)
-    await grt.connect(other.signer).approve(gns.address, tokens10000)
-    await grt.connect(other.signer).approve(curation.address, tokens10000)
+    await grt.connect(governor.signer).mint(me.address, tokens100000)
+    await grt.connect(governor.signer).mint(other.address, tokens100000)
+    await grt.connect(me.signer).approve(gns.address, tokens100000)
+    await grt.connect(me.signer).approve(curation.address, tokens100000)
+    await grt.connect(other.signer).approve(gns.address, tokens100000)
+    await grt.connect(other.signer).approve(curation.address, tokens100000)
 
     // Update withdrawal fee to test the functionality of it in disableNameSignal()
     await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalPercentage)
@@ -517,22 +504,22 @@ describe('GNS', () => {
     describe('isPublished', function () {
       it('should return if the subgraph is published', async function () {
         expect(await gns.isPublished(subgraph0.graphAccount.address, 0)).eq(false)
-        await publishNewSubgraph(me, me.address, 0, tokens1000)
+        await publishNewSubgraph(me, me.address, 0)
         expect(await gns.isPublished(subgraph0.graphAccount.address, 0)).eq(true)
       })
     })
 
     describe('publishNewSubgraph', async function () {
       it('should publish a new subgraph and first version with it', async function () {
-        await publishNewSubgraph(me, me.address, 0, tokens1000)
+        await publishNewSubgraph(me, me.address, 0)
         // State updated
         const deploymentID = await gns.subgraphs(subgraph0.graphAccount.address, 0)
         expect(subgraph0.subgraphDeploymentID).eq(deploymentID)
       })
 
       it('should publish a new subgraph with an incremented value', async function () {
-        await publishNewSubgraph(me, me.address, 0, tokens1000)
-        await publishNewSubgraph(me, me.address, 1, tokens1000, subgraph1)
+        await publishNewSubgraph(me, me.address, 0)
+        await publishNewSubgraph(me, me.address, 1, subgraph1)
         const deploymentID = await gns.subgraphs(subgraph1.graphAccount.address, 1)
         expect(subgraph1.subgraphDeploymentID).eq(deploymentID)
       })
@@ -545,7 +532,6 @@ describe('GNS', () => {
             ethers.constants.HashZero,
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
-            tokens1000,
           )
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
@@ -558,7 +544,6 @@ describe('GNS', () => {
             ethers.constants.HashZero,
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
-            tokens1000,
           )
         await expect(tx).revertedWith('GNS: Cannot set deploymentID to 0 in publish')
       })
@@ -566,7 +551,8 @@ describe('GNS', () => {
 
     describe('publishNewVersion', async function () {
       beforeEach(async () => {
-        await publishNewSubgraph(me, me.address, 0, tokens1000)
+        await publishNewSubgraph(me, me.address, 0)
+        await mintNSignal(me, me.address, 0, tokens10000)
       })
       it('should publish a new version on an existing subgraph', async function () {
         await publishNewVersion(me, me.address, 0, subgraph1)
@@ -655,7 +641,8 @@ describe('GNS', () => {
 
     describe('deprecateSubgraph', async function () {
       beforeEach(async () => {
-        await publishNewSubgraph(me, me.address, 0, tokens1000)
+        await publishNewSubgraph(me, me.address, 0)
+        await mintNSignal(me, me.address, 0, tokens10000)
       })
       it('should deprecate a subgraph', async function () {
         await deprecateSubgraph(me, me.address, 0)
@@ -693,11 +680,11 @@ describe('GNS', () => {
     const subgraphNumber0 = 0
     describe('mintNSignal()', async function () {
       it('should deposit into the name signal curve', async function () {
-        await publishNewSubgraph(me, me.address, subgraphNumber0, tokens1000)
+        await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
       it('should fail when name signal is disabled', async function () {
-        await publishNewSubgraph(me, me.address, subgraphNumber0, tokens1000)
+        await publishNewSubgraph(me, me.address, subgraphNumber0)
         await deprecateSubgraph(me, me.address, 0)
         const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000)
         await expect(tx).revertedWith('GNS: Cannot be disabled')
@@ -709,7 +696,7 @@ describe('GNS', () => {
     })
     describe('burnNSignal()', async function () {
       beforeEach(async () => {
-        await publishNewSubgraph(me, me.address, subgraphNumber0, tokens1000)
+        await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
       it('should withdraw from the name signal curve', async function () {
@@ -733,7 +720,7 @@ describe('GNS', () => {
     })
     describe('withdraw()', async function () {
       beforeEach(async () => {
-        await publishNewSubgraph(me, me.address, subgraphNumber0, tokens1000)
+        await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
       it('should withdraw GRT from a disabled name signal', async function () {
@@ -747,13 +734,11 @@ describe('GNS', () => {
       it('should fail when there is no more GRT to withdraw', async function () {
         await deprecateSubgraph(me, me.address, 0)
         await withdraw(other, me.address, subgraphNumber0)
-        await withdraw(me, me.address, subgraphNumber0)
         const tx = gns.connect(other.signer).withdraw(me.address, subgraphNumber0)
         await expect(tx).revertedWith('GNS: No more GRT to withdraw')
       })
       it('should fail if the curator has no nSignal', async function () {
         await deprecateSubgraph(me, me.address, 0)
-        await withdraw(me, me.address, subgraphNumber0)
         const tx = gns.connect(me.signer).withdraw(me.address, subgraphNumber0)
         await expect(tx).revertedWith('GNS: Curator must have some nSignal to withdraw GRT')
       })
