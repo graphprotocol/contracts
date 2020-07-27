@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "0.4.4",
+  "version": "0.4.5-testnet-phase1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -69,7 +69,9 @@
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "buidler compile",
     "deploy": "buidler migrate",
+    "deploy-ganache": "npm run deploy -- --force",
     "deploy-kovan": "npm run deploy -- --force --network kovan",
+    "deploy-rinkeby": "npm run deploy -- --force --network rinkeby",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "coverage": "scripts/coverage",
