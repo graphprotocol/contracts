@@ -12,6 +12,8 @@ contracts:
     calls:
       - fn: "setWithdrawalFeePercentage"
         withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
+      - fn: "setStaking"
+        staking: "${{Staking.address}}"
   DisputeManager:
     init:
       arbitrator: *arbitrator
