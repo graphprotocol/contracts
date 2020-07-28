@@ -1,5 +1,5 @@
 import consola from 'consola'
-import { Wallet, constants, utils } from 'ethers'
+import { constants, utils } from 'ethers'
 import { Argv } from 'yargs'
 
 import { readConfig, getContractConfig } from '../config'
@@ -9,9 +9,8 @@ import {
   deployContractAndSave,
   deployContractWithProxyAndSave,
   sendTransaction,
-} from '../deploy'
+} from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-import { getProvider } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
@@ -134,7 +133,6 @@ export const migrateCommand = {
     })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
-    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
-    return migrate(await loadEnv(wallet, argv), argv)
+    return migrate(await loadEnv(argv), argv)
   },
 }

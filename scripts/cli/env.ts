@@ -1,8 +1,9 @@
 import consola from 'consola'
-import { utils, Wallet, BigNumber } from 'ethers'
+import { utils, BigNumber, Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
 import { getAddressBook, AddressBook } from './address-book'
+import { getProvider } from './utils'
 
 const { formatEther } = utils
 const logger = consola.create({})
@@ -19,7 +20,11 @@ export interface CLIEnvironment {
   argv: CLIArgs
 }
 
-export const loadEnv = async (wallet: Wallet, argv: CLIArgs): Promise<CLIEnvironment> => {
+export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnvironment> => {
+  if (!wallet) {
+    wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
+  }
+
   const balance = await wallet.getBalance()
   const chainId = (await wallet.provider.getNetwork()).chainId
   const nonce = await wallet.getTransactionCount()
@@ -28,7 +33,7 @@ export const loadEnv = async (wallet: Wallet, argv: CLIArgs): Promise<CLIEnviron
 
   logger.log(`Preparing contracts on chain id: ${chainId}`)
   logger.log(
-    `Deployer Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
+    `Connected Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
   )
 
   return {

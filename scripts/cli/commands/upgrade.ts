@@ -1,10 +1,8 @@
 import consola from 'consola'
-import { Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
-import { getContractAt, isContractDeployed, sendTransaction } from '../deploy'
+import { getContractAt, isContractDeployed, sendTransaction } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-import { getProvider } from '../utils'
 
 const logger = consola.create({})
 
@@ -97,7 +95,6 @@ export const upgradeCommand = {
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
-    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
-    return upgrade(await loadEnv(wallet, argv), argv)
+    return upgrade(await loadEnv(argv), argv)
   },
 }
