@@ -71,41 +71,45 @@ Example:
 
 ```
 general:
-  governor: &governor "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+  arbitrator: &arbitrator "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
   nodeSignerAddress: &nodeSignerAddress "0x0000000000000000000000000000000000000000"
 
 contracts:
   Curation:
-    governor: *governor
-    token: "${{GraphToken.address}}"
-    reserveRatio: 500000
-    minimumCurationStake: "100000000000000000000" # 100 GRT
-    __calls:
+    init:
+      token: "${{GraphToken.address}}"
+      reserveRatio: 500000 # 50% bonding curve reserve ratio parameter
+      minimumCurationDeposit: "100000000000000000000" # 100 GRT
+    proxy: true
+    calls:
       - fn: "setWithdrawalFeePercentage"
-        withdrawalFeePercentage: 50000
+        withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
   DisputeManager:
-    governor: *governor
-    arbitrator: *governor
-    token: "${{GraphToken.address}}"
-    staking: "${{Staking.address}}"
-    minimumDeposit: "100000000000000000000" # 100 GRT
-    fishermanRewardPercentage: 1000 # in basis points
-    slashingPercentage: 1000 # in basis points
+    init:
+      arbitrator: *arbitrator
+      token: "${{GraphToken.address}}"
+      staking: "${{Staking.address}}"
+      minimumDeposit: "100000000000000000000" # 100 GRT
+      fishermanRewardPercentage: 100000 # in basis points
+      slashingPercentage: 50000 # in basis points
   EpochManager:
-    governor: *governor
-    lengthInBlocks: 5760 # One day in blocks
+    init:
+      lengthInBlocks: 5760 # One day in blocks
+    proxy: true
   GNS:
-    governor: *governor
+    init:
+      didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+      curation: "${{Curation.address}}"
+      token: "${{GraphToken.address}}"
   GraphToken:
-    governor: *governor
-    initialSupply: "10000000000000000000000000" # 10000000 GRT
-  RewardManager:
-    governor: *governor
+    init:
+      initialSupply: "10000000000000000000000000" # 10000000 GRT
   Staking:
-    governor: *governor
-    token: "${{GraphToken.address}}"
-    epochManager: "${{EpochManager.address}}"
-    __calls:
+    init:
+      token: "${{GraphToken.address}}"
+      epochManager: "${{EpochManager.address}}"
+    proxy: true
+    calls:
       - fn: "setCuration"
         curation: "${{Curation.address}}"
       - fn: "setChannelDisputeEpochs"
@@ -115,12 +119,13 @@ contracts:
       - fn: "setThawingPeriod"
         thawingPeriod: 20 # in blocks
   MinimumViableMultisig:
-    node: *nodeSignerAddress
-    staking: "${{Staking.address}}"
-    CTDT: "${{IndexerCTDT.address}}"
-    singleAssetInterpreter: "${{IndexerSingleAssetInterpreter.address}}"
-    multiAssetInterpreter: "${{IndexerMultiAssetInterpreter.address}}"
-    withdrawInterpreter: "${{IndexerWithdrawInterpreter.address}}"
+    init:
+      node: *nodeSignerAddress
+      staking: "${{Staking.address}}"
+      CTDT: "${{IndexerCTDT.address}}"
+      singleAssetInterpreter: "${{IndexerSingleAssetInterpreter.address}}"
+      multiAssetInterpreter: "${{IndexerMultiAssetInterpreter.address}}"
+      withdrawInterpreter: "${{IndexerWithdrawInterpreter.address}}"
 ```
 
 ### Address book

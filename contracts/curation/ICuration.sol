@@ -7,7 +7,7 @@ interface ICuration {
 
     function setStaking(address _staking) external;
 
-    function setMinimumCurationStake(uint256 _minimumCurationStake) external;
+    function setMinimumCurationDeposit(uint256 _minimumCurationDeposit) external;
 
     function setWithdrawalFeePercentage(uint32 _percentage) external;
 
