@@ -17,7 +17,7 @@ contract CurationV1Storage is BancorFormula {
 
     // -- State --
 
-    // Fee charged when curator withdraw stake
+    // Fee charged when curator withdraw deposit
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public withdrawalFeePercentage;
 
@@ -25,9 +25,9 @@ contract CurationV1Storage is BancorFormula {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public defaultReserveRatio;
 
-    // Minimum amount allowed to be staked by curators
+    // Minimum amount allowed to be deposit by curators
     // This is the `startPoolBalance` for the bonding curve
-    uint256 public minimumCurationStake;
+    uint256 public minimumCurationDeposit;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeploymentID

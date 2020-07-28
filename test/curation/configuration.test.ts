@@ -86,26 +86,26 @@ describe('Curation:Config', () => {
     })
   })
 
-  describe('minimumCurationStake', function () {
-    it('should set `minimumCurationStake`', async function () {
+  describe('minimumCurationDeposit', function () {
+    it('should set `minimumCurationDeposit`', async function () {
       // Set right in the constructor
-      expect(await curation.minimumCurationStake()).eq(defaults.curation.minimumCurationStake)
+      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.minimumCurationDeposit)
 
       // Can set if allowed
       const newValue = toBN('100')
-      await curation.connect(governor.signer).setMinimumCurationStake(newValue)
-      expect(await curation.minimumCurationStake()).eq(newValue)
+      await curation.connect(governor.signer).setMinimumCurationDeposit(newValue)
+      expect(await curation.minimumCurationDeposit()).eq(newValue)
     })
 
-    it('reject set `minimumCurationStake` if out of bounds', async function () {
-      const tx = curation.connect(governor.signer).setMinimumCurationStake(0)
-      await expect(tx).revertedWith('Minimum curation stake cannot be 0')
+    it('reject set `minimumCurationDeposit` if out of bounds', async function () {
+      const tx = curation.connect(governor.signer).setMinimumCurationDeposit(0)
+      await expect(tx).revertedWith('Minimum curation deposit cannot be 0')
     })
 
-    it('reject set `minimumCurationStake` if not allowed', async function () {
+    it('reject set `minimumCurationDeposit` if not allowed', async function () {
       const tx = curation
         .connect(me.signer)
-        .setMinimumCurationStake(defaults.curation.minimumCurationStake)
+        .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
       await expect(tx).revertedWith('Only Governor can call')
     })
   })

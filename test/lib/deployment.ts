@@ -37,7 +37,7 @@ const { solidityKeccak256 } = utils
 export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
-    minimumCurationStake: toGRT('100'),
+    minimumCurationDeposit: toGRT('100'),
     withdrawalFeePercentage: 50000,
   },
   dispute: {
@@ -84,7 +84,7 @@ export async function deployCuration(owner: Signer, graphToken: string): Promise
       proxy.address,
       graphToken,
       defaults.curation.reserveRatio,
-      defaults.curation.minimumCurationStake,
+      defaults.curation.minimumCurationDeposit,
     )
 
   // Use proxy to forward calls to implementation contract

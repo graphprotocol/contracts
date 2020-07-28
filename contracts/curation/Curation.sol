@@ -14,7 +14,7 @@ import "./ICuration.sol";
  * @dev Allows curators to signal on subgraph deployments that might be relevant to indexers by
  * staking Graph Tokens (GRT). Additionally, curators earn fees from the Query Market related to the
  * subgraph deployment they curate.
- * A curators stake goes to a curation pool along with the stakes of other curators,
+ * A curators deposit goes to a curation pool along with the deposits of other curators,
  * only one such pool exists for each subgraph deployment.
  * The contract mints Graph Signal Tokens (GST) according to a bonding curve for each individual
  * curation pool where GRT is deposited.
@@ -27,13 +27,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // Amount of signal you get with your minimum token stake
-    uint256 private constant SIGNAL_PER_MINIMUM_STAKE = 1 ether;
+    // Amount of signal you get with your minimum token deposit
+    uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
 
     // -- Events --
 
     /**
-     * @dev Emitted when `curator` staked `tokens` on `subgraphDeploymentID` as curation signal.
+     * @dev Emitted when `curator` deposited `tokens` on `subgraphDeploymentID` as curation signal.
      * The `curator` receives `signal` amount according to the curation pool bonding curve.
      */
     event Signalled(
@@ -69,14 +69,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         address _governor,
         address _token,
         uint32 _defaultReserveRatio,
-        uint256 _minimumCurationStake
+        uint256 _minimumCurationDeposit
     ) external onlyImpl {
         Governed._initialize(_governor);
         BancorFormula._initialize();
 
         token = IGraphToken(_token);
         defaultReserveRatio = _defaultReserveRatio;
-        minimumCurationStake = _minimumCurationStake;
+        minimumCurationDeposit = _minimumCurationDeposit;
     }
 
     /**
@@ -84,13 +84,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      * @param _proxy Graph proxy delegate caller
      * @param _token Address of the Graph Protocol token
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
-     * @param _minimumCurationStake Minimum amount of tokens that curators can stake
+     * @param _minimumCurationDeposit Minimum amount of tokens that curators can deposit
      */
     function acceptProxy(
         GraphProxy _proxy,
         address _token,
         uint32 _defaultReserveRatio,
-        uint256 _minimumCurationStake
+        uint256 _minimumCurationDeposit
     ) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
@@ -100,7 +100,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
             _proxy.admin(), // default governor is proxy admin
             _token,
             _defaultReserveRatio,
-            _minimumCurationStake
+            _minimumCurationDeposit
         );
     }
 
@@ -132,19 +132,23 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     }
 
     /**
-     * @dev Set the minimum stake amount for curators.
-     * @notice Update the minimum stake amount to `_minimumCurationStake`
-     * @param _minimumCurationStake Minimum amount of tokens required stake
+     * @dev Set the minimum deposit amount for curators.
+     * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
+     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
      */
-    function setMinimumCurationStake(uint256 _minimumCurationStake) external override onlyGovernor {
-        require(_minimumCurationStake > 0, "Minimum curation stake cannot be 0");
-        minimumCurationStake = _minimumCurationStake;
-        emit ParameterUpdated("minimumCurationStake");
+    function setMinimumCurationDeposit(uint256 _minimumCurationDeposit)
+        external
+        override
+        onlyGovernor
+    {
+        require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
+        minimumCurationDeposit = _minimumCurationDeposit;
+        emit ParameterUpdated("minimumCurationDeposit");
     }
 
     /**
-     * @dev Set the fee percentage to charge when a curator withdraws stake.
-     * @param _percentage Percentage fee charged when withdrawing stake
+     * @dev Set the fee percentage to charge when a curator withdraws GRT tokens.
+     * @param _percentage Percentage fee charged when withdrawing GRT tokens
      */
     function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
@@ -175,9 +179,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     }
 
     /**
-     * @dev Stake Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
+     * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
-     * @param _tokens Amount of Graph Tokens to stake
+     * @param _tokens Amount of Graph Tokens to deposit
      * @return Signal minted
      */
     function mint(bytes32 _subgraphDeploymentID, uint256 _tokens)
@@ -187,16 +191,16 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     {
         address curator = msg.sender;
 
-        // Need to stake some funds
-        require(_tokens > 0, "Cannot stake zero tokens");
+        // Need to deposit some funds
+        require(_tokens > 0, "Cannot deposit zero tokens");
 
         // Transfer tokens from the curator to this contract
         require(
             token.transferFrom(curator, address(this), _tokens),
-            "Cannot transfer tokens to stake"
+            "Cannot transfer tokens to deposit"
         );
 
-        // Stake tokens to a curation pool reserve
+        // Deposit tokens to a curation pool reserve
         return _mint(curator, _subgraphDeploymentID, _tokens);
     }
 
@@ -245,7 +249,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     }
 
     /**
-     * @dev Check if any Graph tokens are staked for a SubgraphDeployment.
+     * @dev Check if any GRT tokens are deposited for a SubgraphDeployment.
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
@@ -309,9 +313,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
         // Init curation pool
         if (curationPool.tokens == 0) {
-            newTokens = newTokens.sub(minimumCurationStake);
-            curTokens = minimumCurationStake;
-            curSignal = SIGNAL_PER_MINIMUM_STAKE;
+            newTokens = newTokens.sub(minimumCurationDeposit);
+            curTokens = minimumCurationDeposit;
+            curSignal = SIGNAL_PER_MINIMUM_DEPOSIT;
             reserveRatio = defaultReserveRatio;
         }
 
@@ -424,7 +428,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      * @dev Deposit Graph Tokens in exchange for signal of a curation pool.
      * @param _curator Address of the staking party
      * @param _subgraphDeploymentID Subgraph deployment from where the curator is minting
-     * @param _tokens Amount of Graph Tokens to stake
+     * @param _tokens Amount of Graph Tokens to deposit
      * @return Signal minted
      */
     function _mint(
@@ -436,7 +440,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
-            require(_tokens >= minimumCurationStake, "Curation stake is below minimum required");
+            require(
+                _tokens >= minimumCurationDeposit,
+                "Curation deposit is below minimum required"
+            );
 
             // Initialize
             curationPool.reserveRatio = defaultReserveRatio;
