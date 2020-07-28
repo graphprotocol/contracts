@@ -1,9 +1,7 @@
 import consola from 'consola'
 import { execSync } from 'child_process'
-import { Wallet } from 'ethers'
 
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-import { getProvider } from '../utils'
 
 const coreContracts = [
   'EpochManager',
@@ -54,7 +52,6 @@ export const verifyCommand = {
   command: 'verify',
   describe: 'Verify contracts',
   handler: async (argv: CLIArgs): Promise<void> => {
-    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
-    return verify(await loadEnv(wallet, argv))
+    return verify(await loadEnv(argv))
   },
 }

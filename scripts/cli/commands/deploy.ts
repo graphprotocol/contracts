@@ -1,10 +1,8 @@
 import consola from 'consola'
-import { Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
-import { deployContract } from '../deploy'
+import { deployContract } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-import { getProvider } from '../utils'
 
 const logger = consola.create({})
 
@@ -39,7 +37,6 @@ export const deployCommand = {
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
-    const wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.ethProvider))
-    return deploy(await loadEnv(wallet, argv), argv)
+    return deploy(await loadEnv(argv), argv)
   },
 }

@@ -42,14 +42,14 @@ task('migrate', 'Migrate contracts')
   .addFlag('force', cliOpts.force.description)
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()
-    await migrate(await loadEnv(accounts[0] as Wallet, taskArgs), taskArgs)
+    await migrate(await loadEnv(taskArgs, accounts[0] as Wallet), taskArgs)
   })
 
 task('verify', 'Verify contracts in Etherscan')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()
-    await verify(await loadEnv(accounts[0] as Wallet, taskArgs))
+    await verify(await loadEnv(taskArgs, accounts[0] as Wallet))
   })
 
 // Config - Go to https://buidler.dev/config/ to learn more
