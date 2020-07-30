@@ -89,6 +89,9 @@ export const getNetworkAddresses = (network: string): any => {
   if (network == 'kovan') {
     generatedAddresses = addresses['42']
     permanentAddresses = addresses.kovan // TODO - update address book so this doesn't happen
+  } else if (network == 'rinkeby') {
+    generatedAddresses = addresses['4']
+    permanentAddresses = addresses.rinkeby
   } else if (network == 'ganache') {
     generatedAddresses = addresses['1337']
     // TODO - make this connect to ENS and etherDIDRegistry when it is working

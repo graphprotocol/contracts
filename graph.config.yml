@@ -33,7 +33,7 @@ contracts:
       token: "${{GraphToken.address}}"
   GraphToken:
     init:
-      initialSupply: "10000000000000000000000000" # 10000000 GRT
+      initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
   Staking:
     init:
       token: "${{GraphToken.address}}"
