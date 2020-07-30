@@ -216,9 +216,8 @@ class ConnectedGNS extends ConnectedContract {
     return this.gns.publishNewSubgraph(
       graphAccount,
       subgraphDeploymentIDBytes,
-      nameIdentifier,
-      name,
       metaHashBytes,
+      metaHashBytes, // Need to fix this so its version metadata
     )
   }
 
@@ -237,8 +236,6 @@ class ConnectedGNS extends ConnectedContract {
       graphAccount,
       subgraphNumber,
       subgraphDeploymentIDBytes,
-      nameIdentifier,
-      name,
       metaHashBytes,
     )
   }
