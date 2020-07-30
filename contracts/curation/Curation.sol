@@ -115,6 +115,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     }
 
     /**
+     * @dev Set the rewards manager contract.
+     * @param _rewardsManager Address of the rewards manager contract
+     */
+    function setRewardsManager(address _rewardsManager) external override onlyGovernor {
+        rewardsManager = IRewardsManager(_rewardsManager);
+        emit ParameterUpdated("rewardsManager");
+    }
+
+    /**
      * @dev Set the default reserve ratio percentage for a curation pool.
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
@@ -224,6 +233,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
             "Cannot burn more signal than you own"
         );
 
+        // Trigger update rewards calculation
+        _updateRewards(_subgraphDeploymentID);
+
         // Update balance and get the amount of tokens to refund based on returned signal
         (uint256 tokens, uint256 withdrawalFees) = _burnSignal(
             curator,
@@ -278,7 +290,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
     /**
      * @dev Get the amount of signal in a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment curation poool
-     * @return Amount of signal owned by a curator for the subgraph deployment
+     * @return Amount of signal minted for the subgraph deployment
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
         public
@@ -290,6 +302,20 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
             return 0;
         }
         return pools[_subgraphDeploymentID].gst.totalSupply();
+    }
+
+    /**
+     * @dev Get the amount of token reserves in a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @return Amount of token reserves in the curation pool
+     */
+    function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
+        public
+        override
+        view
+        returns (uint256)
+    {
+        return pools[_subgraphDeploymentID].tokens;
     }
 
     /**
@@ -374,14 +400,17 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
     ) private returns (uint256) {
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         uint256 signal = tokensToSignal(_subgraphDeploymentID, _tokens);
 
+        // Update curation pool
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         // Update GRT tokens held as reserves
         curationPool.tokens = curationPool.tokens.add(_tokens);
-
         // Mint signal to the curator
         curationPool.gst.mint(_curator, signal);
+
+        // Update the global reserve
+        totalTokens = totalTokens.add(_tokens);
 
         return signal;
     }
@@ -398,14 +427,18 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         bytes32 _subgraphDeploymentID,
         uint256 _signal
     ) private returns (uint256, uint256) {
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         (uint256 tokens, uint256 withdrawalFees) = signalToTokens(_subgraphDeploymentID, _signal);
+        uint256 outTokens = tokens.add(withdrawalFees);
 
+        // Update curation pool
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         // Update GRT tokens held as reserves
-        curationPool.tokens = curationPool.tokens.sub(tokens.add(withdrawalFees));
-
+        curationPool.tokens = curationPool.tokens.sub(outTokens);
         // Burn signal from curator
         curationPool.gst.burnFrom(_curator, _signal);
+
+        // Update the global reserve
+        totalTokens = totalTokens.sub(outTokens);
 
         return (tokens, withdrawalFees);
     }
@@ -458,10 +491,24 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
             }
         }
 
-        // Update balances
+        // Trigger update rewards calculation
+        _updateRewards(_subgraphDeploymentID);
+
+        // Exchange GRT tokens for GST of the subgraph pool
         uint256 signal = _mintSignal(_curator, _subgraphDeploymentID, _tokens);
 
         emit Signalled(_curator, _subgraphDeploymentID, _tokens, signal);
         return signal;
+    }
+
+    /**
+     * @dev Triggers an update of rewards due to a change in signal.
+     * @param _subgraphDeploymentID Subgrapy deployment updated
+     */
+    function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
+        if (address(rewardsManager) != address(0)) {
+            return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
+        }
+        return 0;
     }
 }

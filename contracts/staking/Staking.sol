@@ -132,6 +132,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @dev Emitted when `indexer` settled an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * The `effectiveAllocation` are the tokens allocated from creation to settlement.
+     * This event also emits the POI (proof of indexing) submitted by the indexer.
      */
     event AllocationSettled(
         address indexed indexer,
@@ -140,14 +141,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         uint256 tokens,
         address allocationID,
         uint256 effectiveAllocation,
-        address sender
+        address sender,
+        bytes32 poi
     );
 
     /**
      * @dev Emitted when `indexer` claimed a rebate on `subgraphDeploymentID` during `epoch`
      * related to the `forEpoch` rebate pool.
-     * The rebate is for `tokens` amount and an outstanding `settlements` count are
-     * left for claim in the rebate pool. `delegationFees` collected and sent to delegation pool.
+     * The rebate is for `tokens` amount and an outstanding `settlements` are left for claim
+     * in the rebate pool. `delegationFees` collected and sent to delegation pool.
      */
     event RebateClaimed(
         address indexed indexer,
@@ -222,6 +224,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
         // Initialization
         Staking(address(_proxy)).initialize(_proxy.admin(), _token, _epochManager);
+    }
+
+    /**
+     * @dev Set the thawing period for unstaking.
+     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
+     */
+    function setThawingPeriod(uint32 _thawingPeriod) external override onlyGovernor {
+        thawingPeriod = _thawingPeriod;
+        emit ParameterUpdated("thawingPeriod");
     }
 
     /**
@@ -366,12 +377,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Set the thawing period for unstaking.
-     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
+     * @dev Set the rewards manager contract.
+     * @param _rewardsManager Address of the rewards manager contract
      */
-    function setThawingPeriod(uint32 _thawingPeriod) external override onlyGovernor {
-        thawingPeriod = _thawingPeriod;
-        emit ParameterUpdated("thawingPeriod");
+    function setRewardsManager(address _rewardsManager) external override onlyGovernor {
+        rewardsManager = IRewardsManager(_rewardsManager);
+        emit ParameterUpdated("rewardsManager");
     }
 
     /**
@@ -418,6 +429,20 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         returns (AllocationState)
     {
         return _getAllocationState(_allocationID);
+    }
+
+    /**
+     * @dev Return the total amount of tokens allocated to subgraph.
+     * @param _subgraphDeploymentID Address used as the allocation identifier
+     * @return Total tokens allocated to subgraph
+     */
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
+        external
+        override
+        view
+        returns (uint256)
+    {
+        return subgraphAllocations[_subgraphDeploymentID];
     }
 
     /**
@@ -525,18 +550,25 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _tokens Amount of tokens to stake
      */
     function stake(uint256 _tokens) external override {
-        address indexer = msg.sender;
+        stakeTo(msg.sender, _tokens);
+    }
 
+    /**
+     * @dev Deposit tokens on the indexer stake.
+     * @param _indexer Adress of the indexer
+     * @param _tokens Amount of tokens to stake
+     */
+    function stakeTo(address _indexer, uint256 _tokens) public override {
         require(_tokens > 0, "Staking: cannot stake zero tokens");
 
         // Transfer tokens to stake from indexer to this contract
         require(
-            token.transferFrom(indexer, address(this), _tokens),
+            token.transferFrom(_indexer, address(this), _tokens),
             "Staking: cannot transfer tokens to stake"
         );
 
         // Stake the transferred tokens
-        _stake(indexer, _tokens);
+        _stake(_indexer, _tokens);
     }
 
     /**
@@ -748,13 +780,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     /**
      * @dev Settle an allocation and free the staked tokens.
      * @param _allocationID The allocation identifier
+     * @param _poi Proof of indexing submitted for the allocated period
      */
-    function settle(address _allocationID) external override {
+    function settle(address _allocationID, bytes32 _poi) external override {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
 
-        // Channel must exist and be allocated
+        // Allocation must exist and be active
         require(allocState == AllocationState.Active, "Settle: allocation must be active");
 
         // Get indexer stakes
@@ -777,7 +810,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         }
 
         // Settle the allocation and start counting a period to finalize any other
-        // withdrawal for the allocation.
+        // withdrawal.
         alloc.settledAtEpoch = currentEpoch;
         alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
 
@@ -785,8 +818,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
+        // Assign rewards
+        _assignRewards(_allocationID);
+
         // Free allocated tokens from use
         indexerStake.unallocate(alloc.tokens);
+
+        // Track total allocations per subgraph
+        // Used for rewards calculations
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
+            .subgraphDeploymentID]
+            .sub(alloc.tokens);
 
         emit AllocationSettled(
             alloc.indexer,
@@ -795,7 +837,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             alloc.tokens,
             _allocationID,
             alloc.effectiveAllocation,
-            msg.sender
+            msg.sender,
+            _poi
         );
     }
 
@@ -834,6 +877,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
         // Validate ownership
         require(_onlyAuthOrDelegator(alloc.indexer), "Rebate: caller must be authorized");
+
+        // TODO: restake when delegator called should not be allowed?
 
         // Funds can only be claimed after a period of time passed since settlement
         require(
@@ -963,7 +1008,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Creates an allocation
         // Allocation identifiers are not reused
         // The authorized sender address can send collected funds to the allocation
-        allocations[allocationID] = Allocation(
+        Allocation memory alloc = Allocation(
             _indexer,
             _subgraphDeploymentID,
             _tokens, // Tokens allocated
@@ -971,17 +1016,25 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             0, // settledAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
-            _assetHolder // Source address for allocation collected funds
+            _assetHolder, // Source address for allocation collected funds
+            _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
         );
+        allocations[allocationID] = alloc;
 
         // Mark allocated tokens as used
-        indexerStake.allocate(_tokens);
+        indexerStake.allocate(alloc.tokens);
+
+        // Track total allocations per subgraph
+        // Used for rewards calculations
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
+            .subgraphDeploymentID]
+            .add(alloc.tokens);
 
         emit AllocationCreated(
             _indexer,
             _subgraphDeploymentID,
-            allocations[allocationID].createdAtEpoch,
-            allocations[allocationID].tokens,
+            alloc.createdAtEpoch,
+            alloc.tokens,
             allocationID,
             _channelPubKey,
             _price,
@@ -1024,10 +1077,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
         // When allocation is settled redirect funds to the rebate pool
+        // This way we can keep collecting tokens even after settlement until the allocation
+        // gets to the finalized state.
         if (allocState == AllocationState.Settled) {
             Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);
         }
+
+        // TODO: for consistency we could burn protocol fees here
 
         // Send curation fees to the curator reserve pool
         if (curationFees > 0) {
@@ -1267,5 +1324,28 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         }
 
         return tempBytes;
+    }
+
+    /**
+     * @dev Triggers an update of rewards due to a change in allocations.
+     * @param _subgraphDeploymentID Subgrapy deployment updated
+     */
+    function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
+        if (address(rewardsManager) == address(0)) {
+            return 0;
+        }
+        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+    }
+
+    /**
+     * @dev Assign rewards for the settled allocation to the indexer.
+     * @param _allocationID Allocation
+     */
+    function _assignRewards(address _allocationID) internal returns (uint256) {
+        if (address(rewardsManager) == address(0)) {
+            return 0;
+        }
+        // Automatically triggers update of rewards snapshot as allocation will change
+        return rewardsManager.assignRewards(_allocationID);
     }
 }

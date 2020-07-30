@@ -17,6 +17,7 @@ import { Gns } from '../../build/typechain/contracts/Gns'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
+import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
 
 import { EthereumDidRegistry } from '../../build/typechain/contracts/EthereumDidRegistry'
 
@@ -46,7 +47,7 @@ export const defaults = {
     slashingPercentage: toBN('1000'), // in basis points
   },
   epochs: {
-    lengthInBlocks: toBN((10 * 60) / 15), // 10 minutes in blocks
+    lengthInBlocks: toBN((15 * 60) / 15), // 15 minutes in blocks
   },
   staking: {
     channelDisputeEpochs: 1,
@@ -55,6 +56,9 @@ export const defaults = {
   },
   token: {
     initialSupply: toGRT('10000000'),
+  },
+  rewards: {
+    issuanceRate: toGRT('1.00000004756468798'),
   },
 }
 
@@ -163,6 +167,29 @@ export async function deployStaking(
 
   return staking
 }
+
+export async function deployRewardsManager(
+  owner: Signer,
+  graphToken: string,
+  curation: string,
+  staking: string,
+): Promise<RewardsManager> {
+  // Impl
+  const contract = (await deployContract('RewardsManager', owner)) as RewardsManager
+
+  // Proxy
+  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+
+  // Impl accept and initialize
+  await contract
+    .connect(owner)
+    .acceptProxy(proxy.address, graphToken, curation, staking, defaults.rewards.issuanceRate)
+
+  // Use proxy to forward calls to implementation contract
+  return Promise.resolve(contract.attach(proxy.address))
+}
+
+// #### State channel contracts
 
 export async function deployIndexerMultisig(
   node: string,

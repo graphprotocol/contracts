@@ -35,6 +35,9 @@ describe('Staking::Delegation', () => {
   let grt: GraphToken
   let staking: Staking
 
+  // Test values
+  const poi = randomHexBytes()
+
   async function shouldDelegate(sender: Account, tokens: BigNumber) {
     // Before state
     const beforePool = await staking.delegationPools(indexer.address)
@@ -477,7 +480,7 @@ describe('Staking::Delegation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Settle
-      await staking.connect(indexer.signer).settle(channelID)
+      await staking.connect(indexer.signer).settle(channelID, poi)
 
       // Advance blocks to get the channel in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)

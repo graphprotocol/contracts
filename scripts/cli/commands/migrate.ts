@@ -59,7 +59,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     const addressEntry = cli.addressBook.getEntry(name)
     const savedAddress = addressEntry && addressEntry.address
 
-    logger.info(`[Deploying ${name}]`)
+    logger.log(`+ [deploy] ${name}`)
 
     // Check if contract already deployed
     const isDeployed = await isContractDeployed(
@@ -102,7 +102,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     for (const entry of pendingContractCalls) {
       if (entry.calls.length == 0) continue
 
-      logger.info(`[Configuring ${entry.name}]`)
+      logger.log(`+ [config] ${entry.name}`)
       for (const call of entry.calls) {
         await sendTransaction(cli.wallet, entry.contract, call.fn, ...call.params)
       }
