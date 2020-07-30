@@ -319,7 +319,14 @@ describe('GNS', () => {
     const tx = gns.connect(account.signer).mintNSignal(graphAccount, subgraphNumber0, graphTokens)
     await expect(tx)
       .emit(gns, 'NSignalMinted')
-      .withArgs(graphAccount, subgraphNumber0, account.address, nSigEstimate, vSigEstimate)
+      .withArgs(
+        graphAccount,
+        subgraphNumber0,
+        account.address,
+        nSigEstimate,
+        vSigEstimate,
+        graphTokens,
+      )
 
     const tokensVSig = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
     const tokensAfter = tokensVSig[0]

@@ -114,7 +114,8 @@ contract GNS is Governed, BancorFormula {
         uint256 subgraphNumber,
         address nameCurator,
         uint256 nSignalCreated,
-        uint256 vSignalCreated
+        uint256 vSignalCreated,
+        uint256 tokensDeposited
     );
 
     /**
@@ -139,7 +140,7 @@ contract GNS is Governed, BancorFormula {
         address graphAccount,
         uint256 subgraphNumber,
         uint256 newVSignalCreated,
-        uint256 tokensExchanged,
+        uint256 tokensSignalled,
         bytes32 subgraphDeploymentID
     );
 
@@ -514,7 +515,7 @@ contract GNS is Governed, BancorFormula {
         namePool.vSignal = namePool.vSignal.add(vSignal);
         namePool.nSignal = namePool.nSignal.add(nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].add(nSignal);
-        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal);
+        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal, _tokens);
         return (vSignal, nSignal);
     }
 

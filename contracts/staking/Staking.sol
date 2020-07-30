@@ -110,7 +110,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         uint256 tokens,
         address channelID,
         bytes channelPubKey,
-        uint256 price
+        uint256 price,
+        address proxy
     );
 
     /**
@@ -140,7 +141,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         uint256 epoch,
         uint256 tokens,
         address channelID,
-        uint256 effectiveAllocation
+        uint256 effectiveAllocation,
+        address sender
     );
 
     /**
@@ -152,6 +154,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     event RebateClaimed(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
+        address channelID,
         uint256 epoch,
         uint256 forEpoch,
         uint256 tokens,
@@ -795,7 +798,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             alloc.settledAtEpoch,
             alloc.tokens,
             _channelID,
-            alloc.effectiveAllocation
+            alloc.effectiveAllocation,
+            msg.sender
         );
     }
 
@@ -889,6 +893,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         emit RebateClaimed(
             alloc.indexer,
             alloc.subgraphDeploymentID,
+            _channelID,
             epochManager.currentEpoch(),
             settledAtEpoch,
             tokensToClaim,
@@ -989,7 +994,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             allocations[channelID].tokens,
             channelID,
             _channelPubKey,
-            _price
+            _price,
+            _channelProxy
         );
     }
 
