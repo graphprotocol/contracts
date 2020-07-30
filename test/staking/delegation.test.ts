@@ -498,6 +498,7 @@ describe('Staking::Delegation', () => {
         .withArgs(
           indexer.address,
           subgraphDeploymentID,
+          channelID,
           currentEpoch,
           beforeAlloc.settledAtEpoch,
           tokensToClaim,

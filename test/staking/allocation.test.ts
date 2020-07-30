@@ -150,6 +150,7 @@ describe('Staking:Allocation', () => {
           channelID,
           channelPubKey,
           price,
+          channelProxy.address,
         )
 
       // After state
@@ -469,6 +470,7 @@ describe('Staking:Allocation', () => {
           beforeAlloc.tokens,
           channelID,
           effectiveAllocation,
+          indexer.address,
         )
 
       // After state
@@ -526,6 +528,7 @@ describe('Staking:Allocation', () => {
         .withArgs(
           indexer.address,
           subgraphDeploymentID,
+          channelID,
           currentEpoch,
           beforeAlloc.settledAtEpoch,
           tokensToClaim,
