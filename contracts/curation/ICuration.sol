@@ -1,11 +1,23 @@
 pragma solidity ^0.6.4;
 
+import "./GraphSignalToken.sol";
+
 interface ICuration {
+    // -- Pool --
+
+    struct CurationPool {
+        uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
+        uint32 reserveRatio; // Ratio for the bonding curve
+        GraphSignalToken gst; // Signal token contract for this curation pool
+    }
+
     // -- Configuration --
 
-    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
-
     function setStaking(address _staking) external;
+
+    function setRewardsManager(address _rewardsManager) external;
+
+    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
 
     function setMinimumCurationDeposit(uint256 _minimumCurationDeposit) external;
 
@@ -31,6 +43,8 @@ interface ICuration {
         returns (uint256);
 
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID) external view returns (uint256);
+
+    function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
         external

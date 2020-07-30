@@ -41,10 +41,19 @@ export class NetworkFixture {
       arbitratorAddress,
       staking.address,
     )
+    const rewardsManager = await deployment.deployRewardsManager(
+      governor,
+      grt.address,
+      curation.address,
+      staking.address,
+    )
 
     // Configuration
     await staking.connect(governor).setSlasher(slasherAddress, true)
+    await staking.connect(governor).setRewardsManager(rewardsManager.address)
     await curation.connect(governor).setStaking(staking.address)
+    await curation.connect(governor).setRewardsManager(rewardsManager.address)
+    await grt.connect(governor).addMinter(rewardsManager.address)
 
     return {
       disputeManager,
@@ -53,6 +62,7 @@ export class NetworkFixture {
       curation,
       gns,
       staking,
+      rewardsManager,
     }
   }
 

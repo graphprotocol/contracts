@@ -56,7 +56,7 @@ library Stakes {
     }
 
     /**
-     * @dev Lock tokens until a thawing period expires,
+     * @dev Lock tokens until a thawing period expires.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
@@ -90,7 +90,7 @@ library Stakes {
     }
 
     /**
-     * @dev Take all tokens out from the locked stack for withdrawal.
+     * @dev Take all tokens out from the locked stake for withdrawal.
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
      */

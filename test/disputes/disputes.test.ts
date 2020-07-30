@@ -91,6 +91,8 @@ describe('DisputeManager:Disputes', async () => {
   const indexerTokens = toGRT('100000')
   const indexerAllocatedTokens = toGRT('10000')
 
+  const poi = randomHexBytes()
+
   // Create an attesation receipt for the dispute
   const receipt: Receipt = {
     requestCID: randomHexBytes(),
@@ -191,7 +193,7 @@ describe('DisputeManager:Disputes', async () => {
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to settle
       await staking.connect(assetHolder.signer).collect(indexerSettledTokens, event1.allocationID)
-      await staking.connect(indexer.signer).settle(event1.allocationID)
+      await staking.connect(indexer.signer).settle(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)
       await staking.connect(indexer.signer).withdraw() // no thawing period so we are good
 

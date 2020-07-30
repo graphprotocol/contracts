@@ -11,7 +11,7 @@ import "./IEpochManager.sol";
 
 /**
  * @title EpochManager contract
- * @dev Tracks epochs based on its block duration to sync contracts in the protocol.
+ * @dev Produce epochs based on a number of blocks to coordinate contracts in the protocol.
  */
 contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager, Governed {
     using SafeMath for uint256;

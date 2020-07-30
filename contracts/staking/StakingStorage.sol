@@ -2,6 +2,7 @@ pragma solidity ^0.6.4;
 
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
+import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 
@@ -34,6 +35,9 @@ contract StakingV1Storage {
 
     // Allocations : allocationID => Allocation
     mapping(address => IStaking.Allocation) public allocations;
+
+    // Subgraph Allocations: subgraphDeploymentID => tokens
+    mapping(bytes32 => uint256) public subgraphAllocations;
 
     // Rebate pools : epoch => Pool
     mapping(uint256 => Rebates.Pool) public rebates;
@@ -69,4 +73,5 @@ contract StakingV1Storage {
     IGraphToken public token;
     IEpochManager public epochManager;
     ICuration public curation;
+    IRewardsManager public rewardsManager;
 }

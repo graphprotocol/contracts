@@ -1,7 +1,6 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-
 /**
  * @title ServiceRegistry contract
  * @dev This contract supports the service discovery process by allowing indexers to

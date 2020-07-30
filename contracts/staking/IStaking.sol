@@ -28,6 +28,7 @@ interface IStaking {
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when settled
         address assetHolder; // Authorized caller address of the collect() function
+        uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
     }
 
     // -- Delegation Data --
@@ -56,6 +57,8 @@ interface IStaking {
 
     // -- Configuration --
 
+    function setThawingPeriod(uint32 _thawingPeriod) external;
+
     function setCuration(address _curation) external;
 
     function setCurationPercentage(uint32 _percentage) external;
@@ -80,7 +83,7 @@ interface IStaking {
 
     function setSlasher(address _slasher, bool _allowed) external;
 
-    function setThawingPeriod(uint32 _thawingPeriod) external;
+    function setRewardsManager(address _rewardsManager) external;
 
     // -- Operation --
 
@@ -89,6 +92,8 @@ interface IStaking {
     // -- Staking --
 
     function stake(uint256 _tokens) external;
+
+    function stakeTo(address _indexer, uint256 _tokens) external;
 
     function unstake(uint256 _tokens) external;
 
@@ -128,7 +133,7 @@ interface IStaking {
         uint256 _price
     ) external;
 
-    function settle(address _allocationID) external;
+    function settle(address _allocationID, bytes32 _poi) external;
 
     function collect(uint256 _tokens, address _allocationID) external;
 
@@ -147,6 +152,11 @@ interface IStaking {
     function getAllocationState(address _allocationID) external view returns (AllocationState);
 
     function isChannel(address _allocationID) external view returns (bool);
+
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
+        external
+        view
+        returns (uint256);
 
     function getDelegation(address _indexer, address _delegator)
         external
