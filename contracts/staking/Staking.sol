@@ -1,8 +1,6 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "@nomiclabs/buidler/console.sol";
-
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
 import "../governance/Governed.sol";
