@@ -54,12 +54,15 @@ const main = async () => {
       console.log(
         '  First calling approve() to ensure curation contract can call transferFrom()...',
       )
-      await executeTransaction(connectedGT.approveWithDecimals(curation.contract.address, amount))
+      await executeTransaction(
+        connectedGT.approveWithDecimals(curation.contract.address, amount),
+        network,
+      )
       console.log('  Now calling signal() on curation...')
-      await executeTransaction(curation.signalWithDecimals(id, amount))
+      await executeTransaction(curation.signalWithDecimals(id, amount), network)
     } else if (func == 'redeem') {
       console.log(`Redeeming ${amount} shares on ${id}...`)
-      await executeTransaction(curation.redeemWithDecimals(id, amount))
+      await executeTransaction(curation.redeemWithDecimals(id, amount), network)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

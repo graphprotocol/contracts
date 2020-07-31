@@ -52,10 +52,10 @@ const main = async () => {
       console.log(
         `Registering ${await serviceRegistry.contract.signer.getAddress()} with url ${url} and geoHash ${geoHash}...`,
       )
-      await executeTransaction(serviceRegistry.contract.register(url, geoHash))
+      await executeTransaction(serviceRegistry.contract.register(url, geoHash), network)
     } else if (func == 'unregister') {
       console.log(`Unregistering ${await serviceRegistry.contract.signer.getAddress()}...`)
-      await executeTransaction(serviceRegistry.contract.unregister())
+      await executeTransaction(serviceRegistry.contract.unregister(), network)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

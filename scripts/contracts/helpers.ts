@@ -112,10 +112,11 @@ export const basicOverrides = (): Overrides => {
 
 export const executeTransaction = async (
   transaction: Promise<ContractTransaction>,
+  network: string,
 ): Promise<ContractReceipt> => {
   try {
     const tx = await transaction
-    console.log(`  Transaction pending: 'https://kovan.etherscan.io/tx/${tx.hash}'`)
+    console.log(`  Transaction pending: 'https://${network}.etherscan.io/tx/${tx.hash}'`)
     const receipt = await tx.wait(1)
     console.log(`  Transaction successfully included in block #${receipt.blockNumber}`)
     return receipt
