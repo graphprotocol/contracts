@@ -104,6 +104,7 @@ const main = async () => {
           name,
           metadataPath,
         ),
+        network,
       )
     } else if (func == 'publishNewVersion') {
       checkFuncInputs(
@@ -129,11 +130,12 @@ const main = async () => {
           metadataPath,
           subgraphNumber,
         ),
+        network,
       )
     } else if (func == 'deprecate') {
       checkFuncInputs([subgraphNumber], ['subgraphNumber'], 'deprecate')
       console.log(`Deprecating subgraph ${graphAccount}-${subgraphNumber}`)
-      await executeTransaction(gns.gns.deprecate(graphAccount, subgraphNumber))
+      await executeTransaction(gns.gns.deprecate(graphAccount, subgraphNumber), network)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

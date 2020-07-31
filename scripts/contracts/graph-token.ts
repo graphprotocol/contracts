@@ -52,13 +52,13 @@ const main = async () => {
   try {
     if (func == 'mint') {
       console.log(`Minting ${amount} tokens to user ${account}...`)
-      await executeTransaction(graphToken.mintWithDecimals(account, amount))
+      await executeTransaction(graphToken.mintWithDecimals(account, amount), network)
     } else if (func == 'transfer') {
       console.log(`Transferring ${amount} tokens to user ${account}...`)
-      await executeTransaction(graphToken.transferWithDecimals(account, amount))
+      await executeTransaction(graphToken.transferWithDecimals(account, amount), network)
     } else if (func == 'approve') {
       console.log(`Approving ${amount} tokens to spend by ${account}...`)
-      await executeTransaction(graphToken.approveWithDecimals(account, amount))
+      await executeTransaction(graphToken.approveWithDecimals(account, amount), network)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

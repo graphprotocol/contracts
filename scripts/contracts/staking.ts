@@ -81,16 +81,19 @@ const main = async () => {
     if (func == 'stake') {
       checkFuncInputs([amount], ['amount'], 'stake')
       console.log('  First calling approve() to ensure staking contract can call transferFrom()...')
-      await executeTransaction(connectedGT.approveWithDecimals(staking.contract.address, amount))
+      await executeTransaction(
+        connectedGT.approveWithDecimals(staking.contract.address, amount),
+        network,
+      )
       console.log(`Staking ${amount} tokens in the staking contract...`)
-      await executeTransaction(staking.stakeWithDecimals(amount))
+      await executeTransaction(staking.stakeWithDecimals(amount), network)
     } else if (func == 'unstake') {
       checkFuncInputs([amount], ['amount'], 'unstake')
       console.log(`Unstaking ${amount} tokens. Tokens will be locked...`)
-      await executeTransaction(staking.unstakeWithDecimals(amount))
+      await executeTransaction(staking.unstakeWithDecimals(amount), network)
     } else if (func == 'withdraw') {
       console.log(`Unlock tokens and withdraw them from the staking contract...`)
-      await executeTransaction(staking.contract.withdraw())
+      await executeTransaction(staking.contract.withdraw(), network)
     } else if (func == 'allocate') {
       checkFuncInputs([amount, price], ['amount', 'price'], 'allocate')
       console.log(`Allocating ${amount} tokens on state channel ${subgraphDeploymentID} ...`)
@@ -102,12 +105,13 @@ const main = async () => {
           channelPubKey,
           channelProxy,
         ),
+        network,
       )
     } else if (func == 'settle') {
       // Note - this function must be called by the channel proxy eth address
       checkFuncInputs([amount], ['amount'], 'settle')
       console.log(`Settling ${amount} tokens on state channel with proxy address TODO`)
-      await executeTransaction(staking.settleWithDecimals(amount))
+      await executeTransaction(staking.settleWithDecimals(amount), network)
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)

@@ -46,8 +46,8 @@ const main = async () => {
   try {
     if (func == 'registerName') {
       console.log(`Setting owner for ${name} and the text record...`)
-      await executeTransaction(ens.setTestRecord(name))
-      await executeTransaction(ens.setText(name))
+      await executeTransaction(ens.setTestRecord(name), network)
+      await executeTransaction(ens.setText(name), network)
     } else if (func == 'checkOwner') {
       console.log(`Checking owner of ${name} ...`)
       await ens.checkOwner(name)
