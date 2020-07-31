@@ -97,7 +97,7 @@ const populateENS = async (network: string, signers: Array<Wallet>) => {
   let i = 0
   for (const subgraph in subgraphMetadatas) {
     const ens = new ConnectedENS(network, signers[i])
-    let name = subgraphMetadatas[subgraph].subgraphDisplayName
+    let name = subgraphMetadatas[subgraph].displayName
     // edge case - graph is only ens name that doesn't match display name in mock data
     if (name == 'The Graph') name = 'graphprotocol'
     console.log(`Setting ${name} for ${ens.configuredWallet.address} on ens ...`)
@@ -116,7 +116,7 @@ const populateGNS = async (network: string, signers: Array<Wallet>) => {
   for (const subgraph in subgraphMetadatas) {
     const gns = new ConnectedGNS(network, signers[i])
     const ipfs = 'https://api.thegraph.com/ipfs/'
-    let name = subgraphMetadatas[subgraph].subgraphDisplayName
+    let name = subgraphMetadatas[subgraph].displayName
     // edge case - graph is only ens name that doesn't match display name in mock data
     if (name == 'The Graph') name = 'graphprotocol'
     const nameIdentifier = utils.namehash(`${name}.test`)

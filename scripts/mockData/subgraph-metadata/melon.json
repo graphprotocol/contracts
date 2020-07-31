@@ -1,9 +1,9 @@
 {
-  "subgraphDescription": "Technology operated and regulated funds.",
-  "subgraphDisplayName": "Melon",
-  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQpuowYwm5c7XYXmEbSGsP6EqTU7vEWBJGN3NhJLQZ7wq",
-  "subgraphCodeRepository": "https://github.com/melonproject/melon-subgraph",
-  "subgraphWebsite": "https://melonport.com",
-  "versionLabel": "v0.1.0",
-  "versionDescription": "First Version"
+  "description": "Technology operated and regulated funds.",
+  "displayName": "Melon",
+  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQpuowYwm5c7XYXmEbSGsP6EqTU7vEWBJGN3NhJLQZ7wq",
+  "codeRepository": "https://github.com/melonproject/melon-subgraph",
+  "website": "https://melonport.com",
+  "label": "v0.1.0",
+  "description": "First Version"
 }

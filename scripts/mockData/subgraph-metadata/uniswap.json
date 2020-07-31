@@ -1,9 +1,9 @@
 {
-  "subgraphDescription": "The subgraph tracks event based data, which updates each exchange to index the live data. It also stores historical data entities, which can be used, and queried to build historical data, which can be used for charts.",
-  "subgraphDisplayName": "Uniswap",
-  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmSaK8PKxNWPv3QMMdjp8bYvQxnpU277DowPMwCUr7dAxS",
-  "subgraphCodeRepository": "https://github.com/graphprotocol/uniswap-subgraph",
-  "subgraphWebsite": "https://uniswap.info/",
-  "versionLabel": "v0.1.0",
-  "versionDescription": "First Version"
+  "description": "The subgraph tracks event based data, which updates each exchange to index the live data. It also stores historical data entities, which can be used, and queried to build historical data, which can be used for charts.",
+  "displayName": "Uniswap",
+  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmSaK8PKxNWPv3QMMdjp8bYvQxnpU277DowPMwCUr7dAxS",
+  "codeRepository": "https://github.com/graphprotocol/uniswap-subgraph",
+  "website": "https://uniswap.info/",
+  "label": "v0.1.0",
+  "description": "First Version"
 }

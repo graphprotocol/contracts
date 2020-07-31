@@ -1,9 +1,9 @@
 {
-  "subgraphDescription": "A protocol for affordable and reliable video encoding. Find transcoders, staking rounds, and rewards.",
-  "subgraphDisplayName": "Livepeer",
-  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmcTyMcTpkSrRs8Q7tUBPqA6ektwL7x5DEZCsEpoveXxe1",
-  "subgraphCodeRepository": "https://github.com/livepeer/livepeerjs/tree/master/packages/subgraph",
-  "subgraphWebsite": "https://livepeer.org/",
-  "versionLabel": "v0.1.0",
-  "versionDescription": "First Version"
+  "description": "A protocol for affordable and reliable video encoding. Find transcoders, staking rounds, and rewards.",
+  "displayName": "Livepeer",
+  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmcTyMcTpkSrRs8Q7tUBPqA6ektwL7x5DEZCsEpoveXxe1",
+  "codeRepository": "https://github.com/livepeer/livepeerjs/tree/master/packages/subgraph",
+  "website": "https://livepeer.org/",
+  "label": "v0.1.0",
+  "description": "First Version"
 }
