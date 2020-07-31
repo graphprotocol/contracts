@@ -1,9 +1,9 @@
 {
-  "subgraphDescription": "A decentralized virtual world that runs on open standards. Find districts, parcels, auctions, and more.",
-  "subgraphDisplayName": "Decentraland",
-  "subgraphImage": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmVMtgVvEJLqmH3PZzcYVp5t8ni1v61e2M1rDVkcRo9WCz",
-  "subgraphCodeRepository": "https://github.com/graphprotocol/decentraland-subgraph",
-  "subgraphWebsite": "https://decentraland.org/",
-  "versionLabel": "v0.1.0",
-  "versionDescription": "First Version"
+  "description": "A decentralized virtual world that runs on open standards. Find districts, parcels, auctions, and more.",
+  "displayName": "Decentraland",
+  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmVMtgVvEJLqmH3PZzcYVp5t8ni1v61e2M1rDVkcRo9WCz",
+  "codeRepository": "https://github.com/graphprotocol/decentraland-subgraph",
+  "website": "https://decentraland.org/",
+  "label": "v0.1.0",
+  "description": "First Version"
 }

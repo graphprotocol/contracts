@@ -52,12 +52,12 @@ Usage: ${path.basename(process.argv[1])}
     --name <string>                 - name of the subgraph
     --metadataPath <path>           - filepath to metadata. JSON format:
                                         {
-                                          "subgraphDescription": "",
-                                          "subgraphImage": "",
-                                          "subgraphCodeRepository": "",
-                                          "subgraphWebsite": "",
-                                          "versionDescription": "",
-                                          "versionLabel": ""
+                                          "description": "",
+                                          "image": "",
+                                          "codeRepository": "",
+                                          "website": "",
+                                          "description": "",
+                                          "label": ""
                                         }
   publishVersion
     --ipfs <url>                    - ex. https://api.thegraph.com/ipfs/

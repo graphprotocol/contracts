@@ -14,8 +14,10 @@ import { connectContracts } from './connectedNetwork'
 import {
   SubgraphMetadata,
   AccountMetadata,
+  VersionMetadata,
   jsonToAccountMetadata,
   jsonToSubgraphMetadata,
+  jsonToVersionMetadata,
 } from '../metadataHelpers'
 
 /**** connectedContracts.ts Description
@@ -206,18 +208,17 @@ class ConnectedGNS extends ConnectedContract {
     ipfs: string,
     graphAccount: string,
     subgraphDeploymentID: string,
-    nameIdentifier: string,
-    name: string,
-    metadataPath: string | SubgraphMetadata,
+    versionMetadata: string | SubgraphMetadata,
+    subgraphMetadata: string | SubgraphMetadata,
   ): Promise<ContractTransaction> => {
-    const metaHashBytes = await this.handleSubgraphMetadata(ipfs, metadataPath)
+    const subgraphDataHash = await this.handleSubgraphMetadata(ipfs, subgraphMetadata)
+    const versionDataHash = await this.handleVersionMetadata(ipfs, versionMetadata)
     const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
-
     return this.gns.publishNewSubgraph(
       graphAccount,
       subgraphDeploymentIDBytes,
-      metaHashBytes,
-      metaHashBytes, // Need to fix this so its version metadata
+      versionDataHash,
+      subgraphDataHash,
     )
   }
 
@@ -225,12 +226,10 @@ class ConnectedGNS extends ConnectedContract {
     ipfs: string,
     graphAccount: string,
     subgraphDeploymentID: string,
-    nameIdentifier: string,
-    name: string,
-    metadataPath: string | SubgraphMetadata,
+    versionMetadata: string | SubgraphMetadata,
     subgraphNumber: string,
   ): Promise<ContractTransaction> => {
-    const metaHashBytes = await this.handleSubgraphMetadata(ipfs, metadataPath)
+    const metaHashBytes = await this.handleVersionMetadata(ipfs, versionMetadata)
     const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
     return this.gns.publishNewVersion(
       graphAccount,
@@ -251,13 +250,42 @@ class ConnectedGNS extends ConnectedContract {
         ))
       : (metadata = pathOrData)
     console.log('Meta data:')
-    console.log('  Subgraph Description:     ', metadata.subgraphDescription)
-    console.log('  Subgraph Display Name:    ', metadata.subgraphDisplayName)
-    console.log('  Subgraph Image:           ', metadata.subgraphImage)
-    console.log('  Subgraph Code Repository: ', metadata.subgraphCodeRepository)
-    console.log('  Subgraph Website:         ', metadata.subgraphWebsite)
-    console.log('  Version Description:      ', metadata.versionDescription)
-    console.log('  Version Label:            ', metadata.versionLabel)
+    console.log('  Subgraph Description:     ', metadata.description)
+    console.log('  Subgraph Display Name:    ', metadata.displayName)
+    console.log('  Subgraph Image:           ', metadata.image)
+    console.log('  Subgraph Code Repository: ', metadata.codeRepository)
+    console.log('  Subgraph Website:         ', metadata.website)
+
+    const ipfsClient = IPFS.createIpfsClient(ipfs)
+
+    console.log('\nUpload JSON meta data to IPFS...')
+    const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
+    const metaHash = result[0].hash
+    try {
+      const data = JSON.parse(await ipfsClient.cat(metaHash))
+      if (JSON.stringify(data) !== JSON.stringify(metadata)) {
+        throw new Error(`Original meta data and uploaded data are not identical`)
+      }
+    } catch (e) {
+      throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
+    }
+    console.log(`Upload metadata successful: ${metaHash}\n`)
+    return IPFS.ipfsHashToBytes32(metaHash)
+  }
+
+  private handleVersionMetadata = async (
+    ipfs: string,
+    pathOrData: string | VersionMetadata,
+  ): Promise<string> => {
+    let metadata: VersionMetadata
+    typeof pathOrData == 'string'
+      ? (metadata = jsonToVersionMetadata(
+          JSON.parse(fs.readFileSync(__dirname + pathOrData).toString()),
+        ))
+      : (metadata = pathOrData)
+    console.log('Meta data:')
+    console.log('  Version Description:      ', metadata.description)
+    console.log('  Version Label:            ', metadata.label)
 
     const ipfsClient = IPFS.createIpfsClient(ipfs)
 

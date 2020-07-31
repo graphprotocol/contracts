@@ -7,24 +7,33 @@ interface AccountMetadata {
 }
 
 interface SubgraphMetadata {
-  subgraphDescription: string
-  subgraphDisplayName: string
-  subgraphImage: string
-  subgraphCodeRepository: string
-  subgraphWebsite: string
-  versionLabel: string
-  versionDescription: string
+  description: string
+  displayName: string
+  image: string
+  codeRepository: string
+  website: string
+}
+
+interface VersionMetadata {
+  label: string
+  description: string
 }
 
 const jsonToSubgraphMetadata = (json): SubgraphMetadata => {
   const subgraphMetadata: SubgraphMetadata = {
-    subgraphDescription: checkString(json.subgraphDescription),
-    subgraphDisplayName: checkString(json.subgraphDisplayName),
-    subgraphImage: checkString(json.subgraphImage),
-    subgraphCodeRepository: checkString(json.subgraphCodeRepository),
-    subgraphWebsite: checkString(json.subgraphWebsite),
-    versionLabel: checkString(json.versionLabel),
-    versionDescription: checkString(json.versionDescription),
+    description: checkString(json.description),
+    displayName: checkString(json.displayName),
+    image: checkString(json.image),
+    codeRepository: checkString(json.codeRepository),
+    website: checkString(json.website),
+  }
+  return subgraphMetadata
+}
+
+const jsonToVersionMetadata = (json): VersionMetadata => {
+  const subgraphMetadata: VersionMetadata = {
+    label: checkString(json.label),
+    description: checkString(json.description),
   }
   return subgraphMetadata
 }
@@ -47,4 +56,11 @@ const checkString = (field): string => {
   return field
 }
 
-export { AccountMetadata, SubgraphMetadata, jsonToSubgraphMetadata, jsonToAccountMetadata }
+export {
+  AccountMetadata,
+  SubgraphMetadata,
+  VersionMetadata,
+  jsonToSubgraphMetadata,
+  jsonToVersionMetadata,
+  jsonToAccountMetadata,
+}
