@@ -8,6 +8,16 @@ import "../governance/Governed.sol";
 /**
  * @title GraphToken contract
  * @dev This is the implementation of the ERC20 Graph Token.
+ * The implementation exposes a Permit() function to allow for a spender to send a signed message
+ * and approve funds to a spender following EIP2612 to make integration with other contracts easier.
+ *
+ * The token is initially owned by the deployer address that can mint tokens to create the initial
+ * distribution. For convenience, an initial supply can be passed in the constructor that will be
+ * assigned to the deployer.
+ *
+ * The governor can add the RewardsManager contract to mint indexing rewards.
+ *
+ * Governor keys can be disposed after the initial distribution.
  */
 contract GraphToken is Governed, ERC20, ERC20Burnable {
     // -- EIP712 --
@@ -68,7 +78,6 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
 
     /**
      * @dev Approve token allowance by validating a message signed by the holder.
-     * This function will approve MAX_UINT256 tokens to be spent.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
