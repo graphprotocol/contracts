@@ -1,13 +1,11 @@
 node_modules
 
-contracts/abdk-libraries-solidity
 contracts/bancor
-contracts/ens
-contracts/erc1056
-contracts/openzeppelin
-
+contracts/discovery/erc1056
+contracts/staking/libs/abdk-libraries-solidity
 contracts/token/IGraphToken.sol
 contracts/upgrades/GraphProxy.sol
+contracts/tests/ens
 
 contracts/connext/IndexerMultiAssetInterpreter.sol
 contracts/connext/IndexerSingleAssetInterpreter.sol

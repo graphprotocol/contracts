@@ -3,7 +3,7 @@ pragma solidity ^0.6.4;
 /**
  * @title Graph Proxy Storage
  * @dev Contract functions related to getting and setting proxy storage.
- * This contract does not actually define state variables for the compiler to place into slots
+ * This contract does not actually define state variables managed by the compiler
  * but uses fixed slot locations.
  */
 contract GraphProxyStorage {

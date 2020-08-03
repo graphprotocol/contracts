@@ -1,11 +1,12 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./governance/Governed.sol";
-import "./curation/ICuration.sol";
-import "./token/IGraphToken.sol";
+import "../governance/Governed.sol";
+import "../curation/ICuration.sol";
+import "../token/IGraphToken.sol";
+import "../bancor/BancorFormula.sol";
+
 import "./erc1056/IEthereumDIDRegistry.sol";
-import "./bancor/BancorFormula.sol";
 
 /**
  * @title GNS
