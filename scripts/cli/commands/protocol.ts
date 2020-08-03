@@ -144,6 +144,10 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
       colWidths: [30, 50],
     })
 
+    const addressEntry = cli.addressBook.getEntry(contractName)
+    const contract = getContractAt(contractName, addressEntry.address).connect(cli.wallet)
+    table.push(['* address', contract.address])
+
     for (const fn of Object.values(gettersList)) {
       if (fn.contract != contractName) continue
 

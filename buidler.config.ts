@@ -1,9 +1,10 @@
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
-import { task, usePlugin } from '@nomiclabs/buidler/config'
+import { extendEnvironment, task, usePlugin } from '@nomiclabs/buidler/config'
 
+import { getAddressBook } from './scripts/cli/address-book'
 import { cliOpts } from './scripts/cli/constants'
-import { loadEnv } from './scripts/cli/env'
+import { loadContracts, loadEnv } from './scripts/cli/env'
 import { migrate } from './scripts/cli/commands/migrate'
 import { verify } from './scripts/cli/commands/verify'
 
@@ -26,6 +27,19 @@ function getAccountMnemonic() {
 function getInfuraProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
+
+// Env
+
+extendEnvironment((bre) => {
+  bre['load'] = async () => {
+    const accounts = await bre.ethers.getSigners()
+    const addressBook = getAddressBook(
+      cliOpts.addressBook.default,
+      bre.network.config.chainId.toString(),
+    )
+    return loadContracts(addressBook, accounts[0] as Wallet)
+  }
+})
 
 // Tasks
 
