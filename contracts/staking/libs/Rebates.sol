@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../abdk-libraries-solidity/ABDKMathQuad.sol";
+import "./abdk-libraries-solidity/ABDKMathQuad.sol";
 
 /**
  * @title A collection of data structures and functions to manage Rebates

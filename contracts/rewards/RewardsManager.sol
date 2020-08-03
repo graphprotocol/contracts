@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./governance/Governed.sol";
+import "../governance/Governed.sol";
 
 contract RewardsManager is Governed {
     /* STATE VARIABLES */
