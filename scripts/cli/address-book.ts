@@ -21,6 +21,7 @@ export type AddressBookJson = {
 }
 
 export interface AddressBook {
+  listEntries: () => Array<string>
   getEntry: (contractName: string) => AddressBookEntry
   setEntry: (contractName: string, entry: AddressBookEntry) => void
 }
@@ -33,6 +34,10 @@ export const getAddressBook = (path: string, chainId: string): AddressBook => {
 
   if (!addressBook[chainId]) {
     addressBook[chainId] = {}
+  }
+
+  const listEntries = (): Array<string> => {
+    return Object.keys(addressBook[chainId])
   }
 
   const getEntry = (contractName: string): AddressBookEntry => {
@@ -53,6 +58,7 @@ export const getAddressBook = (path: string, chainId: string): AddressBook => {
   }
 
   return {
+    listEntries,
     getEntry,
     setEntry,
   }

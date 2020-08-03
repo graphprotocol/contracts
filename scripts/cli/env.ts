@@ -1,8 +1,9 @@
 import consola from 'consola'
-import { utils, BigNumber, Wallet } from 'ethers'
+import { utils, BigNumber, Contract, Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
 import { getAddressBook, AddressBook } from './address-book'
+import { getContractAt } from './network'
 import { getProvider } from './utils'
 
 const { formatEther } = utils
@@ -17,7 +18,24 @@ export interface CLIEnvironment {
   walletAddress: string
   wallet: Wallet
   addressBook: AddressBook
+  contracts: { [key: string]: Contract }
   argv: CLIArgs
+}
+
+export const loadContracts = (
+  addressBook: AddressBook,
+  wallet?: Wallet,
+): { [key: string]: Contract } => {
+  const contracts = {}
+  for (const contractName of addressBook.listEntries()) {
+    const contractEntry = addressBook.getEntry(contractName)
+    const contract = getContractAt(contractName, contractEntry.address)
+    contracts[contractName] = contract
+    if (wallet) {
+      contracts[contractName] = contracts[contractName].connect(wallet)
+    }
+  }
+  return contracts
 }
 
 export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnvironment> => {
@@ -30,6 +48,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   const nonce = await wallet.getTransactionCount()
   const walletAddress = await wallet.getAddress()
   const addressBook = getAddressBook(argv.addressBook, chainId.toString())
+  const contracts = loadContracts(addressBook, wallet)
 
   logger.log(`Preparing contracts on chain id: ${chainId}`)
   logger.log(
@@ -43,6 +62,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
     walletAddress,
     wallet,
     addressBook,
+    contracts,
     argv,
   }
 }
