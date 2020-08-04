@@ -3,7 +3,5 @@
   "displayName": "Uniswap",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmSaK8PKxNWPv3QMMdjp8bYvQxnpU277DowPMwCUr7dAxS",
   "codeRepository": "https://github.com/graphprotocol/uniswap-subgraph",
-  "website": "https://uniswap.info/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://uniswap.info/"
 }

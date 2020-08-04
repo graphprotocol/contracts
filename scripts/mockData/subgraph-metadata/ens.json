@@ -3,7 +3,5 @@
   "displayName": "ENS",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmUqD4MMAXQvbNX3FbWNP43gmDFFdQPmQrn8CT9kNEb7Rs",
   "codeRepository": "https://github.com/ensdomains/ens-subgraph",
-  "website": "https://ens.domains/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://ens.domains/"
 }

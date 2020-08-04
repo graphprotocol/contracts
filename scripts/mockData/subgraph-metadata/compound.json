@@ -3,7 +3,5 @@
   "displayName": "Compound",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmeMR3qK7wfAuSns4PpdFVZZcsCoLa7wEPQbrZTBQNKGWq",
   "codeRepository": "https://github.com/graphprotocol/compound-V2-subgraph",
-  "website": "https://compound.finance/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://compound.finance/"
 }
