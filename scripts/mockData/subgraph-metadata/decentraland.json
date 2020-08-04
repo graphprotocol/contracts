@@ -3,7 +3,5 @@
   "displayName": "Decentraland",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmVMtgVvEJLqmH3PZzcYVp5t8ni1v61e2M1rDVkcRo9WCz",
   "codeRepository": "https://github.com/graphprotocol/decentraland-subgraph",
-  "website": "https://decentraland.org/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://decentraland.org/"
 }

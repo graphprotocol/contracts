@@ -3,7 +3,5 @@
   "displayName": "Livepeer",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmcTyMcTpkSrRs8Q7tUBPqA6ektwL7x5DEZCsEpoveXxe1",
   "codeRepository": "https://github.com/livepeer/livepeerjs/tree/master/packages/subgraph",
-  "website": "https://livepeer.org/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://livepeer.org/"
 }

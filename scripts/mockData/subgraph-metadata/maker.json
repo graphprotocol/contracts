@@ -3,7 +3,5 @@
   "displayName": "Maker",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmdJ2g7fbk1XDh24NBCwWNSUZ8jY1XxpG9ukXhLAhanP6C",
   "codeRepository": "https://github.com/makerdao",
-  "website": "https://makerdao.com/en/",
-  "label": "v0.1.0",
-  "description": "First Version"
+  "website": "https://makerdao.com/en/"
 }
