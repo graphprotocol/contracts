@@ -7,9 +7,10 @@ mkdir -p ${OUT_DIR}/contracts
 
 echo "Flattening contracts..."
 
-IFS='/'
+files=`find contracts -name '*.sol'`
 
-for path in contracts/**/*.sol; do
+for path in $files; do
+    IFS='/'
     parts=( $path )
     name=${parts[${#parts[@]}-1]}
     echo "${path}"
