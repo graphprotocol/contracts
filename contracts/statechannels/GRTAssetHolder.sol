@@ -27,12 +27,12 @@ contract GRTAssetHolder is ERC20AssetHolder {
 
         if (staking.isChannel(destination)) {
             require(
-                staking.collect(destination, amount),
+                staking.collect(amount, destination),
                 "GRTAssetHolder: collecting payments failed"
             );
         } else {
             require(
-                token.transfer(node, amount),
+                token.transfer(destination, amount),
                 "GRTAssetHolder: transferring tokens failed"
             );
         }
