@@ -9,7 +9,7 @@ import { StakingFactory } from '../../build/typechain/contracts/StakingContract'
 import { GraphTokenFactory } from '../../build/typechain/contracts/GraphTokenContract'
 import { IEthereumDidRegistryFactory } from '../../build/typechain/contracts/IEthereumDidRegistryContract'
 
-import { getNetworkAddresses, IPFS } from './helpers'
+import { getNetworkAddresses, IPFS, basicOverrides } from './helpers'
 import { connectContracts } from './connectedNetwork'
 import {
   SubgraphMetadata,
@@ -88,7 +88,7 @@ class ConnectedENS extends ConnectedContract {
   setTestRecord = async (name: string): Promise<ContractTransaction> => {
     const contracts = await connectContracts(this.configuredWallet, this.network)
     const normalizedName = name.toLowerCase()
-    const labelNameFull = `${normalizedName}.${'test'}`
+    const labelNameFull = `${normalizedName}.${'eth'}`
     const labelHashFull = utils.namehash(labelNameFull)
     console.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
     const signerAddress = await contracts.testRegistrar.signer.getAddress()
@@ -96,27 +96,32 @@ class ConnectedENS extends ConnectedContract {
     return contracts.testRegistrar.register(label, signerAddress)
   }
 
-  setText = async (name: string): Promise<ContractTransaction> => {
-    const contracts = await connectContracts(this.configuredWallet, this.network)
-    const normalizedName = name.toLowerCase()
-    const labelNameFull = `${normalizedName}.${'test'}`
-    const labelHashFull = utils.namehash(labelNameFull)
-    console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
-    const key = 'GRAPH NAME SERVICE'
-    const signerAddress = await contracts.publicResolver.signer.getAddress()
-    return contracts.publicResolver.setText(labelHashFull, key, signerAddress)
-  }
+  // TODO - remove, not in use anymore
+  // setText = async (name: string): Promise<ContractTransaction> => {
+  //   const contracts = await connectContracts(this.configuredWallet, this.network)
+  //   const normalizedName = name.toLowerCase()
+  //   const labelNameFull = `${normalizedName}.${'eth'}`
+  //   const labelHashFull = utils.namehash(labelNameFull)
+  //   console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
+  //   const key = 'GRAPH NAME SERVICE'
+  //   const signerAddress = await contracts.publicResolver.signer.getAddress()
+  //   return contracts.publicResolver.setText(labelHashFull, key, signerAddress)
+  // }
 
   checkOwner = async (name: string): Promise<void> => {
     const contracts = await connectContracts(this.configuredWallet, this.network)
     try {
-      const node = utils.namehash(`${name}.test`)
+      const node = utils.namehash(`${name}.eth`)
       console.log(`Node: ${node}`)
       const res = await contracts.ens.owner(node)
-      console.log(`Owner of ${name}.test is: ${res}`)
+      console.log(`Owner of ${name}.eth is: ${res}`)
     } catch (e) {
       console.log(`  ..failed on checkOwner: ${e.message}`)
     }
+  }
+
+  getNode = (name: string): string => {
+    return utils.namehash(`${name}.eth`)
   }
 }
 
@@ -208,7 +213,7 @@ class ConnectedGNS extends ConnectedContract {
     ipfs: string,
     graphAccount: string,
     subgraphDeploymentID: string,
-    versionMetadata: string | SubgraphMetadata,
+    versionMetadata: string | VersionMetadata,
     subgraphMetadata: string | SubgraphMetadata,
   ): Promise<ContractTransaction> => {
     const subgraphDataHash = await this.handleSubgraphMetadata(ipfs, subgraphMetadata)
@@ -226,7 +231,7 @@ class ConnectedGNS extends ConnectedContract {
     ipfs: string,
     graphAccount: string,
     subgraphDeploymentID: string,
-    versionMetadata: string | SubgraphMetadata,
+    versionMetadata: string | VersionMetadata,
     subgraphNumber: string,
   ): Promise<ContractTransaction> => {
     const metaHashBytes = await this.handleVersionMetadata(ipfs, versionMetadata)
@@ -236,6 +241,7 @@ class ConnectedGNS extends ConnectedContract {
       subgraphNumber,
       subgraphDeploymentIDBytes,
       metaHashBytes,
+      basicOverrides(),
     )
   }
 

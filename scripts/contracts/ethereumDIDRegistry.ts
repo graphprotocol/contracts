@@ -53,7 +53,10 @@ const main = async () => {
   try {
     if (func == 'setAttribute') {
       console.log(`Setting attribute on ethereum DID registry ...`)
-      await executeTransaction(ethereumDIDRegistry.pinIPFSAndSetAttribute(ipfs, metadataPath), network)
+      await executeTransaction(
+        ethereumDIDRegistry.pinIPFSAndSetAttribute(ipfs, metadataPath),
+        network,
+      )
     } else {
       console.log(`Wrong func name provided`)
       process.exit(1)
