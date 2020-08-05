@@ -3,5 +3,6 @@
   "description": "Maker dev",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
   "name": "Maker deve",
-  "website": "https://maker.io/"
+  "website": "https://maker.io/",
+  "isOrganization": true
 }

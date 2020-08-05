@@ -3,5 +3,6 @@
   "description": "Dave Kajpusts graph account",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
   "name": "Dave Kajpust",
-  "website": "https://kajpust.com/"
+  "website": "https://kajpust.com/",
+  "isOrganization": true
 }

@@ -3,5 +3,6 @@
   "description": "Ian",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
   "name": "Ian",
-  "website": "https://ian.com"
+  "website": "https://ian.com",
+  "isOrganization": true
 }
