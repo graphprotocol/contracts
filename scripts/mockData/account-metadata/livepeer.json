@@ -3,5 +3,6 @@
   "description": "Adam",
   "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
   "name": "Adam",
-  "website": "https://adam.com/"
+  "website": "https://adam.com/",
+  "isOrganization": true
 }
