@@ -67,7 +67,7 @@ const settersList = {
   'disputes-slashing-percentage': { contract: 'DisputeManager', name: 'setSlashingPercentage' },
   'disputes-staking': { contract: 'DisputeManager', name: 'setStaking' },
   'epochs-governor': { contract: 'EpochManager', name: 'setGovernor' },
-  'epochs-length': { contract: 'EpochManager', name: 'epochLength' },
+  'epochs-length': { contract: 'EpochManager', name: 'setEpochLength' },
   'token-governor': { contract: 'GraphToken', name: 'setGovernor' },
   'token-add-minter': { contract: 'GraphToken', name: 'addMinter' },
   'token-remove-minter': { contract: 'GraphToken', name: 'removeMinter' },
