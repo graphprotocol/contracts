@@ -12,25 +12,25 @@ export const cliOpts = {
     alias: 'address-book',
     description: 'The path to your address book file',
     type: 'string',
-    default: process.env.ADDRESS_BOOK || defaults.addressBookPath,
+    default: defaults.addressBookPath,
   },
   graphConfig: {
     alias: 'graph-config',
     description: 'The path to the config file',
     type: 'string',
-    default: process.env.GRAPH_CONFIG || defaults.graphConfigPath,
+    default: defaults.graphConfigPath,
   },
-  ethProvider: {
-    alias: 'eth-provider',
+  providerUrl: {
+    alias: 'provider-url',
     description: 'The URL of an Ethereum provider',
     type: 'string',
-    default: process.env.PROVIDER_URL || defaults.providerUrl,
+    default: defaults.providerUrl,
   },
   mnemonic: {
     alias: 'mnemonic',
     description: 'The mnemonic for an account which will pay for gas',
     type: 'string',
-    default: process.env.MNEMONIC || defaults.mnemonic,
+    default: defaults.mnemonic,
   },
   force: {
     alias: 'force',

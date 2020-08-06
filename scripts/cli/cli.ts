@@ -1,5 +1,5 @@
 #!/usr/bin/env ts-node
-
+import * as dotenv from 'dotenv'
 import yargs from 'yargs'
 
 import { deployCommand } from './commands/deploy'
@@ -9,10 +9,13 @@ import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
 import { cliOpts } from './constants'
 
+dotenv.config()
+
 yargs
+  .env(true)
   .option('a', cliOpts.addressBook)
   .option('m', cliOpts.mnemonic)
-  .option('p', cliOpts.ethProvider)
+  .option('p', cliOpts.providerUrl)
   .command(deployCommand)
   .command(migrateCommand)
   .command(upgradeCommand)
