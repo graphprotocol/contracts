@@ -334,11 +334,11 @@ class ConnectedStaking extends ConnectedContract {
   }
 
   allocateWithDecimals = async (
-    amount: string,
-    price: string,
-    channelProxy: string,
     subgraphDeploymentID: string,
+    amount: string,
     channelPubKey: string,
+    channelProxy: string,
+    price: string,
   ): Promise<ContractTransaction> => {
     const amountParseDecimals = utils.parseUnits(amount as string, 18).toString()
     return this.contract.allocate(
@@ -347,6 +347,7 @@ class ConnectedStaking extends ConnectedContract {
       channelPubKey,
       channelProxy,
       price,
+      basicOverrides(),
     )
   }
 
