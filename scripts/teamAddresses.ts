@@ -9,6 +9,7 @@ type TeamAddresses = {
   ariel: string
   dave: string
   zac: string
+  martin: string
 }
 
 export const teamAddresses: TeamAddresses = {
@@ -22,4 +23,5 @@ export const teamAddresses: TeamAddresses = {
   ariel: '0xeF38F892E4722152fD8eDb50cD84a96344FD47Ce',
   dave: '0x93606b27cB5e4c780883eC4F6b7Bed5f6572d1dd',
   zac: '0xD31bC1e2a214066Bb2258dac5f43Ce75e5542Ab9',
+  martin: '0x055BCF2c2BC965Ac8EEAe3f95922D65EE45d3366',
 }

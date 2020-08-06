@@ -22,6 +22,12 @@ const gettersList = {
   'staking-thawing-period': { contract: 'Staking', name: 'thawingPeriod' },
   'staking-dispute-epochs': { contract: 'Staking', name: 'channelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'maxAllocationEpochs' },
+  'staking-delegation-capacity': { contract: 'Staking', name: 'delegationCapacity' },
+  'staking-delegation-parameters-cooldown': {
+    contract: 'Staking',
+    name: 'delegationParametersCooldown',
+  },
+  'staking-delegation-unbonding-period': { contract: 'Staking', name: 'delegationUnbondingPeriod' },
   'protocol-percentage': { contract: 'Staking', name: 'protocolPercentage' },
   'curation-governor': { contract: 'Curation', name: 'governor' },
   'curation-staking-contract': { contract: 'Curation', name: 'staking' },
@@ -51,6 +57,15 @@ const settersList = {
   'staking-dispute-epochs': { contract: 'Staking', name: 'setChannelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
   'staking-protocol-percentage': { contract: 'Staking', name: 'setProtocolPercentage' },
+  'staking-delegation-capacity': { contract: 'Staking', name: 'setDelegationCapacity' },
+  'staking-delegation-parameters-cooldown': {
+    contract: 'Staking',
+    name: 'setDelegationParametersCooldown',
+  },
+  'staking-delegation-unbonding-period': {
+    contract: 'Staking',
+    name: 'setDelegationUnbondingPeriod',
+  },
   'curation-governor': { contract: 'Curation', name: 'setGovernor' },
   'curation-staking-contract': { contract: 'Curation', name: 'setStaking' },
   'curation-reserve-ratio': { contract: 'Curation', name: 'setDefaultReserveRatio' },

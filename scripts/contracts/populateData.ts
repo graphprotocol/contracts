@@ -17,7 +17,9 @@ import { AccountMetadata, SubgraphMetadata } from '../metadataHelpers'
 import * as AccountDatas from '../mockData/account-metadata/accountMetadatas'
 import * as SubgraphDatas from '../mockData/subgraph-metadata/subgraphMetadatas'
 import {
-  configureWallets,
+  userAccounts,
+  proxyAccounts,
+  channelAccounts,
   executeTransaction,
   checkGovernor,
   mockChannelPubKeys,
@@ -331,18 +333,18 @@ const populateStaking = async (network: string, signers: Array<Wallet>, proxies:
 }
 
 const populateAll = async (mnemonic: string, provider: string, network: string): Promise<void> => {
-  const signers = configureWallets(mnemonic, provider, 20)
-  const userAccounts = signers.slice(0, 10)
-  const proxyAccounts = signers.slice(10, 20)
+  const users = userAccounts(mnemonic, provider)
+  const proxies = proxyAccounts(mnemonic, provider)
+  const channels = channelAccounts(mnemonic, provider)
   const governor = signers[0]
   // await sendEth(network, governor, userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
-  await populateGraphToken(network, userAccounts, proxyAccounts, '100000') // only use at the start. TODO - make this a cli option or something
-  await populateEthereumDIDRegistry(network, userAccounts)
-  await populateENS(network, userAccounts)
-  await populateGNS(network, userAccounts)
-  await populateCuration(network, userAccounts)
-  await populateServiceRegistry(network, userAccounts)
-  await populateStaking(network, userAccounts, proxyAccounts)
+  await populateGraphToken(network, users, proxies, '100000') // only use at the start. TODO - make this a cli option or something
+  await populateEthereumDIDRegistry(network, users)
+  await populateENS(network, users)
+  await populateGNS(network, users)
+  await populateCuration(network, users)
+  await populateServiceRegistry(network, users)
+  await populateStaking(network, users, proxies)
 }
 
 export default populateAll
