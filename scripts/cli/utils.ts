@@ -10,5 +10,5 @@ export const contractAt = (
   return new Contract(contractAddress, loadArtifact(contractName).abi, wallet.provider)
 }
 
-export const getProvider = (providerUrl: string): providers.JsonRpcProvider =>
-  new providers.JsonRpcProvider(providerUrl)
+export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
+  new providers.JsonRpcProvider(providerUrl, network)
