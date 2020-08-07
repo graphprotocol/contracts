@@ -97,7 +97,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     /**
      * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
      * during `epoch`.
-     * `channelID` is the address of the indexer in the channel multisig.
+     * `allocationID` indexer derived address used to identify the allocation.
      * `channelPubKey` is the public key used for routing payments to the indexer channel.
      * `price` price the `indexer` will charge for serving queries of the `subgraphDeploymentID`.
      */
@@ -106,14 +106,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address channelID,
+        address allocationID,
         bytes channelPubKey,
         uint256 price,
         address proxy
     );
 
     /**
-     * @dev Emitted when `indexer` withdrew `tokens` amount in `epoch` from `channelID` channel.
+     * @dev Emitted when `indexer` withdrew `tokens` amount in `epoch` from `allocationID` channel.
      * The funds are related to `subgraphDeploymentID`.
      * `from` attribute records the the multisig contract from where it was settled.
      */
@@ -122,14 +122,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address channelID,
+        address allocationID,
         address from,
         uint256 curationFees,
         uint256 rebateFees
     );
 
     /**
-     * @dev Emitted when `indexer` settled an allocation in `epoch` for `channelID` channel.
+     * @dev Emitted when `indexer` settled an allocation in `epoch` for `allocationID` channel.
      * The `tokens` getting unallocated from `subgraphDeploymentID`.
      * The `effectiveAllocation` are the tokens allocated from creation to settlement.
      */
@@ -138,7 +138,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address channelID,
+        address allocationID,
         uint256 effectiveAllocation,
         address sender
     );
@@ -152,7 +152,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     event RebateClaimed(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
-        address channelID,
+        address allocationID,
         uint256 epoch,
         uint256 forEpoch,
         uint256 tokens,
@@ -265,7 +265,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Set the max allocation time allowed for indexers stake on channels.
+     * @dev Set the max time allowed for indexers stake on allocations.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external override onlyGovernor {
@@ -375,12 +375,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Return if channelID (address) was used as a channel in any allocation.
-     * @param _channelID Address used as signer for indexer in channel
-     * @return True if channelID already used
+     * @dev Return if allocationID is used.
+     * @param _allocationID Address used as signer by the indexer for an allocation
+     * @return True if allocationID already used
      */
-    function isChannel(address _channelID) external override view returns (bool) {
-        return _getAllocationState(_channelID) != AllocationState.Null;
+    function isChannel(address _allocationID) external override view returns (bool) {
+        return _getAllocationState(_allocationID) != AllocationState.Null;
     }
 
     /**
@@ -393,26 +393,31 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Return the allocation for a particular channel identifier.
-     * @param _channelID Address used as channel identifier where stake has been allocated
+     * @dev Return the allocation by ID.
+     * @param _allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(address _channelID) external override view returns (Allocation memory) {
-        return allocations[_channelID];
+    function getAllocation(address _allocationID)
+        external
+        override
+        view
+        returns (Allocation memory)
+    {
+        return allocations[_allocationID];
     }
 
     /**
      * @dev Return the current state of an allocation.
-     * @param _channelID Address used as the allocation channel identifier
+     * @param _allocationID Address used as the allocation identifier
      * @return AllocationState
      */
-    function getAllocationState(address _channelID)
+    function getAllocationState(address _allocationID)
         external
         override
         view
         returns (AllocationState)
     {
-        return _getAllocationState(_channelID);
+        return _getAllocationState(_allocationID);
     }
 
     /**
@@ -748,16 +753,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Settle a channel and unallocate the staked tokens.
-     * @param _channelID The channel identifier for the allocation
+     * @dev Settle an allocation and free the staked tokens.
+     * @param _allocationID The allocation identifier
      */
-    function settle(address _channelID) external override {
-        // Get allocation related to the channel identifier
-        Allocation storage alloc = allocations[_channelID];
-        AllocationState allocState = _getAllocationState(_channelID);
+    function settle(address _allocationID) external override {
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
+        AllocationState allocState = _getAllocationState(_allocationID);
 
         // Channel must exist and be allocated
-        require(allocState == AllocationState.Active, "Settle: channel must be active");
+        require(allocState == AllocationState.Active, "Settle: allocation must be active");
 
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
@@ -779,7 +784,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         }
 
         // Settle the allocation and start counting a period to finalize any other
-        // withdrawal from the related channel.
+        // withdrawal for the allocation.
         alloc.settledAtEpoch = currentEpoch;
         alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
 
@@ -795,28 +800,27 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             alloc.subgraphDeploymentID,
             alloc.settledAtEpoch,
             alloc.tokens,
-            _channelID,
+            _allocationID,
             alloc.effectiveAllocation,
             msg.sender
         );
     }
 
     /**
-     * @dev Collect query fees from a channel.
-     * Funds received are only accepted from a channel multisig proxy contract.
+     * @dev Collect query fees for an allocation.
+     * Funds received are only accepted from a valid source.
      * @param _tokens Amount of tokens to collect
      */
-    function collect(uint256 _tokens, address _channelID) external override {
-        Allocation memory alloc = allocations[_channelID];
+    function collect(uint256 _tokens, address _allocationID) external override {
+        Allocation memory alloc = allocations[_allocationID];
 
-        // Channel identifier validation
-        require(_channelID != address(0), "Collect: invalid channel");
+        // Allocation identifier validation
+        require(_allocationID != address(0), "Collect: invalid allocation");
 
         // The contract caller must be a channel proxy registered during allocation
-        // The channelID must be related to the caller address
         require(
             alloc.channelProxy == msg.sender,
-            "Collect: caller is not related to the channel allocation"
+            "Collect: caller is not related to the allocation"
         );
 
         // Transfer tokens to collect from multisig to this contract
@@ -825,18 +829,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             "Collect: cannot transfer tokens to settle"
         );
 
-        _collect(_channelID, msg.sender, _tokens);
+        _collect(_allocationID, msg.sender, _tokens);
     }
 
     /**
      * @dev Claim tokens from the rebate pool.
-     * @param _channelID Identifier of the channel we are claiming funds from
+     * @param _allocationID Allocation from where we are claiming tokens
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claim(address _channelID, bool _restake) external override {
-        // Get allocation related to the channel identifier
-        Allocation storage alloc = allocations[_channelID];
-        AllocationState allocState = _getAllocationState(_channelID);
+    function claim(address _allocationID, bool _restake) external override {
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
+        AllocationState allocState = _getAllocationState(_allocationID);
 
         // Validate ownership
         require(_onlyAuthOrDelegator(alloc.indexer), "Rebate: caller must be authorized");
@@ -844,7 +848,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Funds can only be claimed after a period of time passed since settlement
         require(
             allocState == AllocationState.Finalized,
-            "Rebate: channel must be in finalized state"
+            "Rebate: allocation must be in finalized state"
         );
 
         // Find a rebate pool for the settled epoch
@@ -862,8 +866,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         uint256 delegationFees = _collectDelegationFees(alloc.indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationFees);
 
-        // Purgue allocation data except for:
-        // - indexer: used in disputes and to avoid reusing a channelID
+        // Purge allocation data except for:
+        // - indexer: used in disputes and to avoid reusing an allocationID
         // - subgraphDeploymentID: used in disputes
         uint256 settledAtEpoch = alloc.settledAtEpoch;
         alloc.tokens = 0; // This avoid collect(), settle() and claim() to be called
@@ -891,7 +895,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         emit RebateClaimed(
             alloc.indexer,
             alloc.subgraphDeploymentID,
-            _channelID,
+            _allocationID,
             epochManager.currentEpoch(),
             settledAtEpoch,
             tokensToClaim,
@@ -959,19 +963,19 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Get the Ethereum address from the public key and use as channel identifier.
         // The channel identifier is the address of the indexer signing party of a multisig that
         // will hold the funds received when the channel is settled.
-        address channelID = address(uint256(keccak256(_sliceByte(bytes(_channelPubKey)))));
+        address allocationID = address(uint256(keccak256(_sliceByte(bytes(_channelPubKey)))));
 
-        // Cannot reuse a channelID that has already been used in an allocation
+        // Cannot reuse an allocationID that has already been used in an allocation
         require(
-            _getAllocationState(channelID) == AllocationState.Null,
-            "Allocation: channel ID already used"
+            _getAllocationState(allocationID) == AllocationState.Null,
+            "Allocation: allocation ID already used"
         );
 
-        // Create allocation linked to the channel identifier
-        // Channel identifiers are not reused
+        // Creates an allocation
+        // Allocation identifiers are not reused
         // The channel proxy address is the contract that will send tokens to be collected to
         // this contract
-        allocations[channelID] = Allocation(
+        allocations[allocationID] = Allocation(
             _indexer,
             _subgraphDeploymentID,
             _tokens, // Tokens allocated
@@ -979,7 +983,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             0, // settledAtEpoch
             0, // Initialize with zero collected fees
             0, // Initialize effective allocation
-            _channelProxy // Source address of channel funds
+            _channelProxy // Source address of allocation collected funds
         );
 
         // Mark allocated tokens as used
@@ -988,9 +992,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         emit AllocationCreated(
             _indexer,
             _subgraphDeploymentID,
-            allocations[channelID].createdAtEpoch,
-            allocations[channelID].tokens,
-            channelID,
+            allocations[allocationID].createdAtEpoch,
+            allocations[allocationID].tokens,
+            allocationID,
             _channelPubKey,
             _price,
             _channelProxy
@@ -998,26 +1002,26 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     }
 
     /**
-     * @dev Withdraw and collect funds from the channel.
-     * @param _channelID ChannelID address of the indexer in the channel
-     * @param _from Multisig channel address that triggered withdrawal
+     * @dev Withdraw and collect funds for an allocation.
+     * @param _allocationID Allocation that is receiving collected funds
+     * @param _from Source of collected funds for the allocation
      * @param _tokens Amount of tokens to withdraw
      */
     function _collect(
-        address _channelID,
+        address _allocationID,
         address _from,
         uint256 _tokens
     ) private {
         uint256 rebateFees = _tokens;
 
-        // Get allocation related to the channel identifier
-        Allocation storage alloc = allocations[_channelID];
-        AllocationState allocState = _getAllocationState(_channelID);
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
+        AllocationState allocState = _getAllocationState(_allocationID);
 
-        // The channel must be active or settled
+        // The allocation must be active or settled
         require(
             allocState == AllocationState.Active || allocState == AllocationState.Settled,
-            "Collect: channel must be active or settled"
+            "Collect: allocation must be active or settled"
         );
 
         // Collect protocol fees to be burned
@@ -1028,10 +1032,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, rebateFees);
         rebateFees = rebateFees.sub(curationFees);
 
-        // Collect funds in the allocated channel
+        // Collect funds for the allocation
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
-        // When channel allocation is settled redirect funds to the rebate pool
+        // When allocation is settled redirect funds to the rebate pool
         if (allocState == AllocationState.Settled) {
             Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);
@@ -1053,7 +1057,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             alloc.subgraphDeploymentID,
             epochManager.currentEpoch(),
             _tokens,
-            _channelID,
+            _allocationID,
             _from,
             curationFees,
             rebateFees
@@ -1195,11 +1199,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
     /**
      * @dev Return the current state of an allocation
-     * @param _channelID Address used as the allocation channel identifier
+     * @param _allocationID Allocation identifier
      * @return AllocationState
      */
-    function _getAllocationState(address _channelID) private view returns (AllocationState) {
-        Allocation memory alloc = allocations[_channelID];
+    function _getAllocationState(address _allocationID) private view returns (AllocationState) {
+        Allocation memory alloc = allocations[_allocationID];
 
         if (alloc.indexer == address(0)) {
             return AllocationState.Null;
