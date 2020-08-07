@@ -16,7 +16,7 @@ interface IStaking {
     enum AllocationState { Null, Active, Settled, Finalized, Claimed }
 
     /**
-     * @dev GRT stake allocation to a channel
+     * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and consumed in claim()
      */
     struct Allocation {
@@ -25,9 +25,9 @@ interface IStaking {
         uint256 tokens; // Tokens allocated to a SubgraphDeployment
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 settledAtEpoch; // Epoch when it was settled
-        uint256 collectedFees; // Collected fees from channels
+        uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when settled
-        address channelProxy; // Caller address of the collect() function
+        address authSender; // Authorized caller address of the collect() function
     }
 
     // -- Delegation Data --
@@ -115,7 +115,7 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _channelProxy,
+        address _authSender,
         uint256 _price
     ) external;
 
@@ -124,15 +124,15 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _channelProxy,
+        address _authSender,
         uint256 _price
     ) external;
 
-    function settle(address _channelID) external;
+    function settle(address _allocationID) external;
 
-    function collect(uint256 _tokens, address _channelID) external;
+    function collect(uint256 _tokens, address _allocationID) external;
 
-    function claim(address _channelID, bool _restake) external;
+    function claim(address _allocationID, bool _restake) external;
 
     // -- Getters and calculations --
 
@@ -142,11 +142,11 @@ interface IStaking {
 
     function getIndexerCapacity(address _indexer) external view returns (uint256);
 
-    function getAllocation(address _channelID) external view returns (Allocation memory);
+    function getAllocation(address _allocationID) external view returns (Allocation memory);
 
-    function getAllocationState(address _channelID) external view returns (AllocationState);
+    function getAllocationState(address _allocationID) external view returns (AllocationState);
 
-    function isChannel(address _channelID) external view returns (bool);
+    function isChannel(address _allocationID) external view returns (bool);
 
     function getDelegation(address _indexer, address _delegator)
         external
