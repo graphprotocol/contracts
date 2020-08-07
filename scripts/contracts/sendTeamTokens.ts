@@ -44,10 +44,10 @@ const main = async () => {
   }
   try {
     if (func == 'mint') {
-      for (const member in teamAddresses) {
-        console.log(`Minting ${amount} tokens to user ${member}...`)
+      for (let i = 0; i < teamAddresses.length; i++) {
+        console.log(`Minting ${amount} tokens to user ${teamAddresses[i].name}...`)
         await executeTransaction(
-          graphToken.mintWithDecimals(teamAddresses[member], amount),
+          graphToken.mintWithDecimals(teamAddresses[i].address, amount),
           network,
         )
       }
