@@ -11,23 +11,18 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   const subgraphID = cliArgs.subgraphID
   const amount = parseGRT(cliArgs.amount)
 
-  const curationEntry = cli.addressBook.getEntry('Curation')
-  const graphTokenEntry = cli.addressBook.getEntry('GraphToken')
-
-  const curation = getContractAt('Curation', curationEntry.address).connect(cli.wallet)
-  const graphToken = getContractAt('GraphToken', graphTokenEntry.address).connect(cli.wallet)
+  const curation = cli.contracts.Curation
+  const graphToken = cli.contracts.GraphToken
 
   logger.log('First calling approve() to ensure curation contract can call transferFrom()...')
-  await sendTransaction(cli.wallet, graphToken, 'approve', ...[curationEntry.address, amount])
+  await sendTransaction(cli.wallet, graphToken, 'approve', ...[curation.address, amount])
   logger.log(`Signaling on ${subgraphID} with ${cliArgs.amount} tokens...`)
   await sendTransaction(cli.wallet, curation, 'mint', ...[subgraphID, amount])
 }
 export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   const subgraphID = cliArgs.subgraphID
   const amount = parseGRT(cliArgs.amount)
-
-  const curationEntry = cli.addressBook.getEntry('Curation')
-  const curation = getContractAt('Curation', curationEntry.address).connect(cli.wallet)
+  const curation = cli.contracts.Curation
 
   logger.log(`Burning signal on ${subgraphID} with ${cliArgs.amount} tokens...`)
   await sendTransaction(cli.wallet, curation, 'burn', ...[subgraphID, amount])

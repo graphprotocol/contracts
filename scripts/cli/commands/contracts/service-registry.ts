@@ -8,16 +8,13 @@ const logger = consola.create({})
 export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   const url = cliArgs.url
   const geoHash = cliArgs.geoHash
-
-  const addressEntry = cli.addressBook.getEntry('ServiceRegistry')
-  const serviceRegistry = getContractAt('ServiceRegistry', addressEntry.address).connect(cli.wallet)
+  const serviceRegistry = cli.contracts.ServiceRegistry
 
   logger.log(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'register', ...[url, geoHash])
 }
 export const unregister = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
-  const addressEntry = cli.addressBook.getEntry('ServiceRegistry')
-  const serviceRegistry = getContractAt('ServiceRegistry', addressEntry.address).connect(cli.wallet)
+  const serviceRegistry = cli.contracts.ServiceRegistry
 
   logger.log(`Unregistering indexer ${cli.walletAddress}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'unregister')
