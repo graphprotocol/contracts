@@ -44,7 +44,7 @@ describe('Staking:Allocation', () => {
   let governor: Account
   let indexer: Account
   let slasher: Account
-  let authSender: Account
+  let assetHolder: Account
 
   let fixture: NetworkFixture
 
@@ -59,7 +59,7 @@ describe('Staking:Allocation', () => {
   const tokensToAllocate = toGRT('100')
   const tokensToCollect = toGRT('100')
   const subgraphDeploymentID = randomHexBytes()
-  const channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
+  const allocationID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
   const channelPubKey =
     '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
   const price = toGRT('0.01')
@@ -68,11 +68,11 @@ describe('Staking:Allocation', () => {
   const allocate = (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, channelPubKey, authSender.address, price)
+      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, price)
   }
 
   before(async function () {
-    ;[me, other, governor, indexer, slasher, authSender] = await getAccounts()
+    ;[me, other, governor, indexer, slasher, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ curation, epochManager, grt, staking } = await fixture.load(
@@ -147,15 +147,15 @@ describe('Staking:Allocation', () => {
           subgraphDeploymentID,
           currentEpoch,
           tokensToAllocate,
-          channelID,
+          allocationID,
           channelPubKey,
           price,
-          authSender.address,
+          assetHolder.address,
         )
 
       // After state
       const afterStake = await staking.stakes(indexer.address)
-      const afterAlloc = await staking.getAllocation(channelID)
+      const afterAlloc = await staking.getAllocation(allocationID)
 
       // Stake updated
       expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.add(tokensToAllocate))
@@ -167,7 +167,7 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.settledAtEpoch).eq(toBN('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
-      expect(afterAlloc.authSender).eq(authSender.address)
+      expect(afterAlloc.assetHolder).eq(assetHolder.address)
     }
 
     it('reject allocate zero tokens', async function () {
@@ -184,7 +184,7 @@ describe('Staking:Allocation', () => {
           subgraphDeploymentID,
           tokensToAllocate,
           invalidChannelPubKey,
-          authSender.address,
+          assetHolder.address,
           price,
         )
       await expect(tx).revertedWith('Allocation: invalid channel public key')
@@ -220,7 +220,7 @@ describe('Staking:Allocation', () => {
             subgraphDeploymentID,
             tokensToAllocate,
             channelPubKey,
-            authSender.address,
+            assetHolder.address,
             price,
           )
         await expect(tx1).revertedWith('Allocation: caller must be authorized')
@@ -234,7 +234,7 @@ describe('Staking:Allocation', () => {
             subgraphDeploymentID,
             tokensToAllocate,
             channelPubKey,
-            authSender.address,
+            assetHolder.address,
             price,
           )
       })
@@ -243,7 +243,7 @@ describe('Staking:Allocation', () => {
         const someTokensToAllocate = toGRT('10')
         await shouldAllocate(someTokensToAllocate)
         const tx = allocate(someTokensToAllocate)
-        await expect(tx).revertedWith('Allocation: channel ID already used')
+        await expect(tx).revertedWith('Allocation: allocationID already used')
       })
     })
   })
@@ -257,7 +257,7 @@ describe('Staking:Allocation', () => {
       // Before state
       const beforeTokenSupply = await grt.totalSupply()
       const beforePool = await curation.pools(subgraphDeploymentID)
-      const beforeAlloc = await staking.getAllocation(channelID)
+      const beforeAlloc = await staking.getAllocation(allocationID)
 
       // Advance blocks to get the channel in epoch where it can be settled
       await advanceToNextEpoch(epochManager)
@@ -273,7 +273,7 @@ describe('Staking:Allocation', () => {
       rebateFees = rebateFees.sub(curationFees)
 
       // Collect tokens from channel
-      const tx = staking.connect(authSender.signer).collect(tokensToCollect, channelID)
+      const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await expect(tx)
         .emit(staking, 'AllocationCollected')
         .withArgs(
@@ -281,8 +281,8 @@ describe('Staking:Allocation', () => {
           subgraphDeploymentID,
           await epochManager.currentEpoch(),
           tokensToCollect,
-          channelID,
-          authSender.address,
+          allocationID,
+          assetHolder.address,
           curationFees,
           rebateFees,
         )
@@ -290,7 +290,7 @@ describe('Staking:Allocation', () => {
       // After state
       const afterTokenSupply = await grt.totalSupply()
       const afterPool = await curation.pools(subgraphDeploymentID)
-      const afterAlloc = await staking.getAllocation(channelID)
+      const afterAlloc = await staking.getAllocation(allocationID)
 
       // Check that protocol fees are burnt
       expect(afterTokenSupply).eq(beforeTokenSupply.sub(protocolFees))
@@ -310,24 +310,24 @@ describe('Staking:Allocation', () => {
 
       // Fund channel wallet
       const tokensToFund = toGRT('100000')
-      await grt.connect(governor.signer).mint(authSender.address, tokensToFund)
-      await grt.connect(authSender.signer).approve(staking.address, tokensToFund)
+      await grt.connect(governor.signer).mint(assetHolder.address, tokensToFund)
+      await grt.connect(assetHolder.signer).approve(staking.address, tokensToFund)
     })
 
-    it('reject collect if invalid channel', async function () {
+    it('reject collect if invalid collection', async function () {
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, AddressZero)
-      await expect(tx).revertedWith('Collect: invalid channel')
+      await expect(tx).revertedWith('Collect: invalid allocation')
     })
 
     it('reject collect if channel does not exist', async function () {
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, invalidChannelID)
-      await expect(tx).revertedWith('Collect: caller is not related to the channel allocation')
+      await expect(tx).revertedWith('Collect: caller is not authorized')
     })
 
     it('reject collect if caller not related to channel', async function () {
-      const tx = staking.connect(other.signer).collect(tokensToCollect, channelID)
-      await expect(tx).revertedWith('Collect: caller is not related to the channel allocation')
+      const tx = staking.connect(other.signer).collect(tokensToCollect, allocationID)
+      await expect(tx).revertedWith('Collect: caller is not authorized')
     })
 
     it('should collect funds from channel', async function () {
@@ -381,19 +381,19 @@ describe('Staking:Allocation', () => {
       // Advance blocks to get the channel in epoch where it can be settled
       await advanceToNextEpoch(epochManager)
       // Settle the channel
-      await staking.connect(indexer.signer).settle(channelID)
+      await staking.connect(indexer.signer).settle(allocationID)
 
       // Collect fees into the channel
-      const tx1 = staking.connect(authSender.signer).collect(tokensToCollect, channelID)
+      const tx1 = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await tx1
 
       // Advance blocks to get channel in epoch where it can no longer collect funds (finalized)
       await advanceToNextEpoch(epochManager)
 
       // Revert if channel is finalized
-      expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
-      const tx2 = staking.connect(authSender.signer).collect(tokensToCollect, channelID)
-      await expect(tx2).revertedWith('Collect: channel must be active or settled')
+      expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
+      const tx2 = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+      await expect(tx2).revertedWith('Collect: allocation must be active or settled')
     })
   })
 
@@ -410,11 +410,11 @@ describe('Staking:Allocation', () => {
     it('reject settle a non-existing channel allocation', async function () {
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).settle(invalidChannelID)
-      await expect(tx).revertedWith('Settle: channel must be active')
+      await expect(tx).revertedWith('Settle: allocation must be active')
     })
 
     it('reject settle before at least one epoch has passed', async function () {
-      const tx = staking.connect(indexer.signer).settle(channelID)
+      const tx = staking.connect(indexer.signer).settle(allocationID)
       await expect(tx).revertedWith('Settle: must pass at least one epoch')
     })
 
@@ -423,7 +423,7 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Settle
-      const tx = staking.connect(me.signer).settle(channelID)
+      const tx = staking.connect(me.signer).settle(allocationID)
       await expect(tx).revertedWith('Settle: caller must be authorized')
     })
 
@@ -432,17 +432,17 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // First settlement
-      await staking.connect(indexer.signer).settle(channelID)
+      await staking.connect(indexer.signer).settle(allocationID)
 
       // Second settlement
-      const tx = staking.connect(indexer.signer).settle(channelID)
-      await expect(tx).revertedWith('Settle: channel must be active')
+      const tx = staking.connect(indexer.signer).settle(allocationID)
+      await expect(tx).revertedWith('Settle: allocation must be active')
     })
 
     it('should settle a channel allocation', async function () {
       // Before state
       const beforeStake = await staking.stakes(indexer.address)
-      const beforeAlloc = await staking.getAllocation(channelID)
+      const beforeAlloc = await staking.getAllocation(allocationID)
       const beforeRebate = await staking.rebates((await epochManager.currentEpoch()).add(toBN('2')))
 
       // Move at least one epoch to be able to settle
@@ -460,7 +460,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Settle
-      const tx = staking.connect(indexer.signer).settle(channelID)
+      const tx = staking.connect(indexer.signer).settle(allocationID)
       await expect(tx)
         .emit(staking, 'AllocationSettled')
         .withArgs(
@@ -468,14 +468,14 @@ describe('Staking:Allocation', () => {
           subgraphDeploymentID,
           currentEpoch,
           beforeAlloc.tokens,
-          channelID,
+          allocationID,
           effectiveAllocation,
           indexer.address,
         )
 
       // After state
       const afterStake = await staking.stakes(indexer.address)
-      const afterAlloc = await staking.getAllocation(channelID)
+      const afterAlloc = await staking.getAllocation(allocationID)
       const afterRebate = await staking.rebates(currentEpoch)
 
       // Stake updated
@@ -495,12 +495,12 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Reject to settle if the address is not operator
-      const tx1 = staking.connect(me.signer).settle(channelID)
+      const tx1 = staking.connect(me.signer).settle(allocationID)
       await expect(tx1).revertedWith('Settle: caller must be authorized')
 
       // Should settle if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
-      await staking.connect(me.signer).settle(channelID)
+      await staking.connect(me.signer).settle(allocationID)
     })
   })
 
@@ -509,26 +509,26 @@ describe('Staking:Allocation', () => {
    */
   describe('claim', function () {
     // Claim and perform checks
-    const shouldClaim = async function (channelID: string, restake: boolean) {
+    const shouldClaim = async function (allocationID: string, restake: boolean) {
       // Advance blocks to get the channel in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)
 
       // Before state
       const beforeBalance = await grt.balanceOf(indexer.address)
       const beforeStake = await staking.stakes(indexer.address)
-      const beforeAlloc = await staking.allocations(channelID)
+      const beforeAlloc = await staking.allocations(allocationID)
       const beforeRebatePool = await staking.rebates(beforeAlloc.settledAtEpoch)
 
       // Claim rebates
       const tokensToClaim = beforeAlloc.collectedFees
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer.signer).claim(channelID, restake)
+      const tx = staking.connect(indexer.signer).claim(allocationID, restake)
       await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
           indexer.address,
           subgraphDeploymentID,
-          channelID,
+          allocationID,
           currentEpoch,
           beforeAlloc.settledAtEpoch,
           tokensToClaim,
@@ -539,7 +539,7 @@ describe('Staking:Allocation', () => {
       // After state
       const afterBalance = await grt.balanceOf(indexer.address)
       const afterStake = await staking.stakes(indexer.address)
-      const afterAlloc = await staking.allocations(channelID)
+      const afterAlloc = await staking.allocations(allocationID)
       const afterRebatePool = await staking.rebates(beforeAlloc.settledAtEpoch)
 
       // Funds distributed to indexer
@@ -560,7 +560,7 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.settledAtEpoch).eq(toGRT('0'))
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
-      expect(afterAlloc.authSender).eq(AddressZero)
+      expect(afterAlloc.assetHolder).eq(AddressZero)
       // Rebate updated
       expect(afterRebatePool.settlementsCount).eq(beforeRebatePool.settlementsCount.sub(toBN('1')))
       if (afterRebatePool.settlementsCount.eq(toBN('0'))) {
@@ -583,39 +583,39 @@ describe('Staking:Allocation', () => {
       await staking.connect(governor.signer).setChannelDisputeEpochs(toBN('1'))
 
       // Fund wallets
-      await grt.connect(governor.signer).mint(authSender.address, tokensToCollect)
-      await grt.connect(authSender.signer).approve(staking.address, tokensToCollect)
+      await grt.connect(governor.signer).mint(assetHolder.address, tokensToCollect)
+      await grt.connect(assetHolder.signer).approve(staking.address, tokensToCollect)
     })
 
     it('reject claim for non-existing channel allocation', async function () {
-      expect(await staking.getAllocationState(channelID)).eq(AllocationState.Active)
+      expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Active)
       const invalidChannelID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).claim(invalidChannelID, false)
       await expect(tx).revertedWith('Rebate: caller must be authorized')
     })
 
     it('reject claim if channel allocation is not settled', async function () {
-      expect(await staking.getAllocationState(channelID)).not.eq(AllocationState.Settled)
-      const tx = staking.connect(indexer.signer).claim(channelID, false)
-      await expect(tx).revertedWith('Rebate: channel must be in finalized state')
+      expect(await staking.getAllocationState(allocationID)).not.eq(AllocationState.Settled)
+      const tx = staking.connect(indexer.signer).claim(allocationID, false)
+      await expect(tx).revertedWith('Rebate: allocation must be in finalized state')
     })
 
     context('> when settled', function () {
       beforeEach(async function () {
         // Collect some funds
-        await staking.connect(authSender.signer).collect(tokensToCollect, channelID)
+        await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
 
         // Advance blocks to get the channel in epoch where it can be settled
         await advanceToNextEpoch(epochManager)
 
         // Settle the channel allocation
-        await staking.connect(indexer.signer).settle(channelID)
+        await staking.connect(indexer.signer).settle(allocationID)
       })
 
       it('reject claim if settled but channel dispute epochs has not passed', async function () {
-        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Settled)
-        const tx = staking.connect(indexer.signer).claim(channelID, false)
-        await expect(tx).revertedWith('Rebate: channel must be in finalized state')
+        expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Settled)
+        const tx = staking.connect(indexer.signer).claim(allocationID, false)
+        await expect(tx).revertedWith('Rebate: allocation must be in finalized state')
       })
 
       it('should claim rebate', async function () {
@@ -626,8 +626,8 @@ describe('Staking:Allocation', () => {
         const beforeIndexerTokens = await grt.balanceOf(indexer.address)
 
         // Claim with no restake
-        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
-        await shouldClaim(channelID, false)
+        expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
+        await shouldClaim(allocationID, false)
 
         // Verify that the claimed tokens are transferred to the indexer
         const afterIndexerTokens = await grt.balanceOf(indexer.address)
@@ -642,8 +642,8 @@ describe('Staking:Allocation', () => {
         const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
 
         // Claim with restake
-        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Finalized)
-        await shouldClaim(channelID, true)
+        expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
+        await shouldClaim(allocationID, true)
 
         // Verify that the claimed tokens are restaked
         const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
@@ -655,12 +655,12 @@ describe('Staking:Allocation', () => {
         await advanceToNextEpoch(epochManager)
 
         // Reject
-        const tx1 = staking.connect(me.signer).claim(channelID, false)
+        const tx1 = staking.connect(me.signer).claim(allocationID, false)
         await expect(tx1).revertedWith('Rebate: caller must be authorized')
 
         // Should claim if given operator auth
         await staking.connect(indexer.signer).setOperator(me.address, true)
-        await staking.connect(me.signer).claim(channelID, false)
+        await staking.connect(me.signer).claim(allocationID, false)
       })
 
       it('reject claim if already claimed', async function () {
@@ -668,12 +668,12 @@ describe('Staking:Allocation', () => {
         await advanceToNextEpoch(epochManager)
 
         // First claim
-        await shouldClaim(channelID, false)
+        await shouldClaim(allocationID, false)
 
         // Try to claim again
-        expect(await staking.getAllocationState(channelID)).eq(AllocationState.Claimed)
-        const tx = staking.connect(indexer.signer).claim(channelID, false)
-        await expect(tx).revertedWith('Rebate: channel must be in finalized state')
+        expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Claimed)
+        const tx = staking.connect(indexer.signer).claim(allocationID, false)
+        await expect(tx).revertedWith('Rebate: allocation must be in finalized state')
       })
     })
   })

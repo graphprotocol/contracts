@@ -109,7 +109,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         address allocationID,
         bytes channelPubKey,
         uint256 price,
-        address authSender
+        address assetHolder
     );
 
     /**
@@ -708,19 +708,19 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used to route payments
-     * @param _authSender Authorized sender address of collected funds
+     * @param _assetHolder Authorized sender address of collected funds
      * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
      */
     function allocate(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _authSender,
+        address _assetHolder,
         uint256 _price
     ) external override {
         require(_onlyAuth(msg.sender), "Allocation: caller must be authorized");
 
-        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _channelPubKey, _authSender, _price);
+        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
 
     /**
@@ -729,7 +729,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used to route payments
-     * @param _authSender Authorized sender address of collected funds
+     * @param _assetHolder Authorized sender address of collected funds
      * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
      */
     function allocateFrom(
@@ -737,12 +737,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _authSender,
+        address _assetHolder,
         uint256 _price
     ) external override {
         require(_onlyAuth(_indexer), "Allocation: caller must be authorized");
 
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _authSender, _price);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
 
     /**
@@ -811,7 +811,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         require(_allocationID != address(0), "Collect: invalid allocation");
 
         // The contract caller must be an authorized sender registered on allocate()
-        require(alloc.authSender == msg.sender, "Collect: caller is not authorized");
+        require(alloc.assetHolder == msg.sender, "Collect: caller is not authorized");
 
         // Transfer tokens to collect from the authorized sender
         require(
@@ -865,7 +865,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         alloc.settledAtEpoch = 0;
         alloc.collectedFees = 0;
         alloc.effectiveAllocation = 0;
-        alloc.authSender = address(0); // This avoid collect() to be called
+        alloc.assetHolder = address(0); // This avoid collect() to be called
 
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
@@ -921,7 +921,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
-     * @param _authSender Authorized sender address of collected funds
+     * @param _assetHolder Authorized sender address of collected funds
      * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
      */
     function _allocate(
@@ -929,7 +929,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes memory _channelPubKey,
-        address _authSender,
+        address _assetHolder,
         uint256 _price
     ) private {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
@@ -957,7 +957,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Cannot reuse an allocationID that has already been used in an allocation
         require(
             _getAllocationState(allocationID) == AllocationState.Null,
-            "Allocation: allocation ID already used"
+            "Allocation: allocationID already used"
         );
 
         // Creates an allocation
@@ -971,7 +971,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             0, // settledAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
-            _authSender // Source address for allocation collected funds
+            _assetHolder // Source address for allocation collected funds
         );
 
         // Mark allocated tokens as used
@@ -985,7 +985,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             allocationID,
             _channelPubKey,
             _price,
-            _authSender
+            _assetHolder
         );
     }
 

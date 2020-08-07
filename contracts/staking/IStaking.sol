@@ -27,7 +27,7 @@ interface IStaking {
         uint256 settledAtEpoch; // Epoch when it was settled
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when settled
-        address authSender; // Authorized caller address of the collect() function
+        address assetHolder; // Authorized caller address of the collect() function
     }
 
     // -- Delegation Data --
@@ -115,7 +115,7 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _authSender,
+        address _assetHolder,
         uint256 _price
     ) external;
 
@@ -124,7 +124,7 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         bytes calldata _channelPubKey,
-        address _authSender,
+        address _assetHolder,
         uint256 _price
     ) external;
 

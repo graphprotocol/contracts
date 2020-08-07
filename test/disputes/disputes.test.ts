@@ -66,7 +66,7 @@ describe('DisputeManager:Disputes', async () => {
   let indexer: Account
   let fisherman: Account
   let otherIndexer: Account
-  let channelProxy: Account
+  let assetHolder: Account
 
   let fixture: NetworkFixture
 
@@ -108,7 +108,7 @@ describe('DisputeManager:Disputes', async () => {
       indexer,
       fisherman,
       otherIndexer,
-      channelProxy,
+      assetHolder,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
@@ -170,8 +170,8 @@ describe('DisputeManager:Disputes', async () => {
       await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
 
       // Give some funds to the channel
-      await grt.connect(governor.signer).mint(channelProxy.address, indexerSettledTokens)
-      await grt.connect(channelProxy.signer).approve(staking.address, indexerSettledTokens)
+      await grt.connect(governor.signer).mint(assetHolder.address, indexerSettledTokens)
+      await grt.connect(assetHolder.signer).approve(staking.address, indexerSettledTokens)
 
       // Set the thawing period to zero to make the test easier
       await staking.connect(governor.signer).setThawingPeriod(toBN('0'))
@@ -184,14 +184,14 @@ describe('DisputeManager:Disputes', async () => {
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           indexerChannelPubKey,
-          channelProxy.address,
+          assetHolder.address,
           toBN('0'),
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to settle
-      await staking.connect(channelProxy.signer).collect(indexerSettledTokens, event1.channelID)
-      await staking.connect(indexer.signer).settle(event1.channelID)
+      await staking.connect(assetHolder.signer).collect(indexerSettledTokens, event1.allocationID)
+      await staking.connect(indexer.signer).settle(event1.allocationID)
       await staking.connect(indexer.signer).unstake(indexerTokens)
       await staking.connect(indexer.signer).withdraw() // no thawing period so we are good
 
@@ -228,7 +228,7 @@ describe('DisputeManager:Disputes', async () => {
               dispute.receipt.subgraphDeploymentID,
               indexerAllocatedTokens,
               indexerPubKey,
-              channelProxy.address,
+              assetHolder.address,
               toBN('0'),
             )
         }
