@@ -66,45 +66,30 @@ const connectContracts = async (
   const addresses = getNetworkAddresses(network)
 
   return {
-    curation: CurationFactory.connect(
-      addresses.generatedAddresses.Curation.address,
-      configuredWallet,
-    ),
+    curation: CurationFactory.connect(addresses.Curation.address, configuredWallet),
     disputeManager: DisputeManagerFactory.connect(
-      addresses.generatedAddresses.DisputeManager.address,
+      addresses.DisputeManager.address,
       configuredWallet,
     ),
-    epochManager: EpochManagerFactory.connect(
-      addresses.generatedAddresses.EpochManager.address,
-      configuredWallet,
-    ),
-    gns: GnsFactory.connect(addresses.generatedAddresses.GNS.address, configuredWallet),
+    epochManager: EpochManagerFactory.connect(addresses.EpochManager.address, configuredWallet),
+    gns: GnsFactory.connect(addresses.GNS.address, configuredWallet),
     rewardsManager: RewardsManagerFactory.connect(
-      addresses.generatedAddresses.RewardsManager.address,
+      addresses.RewardsManager.address,
       configuredWallet,
     ),
     serviceRegistry: ServiceRegistryFactory.connect(
-      addresses.generatedAddresses.ServiceRegistry.address,
+      addresses.ServiceRegistry.address,
       configuredWallet,
     ),
-    staking: StakingFactory.connect(addresses.generatedAddresses.Staking.address, configuredWallet),
-    token: GraphTokenFactory.connect(
-      addresses.generatedAddresses.GraphToken.address,
-      configuredWallet,
-    ),
-    ens: IensFactory.connect(addresses.permanentAddresses.ens, configuredWallet),
-    publicResolver: IPublicResolverFactory.connect(
-      addresses.permanentAddresses.ensPublicResolver,
-      configuredWallet,
-    ),
+    staking: StakingFactory.connect(addresses.Staking.address, configuredWallet),
+    token: GraphTokenFactory.connect(addresses.GraphToken.address, configuredWallet),
+    ens: IensFactory.connect(addresses.ENS, configuredWallet),
+    publicResolver: IPublicResolverFactory.connect(addresses.ENSPublicResolver, configuredWallet),
     ethereumDIDRegistry: IEthereumDidRegistryFactory.connect(
-      addresses.permanentAddresses.ethereumDIDRegistry,
+      addresses.EthereumDIDRegistry,
       configuredWallet,
     ),
-    testRegistrar: ITestRegistrarFactory.connect(
-      addresses.permanentAddresses.ensTestRegistrar,
-      configuredWallet,
-    ),
+    testRegistrar: ITestRegistrarFactory.connect(addresses.ENSTestRegistrar, configuredWallet),
   }
 }
 

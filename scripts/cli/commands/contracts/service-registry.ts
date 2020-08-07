@@ -1,11 +1,11 @@
 import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
-import { getContractAt, sendTransaction } from '../../network'
+import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 const logger = consola.create({})
-export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
+export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const url = cliArgs.url
   const geoHash = cliArgs.geoHash
   const serviceRegistry = cli.contracts.ServiceRegistry
@@ -13,7 +13,7 @@ export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   logger.log(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'register', ...[url, geoHash])
 }
-export const unregister = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
+export const unregister = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const serviceRegistry = cli.contracts.ServiceRegistry
 
   logger.log(`Unregistering indexer ${cli.walletAddress}`)

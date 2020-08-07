@@ -79,38 +79,6 @@ class ConnectedCuration extends ConnectedContract {
   }
 }
 
-class ConnectedENS extends ConnectedContract {
-  // We just lower case to normalize, but real normalization should follow:
-  // https://docs.ens.domains/contract-api-reference/name-processing
-  // We may not need this, as this is a convenience function,
-  setTestRecord = async (name: string): Promise<ContractTransaction> => {
-    const contracts = await connectContracts(this.configuredWallet, this.network)
-    const normalizedName = name.toLowerCase()
-    const labelNameFull = `${normalizedName}.${'eth'}`
-    const labelHashFull = utils.namehash(labelNameFull)
-    console.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
-    const signerAddress = await contracts.testRegistrar.signer.getAddress()
-    const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
-    return contracts.testRegistrar.register(label, signerAddress)
-  }
-
-  checkOwner = async (name: string): Promise<void> => {
-    const contracts = await connectContracts(this.configuredWallet, this.network)
-    try {
-      const node = utils.namehash(`${name}.eth`)
-      console.log(`Node: ${node}`)
-      const res = await contracts.ens.owner(node)
-      console.log(`Owner of ${name}.eth is: ${res}`)
-    } catch (e) {
-      console.log(`  ..failed on checkOwner: ${e.message}`)
-    }
-  }
-
-  getNode = (name: string): string => {
-    return utils.namehash(`${name}.eth`)
-  }
-}
-
 class ConnectedGraphToken extends ConnectedContract {
   contract = GraphTokenFactory.connect(
     this.addresses.generatedAddresses.GraphToken.address,
@@ -345,7 +313,6 @@ class ConnectedStaking extends ConnectedContract {
 
 export {
   ConnectedCuration,
-  ConnectedENS,
   AccountMetadata,
   ConnectedEthereumDIDRegistry,
   ConnectedGNS,
