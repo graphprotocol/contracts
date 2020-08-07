@@ -1,5 +1,11 @@
 {
   "4": {
+    "IENS": {
+      "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+    },
+    "IEthereumDIDRegistry": {
+      "address": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
+    },
     "EpochManager": {
       "address": "0xFd12A3ee8Bf3C417e0cedbc591BA10156724C069",
       "initArgs": [
@@ -203,6 +209,18 @@
     }
   },
   "42": {
+    "IENS": {
+      "address": "0xB66B2f307B6e46a6D038a85997B401aE87455772"
+    },
+    "ITestRegistrar": {
+      "address": "0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b"
+    },
+    "IPublicResolver": {
+      "address": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7"
+    },
+    "IEthereumDIDRegistry": {
+      "address": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
+    },
     "EpochManager": {
       "address": "0xc56bA09727030e018990089964E8537FDa13a786",
       "initArgs": [
@@ -607,21 +625,5 @@
       "runtimeCodeHash": "0x962af945f8852d82fe16690798107779ff368624a510e9dbf837bafb6fac557e",
       "txHash": "0xc6666d7b1a9731a1797f26c5ac3f203ce8adbff27aedc454f2d0b83e8c01e140"
     }
-  },
-  "kovan": {
-    "ens": "0xB66B2f307B6e46a6D038a85997B401aE87455772",
-    "ensTestRegistrar": "0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b",
-    "ensPublicResolver": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7",
-    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
-  },
-  "rinkeby": {
-    "ens": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-    "ensTestRegistrar": "0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b",
-    "ensPublicResolver": "0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7",
-    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
-  },
-  "mainnet": {
-    "ens": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-    "ethereumDIDRegistry": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
   }
 }

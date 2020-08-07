@@ -10,6 +10,8 @@ import {
 } from './helpers'
 import { ConnectedEthereumDIDRegistry } from './connectedContracts'
 
+// TODO - not deleting this yet, because it handles both the objects of metadata and the path
+
 const { network, func, ipfs, metadataPath } = minimist.default(process.argv.slice(2), {
   string: ['network', 'func', 'ipfs', 'metadataPath'],
 })

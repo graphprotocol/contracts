@@ -2,12 +2,12 @@ import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 
-import { getContractAt, sendTransaction } from '../../network'
+import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 const logger = consola.create({})
 
-export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
+export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const subgraphID = cliArgs.subgraphID
   const amount = parseGRT(cliArgs.amount)
 
@@ -19,7 +19,7 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   logger.log(`Signaling on ${subgraphID} with ${cliArgs.amount} tokens...`)
   await sendTransaction(cli.wallet, curation, 'mint', ...[subgraphID, amount])
 }
-export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
+export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const subgraphID = cliArgs.subgraphID
   const amount = parseGRT(cliArgs.amount)
   const curation = cli.contracts.Curation

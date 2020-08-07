@@ -94,20 +94,7 @@ const populateEthereumDIDRegistry = async (network: string, signers: Array<Walle
 }
 
 // Register ENS names for the signers
-const populateENS = async (network: string, signers: Array<Wallet>) => {
-  console.log('Running ENS contract calls...')
-  let i = 0
-  for (const subgraph in subgraphMetadatas) {
-    const ens = new ConnectedENS(network, signers[i])
-    let name = subgraphMetadatas[subgraph].displayName
-    // edge case - graph is only ens name that doesn't match display name in mock data
-    if (name == 'The Graph') name = 'graphprotocol'
-    console.log(`Setting ${name} for ${ens.configuredWallet.address} on ens ...`)
-    await executeTransaction(ens.setTestRecord(name), network)
-    await executeTransaction(ens.setText(name), network)
-    i++
-  }
-}
+// Do this manually, in the Rinkeby UI. No need to test it multiple times
 
 // Publish 10 subgraphs
 // Publish new versions for them all
@@ -340,7 +327,6 @@ const populateAll = async (mnemonic: string, provider: string, network: string):
   // await sendEth(network, governor, userAccounts, proxyAccounts, '0.25') // only use at the start. TODO - make this a cli option or something
   await populateGraphToken(network, users, proxies, '100000') // only use at the start. TODO - make this a cli option or something
   await populateEthereumDIDRegistry(network, users)
-  await populateENS(network, users)
   await populateGNS(network, users)
   await populateCuration(network, users)
   await populateServiceRegistry(network, users)
