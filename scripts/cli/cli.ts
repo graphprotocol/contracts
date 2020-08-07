@@ -7,6 +7,7 @@ import { migrateCommand } from './commands/migrate'
 import { upgradeCommand } from './commands/upgrade'
 import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
+import { contractsCommand } from './commands/contracts/contracts'
 import { cliOpts } from './constants'
 
 dotenv.config()
@@ -21,5 +22,6 @@ yargs
   .command(upgradeCommand)
   .command(verifyCommand)
   .command(protocolCommand)
+  .command(contractsCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv
