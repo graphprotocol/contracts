@@ -430,11 +430,11 @@ contract DisputeManager is Governed {
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
 
-        // Get attestation signer, channelID
-        address channelID = _recoverAttestationSigner(attestation);
+        // Get attestation signer, allocationID
+        address allocationID = _recoverAttestationSigner(attestation);
 
-        // Get the indexer that created the channel and signed the attestation
-        IStaking.Allocation memory alloc = staking.getAllocation(channelID);
+        // Get the indexer that created the allocation and signed the attestation
+        IStaking.Allocation memory alloc = staking.getAllocation(allocationID);
         require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
             alloc.subgraphDeploymentID == attestation.subgraphDeploymentID,
