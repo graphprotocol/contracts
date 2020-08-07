@@ -79,8 +79,6 @@ class ConnectedCuration extends ConnectedContract {
   }
 }
 
-// TODO - move away from TestRecord and use the real methods when we move to Rinkeby and mainnet
-// We don't use estimate gas here, since registering ENS names won't be part of our front end
 class ConnectedENS extends ConnectedContract {
   // We just lower case to normalize, but real normalization should follow:
   // https://docs.ens.domains/contract-api-reference/name-processing
@@ -95,18 +93,6 @@ class ConnectedENS extends ConnectedContract {
     const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
     return contracts.testRegistrar.register(label, signerAddress)
   }
-
-  // TODO - remove, not in use anymore
-  // setText = async (name: string): Promise<ContractTransaction> => {
-  //   const contracts = await connectContracts(this.configuredWallet, this.network)
-  //   const normalizedName = name.toLowerCase()
-  //   const labelNameFull = `${normalizedName}.${'eth'}`
-  //   const labelHashFull = utils.namehash(labelNameFull)
-  //   console.log(`Setting text name: ${labelNameFull} with node: ${labelHashFull}`)
-  //   const key = 'GRAPH NAME SERVICE'
-  //   const signerAddress = await contracts.publicResolver.signer.getAddress()
-  //   return contracts.publicResolver.setText(labelHashFull, key, signerAddress)
-  // }
 
   checkOwner = async (name: string): Promise<void> => {
     const contracts = await connectContracts(this.configuredWallet, this.network)

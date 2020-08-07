@@ -44,12 +44,9 @@ const main = async () => {
   }
   try {
     if (func == 'mint') {
-      for (let i = 0; i < teamAddresses.length; i++) {
-        console.log(`Minting ${amount} tokens to user ${teamAddresses[i].name}...`)
-        await executeTransaction(
-          graphToken.mintWithDecimals(teamAddresses[i].address, amount),
-          network,
-        )
+      for (const member of teamAddresses) {
+        console.log(`Minting ${amount} tokens to user ${member.name}...`)
+        await executeTransaction(graphToken.mintWithDecimals(member.address, amount), network)
       }
     } else {
       console.log(`Wrong func name provided`)
