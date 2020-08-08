@@ -265,13 +265,6 @@ class ConnectedGNS extends ConnectedContract {
   }
 }
 
-class ConnectedServiceRegistry extends ConnectedContract {
-  contract = ServiceRegistryFactory.connect(
-    this.addresses.generatedAddresses.ServiceRegistry.address,
-    this.configuredWallet,
-  )
-}
-
 class ConnectedStaking extends ConnectedContract {
   contract = StakingFactory.connect(
     this.addresses.generatedAddresses.Staking.address,

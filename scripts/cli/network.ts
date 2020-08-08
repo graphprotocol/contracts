@@ -3,6 +3,7 @@ import consola from 'consola'
 
 import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
+import { defaultOverrides } from './helpers'
 
 const { keccak256 } = utils
 
@@ -56,11 +57,24 @@ export const sendTransaction = async (
   fn: string,
   ...params
 ): Promise<providers.TransactionReceipt> => {
-  const tx: ContractTransaction = await contract.functions[fn](...params)
-  logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
-  const receipt = await wallet.provider.waitForTransaction(tx.hash)
-  logger.success(`Transaction mined ${tx.hash}`)
-  return receipt
+  try {
+    const tx: ContractTransaction = await contract.functions[fn](...params)
+    logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
+    const receipt = await wallet.provider.waitForTransaction(tx.hash)
+    logger.success(`Transaction mined ${tx.hash}`)
+    return receipt
+  } catch (e) {
+    if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
+      logger.warn(`Gas could not be estimated - trying defaultOverrides`)
+      const tx: ContractTransaction = await contract.functions[fn](...params, defaultOverrides())
+      logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
+      const receipt = await wallet.provider.waitForTransaction(tx.hash)
+      logger.success(`Transaction mined ${tx.hash}`)
+      return receipt
+    } else {
+      logger.error(`send transaction failed: ${e}`)
+    }
+  }
 }
 
 export const getContractFactory = (name: string): ContractFactory => {
