@@ -93,7 +93,7 @@ export const getNetworkAddresses = (network: string): any => {
   }
 }
 
-export const basicOverrides = (): Overrides => {
+export const defaultOverrides = (): Overrides => {
   return {
     gasPrice: utils.parseUnits('25', 'gwei'),
     gasLimit: 2000000,

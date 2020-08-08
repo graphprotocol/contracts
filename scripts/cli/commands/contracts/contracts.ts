@@ -1,9 +1,12 @@
 import yargs, { Argv } from 'yargs'
 
 import { curationCommand } from './curation'
-import { serviceRegistryCommand } from './service-registry'
+import { serviceRegistryCommand } from './serviceRegistry'
 import { ensCommand } from './ens'
 import { ethereumDIDRegistryCommand } from './ethereumDIDRegistry'
+import { gnsCommand } from './gns'
+import { graphTokenCommand } from './graphToken'
+import { stakingCommand } from './staking'
 
 import { CLIArgs } from '../../env'
 
@@ -16,6 +19,9 @@ export const contractsCommand = {
       .command(serviceRegistryCommand)
       .command(ensCommand)
       .command(ethereumDIDRegistryCommand)
+      .command(gnsCommand)
+      .command(graphTokenCommand)
+      .command(stakingCommand)
   },
   handler: (argv: CLIArgs): void => {
     yargs.showHelp()
