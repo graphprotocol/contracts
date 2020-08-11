@@ -1,4 +1,4 @@
-import { jsonToSubgraphMetadata } from '../../metadataHelpers'
+import { jsonToSubgraphMetadata } from '../metadataHelpers'
 
 import compound from './compound.json'
 import decentraland from './decentraland.json'

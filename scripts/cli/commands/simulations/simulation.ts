@@ -2,8 +2,8 @@
 import * as path from 'path'
 import * as minimist from 'minimist'
 
-import populateData from './populateData'
-import { buildNetworkEndpoint, DEFAULT_MNEMONIC } from './helpers'
+import baseScenario from './baseSimulation'
+import { buildNetworkEndpoint, DEFAULT_MNEMONIC } from '../../../contracts/helpers'
 
 const { scenario, network, mnemonic } = minimist.default(process.argv.slice(2), {
   string: ['scenario', 'provider', 'wallet'],
