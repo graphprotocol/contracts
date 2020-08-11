@@ -1,4 +1,4 @@
-import { jsonToAccountMetadata } from '../../metadataHelpers'
+import { jsonToAccountMetadata } from '../metadataHelpers'
 
 import compound from './compound.json'
 import decentraland from './decentraland.json'

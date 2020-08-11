@@ -8,6 +8,8 @@ import { upgradeCommand } from './commands/upgrade'
 import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts/contracts'
+import { mintTeamTokensCommand } from './commands/mintTeamTokens'
+
 import { cliOpts } from './constants'
 
 dotenv.config()
@@ -23,5 +25,6 @@ yargs
   .command(verifyCommand)
   .command(protocolCommand)
   .command(contractsCommand)
+  .command(mintTeamTokensCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv
