@@ -42,7 +42,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   if (!wallet) {
     wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.providerUrl))
   }
-  console.log(argv.providerUrl)
+
   const balance = await wallet.getBalance()
   const chainId = (await wallet.provider.getNetwork()).chainId
   const nonce = await wallet.getTransactionCount()
