@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv'
 
 import { utils, providers, Wallet, Overrides } from 'ethers'
-import ipfsHttpClient from 'ipfs-http-client'
+import { ipfsHttpClient } from 'ipfs-http-client'
 import * as bs58 from 'bs58'
 
 dotenv.config()
@@ -14,7 +14,7 @@ export const defaultOverrides = (): Overrides => {
 }
 
 export class IPFS {
-  static createIpfsClient(node: string): ipfsHttpClient {
+  static createIpfsClient(node: string): typeof ipfsHttpClient {
     let url: URL
     try {
       url = new URL(node)
