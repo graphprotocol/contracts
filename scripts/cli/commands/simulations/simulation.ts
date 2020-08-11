@@ -1,41 +1,39 @@
-#!/usr/bin/env ts-node
-import * as path from 'path'
-import * as minimist from 'minimist'
+import consola from 'consola'
+import yargs, { Argv } from 'yargs'
 
-import baseScenario from './baseSimulation'
-import { buildNetworkEndpoint, DEFAULT_MNEMONIC } from '../../../contracts/helpers'
+import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import baseSimulation from './baseSimulation'
 
-const { scenario, network, mnemonic } = minimist.default(process.argv.slice(2), {
-  string: ['scenario', 'provider', 'wallet'],
-})
+const logger = consola.create({})
 
-if (!scenario || !network || !mnemonic) {
-  console.error(
-    `
-Usage: ${path.basename(process.argv[1])}
-  --scenario <string> - options: default (our only scenario for now)
-  --network  <string> - options: ganache, kovan, rinkeby
-  --mnemonic <string> - options: ganache, env
-  `,
-  )
-  process.exit(1)
+export const runBaseSimulation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  logger.log(`Running the base simulation...`)
+  await baseSimulation()
 }
 
-const main = async () => {
-  try {
-    let getMnemonic
-    mnemonic == 'ganache' ? (getMnemonic = DEFAULT_MNEMONIC) : (getMnemonic = process.env.MNEMONIC)
-    if (scenario == 'default') {
-      const provider = buildNetworkEndpoint(network, 'infura')
-      console.log(`Running default scenario on ${network} with mnemonic ${getMnemonic}`)
-      populateData(getMnemonic, provider, network)
-    } else {
-      console.log('Wrong scenario name')
-    }
-  } catch (e) {
-    console.log(`  ..failed within scenario.ts: ${e.message}`)
-    process.exit(1)
-  }
+export const curationSimulator = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  // todo
 }
 
-main()
+export const simulationCommand = {
+  command: 'simulation',
+  describe: 'Run a simulation',
+  builder: (yargs: Argv): yargs.Argv => {
+    return yargs
+      .command({
+        command: 'baseSimulation',
+        describe:
+          'Run the base simulation, which just tests all function calls to get data into new network contracts',
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return runBaseSimulation(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'curationSimulator',
+        describe: 'Run a simulator that sends curator signals on many subgraphs',
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return curationSimulator(await loadEnv(argv), argv)
+        },
+      })
+  },
+}
