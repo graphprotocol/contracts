@@ -322,7 +322,7 @@
 //   await executeTransaction(networkContracts.staking.setThawingPeriod(defaultThawingPeriod), network)
 // }
 
-// const populateAll = async (mnemonic: string, provider: string, network: string): Promise<void> => {
+// const baseSimulation = async (mnemonic: string, provider: string, network: string): Promise<void> => {
 //   const users = userAccounts(mnemonic, provider)
 //   const proxies = proxyAccounts(mnemonic, provider)
 //   const channels = channelAccounts(mnemonic, provider)
@@ -336,4 +336,5 @@
 //   await populateStaking(network, users, proxies)
 // }
 
-// export default populateAll
+const baseSimulation = async (): Promise<void> => {}
+export default baseSimulation

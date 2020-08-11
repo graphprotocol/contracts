@@ -57,24 +57,24 @@ export const sendTransaction = async (
   fn: string,
   ...params
 ): Promise<providers.TransactionReceipt> => {
+  let tx: ContractTransaction
   try {
-    const tx: ContractTransaction = await contract.functions[fn](...params)
-    logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
-    const receipt = await wallet.provider.waitForTransaction(tx.hash)
-    logger.success(`Transaction mined ${tx.hash}`)
-    return receipt
+    tx = await contract.functions[fn](...params)
   } catch (e) {
     if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       logger.warn(`Gas could not be estimated - trying defaultOverrides`)
-      const tx: ContractTransaction = await contract.functions[fn](...params, defaultOverrides())
-      logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
-      const receipt = await wallet.provider.waitForTransaction(tx.hash)
-      logger.success(`Transaction mined ${tx.hash}`)
-      return receipt
-    } else {
-      logger.error(`send transaction failed: ${e}`)
+      tx = await contract.functions[fn](...params, defaultOverrides())
     }
   }
+  logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
+  const receipt = await wallet.provider.waitForTransaction(tx.hash)
+  const networkName = (await wallet.provider.getNetwork()).name
+  if (networkName == 'kovan' || networkName == 'rinkeby') {
+    logger.success(`Transaction mined 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+  } else {
+    logger.success(`Transaction mined ${tx.hash}`)
+  }
+  return receipt
 }
 
 export const getContractFactory = (name: string): ContractFactory => {
