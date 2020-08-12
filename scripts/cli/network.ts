@@ -17,6 +17,7 @@ export const isContractDeployed = async (
   address: string | undefined,
   addressBook: AddressBook,
   provider: providers.Provider,
+  checkCreationCode = true,
 ): Promise<boolean> => {
   logger.log(`Checking for valid ${name} contract...`)
   if (!address || address === '') {
@@ -29,12 +30,15 @@ export const isContractDeployed = async (
   // If the contract is behind a proxy we check the Proxy artifact instead
   const artifact = addressEntry.proxy === true ? loadArtifact('GraphProxy') : loadArtifact(name)
 
-  const savedCreationCodeHash = addressEntry.creationCodeHash
-  const creationCodeHash = hash(artifact.bytecode)
-  if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
-    logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
-    logger.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
-    return false
+  if (checkCreationCode) {
+    const savedCreationCodeHash = addressEntry.creationCodeHash
+    console.log(artifact.bytecode)
+    const creationCodeHash = hash(artifact.bytecode)
+    if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
+      logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
+      logger.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
+      return false
+    }
   }
 
   const savedRuntimeCodeHash = addressEntry.runtimeCodeHash
