@@ -225,6 +225,16 @@ describe('Curation', () => {
       const signal = await curation.tokensToSignal(subgraphDeploymentID, tokens)
       expect(signal).eq(signalAmountFor1000Tokens)
     })
+
+    it('convert tokens to signal if non-curated subgraph', async function () {
+      // Conversion
+      const nonCuratedSubgraphDeploymentID = randomHexBytes()
+      const tokens = toGRT('1')
+      const tx = curation.tokensToSignal(nonCuratedSubgraphDeploymentID, tokens)
+      await expect(tx).revertedWith(
+        'Tokens cannot be under minimum curation deposit when curve not initialized',
+      )
+    })
   })
 
   describe('curate', async function () {

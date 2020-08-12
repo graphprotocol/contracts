@@ -313,6 +313,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
         // Init curation pool
         if (curationPool.tokens == 0) {
+            require(
+                newTokens >= minimumCurationDeposit,
+                "Tokens cannot be under minimum curation deposit when curve not initialized"
+            );
             newTokens = newTokens.sub(minimumCurationDeposit);
             curTokens = minimumCurationDeposit;
             curSignal = SIGNAL_PER_MINIMUM_DEPOSIT;
