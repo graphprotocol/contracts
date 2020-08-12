@@ -454,8 +454,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
             // If no signal token for the pool - create one
             if (address(curationPool.gst) == address(0)) {
-                string memory symbol = string(abi.encodePacked("GST-", _subgraphDeploymentID));
-                curationPool.gst = new GraphSignalToken(symbol, address(this));
+                curationPool.gst = new GraphSignalToken("GST", address(this));
             }
         }
 
