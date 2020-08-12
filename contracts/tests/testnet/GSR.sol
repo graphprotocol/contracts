@@ -8,7 +8,7 @@ import "../../token/IGraphToken.sol";
 
 /**
  * @title Graph Saving Rate contract
- * @dev This contracts receives GUSD deposits and provides an interests rate for use in testnet.
+ * @dev This contracts receives GDAI deposits and provides an interests rate for use in testnet.
  */
 contract GSRManager is Governed, ERC20, ERC20Burnable {
     using SafeMath for uint256;

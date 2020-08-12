@@ -9,12 +9,12 @@ import "../../governance/Governed.sol";
  * @title Graph Testnet stablecoin contract
  * @dev This is the implementation of an ERC20 stablecoin used for experiments on testnet.
  */
-contract GUSD is Governed, ERC20, ERC20Burnable {
+contract GDAI is Governed, ERC20, ERC20Burnable {
     /**
-     * @dev GUSD constructor.
-     * @param _initialSupply Initial supply of GUSD
+     * @dev GDAI constructor.
+     * @param _initialSupply Initial supply of GDAI
      */
-    constructor(uint256 _initialSupply) public ERC20("Graph USD", "GUSD") {
+    constructor(uint256 _initialSupply) public ERC20("Graph DAI", "GDAI") {
         Governed._initialize(msg.sender);
 
         // The Governor has the initial supply of tokens
