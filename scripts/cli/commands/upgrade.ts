@@ -56,10 +56,10 @@ export const upgrade = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   }
 
   // Upgrade to new implementation
-  // const pendingImplementation = (await proxy.functions['pendingImplementation']())[0]
-  // if (pendingImplementation != implAddress) {
-  await sendTransaction(cli.wallet, proxy, 'upgradeTo', ...[implAddress])
-  // }
+  const pendingImplementation = (await proxy.functions['pendingImplementation']())[0]
+  if (pendingImplementation != implAddress) {
+    await sendTransaction(cli.wallet, proxy, 'upgradeTo', ...[implAddress])
+  }
 
   // Accept upgrade from the implementation
   const contractArgs = initArgs ? initArgs.split(',') : []
