@@ -50,6 +50,13 @@ contract GraphProxy is GraphProxyStorage {
     }
 
     /**
+     * @return The address of the pending implementation.
+     */
+    function pendingImplementation() external view returns (address) {
+        return _pendingimplementation();
+    }
+
+    /**
      * @dev Upgrades to a new implementation contract.
      * @param _newImplementation Address of implementation contract
      */
