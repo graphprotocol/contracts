@@ -10,7 +10,7 @@ import "./IRewardsManager.sol";
 contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager, Governed {
     using SafeMath for uint256;
 
-    uint256 private constant ISSUANCE_RATE_DECIMALS = 1e18;
+    uint256 private constant TOKEN_DECIMALS = 1e18;
 
     // -- Events --
 
@@ -114,6 +114,15 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
+     * @dev Sets the enforcer for denegation of rewards to subgraphs
+     * @param _enforcer Address of the enforcer of denied subgraphs
+     */
+    function setEnforcer(address _enforcer) external override onlyGovernor {
+        enforcer = _enforcer;
+        emit ParameterUpdated("enforcer");
+    }
+
+    /**
      * @dev Sets the indexer as denied to claim rewards
      * NOTE: Can only be called by the enforcer role
      * @param _subgraphDeploymentID Subgraph deployment ID to deny
@@ -165,13 +174,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
         uint256 r = issuanceRate;
         uint256 p = token.totalSupply();
-        uint256 a = p.mul(_pow(r, t, ISSUANCE_RATE_DECIMALS)).div(ISSUANCE_RATE_DECIMALS);
+        uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
 
         // New issuance per signal during time steps
         uint256 x = a.sub(p);
 
         // We multiply the decimals to keep the precision as fixed-point number
-        return x.mul(ISSUANCE_RATE_DECIMALS).div(signalledTokens);
+        return x.mul(TOKEN_DECIMALS).div(signalledTokens);
     }
 
     /**
@@ -195,9 +204,10 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 newAccrued = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
-
         uint256 subgraphSignalledTokens = curation.getCurationPoolTokens(_subgraphDeploymentID);
-        return subgraphSignalledTokens.mul(newAccrued).add(subgraph.accRewardsForSubgraph);
+
+        uint256 newValue = newAccrued.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
+        return subgraph.accRewardsForSubgraph.add(newValue);
     }
 
     /**
@@ -218,10 +228,12 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 newAccrued = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot);
 
         uint256 subgraphAllocatedTokens = staking.getSubgraphAllocatedTokens(_subgraphDeploymentID);
-        return (
-            subgraphAllocatedTokens.mul(newAccrued).add(subgraph.accRewardsPerAllocatedToken),
-            accRewardsForSubgraph
-        );
+        if (subgraphAllocatedTokens == 0) {
+            return (0, accRewardsForSubgraph);
+        }
+
+        uint256 newValue = newAccrued.mul(TOKEN_DECIMALS).div(subgraphAllocatedTokens);
+        return (subgraph.accRewardsPerAllocatedToken.add(newValue), accRewardsForSubgraph);
     }
 
     /**
@@ -291,7 +303,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         (uint256 accRewardsPerAllocatedToken, uint256 _) = getAccRewardsPerAllocatedToken(
             alloc.subgraphDeploymentID
         );
-        return accRewardsPerAllocatedToken.sub(alloc.accRewardsPerAllocatedToken).mul(alloc.tokens);
+        uint256 newAccrued = accRewardsPerAllocatedToken.sub(alloc.accRewardsPerAllocatedToken);
+        return newAccrued.mul(alloc.tokens).div(TOKEN_DECIMALS);
     }
 
     /**
@@ -326,6 +339,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         address indexer = msg.sender;
 
         uint256 rewards = indexerRewards[indexer];
+        require(rewards > 0, "No rewards available for claiming");
         emit RewardsClaimed(indexer, rewards);
 
         // Mint rewards tokens
