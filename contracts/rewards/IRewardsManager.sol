@@ -7,6 +7,8 @@ interface IRewardsManager {
 
     // -- Denylist --
 
+    function setEnforcer(address _enforcer) external;
+
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external;
 
     function isDenied(bytes32 _subgraphDeploymentID) external returns (bool);

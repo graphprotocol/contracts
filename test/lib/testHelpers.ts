@@ -70,6 +70,13 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
   }
 }
 
+export const advanceBlocks = async (blocks: string | number | BigNumber) => {
+  const steps = typeof blocks === 'number' || typeof blocks === 'string' ? toBN(blocks) : blocks
+  const currentBlock = await latestBlock()
+  const toBlock = currentBlock.add(steps)
+  await advanceBlockTo(toBlock)
+}
+
 export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
   const currentBlock = await latestBlock()
   const epochLength = await epochManager.epochLength()

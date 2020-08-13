@@ -58,7 +58,7 @@ export const defaults = {
     initialSupply: toGRT('10000000'),
   },
   rewards: {
-    issuanceRate: toGRT('1.00000004756468798'),
+    issuanceRate: toGRT('1.000000023206889619'),
   },
 }
 

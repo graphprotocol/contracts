@@ -9,7 +9,7 @@ contract RewardsManagerV1Storage {
 
     struct Subgraph {
         uint256 accRewardsForSubgraph;
-        uint256 accRewardsForSubgraphSnapshot; // blocks
+        uint256 accRewardsForSubgraphSnapshot;
         uint256 accRewardsPerSignalSnapshot;
         uint256 accRewardsPerAllocatedToken;
     }
