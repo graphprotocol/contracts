@@ -21,26 +21,28 @@ contract GSRManager is Governed {
     mapping(address => uint256) public balances; // balance of interest bearing GDAI
     GDAI public token; // GDAI
 
-    event UpdateRate(uint256 newRate);
+    event SetRate(uint256 newRate);
     event Drip(uint256 cumulativeInterestRate, uint256 lastDripTime);
-    event Join(address indexed account, uint256 tokens);
-    event Exit(address indexed account, uint256 tokens);
+    event Join(address indexed account, uint256 gdai, uint256 gsrBalance);
+    event Exit(address indexed account, uint256 gsrBalance, uint256 gdai);
 
     /**
      * @dev Graph Saving Rate constructor.
      */
-    constructor() public {
+    constructor(uint256 _savingsRate, address _gdai) public {
         Governed._initialize(msg.sender);
         cumulativeInterestRate = ISSUANCE_RATE_DECIMALS;
         savingsRate = ISSUANCE_RATE_DECIMALS;
         lastDripTime = now;
+        savingsRate = _savingsRate;
+        token = GDAI(_gdai);
     }
 
     // Governance sets savings rate
-    function setRatio(uint256 _newRate) external onlyGovernor {
+    function setRate(uint256 _newRate) external onlyGovernor {
         drip();
         savingsRate = _newRate;
-        emit UpdateRate(savingsRate);
+        emit SetRate(savingsRate);
     }
 
     // Update the rate m and mint tokens
@@ -52,26 +54,28 @@ contract GSRManager is Governed {
         uint256 rateDifference = updatedRate.sub(cumulativeInterestRate);
         cumulativeInterestRate = updatedRate;
         lastDripTime = now;
-        token.mint(address(this), reserves.mul(rateDifference));
+        token.mint(address(this), reserves.mul(rateDifference).div(ISSUANCE_RATE_DECIMALS));
         emit Drip(cumulativeInterestRate, lastDripTime);
     }
 
     // Someone enters
-    function join(uint256 amount) external {
+    function join(uint256 _amount) external {
         drip();
-        balances[msg.sender] = balances[msg.sender].add(amount);
-        reserves = reserves.add(amount);
-        token.transferFrom(msg.sender, address(this), cumulativeInterestRate.mul(amount));
-        emit Join(msg.sender, amount);
+        uint256 savingsBalance = _amount.mul(ISSUANCE_RATE_DECIMALS).div(cumulativeInterestRate);
+        balances[msg.sender] = balances[msg.sender].add(savingsBalance);
+        reserves = reserves.add(savingsBalance);
+        token.transferFrom(msg.sender, address(this), _amount);
+        emit Join(msg.sender, _amount, savingsBalance);
     }
 
     // Someone exits
-    function exit(uint256 amount) external {
+    function exit(uint256 _amount) external {
         drip();
-        balances[msg.sender] = balances[msg.sender].sub(amount);
-        reserves = reserves.sub(amount);
-        token.transfer(msg.sender, cumulativeInterestRate.mul(amount));
-        emit Exit(msg.sender, amount);
+        balances[msg.sender] = balances[msg.sender].sub(_amount);
+        uint256 withdrawnAmount = _amount.mul(cumulativeInterestRate).div(ISSUANCE_RATE_DECIMALS);
+        reserves = reserves.sub(_amount);
+        token.transfer(msg.sender, withdrawnAmount);
+        emit Exit(msg.sender, _amount, withdrawnAmount);
     }
 
     /** TODO - have a math library and use it here and in RewardsMAnager
