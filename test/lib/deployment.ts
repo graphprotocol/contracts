@@ -30,6 +30,8 @@ import { MockStaking } from '../../build/typechain/contracts/MockStaking'
 import { MockDispute } from '../../build/typechain/contracts/MockDispute'
 import { AppWithAction } from '../../build/typechain/contracts/AppWithAction'
 import { IdentityApp } from '../../build/typechain/contracts/IdentityApp'
+import { Gdai } from '../../build/typechain/contracts/Gdai'
+import { GsrManager } from '../../build/typechain/contracts/GsrManager'
 
 const { solidityKeccak256 } = utils
 
@@ -55,7 +57,12 @@ export const defaults = {
     thawingPeriod: 20, // in blocks
   },
   token: {
-    initialSupply: toGRT('10000000'),
+    initialSupply: toGRT('10000000000'), // 10 billion
+  },
+  gdai: {
+    initialSupply: toGRT('100000000'), // 100 million
+    // 5% annual inflation. r^n = 1.05, where n = 365*24*60*60. 18 decimal points.
+    savingsRate: toGRT('1.000000001547125958'),
   },
   rewards: {
     issuanceRate: toGRT('1.000000023206889619'),
@@ -72,6 +79,16 @@ async function deployContract(contractName: string, deployer?: Signer, ...params
 
 export async function deployGRT(owner: Signer): Promise<GraphToken> {
   return deployContract('GraphToken', owner, defaults.token.initialSupply) as Promise<GraphToken>
+}
+
+export async function deployGDAI(owner: Signer): Promise<Gdai> {
+  return deployContract('Gdai', owner, defaults.gdai.initialSupply) as Promise<Gdai>
+}
+
+export async function deployGSR(owner: Signer, gdaiAddress: string): Promise<GsrManager> {
+  return deployContract('GsrManager', owner, defaults.gdai.savingsRate, gdaiAddress) as Promise<
+    GsrManager
+  >
 }
 
 export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
