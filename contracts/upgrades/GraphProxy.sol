@@ -68,13 +68,13 @@ contract GraphProxy is GraphProxyStorage {
      * @dev Admin function for new implementation to accept its role as implementation.
      */
     function acceptUpgrade() external {
-        address pendingImplementation = _pendingimplementation();
+        address _pendingImplementation = _pendingimplementation();
         require(
-            pendingImplementation != address(0) && msg.sender == pendingImplementation,
+            _pendingImplementation != address(0) && msg.sender == _pendingImplementation,
             "Caller must be the pending implementation"
         );
 
-        _setImplementation(pendingImplementation);
+        _setImplementation(_pendingImplementation);
         _setPendingImplementation(address(0));
     }
 
