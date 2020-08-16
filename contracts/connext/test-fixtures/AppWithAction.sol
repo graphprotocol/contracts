@@ -33,7 +33,8 @@ contract AppWithAction is CounterfactualApp {
         returns (address)
     {
         State memory state = abi.decode(encodedState, (State));
-        return participants[state.counter > 0 ? 0 : 1];
+        uint256 p = state.counter > 0 ? 0 : 1;
+        return participants[p];
     }
 
     /// @dev NOTE: there is a slight difference here vs. the connext

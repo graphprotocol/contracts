@@ -172,7 +172,7 @@ const config = {
     enabled: process.env.REPORT_GAS ? true : false,
     showTimeSpent: true,
     currency: 'USD',
-    outputFile: 'gas-report.log',
+    outputFile: 'reports/gas-report.log',
   },
 }
 
