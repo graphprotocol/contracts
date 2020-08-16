@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUT_DIR="build/full"
+OUT_DIR="build/flatten"
 
 echo ${OUT_DIR}/contracts
 mkdir -p ${OUT_DIR}/contracts
@@ -17,4 +17,4 @@ for path in $files; do
     truffle-flattener "${path}" > "${OUT_DIR}/${name}"
 done
 
-echo "Done."
+echo "Done!"

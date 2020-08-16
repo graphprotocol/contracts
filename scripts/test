@@ -35,6 +35,8 @@ fi
 
 ### Main
 
+mkdir -p reports
+
 npm run compile
 npm run typechain
 

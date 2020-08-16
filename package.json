@@ -85,6 +85,7 @@
     "prettier": "npm run prettier:ts && npm run prettier:sol",
     "prettier:ts": "prettier --write 'test/**/*.ts'",
     "prettier:sol": "prettier --write 'contracts/*.sol'",
+    "analyze": "scripts/analyze",
     "flatten": "scripts/flatten",
     "abi:extract": "truffle-abi -d ./build/contracts -o ./build/abis/ -v",
     "typechain": "typechain --target ethers-v5 --outDir build/typechain/contracts 'build/abis/*.json'",
