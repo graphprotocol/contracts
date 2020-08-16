@@ -18,7 +18,20 @@ usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('buidler-gas-reporter')
 usePlugin('solidity-coverage')
 
-// Helpers
+// Networks
+
+interface NetworkConfig {
+  network: string
+  chainId: number
+  gas?: number | 'auto'
+  gasPrice?: number | 'auto'
+}
+
+const networkConfigs: NetworkConfig[] = [
+  { network: 'mainnet', chainId: 1 },
+  { network: 'rinkeby', chainId: 4 },
+  { network: 'kovan', chainId: 42 },
+]
 
 function getAccountMnemonic() {
   return process.env.MNEMONIC || ''
@@ -26,6 +39,20 @@ function getAccountMnemonic() {
 
 function getInfuraProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
+}
+
+function setupNetworkProviders(buidlerConfig) {
+  for (const netConfig of networkConfigs) {
+    buidlerConfig.networks[netConfig.network] = {
+      chainId: netConfig.chainId,
+      url: getInfuraProviderURL(netConfig.network),
+      gas: netConfig.gasPrice || 'auto',
+      gasPrice: netConfig.gasPrice || 'auto',
+      accounts: {
+        mnemonic: getAccountMnemonic(),
+      },
+    }
+  }
 }
 
 // Env
@@ -136,43 +163,19 @@ const config = {
       chainId: 1337,
       url: 'http://localhost:8545',
     },
-    kovan: {
-      chainId: 42,
-      url: getInfuraProviderURL('kovan'),
-      gas: 'auto',
-      gasPrice: 'auto',
-      accounts: {
-        mnemonic: getAccountMnemonic(),
-      },
-    },
-    rinkeby: {
-      chainId: 4,
-      url: getInfuraProviderURL('rinkeby'),
-      gas: 'auto',
-      gasPrice: 'auto',
-      accounts: {
-        mnemonic: getAccountMnemonic(),
-      },
-    },
-    mainnet: {
-      chainId: 1,
-      url: getInfuraProviderURL('mainnet'),
-      gas: 'auto',
-      gasPrice: 'auto',
-      accounts: {
-        mnemonic: getAccountMnemonic(),
-      },
-    },
   },
   etherscan: {
     url: 'https://api-kovan.etherscan.io/api',
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   gasReporter: {
-    currency: 'USD',
     enabled: process.env.REPORT_GAS ? true : false,
-    outputFile: './gas-report.txt',
+    showTimeSpent: true,
+    currency: 'USD',
+    outputFile: 'gas-report.log',
   },
 }
+
+setupNetworkProviders(config)
 
 export default config
