@@ -13,13 +13,6 @@ import "../governance/Governed.sol";
  * in a standard ERC20 token implementation except for burning them.
  */
 contract GraphSignalToken is ERC20, Governed {
-    address public owner;
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "Caller must be owner");
-        _;
-    }
-
     /**
      * @dev Graph Token Contract Constructor.
      * @param _symbol Token symbol
