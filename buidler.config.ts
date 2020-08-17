@@ -2,11 +2,11 @@ import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
 import { extendEnvironment, task, usePlugin } from '@nomiclabs/buidler/config'
 
-import { getAddressBook } from './scripts/cli/address-book'
-import { cliOpts } from './scripts/cli/constants'
-import { loadContracts, loadEnv } from './scripts/cli/env'
-import { migrate } from './scripts/cli/commands/migrate'
-import { verify } from './scripts/cli/commands/verify'
+import { getAddressBook } from './cli/address-book'
+import { cliOpts } from './cli/constants'
+import { loadContracts, loadEnv } from './cli/env'
+import { migrate } from './cli/commands/migrate'
+import { verify } from './cli/commands/verify'
 
 dotenv.config()
 

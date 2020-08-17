@@ -2,18 +2,18 @@
 
 ### Running
 
-A script in `./scripts/cli/cli.ts` deploys the contracts to the specified network when used with the `migrate` command.
+A CLI in `cli/cli.ts` deploys the contracts to the specified network when used with the `migrate` command.
 
 This script accepts multiple commands that you can print using:
 
 ```
-/scripts/cli/cli.ts --help
+cli/cli.ts --help
 ```
 
 For convenience, the script can also be used as a buidler command with `buidler migrate` and it can be also run with:
 
 ```
-npm run migrate
+npm run deploy
 ```
 
 The **migrate** command will:
@@ -27,22 +27,22 @@ The **migrate** command will:
 The script accepts multiple parameters that allow to override default values, print the available options with:
 
 ```
-npm run migrate -- --help
+npm run deploy -- --help
 ```
 
 NOTE: Please run `npm run build` at least once before running migrate as this command relies on artifacts produced in the compilation process.
 
 ### Networks
 
-By default, `npm run migrate` will deploy the contracts to a localhost instance of a development network.
+By default, `npm run deploy` will deploy the contracts to a localhost instance of a development network.
 
 To deploy to a different network execute:
 
 ```
-npm run migrate -- --network {networkName}
+npm run deploy -- --network {networkName}
 
 # Example
-npm run migrate -- --network kovan
+npm run deploy -- --network kovan
 ```
 
 The network must be configured in the `builder.config.ts` as explained in https://buidler.dev/config/#networks-configuration.
@@ -56,7 +56,7 @@ A configuration file called `graph.config.yml` contains the parameters needed to
 You can use a different set of configuration options by specifying the file location in the command line:
 
 ```
-npm run migrate -- --graph-config another-graph.config.yml
+npm run deploy -- --graph-config another-graph.config.yml
 ```
 
 Rules:

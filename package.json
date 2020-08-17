@@ -75,7 +75,7 @@
     "deploy-rinkeby": "npm run deploy -- --force --network rinkeby",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
-    "coverage": "scripts/coverage",
+    "test:coverage": "scripts/coverage",
     "lint": "npm run lint:ts && npm run lint:sol",
     "lint:fix": "npm run lint:ts:fix && npm run lint:sol:fix",
     "lint:ts": "eslint '*/**/*.{js,ts}'",
