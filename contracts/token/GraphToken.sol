@@ -185,7 +185,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @dev Get the running network chain ID.
      * @return The chain ID
      */
-    function _getChainID() private pure returns (uint256) {
+    function _getChainID() internal pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()

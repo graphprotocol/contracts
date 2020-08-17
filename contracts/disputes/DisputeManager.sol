@@ -152,7 +152,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Contract Constructor
+     * @dev Contract Constructor.
      * @param _token Address of the Graph Protocol token
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
@@ -169,9 +169,11 @@ contract DisputeManager is Governed {
         uint256 _slashingPercentage
     ) public {
         Governed._initialize(msg.sender);
+
         arbitrator = _arbitrator;
         token = IGraphToken(_token);
         staking = IStaking(_staking);
+
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
@@ -190,7 +192,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Return whether a dispute exists or not
+     * @dev Return whether a dispute exists or not.
      * @notice Return if dispute with ID `_disputeID` exists
      * @param _disputeID True if dispute already exists
      */
@@ -199,7 +201,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the fisherman reward for a given indexer stake
+     * @dev Get the fisherman reward for a given indexer stake.
      * @notice Return the fisherman reward based on the `_indexer` stake
      * @param _indexer Indexer to be slashed
      * @return Reward calculated as percentage of the indexer slashed funds
@@ -210,7 +212,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Get the amount of tokens to slash for an indexer based on the stake
+     * @dev Get the amount of tokens to slash for an indexer based on the stake.
      * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
@@ -246,7 +248,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the arbitrator address
+     * @dev Set the arbitrator address.
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
@@ -256,7 +258,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the minimum deposit required to create a dispute
+     * @dev Set the minimum deposit required to create a dispute.
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
@@ -266,7 +268,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the percent reward that the fisherman gets when slashing occurs
+     * @dev Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
      * @param _percentage Reward as a percentage of indexer stake
      */
@@ -278,7 +280,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the percentage used for slashing indexers
+     * @dev Set the percentage used for slashing indexers.
      * @param _percentage Percentage used for slashing
      */
     function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
@@ -289,7 +291,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the staking contract used for slashing
+     * @dev Set the staking contract used for slashing.
      * @notice Update the staking contract to `_staking`
      * @param _staking Address of the staking contract
      */
@@ -322,7 +324,39 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can accept a dispute as being valid
+     * @dev Create a dispute for conflicting attestations.
+     * A conflicting attestation is a proof presented by two different indexers
+     * where for the same request on a subgraph the response is different.
+     * For this type of dispute the submitter is not required to present a deposit
+     * as one of the attestation is considered to be right.
+     * @param _attestationData1 First ttestation data submitted
+     * @param _attestationData1 Second attestation data submitted
+     */
+    function createDisputeInConflict(
+        bytes calldata _attestationData1,
+        bytes calldata _attestationData2
+    ) external {
+        // Parse each attestation
+        Attestation memory attestation1 = _parseAttestation(_attestationData1);
+        Attestation memory attestation2 = _parseAttestation(_attestationData2);
+
+        // Test that attestations are conflicting
+        require(
+            areConflictingAttestations(attestation1, attestation2),
+            "Attestations must be in conflict"
+        );
+
+        // Get the indexers that signed each attestation
+        address indexer1 = getAttestationIndexer(attestation1);
+        address indexer2 = getAttestationIndexer(attestation2);
+
+        // Check that disputes are not yet created
+        // Store the linked disputes to be resolved
+        // Emit event with two attestation data and two indexers
+    }
+
+    /**
+     * @dev The arbitrator can accept a dispute as being valid.
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
      */
@@ -358,7 +392,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can reject a dispute as being invalid
+     * @dev The arbitrator can reject a dispute as being invalid.
      * @notice Reject a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be rejected
      */
@@ -383,7 +417,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev The arbitrator can draw dispute
+     * @dev The arbitrator can draw dispute.
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
@@ -411,7 +445,41 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Create a dispute for the arbitrator to resolve
+     * @dev Returns if two attestations are conflicting.
+     * Everything must match except for the responseID.
+     * @param _attestation1 Attestation
+     * @param _attestation2 Attestation
+     * @return True if the two attestations are conflicting
+     */
+    function areConflictingAttestations(
+        Attestation memory _attestation1,
+        Attestation memory _attestation2
+    ) public pure returns (bool) {
+        return (_attestation1.requestCID == _attestation2.requestCID &&
+            _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
+            _attestation1.responseCID != _attestation2.responseCID);
+    }
+
+    /**
+     * @dev Returns the indexer that signed an attestation.
+     * @param _attestation Attestation
+     * @return Indexer address
+     */
+    function getAttestationIndexer(Attestation memory _attestation) public view returns (address) {
+        // Get attestation signer, allocationID
+        address allocationID = _recoverAttestationSigner(_attestation);
+
+        IStaking.Allocation memory alloc = staking.getAllocation(allocationID);
+        require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
+        require(
+            alloc.subgraphDeploymentID == _attestation.subgraphDeploymentID,
+            "Channel and attestation subgraphDeploymentID must match"
+        );
+        return alloc.indexer;
+    }
+
+    /**
+     * @dev Create a dispute for the arbitrator to resolve.
      * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
@@ -420,47 +488,35 @@ contract DisputeManager is Governed {
         address _fisherman,
         uint256 _deposit,
         bytes memory _attestationData
-    ) private {
-        // Check attestation data length
-        require(
-            _attestationData.length == ATTESTATION_SIZE_BYTES,
-            "Attestation must be 161 bytes long"
-        );
-
+    ) internal {
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
 
-        // Get attestation signer, allocationID
-        address allocationID = _recoverAttestationSigner(attestation);
-
         // Get the indexer that created the allocation and signed the attestation
-        IStaking.Allocation memory alloc = staking.getAllocation(allocationID);
-        require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
-        require(
-            alloc.subgraphDeploymentID == attestation.subgraphDeploymentID,
-            "Channel and attestation subgraphDeploymentID must match"
-        );
+        address indexer = getAttestationIndexer(attestation);
+
+        // This also validates that indexer exists
+        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
         // Create a disputeID
+        // bytes32 disputeID = _buildDisputeID(attestation, indexer);
+
         bytes32 disputeID = keccak256(
             abi.encodePacked(
                 attestation.requestCID,
                 attestation.responseCID,
                 attestation.subgraphDeploymentID,
-                alloc.indexer
+                indexer
             )
         );
 
-        // This also validates that indexer exists
-        require(staking.hasStake(alloc.indexer), "Dispute has no stake by the indexer");
-
-        // A fisherman can only open one dispute for a (indexer, subgraphDeploymentID) at a time
+        // Only one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
 
         // Store dispute
         disputes[disputeID] = Dispute(
             attestation.subgraphDeploymentID,
-            alloc.indexer,
+            indexer,
             _fisherman,
             _deposit
         );
@@ -468,7 +524,7 @@ contract DisputeManager is Governed {
         emit DisputeCreated(
             disputeID,
             attestation.subgraphDeploymentID,
-            alloc.indexer,
+            indexer,
             _fisherman,
             _deposit,
             _attestationData
@@ -476,7 +532,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Recover the signer address of the `_attestation`
+     * @dev Recover the signer address of the `_attestation`.
      * @param _attestation The attestation struct
      * @return Signer address
      */
@@ -502,7 +558,7 @@ contract DisputeManager is Governed {
      * @dev Get the running network chain ID
      * @return The chain ID
      */
-    function _getChainID() private pure returns (uint256) {
+    function _getChainID() internal pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
@@ -511,10 +567,13 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Parse the bytes attestation into a struct from `_data`
+     * @dev Parse the bytes attestation into a struct from `_data`.
      * @return Attestation struct
      */
-    function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
+    function _parseAttestation(bytes memory _data) internal pure returns (Attestation memory) {
+        // Check attestation data length
+        require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
+
         // Decode receipt
         (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
             _data,
@@ -566,7 +625,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Parse a uint8 from `_bytes` starting at offset `_start`
+     * @dev Parse a uint8 from `_bytes` starting at offset `_start`.
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
@@ -581,7 +640,7 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`
+     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`.
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
