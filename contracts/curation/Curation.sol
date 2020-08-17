@@ -399,7 +399,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         uint256 signal = tokensToSignal(_subgraphDeploymentID, _tokens);
 
         // Update curation pool
@@ -426,7 +426,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _signal
-    ) private returns (uint256, uint256) {
+    ) internal returns (uint256, uint256) {
         (uint256 tokens, uint256 withdrawalFees) = signalToTokens(_subgraphDeploymentID, _signal);
         uint256 outTokens = tokens.add(withdrawalFees);
 
@@ -448,7 +448,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      * @param _subgraphDeploymentID Subgraph deployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
-    function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) private {
+    function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) internal {
         require(
             isCurated(_subgraphDeploymentID),
             "Subgraph deployment must be curated to collect fees"
@@ -472,7 +472,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         address _curator,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve

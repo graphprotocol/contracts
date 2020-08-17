@@ -183,14 +183,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     /**
      * @dev Check if the caller is authorized (indexer or operator)
      */
-    function _onlyAuth(address _indexer) private view returns (bool) {
+    function _onlyAuth(address _indexer) internal view returns (bool) {
         return msg.sender == _indexer || operatorAuth[_indexer][msg.sender] == true;
     }
 
     /**
      * @dev Check if the caller is authorized (indexer, operator or delegator)
      */
-    function _onlyAuthOrDelegator(address _indexer) private view returns (bool) {
+    function _onlyAuthOrDelegator(address _indexer) internal view returns (bool) {
         return _onlyAuth(_indexer) || delegationPools[_indexer].delegators[msg.sender].shares > 0;
     }
 
@@ -947,7 +947,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _indexer Address of staking party
      * @param _tokens Amount of tokens to stake
      */
-    function _stake(address _indexer, uint256 _tokens) private {
+    function _stake(address _indexer, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
         Stakes.Indexer storage indexerStake = stakes[_indexer];
         indexerStake.deposit(_tokens);
@@ -979,7 +979,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         bytes memory _channelPubKey,
         address _assetHolder,
         uint256 _price
-    ) private {
+    ) internal {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only allocations with a non-zero token amount are allowed
@@ -1055,7 +1055,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         address _allocationID,
         address _from,
         uint256 _tokens
-    ) private {
+    ) internal {
         uint256 rebateFees = _tokens;
 
         // Get allocation
@@ -1123,7 +1123,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         address _delegator,
         address _indexer,
         uint256 _tokens
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         // Can only delegate a non-zero amount of tokens
         require(_tokens > 0, "Delegation: cannot delegate zero tokens");
         // Can only delegate to non-empty address
@@ -1159,7 +1159,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         address _delegator,
         address _indexer,
         uint256 _shares
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         // Can only undelegate a non-zero amount of shares
         require(_shares > 0, "Delegation: cannot undelegate zero shares");
 
@@ -1200,7 +1200,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation fees
      */
-    function _collectDelegationFees(address _indexer, uint256 _tokens) private returns (uint256) {
+    function _collectDelegationFees(address _indexer, uint256 _tokens) internal returns (uint256) {
         uint256 delegationFees = 0;
         DelegationPool storage pool = delegationPools[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
@@ -1234,7 +1234,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of protocol fees
      */
-    function _collectProtocolFees(uint256 _tokens) private returns (uint256) {
+    function _collectProtocolFees(uint256 _tokens) internal returns (uint256) {
         if (protocolPercentage == 0) {
             return 0;
         }
@@ -1250,7 +1250,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _allocationID Allocation identifier
      * @return AllocationState
      */
-    function _getAllocationState(address _allocationID) private view returns (AllocationState) {
+    function _getAllocationState(address _allocationID) internal view returns (AllocationState) {
         Allocation memory alloc = allocations[_allocationID];
 
         if (alloc.indexer == address(0)) {
@@ -1289,7 +1289,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @dev Get the running network chain ID
      * @return The chain ID
      */
-    function _getChainID() private pure returns (uint256) {
+    function _getChainID() internal pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
@@ -1302,7 +1302,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _bytes Byte array to slice
      * @return New bytes array
      */
-    function _sliceByte(bytes memory _bytes) private pure returns (bytes memory) {
+    function _sliceByte(bytes memory _bytes) internal pure returns (bytes memory) {
         bytes memory tempBytes;
         uint256 length = _bytes.length - 1;
 
