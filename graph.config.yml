@@ -6,12 +6,12 @@ contracts:
   Curation:
     init:
       token: "${{GraphToken.address}}"
-      reserveRatio: 500000 # 50% bonding curve reserve ratio parameter
+      reserveRatio: 500000 # 50% (in basis points)
       minimumCurationDeposit: "100000000000000000000" # 100 GRT
     proxy: true
     calls:
       - fn: "setWithdrawalFeePercentage"
-        withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
+        withdrawalFeePercentage: 50000 # 5% (in basis points)
       - fn: "setStaking"
         staking: "${{Staking.address}}"
       - fn: "setRewardsManager"
@@ -21,12 +21,12 @@ contracts:
       arbitrator: *arbitrator
       token: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      minimumDeposit: "100000000000000000000" # 100 GRT
-      fishermanRewardPercentage: 100000 # in basis points
-      slashingPercentage: 50000 # in basis points
+      minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
+      fishermanRewardPercentage: 100000 # 10% (in basis points)
+      slashingPercentage: 100000 # 10% (in basis points)
   EpochManager:
     init:
-      lengthInBlocks: 5760 # One day in blocks
+      lengthInBlocks: 275 # ~1 hour (in blocks)
     proxy: true
   GNS:
     init:
@@ -47,14 +47,20 @@ contracts:
     calls:
       - fn: "setCuration"
         curation: "${{Curation.address}}"
+      - fn: "setCurationPercentage"
+        percentage: 100000 # 10%
       - fn: "setChannelDisputeEpochs"
         channelDisputeEpochs: 1
       - fn: "setMaxAllocationEpochs"
-        maxAllocationEpochs: 5
+        maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
       - fn: "setThawingPeriod"
-        thawingPeriod: 20 # in blocks
+        thawingPeriod: 275 # ~1 hour (in blocks)
       - fn: "setRewardsManager"
-        thawingPeriod: "${{RewardsManager.address}}"
+        rewardsManager: "${{RewardsManager.address}}"
+      - fn: "setDelegationCapacity"
+        delegationCapacity: 1 # 100% (multiplier)
+      - fn: "setProtocolPercentage"
+        protocolPercentage: 10000 # 1% (in basis points)
   RewardsManager:
     init:
       token: "${{GraphToken.address}}"
