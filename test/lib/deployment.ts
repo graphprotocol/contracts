@@ -82,11 +82,11 @@ export async function deployGRT(owner: Signer): Promise<GraphToken> {
 }
 
 export async function deployGDAI(owner: Signer): Promise<Gdai> {
-  return deployContract('Gdai', owner, defaults.gdai.initialSupply) as Promise<Gdai>
+  return deployContract('GDAI', owner, defaults.gdai.initialSupply) as Promise<Gdai>
 }
 
 export async function deployGSR(owner: Signer, gdaiAddress: string): Promise<GsrManager> {
-  return deployContract('GsrManager', owner, defaults.gdai.savingsRate, gdaiAddress) as Promise<
+  return deployContract('GSRManager', owner, defaults.gdai.savingsRate, gdaiAddress) as Promise<
     GsrManager
   >
 }
