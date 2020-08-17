@@ -19,3 +19,6 @@ bin/
 .env
 .DS_Store
 .vscode
+
+# Sliter
+/reports
