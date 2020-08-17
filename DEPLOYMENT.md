@@ -159,3 +159,17 @@ Some contracts require the address from previously deployed contracts. For that 
 - IndexerMultiAssetInterpreter
 - IndexerWithdrawInterpreter
 - MinimumViableMultisig
+
+### Deploying a new testnet
+
+1. Make sure contracts are up to date as you please
+2. `npm run deploy-rinkeby` to deploy to rinkeby. This will create new contracts with new addresses in `addresses.json`
+3. Publish a new npm package with `npm publish`, and updating the `package.json` file. Note there 
+   is an ethers typescript bug with `CallOverrides` not being imported into auto-generated files. 
+   Right now, we run `prePublishOnly`, get it to the point where this failure happens, comment
+   out `prePublishOnly`, import `CallOverrides` in, and then run `npm publish`.
+4. Merge this update into master, branch off and save for whatever version of the testnet is going. 
+   on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` 
+   branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
+5. Pull the updated package into the subgraph, and other apps that depend on the package.json.
+6. Send tokens to the whole team with the mintTeamTokens script `./cli/cli.ts mintTeamTokens --amount 10000000`
