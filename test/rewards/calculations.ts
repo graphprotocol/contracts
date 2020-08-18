@@ -24,9 +24,8 @@ import {
 // TODO: enforcer
 // TODO: issuance rate
 
-const ROUND_PRECISION = 8
-const toRounded = (n: BigNumber) => parseFloat(formatGRT(n)).toPrecision(ROUND_PRECISION)
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+const toRound = (n: BigNumber) => Math.round(toFloat(n))
 
 describe('Rewards:Calculations', () => {
   let me: Account
@@ -59,7 +58,7 @@ describe('Rewards:Calculations', () => {
   // Core formula that gets accumulated rewards per signal for a period of time
   const getRewardsPerSignal = (p: BigNumber, r: BigNumber, t: BigNumber, s: BigNumber): number => {
     if (!toFloat(s)) return 0
-    return (toFloat(p) * toFloat(r) ** t.toNumber() - toFloat(p)) / toFloat(s)
+    return (toRound(p) * toFloat(r) ** t.toNumber() - toFloat(p)) / toFloat(s)
   }
 
   // Tracks the accumulated rewards as totalSignalled or supply changes across snapshots
@@ -104,8 +103,7 @@ describe('Rewards:Calculations', () => {
     }
 
     async accruedRounded() {
-      const n = await this.accrued()
-      return n.toPrecision(ROUND_PRECISION)
+      return Math.round(await this.accrued())
     }
   }
 
@@ -120,14 +118,12 @@ describe('Rewards:Calculations', () => {
     // -- t1 --
 
     // Contract calculation
-    const contractAccrued = toRounded(await rewardsManager.getNewRewardsPerSignal())
-
+    const contractAccrued = await rewardsManager.getNewRewardsPerSignal()
     // Local calculation
     const expectedAccrued = await tracker.accruedRounded()
 
     // Check
-    expect(expectedAccrued).eq(contractAccrued)
-
+    expect(expectedAccrued).eq(toRound(contractAccrued))
     return expectedAccrued
   }
 
@@ -199,11 +195,11 @@ describe('Rewards:Calculations', () => {
 
       // Update
       await rewardsManager.updateAccRewardsPerSignal()
-      const contractAccrued = toRounded(await rewardsManager.accRewardsPerSignal())
+      const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
       // Check
       const expectedAccrued = await tracker.accruedRounded()
-      expect(expectedAccrued).eq(contractAccrued)
+      expect(expectedAccrued).eq(toRound(contractAccrued))
     })
 
     it('update the accumulated rewards per signal state after many blocks', async function () {
@@ -217,11 +213,11 @@ describe('Rewards:Calculations', () => {
 
       // Update
       await rewardsManager.updateAccRewardsPerSignal()
-      const contractAccrued = toRounded(await rewardsManager.accRewardsPerSignal())
+      const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
       // Check
       const expectedAccrued = await tracker.accruedRounded()
-      expect(expectedAccrued).eq(contractAccrued)
+      expect(expectedAccrued).eq(toRound(contractAccrued))
     })
   })
 
@@ -250,24 +246,20 @@ describe('Rewards:Calculations', () => {
       // Calculate rewards
       const rewardsPerSignal1 = await tracker1.accumulated
       const rewardsPerSignal2 = await tracker2.accumulated
-      const expectedRewardsSG1 = toRounded(
-        rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther),
-      )
-      const expectedRewardsSG2 = toRounded(
-        rewardsPerSignal2.mul(signalled2).div(constants.WeiPerEther),
-      )
+      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther)
+      const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(constants.WeiPerEther)
 
       // Get rewards from contract
-      const contractRewardsSG1 = toRounded(
-        await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1),
+      const contractRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(
+        subgraphDeploymentID1,
       )
-      const contractRewardsSG2 = toRounded(
-        await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID2),
+      const contractRewardsSG2 = await rewardsManager.getAccRewardsForSubgraph(
+        subgraphDeploymentID2,
       )
 
       // Check
-      expect(expectedRewardsSG1).eq(contractRewardsSG1)
-      expect(expectedRewardsSG2).eq(contractRewardsSG2)
+      expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
+      expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
     })
   })
 
@@ -286,18 +278,15 @@ describe('Rewards:Calculations', () => {
       await rewardsManager.onSubgraphSignalUpdate(subgraphDeploymentID1)
 
       // Check
-      const contractRewardsSG1 = toRounded(
-        (await rewardsManager.subgraphs(subgraphDeploymentID1)).accRewardsForSubgraph,
-      )
+      const contractRewardsSG1 = (await rewardsManager.subgraphs(subgraphDeploymentID1))
+        .accRewardsForSubgraph
       const rewardsPerSignal1 = await tracker1.accruedGRT()
-      const expectedRewardsSG1 = toRounded(
-        rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther),
-      )
-      expect(expectedRewardsSG1).eq(contractRewardsSG1)
+      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther)
+      expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
 
-      const contractAccrued = toRounded(await rewardsManager.accRewardsPerSignal())
+      const contractAccrued = await rewardsManager.accRewardsPerSignal()
       const expectedAccrued = await tracker1.accruedRounded()
-      expect(expectedAccrued).eq(contractAccrued)
+      expect(expectedAccrued).eq(toRound(contractAccrued))
 
       const contractBlockUpdated = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
       const expectedBlockUpdated = await latestBlock()
@@ -365,31 +354,28 @@ describe('Rewards:Calculations', () => {
       await advanceBlocks(ISSUANCE_RATE_PERIODS)
 
       // Prepare expected results
-      // const sg1 = await rewardsManager.subgraphs(subgraphDeploymentID1)
-      // // We trust this function because it was individually tested in previous test
-      // const accRewardsForSubgraphSG1 = await rewardsManager.getAccRewardsForSubgraph(
-      //   subgraphDeploymentID1,
-      // )
-      // const accruedRewardsSG1 = accRewardsForSubgraphSG1.sub(sg1.accRewardsForSubgraphSnapshot)
-      // const expectedRewardsAT1 = accruedRewardsSG1.mul(constants.WeiPerEther).div(tokensToAllocate)
-
       // NOTE: calculated the expected result manually as the above code has 1 off block difference
       // replace with a RewardsManagerMock
-      const expectedRewardsAT1 = '72171474970536879840'
+      const expectedSubgraphRewards = 891695471
+      const expectedRewardsAT = 51572
 
       // Update
       await rewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentID1)
 
       // Check on demand results saved
-      const updatedSG1 = await rewardsManager.subgraphs(subgraphDeploymentID1)
+      const subgraph = await rewardsManager.subgraphs(subgraphDeploymentID1)
+      const contractSubgraphRewards = await rewardsManager.getAccRewardsForSubgraph(
+        subgraphDeploymentID1,
+      )
+      const contractRewardsAT = subgraph.accRewardsPerAllocatedToken
 
-      const contractRewardsAT1 = updatedSG1.accRewardsPerAllocatedToken
-      expect(expectedRewardsAT1).eq(contractRewardsAT1)
+      expect(expectedSubgraphRewards).eq(toRound(contractSubgraphRewards))
+      expect(expectedRewardsAT).eq(toRound(contractRewardsAT))
     })
   })
 
   describe('getRewards', function () {
-    it('calcuate rewards using the subgraph signalled + allocated tokens', async function () {
+    it('calculate rewards using the subgraph signalled + allocated tokens', async function () {
       // Update total signalled
       const signalled1 = toGRT('1500')
       await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
@@ -426,6 +412,8 @@ describe('Rewards:Calculations', () => {
 
   describe('assign rewards and claim', function () {
     it('should distribute rewards when allocation settled and be able to claim them', async function () {
+      await epochManager.setEpochLength(10)
+
       // Update total signalled
       const signalled1 = toGRT('1500')
       await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
@@ -444,15 +432,16 @@ describe('Rewards:Calculations', () => {
         )
 
       // Jump
-      await advanceToNextEpoch(epochManager)
+      await advanceBlocks(await epochManager.epochLength())
 
       // Settle allocation. At this point rewards should be collected for that indexer
       await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
 
       // Check that rewards are put into indexer claimable pool
-      const expectedIndexer1Rewards = toGRT('15844017.4932529092259875') // calculated manually based on signalled tokens, allocated and time
-      const contractIndexer1Rewards = await rewardsManager.indexerRewards(indexer1.address)
-      expect(expectedIndexer1Rewards).eq(contractIndexer1Rewards)
+      // NOTE: alculated manually on a spreadsheet
+      const expectedIndexerRewards = 1471954234
+      const contractIndexerRewards = await rewardsManager.indexerRewards(indexer1.address)
+      expect(expectedIndexerRewards).eq(toRound(contractIndexerRewards))
 
       // Try to claim those rewards from wrong indexer should fail
       const tx1 = rewardsManager.connect(indexer2.signer).claim(false)
@@ -463,9 +452,9 @@ describe('Rewards:Calculations', () => {
       const tx2 = rewardsManager.connect(indexer1.signer).claim(false)
       await expect(tx2)
         .emit(rewardsManager, 'RewardsClaimed')
-        .withArgs(indexer1.address, expectedIndexer1Rewards)
+        .withArgs(indexer1.address, contractIndexerRewards)
       const afterIndexerBalance = await grt.balanceOf(indexer1.address)
-      expect(afterIndexerBalance).eq(beforeIndexerBalance.add(expectedIndexer1Rewards))
+      expect(afterIndexerBalance).eq(beforeIndexerBalance.add(contractIndexerRewards))
     })
   })
 })
