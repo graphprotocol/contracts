@@ -94,7 +94,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the issuance rate
+     * @dev Sets the issuance rate.
      * @param _issuanceRate Issuance rate
      */
     function setIssuanceRate(uint256 _issuanceRate) public override onlyGovernor {
@@ -102,7 +102,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the issuance rate
+     * @dev Sets the issuance rate.
      * @param _issuanceRate Issuance rate
      */
     function _setIssuanceRate(uint256 _issuanceRate) internal {
@@ -114,7 +114,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the enforcer for denegation of rewards to subgraphs
+     * @dev Sets the enforcer for denegation of rewards to subgraphs.
      * @param _enforcer Address of the enforcer of denied subgraphs
      */
     function setEnforcer(address _enforcer) external override onlyGovernor {
@@ -123,7 +123,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the indexer as denied to claim rewards
+     * @dev Sets the indexer as denied to claim rewards.
      * NOTE: Can only be called by the enforcer role
      * @param _subgraphDeploymentID Subgraph deployment ID to deny
      * @param _deny Whether to set the indexer as denied for claiming rewards or not
