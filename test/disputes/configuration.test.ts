@@ -116,7 +116,7 @@ describe('DisputeManager:Config', () => {
         const newValue = defaults.dispute.slashingPercentage
 
         // Set right in the constructor
-        expect(await disputeManager.slashingPercentage()).eq(newValue.toString())
+        expect(await disputeManager.slashingPercentage()).eq(newValue)
 
         // Set new value
         await disputeManager.connect(governor.signer).setSlashingPercentage(0)

@@ -68,6 +68,12 @@ contract DisputeManager is Governed {
     // disputeID is the hash of attestation data
     mapping(bytes32 => Dispute) public disputes;
 
+    // Disputes in conflict lookups
+    // disputeID1 => disputeID2
+    // disputeID2 => disputeID1
+    mapping(bytes32 => bytes32) public disputesInConflictL;
+    mapping(bytes32 => bytes32) public disputesInConflictR;
+
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
 
@@ -76,11 +82,11 @@ contract DisputeManager is Governed {
 
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public fishermanRewardPercentage;
+    uint32 public fishermanRewardPercentage;
 
     // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint256 public slashingPercentage;
+    uint32 public slashingPercentage;
 
     // Graph Token address
     IGraphToken public token;
@@ -144,6 +150,13 @@ contract DisputeManager is Governed {
     );
 
     /**
+     * @dev Emitted when two disputes are in conflict.
+     * This event will be emitted after each DisputeCreated event is emitted
+     * for each of the individual disputes.
+     */
+    event DisputeConflicted(bytes32 disputeID1, bytes32 disputeID2);
+
+    /**
      * @dev Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator {
@@ -157,16 +170,16 @@ contract DisputeManager is Governed {
      * @param _arbitrator Arbitrator role
      * @param _staking Address of the staking contract used for slashing
      * @param _minimumDeposit Minimum deposit required to create a Dispute
-     * @param _fishermanRewardPercentage Percent of slashed funds the fisherman gets (in PPM)
-     * @param _slashingPercentage Percentage of indexer stake slashed after a dispute
+     * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (basis points)
+     * @param _slashingPercentage Percentage of indexer stake slashed (basis points)
      */
     constructor(
         address _arbitrator,
         address _token,
         address _staking,
         uint256 _minimumDeposit,
-        uint256 _fishermanRewardPercentage,
-        uint256 _slashingPercentage
+        uint32 _fishermanRewardPercentage,
+        uint32 _slashingPercentage
     ) public {
         Governed._initialize(msg.sender);
 
@@ -208,7 +221,7 @@ contract DisputeManager is Governed {
      */
     function getTokensToReward(address _indexer) public view returns (uint256) {
         uint256 value = getTokensToSlash(_indexer);
-        return fishermanRewardPercentage.mul(value).div(MAX_PPM);
+        return uint256(fishermanRewardPercentage).mul(value).div(MAX_PPM);
     }
 
     /**
@@ -218,7 +231,7 @@ contract DisputeManager is Governed {
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
         uint256 tokens = staking.getIndexerStakedTokens(_indexer); // slashable tokens
-        return slashingPercentage.mul(tokens).div(MAX_PPM);
+        return uint256(slashingPercentage).mul(tokens).div(MAX_PPM);
     }
 
     /**
@@ -272,7 +285,7 @@ contract DisputeManager is Governed {
      * @notice Update the reward percentage to `_percentage`
      * @param _percentage Reward as a percentage of indexer stake
      */
-    function setFishermanRewardPercentage(uint256 _percentage) external onlyGovernor {
+    function setFishermanRewardPercentage(uint32 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
         fishermanRewardPercentage = _percentage;
@@ -283,7 +296,7 @@ contract DisputeManager is Governed {
      * @dev Set the percentage used for slashing indexers.
      * @param _percentage Percentage used for slashing
      */
-    function setSlashingPercentage(uint256 _percentage) external onlyGovernor {
+    function setSlashingPercentage(uint32 _percentage) external onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
@@ -336,7 +349,10 @@ contract DisputeManager is Governed {
         bytes calldata _attestationData1,
         bytes calldata _attestationData2
     ) external {
+        address fisherman = msg.sender;
+
         // Parse each attestation
+        // TODO: optimize, do not parse multipl times
         Attestation memory attestation1 = _parseAttestation(_attestationData1);
         Attestation memory attestation2 = _parseAttestation(_attestationData2);
 
@@ -346,13 +362,17 @@ contract DisputeManager is Governed {
             "Attestations must be in conflict"
         );
 
-        // Get the indexers that signed each attestation
-        address indexer1 = getAttestationIndexer(attestation1);
-        address indexer2 = getAttestationIndexer(attestation2);
+        // Create the disputes
+        // The deposit is zero for conflicting attestations
+        bytes32 dID1 = _createDispute(fisherman, 0, _attestationData1);
+        bytes32 dID2 = _createDispute(fisherman, 0, _attestationData2);
 
-        // Check that disputes are not yet created
         // Store the linked disputes to be resolved
-        // Emit event with two attestation data and two indexers
+        disputesInConflictL[dID1] = dID2;
+        disputesInConflictR[dID2] = dID1;
+
+        // Emit event that links the two created disputes
+        emit DisputeConflicted(dID1, dID2);
     }
 
     /**
@@ -377,10 +397,12 @@ contract DisputeManager is Governed {
         staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
-        require(
-            token.transfer(dispute.fisherman, dispute.deposit),
-            "Error sending dispute deposit"
-        );
+        if (dispute.deposit > 0) {
+            require(
+                token.transfer(dispute.fisherman, dispute.deposit),
+                "Error sending dispute deposit"
+            );
+        }
 
         emit DisputeAccepted(
             _disputeID,
@@ -430,10 +452,12 @@ contract DisputeManager is Governed {
         delete disputes[_disputeID]; // Re-entrancy protection
 
         // Return deposit to the fisherman
-        require(
-            token.transfer(dispute.fisherman, dispute.deposit),
-            "Error sending dispute deposit"
-        );
+        if (dispute.deposit > 0) {
+            require(
+                token.transfer(dispute.fisherman, dispute.deposit),
+                "Error sending dispute deposit"
+            );
+        }
 
         emit DisputeDrawn(
             _disputeID,
@@ -483,24 +507,23 @@ contract DisputeManager is Governed {
      * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
+     * @return DisputeID
      */
     function _createDispute(
         address _fisherman,
         uint256 _deposit,
         bytes memory _attestationData
-    ) internal {
+    ) internal returns (bytes32) {
         // Decode attestation
         Attestation memory attestation = _parseAttestation(_attestationData);
 
         // Get the indexer that created the allocation and signed the attestation
         address indexer = getAttestationIndexer(attestation);
 
-        // This also validates that indexer exists
+        // The indexer is slashable
         require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
 
         // Create a disputeID
-        // bytes32 disputeID = _buildDisputeID(attestation, indexer);
-
         bytes32 disputeID = keccak256(
             abi.encodePacked(
                 attestation.requestCID,
@@ -529,6 +552,17 @@ contract DisputeManager is Governed {
             _deposit,
             _attestationData
         );
+
+        return disputeID;
+    }
+
+    /**
+     * @dev Return whether the dispute is for a conflicting attestation or not.
+     * @param _disputeID Dispute ID
+     * @return True if the dispute is for a conflicting attestation
+     */
+    function _isDisputeInConflict(bytes32 _disputeID) internal view returns (bool) {
+        return disputesInConflictL[_disputeID] != 0 && disputesInConflictR[_disputeID] != 0;
     }
 
     /**
@@ -537,7 +571,7 @@ contract DisputeManager is Governed {
      * @return Signer address
      */
     function _recoverAttestationSigner(Attestation memory _attestation)
-        private
+        internal
         view
         returns (address)
     {
@@ -599,7 +633,7 @@ contract DisputeManager is Governed {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-    ) private pure returns (address) {
+    ) internal pure returns (address) {
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
         // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
         // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
