@@ -58,7 +58,7 @@ function encodeAttestation(attestation: Attestation): string {
   return hexlify(concat([data, sig]))
 }
 
-describe('DisputeManager:Disputes', async () => {
+describe('DisputeManager', async () => {
   let me: Account
   let other: Account
   let governor: Account

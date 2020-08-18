@@ -20,6 +20,7 @@ contract DisputeManager is Governed {
         address indexer;
         address fisherman;
         uint256 deposit;
+        bytes32 relatedDisputeID;
     }
 
     // -- Attestation --
@@ -67,12 +68,6 @@ contract DisputeManager is Governed {
     // Disputes created : disputeID => Dispute
     // disputeID is the hash of attestation data
     mapping(bytes32 => Dispute) public disputes;
-
-    // Disputes in conflict lookups
-    // disputeID1 => disputeID2
-    // disputeID2 => disputeID1
-    mapping(bytes32 => bytes32) public disputesInConflictL;
-    mapping(bytes32 => bytes32) public disputesInConflictR;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
@@ -352,7 +347,6 @@ contract DisputeManager is Governed {
         address fisherman = msg.sender;
 
         // Parse each attestation
-        // TODO: optimize, do not parse multipl times
         Attestation memory attestation1 = _parseAttestation(_attestationData1);
         Attestation memory attestation2 = _parseAttestation(_attestationData2);
 
@@ -364,12 +358,12 @@ contract DisputeManager is Governed {
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dID1 = _createDispute(fisherman, 0, _attestationData1);
-        bytes32 dID2 = _createDispute(fisherman, 0, _attestationData2);
+        bytes32 dID1 = _createDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
+        bytes32 dID2 = _createDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
 
         // Store the linked disputes to be resolved
-        disputesInConflictL[dID1] = dID2;
-        disputesInConflictR[dID2] = dID1;
+        disputes[dID1].relatedDisputeID = dID2;
+        disputes[dID2].relatedDisputeID = dID1;
 
         // Emit event that links the two created disputes
         emit DisputeConflicted(dID1, dID2);
@@ -386,7 +380,7 @@ contract DisputeManager is Governed {
         Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy protection
+        delete disputes[_disputeID]; // Re-entrancy
 
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
@@ -403,6 +397,9 @@ contract DisputeManager is Governed {
                 "Error sending dispute deposit"
             );
         }
+
+        // Handle conflicting dispute if any
+        _resolveDisputeInConflict(dispute);
 
         emit DisputeAccepted(
             _disputeID,
@@ -424,10 +421,15 @@ contract DisputeManager is Governed {
         Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy protection
+        delete disputes[_disputeID]; // Re-entrancy
 
         // Burn the fisherman's deposit
-        token.burn(dispute.deposit);
+        if (dispute.deposit > 0) {
+            token.burn(dispute.deposit);
+        }
+
+        // Handle conflicting dispute if any
+        _resolveDisputeInConflict(dispute);
 
         emit DisputeRejected(
             _disputeID,
@@ -449,7 +451,7 @@ contract DisputeManager is Governed {
         Dispute memory dispute = disputes[_disputeID];
 
         // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy protection
+        delete disputes[_disputeID]; // Re-entrancy
 
         // Return deposit to the fisherman
         if (dispute.deposit > 0) {
@@ -458,6 +460,9 @@ contract DisputeManager is Governed {
                 "Error sending dispute deposit"
             );
         }
+
+        // Handle conflicting dispute if any
+        _resolveDisputeInConflict(dispute);
 
         emit DisputeDrawn(
             _disputeID,
@@ -504,9 +509,9 @@ contract DisputeManager is Governed {
 
     /**
      * @dev Create a dispute for the arbitrator to resolve.
-     * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
+     * @param _attestationData Attestation bytes submitted by the fisherman
      * @return DisputeID
      */
     function _createDispute(
@@ -514,11 +519,34 @@ contract DisputeManager is Governed {
         uint256 _deposit,
         bytes memory _attestationData
     ) internal returns (bytes32) {
-        // Decode attestation
-        Attestation memory attestation = _parseAttestation(_attestationData);
+        return
+            _createDisputeWithAttestation(
+                _fisherman,
+                _deposit,
+                _parseAttestation(_attestationData),
+                _attestationData
+            );
+    }
 
-        // Get the indexer that created the allocation and signed the attestation
-        address indexer = getAttestationIndexer(attestation);
+    /**
+     * @dev Create a dispute passing the parsed attestation.
+     * This function purpose is to be reused in createDispute() and createDisputeInConflict()
+     * to avoid parseAttestation() multiple times
+     * `_attestationData` is only passed to be emitted
+     * @param _fisherman Creator of dispute
+     * @param _deposit Amount of tokens staked as deposit
+     * @param _attestation Attestation struct parsed from bytes
+     * @param _attestationData Attestation bytes submitted by the fisherman
+     * @return DisputeID
+     */
+    function _createDisputeWithAttestation(
+        address _fisherman,
+        uint256 _deposit,
+        Attestation memory _attestation,
+        bytes memory _attestationData
+    ) internal returns (bytes32) {
+        // Get the indexer that signed the attestation
+        address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is slashable
         require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
@@ -526,9 +554,9 @@ contract DisputeManager is Governed {
         // Create a disputeID
         bytes32 disputeID = keccak256(
             abi.encodePacked(
-                attestation.requestCID,
-                attestation.responseCID,
-                attestation.subgraphDeploymentID,
+                _attestation.requestCID,
+                _attestation.responseCID,
+                _attestation.subgraphDeploymentID,
                 indexer
             )
         );
@@ -538,15 +566,16 @@ contract DisputeManager is Governed {
 
         // Store dispute
         disputes[disputeID] = Dispute(
-            attestation.subgraphDeploymentID,
+            _attestation.subgraphDeploymentID,
             indexer,
             _fisherman,
-            _deposit
+            _deposit,
+            0 // no related dispute
         );
 
         emit DisputeCreated(
             disputeID,
-            attestation.subgraphDeploymentID,
+            _attestation.subgraphDeploymentID,
             indexer,
             _fisherman,
             _deposit,
@@ -557,12 +586,17 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Return whether the dispute is for a conflicting attestation or not.
-     * @param _disputeID Dispute ID
-     * @return True if the dispute is for a conflicting attestation
+     * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @param _dispute Dispute
+     * @return True if resolved
      */
-    function _isDisputeInConflict(bytes32 _disputeID) internal view returns (bool) {
-        return disputesInConflictL[_disputeID] != 0 && disputesInConflictR[_disputeID] != 0;
+    function _resolveDisputeInConflict(Dispute memory _dispute) internal returns (bool) {
+        if (_dispute.relatedDisputeID != 0) {
+            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
+            delete disputes[relatedDisputeID];
+            return true;
+        }
+        return false;
     }
 
     /**
