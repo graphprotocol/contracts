@@ -14,4 +14,4 @@ contracts/connext/IndexerWithdrawInterpreter.sol
 contracts/connext/Proxy.sol
 contracts/connext/MinimumViableMultisig.sol
 
-contracts/tests/testnet/GSR.sol
+contracts/tests/testnet/GSRManager.sol
