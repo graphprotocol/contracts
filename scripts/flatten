@@ -2,18 +2,27 @@
 
 OUT_DIR="build/flatten"
 
-echo ${OUT_DIR}/contracts
-mkdir -p ${OUT_DIR}/contracts
+mkdir -p ${OUT_DIR}
 
 echo "Flattening contracts..."
 
-files=`find contracts -name '*.sol'`
+FILES=(
+    "contracts/discovery/GNS.sol"
+    "contracts/discovery/ServiceRegistry.sol"
+    "contracts/curation/Curation.sol"
+    "contracts/curation/GraphSignalToken.sol"
+    "contracts/staking/Staking.sol"
+    "contracts/rewards/RewardsManager.sol"
+    "contracts/token/GraphToken.sol"
+    "contracts/epochs/EpochManager.sol"
+    "contracts/upgrades/GraphProxy.sol"
+)
 
-for path in $files; do
+for path in ${FILES[@]}; do
     IFS='/'
     parts=( $path )
     name=${parts[${#parts[@]}-1]}
-    echo "${path}"
+    echo "Flatten > ${name}"
     truffle-flattener "${path}" > "${OUT_DIR}/${name}"
 done
 
