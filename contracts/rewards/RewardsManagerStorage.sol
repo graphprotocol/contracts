@@ -1,9 +1,5 @@
 pragma solidity ^0.6.4;
 
-import "../curation/Curation.sol";
-import "../token/IGraphToken.sol";
-import "../staking/IStaking.sol";
-
 contract RewardsManagerV1Storage {
     // -- State --
 
@@ -27,8 +23,4 @@ contract RewardsManagerV1Storage {
     mapping(address => uint256) public indexerRewards;
     // Subgraph denylist : subgraph deployment ID => block when added or zero (if not denied)
     mapping(bytes32 => uint256) public denylist;
-
-    Curation public curation;
-    IStaking public staking;
-    IGraphToken public token;
 }
