@@ -13,7 +13,6 @@ export const transferTeamTokens = async (cli: CLIEnvironment, cliArgs: CLIArgs):
   const graphToken = cli.contracts.GraphToken
 
   for (const member of teamAddresses) {
-    logger.log(`First approving ${cliArgs.amount} tokens for user ${member.name}...`)
     logger.log(`Now transferring ${cliArgs.amount} tokens for user ${member.name}...`)
     await sendTransaction(cli.wallet, graphToken, 'transfer', ...[member.address, amount])
   }
