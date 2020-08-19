@@ -1,11 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "../curation/ICuration.sol";
-import "../epochs/IEpochManager.sol";
-import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
-
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
@@ -67,11 +62,4 @@ contract StakingV1Storage {
 
     // Operator auth : indexer => operator
     mapping(address => mapping(address => bool)) public operatorAuth;
-
-    // -- Related contracts --
-
-    IGraphToken public token;
-    IEpochManager public epochManager;
-    ICuration public curation;
-    IRewardsManager public rewardsManager;
 }

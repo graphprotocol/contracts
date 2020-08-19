@@ -1,10 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../curation/ICuration.sol";
-import "../epochs/IEpochManager.sol";
-import "../governance/Governed.sol";
-import "../token/IGraphToken.sol";
+import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -16,7 +13,7 @@ import "./libs/Stakes.sol";
 /**
  * @title Staking contract
  */
-contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
+contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
@@ -198,14 +195,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @dev Initialize this contract.
      */
     function initialize(
-        address _governor,
-        address _token,
-        address _epochManager
+        address _controller,
     ) external onlyImpl {
-        Governed._initialize(_governor);
-
-        token = IGraphToken(_token);
-        epochManager = IEpochManager(_epochManager);
+        Manager._initialize(_controller);
     }
 
     /**
@@ -233,15 +225,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     function setThawingPeriod(uint32 _thawingPeriod) external override onlyGovernor {
         thawingPeriod = _thawingPeriod;
         emit ParameterUpdated("thawingPeriod");
-    }
-
-    /**
-     * @dev Set the curation contract where to send curation fees.
-     * @param _curation Address of the curation contract
-     */
-    function setCuration(address _curation) external override onlyGovernor {
-        curation = ICuration(_curation);
-        emit ParameterUpdated("curation");
     }
 
     /**
@@ -374,15 +357,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     function setSlasher(address _slasher, bool _allowed) external override onlyGovernor {
         slashers[_slasher] = _allowed;
         emit SlasherUpdate(msg.sender, _slasher, _allowed);
-    }
-
-    /**
-     * @dev Set the rewards manager contract.
-     * @param _rewardsManager Address of the rewards manager contract
-     */
-    function setRewardsManager(address _rewardsManager) external override onlyGovernor {
-        rewardsManager = IRewardsManager(_rewardsManager);
-        emit ParameterUpdated("rewardsManager");
     }
 
     /**
@@ -563,7 +537,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
         // Transfer tokens to stake from caller to this contract
         require(
-            token.transferFrom(msg.sender, address(this), _tokens),
+            graphToken().transferFrom(msg.sender, address(this), _tokens),
             "Staking: cannot transfer tokens to stake"
         );
 
@@ -602,7 +576,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
         // Return tokens to the indexer
-        require(token.transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
+        require(graphToken().transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
 
         emit StakeWithdrawn(indexer, tokensToWithdraw);
     }
@@ -654,13 +628,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Set apart the reward for the beneficiary and burn remaining slashed stake
         uint256 tokensToBurn = _tokens.sub(_reward);
         if (tokensToBurn > 0) {
-            token.burn(tokensToBurn);
+            graphToken().burn(tokensToBurn);
         }
 
         // Give the beneficiary a reward for slashing
         if (_reward > 0) {
             require(
-                token.transfer(_beneficiary, _reward),
+                graphToken().transfer(_beneficiary, _reward),
                 "Slashing: error sending dispute reward"
             );
         }
@@ -678,7 +652,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
         // Transfer tokens to delegate to this contract
         require(
-            token.transferFrom(delegator, address(this), _tokens),
+            graphToken().transferFrom(delegator, address(this), _tokens),
             "Delegation: Cannot transfer tokens to stake"
         );
 
@@ -708,7 +682,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         Delegation storage delegation = pool.delegators[delegator];
 
         // There must be locked tokens and period passed
-        uint256 currentEpoch = epochManager.currentEpoch();
+        uint256 currentEpoch = epochManager().currentEpoch();
         require(
             delegation.tokensLockedUntil > 0 && currentEpoch >= delegation.tokensLockedUntil,
             "Delegation: no tokens available to withdraw"
@@ -729,7 +703,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         } else {
             // Return tokens to the delegator
             require(
-                token.transfer(delegator, tokensToWithdraw),
+                graphToken().transfer(delegator, tokensToWithdraw),
                 "Delegation: cannot transfer tokens"
             );
         }
@@ -794,7 +768,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
         // Validate that an allocation cannot be settled before one epoch
-        uint256 currentEpoch = epochManager.currentEpoch();
+        uint256 currentEpoch = epochManager().currentEpoch();
         uint256 epochs = alloc.createdAtEpoch < currentEpoch
             ? currentEpoch.sub(alloc.createdAtEpoch)
             : 0;
@@ -861,7 +835,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
 
         // Transfer tokens to collect from the authorized sender
         require(
-            token.transferFrom(msg.sender, address(this), _tokens),
+            graphToken().transferFrom(msg.sender, address(this), _tokens),
             "Collect: cannot transfer tokens to collect"
         );
 
@@ -924,7 +898,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             } else {
                 // Transfer funds back to the indexer
                 require(
-                    token.transfer(alloc.indexer, tokensToClaim),
+                    graphToken().transfer(alloc.indexer, tokensToClaim),
                     "Rebate: cannot transfer tokens"
                 );
             }
@@ -934,7 +908,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             alloc.indexer,
             alloc.subgraphDeploymentID,
             _allocationID,
-            epochManager.currentEpoch(),
+            epochManager().currentEpoch(),
             settledAtEpoch,
             tokensToClaim,
             pool.settlementsCount,
@@ -1015,7 +989,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             _indexer,
             _subgraphDeploymentID,
             _tokens, // Tokens allocated
-            epochManager.currentEpoch(), // createdAtEpoch
+            epochManager().currentEpoch(), // createdAtEpoch
             0, // settledAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
@@ -1094,16 +1068,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             require(
-                token.approve(address(curation), curationFees),
+                graphToken().approve(address(curation), curationFees),
                 "Collect: token approval failed"
             );
-            curation.collect(alloc.subgraphDeploymentID, curationFees);
+            curation().collect(alloc.subgraphDeploymentID, curationFees);
         }
 
         emit AllocationCollected(
             alloc.indexer,
             alloc.subgraphDeploymentID,
-            epochManager.currentEpoch(),
+            epochManager().currentEpoch(),
             _tokens,
             _allocationID,
             _from,
@@ -1180,7 +1154,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         // Update the delegation
         delegation.shares = delegation.shares.sub(_shares);
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
-        delegation.tokensLockedUntil = epochManager.currentEpoch().add(delegationUnbondingPeriod);
+        delegation.tokensLockedUntil = epochManager().currentEpoch().add(delegationUnbondingPeriod);
 
         emit StakeDelegatedLocked(
             _indexer,
@@ -1223,7 +1197,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         returns (uint256)
     {
         bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
-        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
+        if (isCurationEnabled && curation().isCurated(_subgraphDeploymentID)) {
             return uint256(curationPercentage).mul(_tokens).div(MAX_PPM);
         }
         return 0;
@@ -1240,7 +1214,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
         }
         uint256 protocolFees = uint256(protocolPercentage).mul(_tokens).div(MAX_PPM);
         if (protocolFees > 0) {
-            token.burn(protocolFees);
+            graphToken().burn(protocolFees);
         }
         return protocolFees;
     }
@@ -1263,7 +1237,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
             return AllocationState.Active;
         }
 
-        uint256 epochs = epochManager.epochsSince(alloc.settledAtEpoch);
+        uint256 epochs = epochManager().epochsSince(alloc.settledAtEpoch);
         if (epochs >= channelDisputeEpochs) {
             return AllocationState.Finalized;
         }
@@ -1334,10 +1308,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
-        if (address(rewardsManager) == address(0)) {
+        if (address(rewardsManager()) == address(0)) {
             return 0;
         }
-        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return rewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
@@ -1345,10 +1319,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _allocationID Allocation
      */
     function _assignRewards(address _allocationID) internal returns (uint256) {
-        if (address(rewardsManager) == address(0)) {
+        if (address(rewardsManager()) == address(0)) {
             return 0;
         }
         // Automatically triggers update of rewards snapshot as allocation will change
-        return rewardsManager.assignRewards(_allocationID);
+        return rewardsManager().assignRewards(_allocationID);
     }
 }

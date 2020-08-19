@@ -36,14 +36,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     // -- Modifiers --
 
-    modifier onlyStaking() {
-        require(
-            msg.sender == address(controller.getContract(keccak256("Staking"))),
-            "Caller must be the staking contract"
-        );
-        _;
-    }
-
     modifier onlyEnforcer() {
         require(msg.sender == address(enforcer), "Caller must be the enforcer");
         _;
@@ -54,9 +46,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      */
     function initialize(
         address _controller,
-        address _token,
-        address _curation,
-        address _staking,
         uint256 _issuanceRate
     ) external onlyImpl {
         Manager._initialize(_controller);
