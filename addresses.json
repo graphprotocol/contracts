@@ -201,11 +201,11 @@
       "txHash": "0xcf01c332fb5e34fe349cda168cb735fda9332e705eb4cf9fba891209e8e0db18"
     },
     "MinimumViableMultisig": {
-      "address": "0xD25A0F88748Afd723CE4760624eA4366BF88264c",
+      "address": "0xD96CB871c2B98d273AA46D8EE9819DA64C6fd260",
       "constructorArgs": [
         {
           "name": "node",
-          "value": "0x0000000000000000000000000000000000000000"
+          "value": "0xb967724FE9aD707cEa1853609f636891b5BFAa66"
         },
         {
           "name": "staking",
@@ -228,8 +228,8 @@
           "value": "0x849689fCb66108a5e4a81Db2315382E1b496AADB"
         }
       ],
-      "creationCodeHash": "0x3c754e6cf87d55055f640c718e90caaa32650e2f1ae17af9d9ca7e55e6e52f07",
-      "runtimeCodeHash": "0xc49f65f1ccff1300c7177915606917142531e0143f05e7d0e7f8a74a417df55b",
+      "creationCodeHash": "0xe41c6cb69405b3d4c7f9fd6c03001f6a069e93086b9cd829459abfa6fe5abb2d",
+      "runtimeCodeHash": "0x86c07a1b0e1178f6d3e5b59027b61955a0b88e5155b0b2e7e4f9935894b5a4dd",
       "txHash": "0x2bfd8e3ba875953b00d63ed716f67903da70faa4417f1d984353776b8c22031c"
     }
   },
