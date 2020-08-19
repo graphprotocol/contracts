@@ -848,13 +848,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
      * @param _tokens Amount of tokens to collect
      */
     function collect(uint256 _tokens, address _allocationID) external override {
-        Allocation memory alloc = allocations[_allocationID];
-
         // Allocation identifier validation
         require(_allocationID != address(0), "Collect: invalid allocation");
 
-        // The contract caller must be an authorized sender registered on allocate()
-        require(alloc.assetHolder == msg.sender, "Collect: caller is not authorized");
+        // NOTE: commented out for easier test of state-channel integrations
+        // NOTE: this validation might be removed in the future if no harm to the
+        // NOTE: economic incentive structure is done by an external caller use
+        // NOTE: of this function
+        // The contract caller must be an asset holder registered during allocate()
+        // Allocation memory alloc = allocations[_allocationID];
+        // require(alloc.assetHolder == msg.sender, "Collect: caller is not authorized");
 
         // Transfer tokens to collect from the authorized sender
         require(
