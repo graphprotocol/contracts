@@ -323,13 +323,14 @@ describe('Staking:Allocation', () => {
     it('reject collect if allocation does not exist', async function () {
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, invalidAllocationID)
-      await expect(tx).revertedWith('Collect: caller is not authorized')
+      await expect(tx).revertedWith('Collect: allocation must be active or settled')
     })
 
-    it('reject collect if caller not related to allocation', async function () {
-      const tx = staking.connect(other.signer).collect(tokensToCollect, allocationID)
-      await expect(tx).revertedWith('Collect: caller is not authorized')
-    })
+    // NOTE: Disabled as part of deactivating the authorized sender requirement
+    // it('reject collect if caller not related to allocation', async function () {
+    //   const tx = staking.connect(other.signer).collect(tokensToCollect, allocationID)
+    //   await expect(tx).revertedWith('Collect: caller is not authorized')
+    // })
 
     it('should collect funds from asset holder', async function () {
       // Allow to collect from asset holder multiple times
