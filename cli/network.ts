@@ -100,6 +100,9 @@ export const deployContract = async (
   const txHash = contract.deployTransaction.hash
   logger.log(`> Deploy ${name}, txHash: ${txHash}`)
   await wallet.provider.waitForTransaction(txHash)
+
+  logger.log('= CreationCodeHash: ', hash(factory.bytecode))
+  logger.log('= RuntimeCodeHash: ', hash(await wallet.provider.getCode(contract.address)))
   logger.success(`${name} has been deployed to address: ${contract.address}`)
 
   return contract
