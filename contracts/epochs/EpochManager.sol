@@ -2,7 +2,7 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Governed.sol";
+import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -13,7 +13,7 @@ import "./IEpochManager.sol";
  * @title EpochManager contract
  * @dev Produce epochs based on a number of blocks to coordinate contracts in the protocol.
  */
-contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager, Governed {
+contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager, Manager {
     using SafeMath for uint256;
 
     // -- Events --
@@ -24,10 +24,10 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager,
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _governor, uint256 _epochLength) external onlyImpl {
+    function initialize(address _controller, uint256 _epochLength) external onlyImpl {
         require(_epochLength > 0, "Epoch length cannot be 0");
 
-        Governed._initialize(_governor);
+        Manager._initialize(_controller);
 
         lastLengthUpdateEpoch = 0;
         lastLengthUpdateBlock = blockNum();

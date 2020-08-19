@@ -2,7 +2,7 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Governed.sol";
+import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -21,7 +21,7 @@ import "./ICuration.sol";
  * Holders can burn GST tokens using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
+contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
     using SafeMath for uint256;
 
     // 100% in parts per million
@@ -66,15 +66,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      * @dev Initialize this contract.
      */
     function initialize(
-        address _governor,
-        address _token,
+        address _controller,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
-        Governed._initialize(_governor);
+        Manager._initialize(_controller);
         BancorFormula._initialize();
 
-        token = IGraphToken(_token);
         defaultReserveRatio = _defaultReserveRatio;
         minimumCurationDeposit = _minimumCurationDeposit;
     }
@@ -102,25 +100,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
             _defaultReserveRatio,
             _minimumCurationDeposit
         );
-    }
-
-    /**
-     * @dev Set the staking contract used for fees distribution.
-     * @notice Update the staking contract to `_staking`
-     * @param _staking Address of the staking contract
-     */
-    function setStaking(address _staking) external override onlyGovernor {
-        staking = IStaking(_staking);
-        emit ParameterUpdated("staking");
-    }
-
-    /**
-     * @dev Set the rewards manager contract.
-     * @param _rewardsManager Address of the rewards manager contract
-     */
-    function setRewardsManager(address _rewardsManager) external override onlyGovernor {
-        rewardsManager = IRewardsManager(_rewardsManager);
-        emit ParameterUpdated("rewardsManager");
     }
 
     /**
@@ -174,12 +153,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
-    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
-        require(msg.sender == address(staking), "Caller must be the staking contract");
-
+    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override onlyStaking {
         // Transfer tokens collected from the staking contract to this contract
         require(
-            token.transferFrom(address(staking), address(this), _tokens),
+            graphToken().transferFrom(address(staking), address(this), _tokens),
             "Cannot transfer tokens to collect"
         );
 
@@ -205,7 +182,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
         // Transfer tokens from the curator to this contract
         require(
-            token.transferFrom(curator, address(this), _tokens),
+            graphToken().transferFrom(curator, address(this), _tokens),
             "Cannot transfer tokens to deposit"
         );
 
@@ -250,11 +227,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
 
         // Burn withdrawal fees
         if (withdrawalFees > 0) {
-            token.burn(withdrawalFees);
+            graphToken().burn(withdrawalFees);
         }
 
         // Return the tokens to the curator
-        require(token.transfer(curator, tokens), "Error sending curator tokens");
+        require(graphToken().transfer(curator, tokens), "Error sending curator tokens");
 
         emit Burned(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
         return (tokens, withdrawalFees);
@@ -507,7 +484,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
         if (address(rewardsManager) != address(0)) {
-            return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
+            return rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
         return 0;
     }

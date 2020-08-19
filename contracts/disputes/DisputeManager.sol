@@ -2,16 +2,13 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-
-import "../governance/Governed.sol";
-import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
+import "../governance/Manager.sol";
 
 /*
  * @title DisputeManager
  * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
  */
-contract DisputeManager is Governed {
+contract DisputeManager is Manager {
     using SafeMath for uint256;
 
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
@@ -85,12 +82,6 @@ contract DisputeManager is Governed {
     // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public slashingPercentage;
-
-    // Graph Token address
-    IGraphToken public token;
-
-    // Staking contract used for slashing
-    IStaking public staking;
 
     // -- Events --
 
@@ -173,18 +164,12 @@ contract DisputeManager is Governed {
      */
     constructor(
         address _arbitrator,
-        address _token,
-        address _staking,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _slashingPercentage
     ) public {
-        Governed._initialize(msg.sender);
-
+        Manager._initialize(msg.sender);
         arbitrator = _arbitrator;
-        token = IGraphToken(_token);
-        staking = IStaking(_staking);
-
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;
         slashingPercentage = _slashingPercentage;
@@ -231,7 +216,7 @@ contract DisputeManager is Governed {
      * @return Amount of tokens to slash
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
-        uint256 tokens = staking.getIndexerStakedTokens(_indexer); // slashable tokens
+        uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
         if (tokens == 0) {
             return 0;
         }
@@ -317,16 +302,6 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Set the staking contract used for slashing.
-     * @notice Update the staking contract to `_staking`
-     * @param _staking Address of the staking contract
-     */
-    function setStaking(address _staking) external onlyGovernor {
-        staking = IStaking(_staking);
-        emit ParameterUpdated("staking");
-    }
-
-    /**
      * @dev Create a dispute for the arbitrator to resolve.
      * This function is called by a fisherman and will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
@@ -341,7 +316,7 @@ contract DisputeManager is Governed {
 
         // Transfer tokens to deposit from fisherman to this contract
         require(
-            token.transferFrom(fisherman, address(this), _deposit),
+            graphToken().transferFrom(fisherman, address(this), _deposit),
             "Cannot transfer tokens to deposit"
         );
 
@@ -408,12 +383,12 @@ contract DisputeManager is Governed {
         uint256 tokensToReward = getTokensToReward(dispute.indexer);
 
         require(tokensToSlash > 0, "Dispute has zero tokens to slash");
-        staking.slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
+        staking().slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
 
         // Give the fisherman their deposit back
         if (dispute.deposit > 0) {
             require(
-                token.transfer(dispute.fisherman, dispute.deposit),
+                graphToken().transfer(dispute.fisherman, dispute.deposit),
                 "Error sending dispute deposit"
             );
         }
@@ -450,7 +425,7 @@ contract DisputeManager is Governed {
 
         // Burn the fisherman's deposit
         if (dispute.deposit > 0) {
-            token.burn(dispute.deposit);
+            graphToken().burn(dispute.deposit);
         }
 
         emit DisputeRejected(
@@ -478,7 +453,7 @@ contract DisputeManager is Governed {
         // Return deposit to the fisherman
         if (dispute.deposit > 0) {
             require(
-                token.transfer(dispute.fisherman, dispute.deposit),
+                graphToken().transfer(dispute.fisherman, dispute.deposit),
                 "Error sending dispute deposit"
             );
         }

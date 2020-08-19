@@ -1,10 +1,6 @@
 pragma solidity ^0.6.4;
 
 import "../bancor/BancorFormula.sol";
-import "../rewards/IRewardsManager.sol";
-import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
-
 import "./ICuration.sol";
 
 contract CurationV1Storage is BancorFormula {
@@ -28,10 +24,4 @@ contract CurationV1Storage is BancorFormula {
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeploymentID
     mapping(bytes32 => ICuration.CurationPool) public pools;
-
-    // -- Related contracts --
-
-    IGraphToken public token;
-    IStaking public staking;
-    IRewardsManager public rewardsManager;
 }

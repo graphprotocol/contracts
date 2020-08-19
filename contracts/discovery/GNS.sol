@@ -1,9 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../governance/Governed.sol";
-import "../curation/ICuration.sol";
-import "../token/IGraphToken.sol";
+import "../governance/Manager.sol";
 import "../bancor/BancorFormula.sol";
 
 import "./erc1056/IEthereumDIDRegistry.sol";
@@ -15,7 +13,7 @@ import "./erc1056/IEthereumDIDRegistry.sol";
  * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
  * readable names. All human readable names emitted in events.
  */
-contract GNS is Governed, BancorFormula {
+contract GNS is Manager, BancorFormula {
     // -- State --
 
     struct NameCurationPool {
@@ -51,12 +49,6 @@ contract GNS is Governed, BancorFormula {
 
     // ERC-1056 contract reference
     IEthereumDIDRegistry public erc1056Registry;
-
-    // Curation contract reference
-    ICuration public curation;
-
-    // Token used for staking
-    IGraphToken public token;
 
     // -- Events --
 
@@ -179,14 +171,10 @@ contract GNS is Governed, BancorFormula {
      */
     constructor(
         address _didRegistry,
-        address _curation,
-        address _token
     ) public {
-        Governed._initialize(msg.sender);
+        Manager._initialize(msg.sender);
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
-        curation = ICuration(_curation);
-        token = IGraphToken(_token);
-        token.approve(_curation, uint256(-1));
+        graphToken().approve(_curation, uint256(-1));
     }
 
     /**
@@ -358,7 +346,7 @@ contract GNS is Governed, BancorFormula {
         // This is to prevent the owner from front running their name curators signal by posting
         // their own signal ahead, bringing the name curators in, and dumping on them
         require(
-            !curation.isCurated(_newSubgraphDeploymentID),
+            !curation().isCurated(_newSubgraphDeploymentID),
             "GNS: Owner cannot point to a subgraphID that has been pre-curated"
         );
 
@@ -380,7 +368,7 @@ contract GNS is Governed, BancorFormula {
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
 
         // nSignal stays constant, but vSignal can change here
-        uint256 vSignalNew = curation.mint(
+        uint256 vSignalNew = curation().mint(
             namePool.subgraphDeploymentID,
             (tokens + withdrawalFees)
         );
@@ -454,14 +442,14 @@ contract GNS is Governed, BancorFormula {
         namePool.vSignal = 0;
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
-            (uint256 tokens, uint256 withdrawalFees) = curation.burn(
+            (uint256 tokens, uint256 withdrawalFees) = curation().burn(
                 _subgraphDeploymentID,
                 vSignal
             );
 
             // Get the owner of the Name to reimburse the withdrawal fee
             require(
-                token.transferFrom(_graphAccount, address(this), withdrawalFees),
+                graphToken().transferFrom(_graphAccount, address(this), withdrawalFees),
                 "GNS: Error reimbursing withdrawal fees"
             );
             namePool.withdrawableGRT = tokens + withdrawalFees;
@@ -488,7 +476,7 @@ contract GNS is Governed, BancorFormula {
         namePool.nSignal = namePool.nSignal.sub(curatorNSignal);
         namePool.withdrawableGRT = namePool.withdrawableGRT.sub(tokens);
         require(
-            token.transfer(msg.sender, tokens),
+            graphToken().transfer(msg.sender, tokens),
             "GNS: Error withdrawing tokens for nameCurator"
         );
         emit GRTWithdrawn(_graphAccount, _subgraphNumber, msg.sender, curatorNSignal, tokens);
@@ -507,11 +495,11 @@ contract GNS is Governed, BancorFormula {
         uint256 _tokens
     ) private returns (uint256, uint256) {
         require(
-            token.transferFrom(msg.sender, address(this), _tokens),
+            graphToken().transferFrom(msg.sender, address(this), _tokens),
             "GNS: Cannot transfer tokens to mint n signal"
         );
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = curation.mint(namePool.subgraphDeploymentID, _tokens);
+        uint256 vSignal = curation().mint(namePool.subgraphDeploymentID, _tokens);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         namePool.vSignal = namePool.vSignal.add(vSignal);
         namePool.nSignal = namePool.nSignal.add(nSignal);
@@ -535,12 +523,12 @@ contract GNS is Governed, BancorFormula {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, ) = curation.burn(namePool.subgraphDeploymentID, vSignal);
+        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal);
         namePool.vSignal = namePool.vSignal.sub(vSignal);
         namePool.nSignal = namePool.nSignal.sub(_nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
         // Return the tokens to the nameCurator
-        require(token.transfer(nameCurator, tokens), "GNS: Error sending nameCurators tokens");
+        require(graphToken().transfer(nameCurator, tokens), "GNS: Error sending nameCurators tokens");
         emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
         return (vSignal, tokens);
     }
@@ -558,9 +546,9 @@ contract GNS is Governed, BancorFormula {
         bytes32 _subgraphDeploymentID,
         uint256 _vSignal
     ) private returns (uint256, uint256) {
-        (uint256 tokens, uint256 withdrawalFees) = curation.burn(_subgraphDeploymentID, _vSignal);
+        (uint256 tokens, uint256 withdrawalFees) = curation().burn(_subgraphDeploymentID, _vSignal);
         require(
-            token.transferFrom(_graphAccount, address(this), withdrawalFees),
+            graphToken().transferFrom(_graphAccount, address(this), withdrawalFees),
             "GNS: Error reimbursing withdrawal fees"
         );
         return (tokens, withdrawalFees);
@@ -579,7 +567,7 @@ contract GNS is Governed, BancorFormula {
         uint256 _tokens
     ) public view returns (uint256, uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = curation.tokensToSignal(namePool.subgraphDeploymentID, _tokens);
+        uint256 vSignal = curation().tokensToSignal(namePool.subgraphDeploymentID, _tokens);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         return (vSignal, nSignal);
     }
@@ -606,7 +594,7 @@ contract GNS is Governed, BancorFormula {
     {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, uint256 withdrawalFees) = curation.signalToTokens(
+        (uint256 tokens, uint256 withdrawalFees) = curation().signalToTokens(
             namePool.subgraphDeploymentID,
             vSignal
         );

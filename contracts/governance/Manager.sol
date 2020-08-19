@@ -32,6 +32,38 @@ contract Manager is IManager {
         _;
     }
 
+    modifier onlyStaking() {
+        require(
+            msg.sender == address(controller.getContract(keccak256("Staking"))),
+            "Caller must be the staking contract"
+        );
+        _;
+    }
+
+    modifier onlyCuration() {
+        require(
+            msg.sender == address(controller.getContract(keccak256("Curation"))),
+            "Caller must be the curation contract"
+        );
+        _;
+    }
+
+    modifier onlyRewardsManager() {
+        require(
+            msg.sender == address(controller.getContract(keccak256("RewardsManager"))),
+            "Caller must be the rewards manager contract"
+        );
+        _;
+    }
+
+    modifier onlyGraphToken() {
+        require(
+            msg.sender == address(controller.getContract(keccak256("GraphToken"))),
+            "Caller must be the graph token contract"
+        );
+        _;
+    }
+
     constructor(address _controller) public {
         controller = IController(_controller);
     }
