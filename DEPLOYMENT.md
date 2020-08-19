@@ -69,64 +69,7 @@ Rules:
 
 Example:
 
-```
-general:
-  arbitrator: &arbitrator "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
-  nodeSignerAddress: &nodeSignerAddress "0x0000000000000000000000000000000000000000"
-
-contracts:
-  Curation:
-    init:
-      token: "${{GraphToken.address}}"
-      reserveRatio: 500000 # 50% bonding curve reserve ratio parameter
-      minimumCurationDeposit: "100000000000000000000" # 100 GRT
-    proxy: true
-    calls:
-      - fn: "setWithdrawalFeePercentage"
-        withdrawalFeePercentage: 50000 # 5% fee for redeeming signal
-  DisputeManager:
-    init:
-      arbitrator: *arbitrator
-      token: "${{GraphToken.address}}"
-      staking: "${{Staking.address}}"
-      minimumDeposit: "100000000000000000000" # 100 GRT
-      fishermanRewardPercentage: 100000 # in basis points
-      slashingPercentage: 50000 # in basis points
-  EpochManager:
-    init:
-      lengthInBlocks: 5760 # One day in blocks
-    proxy: true
-  GNS:
-    init:
-      didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
-      curation: "${{Curation.address}}"
-      token: "${{GraphToken.address}}"
-  GraphToken:
-    init:
-      initialSupply: "10000000000000000000000000" # 10000000 GRT
-  Staking:
-    init:
-      token: "${{GraphToken.address}}"
-      epochManager: "${{EpochManager.address}}"
-    proxy: true
-    calls:
-      - fn: "setCuration"
-        curation: "${{Curation.address}}"
-      - fn: "setChannelDisputeEpochs"
-        channelDisputeEpochs: 1
-      - fn: "setMaxAllocationEpochs"
-        maxAllocationEpochs: 5
-      - fn: "setThawingPeriod"
-        thawingPeriod: 20 # in blocks
-  MinimumViableMultisig:
-    init:
-      node: *nodeSignerAddress
-      staking: "${{Staking.address}}"
-      CTDT: "${{IndexerCTDT.address}}"
-      singleAssetInterpreter: "${{IndexerSingleAssetInterpreter.address}}"
-      multiAssetInterpreter: "${{IndexerMultiAssetInterpreter.address}}"
-      withdrawInterpreter: "${{IndexerWithdrawInterpreter.address}}"
-```
+[https://github.com/graphprotocol/contracts/blob/master/graph.config.yml](https://github.com/graphprotocol/contracts/blob/master/graph.config.yml)
 
 ### Address book
 
@@ -162,14 +105,9 @@ Some contracts require the address from previously deployed contracts. For that 
 
 ### Deploying a new testnet
 
-1. Make sure contracts are up to date as you please
-2. `npm run deploy-rinkeby` to deploy to rinkeby. This will create new contracts with new addresses in `addresses.json`
-3. Publish a new npm package with `npm publish`, and updating the `package.json` file. Note there 
-   is an ethers typescript bug with `CallOverrides` not being imported into auto-generated files. 
-   Right now, we run `prePublishOnly`, get it to the point where this failure happens, comment
-   out `prePublishOnly`, import `CallOverrides` in, and then run `npm publish`.
-4. Merge this update into master, branch off and save for whatever version of the testnet is going. 
-   on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` 
-   branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
+1. Make sure contracts are up to date as you please.
+2. `npm run deploy-rinkeby` to deploy to Rinkeby. This will create new contracts with new addresses in `addresses.json`.
+3. Update the `package.json` and `package-lock.json` files with the new package version and publish a new npm package with `npm publish`. You can dry-run the files to be uploaded by running `npm publish --dry-run`.
+4. Merge this update into master, branch off and save for whatever version of the testnet is going on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
 5. Pull the updated package into the subgraph, and other apps that depend on the package.json.
 6. Send tokens to the whole team with the mintTeamTokens script `./cli/cli.ts mintTeamTokens --amount 10000000`
