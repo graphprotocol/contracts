@@ -1,6 +1,6 @@
 general:
-  arbitrator: &arbitrator "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
-  nodeSignerAddress: &nodeSignerAddress "0x0000000000000000000000000000000000000000"
+  arbitrator: &arbitrator "0x23D1B1823e6Cb5229137424f88C70fdA1539F1F9"
+  nodeSignerAddress: &nodeSignerAddress "0xb967724FE9aD707cEa1853609f636891b5BFAa66"
 
 contracts:
   Curation:
