@@ -8,7 +8,7 @@ import { upgradeCommand } from './commands/upgrade'
 import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts/contracts'
-import { mintTeamTokensCommand } from './commands/mintTeamTokens'
+import { transferTeamTokensCommand } from './commands/transferTeamTokens'
 
 import { cliOpts } from './constants'
 
@@ -25,6 +25,6 @@ yargs
   .command(verifyCommand)
   .command(protocolCommand)
   .command(contractsCommand)
-  .command(mintTeamTokensCommand)
+  .command(transferTeamTokensCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv
