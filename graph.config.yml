@@ -50,7 +50,7 @@ contracts:
       - fn: "setCurationPercentage"
         percentage: 100000 # 10%
       - fn: "setChannelDisputeEpochs"
-        channelDisputeEpochs: 1
+        channelDisputeEpochs: 4
       - fn: "setMaxAllocationEpochs"
         maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
       - fn: "setThawingPeriod"
