@@ -138,10 +138,10 @@
       "txHash": "0xaeca570527e641bbd4fdb1552c7fc2256191e75907c911db1621bae2b210c156",
       "proxy": true,
       "implementation": {
-        "address": "0x21B179909DDc09a7bf6325Af875e000E72E5Ae16",
-        "creationCodeHash": "0x4fb90126ca88f95b2e14e89a3b64a963ac3d49896880ffaf20cc4dec5cd023b1",
-        "runtimeCodeHash": "0xc36c885dec9bfac880f10267526d9b2446edd91944b34328df9c68fd6ef7ef60",
-        "txHash": "0x2bc3edbfc63657be12034ba1dc4bb67f7d66bcc7400ca0ed8ee4821797f6bafe"
+        "address": "0xf0d80a8FE6F5260ea77A56fCE2cA07F94a4569fD",
+        "creationCodeHash": "0x05c333cb0c3202ff007ca2a5a21efff67973e0d17dca7f2a514eac47f784f61a",
+        "runtimeCodeHash": "0x8f5e55c8236f0aadb8c8af00cd5e639b3583ed0c11df027b8ada1a607bf8e366",
+        "txHash": "0xe66c272efa58474983c5a2d0b285f935bd7a3ea9d14a3f95b37117339174a058"
       }
     },
     "DisputeManager": {
