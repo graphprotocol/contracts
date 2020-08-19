@@ -14,7 +14,6 @@ contract Governed {
 
     event NewPendingOwnership(address indexed from, address indexed to);
     event NewOwnership(address indexed from, address indexed to);
-    event ParameterUpdated(string param);
 
     /**
      * @dev Check if the caller is the governor.

@@ -1,13 +1,13 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../governance/Governed.sol";
+import "../governance/Manager.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
 
-contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager, Governed {
+contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager, Manager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
@@ -37,7 +37,10 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     // -- Modifiers --
 
     modifier onlyStaking() {
-        require(msg.sender == address(staking), "Caller must be the staking contract");
+        require(
+            msg.sender == address(controller.getContract(keccak256("Staking"))),
+            "Caller must be the staking contract"
+        );
         _;
     }
 
@@ -50,18 +53,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Initialize this contract.
      */
     function initialize(
-        address _governor,
+        address _controller,
         address _token,
         address _curation,
         address _staking,
         uint256 _issuanceRate
     ) external onlyImpl {
-        Governed._initialize(_governor);
-
-        token = IGraphToken(_token);
-        curation = Curation(_curation);
-        staking = IStaking(_staking);
-
+        Manager._initialize(_controller);
         _setIssuanceRate(_issuanceRate);
     }
 
@@ -167,13 +165,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         }
 
         // Zero issuance if no signalled tokens
-        uint256 signalledTokens = curation.totalTokens();
+        uint256 signalledTokens = curation().totalTokens();
         if (signalledTokens == 0) {
             return 0;
         }
 
         uint256 r = issuanceRate;
-        uint256 p = token.totalSupply();
+        uint256 p = graphToken().totalSupply();
         uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
 
         // New issuance per signal during time steps
@@ -204,7 +202,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 newAccrued = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
-        uint256 subgraphSignalledTokens = curation.getCurationPoolTokens(_subgraphDeploymentID);
+        uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
 
         uint256 newValue = newAccrued.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
         return subgraph.accRewardsForSubgraph.add(newValue);
@@ -227,7 +225,9 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
         uint256 newAccrued = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot);
 
-        uint256 subgraphAllocatedTokens = staking.getSubgraphAllocatedTokens(_subgraphDeploymentID);
+        uint256 subgraphAllocatedTokens = staking().getSubgraphAllocatedTokens(
+            _subgraphDeploymentID
+        );
         if (subgraphAllocatedTokens == 0) {
             return (0, accRewardsForSubgraph);
         }
@@ -298,7 +298,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @return Rewards amount for an allocation
      */
     function getRewards(address _allocationID) public override view returns (uint256) {
-        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
+        IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, uint256 _) = getAccRewardsPerAllocatedToken(
             alloc.subgraphDeploymentID
@@ -313,7 +313,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @return Assigned rewards amount
      */
     function assignRewards(address _allocationID) external override onlyStaking returns (uint256) {
-        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
+        IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
         onSubgraphAllocationUpdate(alloc.subgraphDeploymentID);
 
@@ -344,11 +344,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
         // Mint rewards tokens
         if (_restake) {
-            token.mint(address(this), rewards);
-            token.approve(address(staking), rewards);
-            staking.stakeTo(indexer, rewards);
+            graphToken().mint(address(this), rewards);
+            graphToken().approve(address(staking), rewards);
+            staking().stakeTo(indexer, rewards);
         } else {
-            token.mint(indexer, rewards);
+            graphToken().mint(indexer, rewards);
         }
 
         return rewards;
