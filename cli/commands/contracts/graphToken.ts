@@ -16,6 +16,14 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   await sendTransaction(cli.wallet, graphToken, 'mint', ...[account, amount])
 }
 
+export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const amount = parseGRT(cliArgs.amount)
+  const graphToken = cli.contracts.GraphToken
+
+  logger.log(`Burning ${cliArgs.amount} tokens...`)
+  await sendTransaction(cli.wallet, graphToken, 'burn', ...[amount])
+}
+
 export const transfer = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const amount = parseGRT(cliArgs.amount)
   const account = cliArgs.account
@@ -59,6 +67,21 @@ export const graphTokenCommand = {
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return mint(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'burn',
+        describe: 'Burn GRT',
+        builder: (yargs: Argv) => {
+          return yargs.option('amount', {
+            description: 'Amount of tokens. CLI converts to a BN with 10^18',
+            type: 'string',
+            requiresArg: true,
+            demandOption: true,
+          })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return burn(await loadEnv(argv), argv)
         },
       })
       .command({
