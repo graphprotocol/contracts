@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { utils } from 'ethers'
+import { utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -58,6 +58,16 @@ function encodeAttestation(attestation: Attestation): string {
   return hexlify(concat([data, sig]))
 }
 
+interface ChannelKey {
+  privKey: string
+  pubKey: string
+}
+
+function deriveChannelKey(): ChannelKey {
+  const w = Wallet.createRandom()
+  return { privKey: w.privateKey, pubKey: w.publicKey }
+}
+
 describe('DisputeManager', async () => {
   let me: Account
   let other: Account
@@ -65,7 +75,7 @@ describe('DisputeManager', async () => {
   let arbitrator: Account
   let indexer: Account
   let fisherman: Account
-  let otherIndexer: Account
+  let indexer2: Account
   let assetHolder: Account
 
   let fixture: NetworkFixture
@@ -75,15 +85,9 @@ describe('DisputeManager', async () => {
   let grt: GraphToken
   let staking: Staking
 
-  // Channel keys for account #4
-  const indexerChannelPrivKey = '0xe9696cbe81b09b796be29055c8694eb422710940b44934b3a1d21c1ca0a03e9a'
-  const indexerChannelPubKey =
-    '0x04417b6be970480e74a55182ee04279fdffa7431002af2150750d367999a59abead903fbd23c0da7bb4233fdbccd732a2f561e66460718b4c50084e736c1601555'
-  // Channel keys for account #6
-  const otherIndexerChannelPrivKey =
-    '0xb560ebb22d7369c8ffeb9aec92930adfab16054542eadc76de826bc7db6390c2'
-  const otherIndexerChannelPubKey =
-    '0x0447b5891c07679d40d6dfd3c4f8e1974e068da36ac76a6507dbaf5e432b879b3d4cd8c950b0df035e621f5a55b91a224ecdaef8cc8e6bb8cd8afff4a74c1904cd'
+  // Derive some channel keys for each indexer used to sign attestations
+  const indexer1ChannelKey = deriveChannelKey()
+  const indexer2ChannelKey = deriveChannelKey()
 
   // Test values
   const fishermanTokens = toGRT('100000')
@@ -101,6 +105,47 @@ describe('DisputeManager', async () => {
   }
   let dispute: Dispute
 
+  async function buildAttestation(receipt: Receipt, signer: string) {
+    const attestation = await createAttestation(
+      signer,
+      await getChainID(),
+      disputeManager.address,
+      receipt,
+    )
+    return attestation
+  }
+
+  async function setupIndexers() {
+    // Dispute manager is allowed to slash
+    await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
+
+    // Stake
+    const indexerList = [
+      { wallet: indexer, pubKey: indexer1ChannelKey.pubKey },
+      { wallet: indexer2, pubKey: indexer2ChannelKey.pubKey },
+    ]
+    for (const activeIndexer of indexerList) {
+      const indexerWallet = activeIndexer.wallet
+      const indexerPubKey = activeIndexer.pubKey
+
+      // Give some funds to the indexer
+      await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
+      await grt.connect(indexerWallet.signer).approve(staking.address, indexerTokens)
+
+      // Indexer stake funds
+      await staking.connect(indexerWallet.signer).stake(indexerTokens)
+      await staking
+        .connect(indexerWallet.signer)
+        .allocate(
+          dispute.receipt.subgraphDeploymentID,
+          indexerAllocatedTokens,
+          indexerPubKey,
+          assetHolder.address,
+          toBN('0'),
+        )
+    }
+  }
+
   before(async function () {
     ;[
       me,
@@ -109,7 +154,7 @@ describe('DisputeManager', async () => {
       arbitrator,
       indexer,
       fisherman,
-      otherIndexer,
+      indexer2,
       assetHolder,
     ] = await getAccounts()
 
@@ -125,12 +170,7 @@ describe('DisputeManager', async () => {
     await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
 
     // Create an attestation
-    const attestation = await createAttestation(
-      indexerChannelPrivKey,
-      await getChainID(),
-      disputeManager.address,
-      receipt,
-    )
+    const attestation = await buildAttestation(receipt, indexer1ChannelKey.privKey)
 
     // Create dispute data
     dispute = {
@@ -150,7 +190,7 @@ describe('DisputeManager', async () => {
     await fixture.tearDown()
   })
 
-  describe('dispute lifecycle', function () {
+  describe('disputes', function () {
     it('reject create a dispute if attestation does not refer to valid indexer', async function () {
       // Create dispute
       const tx = disputeManager
@@ -163,17 +203,15 @@ describe('DisputeManager', async () => {
       // This tests reproduce the case when someones present a dispute after
       // an indexer removed his stake completely and find nothing to slash
 
-      const indexerTokens = toGRT('100000')
-      const indexerAllocatedTokens = toGRT('10000')
-      const indexerSettledTokens = toGRT('10')
+      const indexerCollectedTokens = toGRT('10')
 
       // Give some funds to the indexer
       await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
       await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
 
       // Give some funds to the channel
-      await grt.connect(governor.signer).mint(assetHolder.address, indexerSettledTokens)
-      await grt.connect(assetHolder.signer).approve(staking.address, indexerSettledTokens)
+      await grt.connect(governor.signer).mint(assetHolder.address, indexerCollectedTokens)
+      await grt.connect(assetHolder.signer).approve(staking.address, indexerCollectedTokens)
 
       // Set the thawing period to zero to make the test easier
       await staking.connect(governor.signer).setThawingPeriod(toBN('0'))
@@ -185,14 +223,14 @@ describe('DisputeManager', async () => {
         .allocate(
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexerChannelPubKey,
+          indexer1ChannelKey.pubKey,
           assetHolder.address,
           toBN('0'),
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to settle
-      await staking.connect(assetHolder.signer).collect(indexerSettledTokens, event1.allocationID)
+      await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
       await staking.connect(indexer.signer).settle(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)
       await staking.connect(indexer.signer).withdraw() // no thawing period so we are good
@@ -206,34 +244,7 @@ describe('DisputeManager', async () => {
 
     context('> when indexer has staked', function () {
       beforeEach(async function () {
-        // Dispute manager is allowed to slash
-        await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
-
-        // Stake
-        const indexerList = [
-          { wallet: indexer, pubKey: indexerChannelPubKey },
-          { wallet: otherIndexer, pubKey: otherIndexerChannelPubKey },
-        ]
-        for (const activeIndexer of indexerList) {
-          const indexerWallet = activeIndexer.wallet
-          const indexerPubKey = activeIndexer.pubKey
-
-          // Give some funds to the indexer
-          await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
-          await grt.connect(indexerWallet.signer).approve(staking.address, indexerTokens)
-
-          // Indexer stake funds
-          await staking.connect(indexerWallet.signer).stake(indexerTokens)
-          await staking
-            .connect(indexerWallet.signer)
-            .allocate(
-              dispute.receipt.subgraphDeploymentID,
-              indexerAllocatedTokens,
-              indexerPubKey,
-              assetHolder.address,
-              toBN('0'),
-            )
-        }
+        await setupIndexers()
       })
 
       describe('reward calculation', function () {
@@ -319,17 +330,12 @@ describe('DisputeManager', async () => {
         describe('create a dispute', function () {
           it('should create dispute if receipt is equal but for other indexer', async function () {
             // Create dispute (same receipt but different indexer)
-            const attestation = await createAttestation(
-              otherIndexerChannelPrivKey,
-              await getChainID(),
-              disputeManager.address,
-              receipt,
-            )
+            const attestation = await buildAttestation(receipt, indexer2ChannelKey.privKey)
             const newDispute: Dispute = {
-              id: createDisputeID(attestation, otherIndexer.address),
+              id: createDisputeID(attestation, indexer2.address),
               attestation,
               encodedAttestation: encodeAttestation(attestation),
-              indexerAddress: otherIndexer.address,
+              indexerAddress: indexer2.address,
               receipt,
             }
 
@@ -481,5 +487,48 @@ describe('DisputeManager', async () => {
         })
       })
     })
+  })
+
+  describe('disputes for conflicting attestations', function () {
+    async function getIndependentAttestations() {
+      const attestation1 = await buildAttestation(receipt, indexer1ChannelKey.privKey)
+      const attestation2 = await buildAttestation(receipt, indexer2ChannelKey.privKey)
+      return [attestation1, attestation2]
+    }
+
+    async function getConflictingAttestations() {
+      const receipt1 = receipt
+      const receipt2 = { ...receipt1, responseCID: randomHexBytes() }
+
+      const attestation1 = await buildAttestation(receipt1, indexer1ChannelKey.privKey)
+      const attestation2 = await buildAttestation(receipt2, indexer2ChannelKey.privKey)
+      return [attestation1, attestation2]
+    }
+
+    beforeEach(async function () {
+      await setupIndexers()
+    })
+
+    it('reject if attestations are not in conflict', async function () {
+      const [attestation1, attestation2] = await getIndependentAttestations()
+      const tx = disputeManager
+        .connect(fisherman.signer)
+        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+      await expect(tx).revertedWith('Attestations must be in conflict')
+    })
+
+    it('should create dispute', async function () {
+      const [attestation1, attestation2] = await getConflictingAttestations()
+      const dID1 = createDisputeID(attestation1, indexer.address)
+      const dID2 = createDisputeID(attestation2, indexer2.address)
+      const tx = disputeManager
+        .connect(fisherman.signer)
+        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+      await expect(tx).emit(disputeManager, 'DisputeConflicted').withArgs(dID1, dID2)
+
+      // Test state to see if related ID is there
+    })
+
+    // TODO: should cancel the linked dispute on action
   })
 })
