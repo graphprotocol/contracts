@@ -332,15 +332,17 @@ contract DisputeManager is Governed {
     }
 
     /**
-     * @dev Create a dispute for conflicting attestations.
+     * @dev Create disputes for conflicting attestations.
      * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
      * For this type of dispute the submitter is not required to present a deposit
      * as one of the attestation is considered to be right.
+     * Two linked disputes will be created and if the arbitrator resolve one, the other
+     * one will be automatically resolved.
      * @param _attestationData1 First ttestation data submitted
      * @param _attestationData1 Second attestation data submitted
      */
-    function createDisputeInConflict(
+    function createDisputesInConflict(
         bytes calldata _attestationData1,
         bytes calldata _attestationData2
     ) external {
