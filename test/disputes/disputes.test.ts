@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { utils, Wallet } from 'ethers'
+import { constants, utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -18,6 +18,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
+const { AddressZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
 
 const MAX_PPM = 1000000
@@ -526,9 +527,52 @@ describe('DisputeManager', async () => {
         .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
       await expect(tx).emit(disputeManager, 'DisputeConflicted').withArgs(dID1, dID2)
 
-      // Test state to see if related ID is there
+      // Test state
+      const dispute1 = await disputeManager.disputes(dID1)
+      const dispute2 = await disputeManager.disputes(dID2)
+      expect(dispute1.relatedDisputeID).eq(dID2)
+      expect(dispute2.relatedDisputeID).eq(dID1)
     })
 
-    // TODO: should cancel the linked dispute on action
+    async function setupConflictingDisputes() {
+      const [attestation1, attestation2] = await getConflictingAttestations()
+      const dID1 = createDisputeID(attestation1, indexer.address)
+      const dID2 = createDisputeID(attestation2, indexer2.address)
+      const tx = disputeManager
+        .connect(fisherman.signer)
+        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+      await tx
+      return [dID1, dID2]
+    }
+
+    it('should accept one dispute and resolve the related dispute', async function () {
+      // Setup
+      const [dID1, dID2] = await setupConflictingDisputes()
+      // Do
+      await disputeManager.connect(arbitrator.signer).acceptDispute(dID1)
+      // Check
+      const relatedDispute = await disputeManager.disputes(dID2)
+      expect(relatedDispute.indexer).eq(AddressZero)
+    })
+
+    it('should reject one dispute and resolve the related dispute', async function () {
+      // Setup
+      const [dID1, dID2] = await setupConflictingDisputes()
+      // Do
+      await disputeManager.connect(arbitrator.signer).rejectDispute(dID1)
+      // Check
+      const relatedDispute = await disputeManager.disputes(dID2)
+      expect(relatedDispute.indexer).eq(AddressZero)
+    })
+
+    it('should draw one dispute and resolve the related dispute', async function () {
+      // Setup
+      const [dID1, dID2] = await setupConflictingDisputes()
+      // Do
+      await disputeManager.connect(arbitrator.signer).drawDispute(dID1)
+      // Check
+      const relatedDispute = await disputeManager.disputes(dID2)
+      expect(relatedDispute.indexer).eq(AddressZero)
+    })
   })
 })
