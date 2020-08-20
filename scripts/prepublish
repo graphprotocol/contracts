@@ -9,8 +9,8 @@ npm run clean
 npm run build
 
 # Refresh distribution folder
-rm -rf dist
-cp -R build dist
+rm -rf dist && mkdir -p dist
+cp -R build/abis build/contracts build/typechain dist
 
 ### Build Typechain bindings
 
