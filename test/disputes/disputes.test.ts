@@ -525,7 +525,7 @@ describe('DisputeManager', async () => {
       const tx = disputeManager
         .connect(fisherman.signer)
         .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
-      await expect(tx).emit(disputeManager, 'DisputeConflicted').withArgs(dID1, dID2)
+      await expect(tx).emit(disputeManager, 'DisputeLinked').withArgs(dID1, dID2)
 
       // Test state
       const dispute1 = await disputeManager.disputes(dID1)
@@ -555,14 +555,14 @@ describe('DisputeManager', async () => {
       expect(relatedDispute.indexer).eq(AddressZero)
     })
 
-    it('should reject one dispute and resolve the related dispute', async function () {
+    it('should not allow to reject, user need to accept the related dispute ID to reject it', async function () {
       // Setup
-      const [dID1, dID2] = await setupConflictingDisputes()
+      const [dID1] = await setupConflictingDisputes()
       // Do
-      await disputeManager.connect(arbitrator.signer).rejectDispute(dID1)
-      // Check
-      const relatedDispute = await disputeManager.disputes(dID2)
-      expect(relatedDispute.indexer).eq(AddressZero)
+      const tx = disputeManager.connect(arbitrator.signer).rejectDispute(dID1)
+      await expect(tx).revertedWith(
+        'Dispute for conflicting attestation, must accept the related ID to reject',
+      )
     })
 
     it('should draw one dispute and resolve the related dispute', async function () {
