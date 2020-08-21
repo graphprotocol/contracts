@@ -145,11 +145,11 @@ contract DisputeManager is Governed {
     );
 
     /**
-     * @dev Emitted when two disputes are in conflict.
+     * @dev Emitted when two disputes are in conflict to link them.
      * This event will be emitted after each DisputeCreated event is emitted
      * for each of the individual disputes.
      */
-    event DisputeConflicted(bytes32 disputeID1, bytes32 disputeID2);
+    event DisputeLinked(bytes32 disputeID1, bytes32 disputeID2);
 
     /**
      * @dev Check if the caller is the arbitrator.
@@ -368,7 +368,7 @@ contract DisputeManager is Governed {
         disputes[dID2].relatedDisputeID = dID1;
 
         // Emit event that links the two created disputes
-        emit DisputeConflicted(dID1, dID2);
+        emit DisputeLinked(dID1, dID2);
     }
 
     /**
@@ -400,7 +400,7 @@ contract DisputeManager is Governed {
             );
         }
 
-        // Handle conflicting dispute if any
+        // Resolve the conflicting dispute if any
         _resolveDisputeInConflict(dispute);
 
         emit DisputeAccepted(
@@ -422,6 +422,11 @@ contract DisputeManager is Governed {
 
         Dispute memory dispute = disputes[_disputeID];
 
+        require(
+            !_isDisputeInConflict(dispute),
+            "Dispute for conflicting attestation, must accept the related ID to reject"
+        );
+
         // Resolve dispute
         delete disputes[_disputeID]; // Re-entrancy
 
@@ -429,9 +434,6 @@ contract DisputeManager is Governed {
         if (dispute.deposit > 0) {
             token.burn(dispute.deposit);
         }
-
-        // Handle conflicting dispute if any
-        _resolveDisputeInConflict(dispute);
 
         emit DisputeRejected(
             _disputeID,
@@ -463,7 +465,7 @@ contract DisputeManager is Governed {
             );
         }
 
-        // Handle conflicting dispute if any
+        // Resolve the conflicting dispute
         _resolveDisputeInConflict(dispute);
 
         emit DisputeDrawn(
@@ -588,12 +590,21 @@ contract DisputeManager is Governed {
     }
 
     /**
+     * @dev Returns whether the dispute is for conflicting attestations or not.
+     * @param _dispute Dispute
+     * @return True conflicting attestation dispute
+     */
+    function _isDisputeInConflict(Dispute memory _dispute) internal pure returns (bool) {
+        return _dispute.relatedDisputeID != 0;
+    }
+
+    /**
      * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
     function _resolveDisputeInConflict(Dispute memory _dispute) internal returns (bool) {
-        if (_dispute.relatedDisputeID != 0) {
+        if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             delete disputes[relatedDisputeID];
             return true;
