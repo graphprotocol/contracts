@@ -13,12 +13,21 @@ interface ProtocolFunction {
   name: string
 }
 
-const contractNames = ['GraphToken', 'EpochManager', 'Staking', 'Curation', 'DisputeManager']
+const contractNames = [
+  'GraphToken',
+  'EpochManager',
+  'Staking',
+  'Curation',
+  'DisputeManager',
+  'RewardsManager',
+  'GNS',
+]
 
 const gettersList = {
   'staking-governor': { contract: 'Staking', name: 'governor' },
   'staking-slasher': { contract: 'Staking', name: 'slashers' },
   'staking-curation-contract': { contract: 'Staking', name: 'curation' },
+  'staking-rewards-contract': { contract: 'Staking', name: 'rewardsManager' },
   'staking-thawing-period': { contract: 'Staking', name: 'thawingPeriod' },
   'staking-dispute-epochs': { contract: 'Staking', name: 'channelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'maxAllocationEpochs' },
@@ -31,6 +40,7 @@ const gettersList = {
   'protocol-percentage': { contract: 'Staking', name: 'protocolPercentage' },
   'curation-governor': { contract: 'Curation', name: 'governor' },
   'curation-staking-contract': { contract: 'Curation', name: 'staking' },
+  'curation-rewards-contract': { contract: 'Curation', name: 'rewardsManager' },
   'curation-reserve-ratio': { contract: 'Curation', name: 'defaultReserveRatio' },
   'curation-percentage': { contract: 'Staking', name: 'curationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'minimumCurationDeposit' },
@@ -44,15 +54,20 @@ const gettersList = {
   'epochs-governor': { contract: 'EpochManager', name: 'governor' },
   'epochs-length': { contract: 'EpochManager', name: 'epochLength' },
   'epochs-current': { contract: 'EpochManager', name: 'currentEpoch' },
+  'rewards-staking-contract': { contract: 'RewardsManager', name: 'staking' },
+  'rewards-curation-contract': { contract: 'RewardsManager', name: 'curation' },
+  'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
+  'gns-curation-contract': { contract: 'GNS', name: 'curation' },
+  'gns-minimum-signal': { contract: 'GNS', name: 'minimumVSignalStake' },
   'token-governor': { contract: 'GraphToken', name: 'governor' },
   'token-supply': { contract: 'GraphToken', name: 'totalSupply' },
-  'token-minter': { contract: 'GraphToken', name: 'isMinter' },
 }
 
 const settersList = {
   'staking-governor': { contract: 'Staking', name: 'setGovernor' },
   'staking-slasher': { contract: 'Staking', name: 'setSlasher' },
   'staking-curation-contract': { contract: 'Staking', name: 'setCuration' },
+  'staking-rewards-contract': { contract: 'Staking', name: 'setRewardsManager' },
   'staking-thawing-period': { contract: 'Staking', name: 'setThawingPeriod' },
   'staking-dispute-epochs': { contract: 'Staking', name: 'setChannelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
@@ -68,6 +83,7 @@ const settersList = {
   },
   'curation-governor': { contract: 'Curation', name: 'setGovernor' },
   'curation-staking-contract': { contract: 'Curation', name: 'setStaking' },
+  'curation-rewards-contract': { contract: 'Curation', name: 'setRewardsManager' },
   'curation-reserve-ratio': { contract: 'Curation', name: 'setDefaultReserveRatio' },
   'curation-percentage': { contract: 'Staking', name: 'setCurationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'setMinimumCurationDeposit' },
@@ -83,6 +99,8 @@ const settersList = {
   'disputes-staking': { contract: 'DisputeManager', name: 'setStaking' },
   'epochs-governor': { contract: 'EpochManager', name: 'setGovernor' },
   'epochs-length': { contract: 'EpochManager', name: 'setEpochLength' },
+  'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
+  'gns-minimum-signal': { contract: 'GNS', name: 'setMinimumVsignal' },
   'token-governor': { contract: 'GraphToken', name: 'setGovernor' },
   'token-add-minter': { contract: 'GraphToken', name: 'addMinter' },
   'token-remove-minter': { contract: 'GraphToken', name: 'removeMinter' },
@@ -162,6 +180,7 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
     const addressEntry = cli.addressBook.getEntry(contractName)
     const contract = getContractAt(contractName, addressEntry.address).connect(cli.wallet)
     table.push(['* address', contract.address])
+    const req = []
 
     for (const fn of Object.values(gettersList)) {
       if (fn.contract != contractName) continue
@@ -170,14 +189,19 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
       const contract = getContractAt(fn.contract, addressEntry.address).connect(cli.wallet)
       if (contract.interface.getFunction(fn.name).inputs.length == 0) {
         const contractFn: ContractFunction = contract.functions[fn.name]
-        let [value] = await contractFn()
-        if (typeof value === 'object') {
-          value = value.toString()
-        }
-        table.push([fn.name, value])
+
+        req.push(
+          contractFn().then((values) => {
+            let [value] = values
+            if (typeof value === 'object') {
+              value = value.toString()
+            }
+            table.push([fn.name, value])
+          }),
+        )
       }
     }
-
+    await Promise.all(req)
     logger.log(table.toString())
   }
 }
