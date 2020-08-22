@@ -16,4 +16,7 @@ export const teamAddresses: Array<TeamMember> = [
   { name: 'zac', address: '0xD31bC1e2a214066Bb2258dac5f43Ce75e5542Ab9' },
   { name: 'martin', address: '0x055BCF2c2BC965Ac8EEAe3f95922D65EE45d3366' },
   { name: 'jeff', address: '0xc02624Affa30299fA164e7176A37610835A923A7' },
+  { name: 'Staging testnet gateway', address: '0x9e0a3BD68620abD81226047cA0e1e0c63A2BE36B' },
+  { name: 'Staging testnet indexer 1', address: '0x2EF7cD7a130a4bbbD637312a3B4A8E5365296e69' },
+  { name: 'Staging testnet indexer 2', address: '0x2ACa45C45580C17E60E80673E2a2595d11009552' },
 ]
