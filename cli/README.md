@@ -47,6 +47,6 @@ Under the `commands/` there is one file per general command and a folder called 
     - `deploy.ts` - helper to deploy a single contract.
     - `migrate.ts` - helper to migrate all contracts for a new network on chain.
     - `protocol.ts` - list, set or get any protocol parameter on any contract.
-    - `mintTeamTokens.ts` - mint tokens for the whole team for testing purposes.
+    - `transferTeamTokens.ts` - mint tokens for the whole team for testing purposes.
     - `verify.ts` - verify a contract is on chain.
     - `upgrade.ts` - helper to upgrade a proxy to use a new implementation.

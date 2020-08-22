@@ -110,4 +110,4 @@ Some contracts require the address from previously deployed contracts. For that 
 3. Update the `package.json` and `package-lock.json` files with the new package version and publish a new npm package with `npm publish`. You can dry-run the files to be uploaded by running `npm publish --dry-run`.
 4. Merge this update into master, branch off and save for whatever version of the testnet is going on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
 5. Pull the updated package into the subgraph, and other apps that depend on the package.json.
-6. Send tokens to the whole team with the mintTeamTokens script `./cli/cli.ts mintTeamTokens --amount 10000000`
+6. Send tokens to the whole team with `./cli/cli.ts transferTeamTokens --amount 10000000`
