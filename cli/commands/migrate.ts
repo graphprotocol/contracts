@@ -2,7 +2,7 @@ import consola from 'consola'
 import { constants, utils } from 'ethers'
 import { Argv } from 'yargs'
 
-import { readConfig, getContractConfig } from '../config'
+import { loadCallParams, readConfig, getContractConfig } from '../config'
 import { cliOpts } from '../constants'
 import {
   isContractDeployed,
@@ -21,8 +21,8 @@ const allContracts = [
   'ServiceRegistry',
   'Curation',
   'GNS',
-  'RewardsManager',
   'Staking',
+  'RewardsManager',
   'DisputeManager',
   'IndexerCTDT',
   'IndexerSingleAssetInterpreter',
@@ -76,14 +76,8 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
     // Get config and deploy contract
     const contractConfig = getContractConfig(graphConfig, cli.addressBook, name)
-    const contract = contractConfig.proxy
-      ? await deployContractWithProxyAndSave(
-          name,
-          contractConfig.params,
-          cli.wallet,
-          cli.addressBook,
-        )
-      : await deployContractAndSave(name, contractConfig.params, cli.wallet, cli.addressBook)
+    const deployFn = contractConfig.proxy ? deployContractWithProxyAndSave : deployContractAndSave
+    const contract = await deployFn(name, contractConfig.params, cli.wallet, cli.addressBook)
     logger.log('')
 
     // Defer contract calls after deploying every contract
@@ -104,7 +98,12 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
       logger.log(`= Config: ${entry.name}`)
       for (const call of entry.calls) {
-        await sendTransaction(cli.wallet, entry.contract, call.fn, ...call.params)
+        await sendTransaction(
+          cli.wallet,
+          entry.contract,
+          call.fn,
+          ...loadCallParams(call.params, cli.addressBook),
+        )
       }
       logger.log('')
     }

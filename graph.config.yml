@@ -3,6 +3,16 @@ general:
   nodeSignerAddress: &nodeSignerAddress "0xb967724FE9aD707cEa1853609f636891b5BFAa66"
 
 contracts:
+  EpochManager:
+    init:
+      lengthInBlocks: 275 # ~1 hour (in blocks)
+    proxy: true
+  GraphToken:
+    init:
+      initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
+    calls:
+      - fn: "addMinter"
+        minter: "${{RewardsManager.address}}"
   Curation:
     init:
       token: "${{GraphToken.address}}"
@@ -36,12 +46,6 @@ contracts:
       didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
       curation: "${{Curation.address}}"
       token: "${{GraphToken.address}}"
-  GraphToken:
-    init:
-      initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
-    calls:
-      - fn: "addMinter"
-        minter: "${{RewardsManager.address}}"
   Staking:
     init:
       token: "${{GraphToken.address}}"
