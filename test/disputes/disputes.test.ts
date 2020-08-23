@@ -200,9 +200,9 @@ describe('DisputeManager', async () => {
       await expect(tx).revertedWith('Indexer cannot be found for the attestation')
     })
 
-    it('reject create a dispute if indexer has no stake', async function () {
-      // This tests reproduce the case when someones present a dispute after
-      // an indexer removed his stake completely and find nothing to slash
+    it('reject create a dispute if indexer below stake', async function () {
+      // This tests reproduce the case when someones present a dispute for
+      // an indexer that is under the minimum required staked amount
 
       const indexerCollectedTokens = toGRT('10')
 
@@ -240,7 +240,7 @@ describe('DisputeManager', async () => {
       const tx = disputeManager
         .connect(fisherman.signer)
         .createDispute(dispute.encodedAttestation, fishermanDeposit)
-      await expect(tx).revertedWith('Dispute has no stake by the indexer')
+      await expect(tx).revertedWith('Dispute under minimum indexer stake amount')
     })
 
     context('> when indexer has staked', function () {

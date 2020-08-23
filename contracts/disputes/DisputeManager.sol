@@ -75,6 +75,9 @@ contract DisputeManager is Governed {
     // Minimum deposit required to create a Dispute
     uint256 public minimumDeposit;
 
+    // Minimum stake an indexer needs to have to allow be disputed
+    uint256 public minimumIndexerStake;
+
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public fishermanRewardPercentage;
@@ -215,17 +218,23 @@ contract DisputeManager is Governed {
      * @return Reward calculated as percentage of the indexer slashed funds
      */
     function getTokensToReward(address _indexer) public view returns (uint256) {
-        uint256 value = getTokensToSlash(_indexer);
-        return uint256(fishermanRewardPercentage).mul(value).div(MAX_PPM);
+        uint256 tokens = getTokensToSlash(_indexer);
+        if (tokens == 0) {
+            return 0;
+        }
+        return uint256(fishermanRewardPercentage).mul(tokens).div(MAX_PPM);
     }
 
     /**
-     * @dev Get the amount of tokens to slash for an indexer based on the stake.
+     * @dev Get the amount of tokens to slash for an indexer based on the current stake.
      * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
     function getTokensToSlash(address _indexer) public view returns (uint256) {
         uint256 tokens = staking.getIndexerStakedTokens(_indexer); // slashable tokens
+        if (tokens == 0) {
+            return 0;
+        }
         return uint256(slashingPercentage).mul(tokens).div(MAX_PPM);
     }
 
@@ -296,6 +305,15 @@ contract DisputeManager is Governed {
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
         emit ParameterUpdated("slashingPercentage");
+    }
+
+    /**
+     * @dev Set the minimum indexer stake required to allow be disputed.
+     * @param _minimumIndexerStake Minimum indexer stake
+     */
+    function setMinimumIndexerStake(uint256 _minimumIndexerStake) external onlyGovernor {
+        minimumIndexerStake = _minimumIndexerStake;
+        emit ParameterUpdated("minimumIndexerStake");
     }
 
     /**
@@ -552,8 +570,11 @@ contract DisputeManager is Governed {
         // Get the indexer that signed the attestation
         address indexer = getAttestationIndexer(_attestation);
 
-        // The indexer is slashable
-        require(staking.hasStake(indexer), "Dispute has no stake by the indexer");
+        // The indexer is disputable
+        require(
+            staking.getIndexerStakedTokens(indexer) >= minimumIndexerStake,
+            "Dispute under minimum indexer stake amount"
+        );
 
         // Create a disputeID
         bytes32 disputeID = keccak256(

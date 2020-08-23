@@ -24,6 +24,9 @@ contracts:
       minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
+    calls:
+      - fn: "setMinimumIndexerStake"
+        minimumIndexerStake: "1000000000000000000" # 1 GRT (in wei)
   EpochManager:
     init:
       lengthInBlocks: 275 # ~1 hour (in blocks)
