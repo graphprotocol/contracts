@@ -1,5 +1,5 @@
 import consola from 'consola'
-import { Argv } from 'yargs'
+import yargs, { Argv } from 'yargs'
 
 import { deployContract } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
@@ -20,7 +20,7 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
 export const deployCommand = {
   command: 'deploy',
   describe: 'Deploy contract',
-  builder: (yargs: Argv) => {
+  builder: (yargs: Argv): yargs.Argv => {
     return yargs
       .option('x', {
         alias: 'init',

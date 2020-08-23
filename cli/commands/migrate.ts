@@ -1,6 +1,6 @@
 import consola from 'consola'
 import { constants, utils } from 'ethers'
-import { Argv } from 'yargs'
+import yargs, { Argv } from 'yargs'
 
 import { loadCallParams, readConfig, getContractConfig } from '../config'
 import { cliOpts } from '../constants'
@@ -124,7 +124,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 export const migrateCommand = {
   command: 'migrate',
   describe: 'Migrate contracts',
-  builder: (yargs: Argv) => {
+  builder: (yargs: Argv): yargs.Argv => {
     return yargs.option('c', cliOpts.graphConfig).option('n', {
       alias: 'contract',
       description: 'Contract name to deploy (all if not set)',
