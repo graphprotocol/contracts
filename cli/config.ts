@@ -5,12 +5,12 @@ import { AddressBook } from './address-book'
 
 const ABRefMatcher = /\${{([A-Z]\w.+)}}/
 
-type ContractParams = Array<{ name: string; value: string }>
-type ContractCalls = Array<{ fn: string; params: Array<any> }>
-
+type ContractParam = { name: string; value: string }
+type ContractCall = { fn: string; params: Array<ContractCallParam> }
+type ContractCallParam = string | number
 interface ContractConfig {
-  params: ContractParams
-  calls: ContractCalls
+  params: Array<ContractParam>
+  calls: Array<ContractCall>
   proxy: boolean
 }
 
@@ -37,14 +37,21 @@ export function readConfig(path: string) {
   return YAML.parse(file)
 }
 
+export function loadCallParams(
+  values: Array<ContractCallParam>,
+  addressBook: AddressBook,
+): Array<ContractCallParam> {
+  return values.map((value) => parseConfigValue(value as string, addressBook))
+}
+
 export function getContractConfig(
   config: any,
   addressBook: AddressBook,
   name: string,
 ): ContractConfig {
   const contractConfig = config.contracts[name] || {}
-  const contractParams: ContractParams = []
-  const contractCalls: ContractCalls = []
+  const contractParams: Array<ContractParam> = []
+  const contractCalls: Array<ContractCall> = []
   let proxy = false
 
   const optsList = Object.entries(contractConfig) as Array<Array<string>>
@@ -65,9 +72,7 @@ export function getContractConfig(
     if (name.startsWith('calls')) {
       for (const entry of contractConfig.calls) {
         const fn = entry['fn']
-        const params = Object.entries(entry)
-          .slice(1) // skip fn
-          .map(([, value]) => parseConfigValue(value as string, addressBook))
+        const params = Object.values(entry).slice(1) as Array<ContractCallParam> // skip fn
         contractCalls.push({ fn, params })
       }
       continue
