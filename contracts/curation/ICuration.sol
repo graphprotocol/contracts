@@ -13,9 +13,7 @@ interface ICuration {
 
     // -- Configuration --
 
-    function setStaking(address _staking) external;
-
-    function setRewardsManager(address _rewardsManager) external;
+    function getTotalTokens() external view returns (uint256);
 
     function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
 

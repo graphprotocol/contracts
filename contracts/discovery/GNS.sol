@@ -166,15 +166,13 @@ contract GNS is Manager, BancorFormula {
     /**
      * @dev Contract Constructor.
      * @param _didRegistry Address of the Ethereum DID registry
-     * @param _curation Address of the Curation contract
-     * @param _token Address of the Graph Token contract
      */
     constructor(
-        address _didRegistry,
+        address _didRegistry
     ) public {
         Manager._initialize(msg.sender);
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
-        graphToken().approve(_curation, uint256(-1));
+        graphToken().approve(address(0x23D1B1823e6Cb5229137424f88C70fdA1539F1F9), uint256(-1));
     }
 
     /**

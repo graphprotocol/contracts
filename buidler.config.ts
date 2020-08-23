@@ -113,9 +113,10 @@ const config = {
     buidlerevm: {
       chainId: 1337,
       loggingEnabled: false,
-      gas: 8000000,
+      gas: 11000000,
+      allowUnlimitedContractSize: true,
       gasPrice: 'auto',
-      blockGasLimit: 9500000,
+      blockGasLimit: 12000000,
       accounts: [
         {
           privateKey: '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d',
