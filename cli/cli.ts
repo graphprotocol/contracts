@@ -4,7 +4,7 @@ import yargs from 'yargs'
 
 import { deployCommand } from './commands/deploy'
 import { migrateCommand } from './commands/migrate'
-import { upgradeCommand } from './commands/upgrade'
+import { proxyCommand } from './commands/proxy'
 import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts/contracts'
@@ -21,7 +21,7 @@ yargs
   .option('p', cliOpts.providerUrl)
   .command(deployCommand)
   .command(migrateCommand)
-  .command(upgradeCommand)
+  .command(proxyCommand)
   .command(verifyCommand)
   .command(protocolCommand)
   .command(contractsCommand)

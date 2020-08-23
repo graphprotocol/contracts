@@ -1,12 +1,12 @@
 import consola from 'consola'
-import { Argv } from 'yargs'
+import yargs, { Argv } from 'yargs'
 
-import { getContractAt, isContractDeployed, sendTransaction } from '../network'
-import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { getContractAt, isContractDeployed, sendTransaction } from '../../network'
+import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 const logger = consola.create({})
 
-export const upgrade = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
   const implAddress = cliArgs.impl
   const initArgs = cliArgs.init
@@ -53,6 +53,7 @@ export const upgrade = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     logger.error(
       `Contract ${implAddress} is already the current implementation for proxy ${proxy.address}`,
     )
+    // TODO: add a confirm message
   }
 
   // Upgrade to new implementation
@@ -71,8 +72,8 @@ export const upgrade = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
 export const upgradeCommand = {
   command: 'upgrade',
-  describe: 'Upgrade contract',
-  builder: (yargs: Argv) => {
+  describe: 'Upgrade a proxy contract implementation',
+  builder: (yargs: Argv): yargs.Argv => {
     return yargs
       .option('i', {
         alias: 'impl',
@@ -96,6 +97,6 @@ export const upgradeCommand = {
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
-    return upgrade(await loadEnv(argv), argv)
+    return upgradeProxy(await loadEnv(argv), argv)
   },
 }
