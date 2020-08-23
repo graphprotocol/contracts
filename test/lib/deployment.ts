@@ -9,6 +9,7 @@ import { toBN, toGRT } from './testHelpers'
 import MinimumViableMultisigArtifact from '../../build/contracts/MinimumViableMultisig.json'
 
 // contracts definitions
+import { Controller } from '../../build/typechain/contracts/Controller'
 import { GraphProxy } from '../../build/typechain/contracts/GraphProxy'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -78,6 +79,9 @@ async function deployContract(contractName: string, deployer?: Signer, ...params
   return factory.deploy(...params).then((c: Contract) => c.deployed())
 }
 
+export async function deployController(owner: Signer): Promise<Controller> {
+  return deployContract('Controller', owner, await owner.getAddress()) as Promise<Controller>
+}
 export async function deployGRT(owner: Signer): Promise<GraphToken> {
   return deployContract('GraphToken', owner, defaults.token.initialSupply) as Promise<GraphToken>
 }
@@ -92,7 +96,7 @@ export async function deployGSR(owner: Signer, gdaiAddress: string): Promise<Gsr
   >
 }
 
-export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
+export async function deployCuration(owner: Signer): Promise<Curation> {
   // Impl
   const contract = (await deployContract('Curation', owner)) as Curation
 
@@ -104,7 +108,6 @@ export async function deployCuration(owner: Signer, graphToken: string): Promise
     .connect(owner)
     .acceptProxy(
       proxy.address,
-      graphToken,
       defaults.curation.reserveRatio,
       defaults.curation.minimumCurationDeposit,
     )
@@ -115,17 +118,13 @@ export async function deployCuration(owner: Signer, graphToken: string): Promise
 
 export async function deployDisputeManager(
   owner: Signer,
-  graphToken: string,
   arbitrator: string,
-  staking: string,
 ): Promise<DisputeManager> {
   // Deploy
   const contract = (await deployContract(
     'DisputeManager',
     owner,
     arbitrator,
-    graphToken,
-    staking,
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
@@ -150,13 +149,8 @@ export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
   return contract.attach(proxy.address)
 }
 
-export async function deployGNS(
-  owner: Signer,
-  didRegistry: string,
-  graphToken: string,
-  curation: string,
-): Promise<Gns> {
-  return deployContract('GNS', owner, didRegistry, graphToken, curation) as Promise<Gns>
+export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
+  return deployContract('GNS', owner, didRegistry) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(owner: Signer): Promise<EthereumDidRegistry> {
@@ -167,12 +161,7 @@ export async function deployServiceRegistry(owner: Signer): Promise<ServiceRegis
   return deployContract('ServiceRegistry', owner) as Promise<ServiceRegistry>
 }
 
-export async function deployStaking(
-  owner: Signer,
-  graphToken: string,
-  epochManager: string,
-  curation: string,
-): Promise<Staking> {
+export async function deployStaking(owner: Signer): Promise<Staking> {
   // Impl
   const contract = (await deployContract('Staking', owner)) as Staking
 
@@ -180,11 +169,10 @@ export async function deployStaking(
   const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(owner).acceptProxy(proxy.address, graphToken, epochManager)
+  await contract.connect(owner).acceptProxy(proxy.address)
 
   // Configure
   const staking = contract.attach(proxy.address)
-  await staking.connect(owner).setCuration(curation)
   await staking.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await staking.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
   await staking.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
@@ -192,12 +180,7 @@ export async function deployStaking(
   return staking
 }
 
-export async function deployRewardsManager(
-  owner: Signer,
-  graphToken: string,
-  curation: string,
-  staking: string,
-): Promise<RewardsManager> {
+export async function deployRewardsManager(owner: Signer): Promise<RewardsManager> {
   // Impl
   const contract = (await deployContract('RewardsManager', owner)) as RewardsManager
 
@@ -205,9 +188,7 @@ export async function deployRewardsManager(
   const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
 
   // Impl accept and initialize
-  await contract
-    .connect(owner)
-    .acceptProxy(proxy.address, graphToken, curation, staking, defaults.rewards.issuanceRate)
+  await contract.connect(owner).acceptProxy(proxy.address, defaults.rewards.issuanceRate)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))

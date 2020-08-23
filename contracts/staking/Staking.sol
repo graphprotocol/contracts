@@ -195,7 +195,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
      * @dev Initialize this contract.
      */
     function initialize(
-        address _controller,
+        address _controller
     ) external onlyImpl {
         Manager._initialize(_controller);
     }
@@ -203,19 +203,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
-     * @param _token Address of the Graph Protocol token
-     * @param _epochManager Address of the EpochManager contract
      */
     function acceptProxy(
-        GraphProxy _proxy,
-        address _token,
-        address _epochManager
+        GraphProxy _proxy
     ) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        Staking(address(_proxy)).initialize(_proxy.admin(), _token, _epochManager);
+        Staking(address(_proxy)).initialize(_proxy.admin());
     }
 
     /**
@@ -1068,7 +1064,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             require(
-                graphToken().approve(address(curation), curationFees),
+                graphToken().approve(address(curation()), curationFees),
                 "Collect: token approval failed"
             );
             curation().collect(alloc.subgraphDeploymentID, curationFees);
@@ -1196,7 +1192,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
         view
         returns (uint256)
     {
-        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
+        bool isCurationEnabled = curationPercentage > 0 && address(curation()) != address(0);
         if (isCurationEnabled && curation().isCurated(_subgraphDeploymentID)) {
             return uint256(curationPercentage).mul(_tokens).div(MAX_PPM);
         }

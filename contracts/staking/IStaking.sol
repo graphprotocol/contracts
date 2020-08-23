@@ -59,8 +59,6 @@ interface IStaking {
 
     function setThawingPeriod(uint32 _thawingPeriod) external;
 
-    function setCuration(address _curation) external;
-
     function setCurationPercentage(uint32 _percentage) external;
 
     function setProtocolPercentage(uint32 _percentage) external;
@@ -82,8 +80,6 @@ interface IStaking {
     function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external;
 
     function setSlasher(address _slasher, bool _allowed) external;
-
-    function setRewardsManager(address _rewardsManager) external;
 
     // -- Operation --
 

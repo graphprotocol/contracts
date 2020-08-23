@@ -24,12 +24,9 @@ contract Controller is IController, Governed {
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _contractAddress Contract address
      */
-    function setContract(
-        bytes32 _id,
-        address _contractAddress,
-    ) external onlyOwner {
-        registry[_id].contractAddress = _contractAddress;
-        emit SetContractInfo(_id, _contractAddress);
+    function setContract(bytes32 _id, address _contractAddress) external override onlyGovernor {
+        registry[_id] = _contractAddress;
+        emit SetContract(_id, _contractAddress);
     }
 
     /**
@@ -37,7 +34,7 @@ contract Controller is IController, Governed {
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _controller Controller address
      */
-    function updateController(bytes32 _id, address _controller) external onlyGovernor {
+    function updateController(bytes32 _id, address _controller) external override onlyGovernor {
         return IManager(registry[_id]).setController(_controller);
     }
 
@@ -45,7 +42,7 @@ contract Controller is IController, Governed {
      * @notice Get contract proxy address by its id
      * @param _id Contract id
      */
-    function getContractProxy(bytes32 _id) public view returns (address) {
+    function getContractProxy(bytes32 _id) public view override returns (address) {
         return registry[_id];
     }
 }

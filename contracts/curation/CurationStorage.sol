@@ -19,7 +19,7 @@ contract CurationV1Storage is BancorFormula {
     uint256 public minimumCurationDeposit;
 
     // Total tokens in held as reserves received from curators deposits
-    uint256 public totalTokens;
+    uint256 internal totalTokens;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeploymentID

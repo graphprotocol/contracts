@@ -80,13 +80,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
-     * @param _token Address of the Graph Protocol token
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationDeposit Minimum amount of tokens that curators can deposit
      */
     function acceptProxy(
         GraphProxy _proxy,
-        address _token,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external {
@@ -96,7 +94,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
         // Initialization
         Curation(address(_proxy)).initialize(
             _proxy.admin(), // default governor is proxy admin
-            _token,
             _defaultReserveRatio,
             _minimumCurationDeposit
         );
@@ -156,7 +153,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override onlyStaking {
         // Transfer tokens collected from the staking contract to this contract
         require(
-            graphToken().transferFrom(address(staking), address(this), _tokens),
+            graphToken().transferFrom(address(staking()), address(this), _tokens),
             "Cannot transfer tokens to collect"
         );
 
@@ -483,9 +480,16 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
-        if (address(rewardsManager) != address(0)) {
+        if (address(rewardsManager()) != address(0)) {
             return rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
         return 0;
+    }
+
+    /**
+     * @dev Exter
+     */
+    function getTotalTokens() external view override returns (uint256) {
+        return totalTokens;
     }
 }

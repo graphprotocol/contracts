@@ -154,10 +154,8 @@ contract DisputeManager is Manager {
     }
 
     /**
-     * @dev Contract Constructor.
-     * @param _token Address of the Graph Protocol token
+     * @dev Contract Constructor
      * @param _arbitrator Arbitrator role
-     * @param _staking Address of the staking contract used for slashing
      * @param _minimumDeposit Minimum deposit required to create a Dispute
      * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (basis points)
      * @param _slashingPercentage Percentage of indexer stake slashed (basis points)

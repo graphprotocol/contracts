@@ -1,8 +1,11 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 import "../governance/Manager.sol";
 import "../upgrades/GraphUpgradeable.sol";
+import "../curation/Curation.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
@@ -44,10 +47,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Initialize this contract.
      */
-    function initialize(
-        address _controller,
-        uint256 _issuanceRate
-    ) external onlyImpl {
+    function initialize(address _controller, uint256 _issuanceRate) external onlyImpl {
         Manager._initialize(_controller);
         _setIssuanceRate(_issuanceRate);
     }
@@ -55,27 +55,15 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
-     * @param _token Address of the GRT token contract
-     * @param _curation Address of the Curation contract
-     * @param _staking Address of the Staking contract
      * @param _issuanceRate Issuance rate
      */
-    function acceptProxy(
-        GraphProxy _proxy,
-        address _token,
-        address _curation,
-        address _staking,
-        uint256 _issuanceRate
-    ) external {
+    function acceptProxy(GraphProxy _proxy, uint256 _issuanceRate) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
         RewardsManager(address(_proxy)).initialize(
             _proxy.admin(), // default governor is proxy admin
-            _token,
-            _curation,
-            _staking,
             _issuanceRate
         );
     }
@@ -154,7 +142,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         }
 
         // Zero issuance if no signalled tokens
-        uint256 signalledTokens = curation().totalTokens();
+        uint256 signalledTokens = curation().getTotalTokens();
         if (signalledTokens == 0) {
             return 0;
         }
@@ -334,7 +322,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         // Mint rewards tokens
         if (_restake) {
             graphToken().mint(address(this), rewards);
-            graphToken().approve(address(staking), rewards);
+            graphToken().approve(address(staking()), rewards);
             staking().stakeTo(indexer, rewards);
         } else {
             graphToken().mint(indexer, rewards);

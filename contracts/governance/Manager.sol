@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
 import "./IManager.sol";
-import "./IController.sol";
+import "./Controller.sol";
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
@@ -15,11 +15,12 @@ import "../token/IGraphToken.sol";
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 //
-contract Manager is IManager {
+contract Manager {
     // Controller that contract is registered with
-    IController public controller;
+    Controller public controller;
 
     event ParameterUpdated(string param);
+    event SetController(address controller);
 
     // Check if sender is controller
     modifier onlyController() {
@@ -34,7 +35,7 @@ contract Manager is IManager {
 
     modifier onlyStaking() {
         require(
-            msg.sender == address(controller.getContract(keccak256("Staking"))),
+            msg.sender == address(controller.getContractProxy(keccak256("Staking"))),
             "Caller must be the staking contract"
         );
         _;
@@ -42,7 +43,7 @@ contract Manager is IManager {
 
     modifier onlyCuration() {
         require(
-            msg.sender == address(controller.getContract(keccak256("Curation"))),
+            msg.sender == address(controller.getContractProxy(keccak256("Curation"))),
             "Caller must be the curation contract"
         );
         _;
@@ -50,7 +51,7 @@ contract Manager is IManager {
 
     modifier onlyRewardsManager() {
         require(
-            msg.sender == address(controller.getContract(keccak256("RewardsManager"))),
+            msg.sender == address(controller.getContractProxy(keccak256("RewardsManager"))),
             "Caller must be the rewards manager contract"
         );
         _;
@@ -58,21 +59,17 @@ contract Manager is IManager {
 
     modifier onlyGraphToken() {
         require(
-            msg.sender == address(controller.getContract(keccak256("GraphToken"))),
+            msg.sender == address(controller.getContractProxy(keccak256("GraphToken"))),
             "Caller must be the graph token contract"
         );
         _;
     }
 
-    constructor(address _controller) public {
-        controller = IController(_controller);
-    }
-
     /**
      * @dev Initialize the controller
      */
-    function _initialize(address _governor) internal {
-        controller = IController(_controller);
+    function _initialize(address _controller) internal {
+        controller = Controller(_controller);
     }
 
     /**
@@ -80,7 +77,7 @@ contract Manager is IManager {
      * @param _controller Controller contract address
      */
     function setController(address _controller) external onlyController {
-        controller = IController(_controller);
+        controller = Controller(_controller);
         emit SetController(_controller);
     }
 
@@ -89,7 +86,7 @@ contract Manager is IManager {
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(controller.getContract(keccak256("Curation")));
+        return ICuration(controller.getContractProxy(keccak256("Curation")));
     }
 
     /**
@@ -97,7 +94,7 @@ contract Manager is IManager {
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(controller.getContract(keccak256("EpochManager")));
+        return IEpochManager(controller.getContractProxy(keccak256("EpochManager")));
     }
 
     /**
@@ -105,7 +102,7 @@ contract Manager is IManager {
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(controller.getContract(keccak256("RewardsManager")));
+        return IRewardsManager(controller.getContractProxy(keccak256("RewardsManager")));
     }
 
     /**
@@ -113,7 +110,7 @@ contract Manager is IManager {
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(controller.getContract(keccak256("Staking")));
+        return IStaking(controller.getContractProxy(keccak256("Staking")));
     }
 
     /**
@@ -121,6 +118,6 @@ contract Manager is IManager {
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(controller.getContract(keccak256("GraphToken")));
+        return IGraphToken(controller.getContractProxy(keccak256("GraphToken")));
     }
 }
