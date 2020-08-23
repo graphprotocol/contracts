@@ -411,7 +411,7 @@ describe('Rewards:Calculations', () => {
   })
 
   describe('assign rewards and claim', function () {
-    it('should distribute rewards when allocation settled and be able to claim them', async function () {
+    it('should distribute rewards on allocation settled and claim them', async function () {
       await epochManager.setEpochLength(10)
 
       // Update total signalled
@@ -453,8 +453,54 @@ describe('Rewards:Calculations', () => {
       await expect(tx2)
         .emit(rewardsManager, 'RewardsClaimed')
         .withArgs(indexer1.address, contractIndexerRewards)
+
+      // State updated
       const afterIndexerBalance = await grt.balanceOf(indexer1.address)
       expect(afterIndexerBalance).eq(beforeIndexerBalance.add(contractIndexerRewards))
+    })
+
+    it('should distribute rewards on allocation settled and claim them /w restake', async function () {
+      await epochManager.setEpochLength(10)
+
+      // Update total signalled
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+
+      // Allocate
+      const tokensToAllocate = toGRT('12500')
+      await staking.connect(indexer1.signer).stake(tokensToAllocate)
+      await staking
+        .connect(indexer1.signer)
+        .allocate(
+          subgraphDeploymentID1,
+          tokensToAllocate,
+          channelPubKey,
+          assetHolder.address,
+          toGRT('0.1'),
+        )
+
+      // Jump
+      await advanceBlocks(await epochManager.epochLength())
+
+      // Settle allocation. At this point rewards should be collected for that indexer
+      await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+
+      // Check that rewards are put into indexer claimable pool
+      // NOTE: alculated manually on a spreadsheet
+      const expectedIndexerRewards = 1471954234
+      const contractIndexerRewards = await rewardsManager.indexerRewards(indexer1.address)
+      expect(expectedIndexerRewards).eq(toRound(contractIndexerRewards))
+
+      // Try to claim those rewards and get funds back to indexer
+      const beforeIndexerBalance = await grt.balanceOf(indexer1.address)
+      const tx2 = rewardsManager.connect(indexer1.signer).claim(true)
+      await expect(tx2)
+        .emit(rewardsManager, 'RewardsClaimed')
+        .withArgs(indexer1.address, contractIndexerRewards)
+
+      // State updated
+      const afterIndexerBalance = await grt.balanceOf(indexer1.address)
+      expect(afterIndexerBalance).eq(beforeIndexerBalance)
     })
   })
 })
