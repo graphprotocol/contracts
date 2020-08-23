@@ -45,6 +45,7 @@ export const defaults = {
   },
   dispute: {
     minimumDeposit: toGRT('100'),
+    minimumIndexerStake: toGRT('1'),
     fishermanRewardPercentage: toBN('1000'), // in basis points
     slashingPercentage: toBN('1000'), // in basis points
   },
@@ -118,7 +119,8 @@ export async function deployDisputeManager(
   arbitrator: string,
   staking: string,
 ): Promise<DisputeManager> {
-  return deployContract(
+  // Deploy
+  const contract = (await deployContract(
     'DisputeManager',
     owner,
     arbitrator,
@@ -127,7 +129,12 @@ export async function deployDisputeManager(
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
-  ) as Promise<DisputeManager>
+  )) as DisputeManager
+
+  // Config
+  await contract.connect(owner).setMinimumIndexerStake(defaults.dispute.minimumIndexerStake)
+
+  return contract
 }
 
 export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
