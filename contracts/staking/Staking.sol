@@ -561,9 +561,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Governed {
     function stakeTo(address _indexer, uint256 _tokens) public override {
         require(_tokens > 0, "Staking: cannot stake zero tokens");
 
-        // Transfer tokens to stake from indexer to this contract
+        // Transfer tokens to stake from caller to this contract
         require(
-            token.transferFrom(_indexer, address(this), _tokens),
+            token.transferFrom(msg.sender, address(this), _tokens),
             "Staking: cannot transfer tokens to stake"
         );
 
