@@ -170,10 +170,7 @@ export async function deployEthereumDIDRegistry(deployer: Signer): Promise<Ether
   return deployContract('EthereumDIDRegistry', deployer) as Promise<EthereumDidRegistry>
 }
 
-export async function deployServiceRegistry(
-  deployer: Signer,
-  controller: string,
-): Promise<ServiceRegistry> {
+export async function deployServiceRegistry(deployer: Signer): Promise<ServiceRegistry> {
   return deployContract('ServiceRegistry', deployer) as Promise<ServiceRegistry>
 }
 

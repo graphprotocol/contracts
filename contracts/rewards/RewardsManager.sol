@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../governance/Manager.sol";
 import "../upgrades/GraphUpgradeable.sol";
-import "../curation/Curation.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";

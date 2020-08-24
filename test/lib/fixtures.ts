@@ -33,13 +33,16 @@ export class NetworkFixture {
       arbitratorAddress,
     )
     const rewardsManager = await deployment.deployRewardsManager(deployer, controller.address)
+    const serviceRegistry = await deployment.deployServiceRegistry(deployer)
 
     // Setup controller
-    await controller.setContract(stringToBytes32('EpochManager'), epochManager.address)
-    await controller.setContract(stringToBytes32('GraphToken'), grt.address)
-    await controller.setContract(stringToBytes32('Curation'), curation.address)
-    await controller.setContract(stringToBytes32('Staking'), staking.address)
-    await controller.setContract(stringToBytes32('RewardsManager'), rewardsManager.address)
+    await controller.setContractProxy(stringToBytes32('EpochManager'), epochManager.address)
+    await controller.setContractProxy(stringToBytes32('GraphToken'), grt.address)
+    await controller.setContractProxy(stringToBytes32('Curation'), curation.address)
+    await controller.setContractProxy(stringToBytes32('Staking'), staking.address)
+    await controller.setContractProxy(stringToBytes32('DisputeManager'), staking.address)
+    await controller.setContractProxy(stringToBytes32('RewardsManager'), rewardsManager.address)
+    await controller.setContractProxy(stringToBytes32('ServiceRegistry'), serviceRegistry.address)
 
     // Setup contracts
     await staking.connect(deployer).setSlasher(slasherAddress, true)
@@ -56,6 +59,7 @@ export class NetworkFixture {
       gns,
       staking,
       rewardsManager,
+      serviceRegistry,
     }
   }
 
