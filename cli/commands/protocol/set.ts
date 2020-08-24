@@ -10,10 +10,7 @@ const logger = consola.create({})
 
 export const settersList = {
   // Staking
-  'staking-governor': { contract: 'Staking', name: 'setGovernor' },
   'staking-slasher': { contract: 'Staking', name: 'setSlasher' },
-  'staking-curation-contract': { contract: 'Staking', name: 'setCuration' },
-  'staking-rewards-contract': { contract: 'Staking', name: 'setRewardsManager' },
   'staking-thawing-period': { contract: 'Staking', name: 'setThawingPeriod' },
   'staking-dispute-epochs': { contract: 'Staking', name: 'setChannelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
@@ -28,15 +25,11 @@ export const settersList = {
     name: 'setDelegationUnbondingPeriod',
   },
   // Curation
-  'curation-governor': { contract: 'Curation', name: 'setGovernor' },
-  'curation-staking-contract': { contract: 'Curation', name: 'setStaking' },
-  'curation-rewards-contract': { contract: 'Curation', name: 'setRewardsManager' },
   'curation-reserve-ratio': { contract: 'Curation', name: 'setDefaultReserveRatio' },
   'curation-percentage': { contract: 'Staking', name: 'setCurationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'setMinimumCurationDeposit' },
   'curation-withdrawal-percentage': { contract: 'Curation', name: 'setWithdrawalFeePercentage' },
   // Disputes
-  'disputes-governor': { contract: 'DisputeManager', name: 'setGovernor' },
   'disputes-arbitrator': { contract: 'DisputeManager', name: 'setArbitrator' },
   'disputes-minimum-deposit': { contract: 'DisputeManager', name: 'setMinimumDeposit' },
   'disputes-reward-percentage': {
@@ -44,19 +37,22 @@ export const settersList = {
     name: 'setFishermanRewardPercentage',
   },
   'disputes-slashing-percentage': { contract: 'DisputeManager', name: 'setSlashingPercentage' },
-  'disputes-staking': { contract: 'DisputeManager', name: 'setStaking' },
   // Epochs
-  'epochs-governor': { contract: 'EpochManager', name: 'setGovernor' },
   'epochs-length': { contract: 'EpochManager', name: 'setEpochLength' },
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
   // GNS
   'gns-minimum-signal': { contract: 'GNS', name: 'setMinimumVsignal' },
   // Token
-  'token-governor': { contract: 'GraphToken', name: 'setGovernor' },
+  'token-transfer-governor': { contract: 'GraphToken', name: 'transferOwnership' },
+  'token-accept-governor': { contract: 'GraphToken', name: 'acceptOwnership' },
   'token-add-minter': { contract: 'GraphToken', name: 'addMinter' },
   'token-remove-minter': { contract: 'GraphToken', name: 'removeMinter' },
   'token-mint': { contract: 'GraphToken', name: 'mint' },
+  // Controller
+  'controller-transfer-governor': { contract: 'Controller', name: 'transferOwnership' },
+  'controller-accept-governor': { contract: 'Controller', name: 'acceptOwnership' },
+  'controller-set-contract-proxy': { contract: 'Controller', name: 'setContractProxy' },
 }
 
 const buildHelp = () => {

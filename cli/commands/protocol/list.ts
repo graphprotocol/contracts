@@ -10,6 +10,7 @@ import { gettersList } from './get'
 const logger = consola.create({})
 
 const contractNames = [
+  'Controller',
   'GraphToken',
   'EpochManager',
   'Staking',
