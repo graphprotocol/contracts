@@ -47,25 +47,21 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _controller, uint256 _issuanceRate) external onlyImpl {
+    function initialize(address _controller) external onlyImpl {
         Manager._initialize(_controller);
-        _setIssuanceRate(_issuanceRate);
     }
 
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
-     * @param _issuanceRate Issuance rate
+     * @param _controller Controller for this contract
      */
-    function acceptProxy(GraphProxy _proxy, uint256 _issuanceRate) external {
+    function acceptProxy(GraphProxy _proxy, address _controller) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        RewardsManager(address(_proxy)).initialize(
-            _proxy.admin(), // default governor is proxy admin
-            _issuanceRate
-        );
+        RewardsManager(address(_proxy)).initialize(_controller);
     }
 
     /**
@@ -138,6 +134,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
         // Optimization to skip calculations if zero time steps elapsed
         if (t == 0) {
+            return 0;
+        }
+
+        // Zero issuance
+        if (issuanceRate == 0) {
             return 0;
         }
 

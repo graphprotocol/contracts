@@ -3,7 +3,7 @@ pragma solidity ^0.6.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
-import "../governance/Manager.sol";
+import "../governance/Governed.sol";
 
 /**
  * @title GraphToken contract
@@ -19,7 +19,7 @@ import "../governance/Manager.sol";
  *
  * Governor keys can be disposed after the initial distribution.
  */
-contract GraphToken is Manager, ERC20, ERC20Burnable {
+contract GraphToken is Governed, ERC20, ERC20Burnable {
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
@@ -55,7 +55,7 @@ contract GraphToken is Manager, ERC20, ERC20Burnable {
      * @param _initialSupply Initial supply of GRT
      */
     constructor(uint256 _initialSupply) public ERC20("Graph Token", "GRT") {
-        Manager._initialize(msg.sender);
+        Governed._initialize(msg.sender);
 
         // The Governor has the initial supply of tokens
         _mint(msg.sender, _initialSupply);

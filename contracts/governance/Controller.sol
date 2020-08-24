@@ -42,7 +42,7 @@ contract Controller is IController, Governed {
      * @notice Get contract proxy address by its id
      * @param _id Contract id
      */
-    function getContractProxy(bytes32 _id) public view override returns (address) {
+    function getContractProxy(bytes32 _id) public override view returns (address) {
         return registry[_id];
     }
 }

@@ -17,14 +17,12 @@ describe('Curation:Config', () => {
   let fixture: NetworkFixture
 
   let curation: Curation
-  let grt: GraphToken
-  let staking: Staking
 
   before(async function () {
     ;[me, governor] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation, grt, staking } = await fixture.load(governor.signer))
+    ;({ curation } = await fixture.load(governor.signer))
   })
 
   beforeEach(async function () {
@@ -33,32 +31,6 @@ describe('Curation:Config', () => {
 
   afterEach(async function () {
     await fixture.tearDown()
-  })
-
-  it('should set `governor`', async function () {
-    // Set right in the constructor
-    expect(await curation.governor()).eq(governor.address)
-  })
-
-  it('should set `graphToken`', async function () {
-    // Set right in the constructor
-    expect(await curation.token()).eq(grt.address)
-  })
-
-  describe('staking', function () {
-    it('should set `staking`', async function () {
-      // Set right in the constructor
-      expect(await curation.staking()).eq(staking.address)
-
-      // Can set if allowed
-      await curation.connect(governor.signer).setStaking(me.address)
-      expect(await curation.staking()).eq(me.address)
-    })
-
-    it('reject set `staking` if not allowed', async function () {
-      const tx = curation.connect(me.signer).setStaking(staking.address)
-      await expect(tx).revertedWith('Only Governor can call')
-    })
   })
 
   describe('defaultReserveRatio', function () {

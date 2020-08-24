@@ -80,11 +80,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
+     * @param _controller Controller for this contract
      * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
      * @param _minimumCurationDeposit Minimum amount of tokens that curators can deposit
      */
     function acceptProxy(
         GraphProxy _proxy,
+        address _controller,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external {
@@ -93,7 +95,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
 
         // Initialization
         Curation(address(_proxy)).initialize(
-            _proxy.admin(), // default governor is proxy admin
+            _controller,
             _defaultReserveRatio,
             _minimumCurationDeposit
         );
@@ -489,7 +491,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
     /**
      * @dev Exter
      */
-    function getTotalTokens() external view override returns (uint256) {
+    function getTotalTokens() external override view returns (uint256) {
         return totalTokens;
     }
 }

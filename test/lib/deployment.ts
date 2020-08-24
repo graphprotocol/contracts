@@ -79,35 +79,37 @@ async function deployContract(contractName: string, deployer?: Signer, ...params
   return factory.deploy(...params).then((c: Contract) => c.deployed())
 }
 
-export async function deployController(owner: Signer): Promise<Controller> {
-  return deployContract('Controller', owner, await owner.getAddress()) as Promise<Controller>
-}
-export async function deployGRT(owner: Signer): Promise<GraphToken> {
-  return deployContract('GraphToken', owner, defaults.token.initialSupply) as Promise<GraphToken>
+export async function deployController(deployer: Signer): Promise<Controller> {
+  return deployContract('Controller', deployer, await deployer.getAddress()) as Promise<Controller>
 }
 
-export async function deployGDAI(owner: Signer): Promise<Gdai> {
-  return deployContract('GDAI', owner, defaults.gdai.initialSupply) as Promise<Gdai>
+export async function deployGRT(deployer: Signer): Promise<GraphToken> {
+  return deployContract('GraphToken', deployer, defaults.token.initialSupply) as Promise<GraphToken>
 }
 
-export async function deployGSR(owner: Signer, gdaiAddress: string): Promise<GsrManager> {
-  return deployContract('GSRManager', owner, defaults.gdai.savingsRate, gdaiAddress) as Promise<
+export async function deployGDAI(deployer: Signer): Promise<Gdai> {
+  return deployContract('GDAI', deployer, defaults.gdai.initialSupply) as Promise<Gdai>
+}
+
+export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GsrManager> {
+  return deployContract('GSRManager', deployer, defaults.gdai.savingsRate, gdaiAddress) as Promise<
     GsrManager
   >
 }
 
-export async function deployCuration(owner: Signer): Promise<Curation> {
+export async function deployCuration(deployer: Signer, controller: string): Promise<Curation> {
   // Impl
-  const contract = (await deployContract('Curation', owner)) as Curation
+  const contract = (await deployContract('Curation', deployer)) as Curation
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
 
   // Impl accept and initialize
   await contract
-    .connect(owner)
+    .connect(deployer)
     .acceptProxy(
       proxy.address,
+      controller,
       defaults.curation.reserveRatio,
       defaults.curation.minimumCurationDeposit,
     )
@@ -117,13 +119,14 @@ export async function deployCuration(owner: Signer): Promise<Curation> {
 }
 
 export async function deployDisputeManager(
-  owner: Signer,
+  deployer: Signer,
+  controller: string,
   arbitrator: string,
 ): Promise<DisputeManager> {
   // Deploy
   const contract = (await deployContract(
     'DisputeManager',
-    owner,
+    deployer,
     arbitrator,
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
@@ -136,59 +139,74 @@ export async function deployDisputeManager(
   return contract
 }
 
-export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
+export async function deployEpochManager(
+  deployer: Signer,
+  controller: string,
+): Promise<EpochManager> {
   // Impl
-  const contract = (await deployContract('EpochManager', owner)) as EpochManager
+  const contract = (await deployContract('EpochManager', deployer)) as EpochManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(owner).acceptProxy(proxy.address, defaults.epochs.lengthInBlocks)
+  await contract
+    .connect(deployer)
+    .acceptProxy(proxy.address, controller, defaults.epochs.lengthInBlocks)
 
   return contract.attach(proxy.address)
 }
 
-export async function deployGNS(owner: Signer, didRegistry: string): Promise<Gns> {
-  return deployContract('GNS', owner, didRegistry) as Promise<Gns>
+export async function deployGNS(
+  deployer: Signer,
+  controller: string,
+  didRegistry: string,
+): Promise<Gns> {
+  return deployContract('GNS', deployer, controller, didRegistry) as Promise<Gns>
 }
 
-export async function deployEthereumDIDRegistry(owner: Signer): Promise<EthereumDidRegistry> {
-  return deployContract('EthereumDIDRegistry', owner) as Promise<EthereumDidRegistry>
+export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {
+  return deployContract('EthereumDIDRegistry', deployer) as Promise<EthereumDidRegistry>
 }
 
-export async function deployServiceRegistry(owner: Signer): Promise<ServiceRegistry> {
-  return deployContract('ServiceRegistry', owner) as Promise<ServiceRegistry>
+export async function deployServiceRegistry(
+  deployer: Signer,
+  controller: string,
+): Promise<ServiceRegistry> {
+  return deployContract('ServiceRegistry', deployer) as Promise<ServiceRegistry>
 }
 
-export async function deployStaking(owner: Signer): Promise<Staking> {
+export async function deployStaking(deployer: Signer, controller: string): Promise<Staking> {
   // Impl
-  const contract = (await deployContract('Staking', owner)) as Staking
+  const contract = (await deployContract('Staking', deployer)) as Staking
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(owner).acceptProxy(proxy.address)
+  await contract.connect(deployer).acceptProxy(proxy.address, controller)
 
   // Configure
   const staking = contract.attach(proxy.address)
-  await staking.connect(owner).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
-  await staking.connect(owner).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
-  await staking.connect(owner).setThawingPeriod(defaults.staking.thawingPeriod)
+  await staking.connect(deployer).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
+  await staking.connect(deployer).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
+  await staking.connect(deployer).setThawingPeriod(defaults.staking.thawingPeriod)
 
   return staking
 }
 
-export async function deployRewardsManager(owner: Signer): Promise<RewardsManager> {
+export async function deployRewardsManager(
+  deployer: Signer,
+  controller: string,
+): Promise<RewardsManager> {
   // Impl
-  const contract = (await deployContract('RewardsManager', owner)) as RewardsManager
+  const contract = (await deployContract('RewardsManager', deployer)) as RewardsManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(owner).acceptProxy(proxy.address, defaults.rewards.issuanceRate)
+  await contract.connect(deployer).acceptProxy(proxy.address, controller)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))
