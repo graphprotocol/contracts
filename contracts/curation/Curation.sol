@@ -2,7 +2,6 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -21,7 +20,7 @@ import "./ICuration.sol";
  * Holders can burn GST tokens using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Manager {
+contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     using SafeMath for uint256;
 
     // 100% in parts per million

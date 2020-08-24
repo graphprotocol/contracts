@@ -1,11 +1,12 @@
 pragma solidity ^0.6.4;
 
+import "../governance/Manager.sol";
 import "../staking/IStaking.sol";
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
-contract StakingV1Storage {
+contract StakingV1Storage is Manager {
     // -- Staking --
 
     // Time in blocks to unstake

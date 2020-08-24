@@ -1,7 +1,6 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -13,7 +12,7 @@ import "./libs/Stakes.sol";
 /**
  * @title Staking contract
  */
-contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
+contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
