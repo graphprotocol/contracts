@@ -270,7 +270,7 @@ describe('Curation', () => {
         // Source of tokens must be the staking for this to work
         await controller
           .connect(governor.signer)
-          .setContract(stringToBytes32('Staking'), stakingMock.address)
+          .setContractProxy(stringToBytes32('Staking'), stakingMock.address)
         const tx = curation
           .connect(stakingMock.signer)
           .collect(subgraphDeploymentID, tokensToCollect)
@@ -291,7 +291,7 @@ describe('Curation', () => {
       it('should collect tokens distributed to the curation pool', async function () {
         await controller
           .connect(governor.signer)
-          .setContract(stringToBytes32('Staking'), stakingMock.address)
+          .setContractProxy(stringToBytes32('Staking'), stakingMock.address)
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
         await shouldCollect(toGRT('100'))

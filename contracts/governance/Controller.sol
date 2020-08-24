@@ -24,9 +24,13 @@ contract Controller is IController, Governed {
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _contractAddress Contract address
      */
-    function setContract(bytes32 _id, address _contractAddress) external override onlyGovernor {
+    function setContractProxy(bytes32 _id, address _contractAddress)
+        external
+        override
+        onlyGovernor
+    {
         registry[_id] = _contractAddress;
-        emit SetContract(_id, _contractAddress);
+        emit SetContractProxy(_id, _contractAddress);
     }
 
     /**
