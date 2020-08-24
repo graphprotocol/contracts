@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import "@connext/contracts/src.sol/shared/libs/LibChannelCrypto.sol";
 import "@connext/contracts/src.sol/shared/libs/LibCommitment.sol";
 
+import "../governance/IController.sol";
 import "../staking/Staking.sol";
 
 import "./MultisigData.sol";
@@ -30,7 +31,7 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     // Graph-specific constants
     address public NODE_ADDRESS;
-    address public INDEXER_STAKING_ADDRESS;
+    address public INDEXER_CONTROLLER_ADDRESS;
     address public INDEXER_CTDT_ADDRESS;
     address public INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS;
     address public INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS;
@@ -42,21 +43,21 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Contract constructor (mastercopy)
     /// @param node Node signing address
-    /// @param staking Address of indexer staking contract
+    /// @param controller Address of the controller contract
     /// @param CTDT Address of indexer-specific CTDT contract
     /// @param singleAssetInterpreter Address of indexer-specific singleAssetInterpreter contract
     /// @param multiAssetInterpreter Address of indexer-specific multiAssetInterpreter contract
     /// @param withdrawInterpreter Address of indexer-specific withdrawInterpreter contract
     constructor(
         address node,
-        address staking,
+        address controller,
         address CTDT,
         address singleAssetInterpreter,
         address multiAssetInterpreter,
         address withdrawInterpreter
     ) public {
         NODE_ADDRESS = node;
-        INDEXER_STAKING_ADDRESS = staking;
+        INDEXER_CONTROLLER_ADDRESS = controller;
         INDEXER_CTDT_ADDRESS = CTDT;
         INDEXER_SINGLE_ASSET_INTERPRETER_ADDRESS = singleAssetInterpreter;
         INDEXER_MULTI_ASSET_INTERPRETER_ADDRESS = multiAssetInterpreter;
@@ -72,8 +73,11 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
 
     /// @notice Modifier to revert if caller is not staking contract
     modifier onlyStaking {
+        IController controller = IController(
+            MinimumViableMultisig(masterCopy).INDEXER_CONTROLLER_ADDRESS()
+        );
         require(
-            msg.sender == MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS(),
+            msg.sender == controller.getContractProxy(keccak256("Staking")),
             "Caller must be the staking contract"
         );
         _;
@@ -117,7 +121,10 @@ contract MinimumViableMultisig is MultisigData, LibCommitment {
             );
         }
 
-        Staking staking = Staking(MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS());
+        IController controller = IController(
+            MinimumViableMultisig(masterCopy).INDEXER_CONTROLLER_ADDRESS()
+        );
+        Staking staking = Staking(controller.getContractProxy(keccak256("Staking")));
         address node = MinimumViableMultisig(masterCopy).NODE_ADDRESS();
 
         bool isNodeIndexerMultisig = _owners.length == 2 &&

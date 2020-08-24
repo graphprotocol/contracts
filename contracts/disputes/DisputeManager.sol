@@ -161,12 +161,13 @@ contract DisputeManager is Manager {
      * @param _slashingPercentage Percentage of indexer stake slashed (basis points)
      */
     constructor(
+        address _controller,
         address _arbitrator,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _slashingPercentage
     ) public {
-        Manager._initialize(msg.sender);
+        Manager._initialize(_controller);
         arbitrator = _arbitrator;
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;

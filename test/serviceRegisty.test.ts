@@ -30,7 +30,8 @@ describe('ServiceRegistry', () => {
   })
 
   beforeEach(async function () {
-    serviceRegistry = await deployment.deployServiceRegistry(me.signer)
+    const controller = await deployment.deployController(me.signer)
+    serviceRegistry = await deployment.deployServiceRegistry(me.signer, controller.address)
   })
 
   describe('register', function () {

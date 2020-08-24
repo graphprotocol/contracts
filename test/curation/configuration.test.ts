@@ -1,8 +1,6 @@
 import { expect } from 'chai'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
@@ -54,7 +52,7 @@ describe('Curation:Config', () => {
 
     it('reject set `defaultReserveRatio` if not allowed', async function () {
       const tx = curation.connect(me.signer).setDefaultReserveRatio(defaults.curation.reserveRatio)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -78,7 +76,7 @@ describe('Curation:Config', () => {
       const tx = curation
         .connect(me.signer)
         .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -98,7 +96,7 @@ describe('Curation:Config', () => {
 
     it('reject set `withdrawalFeePercentage` if not allowed', async function () {
       const tx = curation.connect(me.signer).setWithdrawalFeePercentage(0)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 })

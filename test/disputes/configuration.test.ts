@@ -1,8 +1,6 @@
 import { expect } from 'chai'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
@@ -19,18 +17,12 @@ describe('DisputeManager:Config', () => {
   let fixture: NetworkFixture
 
   let disputeManager: DisputeManager
-  let grt: GraphToken
-  let staking: Staking
 
   before(async function () {
     ;[me, governor, slasher, arbitrator] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ disputeManager, grt, staking } = await fixture.load(
-      governor.signer,
-      slasher.signer,
-      arbitrator.signer,
-    ))
+    ;({ disputeManager } = await fixture.load(governor.signer, slasher.signer, arbitrator.signer))
   })
 
   beforeEach(async function () {
@@ -42,16 +34,6 @@ describe('DisputeManager:Config', () => {
   })
 
   describe('configuration', () => {
-    it('should set `governor`', async function () {
-      // Set right in the constructor
-      expect(await disputeManager.governor()).eq(governor.address)
-    })
-
-    it('should set `graphToken`', async function () {
-      // Set right in the constructor
-      expect(await disputeManager.token()).eq(grt.address)
-    })
-
     describe('arbitrator', function () {
       it('should set `arbitrator`', async function () {
         // Set right in the constructor
@@ -64,7 +46,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `arbitrator` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setArbitrator(arbitrator.address)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
 
@@ -84,7 +66,7 @@ describe('DisputeManager:Config', () => {
       it('reject set `minimumDeposit` if not allowed', async function () {
         const newValue = toBN('1')
         const tx = disputeManager.connect(me.signer).setMinimumDeposit(newValue)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
 
@@ -127,7 +109,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `fishermanRewardPercentage` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setFishermanRewardPercentage(50)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
 
@@ -150,23 +132,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `slashingPercentage` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setSlashingPercentage(50)
-        await expect(tx).revertedWith('Only Governor can call')
-      })
-    })
-
-    describe('staking', function () {
-      it('should set `staking`', async function () {
-        // Set right in the constructor
-        expect(await disputeManager.staking()).eq(staking.address)
-
-        // Can set if allowed
-        await disputeManager.connect(governor.signer).setStaking(grt.address)
-        expect(await disputeManager.staking()).eq(grt.address)
-      })
-
-      it('reject set `staking` if not allowed', async function () {
-        const tx = disputeManager.connect(me.signer).setStaking(grt.address)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
   })
