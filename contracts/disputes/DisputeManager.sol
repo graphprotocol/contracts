@@ -494,7 +494,7 @@ contract DisputeManager is Manager {
         // Get attestation signer, allocationID
         address allocationID = _recoverAttestationSigner(_attestation);
 
-        IStaking.Allocation memory alloc = staking.getAllocation(allocationID);
+        IStaking.Allocation memory alloc = staking().getAllocation(allocationID);
         require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
             alloc.subgraphDeploymentID == _attestation.subgraphDeploymentID,
@@ -546,7 +546,7 @@ contract DisputeManager is Manager {
 
         // The indexer is disputable
         require(
-            staking.getIndexerStakedTokens(indexer) >= minimumIndexerStake,
+            staking().getIndexerStakedTokens(indexer) >= minimumIndexerStake,
             "Dispute under minimum indexer stake amount"
         );
 

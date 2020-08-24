@@ -86,7 +86,7 @@ describe('DisputeManager:Config', () => {
       it('reject set `minimumIndexerStake` if not allowed', async function () {
         const newValue = toGRT('100')
         const tx = disputeManager.connect(me.signer).setMinimumIndexerStake(newValue)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
 
