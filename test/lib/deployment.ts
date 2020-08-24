@@ -135,7 +135,7 @@ export async function deployDisputeManager(
   )) as DisputeManager
 
   // Config
-  await contract.connect(owner).setMinimumIndexerStake(defaults.dispute.minimumIndexerStake)
+  await contract.connect(deployer).setMinimumIndexerStake(defaults.dispute.minimumIndexerStake)
 
   return contract
 }
