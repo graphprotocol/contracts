@@ -3,13 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Manager.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
 
-contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager, Manager {
+contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;

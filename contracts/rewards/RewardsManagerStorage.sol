@@ -1,6 +1,8 @@
 pragma solidity ^0.6.4;
 
-contract RewardsManagerV1Storage {
+import "../governance/Manager.sol";
+
+contract RewardsManagerV1Storage is Manager {
     // -- State --
 
     struct Subgraph {

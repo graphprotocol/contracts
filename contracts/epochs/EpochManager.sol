@@ -2,7 +2,6 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Manager.sol";
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
@@ -13,7 +12,7 @@ import "./IEpochManager.sol";
  * @title EpochManager contract
  * @dev Produce epochs based on a number of blocks to coordinate contracts in the protocol.
  */
-contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager, Manager {
+contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager {
     using SafeMath for uint256;
 
     // -- Events --
