@@ -15,40 +15,41 @@ export class NetworkFixture {
   }
 
   async load(
-    governor: Signer,
+    deployer: Signer,
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
   ) {
+    // Roles
     const arbitratorAddress = await arbitrator.getAddress()
     const slasherAddress = await slasher.getAddress()
 
     // Deploy contracts
-    const controller = await deployment.deployController(governor)
+    const controller = await deployment.deployController(deployer)
+    const epochManager = await deployment.deployEpochManager(deployer, controller.address)
+    const grt = await deployment.deployGRT(deployer)
+    const curation = await deployment.deployCuration(deployer, controller.address)
+    const didRegistry = await deployment.deployEthereumDIDRegistry(deployer)
+    const gns = await deployment.deployGNS(deployer, controller.address, didRegistry.address)
+    const staking = await deployment.deployStaking(deployer, controller.address)
+    const disputeManager = await deployment.deployDisputeManager(
+      deployer,
+      controller.address,
+      arbitratorAddress,
+    )
+    const rewardsManager = await deployment.deployRewardsManager(deployer, controller.address)
 
-    const epochManager = await deployment.deployEpochManager(governor)
+    // Setup controller
     await controller.setContract(this.stringToBytes32('EpochManager'), epochManager.address)
-    const grt = await deployment.deployGRT(governor)
     await controller.setContract(this.stringToBytes32('GraphToken'), grt.address)
-
-    const curation = await deployment.deployCuration(governor)
     await controller.setContract(this.stringToBytes32('Curation'), curation.address)
-
-    const didRegistry = await deployment.deployEthereumDIDRegistry(governor)
-
-    const gns = await deployment.deployGNS(governor, didRegistry.address)
-    // GMMM TODO - manybe i need the prtoxuy addrodes, not the adhfuclt adrers!
-
-    const staking = await deployment.deployStaking(governor)
     await controller.setContract(this.stringToBytes32('Staking'), staking.address)
-
-    const disputeManager = await deployment.deployDisputeManager(governor, arbitratorAddress)
-
-    const rewardsManager = await deployment.deployRewardsManager(governor)
     await controller.setContract(this.stringToBytes32('RewardsManager'), rewardsManager.address)
 
-    // Function calls
-    await staking.connect(governor).setSlasher(slasherAddress, true)
-    await grt.connect(governor).addMinter(rewardsManager.address)
+    // Setup contracts
+    await staking.connect(deployer).setSlasher(slasherAddress, true)
+    await grt.connect(deployer).addMinter(rewardsManager.address)
+    await gns.connect(deployer).approveAll()
+    await rewardsManager.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
 
     return {
       controller,

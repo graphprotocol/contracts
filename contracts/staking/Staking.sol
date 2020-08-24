@@ -194,24 +194,21 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(
-        address _controller
-    ) external onlyImpl {
+    function initialize(address _controller) external onlyImpl {
         Manager._initialize(_controller);
     }
 
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
+     * @param _controller Controller for this contract
      */
-    function acceptProxy(
-        GraphProxy _proxy
-    ) external {
+    function acceptProxy(GraphProxy _proxy, address _controller) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        Staking(address(_proxy)).initialize(_proxy.admin());
+        Staking(address(_proxy)).initialize(_controller);
     }
 
     /**
@@ -572,7 +569,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking, Manager {
         require(tokensToWithdraw > 0, "Staking: no tokens available to withdraw");
 
         // Return tokens to the indexer
-        require(graphToken().transfer(indexer, tokensToWithdraw), "Staking: cannot transfer tokens");
+        require(
+            graphToken().transfer(indexer, tokensToWithdraw),
+            "Staking: cannot transfer tokens"
+        );
 
         emit StakeWithdrawn(indexer, tokensToWithdraw);
     }

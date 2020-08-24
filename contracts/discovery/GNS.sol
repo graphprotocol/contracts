@@ -167,12 +167,16 @@ contract GNS is Manager, BancorFormula {
      * @dev Contract Constructor.
      * @param _didRegistry Address of the Ethereum DID registry
      */
-    constructor(
-        address _didRegistry
-    ) public {
-        Manager._initialize(msg.sender);
+    constructor(address _controller, address _didRegistry) public {
+        Manager._initialize(_controller);
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
-        graphToken().approve(address(0x23D1B1823e6Cb5229137424f88C70fdA1539F1F9), uint256(-1));
+    }
+
+    /**
+     * @dev Approve curation contract to pull funds.
+     */
+    function approveAll() external onlyGovernor {
+        graphToken().approve(address(curation()), uint256(-1));
     }
 
     /**
@@ -526,7 +530,10 @@ contract GNS is Manager, BancorFormula {
         namePool.nSignal = namePool.nSignal.sub(_nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
         // Return the tokens to the nameCurator
-        require(graphToken().transfer(nameCurator, tokens), "GNS: Error sending nameCurators tokens");
+        require(
+            graphToken().transfer(nameCurator, tokens),
+            "GNS: Error sending nameCurators tokens"
+        );
         emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
         return (vSignal, tokens);
     }

@@ -39,14 +39,19 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager,
     /**
      * @dev Accept to be an implementation of proxy and run initializer.
      * @param _proxy Graph proxy delegate caller
+     * @param _controller Controller for this contract
      * @param _epochLength Epoch length in blocks
      */
-    function acceptProxy(GraphProxy _proxy, uint256 _epochLength) external {
+    function acceptProxy(
+        GraphProxy _proxy,
+        address _controller,
+        uint256 _epochLength
+    ) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        EpochManager(address(_proxy)).initialize(_proxy.admin(), _epochLength);
+        EpochManager(address(_proxy)).initialize(_controller, _epochLength);
     }
 
     /**
