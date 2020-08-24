@@ -766,7 +766,7 @@ describe('GNS', () => {
 
       it('reject set `minimumVSignalStake` if not allowed', async function () {
         const tx = gns.connect(me.signer).setMinimumVsignal(newValue)
-        await expect(tx).revertedWith('Only Governor can call')
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
   })

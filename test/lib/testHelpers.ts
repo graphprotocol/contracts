@@ -34,6 +34,10 @@ export const getAccounts = async (): Promise<Account[]> => {
   return accounts
 }
 
+export const stringToBytes32 = (str: string): string => {
+  return utils.keccak256(utils.toUtf8Bytes(str))
+}
+
 export const getChainID = (): Promise<number> => {
   // HACK: this fixes ganache returning always 1 when a contract calls the chainid() opcode
   if (buidler.network.name == 'ganache') {

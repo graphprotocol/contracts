@@ -1,14 +1,9 @@
 import { expect } from 'chai'
-import { constants } from 'ethers'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, Account } from '../lib/testHelpers'
-
-const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
 
@@ -20,15 +15,13 @@ describe('Staking:Config', () => {
 
   let fixture: NetworkFixture
 
-  let curation: Curation
-  let grt: GraphToken
   let staking: Staking
 
   before(async function () {
     ;[me, other, governor, slasher] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation, grt, staking } = await fixture.load(governor.signer, slasher.signer))
+    ;({ staking } = await fixture.load(governor.signer, slasher.signer))
   })
 
   beforeEach(async function () {
@@ -37,16 +30,6 @@ describe('Staking:Config', () => {
 
   afterEach(async function () {
     await fixture.tearDown()
-  })
-
-  it('should set `governor`', async function () {
-    // Set right in the constructor
-    expect(await staking.governor()).eq(governor.address)
-  })
-
-  it('should set `graphToken`', async function () {
-    // Set right in the constructor
-    expect(await staking.token()).eq(grt.address)
   })
 
   describe('setSlasher', function () {
@@ -58,7 +41,7 @@ describe('Staking:Config', () => {
 
     it('reject set `slasher` if not allowed', async function () {
       const tx = staking.connect(other.signer).setSlasher(me.address, true)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -72,22 +55,7 @@ describe('Staking:Config', () => {
     it('reject set `channelDisputeEpochs` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setChannelDisputeEpochs(newValue)
-      await expect(tx).revertedWith('Only Governor can call')
-    })
-  })
-
-  describe('curation', function () {
-    it('should set `curation`', async function () {
-      // Set right in the constructor
-      expect(await staking.curation()).eq(curation.address)
-
-      await staking.connect(governor.signer).setCuration(AddressZero)
-      expect(await staking.curation()).eq(AddressZero)
-    })
-
-    it('reject set `curation` if not allowed', async function () {
-      const tx = staking.connect(other.signer).setCuration(AddressZero)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -106,7 +74,7 @@ describe('Staking:Config', () => {
 
     it('reject set `curationPercentage` if not allowed', async function () {
       const tx = staking.connect(other.signer).setCurationPercentage(50)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -126,7 +94,7 @@ describe('Staking:Config', () => {
 
     it('reject set `protocolPercentage` if not allowed', async function () {
       const tx = staking.connect(other.signer).setProtocolPercentage(50)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -140,7 +108,7 @@ describe('Staking:Config', () => {
     it('reject set `maxAllocationEpochs` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setMaxAllocationEpochs(newValue)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 
@@ -154,7 +122,7 @@ describe('Staking:Config', () => {
     it('reject set `thawingPeriod` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setThawingPeriod(newValue)
-      await expect(tx).revertedWith('Only Governor can call')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
 })

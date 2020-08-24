@@ -127,6 +127,7 @@ export async function deployDisputeManager(
   const contract = (await deployContract(
     'DisputeManager',
     deployer,
+    controller,
     arbitrator,
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,

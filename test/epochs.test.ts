@@ -27,15 +27,11 @@ describe('EpochManager', () => {
   })
 
   beforeEach(async function () {
-    epochManager = await deployment.deployEpochManager(governor.signer)
+    const controller = await deployment.deployController(governor.signer)
+    epochManager = await deployment.deployEpochManager(governor.signer, controller.address)
   })
 
   describe('configuration', () => {
-    it('should set `governor`', async function () {
-      // Set right in the constructor
-      expect(await epochManager.governor()).eq(governor.address)
-    })
-
     it('should set `epochLength', async function () {
       // Set right in the constructor
       expect(await epochManager.epochLength()).eq(defaults.epochs.lengthInBlocks)

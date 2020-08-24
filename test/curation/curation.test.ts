@@ -3,9 +3,17 @@ import { BigNumber, Event } from 'ethers'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
+import { Controller } from '../../build/typechain/contracts/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
+import {
+  getAccounts,
+  randomHexBytes,
+  toBN,
+  toGRT,
+  Account,
+  stringToBytes32,
+} from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -35,6 +43,7 @@ describe('Curation', () => {
 
   let curation: Curation
   let grt: GraphToken
+  let controller: Controller
 
   // Test values
   const signalAmountFor1000Tokens = toGRT('3.162277660168379331')
@@ -155,13 +164,11 @@ describe('Curation', () => {
   }
 
   before(async function () {
+    // Use stakingMock so we can call collect
     ;[me, governor, curator, stakingMock] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation, grt } = await fixture.load(governor.signer))
-
-    // Replace the staking contract with a mock so we can call collect
-    await curation.connect(governor.signer).setStaking(stakingMock.address)
+    ;({ controller, curation, grt } = await fixture.load(governor.signer))
 
     // Give some funds to the curator and approve the curation contract
     await grt.connect(governor.signer).mint(curator.address, curatorTokens)
@@ -261,6 +268,9 @@ describe('Curation', () => {
     context('> not curated', async function () {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
+        await controller
+          .connect(governor.signer)
+          .setContract(stringToBytes32('Staking'), stakingMock.address)
         const tx = curation
           .connect(stakingMock.signer)
           .collect(subgraphDeploymentID, tokensToCollect)
@@ -279,6 +289,9 @@ describe('Curation', () => {
       })
 
       it('should collect tokens distributed to the curation pool', async function () {
+        await controller
+          .connect(governor.signer)
+          .setContract(stringToBytes32('Staking'), stakingMock.address)
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
         await shouldCollect(toGRT('100'))

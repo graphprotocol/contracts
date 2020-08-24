@@ -1,17 +1,13 @@
-import { Wallet, Signer, utils } from 'ethers'
+import { Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert } from './testHelpers'
+import { evmSnapshot, evmRevert, stringToBytes32 } from './testHelpers'
 
 export class NetworkFixture {
   lastSnapshotId: number
 
   constructor() {
     this.lastSnapshotId = 0
-  }
-
-  stringToBytes32 = (str: string) => {
-    return utils.keccak256(utils.toUtf8Bytes(str))
   }
 
   async load(
@@ -39,11 +35,11 @@ export class NetworkFixture {
     const rewardsManager = await deployment.deployRewardsManager(deployer, controller.address)
 
     // Setup controller
-    await controller.setContract(this.stringToBytes32('EpochManager'), epochManager.address)
-    await controller.setContract(this.stringToBytes32('GraphToken'), grt.address)
-    await controller.setContract(this.stringToBytes32('Curation'), curation.address)
-    await controller.setContract(this.stringToBytes32('Staking'), staking.address)
-    await controller.setContract(this.stringToBytes32('RewardsManager'), rewardsManager.address)
+    await controller.setContract(stringToBytes32('EpochManager'), epochManager.address)
+    await controller.setContract(stringToBytes32('GraphToken'), grt.address)
+    await controller.setContract(stringToBytes32('Curation'), curation.address)
+    await controller.setContract(stringToBytes32('Staking'), staking.address)
+    await controller.setContract(stringToBytes32('RewardsManager'), rewardsManager.address)
 
     // Setup contracts
     await staking.connect(deployer).setSlasher(slasherAddress, true)
