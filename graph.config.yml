@@ -37,10 +37,6 @@ contracts:
     calls:
       - fn: "setMinimumIndexerStake"
         minimumIndexerStake: "1000000000000000000" # 1 GRT (in wei)
-  EpochManager:
-    init:
-      lengthInBlocks: 275 # ~1 hour (in blocks)
-    proxy: true
   GNS:
     init:
       didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
