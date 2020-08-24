@@ -3,8 +3,29 @@ general:
   nodeSignerAddress: &nodeSignerAddress "0xb967724FE9aD707cEa1853609f636891b5BFAa66"
 
 contracts:
+  Controller:
+    calls:
+      - fn: "setContractProxy"
+        id: "0xe6876326c1291dfcbbd3864a6816d698cd591defc7aa2153d7f9c4c04016c89f" # keccak256('Curation')
+        contractAddress: "${{Curation.address}}"
+      - fn: "setContractProxy"
+        id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
+        contractAddress: "${{GNS.address}}"
+      - fn: "setContractProxy"
+        id: "0xf942813d07d17b56de9a9afc8de0ced6e8c053bbfdcc87b7badea4ddcf27c307" # keccak256('DisputeManager')
+        contractAddress: "${{DisputeManager.address}}"
+      - fn: "setContractProxy"
+        id: "0xc713c3df6d14cdf946460395d09af88993ee2b948b1a808161494e32c5f67063" # keccak256('EpochManager')
+        contractAddress: "${{EpochManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x966f1e8d8d8014e05f6ec4a57138da9be1f7c5a7f802928a18072f7c53180761" # keccak256('RewardsManager')
+        contractAddress: "${{RewardsManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034" # keccak256('Staking')
+        contractAddress: "${{Staking.address}}"
   EpochManager:
     init:
+      controller: "${{Controller.address}}"
       lengthInBlocks: 275 # ~1 hour (in blocks)
     proxy: true
   GraphToken:
@@ -15,22 +36,17 @@ contracts:
         minter: "${{RewardsManager.address}}"
   Curation:
     init:
-      token: "${{GraphToken.address}}"
+      controller: "${{Controller.address}}"
       reserveRatio: 500000 # 50% (in basis points)
       minimumCurationDeposit: "100000000000000000000" # 100 GRT
     proxy: true
     calls:
       - fn: "setWithdrawalFeePercentage"
         withdrawalFeePercentage: 50000 # 5% (in basis points)
-      - fn: "setStaking"
-        staking: "${{Staking.address}}"
-      - fn: "setRewardsManager"
-        thawingPeriod: "${{RewardsManager.address}}"
   DisputeManager:
     init:
+      controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      token: "${{GraphToken.address}}"
-      staking: "${{Staking.address}}"
       minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
@@ -39,17 +55,13 @@ contracts:
         minimumIndexerStake: "1000000000000000000" # 1 GRT (in wei)
   GNS:
     init:
+      controller: "${{Controller.address}}"
       didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
-      curation: "${{Curation.address}}"
-      token: "${{GraphToken.address}}"
   Staking:
     init:
-      token: "${{GraphToken.address}}"
-      epochManager: "${{EpochManager.address}}"
+      controller: "${{Controller.address}}"
     proxy: true
     calls:
-      - fn: "setCuration"
-        curation: "${{Curation.address}}"
       - fn: "setCurationPercentage"
         percentage: 100000 # 10%
       - fn: "setChannelDisputeEpochs"
@@ -58,18 +70,16 @@ contracts:
         maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
       - fn: "setThawingPeriod"
         thawingPeriod: 275 # ~1 hour (in blocks)
-      - fn: "setRewardsManager"
-        rewardsManager: "${{RewardsManager.address}}"
       - fn: "setDelegationCapacity"
         delegationCapacity: 1 # 100% (multiplier)
       - fn: "setProtocolPercentage"
         protocolPercentage: 10000 # 1% (in basis points)
   RewardsManager:
     init:
-      token: "${{GraphToken.address}}"
-      curation: "${{Curation.address}}"
-      staking: "${{Staking.address}}"
-      issuanceRate: "1000000023206889619" # 5% annual rate
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "setIssuanceRate"
+        issuanceRate: "1000000023206889619" # 5% annual rate
     proxy: true
   MinimumViableMultisig:
     init:

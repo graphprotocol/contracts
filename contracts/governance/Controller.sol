@@ -15,8 +15,8 @@ contract Controller is IController, Governed {
 
     // Todo - add in guardian, but in the next PR
 
-    constructor(address _governor) public {
-        Governed._initialize(_governor);
+    constructor() public {
+        Governed._initialize(msg.sender);
     }
 
     /**
