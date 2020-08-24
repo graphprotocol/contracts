@@ -80,7 +80,7 @@ async function deployContract(contractName: string, deployer?: Signer, ...params
 }
 
 export async function deployController(deployer: Signer): Promise<Controller> {
-  return deployContract('Controller', deployer, await deployer.getAddress()) as Promise<Controller>
+  return deployContract('Controller', deployer) as Promise<Controller>
 }
 
 export async function deployGRT(deployer: Signer): Promise<GraphToken> {

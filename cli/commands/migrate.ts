@@ -16,6 +16,7 @@ const { EtherSymbol } = constants
 const { formatEther } = utils
 
 const allContracts = [
+  'Controller',
   'EpochManager',
   'GraphToken',
   'ServiceRegistry',
@@ -98,6 +99,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
       logger.log(`= Config: ${entry.name}`)
       for (const call of entry.calls) {
+        logger.log(`    Calling ${call.fn}:`)
         await sendTransaction(
           cli.wallet,
           entry.contract,
