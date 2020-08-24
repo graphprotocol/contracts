@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import "../staking/Staking.sol";
 import "../token/IGraphToken.sol";
-import "../governance/IController.sol";
 
 import "./MultisigData.sol";
 import "./MinimumViableMultisig.sol";
@@ -23,12 +22,8 @@ contract IndexerMultisigTransfer is MultisigData {
         address assetId,
         uint256 amount
     ) public {
-        IController controller = IController(
-            MinimumViableMultisig(masterCopy).INDEXER_CONTROLLER_ADDRESS()
-        );
-        Staking staking = Staking(controller.getContractProxy(keccak256("Staking")));
-        IGraphToken token = IGraphToken(0x71f250B2b52EB84608fA2Bd02c08B407E89594A1);
-        // IGraphToken token = staking.graphToken(); // TODO - unhardcode this
+        Staking staking = Staking(MinimumViableMultisig(masterCopy).INDEXER_STAKING_ADDRESS());
+        IGraphToken token = staking.token();
 
         if (assetId != address(token)) {
             return;
