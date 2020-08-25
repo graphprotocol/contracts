@@ -269,7 +269,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Calculate current rewards for a given allocation.
+     * @dev Calculate current rewards for a given allocation on demand.
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
@@ -279,8 +279,28 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         (uint256 accRewardsPerAllocatedToken, uint256 _) = getAccRewardsPerAllocatedToken(
             alloc.subgraphDeploymentID
         );
-        uint256 newAccrued = accRewardsPerAllocatedToken.sub(alloc.accRewardsPerAllocatedToken);
-        return newAccrued.mul(alloc.tokens).div(TOKEN_DECIMALS);
+        return
+            _calcRewards(
+                alloc.tokens,
+                alloc.accRewardsPerAllocatedToken,
+                accRewardsPerAllocatedToken
+            );
+    }
+
+    /**
+     * @dev Calculate current rewards for a given allocation.
+     * @param _tokens Tokens allocated
+     * @param _startAccRewardsPerAllocatedToken Allocation start accumulated rewards
+     * @param _endAccRewardsPerAllocatedToken Allocation end accumulated rewards
+     * @return Rewards amount
+     */
+    function _calcRewards(
+        uint256 _tokens,
+        uint256 _startAccRewardsPerAllocatedToken,
+        uint256 _endAccRewardsPerAllocatedToken
+    ) internal pure returns (uint256) {
+        uint256 newAccrued = _endAccRewardsPerAllocatedToken.sub(_startAccRewardsPerAllocatedToken);
+        return newAccrued.mul(_tokens).div(TOKEN_DECIMALS);
     }
 
     /**
@@ -291,13 +311,19 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function assignRewards(address _allocationID) external override onlyStaking returns (uint256) {
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
-        onSubgraphAllocationUpdate(alloc.subgraphDeploymentID);
+        uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
+            alloc.subgraphDeploymentID
+        );
 
         // Do not do rewards on denied subgraph deployments ID
         uint256 rewards = 0;
         if (!isDenied(alloc.subgraphDeploymentID)) {
             // Calculate rewards and set apart for claiming
-            rewards = getRewards(_allocationID);
+            rewards = _calcRewards(
+                alloc.tokens,
+                alloc.accRewardsPerAllocatedToken,
+                accRewardsPerAllocatedToken
+            );
             indexerRewards[alloc.indexer] = indexerRewards[alloc.indexer].add(rewards);
         }
 

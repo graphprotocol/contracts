@@ -6,14 +6,34 @@ import "../governance/Managed.sol";
 
 /*
  * @title DisputeManager
- * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
+ * @dev Provides a way to align the incentives of participants by having slashing as deterrent
+ * for incorrect behaviour.
+ *
+ * There are two types of disputes that can be presented: Query disputes and Indexing disputes.
+ *
+ * Query Disputes:
+ * Graph nodes receive queries an return responses with a signed receipts called attestations.
+ * An attestation can be disputed if the consumer thinks the query response was invalid.
+ * Indexers use the derived private key for an allocation to sign attestations.
+ *
+ * Indexing Disputes:
+ * Indexers present a Proof of Indexing (POI) when they close allocations to proove
+ * they were indexing a subgraph. The Staking contract emits that proof with the format
+ * keccak256(indexer.address, POI).
+ * Any challenger can dispute the validity of a POI by submitting a dispute to this contract
+ * along with a deposit.
+ *
+ * Arbitration:
+ * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
+ * to a EOA or DAO.
  */
 contract DisputeManager is Managed {
     using SafeMath for uint256;
 
+    // -- Dispute --
+
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
     struct Dispute {
-        bytes32 subgraphDeploymentID;
         address indexer;
         address fisherman;
         uint256 deposit;
@@ -55,16 +75,14 @@ contract DisputeManager is Managed {
         "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
     );
 
+    // -- Constants --
+
     // 100% in parts per million
     uint256 private constant MAX_PPM = 1000000;
 
     // -- State --
 
     bytes32 private DOMAIN_SEPARATOR;
-
-    // Disputes created : disputeID => Dispute
-    // disputeID is the hash of attestation data
-    mapping(bytes32 => Dispute) public disputes;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;
@@ -83,56 +101,67 @@ contract DisputeManager is Managed {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public slashingPercentage;
 
+    // Disputes created : disputeID => Dispute
+    // disputeID - check creation functions to see how disputeID is built
+    mapping(bytes32 => Dispute) public disputes;
+
     // -- Events --
 
     /**
-     * @dev Emitted when `disputeID` is created for `subgraphDeploymentID` and `indexer`
+     * @dev Emitted when a query dispute is created for `subgraphDeploymentID` and `indexer`
      * by `fisherman`.
-     * The event emits the amount `tokens` deposited by the fisherman and `attestation` submitted.
+     * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
      */
-    event DisputeCreated(
-        bytes32 disputeID,
-        bytes32 indexed subgraphDeploymentID,
+    event QueryDisputeCreated(
+        bytes32 indexed disputeID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
+        bytes32 subgraphDeploymentID,
         bytes attestation
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` for `subgraphDeploymentID` and `indexer`
-     * created by `fisherman`.
+     * @dev Emitted when an indexing dispute is created for `allocationID` and `indexer`
+     * by `fisherman`.
+     * The event emits the amount of `tokens` deposited by the fisherman.
+     */
+    event IndexingDisputeCreated(
+        bytes32 indexed disputeID,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        address allocationID
+    );
+
+    /**
+     * @dev Emitted when arbitrator accepts a `disputeID` to `indexer` created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
-        bytes32 disputeID,
-        bytes32 indexed subgraphDeploymentID,
+        bytes32 indexed disputeID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `subgraphDeploymentID` and `indexer`
-     * created by `fisherman`.
+     * @dev Emitted when arbitrator rejects a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
-        bytes32 disputeID,
-        bytes32 indexed subgraphDeploymentID,
+        bytes32 indexed disputeID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `subgraphDeploymentID` and `indexer`
-     * created by `fisherman`.
+     * @dev Emitted when arbitrator draw a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
     event DisputeDrawn(
-        bytes32 disputeID,
-        bytes32 indexed subgraphDeploymentID,
+        bytes32 indexed disputeID,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
@@ -184,68 +213,6 @@ contract DisputeManager is Managed {
                 DOMAIN_SALT
             )
         );
-    }
-
-    /**
-     * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with ID `_disputeID` exists
-     * @param _disputeID True if dispute already exists
-     */
-    function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
-        return disputes[_disputeID].fisherman != address(0);
-    }
-
-    /**
-     * @dev Get the fisherman reward for a given indexer stake.
-     * @notice Return the fisherman reward based on the `_indexer` stake
-     * @param _indexer Indexer to be slashed
-     * @return Reward calculated as percentage of the indexer slashed funds
-     */
-    function getTokensToReward(address _indexer) public view returns (uint256) {
-        uint256 tokens = getTokensToSlash(_indexer);
-        if (tokens == 0) {
-            return 0;
-        }
-        return uint256(fishermanRewardPercentage).mul(tokens).div(MAX_PPM);
-    }
-
-    /**
-     * @dev Get the amount of tokens to slash for an indexer based on the current stake.
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens to slash
-     */
-    function getTokensToSlash(address _indexer) public view returns (uint256) {
-        uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
-        if (tokens == 0) {
-            return 0;
-        }
-        return uint256(slashingPercentage).mul(tokens).div(MAX_PPM);
-    }
-
-    /**
-     * @dev Get the message hash that an indexer used to sign the receipt.
-     * Encodes a receipt using a domain separator, as described on
-     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
-     * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by indexer and submitted by fisherman
-     * @return Message hash used to sign the receipt
-     */
-    function encodeHashReceipt(Receipt memory _receipt) public view returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            RECEIPT_TYPE_HASH,
-                            _receipt.requestCID,
-                            _receipt.responseCID,
-                            _receipt.subgraphDeploymentID
-                        ) // EIP 712-encoded message hash
-                    )
-                )
-            );
     }
 
     /**
@@ -301,172 +268,38 @@ contract DisputeManager is Managed {
     }
 
     /**
-     * @dev Create a dispute for the arbitrator to resolve.
-     * This function is called by a fisherman and will need to `_deposit` at
-     * least `minimumDeposit` GRT tokens.
-     * @param _attestationData Attestation bytes submitted by the fisherman
-     * @param _deposit Amount of tokens staked as deposit
+     * @dev Return whether a dispute exists or not.
+     * @notice Return if dispute with ID `_disputeID` exists
+     * @param _disputeID True if dispute already exists
      */
-    function createDispute(bytes calldata _attestationData, uint256 _deposit) external {
-        address fisherman = msg.sender;
-
-        // Ensure that fisherman has staked at least the minimum amount
-        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
-
-        // Transfer tokens to deposit from fisherman to this contract
-        require(
-            graphToken().transferFrom(fisherman, address(this), _deposit),
-            "Cannot transfer tokens to deposit"
-        );
-
-        // Create a dispute using the received attestation and deposit
-        _createDispute(fisherman, _deposit, _attestationData);
+    function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
+        return disputes[_disputeID].fisherman != address(0);
     }
 
     /**
-     * @dev Create disputes for conflicting attestations.
-     * A conflicting attestation is a proof presented by two different indexers
-     * where for the same request on a subgraph the response is different.
-     * For this type of dispute the submitter is not required to present a deposit
-     * as one of the attestation is considered to be right.
-     * Two linked disputes will be created and if the arbitrator resolve one, the other
-     * one will be automatically resolved.
-     * @param _attestationData1 First ttestation data submitted
-     * @param _attestationData1 Second attestation data submitted
+     * @dev Get the message hash that an indexer used to sign the receipt.
+     * Encodes a receipt using a domain separator, as described on
+     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
+     * @notice Return the message hash used to sign the receipt
+     * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @return Message hash used to sign the receipt
      */
-    function createDisputesInConflict(
-        bytes calldata _attestationData1,
-        bytes calldata _attestationData2
-    ) external {
-        address fisherman = msg.sender;
-
-        // Parse each attestation
-        Attestation memory attestation1 = _parseAttestation(_attestationData1);
-        Attestation memory attestation2 = _parseAttestation(_attestationData2);
-
-        // Test that attestations are conflicting
-        require(
-            areConflictingAttestations(attestation1, attestation2),
-            "Attestations must be in conflict"
-        );
-
-        // Create the disputes
-        // The deposit is zero for conflicting attestations
-        bytes32 dID1 = _createDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
-        bytes32 dID2 = _createDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
-
-        // Store the linked disputes to be resolved
-        disputes[dID1].relatedDisputeID = dID2;
-        disputes[dID2].relatedDisputeID = dID1;
-
-        // Emit event that links the two created disputes
-        emit DisputeLinked(dID1, dID2);
-    }
-
-    /**
-     * @dev The arbitrator can accept a dispute as being valid.
-     * @notice Accept a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be accepted
-     */
-    function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
-
-        // Have staking contract slash the indexer and reward the fisherman
-        // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
-        uint256 tokensToSlash = getTokensToSlash(dispute.indexer);
-        uint256 tokensToReward = getTokensToReward(dispute.indexer);
-
-        require(tokensToSlash > 0, "Dispute has zero tokens to slash");
-        staking().slash(dispute.indexer, tokensToSlash, tokensToReward, dispute.fisherman);
-
-        // Give the fisherman their deposit back
-        if (dispute.deposit > 0) {
-            require(
-                graphToken().transfer(dispute.fisherman, dispute.deposit),
-                "Error sending dispute deposit"
+    function encodeHashReceipt(Receipt memory _receipt) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                    DOMAIN_SEPARATOR,
+                    keccak256(
+                        abi.encode(
+                            RECEIPT_TYPE_HASH,
+                            _receipt.requestCID,
+                            _receipt.responseCID,
+                            _receipt.subgraphDeploymentID
+                        ) // EIP 712-encoded message hash
+                    )
+                )
             );
-        }
-
-        // Resolve the conflicting dispute if any
-        _resolveDisputeInConflict(dispute);
-
-        emit DisputeAccepted(
-            _disputeID,
-            dispute.subgraphDeploymentID,
-            dispute.indexer,
-            dispute.fisherman,
-            dispute.deposit.add(tokensToReward)
-        );
-    }
-
-    /**
-     * @dev The arbitrator can reject a dispute as being invalid.
-     * @notice Reject a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be rejected
-     */
-    function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
-
-        require(
-            !_isDisputeInConflict(dispute),
-            "Dispute for conflicting attestation, must accept the related ID to reject"
-        );
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
-
-        // Burn the fisherman's deposit
-        if (dispute.deposit > 0) {
-            graphToken().burn(dispute.deposit);
-        }
-
-        emit DisputeRejected(
-            _disputeID,
-            dispute.subgraphDeploymentID,
-            dispute.indexer,
-            dispute.fisherman,
-            dispute.deposit
-        );
-    }
-
-    /**
-     * @dev The arbitrator can draw dispute.
-     * @notice Ignore a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be disregarded
-     */
-    function drawDispute(bytes32 _disputeID) external onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
-
-        // Return deposit to the fisherman
-        if (dispute.deposit > 0) {
-            require(
-                graphToken().transfer(dispute.fisherman, dispute.deposit),
-                "Error sending dispute deposit"
-            );
-        }
-
-        // Resolve the conflicting dispute
-        _resolveDisputeInConflict(dispute);
-
-        emit DisputeDrawn(
-            _disputeID,
-            dispute.subgraphDeploymentID,
-            dispute.indexer,
-            dispute.fisherman,
-            dispute.deposit
-        );
     }
 
     /**
@@ -498,26 +331,56 @@ contract DisputeManager is Managed {
         require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
             alloc.subgraphDeploymentID == _attestation.subgraphDeploymentID,
-            "Channel and attestation subgraphDeploymentID must match"
+            "Allocation and attestation subgraphDeploymentID must match"
         );
         return alloc.indexer;
     }
 
     /**
-     * @dev Create a dispute for the arbitrator to resolve.
-     * @param _fisherman Creator of dispute
-     * @param _deposit Amount of tokens staked as deposit
-     * @param _attestationData Attestation bytes submitted by the fisherman
-     * @return DisputeID
+     * @dev Get the fisherman reward for a given indexer stake.
+     * @notice Return the fisherman reward based on the `_indexer` stake
+     * @param _indexer Indexer to be slashed
+     * @return Reward calculated as percentage of the indexer slashed funds
      */
-    function _createDispute(
-        address _fisherman,
-        uint256 _deposit,
-        bytes memory _attestationData
-    ) internal returns (bytes32) {
+    function getTokensToReward(address _indexer) public view returns (uint256) {
+        uint256 tokens = getTokensToSlash(_indexer);
+        if (tokens == 0) {
+            return 0;
+        }
+        return uint256(fishermanRewardPercentage).mul(tokens).div(MAX_PPM);
+    }
+
+    /**
+     * @dev Get the amount of tokens to slash for an indexer based on the current stake.
+     * @param _indexer Address of the indexer
+     * @return Amount of tokens to slash
+     */
+    function getTokensToSlash(address _indexer) public view returns (uint256) {
+        uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
+        if (tokens == 0) {
+            return 0;
+        }
+        return uint256(slashingPercentage).mul(tokens).div(MAX_PPM);
+    }
+
+    /**
+     * @dev Create a query dispute for the arbitrator to resolve.
+     * This function is called by a fisherman that will need to `_deposit` at
+     * least `minimumDeposit` GRT tokens.
+     * @param _attestationData Attestation bytes submitted by the fisherman
+     * @param _deposit Amount of tokens staked as deposit
+     */
+    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit)
+        external
+        returns (bytes32)
+    {
+        // Get funds from submitter
+        _pullSubmitterDeposit(_deposit);
+
+        // Create a dispute
         return
-            _createDisputeWithAttestation(
-                _fisherman,
+            _createQueryDisputeWithAttestation(
+                msg.sender,
                 _deposit,
                 _parseAttestation(_attestationData),
                 _attestationData
@@ -525,9 +388,59 @@ contract DisputeManager is Managed {
     }
 
     /**
-     * @dev Create a dispute passing the parsed attestation.
-     * This function purpose is to be reused in createDispute() and createDisputeInConflict()
-     * to avoid parseAttestation() multiple times
+     * @dev Create query disputes for two conflicting attestations.
+     * A conflicting attestation is a proof presented by two different indexers
+     * where for the same request on a subgraph the response is different.
+     * For this type of dispute the submitter is not required to present a deposit
+     * as one of the attestation is considered to be right.
+     * Two linked disputes will be created and if the arbitrator resolve one, the other
+     * one will be automatically resolved.
+     * @param _attestationData1 First attestation data submitted
+     * @param _attestationData1 Second attestation data submitted
+     */
+    function createQueryDisputeConflict(
+        bytes calldata _attestationData1,
+        bytes calldata _attestationData2
+    ) external {
+        address fisherman = msg.sender;
+
+        // Parse each attestation
+        Attestation memory attestation1 = _parseAttestation(_attestationData1);
+        Attestation memory attestation2 = _parseAttestation(_attestationData2);
+
+        // Test that attestations are conflicting
+        require(
+            areConflictingAttestations(attestation1, attestation2),
+            "Attestations must be in conflict"
+        );
+
+        // Create the disputes
+        // The deposit is zero for conflicting attestations
+        bytes32 dID1 = _createQueryDisputeWithAttestation(
+            fisherman,
+            0,
+            attestation1,
+            _attestationData1
+        );
+        bytes32 dID2 = _createQueryDisputeWithAttestation(
+            fisherman,
+            0,
+            attestation2,
+            _attestationData2
+        );
+
+        // Store the linked disputes to be resolved
+        disputes[dID1].relatedDisputeID = dID2;
+        disputes[dID2].relatedDisputeID = dID1;
+
+        // Emit event that links the two created disputes
+        emit DisputeLinked(dID1, dID2);
+    }
+
+    /**
+     * @dev Create a query dispute passing the parsed attestation.
+     * To be used in createQueryDispute() and createQueryDisputeConflict()
+     * to avoid calling parseAttestation() multiple times
      * `_attestationData` is only passed to be emitted
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
@@ -535,7 +448,7 @@ contract DisputeManager is Managed {
      * @param _attestationData Attestation bytes submitted by the fisherman
      * @return DisputeID
      */
-    function _createDisputeWithAttestation(
+    function _createQueryDisputeWithAttestation(
         address _fisherman,
         uint256 _deposit,
         Attestation memory _attestation,
@@ -561,23 +474,22 @@ contract DisputeManager is Managed {
         );
 
         // Only one dispute for a (indexer, subgraphDeploymentID) at a time
-        require(!isDisputeCreated(disputeID), "Dispute already created"); // Must be empty
+        require(!isDisputeCreated(disputeID), "Dispute already created");
 
         // Store dispute
         disputes[disputeID] = Dispute(
-            _attestation.subgraphDeploymentID,
             indexer,
             _fisherman,
             _deposit,
             0 // no related dispute
         );
 
-        emit DisputeCreated(
+        emit QueryDisputeCreated(
             disputeID,
-            _attestation.subgraphDeploymentID,
             indexer,
             _fisherman,
             _deposit,
+            _attestation.subgraphDeploymentID,
             _attestationData
         );
 
@@ -585,7 +497,151 @@ contract DisputeManager is Managed {
     }
 
     /**
-     * @dev Returns whether the dispute is for conflicting attestations or not.
+     * @dev Create an indexing dispute for the arbitrator to resolve.
+     * The disputes are created in reference to an allocationID
+     * This function is called by a challenger that will need to `_deposit` at
+     * least `minimumDeposit` GRT tokens.
+     * @param _allocationID The allocation to dispute
+     * @param _deposit Amount of tokens staked as deposit
+     */
+    function createIndexingDispute(address _allocationID, uint256 _deposit)
+        external
+        returns (bytes32)
+    {
+        // Get funds from submitter
+        _pullSubmitterDeposit(_deposit);
+
+        // Create a dispute
+        return _createIndexingDisputeWithAllocation(msg.sender, _deposit, _allocationID);
+    }
+
+    /**
+     * @dev Create indexing dispute internal function.
+     * @param _fisherman The challenger creating the dispute
+     * @param _deposit Amount of tokens staked as deposit
+     * @param _allocationID Allocation disputed
+     */
+
+    function _createIndexingDisputeWithAllocation(
+        address _fisherman,
+        uint256 _deposit,
+        address _allocationID
+    ) internal returns (bytes32) {
+        // Create a disputeID
+        bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
+
+        // Only one dispute for an allocationID at a time
+        require(!isDisputeCreated(disputeID), "Dispute already created");
+
+        // Allocation must exist
+        IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
+        require(alloc.indexer != address(0), "Dispute allocation must exist");
+
+        // The indexer must be disputable
+        require(
+            staking().getIndexerStakedTokens(alloc.indexer) >= minimumIndexerStake,
+            "Dispute under minimum indexer stake amount"
+        );
+
+        // Store dispute
+        disputes[disputeID] = Dispute(alloc.indexer, _fisherman, _deposit, 0);
+
+        emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
+
+        return disputeID;
+    }
+
+    /**
+     * @dev The arbitrator accepts a dispute as being valid.
+     * @notice Accept a dispute with ID `_disputeID`
+     * @param _disputeID ID of the dispute to be accepted
+     */
+    function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+
+        Dispute memory dispute = disputes[_disputeID];
+
+        // Resolve dispute
+        delete disputes[_disputeID]; // Re-entrancy
+
+        // Slash
+        uint256 tokensToReward = _slashIndexer(dispute.indexer, dispute.fisherman);
+
+        // Give the fisherman their deposit back
+        if (dispute.deposit > 0) {
+            require(
+                graphToken().transfer(dispute.fisherman, dispute.deposit),
+                "Error sending dispute deposit"
+            );
+        }
+
+        // Resolve the conflicting dispute if any
+        _resolveDisputeInConflict(dispute);
+
+        emit DisputeAccepted(
+            _disputeID,
+            dispute.indexer,
+            dispute.fisherman,
+            dispute.deposit.add(tokensToReward)
+        );
+    }
+
+    /**
+     * @dev The arbitrator rejects a dispute as being invalid.
+     * @notice Reject a dispute with ID `_disputeID`
+     * @param _disputeID ID of the dispute to be rejected
+     */
+    function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+
+        Dispute memory dispute = disputes[_disputeID];
+
+        // Handle conflicting dispute if any
+        require(
+            !_isDisputeInConflict(dispute),
+            "Dispute for conflicting attestation, must accept the related ID to reject"
+        );
+
+        // Resolve dispute
+        delete disputes[_disputeID]; // Re-entrancy
+
+        // Burn the fisherman's deposit
+        if (dispute.deposit > 0) {
+            graphToken().burn(dispute.deposit);
+        }
+
+        emit DisputeRejected(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
+    }
+
+    /**
+     * @dev The arbitrator draws dispute.
+     * @notice Ignore a dispute with ID `_disputeID`
+     * @param _disputeID ID of the dispute to be disregarded
+     */
+    function drawDispute(bytes32 _disputeID) external onlyArbitrator {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+
+        Dispute memory dispute = disputes[_disputeID];
+
+        // Resolve dispute
+        delete disputes[_disputeID]; // Re-entrancy
+
+        // Return deposit to the fisherman
+        if (dispute.deposit > 0) {
+            require(
+                graphToken().transfer(dispute.fisherman, dispute.deposit),
+                "Error sending dispute deposit"
+            );
+        }
+
+        // Resolve the conflicting dispute if any
+        _resolveDisputeInConflict(dispute);
+
+        emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
+    }
+
+    /**
+     * @dev Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
@@ -605,6 +661,40 @@ contract DisputeManager is Managed {
             return true;
         }
         return false;
+    }
+
+    /**
+     * @dev Pull deposit from submitter account.
+     * @param _deposit Amount of tokens to deposit
+     */
+    function _pullSubmitterDeposit(uint256 _deposit) internal {
+        // Ensure that fisherman has staked at least the minimum amount
+        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
+
+        // Transfer tokens to deposit from fisherman to this contract
+        require(
+            graphToken().transferFrom(msg.sender, address(this), _deposit),
+            "Cannot transfer tokens to deposit"
+        );
+    }
+
+    /**
+     * @dev Make the staking contract slash the indexer and reward the challenger.
+     * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
+     * @param _indexer Address of the indexer
+     * @param _challenger Address of the challenger
+     * @return Dispute reward tokens
+     */
+    function _slashIndexer(address _indexer, address _challenger) internal returns (uint256) {
+        // Have staking contract slash the indexer and reward the fisherman
+        // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
+        uint256 tokensToSlash = getTokensToSlash(_indexer);
+        uint256 tokensToReward = getTokensToReward(_indexer);
+
+        require(tokensToSlash > 0, "Dispute has zero tokens to slash");
+        staking().slash(_indexer, tokensToSlash, tokensToReward, _challenger);
+
+        return tokensToReward;
     }
 
     /**
