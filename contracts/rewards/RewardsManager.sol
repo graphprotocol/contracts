@@ -218,7 +218,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * Called from the Curation contract on mint() and burn()
      * @return Accumulated rewards per signal
      */
-    function updateAccRewardsPerSignal() public override returns (uint256) {
+    function updateAccRewardsPerSignal() public override notPaused returns (uint256) {
         accRewardsPerSignal = getAccRewardsPerSignal();
         accRewardsPerSignalLastBlockUpdated = block.number;
         return accRewardsPerSignal;
@@ -234,6 +234,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID)
         public
         override
+        notPaused
         returns (uint256)
     {
         // Called since `total signalled GRT` will change
@@ -256,6 +257,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID)
         public
         override
+        notPaused
         returns (uint256)
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];

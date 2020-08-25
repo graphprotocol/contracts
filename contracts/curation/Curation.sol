@@ -171,6 +171,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function mint(bytes32 _subgraphDeploymentID, uint256 _tokens)
         external
         override
+        notRecoveryPaused
         returns (uint256)
     {
         address curator = msg.sender;
@@ -198,6 +199,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function burn(bytes32 _subgraphDeploymentID, uint256 _signal)
         external
         override
+        notRecoveryPaused
         returns (uint256, uint256)
     {
         address curator = msg.sender;

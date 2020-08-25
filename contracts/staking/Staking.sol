@@ -532,7 +532,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Adress of the indexer
      * @param _tokens Amount of tokens to stake
      */
-    function stakeTo(address _indexer, uint256 _tokens) public override {
+    function stakeTo(address _indexer, uint256 _tokens) public override notRecoveryPaused {
         require(_tokens > 0, "Staking: cannot stake zero tokens");
 
         // Transfer tokens to stake from caller to this contract
@@ -549,7 +549,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Unstake tokens from the indexer stake, lock them until thawing period expires.
      * @param _tokens Amount of tokens to unstake
      */
-    function unstake(uint256 _tokens) external override {
+    function unstake(uint256 _tokens) external override notRecoveryPaused {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
@@ -567,7 +567,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Withdraw indexer tokens once the thawing period has passed.
      */
-    function withdraw() external override {
+    function withdraw() external override notPaused {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
@@ -651,7 +651,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
      */
-    function delegate(address _indexer, uint256 _tokens) external override {
+    function delegate(address _indexer, uint256 _tokens) external override notRecoveryPaused {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
@@ -669,7 +669,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer where tokens had been delegated
      * @param _shares Amount of shares to return and undelegate tokens
      */
-    function undelegate(address _indexer, uint256 _shares) external override {
+    function undelegate(address _indexer, uint256 _shares) external override notRecoveryPaused {
         _undelegate(msg.sender, _indexer, _shares);
     }
 
@@ -678,7 +678,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Withdraw available tokens delegated to indexer
      * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
      */
-    function withdrawDelegated(address _indexer, address _newIndexer) external override {
+    function withdrawDelegated(address _indexer, address _newIndexer) external override notPaused {
         address delegator = msg.sender;
 
         // Get the delegation pool of the indexer
@@ -749,7 +749,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes calldata _channelPubKey,
         address _assetHolder,
         uint256 _price
-    ) external override {
+    ) external override notPaused {
         require(_onlyAuth(_indexer), "Allocation: caller must be authorized");
 
         _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
@@ -763,7 +763,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
-    function settle(address _allocationID, bytes32 _poi) external override {
+    function settle(address _allocationID, bytes32 _poi) external override notPaused {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
@@ -830,7 +830,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * Funds received are only accepted from a valid source.
      * @param _tokens Amount of tokens to collect
      */
-    function collect(uint256 _tokens, address _allocationID) external override {
+    function collect(uint256 _tokens, address _allocationID) external override notPaused {
         // Allocation identifier validation
         require(_allocationID != address(0), "Collect: invalid allocation");
 
@@ -856,7 +856,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Allocation from where we are claiming tokens
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claim(address _allocationID, bool _restake) external override {
+    function claim(address _allocationID, bool _restake) external override notPaused {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);

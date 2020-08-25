@@ -3,20 +3,27 @@ pragma solidity ^0.6.4;
 import "./IController.sol";
 import "./IManaged.sol";
 import "./Governed.sol";
+import "./Pausable.sol";
 
 /**
  * @title Graph Controller contract
  * @dev Controller is a registry of contracts for convience. Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-contract Controller is IController, Governed {
+contract Controller is IController, Governed, Pausable {
     // Track contract ids to contract proxy address
     mapping(bytes32 => address) private registry;
 
-    // Todo - add in guardian, but in the next PR
-
     constructor() public {
         Governed._initialize(msg.sender);
+    }
+
+    /**
+     * @dev Check if the caller is the governor or pause guardian.
+     */
+    modifier onlyGovernorOrGuradian {
+        require(msg.sender == governor || msg.sender == pauseGuardian, "Only Governor can call");
+        _;
     }
 
     /**
@@ -40,6 +47,28 @@ contract Controller is IController, Governed {
      */
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
         return IManaged(registry[_id]).setController(_controller);
+    }
+
+    /**
+     * @notice Change the recovery paused state of the contract
+     */
+    function setRecoveryPaused(bool _recoveryPaused) external onlyGovernorOrGuradian {
+        _setRecoveryPaused(_recoveryPaused);
+    }
+
+    /**
+     * @notice Change the paused state of the contract
+     */
+    function setPaused(bool _paused) external onlyGovernorOrGuradian {
+        _setPaused(_paused);
+    }
+
+    /**
+     * @notice Change the Pause Guardian
+     * @param _newPauseGuardian The address of the new Pause Guardian
+     */
+    function setPauseGuardian(address _newPauseGuardian) external onlyGovernor {
+        _setPauseGuardian(_newPauseGuardian);
     }
 
     /**
