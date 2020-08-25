@@ -320,9 +320,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
         // Mint rewards tokens
         if (_restake) {
-            graphToken().mint(address(this), rewards);
-            graphToken().approve(address(staking()), rewards);
-            staking().stakeTo(indexer, rewards);
+            IStaking staking = staking();
+            IGraphToken graphToken = graphToken();
+            graphToken.mint(address(this), rewards);
+            graphToken.approve(address(staking, rewards);
+            staking.stakeTo(indexer, rewards);
         } else {
             graphToken().mint(indexer, rewards);
         }

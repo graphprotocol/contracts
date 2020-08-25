@@ -223,13 +223,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             delete pools[_subgraphDeploymentID];
         }
 
+        IGraphToken graphToken = graphToken();
         // Burn withdrawal fees
         if (withdrawalFees > 0) {
-            graphToken().burn(withdrawalFees);
+            graphToken.burn(withdrawalFees);
         }
 
         // Return the tokens to the curator
-        require(graphToken().transfer(curator, tokens), "Error sending curator tokens");
+        require(graphToken.transfer(curator, tokens), "Error sending curator tokens");
 
         emit Burned(curator, _subgraphDeploymentID, tokens, _signal, withdrawalFees);
         return (tokens, withdrawalFees);
@@ -481,8 +482,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
-        if (address(rewardsManager()) != address(0)) {
-            return rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
+        IRewardsManager rewardsManager = rewardsManager();
+        if (address(rewardsManager != address(0)) {
+            return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
         return 0;
     }
