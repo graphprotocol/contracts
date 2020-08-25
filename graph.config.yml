@@ -57,6 +57,8 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+    call:
+      - fn: "approveAll"
   Staking:
     init:
       controller: "${{Controller.address}}"
@@ -74,6 +76,9 @@ contracts:
         delegationCapacity: 1 # 100% (multiplier)
       - fn: "setProtocolPercentage"
         protocolPercentage: 10000 # 1% (in basis points)
+      - fn: "setSlasher"
+        slasher: "${{DisputeManager.address}}"
+        allowed: true
   RewardsManager:
     init:
       controller: "${{Controller.address}}"
