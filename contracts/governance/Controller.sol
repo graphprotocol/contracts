@@ -22,7 +22,7 @@ contract Controller is IController, Governed, Pausable {
      * @dev Check if the caller is the governor or pause guardian.
      */
     modifier onlyGovernorOrGuradian {
-        require(msg.sender == governor || msg.sender == pauseGuardian, "Only Governor can call");
+        require(msg.sender == governor || msg.sender == pauseGuardian, "Only Governor or Guardian can call");
         _;
     }
 

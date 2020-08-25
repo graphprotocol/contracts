@@ -10,7 +10,7 @@ contract Pausable {
     uint256 public lastPauseTime;
 
     // Pause guardian is a separate entity from the governor that can pause
-    address pauseGuardian;
+    address public pauseGuardian;
 
     event RecoveryPauseChanged(bool isPaused);
     event PauseChanged(bool isPaused);
