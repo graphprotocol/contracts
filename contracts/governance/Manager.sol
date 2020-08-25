@@ -14,7 +14,6 @@ import "../token/IGraphToken.sol";
  * Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-//
 contract Manager {
     // Controller that contract is registered with
     Controller public controller;
@@ -34,34 +33,25 @@ contract Manager {
     }
 
     modifier onlyStaking() {
-        require(
-            msg.sender == address(controller.getContractProxy(keccak256("Staking"))),
-            "Caller must be the staking contract"
-        );
+        require(msg.sender == address(staking()), "Caller must be the staking contract");
         _;
     }
 
     modifier onlyCuration() {
-        require(
-            msg.sender == address(controller.getContractProxy(keccak256("Curation"))),
-            "Caller must be the curation contract"
-        );
+        require(msg.sender == address(curation()), "Caller must be the curation contract");
         _;
     }
 
     modifier onlyRewardsManager() {
         require(
-            msg.sender == address(controller.getContractProxy(keccak256("RewardsManager"))),
+            msg.sender == address(rewardsManager()),
             "Caller must be the rewards manager contract"
         );
         _;
     }
 
     modifier onlyGraphToken() {
-        require(
-            msg.sender == address(controller.getContractProxy(keccak256("GraphToken"))),
-            "Caller must be the graph token contract"
-        );
+        require(msg.sender == address(graphToken()), "Caller must be the graph token contract");
         _;
     }
 
@@ -73,7 +63,7 @@ contract Manager {
     }
 
     /**
-     * @notice Set controller. Only callable by current controller
+     * @notice Set Controller. Only callable by current controller
      * @param _controller Controller contract address
      */
     function setController(address _controller) external onlyController {
@@ -98,7 +88,7 @@ contract Manager {
     }
 
     /**
-     * @dev Return rewards manager interface
+     * @dev Return RewardsManager interface
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
@@ -106,7 +96,7 @@ contract Manager {
     }
 
     /**
-     * @dev Return staking interface
+     * @dev Return Staking interface
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
