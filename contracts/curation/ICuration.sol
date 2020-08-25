@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "./GraphSignalToken.sol";
+import "./IGraphSignalToken.sol";
 
 interface ICuration {
     // -- Pool --
@@ -8,7 +8,7 @@ interface ICuration {
     struct CurationPool {
         uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
         uint32 reserveRatio; // Ratio for the bonding curve
-        GraphSignalToken gst; // Signal token contract for this curation pool
+        IGraphSignalToken gst; // Signal token contract for this curation pool
     }
 
     // -- Configuration --

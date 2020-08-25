@@ -1,12 +1,12 @@
 pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-
 import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./CurationStorage.sol";
 import "./ICuration.sol";
+import "./GraphSignalToken.sol";
 
 /**
  * @title Curation contract
@@ -465,7 +465,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
             // If no signal token for the pool - create one
             if (address(curationPool.gst) == address(0)) {
-                curationPool.gst = new GraphSignalToken("GST", address(this));
+                curationPool.gst = IGraphSignalToken(
+                    address(new GraphSignalToken("GST", address(this)))
+                );
             }
         }
 
