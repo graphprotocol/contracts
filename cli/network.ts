@@ -62,7 +62,6 @@ export const sendTransaction = async (
 ): Promise<providers.TransactionReceipt> => {
   let tx: ContractTransaction
   try {
-    console.log()
     tx = await contract.functions[fn](...params)
     if (tx == undefined) {
       logger.error(`It appears the function does not exist on this contract`)

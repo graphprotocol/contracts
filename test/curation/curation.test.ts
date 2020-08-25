@@ -1,19 +1,12 @@
 import { expect } from 'chai'
-import { BigNumber, Event } from 'ethers'
+import { utils, BigNumber, Event } from 'ethers'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Controller } from '../../build/typechain/contracts/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  getAccounts,
-  randomHexBytes,
-  toBN,
-  toGRT,
-  Account,
-  stringToBytes32,
-} from '../lib/testHelpers'
+import { getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -270,7 +263,7 @@ describe('Curation', () => {
         // Source of tokens must be the staking for this to work
         await controller
           .connect(governor.signer)
-          .setContractProxy(stringToBytes32('Staking'), stakingMock.address)
+          .setContractProxy(utils.id('Staking'), stakingMock.address)
         const tx = curation
           .connect(stakingMock.signer)
           .collect(subgraphDeploymentID, tokensToCollect)
@@ -291,7 +284,7 @@ describe('Curation', () => {
       it('should collect tokens distributed to the curation pool', async function () {
         await controller
           .connect(governor.signer)
-          .setContractProxy(stringToBytes32('Staking'), stakingMock.address)
+          .setContractProxy(utils.id('Staking'), stakingMock.address)
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
         await shouldCollect(toGRT('100'))

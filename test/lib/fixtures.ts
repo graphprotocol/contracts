@@ -1,7 +1,7 @@
-import { Wallet, Signer } from 'ethers'
+import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert, stringToBytes32 } from './testHelpers'
+import { evmSnapshot, evmRevert } from './testHelpers'
 
 export class NetworkFixture {
   lastSnapshotId: number
@@ -36,13 +36,13 @@ export class NetworkFixture {
     const serviceRegistry = await deployment.deployServiceRegistry(deployer)
 
     // Setup controller
-    await controller.setContractProxy(stringToBytes32('EpochManager'), epochManager.address)
-    await controller.setContractProxy(stringToBytes32('GraphToken'), grt.address)
-    await controller.setContractProxy(stringToBytes32('Curation'), curation.address)
-    await controller.setContractProxy(stringToBytes32('Staking'), staking.address)
-    await controller.setContractProxy(stringToBytes32('DisputeManager'), staking.address)
-    await controller.setContractProxy(stringToBytes32('RewardsManager'), rewardsManager.address)
-    await controller.setContractProxy(stringToBytes32('ServiceRegistry'), serviceRegistry.address)
+    await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
+    await controller.setContractProxy(utils.id('GraphToken'), grt.address)
+    await controller.setContractProxy(utils.id('Curation'), curation.address)
+    await controller.setContractProxy(utils.id('Staking'), staking.address)
+    await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
+    await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)
+    await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
 
     // Setup contracts
     await staking.connect(deployer).setSlasher(slasherAddress, true)
