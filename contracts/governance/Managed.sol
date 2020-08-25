@@ -21,6 +21,26 @@ contract Managed {
     event ParameterUpdated(string param);
     event SetController(address controller);
 
+    modifier notRecoveryPaused {
+        require(
+            !controller.paused(),
+            "This action cannot be performed while the contract is paused"
+        );
+        require(
+            !controller.recoveryPaused(),
+            "This action cannot be performed while the contract is recovery paused"
+        );
+        _;
+    }
+
+    modifier notPaused {
+        require(
+            !controller.paused(),
+            "This action cannot be performed while the contract is paused"
+        );
+        _;
+    }
+
     // Check if sender is controller
     modifier onlyController() {
         require(msg.sender == address(controller), "Caller must be Controller");
