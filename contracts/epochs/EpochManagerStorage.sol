@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../governance/Manager.sol";
+import "../governance/Managed.sol";
 
-contract EpochManagerV1Storage is Manager {
+contract EpochManagerV1Storage is Managed {
     // -- State --
 
     // Epoch length in blocks

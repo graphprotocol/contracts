@@ -46,7 +46,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Initialize this contract.
      */
     function initialize(address _controller) external onlyImpl {
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
     }
 
     /**
@@ -323,7 +323,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             IStaking staking = staking();
             IGraphToken graphToken = graphToken();
             graphToken.mint(address(this), rewards);
-            graphToken.approve(address(staking, rewards);
+            graphToken.approve(address(staking), rewards);
             staking.stakeTo(indexer, rewards);
         } else {
             graphToken().mint(indexer, rewards);

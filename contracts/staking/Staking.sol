@@ -194,7 +194,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Initialize this contract.
      */
     function initialize(address _controller) external onlyImpl {
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
     }
 
     /**
@@ -1072,7 +1072,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             ICuration curation = curation();
             require(
-                graphToken().approve(address(curation, curationFees),
+                graphToken().approve(address(curation), curationFees),
                 "Collect: token approval failed"
             );
             curation.collect(alloc.subgraphDeploymentID, curationFees);
@@ -1200,8 +1200,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         view
         returns (uint256)
     {
-        ICuration curation - curation();
-        bool isCurationEnabled = curationPercentage > 0 && address(curation != address(0);
+        ICuration curation = curation();
+        bool isCurationEnabled = curationPercentage > 0 && address(curation) != address(0);
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             return uint256(curationPercentage).mul(_tokens).div(MAX_PPM);
         }
@@ -1314,7 +1314,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager == address(0)) {
+        if (address(rewardsManager) == address(0)) {
             return 0;
         }
         return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
@@ -1326,10 +1326,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function _assignRewards(address _allocationID) internal returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager()) == address(0)) {
+        if (address(rewardsManager) == address(0)) {
             return 0;
         }
         // Automatically triggers update of rewards snapshot as allocation will change
-        return rewardsManager().assignRewards(_allocationID);
+        return rewardsManager.assignRewards(_allocationID);
     }
 }

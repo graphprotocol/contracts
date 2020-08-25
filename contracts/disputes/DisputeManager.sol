@@ -2,13 +2,13 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../governance/Manager.sol";
+import "../governance/Managed.sol";
 
 /*
  * @title DisputeManager
  * @dev Provides a way to align the incentives of participants ensuring that query results are trustful.
  */
-contract DisputeManager is Manager {
+contract DisputeManager is Managed {
     using SafeMath for uint256;
 
     // Disputes contain info neccessary for the Arbitrator to verify and resolve
@@ -167,7 +167,7 @@ contract DisputeManager is Manager {
         uint32 _fishermanRewardPercentage,
         uint32 _slashingPercentage
     ) public {
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
         arbitrator = _arbitrator;
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;

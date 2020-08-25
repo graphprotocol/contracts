@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
 import "./IController.sol";
-import "./IManager.sol";
+import "./IManaged.sol";
 import "./Governed.sol";
 
 /**
@@ -39,7 +39,7 @@ contract Controller is IController, Governed {
      * @param _controller Controller address
      */
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
-        return IManager(registry[_id]).setController(_controller);
+        return IManaged(registry[_id]).setController(_controller);
     }
 
     /**

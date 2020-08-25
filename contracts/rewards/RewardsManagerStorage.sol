@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../governance/Manager.sol";
+import "../governance/Managed.sol";
 
-contract RewardsManagerV1Storage is Manager {
+contract RewardsManagerV1Storage is Managed {
     // -- State --
 
     struct Subgraph {

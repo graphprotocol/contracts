@@ -2,9 +2,9 @@ pragma solidity ^0.6.4;
 
 import "../bancor/BancorFormula.sol";
 import "./ICuration.sol";
-import "../governance/Manager.sol";
+import "../governance/Managed.sol";
 
-contract CurationV1Storage is BancorFormula, Manager {
+contract CurationV1Storage is BancorFormula, Managed {
     // -- State --
 
     // Fee charged when curator withdraw a deposit

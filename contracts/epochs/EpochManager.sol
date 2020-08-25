@@ -26,7 +26,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     function initialize(address _controller, uint256 _epochLength) external onlyImpl {
         require(_epochLength > 0, "Epoch length cannot be 0");
 
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
 
         lastLengthUpdateEpoch = 0;
         lastLengthUpdateBlock = blockNum();
