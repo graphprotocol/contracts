@@ -21,7 +21,7 @@ const contractNames = [
 ]
 
 export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => {
-  logger.log(`>>> Protocol configuration <<<\n`)
+  logger.log(`>>> Protocol Configuration <<<\n`)
 
   for (const contractName of contractNames) {
     const table = new Table({
@@ -29,19 +29,16 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
       colWidths: [30, 50],
     })
 
-    const addressEntry = cli.addressBook.getEntry(contractName)
-    const contract = getContractAt(contractName, addressEntry.address).connect(cli.wallet)
+    const contract = cli.contracts[contractName]
     table.push(['* address', contract.address])
-    const req = []
 
+    const req = []
     for (const fn of Object.values(gettersList)) {
       if (fn.contract != contractName) continue
 
-      const addressEntry = cli.addressBook.getEntry(fn.contract)
-      const contract = getContractAt(fn.contract, addressEntry.address).connect(cli.wallet)
+      const contract = cli.contracts[fn.contract]
       if (contract.interface.getFunction(fn.name).inputs.length == 0) {
         const contractFn: ContractFunction = contract.functions[fn.name]
-
         req.push(
           contractFn().then((values) => {
             let [value] = values
@@ -55,6 +52,28 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
     }
     await Promise.all(req)
     logger.log(table.toString())
+  }
+
+  // Verify controllers
+  logger.log(`\n>>> Contracts Controller <<<\n`)
+
+  const controller = cli.contracts['Controller']
+  for (const contractName of contractNames) {
+    if (contractName === 'Controller') continue
+
+    const contract = cli.contracts[contractName]
+    const contractFn = contract.functions['controller']
+
+    if (contractFn) {
+      const addr = await contractFn().then((values) => values[0])
+      if (addr === controller.address) {
+        logger.success(contractName)
+      } else {
+        logger.error(`${contractName} : ${addr} should be ${controller.address}`)
+      }
+    } else {
+      logger.info(contractName)
+    }
   }
 }
 
