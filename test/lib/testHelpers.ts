@@ -1,4 +1,4 @@
-import { providers, utils, BigNumber, Signer } from 'ethers'
+import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
 import buidler from '@nomiclabs/buidler'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -86,3 +86,16 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
 export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
+
+// Allocation keys
+
+interface ChannelKey {
+  privKey: string
+  pubKey: string
+  address: string
+}
+
+export const deriveChannelKey = (): ChannelKey => {
+  const w = Wallet.createRandom()
+  return { privKey: w.privateKey, pubKey: w.publicKey, address: utils.computeAddress(w.publicKey) }
+}

@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, utils, Wallet } from 'ethers'
+import { constants, utils } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -10,6 +10,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import { NetworkFixture } from '../lib/fixtures'
 import {
   advanceToNextEpoch,
+  deriveChannelKey,
   getAccounts,
   getChainID,
   randomHexBytes,
@@ -59,17 +60,7 @@ function encodeAttestation(attestation: Attestation): string {
   return hexlify(concat([data, sig]))
 }
 
-interface ChannelKey {
-  privKey: string
-  pubKey: string
-}
-
-function deriveChannelKey(): ChannelKey {
-  const w = Wallet.createRandom()
-  return { privKey: w.privateKey, pubKey: w.publicKey }
-}
-
-describe('DisputeManager', async () => {
+describe('DisputeManager:Query', async () => {
   let me: Account
   let other: Account
   let governor: Account
@@ -196,7 +187,7 @@ describe('DisputeManager', async () => {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman.signer)
-        .createDispute(dispute.encodedAttestation, fishermanDeposit)
+        .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Indexer cannot be found for the attestation')
     })
 
@@ -239,11 +230,11 @@ describe('DisputeManager', async () => {
       // Create dispute
       const tx = disputeManager
         .connect(fisherman.signer)
-        .createDispute(dispute.encodedAttestation, fishermanDeposit)
+        .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Dispute under minimum indexer stake amount')
     })
 
-    context('> when indexer has staked', function () {
+    context('> when indexer is staked', function () {
       beforeEach(async function () {
         await setupIndexers()
       })
@@ -273,7 +264,7 @@ describe('DisputeManager', async () => {
           // Create invalid dispute as deposit is below minimum
           const tx = disputeManager
             .connect(fisherman.signer)
-            .createDispute(dispute.encodedAttestation, belowMinimumDeposit)
+            .createQueryDispute(dispute.encodedAttestation, belowMinimumDeposit)
           await expect(tx).revertedWith('Dispute deposit is under minimum required')
         })
 
@@ -281,15 +272,15 @@ describe('DisputeManager', async () => {
           // Create dispute
           const tx = disputeManager
             .connect(fisherman.signer)
-            .createDispute(dispute.encodedAttestation, fishermanDeposit)
+            .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
           await expect(tx)
-            .emit(disputeManager, 'DisputeCreated')
+            .emit(disputeManager, 'QueryDisputeCreated')
             .withArgs(
               dispute.id,
-              dispute.receipt.subgraphDeploymentID,
               dispute.indexerAddress,
               fisherman.address,
               fishermanDeposit,
+              dispute.receipt.subgraphDeploymentID,
               dispute.encodedAttestation,
             )
         })
@@ -325,7 +316,7 @@ describe('DisputeManager', async () => {
           // Create dispute
           await disputeManager
             .connect(fisherman.signer)
-            .createDispute(dispute.encodedAttestation, fishermanDeposit)
+            .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
         })
 
         describe('create a dispute', function () {
@@ -343,15 +334,15 @@ describe('DisputeManager', async () => {
             // Create dispute
             const tx = disputeManager
               .connect(fisherman.signer)
-              .createDispute(newDispute.encodedAttestation, fishermanDeposit)
+              .createQueryDispute(newDispute.encodedAttestation, fishermanDeposit)
             await expect(tx)
-              .emit(disputeManager, 'DisputeCreated')
+              .emit(disputeManager, 'QueryDisputeCreated')
               .withArgs(
                 newDispute.id,
-                newDispute.receipt.subgraphDeploymentID,
                 newDispute.indexerAddress,
                 fisherman.address,
                 fishermanDeposit,
+                newDispute.receipt.subgraphDeploymentID,
                 newDispute.encodedAttestation,
               )
           })
@@ -359,7 +350,7 @@ describe('DisputeManager', async () => {
           it('reject create duplicated dispute', async function () {
             const tx = disputeManager
               .connect(fisherman.signer)
-              .createDispute(dispute.encodedAttestation, fishermanDeposit)
+              .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
             await expect(tx).revertedWith('Dispute already created')
           })
         })
@@ -401,7 +392,6 @@ describe('DisputeManager', async () => {
               .emit(disputeManager, 'DisputeAccepted')
               .withArgs(
                 dispute.id,
-                dispute.receipt.subgraphDeploymentID,
                 dispute.indexerAddress,
                 fisherman.address,
                 fishermanDeposit.add(reward),
@@ -439,13 +429,7 @@ describe('DisputeManager', async () => {
             const tx = disputeManager.connect(arbitrator.signer).rejectDispute(dispute.id)
             await expect(tx)
               .emit(disputeManager, 'DisputeRejected')
-              .withArgs(
-                dispute.id,
-                dispute.receipt.subgraphDeploymentID,
-                dispute.indexerAddress,
-                fisherman.address,
-                fishermanDeposit,
-              )
+              .withArgs(dispute.id, dispute.indexerAddress, fisherman.address, fishermanDeposit)
 
             // After state
             const afterTishermanBalance = await grt.balanceOf(fisherman.address)
@@ -473,13 +457,7 @@ describe('DisputeManager', async () => {
             const tx = disputeManager.connect(arbitrator.signer).drawDispute(dispute.id)
             await expect(tx)
               .emit(disputeManager, 'DisputeDrawn')
-              .withArgs(
-                dispute.id,
-                dispute.receipt.subgraphDeploymentID,
-                dispute.indexerAddress,
-                fisherman.address,
-                fishermanDeposit,
-              )
+              .withArgs(dispute.id, dispute.indexerAddress, fisherman.address, fishermanDeposit)
 
             // Fisherman should see the deposit returned
             const afterFishermanBalance = await grt.balanceOf(fisherman.address)
@@ -514,7 +492,10 @@ describe('DisputeManager', async () => {
       const [attestation1, attestation2] = await getIndependentAttestations()
       const tx = disputeManager
         .connect(fisherman.signer)
-        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+        .createQueryDisputeConflict(
+          encodeAttestation(attestation1),
+          encodeAttestation(attestation2),
+        )
       await expect(tx).revertedWith('Attestations must be in conflict')
     })
 
@@ -524,7 +505,10 @@ describe('DisputeManager', async () => {
       const dID2 = createDisputeID(attestation2, indexer2.address)
       const tx = disputeManager
         .connect(fisherman.signer)
-        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+        .createQueryDisputeConflict(
+          encodeAttestation(attestation1),
+          encodeAttestation(attestation2),
+        )
       await expect(tx).emit(disputeManager, 'DisputeLinked').withArgs(dID1, dID2)
 
       // Test state
@@ -540,7 +524,10 @@ describe('DisputeManager', async () => {
       const dID2 = createDisputeID(attestation2, indexer2.address)
       const tx = disputeManager
         .connect(fisherman.signer)
-        .createDisputesInConflict(encodeAttestation(attestation1), encodeAttestation(attestation2))
+        .createQueryDisputeConflict(
+          encodeAttestation(attestation1),
+          encodeAttestation(attestation2),
+        )
       await tx
       return [dID1, dID2]
     }

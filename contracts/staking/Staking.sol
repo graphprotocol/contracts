@@ -585,7 +585,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Slash the indexer stake.
+     * @dev Slash the indexer stake. Delegated tokens are not subject to slashing.
+     * Can only be called by the slasher role.
      * @param _indexer Address of indexer to slash
      * @param _tokens Amount of tokens to slash from the indexer stake
      * @param _reward Amount of reward tokens to send to a beneficiary
@@ -756,6 +757,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Settle an allocation and free the staked tokens.
+     * To be eligible for rewards a proof of indexing must be presented.
+     * Presenting a bad proof is subject to slashable condition.
+     * To opt out for rewards set _poi to 0x0
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
@@ -795,8 +799,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Assign rewards
-        _assignRewards(_allocationID);
+        // Assign rewards if proof of indexing was presented
+        if (_poi != 0) {
+            _assignRewards(_allocationID);
+        }
 
         // Free allocated tokens from use
         indexerStake.unallocate(alloc.tokens);

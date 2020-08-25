@@ -16,6 +16,7 @@ contract GraphUpgradeable is GraphProxyStorage {
         require(msg.sender == _proxy.admin(), "Caller must be the proxy admin");
         _;
     }
+
     /**
      * @dev Check if the caller is the implementation.
      */
