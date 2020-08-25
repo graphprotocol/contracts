@@ -13,7 +13,7 @@ npm run build && \
 
 echo "Analyzing contracts..."
 slither . \
-    --filter-paths "staking/libs/abdk-libraries-solidity/*|connext/test-fixtures/*|bancor/*" \
+    --filter-paths "staking/libs/abdk-libraries-solidity/*|bancor/*" \
     &> reports/analyzer-report.log && \
 slither-check-erc build/flatten/GraphToken.sol GraphToken &> reports/analyzer-report-erc.log
 
