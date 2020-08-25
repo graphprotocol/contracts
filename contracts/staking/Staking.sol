@@ -1070,11 +1070,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (curationFees > 0) {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
+            ICuration curation = curation();
             require(
-                graphToken().approve(address(curation()), curationFees),
+                graphToken().approve(address(curation, curationFees),
                 "Collect: token approval failed"
             );
-            curation().collect(alloc.subgraphDeploymentID, curationFees);
+            curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
         emit AllocationCollected(
@@ -1199,8 +1200,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         view
         returns (uint256)
     {
-        bool isCurationEnabled = curationPercentage > 0 && address(curation()) != address(0);
-        if (isCurationEnabled && curation().isCurated(_subgraphDeploymentID)) {
+        ICuration curation - curation();
+        bool isCurationEnabled = curationPercentage > 0 && address(curation != address(0);
+        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             return uint256(curationPercentage).mul(_tokens).div(MAX_PPM);
         }
         return 0;
@@ -1311,10 +1313,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
-        if (address(rewardsManager()) == address(0)) {
+        IRewardsManager rewardsManager = rewardsManager();
+        if (address(rewardsManager == address(0)) {
             return 0;
         }
-        return rewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
@@ -1322,6 +1325,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Allocation
      */
     function _assignRewards(address _allocationID) internal returns (uint256) {
+        IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager()) == address(0)) {
             return 0;
         }

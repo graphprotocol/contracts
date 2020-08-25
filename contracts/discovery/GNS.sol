@@ -347,8 +347,9 @@ contract GNS is Manager, BancorFormula {
     ) private {
         // This is to prevent the owner from front running their name curators signal by posting
         // their own signal ahead, bringing the name curators in, and dumping on them
+        ICuration curation = curation();
         require(
-            !curation().isCurated(_newSubgraphDeploymentID),
+            !curation.isCurated(_newSubgraphDeploymentID),
             "GNS: Owner cannot point to a subgraphID that has been pre-curated"
         );
 
@@ -370,7 +371,7 @@ contract GNS is Manager, BancorFormula {
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
 
         // nSignal stays constant, but vSignal can change here
-        uint256 vSignalNew = curation().mint(
+        uint256 vSignalNew = curation.mint(
             namePool.subgraphDeploymentID,
             (tokens + withdrawalFees)
         );
