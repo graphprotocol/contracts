@@ -97,11 +97,6 @@ Some contracts require the address from previously deployed contracts. For that 
 - RewardManager
 - Staking
 - DisputeManager
-- IndexerCTDT
-- IndexerSingleAssetInterpreter
-- IndexerMultiAssetInterpreter
-- IndexerWithdrawInterpreter
-- MinimumViableMultisig
 
 ### Deploying a new testnet
 

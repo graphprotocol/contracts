@@ -12,11 +12,6 @@ const coreContracts = [
   'RewardsManager',
   'Staking',
   'DisputeManager',
-  'IndexerCTDT',
-  'IndexerSingleAssetInterpreter',
-  'IndexerMultiAssetInterpreter',
-  'IndexerWithdrawInterpreter',
-  'MinimumViableMultisig',
 ]
 
 const logger = consola.create({})

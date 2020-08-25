@@ -1,6 +1,5 @@
 general:
   arbitrator: &arbitrator "0x23D1B1823e6Cb5229137424f88C70fdA1539F1F9"
-  nodeSignerAddress: &nodeSignerAddress "0xb967724FE9aD707cEa1853609f636891b5BFAa66"
 
 contracts:
   Controller:
@@ -86,11 +85,3 @@ contracts:
       - fn: "setIssuanceRate"
         issuanceRate: "1000000023206889619" # 5% annual rate
     proxy: true
-  MinimumViableMultisig:
-    init:
-      node: *nodeSignerAddress
-      staking: "${{Staking.address}}"
-      CTDT: "${{IndexerCTDT.address}}"
-      singleAssetInterpreter: "${{IndexerSingleAssetInterpreter.address}}"
-      multiAssetInterpreter: "${{IndexerMultiAssetInterpreter.address}}"
-      withdrawInterpreter: "${{IndexerWithdrawInterpreter.address}}"
