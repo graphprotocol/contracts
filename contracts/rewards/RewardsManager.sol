@@ -54,7 +54,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _proxy Graph proxy delegate caller
      * @param _controller Controller for this contract
      */
-    function acceptProxy(GraphProxy _proxy, address _controller) external {
+    function acceptProxy(IGraphProxy _proxy, address _controller) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "./GraphProxy.sol";
+import "./IGraphProxy.sol";
 import "./GraphProxyStorage.sol";
 
 /**
@@ -12,7 +12,7 @@ contract GraphUpgradeable is GraphProxyStorage {
     /**
      * @dev Check if the caller is the proxy admin.
      */
-    modifier onlyProxyAdmin(GraphProxy _proxy) {
+    modifier onlyProxyAdmin(IGraphProxy _proxy) {
         require(msg.sender == _proxy.admin(), "Caller must be the proxy admin");
         _;
     }
@@ -28,7 +28,7 @@ contract GraphUpgradeable is GraphProxyStorage {
     /**
      * @dev Admin function for new implementation to accept its role as implementation.
      */
-    function _acceptUpgrade(GraphProxy _proxy) internal onlyProxyAdmin(_proxy) {
+    function _acceptUpgrade(IGraphProxy _proxy) internal onlyProxyAdmin(_proxy) {
         _proxy.acceptUpgrade();
     }
 }
