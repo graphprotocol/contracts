@@ -8,4 +8,10 @@ interface IController {
     function updateController(bytes32 _id, address _controller) external;
 
     function getContractProxy(bytes32 _id) external view returns (address);
+
+    function governor() external view returns (address);
+
+    function paused() external view returns (bool);
+
+    function recoveryPaused() external view returns (bool);
 }

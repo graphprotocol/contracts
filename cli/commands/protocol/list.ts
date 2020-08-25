@@ -1,7 +1,6 @@
 import Table from 'cli-table'
 import consola from 'consola'
 
-import { getContractAt } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { ContractFunction } from 'ethers'
 
