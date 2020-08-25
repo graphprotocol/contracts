@@ -35,9 +35,7 @@ interface IRewardsManager {
 
     function updateAccRewardsPerSignal() external returns (uint256);
 
-    function assignRewards(address _allocationID) external returns (uint256);
-
-    function claim(bool _restake) external returns (uint256);
+    function takeRewards(address _allocationID) external returns (uint256);
 
     // -- Hooks --
 

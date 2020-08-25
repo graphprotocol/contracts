@@ -783,9 +783,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Assign rewards if proof of indexing was presented
+        // Distribute rewards if proof of indexing was presented
         if (_poi != 0) {
-            _assignRewards(_allocationID);
+            _distributeRewards(_allocationID, alloc.indexer);
         }
 
         // Free allocated tokens from use
@@ -864,9 +864,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             delete rebates[alloc.settledAtEpoch];
         }
 
-        // Calculate delegation fees and add them to the delegation pool
-        uint256 delegationFees = _collectDelegationFees(alloc.indexer, tokensToClaim);
-        tokensToClaim = tokensToClaim.sub(delegationFees);
+        // Calculate delegation rewards and add them to the delegation pool
+        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
+        tokensToClaim = tokensToClaim.sub(delegationRewards);
 
         // Purge allocation data except for:
         // - indexer: used in disputes and to avoid reusing an allocationID
@@ -902,7 +902,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             settledAtEpoch,
             tokensToClaim,
             pool.settlementsCount,
-            delegationFees
+            delegationRewards
         );
     }
 
@@ -1153,21 +1153,45 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect the delegation fees related to an indexer from an amount of tokens.
-     * This function will also assign the collected fees to the delegation pool.
-     * @param _indexer Indexer to which the delegation fees are related
+     * @dev Collect the delegation rewards for query fees.
+     * This function will assign the collected fees to the delegation pool.
+     * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @return Amount of delegation fees
+     * @return Amount of delegation rewards
      */
-    function _collectDelegationFees(address _indexer, uint256 _tokens) internal returns (uint256) {
-        uint256 delegationFees = 0;
+    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens)
+        internal
+        returns (uint256)
+    {
+        uint256 delegationRewards = 0;
         DelegationPool storage pool = delegationPools[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
             uint256 indexerCut = uint256(pool.queryFeeCut).mul(_tokens).div(MAX_PPM);
-            delegationFees = _tokens.sub(indexerCut);
-            pool.tokens = pool.tokens.add(delegationFees);
+            delegationRewards = _tokens.sub(indexerCut);
+            pool.tokens = pool.tokens.add(delegationRewards);
         }
-        return delegationFees;
+        return delegationRewards;
+    }
+
+    /**
+     * @dev Collect the delegation rewards related for indexing.
+     * This function will assign the collected fees to the delegation pool.
+     * @param _indexer Indexer to which the tokens to distribute are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of delegation rewards
+     */
+    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens)
+        internal
+        returns (uint256)
+    {
+        uint256 delegationRewards = 0;
+        DelegationPool storage pool = delegationPools[_indexer];
+        if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {
+            uint256 indexerCut = uint256(pool.indexingRewardCut).mul(_tokens).div(MAX_PPM);
+            delegationRewards = _tokens.sub(indexerCut);
+            pool.tokens = pool.tokens.add(delegationRewards);
+        }
+        return delegationRewards;
     }
 
     /**
@@ -1305,12 +1329,31 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Assign rewards for the settled allocation to the indexer.
      * @param _allocationID Allocation
      */
-    function _assignRewards(address _allocationID) internal returns (uint256) {
+    function _distributeRewards(address _allocationID, address _indexer)
+        internal
+        returns (uint256)
+    {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) == address(0)) {
             return 0;
         }
         // Automatically triggers update of rewards snapshot as allocation will change
-        return rewardsManager.assignRewards(_allocationID);
+        // after this call. Take rewards mint tokens for the Staking contract to distribute
+        // between indexer and delegators
+        uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
+        if (totalRewards == 0) {
+            return 0;
+        }
+
+        // Calculate delegation rewards and add them to the delegation pool
+        uint256 delegationRewards = _collectDelegationIndexingRewards(_indexer, totalRewards);
+        uint256 indexerRewards = totalRewards.sub(delegationRewards);
+
+        // Add the rest of the rewards to the indexer stake
+        if (indexerRewards > 0) {
+            _stake(_indexer, indexerRewards);
+        }
+
+        return totalRewards;
     }
 }

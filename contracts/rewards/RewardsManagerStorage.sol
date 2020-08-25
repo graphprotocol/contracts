@@ -21,8 +21,8 @@ contract RewardsManagerV1Storage is Managed {
 
     // Subgraph related rewards: subgraph deployment ID => subgraph rewards
     mapping(bytes32 => Subgraph) public subgraphs;
-    // Indexer distributed rewards: indexer address => unclaimed rewards
-    mapping(address => uint256) public indexerRewards;
+    // // Indexer distributed rewards: indexer address => unclaimed rewards
+    // mapping(address => uint256) public indexerRewards;
     // Subgraph denylist : subgraph deployment ID => block when added or zero (if not denied)
     mapping(bytes32 => uint256) public denylist;
 }

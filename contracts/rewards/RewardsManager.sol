@@ -179,6 +179,9 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
         uint256 newAccrued = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
+        if (subgraphSignalledTokens == 0) {
+            return 0;
+        }
 
         uint256 newValue = newAccrued.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
         return subgraph.accRewardsForSubgraph.add(newValue);
@@ -251,6 +254,10 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Triggers an update of rewards for a subgraph.
      * Must be called before allocation on a subgraph changes.
      * NOTE: Hook called from the Staking contract on allocate() and settle()
+     *
+     * TODO: Some staticcalls can be optimized by making the Staking contract pass
+     * more information in the call
+     *
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph
      */
@@ -310,52 +317,32 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _allocationID Allocation
      * @return Assigned rewards amount
      */
-    function assignRewards(address _allocationID) external override onlyStaking returns (uint256) {
-        IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
+    function takeRewards(address _allocationID) external override onlyStaking returns (uint256) {
+        IGraphToken graphToken = graphToken();
+        IStaking staking = staking();
+        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
 
         uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
             alloc.subgraphDeploymentID
         );
 
-        // Do not do rewards on denied subgraph deployments ID
         uint256 rewards = 0;
+        // Do not do rewards on denied subgraph deployments ID
         if (!isDenied(alloc.subgraphDeploymentID)) {
-            // Calculate rewards and set apart for claiming
+            // Calculate rewards accrued by this allocation
             rewards = _calcRewards(
                 alloc.tokens,
                 alloc.accRewardsPerAllocatedToken,
                 accRewardsPerAllocatedToken
             );
-            indexerRewards[alloc.indexer] = indexerRewards[alloc.indexer].add(rewards);
+
+            // Mint directly to staking contract for the reward amount
+            // The staking contract will do bookkeeping of the reward and
+            // assign in proportion to each stakeholder incentive
+            graphToken.mint(address(staking), rewards);
         }
 
         emit RewardsAssigned(alloc.indexer, _allocationID, alloc.settledAtEpoch, rewards);
-
-        return rewards;
-    }
-
-    /**
-     * @dev Claim accumulated rewards by indexer.
-     * The contract mints tokens equivalent to the rewards.
-     * @return Rewards amount
-     */
-    function claim(bool _restake) external override returns (uint256) {
-        address indexer = msg.sender;
-
-        uint256 rewards = indexerRewards[indexer];
-        require(rewards > 0, "No rewards available for claiming");
-        emit RewardsClaimed(indexer, rewards);
-
-        // Mint rewards tokens
-        if (_restake) {
-            IStaking staking = staking();
-            IGraphToken graphToken = graphToken();
-            graphToken.mint(address(this), rewards);
-            graphToken.approve(address(staking), rewards);
-            staking.stakeTo(indexer, rewards);
-        } else {
-            graphToken().mint(indexer, rewards);
-        }
 
         return rewards;
     }
