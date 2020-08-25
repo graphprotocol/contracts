@@ -38,7 +38,6 @@ export const gettersList = {
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
   // GNS
-  'gns-curation-contract': { contract: 'GNS', name: 'curation' },
   'gns-minimum-signal': { contract: 'GNS', name: 'minimumVSignalStake' },
   // Token
   'token-governor': { contract: 'GraphToken', name: 'governor' },

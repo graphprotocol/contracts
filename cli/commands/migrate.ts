@@ -99,7 +99,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
       logger.log(`= Config: ${entry.name}`)
       for (const call of entry.calls) {
-        logger.log(`    Calling ${call.fn}:`)
+        logger.log(`\n* Calling ${call.fn}:`)
         await sendTransaction(
           cli.wallet,
           entry.contract,
