@@ -102,3 +102,7 @@ run our own private network.
 
 In order to run deployments, see `./DEPLOYMENT.md`. We use a custom deployment script, which
 allowed us to completely remove `truffle` as a dependency.
+
+# Copyright
+
+Copyright &copy; 2020 Graph Protocol, Inc.
