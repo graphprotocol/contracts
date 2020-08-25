@@ -53,6 +53,9 @@ export const settersList = {
   'controller-transfer-governor': { contract: 'Controller', name: 'transferOwnership' },
   'controller-accept-governor': { contract: 'Controller', name: 'acceptOwnership' },
   'controller-set-contract-proxy': { contract: 'Controller', name: 'setContractProxy' },
+  'controller-set-paused': { contract: 'Controller', name: 'setPaused' },
+  'controller-set-recovery-paused': { contract: 'Controller', name: 'setRecoveryPaused' },
+  'controller-set-pause-guardian': { contract: 'Controller', name: 'setPauseGuardian' },
 }
 
 const buildHelp = () => {

@@ -2,8 +2,8 @@ pragma solidity ^0.6.4;
 
 contract Pausable {
     // Two types of pausing in the protocol
-    bool public recoveryPaused;
-    bool public paused;
+    bool internal _recoveryPaused;
+    bool internal _paused;
 
     // Time last paused for both pauses
     uint256 public lastPauseRecoveryTime;
@@ -19,29 +19,29 @@ contract Pausable {
     /**
      * @notice Change the recovery paused state of the contract
      */
-    function _setRecoveryPaused(bool _recoveryPaused) internal {
-        if (_recoveryPaused == recoveryPaused) {
+    function _setRecoveryPaused(bool _toPause) internal {
+        if (_toPause == _recoveryPaused) {
             return;
         }
-        recoveryPaused = _recoveryPaused;
-        if (recoveryPaused) {
+        _recoveryPaused = _toPause;
+        if (_recoveryPaused) {
             lastPauseRecoveryTime = now;
         }
-        emit RecoveryPauseChanged(recoveryPaused);
+        emit RecoveryPauseChanged(_recoveryPaused);
     }
 
     /**
      * @notice Change the paused state of the contract
      */
-    function _setPaused(bool _paused) internal {
-        if (_paused == paused) {
+    function _setPaused(bool _toPause) internal {
+        if (_toPause == _paused) {
             return;
         }
-        paused = _paused;
-        if (paused) {
+        _paused = _toPause;
+        if (_paused) {
             lastPauseTime = now;
         }
-        emit PauseChanged(paused);
+        emit PauseChanged(_paused);
     }
 
     /**

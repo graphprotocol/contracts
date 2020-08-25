@@ -78,6 +78,13 @@ contract GSRManager is Governed {
         emit Exit(msg.sender, _amount, withdrawnAmount);
     }
 
+    /**
+     * @notice Getter to access governor
+     */
+    function governor() external view returns (address) {
+        return _governor;
+    }
+
     /** TODO - have a math library and use it here and in RewardsMAnager
      * @dev Raises x to the power of n with scaling factor of base.
      * Based on: https://github.com/makerdao/dss/blob/master/src/pot.sol#L81

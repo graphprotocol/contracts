@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
 import "./IManaged.sol";
-import "./Controller.sol";
+import "./IController.sol";
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
@@ -16,7 +16,7 @@ import "../token/IGraphToken.sol";
  */
 contract Managed {
     // Controller that contract is registered with
-    Controller public controller;
+    IController public controller;
 
     event ParameterUpdated(string param);
     event SetController(address controller);
@@ -79,7 +79,7 @@ contract Managed {
      * @dev Initialize the controller
      */
     function _initialize(address _controller) internal {
-        controller = Controller(_controller);
+        controller = IController(_controller);
     }
 
     /**
@@ -87,7 +87,7 @@ contract Managed {
      * @param _controller Controller contract address
      */
     function setController(address _controller) external onlyController {
-        controller = Controller(_controller);
+        controller = IController(_controller);
         emit SetController(_controller);
     }
 

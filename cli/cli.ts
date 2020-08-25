@@ -7,7 +7,7 @@ import { migrateCommand } from './commands/migrate'
 import { proxyCommand } from './commands/proxy'
 import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
-import { contractsCommand } from './commands/contracts/contracts'
+import { contractsCommand } from './commands/contracts'
 import { transferTeamTokensCommand } from './commands/transferTeamTokens'
 
 import { cliOpts } from './constants'
