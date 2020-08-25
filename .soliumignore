@@ -8,10 +8,4 @@ contracts/upgrades/GraphProxy.sol
 contracts/rewards/RewardsManager.sol
 contracts/tests/ens
 
-contracts/connext/IndexerMultiAssetInterpreter.sol
-contracts/connext/IndexerSingleAssetInterpreter.sol
-contracts/connext/IndexerWithdrawInterpreter.sol
-contracts/connext/Proxy.sol
-contracts/connext/MinimumViableMultisig.sol
-
 contracts/tests/testnet/GSRManager.sol
