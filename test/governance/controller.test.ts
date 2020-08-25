@@ -7,7 +7,7 @@ import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { getAccounts, Account } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'
 
-describe('Manager', () => {
+describe('Managed', () => {
   let me: Account
   let governor: Account
   let mockController: Account
@@ -21,7 +21,7 @@ describe('Manager', () => {
   before(async function () {
     ;[me, governor, mockController, newMockEpochManager] = await getAccounts()
 
-    // We just run the fixures to set up a contract with a Manager, as this
+    // We just run the fixures to set up a contract with  Managed, as this
     // is cleaner and easier for us to test
     fixture = new NetworkFixture()
     ;({ epochManager, controller } = await fixture.load(governor.signer))

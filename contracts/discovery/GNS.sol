@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../governance/Manager.sol";
+import "../governance/Managed.sol";
 import "../bancor/BancorFormula.sol";
 
 import "./erc1056/IEthereumDIDRegistry.sol";
@@ -13,7 +13,7 @@ import "./erc1056/IEthereumDIDRegistry.sol";
  * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
  * readable names. All human readable names emitted in events.
  */
-contract GNS is Manager, BancorFormula {
+contract GNS is Managed, BancorFormula {
     // -- State --
 
     struct NameCurationPool {
@@ -168,7 +168,7 @@ contract GNS is Manager, BancorFormula {
      * @param _didRegistry Address of the Ethereum DID registry
      */
     constructor(address _controller, address _didRegistry) public {
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
     }
 

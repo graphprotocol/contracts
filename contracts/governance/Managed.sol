@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "./IManager.sol";
+import "./IManaged.sol";
 import "./Controller.sol";
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
@@ -9,12 +9,12 @@ import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 
 /**
- * @title Graph Manager contract
- * @dev The Manager contract provides an interface for contracts to interact with the Controller
+ * @title Graph Managed contract
+ * @dev The Managed contract provides an interface for contracts to interact with the Controller
  * Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-contract Manager {
+contract Managed {
     // Controller that contract is registered with
     Controller public controller;
 

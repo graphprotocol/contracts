@@ -69,7 +69,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
-        Manager._initialize(_controller);
+        Managed._initialize(_controller);
         BancorFormula._initialize();
 
         defaultReserveRatio = _defaultReserveRatio;
@@ -483,7 +483,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager != address(0)) {
+        if (address(rewardsManager) != address(0)) {
             return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
         return 0;
