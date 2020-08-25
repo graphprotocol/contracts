@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../upgrades/GraphProxy.sol";
+
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./CurationStorage.sol";
@@ -84,7 +84,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _minimumCurationDeposit Minimum amount of tokens that curators can deposit
      */
     function acceptProxy(
-        GraphProxy _proxy,
+        IGraphProxy _proxy,
         address _controller,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit

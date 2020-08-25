@@ -1,7 +1,6 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./IStaking.sol";
@@ -202,7 +201,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _proxy Graph proxy delegate caller
      * @param _controller Controller for this contract
      */
-    function acceptProxy(GraphProxy _proxy, address _controller) external {
+    function acceptProxy(IGraphProxy _proxy, address _controller) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 

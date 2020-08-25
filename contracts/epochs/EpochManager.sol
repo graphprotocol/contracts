@@ -2,7 +2,6 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../upgrades/GraphProxy.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./EpochManagerStorage.sol";
@@ -42,7 +41,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @param _epochLength Epoch length in blocks
      */
     function acceptProxy(
-        GraphProxy _proxy,
+        IGraphProxy _proxy,
         address _controller,
         uint256 _epochLength
     ) external {

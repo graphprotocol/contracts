@@ -62,19 +62,6 @@ contract Managed {
         _;
     }
 
-    modifier onlyRewardsManager() {
-        require(
-            msg.sender == address(rewardsManager()),
-            "Caller must be the rewards manager contract"
-        );
-        _;
-    }
-
-    modifier onlyGraphToken() {
-        require(msg.sender == address(graphToken()), "Caller must be the graph token contract");
-        _;
-    }
-
     /**
      * @dev Initialize the controller
      */
