@@ -44,9 +44,9 @@ export const defaults = {
     initialSupply: toGRT('10000000000'), // 10 billion
   },
   gdai: {
-    initialSupply: toGRT('100000000'), // 100 million
     // 5% annual inflation. r^n = 1.05, where n = 365*24*60*60. 18 decimal points.
     savingsRate: toGRT('1.000000001547125958'),
+    initialSupply: toGRT('100000000'), // 100 M
   },
   rewards: {
     issuanceRate: toGRT('1.000000023206889619'),
@@ -70,7 +70,7 @@ export async function deployGRT(deployer: Signer): Promise<GraphToken> {
 }
 
 export async function deployGDAI(deployer: Signer): Promise<Gdai> {
-  return deployContract('GDAI', deployer, defaults.gdai.initialSupply) as Promise<Gdai>
+  return deployContract('GDAI', deployer) as Promise<Gdai>
 }
 
 export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GsrManager> {

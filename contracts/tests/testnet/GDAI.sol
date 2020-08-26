@@ -14,13 +14,12 @@ contract GDAI is Governed, ERC20, ERC20Burnable {
 
     /**
      * @dev GDAI constructor.
-     * @param _initialSupply Initial supply of GDAI
      */
-    constructor(uint256 _initialSupply) public ERC20("Graph DAI", "GDAI") {
+    constructor() public ERC20("Graph DAI", "GDAI") {
         Governed._initialize(msg.sender);
 
-        // The Governor has the initial supply of tokens
-        _mint(msg.sender, _initialSupply);
+        // The Governor is sent all tokens
+        _mint(msg.sender, 100000000 ether); // 100,000,000 GDAI
     }
 
     /**
