@@ -89,6 +89,7 @@ For each contract deployed, the address book will contain:
 
 Some contracts require the address from previously deployed contracts. For that reason, the order of deployment is as below:
 
+- Controller
 - EpochManager
 - GNS
 - GraphToken
