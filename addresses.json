@@ -1,5 +1,11 @@
 {
   "4": {
+    "GSRManager": {
+      "address": "0x1d6D46672A9BB565407D80af5DA6fe25b3F3f81C"
+    },
+    "GDAI": {
+      "address": "0xe51aff808f512627166f4eda2c8c682f153024ba"
+    },
     "IENS": {
       "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
     },

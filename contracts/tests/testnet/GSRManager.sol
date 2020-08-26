@@ -30,6 +30,7 @@ contract GSRManager is Governed {
      * @dev Graph Saving Rate constructor.
      */
     constructor(uint256 _savingsRate, address _gdai) public {
+        require(_savingsRate != 0, "Savings rate can't be zero");
         Governed._initialize(msg.sender);
         cumulativeInterestRate = ISSUANCE_RATE_DECIMALS;
         lastDripTime = now;
@@ -39,6 +40,7 @@ contract GSRManager is Governed {
 
     // Governance sets savings rate
     function setRate(uint256 _newRate) external onlyGovernor {
+        require(_newRate != 0, "Savings rate can't be zero");
         drip();
         savingsRate = _newRate;
         emit SetRate(savingsRate);

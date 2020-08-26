@@ -118,9 +118,9 @@ describe('Gdai and Gsr', () => {
       expect(await gsrManager.savingsRate()).eq(defaults.gdai.savingsRate)
 
       // Update and check new value
-      const tx = gsrManager.connect(governor.signer).setRate(0)
-      await expect(tx).emit(gsrManager, 'SetRate').withArgs(0)
-      expect(await gsrManager.savingsRate()).eq(0)
+      const tx = gsrManager.connect(governor.signer).setRate(1)
+      await expect(tx).emit(gsrManager, 'SetRate').withArgs(1)
+      expect(await gsrManager.savingsRate()).eq(1)
     })
 
     it('should test drip() and join()', async function () {

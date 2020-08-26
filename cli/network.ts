@@ -62,10 +62,7 @@ export const sendTransaction = async (
 ): Promise<providers.TransactionReceipt> => {
   let tx: ContractTransaction
   try {
-    tx = await contract.functions[fn](...params)
-    if (tx == undefined) {
-      logger.error(`It appears the function does not exist on this contract`)
-    }
+    tx = await contract.functions[fn](...params, defaultOverrides())
   } catch (e) {
     if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       logger.warn(`Gas could not be estimated - trying defaultOverrides`)
@@ -73,6 +70,9 @@ export const sendTransaction = async (
     } else {
       logger.error(e)
     }
+  }
+  if (tx == undefined) {
+    logger.error(`It appears the function does not exist on this contract`)
   }
   logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
   const receipt = await wallet.provider.waitForTransaction(tx.hash)
