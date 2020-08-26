@@ -26,11 +26,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     );
 
     /**
-     * @dev Emitted when rewards an indexer claims rewards.
-     */
-    event RewardsClaimed(address indexer, uint256 amount);
-
-    /**
      * @dev Emitted when a subgraph is denied for claiming rewards.
      */
     event RewardsDenylistUpdated(bytes32 subgraphDeploymentID, uint256 sinceBlock);
