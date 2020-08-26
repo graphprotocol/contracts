@@ -308,7 +308,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Assign rewards and make them available for claiming in the pool.
+     * @dev Pull rewards from the contract for a particular allocation.
+     * This function will mint the necessary tokens to reward based on the inflation calculation
      * @param _allocationID Allocation
      * @return Assigned rewards amount
      */
