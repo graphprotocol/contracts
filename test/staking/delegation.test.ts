@@ -218,9 +218,7 @@ describe('Staking::Delegation', () => {
         const tx = staking
           .connect(indexer.signer)
           .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
-        await expect(tx).revertedWith(
-          'Delegation: must expire cooldown period to update parameters',
-        )
+        await expect(tx).revertedWith('must expire cooldown period to update parameters')
       })
 
       it('reject to set if cooldown below the global configuration', async function () {
@@ -231,7 +229,7 @@ describe('Staking::Delegation', () => {
         const tx = staking
           .connect(indexer.signer)
           .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks - 1)
-        await expect(tx).revertedWith('Delegation: cooldown cannot be below minimum')
+        await expect(tx).revertedWith('cooldown cannot be below minimum')
       })
 
       it('reject to set parameters out of bound', async function () {
@@ -239,15 +237,13 @@ describe('Staking::Delegation', () => {
         const tx1 = staking
           .connect(indexer.signer)
           .setDelegationParameters(MAX_PPM.add('1'), queryFeeCut, cooldownBlocks)
-        await expect(tx1).revertedWith(
-          'Delegation: IndexingRewardCut must be below or equal to MAX_PPM',
-        )
+        await expect(tx1).revertedWith('IndexingRewardCut must be below or equal to MAX_PPM')
 
         // Query fee out of bounds
         const tx2 = staking
           .connect(indexer.signer)
           .setDelegationParameters(indexingRewardCut, MAX_PPM.add('1'), cooldownBlocks)
-        await expect(tx2).revertedWith('Delegation: QueryFeeCut must be below or equal to MAX_PPM')
+        await expect(tx2).revertedWith('QueryFeeCut must be below or equal to MAX_PPM')
       })
 
       it('should set parameters', async function () {
@@ -293,13 +289,13 @@ describe('Staking::Delegation', () => {
       it('reject to delegate zero tokens', async function () {
         const tokensToDelegate = toGRT('0')
         const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
-        await expect(tx).revertedWith('Delegation: cannot delegate zero tokens')
+        await expect(tx).revertedWith('cannot delegate zero tokens')
       })
 
       it('reject to delegate to empty address', async function () {
         const tokensToDelegate = toGRT('100')
         const tx = staking.connect(delegator.signer).delegate(AddressZero, tokensToDelegate)
-        await expect(tx).revertedWith('Delegation: cannot delegate to empty address')
+        await expect(tx).revertedWith('cannot delegate to empty address')
       })
 
       it('should delegate tokens and account shares proportionally', async function () {
@@ -324,12 +320,12 @@ describe('Staking::Delegation', () => {
     describe('undelegate', function () {
       it('reject to undelegate zero shares', async function () {
         const tx = staking.connect(delegator.signer).undelegate(indexer.address, toGRT('0'))
-        await expect(tx).revertedWith('Delegation: cannot undelegate zero shares')
+        await expect(tx).revertedWith('cannot undelegate zero shares')
       })
 
       it('reject to undelegate more shares than owned', async function () {
         const tx = staking.connect(delegator.signer).undelegate(indexer.address, toGRT('100'))
-        await expect(tx).revertedWith('Delegation: delegator does not have enough shares')
+        await expect(tx).revertedWith('delegator does not have enough shares')
       })
 
       it('should exchange delegation pool shares for tokens', async function () {
@@ -359,7 +355,7 @@ describe('Staking::Delegation', () => {
     describe('withdraw', function () {
       it('reject withdraw if no funds available', async function () {
         const tx = staking.connect(delegator.signer).withdrawDelegated(indexer.address, AddressZero)
-        await expect(tx).revertedWith('Delegation: no tokens available to withdraw')
+        await expect(tx).revertedWith('no tokens available to withdraw')
       })
 
       it('reject withdraw before unbonding period', async function () {
@@ -369,7 +365,7 @@ describe('Staking::Delegation', () => {
 
         // Withdraw
         const tx = staking.connect(delegator.signer).withdrawDelegated(indexer.address, AddressZero)
-        await expect(tx).revertedWith('Delegation: no tokens available to withdraw')
+        await expect(tx).revertedWith('no tokens available to withdraw')
       })
 
       it('should withdraw after waiting an unbonding period', async function () {
@@ -435,7 +431,7 @@ describe('Staking::Delegation', () => {
       // Delegated: 1800
       // Capacity: 200 + min(200*2, 1800) = 600
       const tx = setupAllocation(tokensToAllocate)
-      await expect(tx).revertedWith('Allocation: not enough tokens available to allocate')
+      await expect(tx).revertedWith('not enough tokens available to allocate')
     })
 
     it('should allocate using full delegation capacity', async function () {

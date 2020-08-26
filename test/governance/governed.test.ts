@@ -20,11 +20,6 @@ describe('Governed', () => {
     governed = (await factory.connect(governor.signer).deploy()) as Governed
   })
 
-  it('should set `governor`', async function () {
-    // Set right in the constructor
-    expect(await governed.governor()).eq(governor.address)
-  })
-
   it('should reject transfer if not allowed', async function () {
     const tx = governed.connect(me.signer).transferOwnership(me.address)
     await expect(tx).revertedWith('Only Governor can call')
