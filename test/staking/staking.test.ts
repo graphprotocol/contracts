@@ -103,7 +103,7 @@ describe('Staking:Stakes', () => {
     describe('stake', function () {
       it('reject stake zero tokens', async function () {
         const tx = staking.connect(indexer.signer).stake(toGRT('0'))
-        await expect(tx).revertedWith('Staking: cannot stake zero tokens')
+        await expect(tx).revertedWith('cannot stake zero tokens')
       })
 
       it('should stake tokens', async function () {
@@ -115,7 +115,7 @@ describe('Staking:Stakes', () => {
       it('reject unstake tokens', async function () {
         const tokensToUnstake = toGRT('2')
         const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
-        await expect(tx).revertedWith('Staking: indexer has no stakes')
+        await expect(tx).revertedWith('indexer has no stakes')
       })
     })
 
@@ -126,7 +126,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
-        await expect(tx).revertedWith('Slashing: indexer has no stakes')
+        await expect(tx).revertedWith('indexer has no stakes')
       })
     })
   })
@@ -196,14 +196,14 @@ describe('Staking:Stakes', () => {
       it('reject unstake more than available tokens', async function () {
         const tokensOverCapacity = tokensToStake.add(toGRT('1'))
         const tx = staking.connect(indexer.signer).unstake(tokensOverCapacity)
-        await expect(tx).revertedWith('Staking: not enough tokens available to unstake')
+        await expect(tx).revertedWith('not enough tokens available to unstake')
       })
     })
 
     describe('withdraw', function () {
       it('reject withdraw if no tokens available', async function () {
         const tx = staking.connect(indexer.signer).withdraw()
-        await expect(tx).revertedWith('Staking: no tokens available to withdraw')
+        await expect(tx).revertedWith('no tokens available to withdraw')
       })
 
       it('should withdraw if tokens available', async function () {
@@ -216,7 +216,7 @@ describe('Staking:Stakes', () => {
 
         // Withdraw on locking period (should fail)
         const tx2 = staking.connect(indexer.signer).withdraw()
-        await expect(tx2).revertedWith('Staking: no tokens available to withdraw')
+        await expect(tx2).revertedWith('no tokens available to withdraw')
 
         // Move forward
         await advanceBlockTo(tokensLockedUntil)
@@ -329,7 +329,7 @@ describe('Staking:Stakes', () => {
         expect(tokensAvailable).eq(toGRT('-50'))
 
         const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
-        await expect(tx).revertedWith('Staking: not enough tokens available to unstake')
+        await expect(tx).revertedWith('not enough tokens available to unstake')
       })
 
       it('reject to slash zero tokens', async function () {
@@ -338,7 +338,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, me.address)
-        await expect(tx).revertedWith('Slashing: cannot slash zero tokens')
+        await expect(tx).revertedWith('cannot slash zero tokens')
       })
 
       it('reject to slash indexer if caller is not slasher', async function () {
@@ -356,7 +356,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, AddressZero)
-        await expect(tx).revertedWith('Slashing: beneficiary must not be an empty address')
+        await expect(tx).revertedWith('beneficiary must not be an empty address')
       })
 
       it('reject to slash indexer if reward is greater than slash amount', async function () {
@@ -365,7 +365,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
-        await expect(tx).revertedWith('Slashing: reward cannot be higher than slashed amoun')
+        await expect(tx).revertedWith('reward cannot be higher than slashed amoun')
       })
     })
   })

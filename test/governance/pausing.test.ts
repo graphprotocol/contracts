@@ -73,9 +73,7 @@ describe('Pausing', () => {
 
     const tokensToStake = toGRT('100')
     const tx = staking.connect(me.signer).stake(tokensToStake)
-    await expect(tx).revertedWith(
-      'This action cannot be performed while the contract is recovery paused',
-    )
+    await expect(tx).revertedWith('Recovery-paused')
   })
   it('should set pause and unset from governor and guardian', async function () {
     expect(await controller.paused()).eq(false)
@@ -99,9 +97,9 @@ describe('Pausing', () => {
 
     const tokensToStake = toGRT('100')
     const tx1 = staking.connect(me.signer).stake(tokensToStake)
-    await expect(tx1).revertedWith('This action cannot be performed while the contract is paused')
+    await expect(tx1).revertedWith('Paused')
 
     const tx2 = staking.connect(me.signer).withdraw()
-    await expect(tx2).revertedWith('This action cannot be performed while the contract is paused')
+    await expect(tx2).revertedWith('Paused')
   })
 })
