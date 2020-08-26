@@ -6,6 +6,7 @@ import { ensCommand } from './ens'
 import { ethereumDIDRegistryCommand } from './ethereumDIDRegistry'
 import { gnsCommand } from './gns'
 import { graphTokenCommand } from './graphToken'
+import { gdaiCommand } from './gsr-gdai'
 import { stakingCommand } from './staking'
 
 import { CLIArgs } from '../../env'
@@ -21,6 +22,7 @@ export const contractsCommand = {
       .command(ethereumDIDRegistryCommand)
       .command(gnsCommand)
       .command(graphTokenCommand)
+      .command(gdaiCommand)
       .command(stakingCommand)
   },
   handler: (argv: CLIArgs): void => {
