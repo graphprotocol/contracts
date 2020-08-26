@@ -23,10 +23,17 @@ contract Controller is IController, Governed, Pausable {
      */
     modifier onlyGovernorOrGuradian {
         require(
-            msg.sender == _governor || msg.sender == pauseGuardian,
+            msg.sender == governor || msg.sender == pauseGuardian,
             "Only Governor or Guardian can call"
         );
         _;
+    }
+
+    /**
+     * @notice Getter to access governor
+     */
+    function getGovernor() external override view returns (address) {
+        return governor;
     }
 
     /**
@@ -80,13 +87,6 @@ contract Controller is IController, Governed, Pausable {
      */
     function getContractProxy(bytes32 _id) public override view returns (address) {
         return registry[_id];
-    }
-
-    /**
-     * @notice Getter to access governor
-     */
-    function governor() external override view returns (address) {
-        return _governor;
     }
 
     /**

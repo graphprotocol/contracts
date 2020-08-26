@@ -7,7 +7,7 @@ pragma solidity ^0.6.4;
 contract Governed {
     // -- State --
 
-    address internal _governor;
+    address public governor;
     address public pendingGovernor;
 
     // -- Events --
@@ -19,7 +19,7 @@ contract Governed {
      * @dev Check if the caller is the governor.
      */
     modifier onlyGovernor {
-        require(msg.sender == _governor, "Only Governor can call");
+        require(msg.sender == governor, "Only Governor can call");
         _;
     }
 
@@ -27,7 +27,7 @@ contract Governed {
      * @dev Initialize the governor to the contract caller.
      */
     function _initialize(address _initGovernor) internal {
-        _governor = _initGovernor;
+        governor = _initGovernor;
     }
 
     /**
@@ -52,13 +52,13 @@ contract Governed {
             "Caller must be pending governor"
         );
 
-        address oldGovernor = _governor;
+        address oldGovernor = governor;
         address oldPendingGovernor = pendingGovernor;
 
-        _governor = pendingGovernor;
+        governor = pendingGovernor;
         pendingGovernor = address(0);
 
-        emit NewOwnership(oldGovernor, _governor);
+        emit NewOwnership(oldGovernor, governor);
         emit NewPendingOwnership(oldPendingGovernor, pendingGovernor);
     }
 }
