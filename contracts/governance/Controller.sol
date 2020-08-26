@@ -21,7 +21,7 @@ contract Controller is IController, Governed, Pausable {
     /**
      * @dev Check if the caller is the governor or pause guardian.
      */
-    modifier onlyGovernorOrGuradian {
+    modifier onlyGovernorOrGuardian {
         require(
             msg.sender == governor || msg.sender == pauseGuardian,
             "Only Governor or Guardian can call"
@@ -62,14 +62,14 @@ contract Controller is IController, Governed, Pausable {
     /**
      * @notice Change the recovery paused state of the contract
      */
-    function setRecoveryPaused(bool _recoveryPaused) external onlyGovernorOrGuradian {
+    function setRecoveryPaused(bool _recoveryPaused) external onlyGovernorOrGuardian {
         _setRecoveryPaused(_recoveryPaused);
     }
 
     /**
      * @notice Change the paused state of the contract
      */
-    function setPaused(bool _paused) external onlyGovernorOrGuradian {
+    function setPaused(bool _paused) external onlyGovernorOrGuardian {
         _setPaused(_paused);
     }
 
