@@ -1138,7 +1138,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect the delegation rewards related for indexing.
+     * @dev Collect the delegation rewards for indexing.
      * This function will assign the collected fees to the delegation pool.
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
@@ -1278,7 +1278,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Assign rewards for the settled allocation to the indexer.
+     * @dev Assign rewards for the settled allocation to indexer and delegators.
      * @param _allocationID Allocation
      */
     function _distributeRewards(address _allocationID, address _indexer)
