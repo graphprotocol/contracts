@@ -158,14 +158,4 @@ interface IStaking {
         external
         view
         returns (Delegation memory);
-
-    function getDelegationShares(address _indexer, address _delegator)
-        external
-        view
-        returns (uint256);
-
-    function getDelegationTokens(address _indexer, address _delegator)
-        external
-        view
-        returns (uint256);
 }
