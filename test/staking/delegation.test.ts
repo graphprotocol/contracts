@@ -41,8 +41,11 @@ describe('Staking::Delegation', () => {
   async function shouldDelegate(sender: Account, tokens: BigNumber) {
     // Before state
     const beforePool = await staking.delegationPools(indexer.address)
-    const beforeShares = await staking.getDelegationShares(indexer.address, sender.address)
-    const beforeTokens = await staking.getDelegationTokens(indexer.address, sender.address)
+    const beforeDelegation = await staking.getDelegation(indexer.address, sender.address)
+    const beforeShares = beforeDelegation.shares
+    const beforeTokens = beforePool.shares.gt(0)
+      ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
+      : toBN(0)
 
     // Calculate shares to receive
     const shares = beforePool.tokens.eq(toBN('0'))
@@ -57,8 +60,11 @@ describe('Staking::Delegation', () => {
 
     // After state
     const afterPool = await staking.delegationPools(indexer.address)
-    const afterShares = await staking.getDelegationShares(indexer.address, sender.address)
-    const afterTokens = await staking.getDelegationTokens(indexer.address, sender.address)
+    const afterDelegation = await staking.getDelegation(indexer.address, sender.address)
+    const afterShares = afterDelegation.shares
+    const afterTokens = afterPool.shares.gt(0)
+      ? afterShares.mul(afterPool.tokens).div(afterPool.shares)
+      : toBN(0)
 
     // State updated
     expect(afterPool.tokens).eq(beforePool.tokens.add(tokens))
@@ -71,8 +77,10 @@ describe('Staking::Delegation', () => {
     // Before state
     const beforePool = await staking.delegationPools(indexer.address)
     const beforeDelegation = await staking.getDelegation(indexer.address, sender.address)
-    const beforeShares = await staking.getDelegationShares(indexer.address, sender.address)
-    const beforeTokens = await staking.getDelegationTokens(indexer.address, sender.address)
+    const beforeShares = beforeDelegation.shares
+    const beforeTokens = beforePool.shares.gt(0)
+      ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
+      : toBN(0)
     const beforeDelegatorBalance = await grt.balanceOf(sender.address)
 
     // Calculate tokens to receive
@@ -91,8 +99,10 @@ describe('Staking::Delegation', () => {
     // After state
     const afterPool = await staking.delegationPools(indexer.address)
     const afterDelegation = await staking.getDelegation(indexer.address, sender.address)
-    const afterShares = await staking.getDelegationShares(indexer.address, sender.address)
-    const afterTokens = await staking.getDelegationTokens(indexer.address, sender.address)
+    const afterShares = afterDelegation.shares
+    const afterTokens = afterPool.shares.gt(0)
+      ? afterShares.mul(afterPool.tokens).div(afterPool.shares)
+      : toBN(0)
     const afterDelegatorBalance = await grt.balanceOf(sender.address)
 
     // State updated
@@ -110,8 +120,11 @@ describe('Staking::Delegation', () => {
   async function shouldWithdrawDelegated(sender: Account, redelegateTo: string, tokens: BigNumber) {
     // Before state
     const beforePool = await staking.delegationPools(indexer2.address)
-    const beforeShares = await staking.getDelegationShares(indexer2.address, sender.address)
-    const beforeTokens = await staking.getDelegationTokens(indexer2.address, sender.address)
+    const beforeDelegation = await staking.getDelegation(indexer2.address, sender.address)
+    const beforeShares = beforeDelegation.shares
+    const beforeTokens = beforePool.shares.gt(0)
+      ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
+      : toBN(0)
     const beforeBalance = await grt.balanceOf(delegator.address)
 
     // Calculate shares to receive
@@ -127,9 +140,11 @@ describe('Staking::Delegation', () => {
 
     // After state
     const afterPool = await staking.delegationPools(indexer2.address)
-    const afterShares = await staking.getDelegationShares(indexer2.address, sender.address)
-    const afterTokens = await staking.getDelegationTokens(indexer2.address, sender.address)
-    const afterDelegation = await staking.getDelegation(indexer.address, delegator.address)
+    const afterDelegation = await staking.getDelegation(indexer2.address, sender.address)
+    const afterShares = afterDelegation.shares
+    const afterTokens = afterPool.shares.gt(0)
+      ? afterShares.mul(afterPool.tokens).div(afterPool.shares)
+      : toBN(0)
     const afterBalance = await grt.balanceOf(delegator.address)
 
     // State updated

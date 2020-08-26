@@ -431,42 +431,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Get the amount of shares a delegator has in a delegation pool.
-     * @param _indexer Address of the indexer
-     * @param _delegator Address of the delegator
-     * @return Shares owned by delegator in a delegation pool
-     */
-    function getDelegationShares(address _indexer, address _delegator)
-        external
-        override
-        view
-        returns (uint256)
-    {
-        return delegationPools[_indexer].delegators[_delegator].shares;
-    }
-
-    /**
-     * @dev Get the amount of tokens a delegator has in a delegation pool.
-     * @param _indexer Address of the indexer
-     * @param _delegator Address of the delegator
-     * @return Tokens owned by delegator in a delegation pool
-     */
-    function getDelegationTokens(address _indexer, address _delegator)
-        external
-        override
-        view
-        returns (uint256)
-    {
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegationPools[_indexer];
-        if (pool.shares == 0) {
-            return 0;
-        }
-        uint256 _shares = delegationPools[_indexer].delegators[_delegator].shares;
-        return _shares.mul(pool.tokens).div(pool.shares);
-    }
-
-    /**
      * @dev Get the total amount of tokens staked by the indexer.
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
@@ -1267,18 +1231,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     {
         bool shouldCap = maxAllocationEpochs > 0 && _numEpochs > maxAllocationEpochs;
         return _tokens.mul((shouldCap) ? maxAllocationEpochs : _numEpochs);
-    }
-
-    /**
-     * @dev Get the running network chain ID
-     * @return The chain ID
-     */
-    function _getChainID() internal pure returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 
     /**
