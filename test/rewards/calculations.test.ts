@@ -24,11 +24,13 @@ import {
 // TODO: enforcer
 // TODO: issuance rate
 
+const MAX_PPM = 1000000
+
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: BigNumber) => Math.round(toFloat(n))
 
 describe('Rewards:Calculations', () => {
-  let me: Account
+  let delegator: Account
   let governor: Account
   let curator1: Account
   let curator2: Account
@@ -50,10 +52,10 @@ describe('Rewards:Calculations', () => {
   const channelPubKey =
     '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
 
-  const ISSUANCE_RATE_DECIMALS = ethers.constants.WeiPerEther
+  // const ISSUANCE_RATE_DECIMALS = ethers.constants.WeiPerEther
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
   const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
-  const ISSUANCE_RATE_PER_PERIOD = toBN('1050000000000000000') // % increase every 4 blocks (5%)
+  // const ISSUANCE_RATE_PER_PERIOD = toBN('1050000000000000000') // % increase every 4 blocks (5%)
 
   // Core formula that gets accumulated rewards per signal for a period of time
   const getRewardsPerSignal = (p: BigNumber, r: BigNumber, t: BigNumber, s: BigNumber): number => {
@@ -128,7 +130,15 @@ describe('Rewards:Calculations', () => {
   }
 
   before(async function () {
-    ;[me, governor, curator1, curator2, indexer1, indexer2, assetHolder] = await getAccounts()
+    ;[
+      delegator,
+      governor,
+      curator1,
+      curator2,
+      indexer1,
+      indexer2,
+      assetHolder,
+    ] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
@@ -410,8 +420,9 @@ describe('Rewards:Calculations', () => {
     })
   })
 
-  describe('assign rewards and claim', function () {
-    it('should distribute rewards on allocation settled and claim them', async function () {
+  describe('assign rewards', function () {
+    it('should distribute rewards on allocation settled', async function () {
+      // Setup
       await epochManager.setEpochLength(10)
 
       // Update total signalled
@@ -434,32 +445,46 @@ describe('Rewards:Calculations', () => {
       // Jump
       await advanceBlocks(await epochManager.epochLength())
 
+      // Before state
+      const beforeTokenSupply = await grt.totalSupply()
+      const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+
       // Settle allocation. At this point rewards should be collected for that indexer
       await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
 
-      // Check that rewards are put into indexer claimable pool
-      // NOTE: alculated manually on a spreadsheet
-      const expectedIndexerRewards = 1471954234
-      const contractIndexerRewards = await rewardsManager.indexerRewards(indexer1.address)
-      expect(expectedIndexerRewards).eq(toRound(contractIndexerRewards))
+      // After state
+      const afterTokenSupply = await grt.totalSupply()
+      const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
-      // Try to claim those rewards from wrong indexer should fail
-      const tx1 = rewardsManager.connect(indexer2.signer).claim(false)
-      await expect(tx1).revertedWith('No rewards available for claiming')
-
-      // Try to claim those rewards and get funds back to indexer
-      const beforeIndexerBalance = await grt.balanceOf(indexer1.address)
-      const tx2 = rewardsManager.connect(indexer1.signer).claim(false)
-      await expect(tx2)
-        .emit(rewardsManager, 'RewardsClaimed')
-        .withArgs(indexer1.address, contractIndexerRewards)
-
-      // State updated
-      const afterIndexerBalance = await grt.balanceOf(indexer1.address)
-      expect(afterIndexerBalance).eq(beforeIndexerBalance.add(contractIndexerRewards))
+      // Check that rewards are put into indexer stake
+      // NOTE: calculated manually on a spreadsheet
+      const expectedIndexingRewards = toGRT('1471954234')
+      const expectedIndexerStake = beforeIndexer1Stake.add(expectedIndexingRewards)
+      const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
+      // Check
+      expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+      // Check that tokens have been minted
+      expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
     })
 
-    it('should distribute rewards on allocation settled and claim them /w restake', async function () {
+    it('should distribute rewards on allocation settled w/delegators', async function () {
+      // Delegation params
+      const indexingRewardCut = toBN('50000') // 5%
+      const queryFeeCut = toBN('80000') // 8%
+      const cooldownBlocks = 5
+      const tokensToDelegate = toGRT('2000')
+
+      // Transfer some funds from the curator, I don't want to mint new tokens
+      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
+      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
+
+      // Delegate
+      await staking
+        .connect(indexer1.signer)
+        .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
+
+      // Setup
       await epochManager.setEpochLength(10)
 
       // Update total signalled
@@ -482,25 +507,35 @@ describe('Rewards:Calculations', () => {
       // Jump
       await advanceBlocks(await epochManager.epochLength())
 
+      // Before state
+      const beforeTokenSupply = await grt.totalSupply()
+      const beforeDelegationPool = await staking.delegationPools(indexer1.address)
+      const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+
       // Settle allocation. At this point rewards should be collected for that indexer
       await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
 
-      // Check that rewards are put into indexer claimable pool
-      // NOTE: alculated manually on a spreadsheet
-      const expectedIndexerRewards = 1471954234
-      const contractIndexerRewards = await rewardsManager.indexerRewards(indexer1.address)
-      expect(expectedIndexerRewards).eq(toRound(contractIndexerRewards))
+      // After state
+      const afterTokenSupply = await grt.totalSupply()
+      const afterDelegationPool = await staking.delegationPools(indexer1.address)
+      const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
-      // Try to claim those rewards and get funds back to indexer
-      const beforeIndexerBalance = await grt.balanceOf(indexer1.address)
-      const tx2 = rewardsManager.connect(indexer1.signer).claim(true)
-      await expect(tx2)
-        .emit(rewardsManager, 'RewardsClaimed')
-        .withArgs(indexer1.address, contractIndexerRewards)
-
-      // State updated
-      const afterIndexerBalance = await grt.balanceOf(indexer1.address)
-      expect(afterIndexerBalance).eq(beforeIndexerBalance)
+      // Check that rewards are put into indexer stake (only indexer cut)
+      // Checl that rewards are put into delegators pool accordingly
+      // NOTE: calculated manually on a spreadsheet
+      const expectedIndexingRewards = toGRT('1471954234')
+      // Calculate delegators cut
+      const indexerRewards = indexingRewardCut.mul(expectedIndexingRewards).div(toBN(MAX_PPM))
+      // Calculate indexer cut
+      const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
+      // Check
+      const expectedIndexerStake = beforeIndexer1Stake.add(indexerRewards)
+      const expectedDelegatorsPoolTokens = beforeDelegationPool.tokens.add(delegatorsRewards)
+      const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
+      expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+      expect(toRound(afterDelegationPool.tokens)).eq(toRound(expectedDelegatorsPoolTokens))
+      // Check that tokens have been minted
+      expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
     })
   })
 })
