@@ -290,7 +290,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Cooldown period set by indexer cannot be below protocol global setting
         require(
             _cooldownBlocks >= delegationParametersCooldown,
-            "cooldown cannot be below minimum"
+            "Cooldown cannot be below minimum"
         );
 
         // Verify the cooldown period passed
@@ -298,7 +298,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(
             pool.updatedAtBlock == 0 ||
                 pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
-            "must expire cooldown period to update parameters"
+            "Must expire cooldown period to update parameters"
         );
 
         // Update delegation params
@@ -529,12 +529,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to stake
      */
     function stakeTo(address _indexer, uint256 _tokens) public override notRecoveryPaused {
-        require(_tokens > 0, "cannot stake zero tokens");
+        require(_tokens > 0, "Cannot stake zero tokens");
 
         // Transfer tokens to stake from caller to this contract
         require(
             graphToken().transferFrom(msg.sender, address(this), _tokens),
-            "cannot transfer tokens to stake"
+            "Cannot transfer tokens to stake"
         );
 
         // Stake the transferred tokens
@@ -549,10 +549,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        require(indexerStake.hasTokens(), "indexer has no stakes");
+        require(indexerStake.hasTokens(), "Indexer has no stakes");
         require(
             indexerStake.tokensAvailable() >= _tokens,
-            "not enough tokens available to unstake"
+            "Not enough tokens available to unstake"
         );
 
         indexerStake.lockTokens(_tokens, thawingPeriod);
@@ -569,10 +569,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Get tokens available for withdraw and update balance
         uint256 tokensToWithdraw = indexerStake.withdrawTokens();
-        require(tokensToWithdraw > 0, "no tokens available to withdraw");
+        require(tokensToWithdraw > 0, "No tokens available to withdraw");
 
         // Return tokens to the indexer
-        require(graphToken().transfer(indexer, tokensToWithdraw), "cannot transfer tokens");
+        require(graphToken().transfer(indexer, tokensToWithdraw), "Cannot transfer tokens");
 
         emit StakeWithdrawn(indexer, tokensToWithdraw);
     }
@@ -594,17 +594,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only able to slash a non-zero number of tokens
-        require(_tokens > 0, "cannot slash zero tokens");
+        require(_tokens > 0, "Cannot slash zero tokens");
 
         // Rewards comes from tokens slashed balance
-        require(_tokens >= _reward, "reward cannot be higher than slashed amount");
+        require(_tokens >= _reward, "Reward cannot be higher than slashed amount");
 
         // Cannot slash stake of an indexer without any or enough stake
-        require(indexerStake.hasTokens(), "indexer has no stakes");
+        require(indexerStake.hasTokens(), "Indexer has no stakes");
         require(_tokens <= indexerStake.tokensStaked, "cannot slash more than staked amount");
 
         // Validate beneficiary of slashed tokens
-        require(_beneficiary != address(0), "beneficiary must not be an empty address");
+        require(_beneficiary != address(0), "Beneficiary must not be an empty address");
 
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
@@ -627,7 +627,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Give the beneficiary a reward for slashing
         if (_reward > 0) {
-            require(graphToken().transfer(_beneficiary, _reward), "error sending dispute reward");
+            require(graphToken().transfer(_beneficiary, _reward), "Error sending dispute reward");
         }
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
@@ -676,7 +676,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 currentEpoch = epochManager().currentEpoch();
         require(
             delegation.tokensLockedUntil > 0 && currentEpoch >= delegation.tokensLockedUntil,
-            "no tokens available to withdraw"
+            "No tokens available to withdraw"
         );
 
         // Get tokens available for withdrawal
@@ -693,7 +693,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _delegate(delegator, _newIndexer, tokensToWithdraw);
         } else {
             // Return tokens to the delegator
-            require(graphToken().transfer(delegator, tokensToWithdraw), "cannot transfer tokens");
+            require(graphToken().transfer(delegator, tokensToWithdraw), "Cannot transfer tokens");
         }
     }
 
@@ -712,7 +712,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         uint256 _price
     ) external override {
-        require(_onlyAuth(msg.sender), "caller must be authorized");
+        require(_onlyAuth(msg.sender), "Caller must be authorized");
 
         _allocate(msg.sender, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
@@ -734,7 +734,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         uint256 _price
     ) external override notPaused {
-        require(_onlyAuth(_indexer), "caller must be authorized");
+        require(_onlyAuth(_indexer), "Caller must be authorized");
 
         _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
@@ -753,7 +753,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Allocation must exist and be active
-        require(allocState == AllocationState.Active, "allocation must be active");
+        require(allocState == AllocationState.Active, "Allocation must be active");
 
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
@@ -763,15 +763,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 epochs = alloc.createdAtEpoch < currentEpoch
             ? currentEpoch.sub(alloc.createdAtEpoch)
             : 0;
-        require(epochs > 0, "must pass at least one epoch");
+        require(epochs > 0, "Must pass at least one epoch");
 
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is settling
-            require(_onlyAuthOrDelegator(alloc.indexer), "caller must be authorized");
+            require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
         } else {
             // Verify that the allocation owner is settling
-            require(_onlyAuth(alloc.indexer), "caller must be authorized");
+            require(_onlyAuth(alloc.indexer), "Caller must be authorized");
         }
 
         // Settle the allocation and start counting a period to finalize any other
@@ -816,7 +816,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function collect(uint256 _tokens, address _allocationID) external override notPaused {
         // Allocation identifier validation
-        require(_allocationID != address(0), "invalid allocation");
+        require(_allocationID != address(0), "Invalid allocation");
 
         // NOTE: commented out for easier test of state-channel integrations
         // NOTE: this validation might be removed in the future if no harm to the
@@ -829,7 +829,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Transfer tokens to collect from the authorized sender
         require(
             graphToken().transferFrom(msg.sender, address(this), _tokens),
-            "cannot transfer tokens to collect"
+            "Cannot transfer tokens to collect"
         );
 
         _collect(_allocationID, msg.sender, _tokens);
@@ -846,12 +846,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Validate ownership
-        require(_onlyAuthOrDelegator(alloc.indexer), "caller must be authorized");
+        require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
 
         // TODO: restake when delegator called should not be allowed?
 
         // Funds can only be claimed after a period of time passed since settlement
-        require(allocState == AllocationState.Finalized, "allocation must be in finalized state");
+        require(allocState == AllocationState.Finalized, "Allocation must be in finalized state");
 
         // Find a rebate pool for the settled epoch
         Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
@@ -889,7 +889,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
                 // Transfer funds back to the indexer
                 require(
                     graphToken().transfer(alloc.indexer, tokensToClaim),
-                    "cannot transfer tokens"
+                    "Cannot transfer tokens"
                 );
             }
         }
@@ -947,16 +947,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only allocations with a non-zero token amount are allowed
-        require(_tokens > 0, "cannot allocate zero tokens");
+        require(_tokens > 0, "Cannot allocate zero tokens");
 
         // Channel public key must be in uncompressed format
         require(
             uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
-            "invalid channel public key"
+            "Invalid channel public key"
         );
 
         // Needs to have free capacity not used for other purposes to allocate
-        require(getIndexerCapacity(_indexer) >= _tokens, "not enough tokens available to allocate");
+        require(getIndexerCapacity(_indexer) >= _tokens, "Not enough tokens available to allocate");
 
         // A channel public key is derived by the indexer when creating the offchain payment channel.
         // Get the Ethereum address from the public key and use as allocation identifier.
@@ -966,7 +966,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Cannot reuse an allocationID that has already been used in an allocation
         require(
             _getAllocationState(allocationID) == AllocationState.Null,
-            "allocationID already used"
+            "AllocationID already used"
         );
 
         // Creates an allocation
@@ -1026,7 +1026,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // The allocation must be active or settled
         require(
             allocState == AllocationState.Active || allocState == AllocationState.Settled,
-            "allocation must be active or settled"
+            "Allocation must be active or settled"
         );
 
         // Collect protocol fees to be burned
@@ -1055,7 +1055,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             ICuration curation = curation();
-            require(graphToken().approve(address(curation), curationFees), "token approval failed");
+            require(graphToken().approve(address(curation), curationFees), "Token approval failed");
             curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
@@ -1084,9 +1084,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 _tokens
     ) internal returns (uint256) {
         // Can only delegate a non-zero amount of tokens
-        require(_tokens > 0, "cannot delegate zero tokens");
+        require(_tokens > 0, "Cannot delegate zero tokens");
         // Can only delegate to non-empty address
-        require(_indexer != address(0), "cannot delegate to empty address");
+        require(_indexer != address(0), "Cannot delegate to empty address");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
@@ -1120,14 +1120,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 _shares
     ) internal returns (uint256) {
         // Can only undelegate a non-zero amount of shares
-        require(_shares > 0, "cannot undelegate zero shares");
+        require(_shares > 0, "Cannot undelegate zero shares");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
         Delegation storage delegation = pool.delegators[_delegator];
 
         // Delegator need to have enough shares in the pool to undelegate
-        require(delegation.shares >= _shares, "delegator does not have enough shares");
+        require(delegation.shares >= _shares, "Delegator does not have enough shares");
 
         // Calculate tokens to get in exchange for the shares
         uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);

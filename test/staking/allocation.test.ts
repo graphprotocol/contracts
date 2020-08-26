@@ -174,7 +174,7 @@ describe('Staking:Allocation', () => {
     it('reject allocate zero tokens', async function () {
       const zeroTokens = toGRT('0')
       const tx = allocate(zeroTokens)
-      await expect(tx).revertedWith('cannot allocate zero tokens')
+      await expect(tx).revertedWith('Cannot allocate zero tokens')
     })
 
     it('reject allocate with invalid public key', async function () {
@@ -188,13 +188,13 @@ describe('Staking:Allocation', () => {
           assetHolder.address,
           price,
         )
-      await expect(tx).revertedWith('invalid channel public key')
+      await expect(tx).revertedWith('Invalid channel public key')
     })
 
     it('reject allocate if no tokens staked', async function () {
       const tokensOverCapacity = tokensToStake.add(toBN('1'))
       const tx = allocate(tokensOverCapacity)
-      await expect(tx).revertedWith('not enough tokens available to allocate')
+      await expect(tx).revertedWith('Not enough tokens available to allocate')
     })
 
     context('> when staked', function () {
@@ -205,7 +205,7 @@ describe('Staking:Allocation', () => {
       it('reject allocate more than available tokens', async function () {
         const tokensOverCapacity = tokensToStake.add(toBN('1'))
         const tx = allocate(tokensOverCapacity)
-        await expect(tx).revertedWith('not enough tokens available to allocate')
+        await expect(tx).revertedWith('Not enough tokens available to allocate')
       })
 
       it('should allocate', async function () {
@@ -224,7 +224,7 @@ describe('Staking:Allocation', () => {
             assetHolder.address,
             price,
           )
-        await expect(tx1).revertedWith('caller must be authorized')
+        await expect(tx1).revertedWith('Caller must be authorized')
 
         // Should allocate if given operator auth
         await staking.connect(indexer.signer).setOperator(me.address, true)
@@ -244,7 +244,7 @@ describe('Staking:Allocation', () => {
         const someTokensToAllocate = toGRT('10')
         await shouldAllocate(someTokensToAllocate)
         const tx = allocate(someTokensToAllocate)
-        await expect(tx).revertedWith('allocationID already used')
+        await expect(tx).revertedWith('AllocationID already used')
       })
     })
   })
@@ -317,13 +317,13 @@ describe('Staking:Allocation', () => {
 
     it('reject collect if invalid collection', async function () {
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, AddressZero)
-      await expect(tx).revertedWith('invalid allocation')
+      await expect(tx).revertedWith('Invalid allocation')
     })
 
     it('reject collect if allocation does not exist', async function () {
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, invalidAllocationID)
-      await expect(tx).revertedWith('allocation must be active or settled')
+      await expect(tx).revertedWith('Allocation must be active or settled')
     })
 
     // NOTE: Disabled as part of deactivating the authorized sender requirement
@@ -395,7 +395,7 @@ describe('Staking:Allocation', () => {
       // Revert if allocation is finalized
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
       const tx2 = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
-      await expect(tx2).revertedWith('allocation must be active or settled')
+      await expect(tx2).revertedWith('Allocation must be active or settled')
     })
   })
 
@@ -412,12 +412,12 @@ describe('Staking:Allocation', () => {
     it('reject settle a non-existing allocation', async function () {
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).settle(invalidAllocationID, poi)
-      await expect(tx).revertedWith('allocation must be active')
+      await expect(tx).revertedWith('Allocation must be active')
     })
 
     it('reject settle before at least one epoch has passed', async function () {
       const tx = staking.connect(indexer.signer).settle(allocationID, poi)
-      await expect(tx).revertedWith('must pass at least one epoch')
+      await expect(tx).revertedWith('Must pass at least one epoch')
     })
 
     it('reject settle if not the owner of allocation', async function () {
@@ -426,7 +426,7 @@ describe('Staking:Allocation', () => {
 
       // Settle
       const tx = staking.connect(me.signer).settle(allocationID, poi)
-      await expect(tx).revertedWith('caller must be authorized')
+      await expect(tx).revertedWith('Caller must be authorized')
     })
 
     it('reject settle if allocation is already settled', async function () {
@@ -438,7 +438,7 @@ describe('Staking:Allocation', () => {
 
       // Second settlement
       const tx = staking.connect(indexer.signer).settle(allocationID, poi)
-      await expect(tx).revertedWith('allocation must be active')
+      await expect(tx).revertedWith('Allocation must be active')
     })
 
     it('should settle an allocation', async function () {
@@ -499,7 +499,7 @@ describe('Staking:Allocation', () => {
 
       // Reject to settle if the address is not operator
       const tx1 = staking.connect(me.signer).settle(allocationID, poi)
-      await expect(tx1).revertedWith('caller must be authorized')
+      await expect(tx1).revertedWith('Caller must be authorized')
 
       // Should settle if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
@@ -594,13 +594,13 @@ describe('Staking:Allocation', () => {
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Active)
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).claim(invalidAllocationID, false)
-      await expect(tx).revertedWith('caller must be authorized')
+      await expect(tx).revertedWith('Caller must be authorized')
     })
 
     it('reject claim if allocation is not settled', async function () {
       expect(await staking.getAllocationState(allocationID)).not.eq(AllocationState.Settled)
       const tx = staking.connect(indexer.signer).claim(allocationID, false)
-      await expect(tx).revertedWith('allocation must be in finalized state')
+      await expect(tx).revertedWith('Allocation must be in finalized state')
     })
 
     context('> when settled', function () {
@@ -618,7 +618,7 @@ describe('Staking:Allocation', () => {
       it('reject claim if settled but channel dispute epochs has not passed', async function () {
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Settled)
         const tx = staking.connect(indexer.signer).claim(allocationID, false)
-        await expect(tx).revertedWith('allocation must be in finalized state')
+        await expect(tx).revertedWith('Allocation must be in finalized state')
       })
 
       it('should claim rebate', async function () {
@@ -659,7 +659,7 @@ describe('Staking:Allocation', () => {
 
         // Reject
         const tx1 = staking.connect(me.signer).claim(allocationID, false)
-        await expect(tx1).revertedWith('caller must be authorized')
+        await expect(tx1).revertedWith('Caller must be authorized')
 
         // Should claim if given operator auth
         await staking.connect(indexer.signer).setOperator(me.address, true)
@@ -676,7 +676,7 @@ describe('Staking:Allocation', () => {
         // Try to claim again
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Claimed)
         const tx = staking.connect(indexer.signer).claim(allocationID, false)
-        await expect(tx).revertedWith('allocation must be in finalized state')
+        await expect(tx).revertedWith('Allocation must be in finalized state')
       })
     })
   })
