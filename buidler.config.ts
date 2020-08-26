@@ -114,7 +114,6 @@ const config = {
       chainId: 1337,
       loggingEnabled: false,
       gas: 11000000,
-      allowUnlimitedContractSize: true,
       gasPrice: 'auto',
       blockGasLimit: 12000000,
       accounts: [
