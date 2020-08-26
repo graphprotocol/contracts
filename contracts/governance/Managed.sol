@@ -21,23 +21,22 @@ contract Managed {
     event ParameterUpdated(string param);
     event SetController(address controller);
 
+    function _notRecoveryPaused() internal view {
+        require(!controller.paused(), "Paused");
+        require(!controller.recoveryPaused(), "Recovery-paused");
+    }
+
+    function _paused() internal view {
+        require(!controller.paused(), "Paused");
+    }
+
     modifier notRecoveryPaused {
-        require(
-            !controller.paused(),
-            "This action cannot be performed while the contract is paused"
-        );
-        require(
-            !controller.recoveryPaused(),
-            "This action cannot be performed while the contract is recovery paused"
-        );
+        _notRecoveryPaused();
         _;
     }
 
     modifier notPaused {
-        require(
-            !controller.paused(),
-            "This action cannot be performed while the contract is paused"
-        );
+        _paused();
         _;
     }
 
