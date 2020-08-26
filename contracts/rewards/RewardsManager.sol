@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -278,7 +278,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function getRewards(address _allocationID) public override view returns (uint256) {
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
-        (uint256 accRewardsPerAllocatedToken, uint256 _) = getAccRewardsPerAllocatedToken(
+        (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(
             alloc.subgraphDeploymentID
         );
         return

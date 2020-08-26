@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.12;
 
 interface IController {
     event SetContractProxy(bytes32 id, address contractAddress);
