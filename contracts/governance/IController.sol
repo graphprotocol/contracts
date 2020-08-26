@@ -9,7 +9,7 @@ interface IController {
 
     function getContractProxy(bytes32 _id) external view returns (address);
 
-    function governor() external view returns (address);
+    function getGovernor() external view returns (address);
 
     function paused() external view returns (bool);
 

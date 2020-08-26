@@ -47,7 +47,7 @@ contract Managed {
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == controller.governor(), "Caller must be Controller governor");
+        require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
         _;
     }
 
