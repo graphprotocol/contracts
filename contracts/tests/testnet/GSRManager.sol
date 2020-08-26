@@ -14,11 +14,11 @@ contract GSRManager is Governed {
     using SafeMath for uint256;
 
     uint256 private constant ISSUANCE_RATE_DECIMALS = 1e18;
-    uint256 public savingsRate; // savings rate being earned
-    uint256 public reserves; // total of interest bearing GDAI
-    uint256 public cumulativeInterestRate; // cumulative interest rate of the contract
-    uint256 public lastDripTime; // Last time drip was called
-    mapping(address => uint256) public balances; // balance of interest bearing GDAI
+    uint256 public savingsRate; // savings rate being earned (dsr in DSR)
+    uint256 public reserves; // total interest bearing GDAI (Pie in DSR)
+    uint256 public cumulativeInterestRate; // cumulative interest rate of the contract (chi in DSR)
+    uint256 public lastDripTime; // Last time drip was called (rho in DSR)
+    mapping(address => uint256) public balances; // balance of interest bearing GDAI (pie in DSR)
     GDAI public token; // GDAI
 
     event SetRate(uint256 newRate);
@@ -32,7 +32,6 @@ contract GSRManager is Governed {
     constructor(uint256 _savingsRate, address _gdai) public {
         Governed._initialize(msg.sender);
         cumulativeInterestRate = ISSUANCE_RATE_DECIMALS;
-        savingsRate = ISSUANCE_RATE_DECIMALS;
         lastDripTime = now;
         savingsRate = _savingsRate;
         token = GDAI(_gdai);
@@ -45,12 +44,10 @@ contract GSRManager is Governed {
         emit SetRate(savingsRate);
     }
 
-    // Update the rate m and mint tokens
+    // Update the rate and mint tokens
     // We enforce drip to always be called by all state changing functions. Lessens require statements
     function drip() public returns (uint256 updatedRate) {
-        updatedRate = cumulativeInterestRate
-            .mul(_pow(savingsRate, now - lastDripTime, ISSUANCE_RATE_DECIMALS))
-            .div(ISSUANCE_RATE_DECIMALS);
+        updatedRate = calcUpdatedRate();
         uint256 rateDifference = updatedRate.sub(cumulativeInterestRate);
         cumulativeInterestRate = updatedRate;
         lastDripTime = now;
@@ -76,6 +73,19 @@ contract GSRManager is Governed {
         reserves = reserves.sub(_amount);
         token.transfer(msg.sender, withdrawnAmount);
         emit Exit(msg.sender, _amount, withdrawnAmount);
+    }
+
+    // Calculate the new cumulative interest rate
+    function calcUpdatedRate() public view returns (uint256 updatedRate) {
+        updatedRate = cumulativeInterestRate
+            .mul(_pow(savingsRate, now - lastDripTime, ISSUANCE_RATE_DECIMALS))
+            .div(ISSUANCE_RATE_DECIMALS);
+    }
+
+    // Calculate the total balance a user would have if they withdrew
+    function calcReturn(address _account) external view returns (uint256 totalBalance) {
+        uint256 updatedRate = calcUpdatedRate();
+        totalBalance = balances[_account].mul(updatedRate).div(ISSUANCE_RATE_DECIMALS);
     }
 
     /** TODO - have a math library and use it here and in RewardsMAnager

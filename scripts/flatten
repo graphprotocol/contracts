@@ -16,6 +16,8 @@ FILES=(
     "contracts/token/GraphToken.sol"
     "contracts/epochs/EpochManager.sol"
     "contracts/upgrades/GraphProxy.sol"
+    "contracts/tests/testnet/GDAI.sol"
+    "contracts/tests/testnet/GSRManager.sol"
 )
 
 for path in ${FILES[@]}; do
