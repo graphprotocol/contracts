@@ -3,8 +3,7 @@
 ![Version Badge](https://img.shields.io/badge/version-0.2.0-lightgrey.svg)
 ![WIP Badge](https://img.shields.io/badge/status-POC-blue.svg)
 
-## Overview
-### Contracts
+## Contracts
 
 This repository contains The Graph Protocol solidity contracts. It is based on the
 [PRD outlined here](https://www.notion.so/thegraph/Public-Network-Contracts-PRD-5eb8466aa4b44a1da7f16a28acd6674f),
@@ -22,7 +21,27 @@ subgraph for resolving data based on events, or past storage data on Ethereum. T
 the contracts and the subgraph rely on each other, to show to end users the current data and state
 of The Graph Network.
 
-### Subgraph
+### Contracts Testing
+
+Testing is done with the following stack:
+- Waffle
+- Buidler
+- Typescript
+- Ethers
+
+To test all files, use `npm run test`. To test a single file run:
+`npx buidler test test/<FILE_NAME>.ts`.
+
+### Contract addresses
+
+Currently we are running our testnet on Rinkeby. Contract addresses can be found in this repository at
+`./addresses.json`. However, addresses should be obtained from the NPM Package.
+
+### Deploying Contracts
+In order to run deployments, see `./DEPLOYMENT.md`. We use a custom deployment script, which
+allowed us to completely remove `truffle` as a dependency.
+
+## Subgraph
 
 The subgraph repository can be [found here](https://github.com/graphprotocol/graph-network-subgraph).
 
@@ -35,11 +54,10 @@ typechain bindings, as well as pointing the addresses in the subgraph manifest t
 addresses. You can find the latest subgraph addresses in `addresses.json`, and they are also
 in the NPM package.
 
-There are currently two networks we deploy to - Kovan, and Ganache. The Kovan addresses will
-change whenever there are updates to the contract. This needs to be done in sync with deploying
-a new subgraph.
+Currently the contracts are being tested on Rinkeby. We test on ganache as well. We used to use
+Kovan, but it is somewhat deprecated.
 
-### NPM package
+## NPM package
 The NPM package will be release in versions, and the version will be coordinated to be the same
 version as the contracts and the subgraph. Anyone wanting to tie into the graph network contracts
 or subgraph should install the npm package into their repository, and refer to the same version
@@ -59,49 +77,6 @@ The NPM package will contain the following files/information:
   **This is the only place you should grab contract addresses from.**
 
 We will also release versions for specific releases, such as `@graphprotocol/contracts@beta`.
-
-## Contracts Testing
-
-Testing is done with the following stack:
-- Waffle
-- Buidler
-- Typescript
-- Ethers
-
-To test all files, use `npm run test`. To test a single file run:
-`npx buidler test test/<FILE_NAME>.ts`.
-
-## Deployments
-
-Currently we are only deployed on kovan. Contract addresses can be found in this repository at
-`./addresses.json`. However, addresses should be obtained from the NPM Package.
-
-### Mainnet
-Not deployed yet.
-
-### Kovan
-Deployed. Note that we had to get ENS to deploy an unofficial version of the contracts on ENS.
-While quickly testing, we will use the test registrar. When we  get a testnet on a different
-testnet we will use the normal `.eth` domain, while as with the test registrar we use the
-`.test` one. This will be hidden by the indexing of the subgraph anyways.
-
-**Kovan ENS:**
-```
-PublicResolver 0xc30F6CCc48F1eA5374aC618dfe5243ddD1e264E7
-ETHRegistryWithFallback 0xB66B2f307B6e46a6D038a85997B401aE87455772
-ETHRegistrarController 0x7966398e99a60c7b3465A394B22C0b5ce1012EC9
-Root. 0x821164869e097c7fEcD301EE68d2231A3565D5C9
-TestRegistrar: 0x327033bA7B23A6E3a3Ca165e44D619E3dd675f8b
-ReverseRegistrar 0xCE228fF5EFCE6403Cd011046138488FF31C05Da9
-```
-
-### Ropsten/Rinkeby/Goerli
-One of these networks will be added in the future, to test the network with 15 second block times.
-This will likely become the real network we run testnet on with node operators, or else we will
-run our own private network.
-
-In order to run deployments, see `./DEPLOYMENT.md`. We use a custom deployment script, which
-allowed us to completely remove `truffle` as a dependency.
 
 # Copyright
 
