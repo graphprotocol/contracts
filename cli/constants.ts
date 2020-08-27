@@ -5,6 +5,7 @@ export const defaults = {
   providerUrl: 'http://localhost:8545',
   addressBookPath: './addresses.json',
   graphConfigPath: './graph.config.yml',
+  accountNumber: '0',
 }
 
 export const cliOpts = {
@@ -31,6 +32,12 @@ export const cliOpts = {
     description: 'The mnemonic for an account which will pay for gas',
     type: 'string',
     default: defaults.mnemonic,
+  },
+  accountNumber: {
+    alias: 'account-number',
+    description: 'The account number of the mnemonic',
+    type: 'string',
+    default: defaults.accountNumber,
   },
   force: {
     alias: 'force',

@@ -40,7 +40,9 @@ export const loadContracts = (
 
 export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnvironment> => {
   if (!wallet) {
-    wallet = Wallet.fromMnemonic(argv.mnemonic).connect(getProvider(argv.providerUrl))
+    wallet = Wallet.fromMnemonic(argv.mnemonic, `m/44'/60'/0'/0/${argv.accountNumber}`).connect(
+      getProvider(argv.providerUrl),
+    )
   }
 
   const balance = await wallet.getBalance()
