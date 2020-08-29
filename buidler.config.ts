@@ -86,7 +86,7 @@ task('migrate', 'Migrate contracts')
     await migrate(await loadEnv(taskArgs, accounts[0] as Wallet), taskArgs)
   })
 
-task('verify', 'Verify contracts in Etherscan')
+task('verify-all', 'Verify contracts in Etherscan')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .setAction(async (taskArgs, bre) => {
     const accounts = await bre.ethers.getSigners()

@@ -9,10 +9,10 @@ import "../governance/Managed.sol";
  * @dev Provides a way to align the incentives of participants by having slashing as deterrent
  * for incorrect behaviour.
  *
- * There are two types of disputes that can be presented: Query disputes and Indexing disputes.
+ * There are two types of disputes that can be created: Query disputes and Indexing disputes.
  *
  * Query Disputes:
- * Graph nodes receive queries an return responses with a signed receipts called attestations.
+ * Graph nodes receive queries and return responses with a signed receipts called attestations.
  * An attestation can be disputed if the consumer thinks the query response was invalid.
  * Indexers use the derived private key for an allocation to sign attestations.
  *
