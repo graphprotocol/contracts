@@ -675,7 +675,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes calldata _channelPubKey,
         address _assetHolder,
         uint256 _price
-    ) external override {
+    ) external override notPaused {
         require(_onlyAuth(msg.sender), "Caller must be authorized");
 
         _allocate(msg.sender, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
