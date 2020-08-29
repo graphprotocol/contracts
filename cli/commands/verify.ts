@@ -31,7 +31,7 @@ export const verify = async (cli: CLIEnvironment): Promise<void> => {
     const address = contract.address
     const args = contract.constructorArgs ? contract.constructorArgs.map((e) => e.value) : []
     const argsList = args.map((e) => `"${e}"`).join(' ')
-    const cmd = `buidler verify-contract --contract-name ${contractName} --address ${address} ${argsList}`
+    const cmd = `buidler verify ${address} ${argsList}`
 
     try {
       logger.log(`> Verifying contract ${contractName}::${address} ...`)
