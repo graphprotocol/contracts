@@ -53,38 +53,53 @@ export const defaults = {
   },
 }
 
-async function deployContract(contractName: string, deployer?: Signer, ...params) {
+async function deployContract(
+  contractName: string,
+  deployer?: Signer,
+  ...params
+): Promise<Contract> {
   let factory: ContractFactory = await ethers.getContractFactory(contractName)
   if (deployer) {
     factory = factory.connect(deployer)
   }
-  return factory.deploy(...params).then((c: Contract) => c.deployed())
+  return factory.deploy(...params).then((c: Contract) => c.deployed()) as Promise<Contract>
 }
 
 export async function deployController(deployer: Signer): Promise<Controller> {
-  return deployContract('Controller', deployer) as Promise<Controller>
+  return (deployContract('Controller', deployer) as unknown) as Promise<Controller>
 }
 
 export async function deployGRT(deployer: Signer): Promise<GraphToken> {
-  return deployContract('GraphToken', deployer, defaults.token.initialSupply) as Promise<GraphToken>
+  return (deployContract(
+    'GraphToken',
+    deployer,
+    defaults.token.initialSupply,
+  ) as unknown) as Promise<GraphToken>
 }
 
 export async function deployGDAI(deployer: Signer): Promise<Gdai> {
-  return deployContract('GDAI', deployer) as Promise<Gdai>
+  return (deployContract('GDAI', deployer) as unknown) as Promise<Gdai>
 }
 
 export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GsrManager> {
-  return deployContract('GSRManager', deployer, defaults.gdai.savingsRate, gdaiAddress) as Promise<
-    GsrManager
-  >
+  return (deployContract(
+    'GSRManager',
+    deployer,
+    defaults.gdai.savingsRate,
+    gdaiAddress,
+  ) as unknown) as Promise<GsrManager>
 }
 
 export async function deployCuration(deployer: Signer, controller: string): Promise<Curation> {
   // Impl
-  const contract = (await deployContract('Curation', deployer)) as Curation
+  const contract = ((await deployContract('Curation', deployer)) as unknown) as Curation
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    deployer,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract
@@ -106,7 +121,7 @@ export async function deployDisputeManager(
   arbitrator: string,
 ): Promise<DisputeManager> {
   // Deploy
-  const contract = (await deployContract(
+  const contract = ((await deployContract(
     'DisputeManager',
     deployer,
     controller,
@@ -114,7 +129,7 @@ export async function deployDisputeManager(
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
-  )) as DisputeManager
+  )) as unknown) as DisputeManager
 
   // Config
   await contract.connect(deployer).setMinimumIndexerStake(defaults.dispute.minimumIndexerStake)
@@ -127,10 +142,14 @@ export async function deployEpochManager(
   controller: string,
 ): Promise<EpochManager> {
   // Impl
-  const contract = (await deployContract('EpochManager', deployer)) as EpochManager
+  const contract = ((await deployContract('EpochManager', deployer)) as unknown) as EpochManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    deployer,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract
@@ -145,23 +164,29 @@ export async function deployGNS(
   controller: string,
   didRegistry: string,
 ): Promise<Gns> {
-  return deployContract('GNS', deployer, controller, didRegistry) as Promise<Gns>
+  return (deployContract('GNS', deployer, controller, didRegistry) as unknown) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {
-  return deployContract('EthereumDIDRegistry', deployer) as Promise<EthereumDidRegistry>
+  return (deployContract('EthereumDIDRegistry', deployer) as unknown) as Promise<
+    EthereumDidRegistry
+  >
 }
 
 export async function deployServiceRegistry(deployer: Signer): Promise<ServiceRegistry> {
-  return deployContract('ServiceRegistry', deployer) as Promise<ServiceRegistry>
+  return (deployContract('ServiceRegistry', deployer) as unknown) as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(deployer: Signer, controller: string): Promise<Staking> {
   // Impl
-  const contract = (await deployContract('Staking', deployer)) as Staking
+  const contract = ((await deployContract('Staking', deployer)) as unknown) as Staking
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    deployer,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(deployer).acceptProxy(proxy.address, controller)
@@ -180,10 +205,14 @@ export async function deployRewardsManager(
   controller: string,
 ): Promise<RewardsManager> {
   // Impl
-  const contract = (await deployContract('RewardsManager', deployer)) as RewardsManager
+  const contract = ((await deployContract('RewardsManager', deployer)) as unknown) as RewardsManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', deployer, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    deployer,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(deployer).acceptProxy(proxy.address, controller)
