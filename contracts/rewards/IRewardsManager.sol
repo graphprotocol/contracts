@@ -7,7 +7,7 @@ interface IRewardsManager {
 
     // -- Denylist --
 
-    function setEnforcer(address _enforcer) external;
+    function setSubgraphOracle(address _subgraphOracle) external;
 
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external;
 

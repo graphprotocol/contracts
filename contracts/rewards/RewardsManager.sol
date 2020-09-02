@@ -26,14 +26,19 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     );
 
     /**
+     * @dev Emitted when rewards are denied to an indexer.
+     */
+    event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
+
+    /**
      * @dev Emitted when a subgraph is denied for claiming rewards.
      */
     event RewardsDenylistUpdated(bytes32 subgraphDeploymentID, uint256 sinceBlock);
 
     // -- Modifiers --
 
-    modifier onlyEnforcer() {
-        require(msg.sender == address(enforcer), "Caller must be the enforcer");
+    modifier onlySubgraphOracle() {
+        require(msg.sender == address(subgraphOracle), "Caller must be the subgraph oracle");
         _;
     }
 
@@ -78,21 +83,25 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the enforcer for denegation of rewards to subgraphs.
-     * @param _enforcer Address of the enforcer of denied subgraphs
+     * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
+     * @param _subgraphOracle Address of the subgraph oracle
      */
-    function setEnforcer(address _enforcer) external override onlyGovernor {
-        enforcer = _enforcer;
-        emit ParameterUpdated("enforcer");
+    function setSubgraphOracle(address _subgraphOracle) external override onlyGovernor {
+        subgraphOracle = _subgraphOracle;
+        emit ParameterUpdated("subgraphOracle");
     }
 
     /**
      * @dev Sets the indexer as denied to claim rewards.
-     * NOTE: Can only be called by the enforcer role
+     * NOTE: Can only be called by the subgraph oracle
      * @param _subgraphDeploymentID Subgraph deployment ID to deny
      * @param _deny Whether to set the indexer as denied for claiming rewards or not
      */
-    function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external override onlyEnforcer {
+    function setDenied(bytes32 _subgraphDeploymentID, bool _deny)
+        external
+        override
+        onlySubgraphOracle
+    {
         uint256 sinceBlock = _deny ? block.number : 0;
         denylist[_subgraphDeploymentID] = sinceBlock;
         emit RewardsDenylistUpdated(_subgraphDeploymentID, sinceBlock);
@@ -322,21 +331,23 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             alloc.subgraphDeploymentID
         );
 
-        uint256 rewards = 0;
         // Do not do rewards on denied subgraph deployments ID
-        if (!isDenied(alloc.subgraphDeploymentID)) {
-            // Calculate rewards accrued by this allocation
-            rewards = _calcRewards(
-                alloc.tokens,
-                alloc.accRewardsPerAllocatedToken,
-                accRewardsPerAllocatedToken
-            );
-
-            // Mint directly to staking contract for the reward amount
-            // The staking contract will do bookkeeping of the reward and
-            // assign in proportion to each stakeholder incentive
-            graphToken.mint(address(staking), rewards);
+        if (isDenied(alloc.subgraphDeploymentID)) {
+            emit RewardsDenied(alloc.indexer, _allocationID, alloc.settledAtEpoch);
+            return 0;
         }
+
+        // Calculate rewards accrued by this allocation
+        uint256 rewards = _calcRewards(
+            alloc.tokens,
+            alloc.accRewardsPerAllocatedToken,
+            accRewardsPerAllocatedToken
+        );
+
+        // Mint directly to staking contract for the reward amount
+        // The staking contract will do bookkeeping of the reward and
+        // assign in proportion to each stakeholder incentive
+        graphToken.mint(address(staking), rewards);
 
         emit RewardsAssigned(alloc.indexer, _allocationID, alloc.settledAtEpoch, rewards);
 

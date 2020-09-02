@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, BigNumber, Event, ethers } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 
 import { NetworkFixture } from '../lib/fixtures'
 
@@ -21,15 +21,12 @@ import {
   advanceToNextEpoch,
 } from '../lib/testHelpers'
 
-// TODO: enforcer
-// TODO: issuance rate
-
 const MAX_PPM = 1000000
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: BigNumber) => Math.round(toFloat(n))
 
-describe('Rewards:Calculations', () => {
+describe('Rewards', () => {
   let delegator: Account
   let governor: Account
   let curator1: Account
@@ -37,6 +34,7 @@ describe('Rewards:Calculations', () => {
   let indexer1: Account
   let indexer2: Account
   let assetHolder: Account
+  let oracle: Account
 
   let fixture: NetworkFixture
 
@@ -52,10 +50,8 @@ describe('Rewards:Calculations', () => {
   const channelPubKey =
     '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
 
-  // const ISSUANCE_RATE_DECIMALS = ethers.constants.WeiPerEther
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
   const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
-  // const ISSUANCE_RATE_PER_PERIOD = toBN('1050000000000000000') // % increase every 4 blocks (5%)
 
   // Core formula that gets accumulated rewards per signal for a period of time
   const getRewardsPerSignal = (p: BigNumber, r: BigNumber, t: BigNumber, s: BigNumber): number => {
@@ -138,6 +134,7 @@ describe('Rewards:Calculations', () => {
       indexer1,
       indexer2,
       assetHolder,
+      oracle,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
@@ -162,6 +159,50 @@ describe('Rewards:Calculations', () => {
 
   afterEach(async function () {
     await fixture.tearDown()
+  })
+
+  describe('issuance rate update', function () {
+    it('reject set issuance rate if unauthorized', async function () {
+      const tx = rewardsManager.connect(indexer1.signer).setIssuanceRate(toGRT('1.025'))
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('should set issuance rate', async function () {
+      // Should be initially zero
+      expect(await rewardsManager.issuanceRate()).eq(ISSUANCE_RATE_PER_BLOCK)
+
+      const newIssuanceRate = toGRT('1.025')
+      await rewardsManager.connect(governor.signer).setIssuanceRate(newIssuanceRate)
+      expect(await rewardsManager.issuanceRate()).eq(newIssuanceRate)
+      expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await latestBlock())
+    })
+  })
+
+  describe('subgraph availability service', function () {
+    it('reject set subgraph oracle if unauthorized', async function () {
+      const tx = rewardsManager.connect(indexer1.signer).setSubgraphOracle(oracle.address)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('should set subgraph oracle', async function () {
+      await rewardsManager.connect(governor.signer).setSubgraphOracle(oracle.address)
+      expect(await rewardsManager.subgraphOracle()).eq(oracle.address)
+    })
+
+    it('reject to deny subgraph it not the oracle', async function () {
+      const tx = rewardsManager.setDenied(subgraphDeploymentID1, true)
+      await expect(tx).revertedWith('Caller must be the subgraph oracle')
+    })
+
+    it('should deny subgraph', async function () {
+      await rewardsManager.connect(governor.signer).setSubgraphOracle(oracle.address)
+      const tx = rewardsManager.connect(oracle.signer).setDenied(subgraphDeploymentID1, true)
+      const blockNum = await latestBlock()
+      await expect(tx)
+        .emit(rewardsManager, 'RewardsDenylistUpdated')
+        .withArgs(subgraphDeploymentID1, blockNum.add(1))
+      expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+    })
   })
 
   describe('getNewRewardsPerSignal', function () {
@@ -420,8 +461,33 @@ describe('Rewards:Calculations', () => {
     })
   })
 
-  describe('assign rewards', function () {
-    it('should distribute rewards on allocation settled', async function () {
+  describe('takeRewards', function () {
+    interface DelegationParameters {
+      indexingRewardCut: BigNumber
+      queryFeeCut: BigNumber
+      cooldownBlocks: number
+    }
+
+    async function setupIndexerDelegation(
+      tokensToDelegate: BigNumber,
+      delegationParams: DelegationParameters,
+    ) {
+      // Transfer some funds from the curator, I don't want to mint new tokens
+      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
+      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
+
+      // Delegate
+      await staking
+        .connect(indexer1.signer)
+        .setDelegationParameters(
+          delegationParams.indexingRewardCut,
+          delegationParams.queryFeeCut,
+          delegationParams.cooldownBlocks,
+        )
+      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
+    }
+
+    async function setupIndexerAllocation() {
       // Setup
       await epochManager.setEpochLength(10)
 
@@ -441,6 +507,11 @@ describe('Rewards:Calculations', () => {
           assetHolder.address,
           toGRT('0.1'),
         )
+    }
+
+    it('should distribute rewards on allocation settled', async function () {
+      // Setup
+      await setupIndexerAllocation()
 
       // Jump
       await advanceBlocks(await epochManager.epochLength())
@@ -449,8 +520,16 @@ describe('Rewards:Calculations', () => {
       const beforeTokenSupply = await grt.totalSupply()
       const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
+      const expectedIndexingRewards = toGRT('1471954234')
+
       // Settle allocation. At this point rewards should be collected for that indexer
-      await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      const tx = await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      const receipt = await tx.wait()
+      const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
+      expect(event.indexer).eq(indexer1.address)
+      expect(event.allocationID).eq(allocationID)
+      expect(event.epoch).eq(await epochManager.currentEpoch())
+      expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
       // After state
       const afterTokenSupply = await grt.totalSupply()
@@ -458,7 +537,6 @@ describe('Rewards:Calculations', () => {
 
       // Check that rewards are put into indexer stake
       // NOTE: calculated manually on a spreadsheet
-      const expectedIndexingRewards = toGRT('1471954234')
       const expectedIndexerStake = beforeIndexer1Stake.add(expectedIndexingRewards)
       const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
       // Check
@@ -468,41 +546,16 @@ describe('Rewards:Calculations', () => {
     })
 
     it('should distribute rewards on allocation settled w/delegators', async function () {
-      // Delegation params
-      const indexingRewardCut = toBN('50000') // 5%
-      const queryFeeCut = toBN('80000') // 8%
-      const cooldownBlocks = 5
+      // Setup
+      const delegationParams = {
+        indexingRewardCut: toBN('50000'), // 5%
+        queryFeeCut: toBN('80000'), // 8%
+        cooldownBlocks: 5,
+      }
       const tokensToDelegate = toGRT('2000')
 
-      // Transfer some funds from the curator, I don't want to mint new tokens
-      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
-      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
-
-      // Delegate
-      await staking
-        .connect(indexer1.signer)
-        .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
-      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
-
-      // Setup
-      await epochManager.setEpochLength(10)
-
-      // Update total signalled
-      const signalled1 = toGRT('1500')
-      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
-
-      // Allocate
-      const tokensToAllocate = toGRT('12500')
-      await staking.connect(indexer1.signer).stake(tokensToAllocate)
-      await staking
-        .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          channelPubKey,
-          assetHolder.address,
-          toGRT('0.1'),
-        )
+      await setupIndexerDelegation(tokensToDelegate, delegationParams)
+      await setupIndexerAllocation()
 
       // Jump
       await advanceBlocks(await epochManager.epochLength())
@@ -521,11 +574,13 @@ describe('Rewards:Calculations', () => {
       const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
       // Check that rewards are put into indexer stake (only indexer cut)
-      // Checl that rewards are put into delegators pool accordingly
+      // Check that rewards are put into delegators pool accordingly
       // NOTE: calculated manually on a spreadsheet
       const expectedIndexingRewards = toGRT('1471954234')
       // Calculate delegators cut
-      const indexerRewards = indexingRewardCut.mul(expectedIndexingRewards).div(toBN(MAX_PPM))
+      const indexerRewards = delegationParams.indexingRewardCut
+        .mul(expectedIndexingRewards)
+        .div(toBN(MAX_PPM))
       // Calculate indexer cut
       const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
       // Check
@@ -536,6 +591,22 @@ describe('Rewards:Calculations', () => {
       expect(toRound(afterDelegationPool.tokens)).eq(toRound(expectedDelegatorsPoolTokens))
       // Check that tokens have been minted
       expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
+    })
+
+    it('should deny rewards if subgraph on denylist', async function () {
+      // Setup
+      await rewardsManager.connect(governor.signer).setSubgraphOracle(governor.address)
+      await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
+      await setupIndexerAllocation()
+
+      // Jump
+      await advanceBlocks(await epochManager.epochLength())
+
+      // Settle allocation. At this point rewards should be collected for that indexer
+      const tx = staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      await expect(tx)
+        .emit(rewardsManager, 'RewardsDenied')
+        .withArgs(indexer1.address, allocationID, await epochManager.currentEpoch())
     })
   })
 })
