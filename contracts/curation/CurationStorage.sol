@@ -22,7 +22,7 @@ contract CurationV1Storage is Managed {
     uint256 internal totalTokens;
 
     // Bonding curve formula
-    address internal bondingCurve;
+    address public bondingCurve;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeploymentID

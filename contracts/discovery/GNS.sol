@@ -1,6 +1,8 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 import "../governance/Managed.sol";
 import "../bancor/BancorFormula.sol";
 
@@ -13,7 +15,9 @@ import "./erc1056/IEthereumDIDRegistry.sol";
  * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
  * readable names. All human readable names emitted in events.
  */
-contract GNS is Managed, BancorFormula {
+contract GNS is Managed {
+    using SafeMath for uint256;
+
     // -- State --
 
     struct NameCurationPool {
@@ -35,6 +39,9 @@ contract GNS is Managed, BancorFormula {
     // Minimum amount of vSignal that must be staked to start the curve
     // Set to 10**18, as vSignal has 18 decimals
     uint256 public minimumVSignalStake = 10**18;
+
+    // Bonding curve formula
+    address public bondingCurve;
 
     // graphAccountID => subgraphNumber => subgraphDeploymentID
     // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
@@ -165,10 +172,16 @@ contract GNS is Managed, BancorFormula {
 
     /**
      * @dev Contract Constructor.
+     * @param _bondingCurve Contract that provides the bonding curve formula to use
      * @param _didRegistry Address of the Ethereum DID registry
      */
-    constructor(address _controller, address _didRegistry) public {
+    constructor(
+        address _controller,
+        address _bondingCurve,
+        address _didRegistry
+    ) public {
         Managed._initialize(_controller);
+        bondingCurve = _bondingCurve;
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
     }
 
@@ -633,7 +646,7 @@ contract GNS is Managed, BancorFormula {
         }
 
         return
-            calculatePurchaseReturn(
+            BancorFormula(bondingCurve).calculatePurchaseReturn(
                 namePool.nSignal,
                 namePool.vSignal,
                 reserveRatio,
@@ -655,7 +668,7 @@ contract GNS is Managed, BancorFormula {
     ) public view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
-            calculateSaleReturn(
+            BancorFormula(bondingCurve).calculateSaleReturn(
                 namePool.nSignal,
                 namePool.vSignal,
                 namePool.reserveRatio,
