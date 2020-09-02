@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.12;
 
 interface IGraphProxy {
     function admin() external view returns (address);

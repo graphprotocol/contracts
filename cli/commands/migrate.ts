@@ -16,6 +16,7 @@ const { EtherSymbol } = constants
 const { formatEther } = utils
 
 const allContracts = [
+  'BancorFormula',
   'Controller',
   'EpochManager',
   'GraphToken',

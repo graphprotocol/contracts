@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.12;
 
 contract Pausable {
     // Two types of pausing in the protocol
