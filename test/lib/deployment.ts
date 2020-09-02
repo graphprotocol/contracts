@@ -93,7 +93,10 @@ export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<
 
 export async function deployCuration(deployer: Signer, controller: string): Promise<Curation> {
   // Dependency
-  const bondingCurve = await deployContract('BancorFormula', deployer)
+  const bondingCurve = ((await deployContract(
+    'BancorFormula',
+    deployer,
+  )) as unknown) as BancorFormula
 
   // Impl
   const contract = ((await deployContract('Curation', deployer)) as unknown) as Curation
@@ -169,7 +172,19 @@ export async function deployGNS(
   controller: string,
   didRegistry: string,
 ): Promise<Gns> {
-  return (deployContract('GNS', deployer, controller, didRegistry) as unknown) as Promise<Gns>
+  // Dependency
+  const bondingCurve = ((await deployContract(
+    'BancorFormula',
+    deployer,
+  )) as unknown) as BancorFormula
+
+  return (deployContract(
+    'GNS',
+    deployer,
+    controller,
+    bondingCurve.address,
+    didRegistry,
+  ) as unknown) as Promise<Gns>
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {

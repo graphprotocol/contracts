@@ -27,6 +27,7 @@ export const gettersList = {
   'curation-percentage': { contract: 'Staking', name: 'curationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'minimumCurationDeposit' },
   'curation-withdrawal-percentage': { contract: 'Curation', name: 'withdrawalFeePercentage' },
+  'curation-bonding-curve': { contract: 'Curation', name: 'bondingCurve' },
   // Disputes
   'disputes-arbitrator': { contract: 'DisputeManager', name: 'arbitrator' },
   'disputes-minimum-deposit': { contract: 'DisputeManager', name: 'minimumDeposit' },
@@ -39,6 +40,7 @@ export const gettersList = {
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
   // GNS
   'gns-minimum-signal': { contract: 'GNS', name: 'minimumVSignalStake' },
+  'gns-bonding-curve': { contract: 'GNS', name: 'bondingCurve' },
   // Token
   'token-governor': { contract: 'GraphToken', name: 'governor' },
   'token-supply': { contract: 'GraphToken', name: 'totalSupply' },
