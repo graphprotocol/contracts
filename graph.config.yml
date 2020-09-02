@@ -39,6 +39,7 @@ contracts:
   Curation:
     init:
       controller: "${{Controller.address}}"
+      bondingCurve: "${{BancorFormula.address}}"
       reserveRatio: 500000 # 50% (in basis points)
       minimumCurationDeposit: "100000000000000000000" # 100 GRT
     proxy: true

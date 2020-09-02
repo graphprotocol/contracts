@@ -2,6 +2,7 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./CurationStorage.sol";
@@ -66,12 +67,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function initialize(
         address _controller,
+        address _bondingCurve,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
         Managed._initialize(_controller);
-        BancorFormula._initialize();
 
+        bondingCurve = _bondingCurve;
         defaultReserveRatio = _defaultReserveRatio;
         minimumCurationDeposit = _minimumCurationDeposit;
     }
@@ -86,6 +88,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function acceptProxy(
         IGraphProxy _proxy,
         address _controller,
+        address _bondingCurve,
         uint32 _defaultReserveRatio,
         uint256 _minimumCurationDeposit
     ) external {
@@ -95,6 +98,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Initialization
         Curation(address(_proxy)).initialize(
             _controller,
+            _bondingCurve,
             _defaultReserveRatio,
             _minimumCurationDeposit
         );
@@ -328,7 +332,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         }
 
         // Calculate new signal
-        uint256 newSignal = calculatePurchaseReturn(curSignal, curTokens, reserveRatio, newTokens);
+        uint256 newSignal = BancorFormula(bondingCurve).calculatePurchaseReturn(
+            curSignal,
+            curTokens,
+            reserveRatio,
+            newTokens
+        );
         return newSignal.add(curSignal);
     }
 
@@ -355,7 +364,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             "Signal must be above or equal to signal issued in the curation pool"
         );
 
-        uint256 tokens = calculateSaleReturn(
+        uint256 tokens = BancorFormula(bondingCurve).calculateSaleReturn(
             curationPoolSignal,
             curationPool.tokens,
             curationPool.reserveRatio,

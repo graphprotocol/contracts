@@ -4,6 +4,7 @@ import { ethers } from '@nomiclabs/buidler'
 import { toBN, toGRT } from './testHelpers'
 
 // Contracts definitions
+import { BancorFormula } from '../../build/typechain/contracts/BancorFormula'
 import { Controller } from '../../build/typechain/contracts/Controller'
 import { GraphProxy } from '../../build/typechain/contracts/GraphProxy'
 import { Curation } from '../../build/typechain/contracts/Curation'
@@ -91,6 +92,9 @@ export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<
 }
 
 export async function deployCuration(deployer: Signer, controller: string): Promise<Curation> {
+  // Dependency
+  const bondingCurve = await deployContract('BancorFormula', deployer)
+
   // Impl
   const contract = ((await deployContract('Curation', deployer)) as unknown) as Curation
 
@@ -107,6 +111,7 @@ export async function deployCuration(deployer: Signer, controller: string): Prom
     .acceptProxy(
       proxy.address,
       controller,
+      bondingCurve.address,
       defaults.curation.reserveRatio,
       defaults.curation.minimumCurationDeposit,
     )

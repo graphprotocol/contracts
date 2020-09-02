@@ -1,10 +1,9 @@
 pragma solidity ^0.6.12;
 
-import "../bancor/BancorFormula.sol";
 import "./ICuration.sol";
 import "../governance/Managed.sol";
 
-contract CurationV1Storage is BancorFormula, Managed {
+contract CurationV1Storage is Managed {
     // -- State --
 
     // Fee charged when curator withdraw a deposit
@@ -21,6 +20,9 @@ contract CurationV1Storage is BancorFormula, Managed {
 
     // Total tokens in held as reserves received from curators deposits
     uint256 internal totalTokens;
+
+    // Bonding curve formula
+    address internal bondingCurve;
 
     // Mapping of subgraphDeploymentID => CurationPool
     // There is only one CurationPool per SubgraphDeploymentID
