@@ -17,7 +17,7 @@ contract RewardsManagerV1Storage is Managed {
     uint256 public accRewardsPerSignalLastBlockUpdated;
 
     // Address of role allowed to deny rewards on subgraphs
-    address public enforcer;
+    address public subgraphOracle;
 
     // Subgraph related rewards: subgraph deployment ID => subgraph rewards
     mapping(bytes32 => Subgraph) public subgraphs;
