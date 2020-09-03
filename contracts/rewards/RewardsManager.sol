@@ -102,7 +102,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Tells if subgraph is in deny list
      * @param _subgraphDeploymentID Subgraph deployment ID to check
      */
-    function isDenied(bytes32 _subgraphDeploymentID) public override returns (bool) {
+    function isDenied(bytes32 _subgraphDeploymentID) public override view returns (bool) {
         return denylist[_subgraphDeploymentID] > 0;
     }
 
