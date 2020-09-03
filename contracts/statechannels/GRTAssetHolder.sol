@@ -1,40 +1,41 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@statechannels/nitro-protocol/contracts/ERC20AssetHolder.sol";
 
-import "../staking/Staking.sol";
+import "../governance/IController.sol";
+import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 
 /// @title GRTAssetHolder - Container for funds used to pay an indexer off-chain
 contract GRTAssetHolder is ERC20AssetHolder {
-    address StakingAddress;
+    IController public Controller;
 
     constructor(
         address _AdjudicatorAddress,
-        address _StakingAddress
-    ) public {
+        address _TokenAddress,
+        address _ControllerAddress
+    ) public ERC20AssetHolder(_AdjudicatorAddress, _TokenAddress) {
         AdjudicatorAddress = _AdjudicatorAddress;
-        Token = IERC20(_TokenAddress);
-        StakingAddress = _StakingAddress;
+        Controller = IController(_ControllerAddress);
     }
 
-    function _transferAsset(
-        address payable destination,
-        uint256 amount
-    ) internal override {
-        Staking staking = Staking(StakingAddress);
+    function staking() public view returns (IStaking) {
+        return IStaking(Controller.getContractProxy(keccak256("Staking")));
+    }
 
-        if (staking.isChannel(destination)) {
-            require(
-                staking.collect(amount, destination),
-                "GRTAssetHolder: collecting payments failed"
-            );
-        } else {
-            require(
-                token.transfer(destination, amount),
-                "GRTAssetHolder: transferring tokens failed"
-            );
+    function approveAll() external {
+        require(Token.approve(address(staking()), uint256(-1)), "Token approval failed");
+    }
+
+    function _transferAsset(address payable destination, uint256 amount) internal override {
+        IStaking _staking = staking();
+
+        if (_staking.isChannel(destination)) {
+            _staking.collect(amount, destination);
+            return;
         }
+
+        require(Token.transfer(destination, amount), "GRTAssetHolder: transferring tokens failed");
     }
 }

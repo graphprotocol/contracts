@@ -87,3 +87,10 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       issuanceRate: "1000000023206889619" # 5% annual rate
+  GRTAssetHolder:
+    init:
+      adjudicatorAddress: "0x0000000000000000000000000000000000000000"
+      tokenAddress: "${{GraphToken.address}}"
+      controllerAddress: "${{Controller.address}}"
+    calls:
+      - fn: "approveAll"
