@@ -180,22 +180,24 @@ describe('Rewards', () => {
 
   describe('subgraph availability service', function () {
     it('reject set subgraph oracle if unauthorized', async function () {
-      const tx = rewardsManager.connect(indexer1.signer).setSubgraphOracle(oracle.address)
+      const tx = rewardsManager
+        .connect(indexer1.signer)
+        .setSubgraphAvailabilityOracle(oracle.address)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
 
     it('should set subgraph oracle', async function () {
-      await rewardsManager.connect(governor.signer).setSubgraphOracle(oracle.address)
-      expect(await rewardsManager.subgraphOracle()).eq(oracle.address)
+      await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+      expect(await rewardsManager.subgraphAvailabilityOracle()).eq(oracle.address)
     })
 
     it('reject to deny subgraph it not the oracle', async function () {
       const tx = rewardsManager.setDenied(subgraphDeploymentID1, true)
-      await expect(tx).revertedWith('Caller must be the subgraph oracle')
+      await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
     })
 
     it('should deny subgraph', async function () {
-      await rewardsManager.connect(governor.signer).setSubgraphOracle(oracle.address)
+      await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
       const tx = rewardsManager.connect(oracle.signer).setDenied(subgraphDeploymentID1, true)
       const blockNum = await latestBlock()
       await expect(tx)
@@ -595,7 +597,7 @@ describe('Rewards', () => {
 
     it('should deny rewards if subgraph on denylist', async function () {
       // Setup
-      await rewardsManager.connect(governor.signer).setSubgraphOracle(governor.address)
+      await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(governor.address)
       await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
       await setupIndexerAllocation()
 

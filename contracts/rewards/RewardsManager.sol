@@ -37,8 +37,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     // -- Modifiers --
 
-    modifier onlySubgraphOracle() {
-        require(msg.sender == address(subgraphOracle), "Caller must be the subgraph oracle");
+    modifier onlySubgraphAvailabilityOracle() {
+        require(
+            msg.sender == address(subgraphAvailabilityOracle),
+            "Caller must be the subgraph availability oracle"
+        );
         _;
     }
 
@@ -84,11 +87,15 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
-     * @param _subgraphOracle Address of the subgraph oracle
+     * @param _subgraphAvailabilityOracle Address of the subgraph availability oracle
      */
-    function setSubgraphOracle(address _subgraphOracle) external override onlyGovernor {
-        subgraphOracle = _subgraphOracle;
-        emit ParameterUpdated("subgraphOracle");
+    function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle)
+        external
+        override
+        onlyGovernor
+    {
+        subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
+        emit ParameterUpdated("subgraphAvailabilityOracle");
     }
 
     /**
@@ -100,7 +107,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny)
         external
         override
-        onlySubgraphOracle
+        onlySubgraphAvailabilityOracle
     {
         uint256 sinceBlock = _deny ? block.number : 0;
         denylist[_subgraphDeploymentID] = sinceBlock;
