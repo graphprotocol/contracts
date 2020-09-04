@@ -9,6 +9,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import { NetworkFixture } from '../lib/fixtures'
 import {
   advanceToNextEpoch,
+  deriveChannelKey,
   getAccounts,
   randomHexBytes,
   toBN,
@@ -16,7 +17,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
+const { AddressZero, HashZero } = constants
 const { computePublicKey } = utils
 
 const MAX_PPM = toBN('1000000')
@@ -59,9 +60,9 @@ describe('Staking:Allocation', () => {
   const tokensToAllocate = toGRT('100')
   const tokensToCollect = toGRT('100')
   const subgraphDeploymentID = randomHexBytes()
-  const allocationID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
-  const channelPubKey =
-    '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+  const channelKey = deriveChannelKey()
+  const allocationID = channelKey.address
+  const channelPubKey = channelKey.pubKey
   const price = toGRT('0.01')
   const poi = randomHexBytes()
 
@@ -506,6 +507,34 @@ describe('Staking:Allocation', () => {
       // Should close if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
       await staking.connect(me.signer).closeAllocation(allocationID, poi)
+    })
+  })
+
+  describe('closeAndAllocate', function () {
+    beforeEach(async function () {
+      // Stake and allocate
+      await staking.connect(indexer.signer).stake(tokensToAllocate)
+      await allocate(tokensToAllocate)
+    })
+
+    it('should close and create a new allocation', async function () {
+      // Move at least one epoch to be able to close
+      await advanceToNextEpoch(epochManager)
+
+      // Close and allocate
+      const tx = staking
+        .connect(indexer.signer)
+        .closeAndAllocate(
+          allocationID,
+          HashZero,
+          indexer.address,
+          subgraphDeploymentID,
+          tokensToAllocate,
+          deriveChannelKey().pubKey,
+          assetHolder.address,
+          price,
+        )
+      await tx
     })
   })
 

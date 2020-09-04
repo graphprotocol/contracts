@@ -131,6 +131,17 @@ interface IStaking {
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;
 
+    function closeAndAllocate(
+        address _oldAllocationID,
+        bytes32 _poi,
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey,
+        address _assetHolder,
+        uint256 _price
+    ) external;
+
     function collect(uint256 _tokens, address _allocationID) external;
 
     function claim(address _allocationID, bool _restake) external;
