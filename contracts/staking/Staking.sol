@@ -676,8 +676,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         uint256 _price
     ) external override notPaused {
-        require(_onlyAuth(msg.sender), "Caller must be authorized");
-
         _allocate(msg.sender, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
 
@@ -698,8 +696,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         uint256 _price
     ) external override notPaused {
-        require(_onlyAuth(_indexer), "Caller must be authorized");
-
         _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
 
@@ -712,65 +708,33 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _poi Proof of indexing submitted for the allocated period
      */
     function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
-        // Get allocation
-        Allocation storage alloc = allocations[_allocationID];
-        AllocationState allocState = _getAllocationState(_allocationID);
+        _closeAllocation(_allocationID, _poi);
+    }
 
-        // Allocation must exist and be active
-        require(allocState == AllocationState.Active, "Allocation must be active");
-
-        // Get indexer stakes
-        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
-
-        // Validate that an allocation cannot be closed before one epoch
-        uint256 currentEpoch = epochManager().currentEpoch();
-        uint256 epochs = alloc.createdAtEpoch < currentEpoch
-            ? currentEpoch.sub(alloc.createdAtEpoch)
-            : 0;
-        require(epochs > 0, "Must pass at least one epoch");
-
-        // Validate ownership
-        if (epochs > maxAllocationEpochs) {
-            // Verify that the allocation owner or delegator is settling
-            require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
-        } else {
-            // Verify that the allocation owner is settling
-            require(_onlyAuth(alloc.indexer), "Caller must be authorized");
-        }
-
-        // Close the allocation and start counting a period to finalize any other
-        // withdrawal.
-        alloc.closedAtEpoch = currentEpoch;
-        alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
-
-        // Send funds to rebate pool and account the effective allocation
-        Rebates.Pool storage rebatePool = rebates[currentEpoch];
-        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
-
-        // Distribute rewards if proof of indexing was presented
-        if (_poi != 0) {
-            _distributeRewards(_allocationID, alloc.indexer);
-        }
-
-        // Free allocated tokens from use
-        indexerStake.unallocate(alloc.tokens);
-
-        // Track total allocations per subgraph
-        // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
-            .subgraphDeploymentID]
-            .sub(alloc.tokens);
-
-        emit AllocationClosed(
-            alloc.indexer,
-            alloc.subgraphDeploymentID,
-            alloc.closedAtEpoch,
-            alloc.tokens,
-            _allocationID,
-            alloc.effectiveAllocation,
-            msg.sender,
-            _poi
-        );
+    /**
+     * @dev Close and allocate. This will perform a close and then create a new Allocation
+     * atomically on the same transaction.
+     * @param _closingAllocationID The identifier of the allocation to be closed
+     * @param _poi Proof of indexing submitted for the allocated period
+     * @param _indexer Indexer address to allocate funds from.
+     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param _tokens Amount of tokens to allocate
+     * @param _channelPubKey The public key used to route payments
+     * @param _assetHolder Authorized sender address of collected funds
+     * @param _price Price the `indexer` will charge for serving queries of the `subgraphDeploymentID`
+     */
+    function closeAndAllocate(
+        address _closingAllocationID,
+        bytes32 _poi,
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        bytes calldata _channelPubKey,
+        address _assetHolder,
+        uint256 _price
+    ) external override notPaused {
+        _closeAllocation(_closingAllocationID, _poi);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _channelPubKey, _assetHolder, _price);
     }
 
     /**
@@ -908,6 +872,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         uint256 _price
     ) internal {
+        require(_onlyAuth(_indexer), "Caller must be authorized");
+
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only allocations with a non-zero token amount are allowed
@@ -967,6 +933,73 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _channelPubKey,
             _price,
             _assetHolder
+        );
+    }
+
+    /**
+     * @dev Close an allocation and free the staked tokens.
+     * @param _allocationID The allocation identifier
+     * @param _poi Proof of indexing submitted for the allocated period
+     */
+    function _closeAllocation(address _allocationID, bytes32 _poi) internal {
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
+        AllocationState allocState = _getAllocationState(_allocationID);
+
+        // Allocation must exist and be active
+        require(allocState == AllocationState.Active, "Allocation must be active");
+
+        // Get indexer stakes
+        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
+
+        // Validate that an allocation cannot be closed before one epoch
+        uint256 currentEpoch = epochManager().currentEpoch();
+        uint256 epochs = alloc.createdAtEpoch < currentEpoch
+            ? currentEpoch.sub(alloc.createdAtEpoch)
+            : 0;
+        require(epochs > 0, "Must pass at least one epoch");
+
+        // Validate ownership
+        if (epochs > maxAllocationEpochs) {
+            // Verify that the allocation owner or delegator is settling
+            require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
+        } else {
+            // Verify that the allocation owner is settling
+            require(_onlyAuth(alloc.indexer), "Caller must be authorized");
+        }
+
+        // Close the allocation and start counting a period to finalize any other
+        // withdrawal.
+        alloc.closedAtEpoch = currentEpoch;
+        alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
+
+        // Send funds to rebate pool and account the effective allocation
+        Rebates.Pool storage rebatePool = rebates[currentEpoch];
+        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
+
+        // Distribute rewards if proof of indexing was presented
+        if (_poi != 0) {
+            _distributeRewards(_allocationID, alloc.indexer);
+        }
+
+        // Free allocated tokens from use
+        indexerStake.unallocate(alloc.tokens);
+
+        // Track total allocations per subgraph
+        // Used for rewards calculations
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
+            .subgraphDeploymentID]
+            .sub(alloc.tokens);
+
+        emit AllocationClosed(
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            alloc.closedAtEpoch,
+            alloc.tokens,
+            _allocationID,
+            alloc.effectiveAllocation,
+            msg.sender,
+            _poi
         );
     }
 
