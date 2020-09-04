@@ -47,12 +47,12 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   )
 }
 
-export const settle = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const channelID = cliArgs.channelID
+export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const allocationID = cliArgs.allocationID
   const staking = cli.contracts.Staking
 
-  logger.log(`Settling allocation with channelID ${channelID}...`)
-  await sendTransaction(cli.wallet, staking, 'settle', ...[channelID])
+  logger.log(`Closing allocation with allocationID ${allocationID}...`)
+  await sendTransaction(cli.wallet, staking, 'close', ...[allocationID])
 }
 
 export const collect = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -186,18 +186,18 @@ export const stakingCommand = {
         },
       })
       .command({
-        command: 'settle',
-        describe: 'Settle an allocation',
+        command: 'close-allocation',
+        describe: 'Close an allocation',
         builder: (yargs: Argv) => {
           return yargs.option('channelID', {
-            description: 'The channel / allocation being settled',
+            description: 'The channel / allocation being closed',
             type: 'string',
             requiresArg: true,
             demandOption: true,
           })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return settle(await loadEnv(argv), argv)
+          return closeAllocation(await loadEnv(argv), argv)
         },
       })
       .command({

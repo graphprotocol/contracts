@@ -487,16 +487,16 @@ describe('Staking::Delegation', () => {
       // Collect some funds
       await staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
 
-      // Advance blocks to get the channel in epoch where it can be settled
+      // Advance blocks to get the channel in epoch where it can be closed
       await advanceToNextEpoch(epochManager)
 
-      // Settle
-      await staking.connect(indexer.signer).settle(channelID, poi)
+      // Close allocation
+      await staking.connect(indexer.signer).closeAllocation(channelID, poi)
 
       // Advance blocks to get the channel in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)
 
-      // Delegation pool before settlement
+      // Delegation pool before allocation closed
       const beforeDelegationPool = await staking.delegationPools(indexer.address)
 
       // Calculate tokens to claim and expected delegation fees
@@ -514,7 +514,7 @@ describe('Staking::Delegation', () => {
           subgraphDeploymentID,
           channelID,
           currentEpoch,
-          beforeAlloc.settledAtEpoch,
+          beforeAlloc.closedAtEpoch,
           tokensToClaim,
           toBN('0'),
           delegationFees,

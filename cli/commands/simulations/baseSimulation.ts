@@ -242,7 +242,7 @@
 // // Unstake for a few users, then withdraw
 // // Set epochs to one block
 // // Create 10 allocations
-// // Settle 5 allocations (Settle is called by the proxies)
+// // Close 5 allocations (Close is called by the proxies)
 // // Set back thawing period and epoch manager to default
 // const populateStaking = async (network: string, signers: Array<Wallet>, proxies: Array<Wallet>) => {
 //   console.log('Running staking contract calls...')
@@ -299,7 +299,7 @@
 
 //   console.log('Run Epoch....')
 //   await executeTransaction(epochManager.runEpoch(), network)
-//   console.log('Settle 5 allocations...')
+//   console.log('Close 5 allocations...')
 //   for (let i = 0; i < 5; i++) {
 //     // Note that the array of proxy wallets is used, not the signers
 //     const connectedGT = new ConnectedGraphToken(network, proxies[i])
@@ -312,7 +312,7 @@
 //       network,
 //     )
 //     console.log('Settling a channel...')
-//     await executeTransaction(staking.settleWithDecimals(stakeAmount), network)
+//     await executeTransaction(staking.closeWithDecimals(stakeAmount), network)
 //   }
 //   const defaultThawingPeriod = 20
 //   const defaultEpochLength = 5760

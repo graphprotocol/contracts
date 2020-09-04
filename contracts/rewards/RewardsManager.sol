@@ -264,7 +264,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Triggers an update of rewards for a subgraph.
      * Must be called before allocation on a subgraph changes.
-     * NOTE: Hook called from the Staking contract on allocate() and settle()
+     * NOTE: Hook called from the Staking contract on allocate() and close()
      *
      * TODO: Some staticcalls can be optimized by making the Staking contract pass
      * more information in the call
@@ -340,7 +340,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
         // Do not do rewards on denied subgraph deployments ID
         if (isDenied(alloc.subgraphDeploymentID)) {
-            emit RewardsDenied(alloc.indexer, _allocationID, alloc.settledAtEpoch);
+            emit RewardsDenied(alloc.indexer, _allocationID, alloc.closedAtEpoch);
             return 0;
         }
 
@@ -356,7 +356,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         // assign in proportion to each stakeholder incentive
         graphToken.mint(address(staking), rewards);
 
-        emit RewardsAssigned(alloc.indexer, _allocationID, alloc.settledAtEpoch, rewards);
+        emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
 
         return rewards;
     }
