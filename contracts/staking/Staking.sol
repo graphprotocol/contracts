@@ -124,12 +124,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     );
 
     /**
-     * @dev Emitted when `indexer` settled an allocation in `epoch` for `allocationID`.
+     * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
-     * The `effectiveAllocation` are the tokens allocated from creation to settlement.
+     * The `effectiveAllocation` are the tokens allocated from creation to closing.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
      */
-    event AllocationSettled(
+    event AllocationClosed(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
@@ -143,7 +143,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Emitted when `indexer` claimed a rebate on `subgraphDeploymentID` during `epoch`
      * related to the `forEpoch` rebate pool.
-     * The rebate is for `tokens` amount and an outstanding `settlements` are left for claim
+     * The rebate is for `tokens` amount and `unclaimedAllocationsCount` are left for claim
      * in the rebate pool. `delegationFees` collected and sent to delegation pool.
      */
     event RebateClaimed(
@@ -153,7 +153,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 epoch,
         uint256 forEpoch,
         uint256 tokens,
-        uint256 settlements,
+        uint256 unclaimedAllocationsCount,
         uint256 delegationFees
     );
 
@@ -704,14 +704,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Settle an allocation and free the staked tokens.
+     * @dev Close an allocation and free the staked tokens.
      * To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
      * To opt out for rewards set _poi to 0x0
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
-    function settle(address _allocationID, bytes32 _poi) external override notPaused {
+    function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
@@ -722,7 +722,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
 
-        // Validate that an allocation cannot be settled before one epoch
+        // Validate that an allocation cannot be closed before one epoch
         uint256 currentEpoch = epochManager().currentEpoch();
         uint256 epochs = alloc.createdAtEpoch < currentEpoch
             ? currentEpoch.sub(alloc.createdAtEpoch)
@@ -738,9 +738,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             require(_onlyAuth(alloc.indexer), "Caller must be authorized");
         }
 
-        // Settle the allocation and start counting a period to finalize any other
+        // Close the allocation and start counting a period to finalize any other
         // withdrawal.
-        alloc.settledAtEpoch = currentEpoch;
+        alloc.closedAtEpoch = currentEpoch;
         alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
 
         // Send funds to rebate pool and account the effective allocation
@@ -761,10 +761,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             .subgraphDeploymentID]
             .sub(alloc.tokens);
 
-        emit AllocationSettled(
+        emit AllocationClosed(
             alloc.indexer,
             alloc.subgraphDeploymentID,
-            alloc.settledAtEpoch,
+            alloc.closedAtEpoch,
             alloc.tokens,
             _allocationID,
             alloc.effectiveAllocation,
@@ -814,18 +814,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // TODO: restake when delegator called should not be allowed?
 
-        // Funds can only be claimed after a period of time passed since settlement
+        // Funds can only be claimed after a period of time passed since allocation was closed
         require(allocState == AllocationState.Finalized, "Allocation must be in finalized state");
 
-        // Find a rebate pool for the settled epoch
-        Rebates.Pool storage pool = rebates[alloc.settledAtEpoch];
+        // Find a rebate pool for the epoch
+        Rebates.Pool storage pool = rebates[alloc.closedAtEpoch];
 
         // Process rebate
         uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // When all settlements processed then prune rebate pool
-        if (pool.settlementsCount == 0) {
-            delete rebates[alloc.settledAtEpoch];
+        // When all allocations processed then prune rebate pool
+        if (pool.unclaimedAllocationsCount == 0) {
+            delete rebates[alloc.closedAtEpoch];
         }
 
         // Calculate delegation rewards and add them to the delegation pool
@@ -835,10 +835,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Purge allocation data except for:
         // - indexer: used in disputes and to avoid reusing an allocationID
         // - subgraphDeploymentID: used in disputes
-        uint256 settledAtEpoch = alloc.settledAtEpoch;
-        alloc.tokens = 0; // This avoid collect(), settle() and claim() to be called
+        uint256 closedAtEpoch = alloc.closedAtEpoch;
+        alloc.tokens = 0; // This avoid collect(), close() and claim() to be called
         alloc.createdAtEpoch = 0;
-        alloc.settledAtEpoch = 0;
+        alloc.closedAtEpoch = 0;
         alloc.collectedFees = 0;
         alloc.effectiveAllocation = 0;
         alloc.assetHolder = address(0); // This avoid collect() to be called
@@ -863,9 +863,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             alloc.subgraphDeploymentID,
             _allocationID,
             epochManager().currentEpoch(),
-            settledAtEpoch,
+            closedAtEpoch,
             tokensToClaim,
-            pool.settlementsCount,
+            pool.unclaimedAllocationsCount,
             delegationRewards
         );
     }
@@ -935,13 +935,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Creates an allocation
         // Allocation identifiers are not reused
-        // The authorized sender address can send collected funds to the allocation
+        // The assetHolder address can send collected funds to the allocation
         Allocation memory alloc = Allocation(
             _indexer,
             _subgraphDeploymentID,
             _tokens, // Tokens allocated
             epochManager().currentEpoch(), // createdAtEpoch
-            0, // settledAtEpoch
+            0, // closedAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
             _assetHolder, // Source address for allocation collected funds
@@ -987,10 +987,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
 
-        // The allocation must be active or settled
+        // The allocation must be active or closed
         require(
-            allocState == AllocationState.Active || allocState == AllocationState.Settled,
-            "Allocation must be active or settled"
+            allocState == AllocationState.Active || allocState == AllocationState.Closed,
+            "Allocation must be active or closed"
         );
 
         // Collect protocol fees to be burned
@@ -1004,11 +1004,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Collect funds for the allocation
         alloc.collectedFees = alloc.collectedFees.add(rebateFees);
 
-        // When allocation is settled redirect funds to the rebate pool
-        // This way we can keep collecting tokens even after settlement until the allocation
-        // gets to the finalized state.
-        if (allocState == AllocationState.Settled) {
-            Rebates.Pool storage rebatePool = rebates[alloc.settledAtEpoch];
+        // When allocation is closed redirect funds to the rebate pool
+        // This way we can keep collecting tokens even after the allocation is closed and
+        // before it gets to the finalized state.
+        if (allocState == AllocationState.Closed) {
+            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
             rebatePool.fees = rebatePool.fees.add(rebateFees);
         }
 
@@ -1207,21 +1207,21 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (alloc.tokens == 0) {
             return AllocationState.Claimed;
         }
-        if (alloc.settledAtEpoch == 0) {
+        if (alloc.closedAtEpoch == 0) {
             return AllocationState.Active;
         }
 
-        uint256 epochs = epochManager().epochsSince(alloc.settledAtEpoch);
+        uint256 epochs = epochManager().epochsSince(alloc.closedAtEpoch);
         if (epochs >= channelDisputeEpochs) {
             return AllocationState.Finalized;
         }
-        return AllocationState.Settled;
+        return AllocationState.Closed;
     }
 
     /**
-     * @dev Get the effective stake allocation considering epochs from allocation to settlement.
+     * @dev Get the effective stake allocation considering epochs from allocation to closing.
      * @param _tokens Amount of tokens allocated
-     * @param _numEpochs Number of epochs that passed from allocation to settlement
+     * @param _numEpochs Number of epochs that passed from allocation to closing
      * @return Effective allocated tokens accross epochs
      */
     function _getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
@@ -1278,7 +1278,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Assign rewards for the settled allocation to indexer and delegators.
+     * @dev Assign rewards for the closed allocation to indexer and delegators.
      * @param _allocationID Allocation
      */
     function _distributeRewards(address _allocationID, address _indexer)

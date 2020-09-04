@@ -15,11 +15,13 @@ library Rebates {
     using ABDKMathQuad for uint256;
     using ABDKMathQuad for bytes16;
 
-    // Tracks allocation settlements in a Pool per epoch
+    // Tracks allocations closed on an epoch for claiming
+    // The pool also keeps tracks of total query fees collected and stake used
+    // It is intended to have one pool per epoch
     struct Pool {
         uint256 fees; // total fees in the rebate pool
         uint256 allocation; // total effective allocation accumulated
-        uint256 settlementsCount;
+        uint256 unclaimedAllocationsCount; // amount of unclaimed allocations
     }
 
     /**
@@ -34,7 +36,7 @@ library Rebates {
     ) internal {
         pool.fees = pool.fees.add(_tokens);
         pool.allocation = pool.allocation.add(_allocation);
-        pool.settlementsCount += 1;
+        pool.unclaimedAllocationsCount += 1;
     }
 
     /**
@@ -55,7 +57,7 @@ library Rebates {
             pool.allocation,
             pool.fees
         );
-        pool.settlementsCount -= 1;
+        pool.unclaimedAllocationsCount -= 1;
         return tokens;
     }
 

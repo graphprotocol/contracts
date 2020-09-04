@@ -9,11 +9,11 @@ interface IStaking {
      * States:
      * - Null = indexer == address(0)
      * - Active = not Null && tokens > 0
-     * - Settled = Active && settledAtEpoch != 0
-     * - Finalized = Settling && settledAtEpoch + channelDisputeEpochs > now()
+     * - Closed = Active && closedAtEpoch != 0
+     * - Finalized = Closed && closedAtEpoch + channelDisputeEpochs > now()
      * - Claimed = not Null && tokens == 0
      */
-    enum AllocationState { Null, Active, Settled, Finalized, Claimed }
+    enum AllocationState { Null, Active, Closed, Finalized, Claimed }
 
     /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
@@ -24,9 +24,9 @@ interface IStaking {
         bytes32 subgraphDeploymentID;
         uint256 tokens; // Tokens allocated to a SubgraphDeployment
         uint256 createdAtEpoch; // Epoch when it was created
-        uint256 settledAtEpoch; // Epoch when it was settled
+        uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
-        uint256 effectiveAllocation; // Effective allocation when settled
+        uint256 effectiveAllocation; // Effective allocation when closed
         address assetHolder; // Authorized caller address of the collect() function
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
     }
@@ -129,7 +129,7 @@ interface IStaking {
         uint256 _price
     ) external;
 
-    function settle(address _allocationID, bytes32 _poi) external;
+    function closeAllocation(address _allocationID, bytes32 _poi) external;
 
     function collect(uint256 _tokens, address _allocationID) external;
 

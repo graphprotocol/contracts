@@ -208,7 +208,7 @@ describe('DisputeManager:Query', async () => {
       // Set the thawing period to zero to make the test easier
       await staking.connect(governor.signer).setThawingPeriod(toBN('0'))
 
-      // Indexer stake funds, allocate, settle, unstake and withdraw the stake fully
+      // Indexer stake funds, allocate, close allocation, unstake and withdraw the stake fully
       await staking.connect(indexer.signer).stake(indexerTokens)
       const tx1 = await staking
         .connect(indexer.signer)
@@ -221,9 +221,9 @@ describe('DisputeManager:Query', async () => {
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
-      await advanceToNextEpoch(epochManager) // wait the required one epoch to settle
+      await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
       await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
-      await staking.connect(indexer.signer).settle(event1.allocationID, poi)
+      await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)
       await staking.connect(indexer.signer).withdraw() // no thawing period so we are good
 

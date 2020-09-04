@@ -58,7 +58,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
     /**
      * @dev Emitted when `tokens` amount were collected for `subgraphDeploymentID` as part of fees
-     * distributed by an indexer from the settlement of query fees.
+     * distributed by an indexer from query fees received from state channels.
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 

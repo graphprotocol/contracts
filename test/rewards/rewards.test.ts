@@ -509,7 +509,7 @@ describe('Rewards', () => {
         )
     }
 
-    it('should distribute rewards on allocation settled', async function () {
+    it('should distribute rewards on closed allocation', async function () {
       // Setup
       await setupIndexerAllocation()
 
@@ -522,8 +522,10 @@ describe('Rewards', () => {
 
       const expectedIndexingRewards = toGRT('1471954234')
 
-      // Settle allocation. At this point rewards should be collected for that indexer
-      const tx = await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      // Close allocation. At this point rewards should be collected for that indexer
+      const tx = await staking
+        .connect(indexer1.signer)
+        .closeAllocation(allocationID, randomHexBytes())
       const receipt = await tx.wait()
       const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
       expect(event.indexer).eq(indexer1.address)
@@ -545,7 +547,7 @@ describe('Rewards', () => {
       expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
     })
 
-    it('should distribute rewards on allocation settled w/delegators', async function () {
+    it('should distribute rewards on closed allocation w/delegators', async function () {
       // Setup
       const delegationParams = {
         indexingRewardCut: toBN('50000'), // 5%
@@ -565,8 +567,8 @@ describe('Rewards', () => {
       const beforeDelegationPool = await staking.delegationPools(indexer1.address)
       const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
-      // Settle allocation. At this point rewards should be collected for that indexer
-      await staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      // Close allocation. At this point rewards should be collected for that indexer
+      await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
 
       // After state
       const afterTokenSupply = await grt.totalSupply()
@@ -602,8 +604,8 @@ describe('Rewards', () => {
       // Jump
       await advanceBlocks(await epochManager.epochLength())
 
-      // Settle allocation. At this point rewards should be collected for that indexer
-      const tx = staking.connect(indexer1.signer).settle(allocationID, randomHexBytes())
+      // Close allocation. At this point rewards should be collected for that indexer
+      const tx = staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
       await expect(tx)
         .emit(rewardsManager, 'RewardsDenied')
         .withArgs(indexer1.address, allocationID, await epochManager.currentEpoch())
