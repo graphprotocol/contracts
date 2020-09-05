@@ -186,24 +186,40 @@ describe('Rewards', () => {
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
 
-    it('should set subgraph oracle', async function () {
+    it('should set subgraph oracle if governor', async function () {
       await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
       expect(await rewardsManager.subgraphAvailabilityOracle()).eq(oracle.address)
     })
 
-    it('reject to deny subgraph it not the oracle', async function () {
+    it('reject to deny subgraph if not the oracle', async function () {
       const tx = rewardsManager.setDenied(subgraphDeploymentID1, true)
       await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
     })
 
     it('should deny subgraph', async function () {
       await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+
       const tx = rewardsManager.connect(oracle.signer).setDenied(subgraphDeploymentID1, true)
       const blockNum = await latestBlock()
       await expect(tx)
         .emit(rewardsManager, 'RewardsDenylistUpdated')
         .withArgs(subgraphDeploymentID1, blockNum.add(1))
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+    })
+
+    it('reject deny subgraph w/ many if not the oracle', async function () {
+      const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
+      const tx = rewardsManager.connect(oracle.signer).setDeniedMany(deniedSubgraphs, [true, true])
+      await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
+    })
+
+    it('should deny subgraph w/ many', async function () {
+      await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+
+      const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
+      await rewardsManager.connect(oracle.signer).setDeniedMany(deniedSubgraphs, [true, true])
+      expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+      expect(await rewardsManager.isDenied(subgraphDeploymentID2)).eq(true)
     })
   })
 
