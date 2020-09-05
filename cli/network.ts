@@ -60,24 +60,24 @@ export const sendTransaction = async (
   fn: string,
   ...params
 ): Promise<providers.TransactionReceipt> => {
+  // Send transaction
   let tx: ContractTransaction
   try {
-    tx = await contract.functions[fn](...params, defaultOverrides())
+    tx = await contract.functions[fn](...params)
   } catch (e) {
     if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       logger.warn(`Gas could not be estimated - trying defaultOverrides`)
       tx = await contract.functions[fn](...params, defaultOverrides())
     } else {
-      logger.error(e)
+      throw e
     }
   }
-  if (tx == undefined) {
-    logger.error(`It appears the function does not exist on this contract`)
-  }
+
+  // Wait for transaction to be mined
   logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
   const receipt = await wallet.provider.waitForTransaction(tx.hash)
   const networkName = (await wallet.provider.getNetwork()).name
-  if (networkName == 'kovan' || networkName == 'rinkeby') {
+  if (networkName === 'kovan' || networkName === 'rinkeby') {
     logger.success(`Transaction mined 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
   } else {
     logger.success(`Transaction mined ${tx.hash}`)
