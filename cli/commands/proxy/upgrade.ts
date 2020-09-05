@@ -17,7 +17,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   const addressEntry = cli.addressBook.getEntry(contractName)
   const savedAddress = addressEntry && addressEntry.address
 
-  if (!addressEntry) {
+  if (!savedAddress) {
     logger.error(`Contract ${contractName} not found in address book`)
     return
   }
@@ -75,21 +75,18 @@ export const upgradeCommand = {
   describe: 'Upgrade a proxy contract implementation',
   builder: (yargs: Argv): yargs.Argv => {
     return yargs
-      .option('i', {
-        alias: 'impl',
+      .option('impl', {
         description: 'Address of the contract implementation',
         type: 'string',
         requiresArg: true,
         demandOption: true,
       })
-      .option('x', {
-        alias: 'init',
+      .option('init', {
         description: 'Init arguments as comma-separated values',
         type: 'string',
         requiresArg: true,
       })
-      .option('n', {
-        alias: 'contract',
+      .option('contract', {
         description: 'Contract name to upgrade',
         type: 'string',
         requiresArg: true,
