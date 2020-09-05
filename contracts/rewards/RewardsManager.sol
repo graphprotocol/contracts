@@ -99,16 +99,42 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the indexer as denied to claim rewards.
-     * NOTE: Can only be called by the subgraph oracle
-     * @param _subgraphDeploymentID Subgraph deployment ID to deny
-     * @param _deny Whether to set the indexer as denied for claiming rewards or not
+     * @dev Denies to claim rewards for a subgraph.
+     * NOTE: Can only be called by the subgraph availability oracle
+     * @param _subgraphDeploymentID Subgraph deployment ID
+     * @param _deny Whether to set the subgraph as denied for claiming rewards or not
      */
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny)
         external
         override
         onlySubgraphAvailabilityOracle
     {
+        _setDenied(_subgraphDeploymentID, _deny);
+    }
+
+    /**
+     * @dev Denies to claim rewards for multiple subgraph.
+     * NOTE: Can only be called by the subgraph availability oracle
+     * @param _subgraphDeploymentID Array of subgraph deployment ID
+     * @param _deny Array of denied status for claiming rewards for each subgraph
+     */
+    function setDeniedMany(bytes32[] calldata _subgraphDeploymentID, bool[] calldata _deny)
+        external
+        override
+        onlySubgraphAvailabilityOracle
+    {
+        require(_subgraphDeploymentID.length == _deny.length, "!length");
+        for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
+            _setDenied(_subgraphDeploymentID[i], _deny[i]);
+        }
+    }
+
+    /**
+     * @dev Internal: Denies to claim rewards for a subgraph.
+     * @param _subgraphDeploymentID Subgraph deployment ID
+     * @param _deny Whether to set the subgraph as denied for claiming rewards or not
+     */
+    function _setDenied(bytes32 _subgraphDeploymentID, bool _deny) internal {
         uint256 sinceBlock = _deny ? block.number : 0;
         denylist[_subgraphDeploymentID] = sinceBlock;
         emit RewardsDenylistUpdated(_subgraphDeploymentID, sinceBlock);
