@@ -21,6 +21,6 @@ tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR}/contracts
 # Copy back sources
 cp ${TYPECHAIN_DIR}/_src/*.ts ${TYPECHAIN_DIR}/contracts
 # Copy conflicting definition files
-cp ${TYPECHAIN_DIR}/_src/ProxyFactory.d.ts ${TYPECHAIN_DIR}/contracts
+# cp ${TYPECHAIN_DIR}/_src/ProxyFactory.d.ts ${TYPECHAIN_DIR}/contracts
 # Delete temporary src dir
 rm -rf ${TYPECHAIN_DIR}/_src

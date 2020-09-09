@@ -11,6 +11,10 @@
     "LICENSE",
     "addresses.json"
   ],
+  "dependencies": {
+    "ethers": "^5.0.9",
+    "@ethersproject/contracts": "^5.0.3"
+  },
   "devDependencies": {
     "@graphprotocol/common-ts": "^0.2.0",
     "@nomiclabs/buidler": "^1.4.4",
@@ -43,7 +47,6 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "ethereum-waffle": "^3.0.2",
-    "ethers": "^5.0.9",
     "ethlint": "^1.2.5",
     "husky": "^4.2.5",
     "inquirer": "^7.3.3",
