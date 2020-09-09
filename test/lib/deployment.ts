@@ -78,25 +78,34 @@ async function deployContract(contractName: string, deployer?: Signer, ...params
 }
 
 export async function deployGRT(owner: Signer): Promise<GraphToken> {
-  return deployContract('GraphToken', owner, defaults.token.initialSupply) as Promise<GraphToken>
+  return (deployContract('GraphToken', owner, defaults.token.initialSupply) as unknown) as Promise<
+    GraphToken
+  >
 }
 
 export async function deployGDAI(owner: Signer): Promise<Gdai> {
-  return deployContract('GDAI', owner, defaults.gdai.initialSupply) as Promise<Gdai>
+  return (deployContract('GDAI', owner, defaults.gdai.initialSupply) as unknown) as Promise<Gdai>
 }
 
 export async function deployGSR(owner: Signer, gdaiAddress: string): Promise<GsrManager> {
-  return deployContract('GSRManager', owner, defaults.gdai.savingsRate, gdaiAddress) as Promise<
-    GsrManager
-  >
+  return (deployContract(
+    'GSRManager',
+    owner,
+    defaults.gdai.savingsRate,
+    gdaiAddress,
+  ) as unknown) as Promise<GsrManager>
 }
 
 export async function deployCuration(owner: Signer, graphToken: string): Promise<Curation> {
   // Impl
-  const contract = (await deployContract('Curation', owner)) as Curation
+  const contract = ((await deployContract('Curation', owner)) as unknown) as Curation
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    owner,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract
@@ -118,7 +127,7 @@ export async function deployDisputeManager(
   arbitrator: string,
   staking: string,
 ): Promise<DisputeManager> {
-  return deployContract(
+  return (deployContract(
     'DisputeManager',
     owner,
     arbitrator,
@@ -127,15 +136,19 @@ export async function deployDisputeManager(
     defaults.dispute.minimumDeposit,
     defaults.dispute.fishermanRewardPercentage,
     defaults.dispute.slashingPercentage,
-  ) as Promise<DisputeManager>
+  ) as unknown) as Promise<DisputeManager>
 }
 
 export async function deployEpochManager(owner: Signer): Promise<EpochManager> {
   // Impl
-  const contract = (await deployContract('EpochManager', owner)) as EpochManager
+  const contract = ((await deployContract('EpochManager', owner)) as unknown) as EpochManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    owner,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(owner).acceptProxy(proxy.address, defaults.epochs.lengthInBlocks)
@@ -149,15 +162,17 @@ export async function deployGNS(
   graphToken: string,
   curation: string,
 ): Promise<Gns> {
-  return deployContract('GNS', owner, didRegistry, graphToken, curation) as Promise<Gns>
+  return (deployContract('GNS', owner, didRegistry, graphToken, curation) as unknown) as Promise<
+    Gns
+  >
 }
 
 export async function deployEthereumDIDRegistry(owner: Signer): Promise<EthereumDidRegistry> {
-  return deployContract('EthereumDIDRegistry', owner) as Promise<EthereumDidRegistry>
+  return (deployContract('EthereumDIDRegistry', owner) as unknown) as Promise<EthereumDidRegistry>
 }
 
 export async function deployServiceRegistry(owner: Signer): Promise<ServiceRegistry> {
-  return deployContract('ServiceRegistry', owner) as Promise<ServiceRegistry>
+  return (deployContract('ServiceRegistry', owner) as unknown) as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(
@@ -167,10 +182,14 @@ export async function deployStaking(
   curation: string,
 ): Promise<Staking> {
   // Impl
-  const contract = (await deployContract('Staking', owner)) as Staking
+  const contract = ((await deployContract('Staking', owner)) as unknown) as Staking
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    owner,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract.connect(owner).acceptProxy(proxy.address, graphToken, epochManager)
@@ -192,10 +211,14 @@ export async function deployRewardsManager(
   staking: string,
 ): Promise<RewardsManager> {
   // Impl
-  const contract = (await deployContract('RewardsManager', owner)) as RewardsManager
+  const contract = ((await deployContract('RewardsManager', owner)) as unknown) as RewardsManager
 
   // Proxy
-  const proxy = (await deployContract('GraphProxy', owner, contract.address)) as GraphProxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    owner,
+    contract.address,
+  )) as unknown) as GraphProxy
 
   // Impl accept and initialize
   await contract
@@ -204,146 +227,4 @@ export async function deployRewardsManager(
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))
-}
-
-// #### State channel contracts
-
-export async function deployIndexerMultisig(
-  node: string,
-  staking: string,
-  ctdt: string,
-  singleAssetInterpreter: string,
-  multiAssetInterpreter: string,
-  withdrawInterpreter: string,
-): Promise<MinimumViableMultisig> {
-  return deployContract(
-    'MinimumViableMultisig',
-    null,
-    node,
-    staking,
-    ctdt,
-    singleAssetInterpreter,
-    multiAssetInterpreter,
-    withdrawInterpreter,
-  ) as Promise<MinimumViableMultisig>
-}
-
-// Note: this cannot be typed properly because "ProxyFactory" is generated by the Proxy contract
-async function deployProxyFactory(): Promise<Contract> {
-  return deployContract('ProxyFactory') as Promise<Contract>
-}
-
-async function deployIndexerCtdt(): Promise<IndexerCtdt> {
-  return deployContract('IndexerCtdt') as Promise<IndexerCtdt>
-}
-
-async function deploySingleAssetInterpreter(): Promise<IndexerSingleAssetInterpreter> {
-  return deployContract('IndexerSingleAssetInterpreter') as Promise<IndexerSingleAssetInterpreter>
-}
-
-async function deployMultiAssetInterpreter(): Promise<IndexerMultiAssetInterpreter> {
-  return deployContract('IndexerMultiAssetInterpreter') as Promise<IndexerMultiAssetInterpreter>
-}
-
-async function deployWithdrawInterpreter(): Promise<IndexerWithdrawInterpreter> {
-  return deployContract('IndexerWithdrawInterpreter') as Promise<IndexerWithdrawInterpreter>
-}
-
-async function deployMockStaking(tokenAddress: string): Promise<MockStaking> {
-  return deployContract('MockStaking', null, tokenAddress) as Promise<MockStaking>
-}
-
-async function deployMockDispute(): Promise<MockDispute> {
-  return deployContract('MockDispute') as Promise<MockDispute>
-}
-
-async function deployAppWithAction(): Promise<AppWithAction> {
-  return deployContract('AppWithAction') as Promise<AppWithAction>
-}
-
-async function deployIdentityApp(): Promise<IdentityApp> {
-  return deployContract('IdentityApp') as Promise<IdentityApp>
-}
-
-export async function deployChannelContracts(node: string, tokenAddress: string) {
-  const ctdt = await deployIndexerCtdt()
-  const singleAssetInterpreter = await deploySingleAssetInterpreter()
-  const multiAssetInterpreter = await deployMultiAssetInterpreter()
-  const withdrawInterpreter = await deployWithdrawInterpreter()
-  const mockStaking = await deployMockStaking(tokenAddress)
-  const mockDispute = await deployMockDispute()
-  const app = await deployAppWithAction()
-  const identity = await deployIdentityApp()
-  const proxyFactory = await deployProxyFactory()
-
-  const multisigMaster = await deployIndexerMultisig(
-    node,
-    mockStaking.address,
-    ctdt.address,
-    singleAssetInterpreter.address,
-    multiAssetInterpreter.address,
-    withdrawInterpreter.address,
-  )
-
-  return {
-    ctdt,
-    singleAssetInterpreter,
-    multiAssetInterpreter,
-    withdrawInterpreter,
-    mockStaking,
-    masterCopy: multisigMaster,
-    mockDispute,
-    app,
-    identity,
-    proxyFactory,
-  }
-}
-
-export async function deployMultisigWithProxy(
-  node: string,
-  tokenAddress: string,
-  owners: ChannelSigner[],
-  existingContext?: any,
-) {
-  const ctx = existingContext || (await deployChannelContracts(node, tokenAddress))
-  const {
-    ctdt,
-    singleAssetInterpreter,
-    multiAssetInterpreter,
-    withdrawInterpreter,
-    mockStaking,
-    proxyFactory,
-    masterCopy,
-    mockDispute,
-    app,
-    identity,
-  } = ctx
-  const tx = await proxyFactory.functions.createProxyWithNonce(
-    masterCopy.address,
-    masterCopy.interface.encodeFunctionData('setup', [owners.map((owner) => owner.address)]),
-    // hardcode ganache chainId
-    solidityKeccak256(['uint256', 'uint256'], [4447, 0]),
-  )
-  const receipt = (await tx.wait()) as TransactionReceipt
-  const { proxy: multisigAddr } = proxyFactory.interface.parseLog(receipt.logs[0]).args
-
-  const multisig = new Contract(
-    multisigAddr,
-    MinimumViableMultisigArtifact.abi,
-    waffle.provider,
-  ) as MinimumViableMultisig
-
-  return {
-    ctdt,
-    singleAssetInterpreter,
-    multiAssetInterpreter,
-    withdrawInterpreter,
-    mockStaking,
-    masterCopy,
-    mockDispute,
-    app,
-    identity,
-    proxyFactory,
-    multisig,
-  }
 }

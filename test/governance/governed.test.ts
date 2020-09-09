@@ -17,7 +17,7 @@ describe('Governed', () => {
     ;[me, governor] = await getAccounts()
 
     const factory = await ethers.getContractFactory('GovernedMock')
-    governed = (await factory.connect(governor.signer).deploy()) as Governed
+    governed = ((await factory.connect(governor.signer).deploy()) as unknown) as Governed
   })
 
   it('should set `governor`', async function () {
