@@ -40,6 +40,8 @@ export const defaults = {
     channelDisputeEpochs: 1,
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
+    alphaNumerator: 85,
+    alphaDenominator: 100,
   },
   token: {
     initialSupply: toGRT('10000000000'), // 10 billion
@@ -54,7 +56,7 @@ export const defaults = {
   },
 }
 
-async function deployContract(
+export async function deployContract(
   contractName: string,
   deployer?: Signer,
   ...params
@@ -216,6 +218,9 @@ export async function deployStaking(deployer: Signer, controller: string): Promi
   await staking.connect(deployer).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await staking.connect(deployer).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
   await staking.connect(deployer).setThawingPeriod(defaults.staking.thawingPeriod)
+  await staking
+    .connect(deployer)
+    .setRebateRatio(defaults.staking.alphaNumerator, defaults.staking.alphaDenominator)
 
   return staking
 }

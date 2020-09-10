@@ -67,6 +67,8 @@ interface IStaking {
 
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
 
+    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external;
+
     function setDelegationCapacity(uint32 _delegationCapacity) external;
 
     function setDelegationParameters(

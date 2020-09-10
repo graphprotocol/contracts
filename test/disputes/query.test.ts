@@ -368,7 +368,7 @@ describe('DisputeManager:Query', async () => {
 
             // Perform transaction (accept)
             const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
-            await expect(tx).revertedWith('Caller is not a Slasher')
+            await expect(tx).revertedWith('!slasher')
           })
 
           it('reject to accept a dispute if zero tokens to slash', async function () {

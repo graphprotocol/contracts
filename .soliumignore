@@ -2,7 +2,6 @@ node_modules
 
 contracts/bancor
 contracts/discovery/erc1056
-contracts/staking/libs/abdk-libraries-solidity
 contracts/token/IGraphToken.sol
 contracts/upgrades/GraphProxy.sol
 contracts/rewards/RewardsManager.sol

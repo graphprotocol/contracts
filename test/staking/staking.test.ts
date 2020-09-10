@@ -347,7 +347,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(me.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, me.address)
-        await expect(tx).revertedWith('Caller is not a Slasher')
+        await expect(tx).revertedWith('!slasher')
       })
 
       it('reject to slash indexer if beneficiary is zero address', async function () {

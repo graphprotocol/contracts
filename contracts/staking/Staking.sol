@@ -171,7 +171,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Check if the caller is the slasher.
      */
     modifier onlySlasher {
-        require(slashers[msg.sender] == true, "Caller is not a Slasher");
+        require(slashers[msg.sender] == true, "!slasher");
         _;
     }
 
@@ -194,6 +194,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
+
+        // By default 100% rebate ratio to fees
+        alphaNumerator = 1;
+        alphaDenominator = 1;
     }
 
     /**
@@ -256,6 +260,22 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external override onlyGovernor {
         maxAllocationEpochs = _maxAllocationEpochs;
         emit ParameterUpdated("maxAllocationEpochs");
+    }
+
+    /**
+     * @dev Set the rebate ratio (fees to allocated stake).
+     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
+     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     */
+    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator)
+        external
+        override
+        onlyGovernor
+    {
+        require(_alphaNumerator > 0 && _alphaDenominator > 0, "=zero");
+        alphaNumerator = _alphaNumerator;
+        alphaDenominator = _alphaDenominator;
+        emit ParameterUpdated("rebateRatio");
     }
 
     /**
@@ -565,7 +585,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Cannot slash stake of an indexer without any or enough stake
         require(indexerStake.hasTokens(), "Indexer has no stakes");
-        require(_tokens <= indexerStake.tokensStaked, "cannot slash more than staked amount");
+        require(_tokens <= indexerStake.tokensStaked, "Cannot slash more than staked amount");
 
         // Validate beneficiary of slashed tokens
         require(_beneficiary != address(0), "Beneficiary must not be an empty address");
@@ -583,11 +603,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Remove tokens to slash from the stake
         indexerStake.release(_tokens);
 
+        // -- Effects --
+
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        uint256 tokensToBurn = _tokens.sub(_reward);
-        if (tokensToBurn > 0) {
-            graphToken().burn(tokensToBurn);
-        }
+        _burnTokens(_tokens.sub(_reward));
 
         // Give the beneficiary a reward for slashing
         if (_reward > 0) {
@@ -759,7 +778,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect query fees for an allocation.
+     * @dev Collect query fees for an allocation from state channels.
      * Funds received are only accepted from a valid source.
      * @param _tokens Amount of tokens to collect
      */
@@ -795,23 +814,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Validate ownership
-        require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
+        require(_onlyAuthOrDelegator(alloc.indexer), "!auth");
 
         // TODO: restake when delegator called should not be allowed?
 
         // Funds can only be claimed after a period of time passed since allocation was closed
         require(allocState == AllocationState.Finalized, "Allocation must be in finalized state");
 
-        // Find a rebate pool for the epoch
-        Rebates.Pool storage pool = rebates[alloc.closedAtEpoch];
-
-        // Process rebate
-        uint256 tokensToClaim = pool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
-
-        // When all allocations processed then prune rebate pool
-        if (pool.unclaimedAllocationsCount == 0) {
-            delete rebates[alloc.closedAtEpoch];
-        }
+        // Process rebate reward
+        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+        uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
         // Calculate delegation rewards and add them to the delegation pool
         uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
@@ -827,6 +839,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         alloc.collectedFees = 0;
         alloc.effectiveAllocation = 0;
         alloc.assetHolder = address(0); // This avoid collect() to be called
+
+        // -- Effects --
+
+        // When all allocations processed then burn unclaimed fees and prune rebate pool
+        if (rebatePool.unclaimedAllocationsCount == 0) {
+            _burnTokens(rebatePool.unclaimedFees());
+            delete rebates[closedAtEpoch];
+        }
 
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
@@ -850,7 +870,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             epochManager().currentEpoch(),
             closedAtEpoch,
             tokensToClaim,
-            pool.unclaimedAllocationsCount,
+            rebatePool.unclaimedAllocationsCount,
             delegationRewards
         );
     }
@@ -893,7 +913,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _assetHolder,
         bytes32 _metadata
     ) internal {
-        require(_onlyAuth(_indexer), "Caller must be authorized");
+        require(_onlyAuth(_indexer), "!auth");
 
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
@@ -982,20 +1002,23 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
-            // Verify that the allocation owner or delegator is settling
-            require(_onlyAuthOrDelegator(alloc.indexer), "Caller must be authorized");
+            // Verify that the allocation owner or delegator is closing
+            require(_onlyAuthOrDelegator(alloc.indexer), "!auth");
         } else {
-            // Verify that the allocation owner is settling
-            require(_onlyAuth(alloc.indexer), "Caller must be authorized");
+            // Verify that the allocation owner is closing
+            require(_onlyAuth(alloc.indexer), "!auth");
         }
 
-        // Close the allocation and start counting a period to finalize any other
-        // withdrawal.
+        // Close the allocation and start counting a period to settle remaining payments from
+        // state channels.
         alloc.closedAtEpoch = currentEpoch;
         alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
 
-        // Send funds to rebate pool and account the effective allocation
+        // Account collected fees and effective allocation in rebate pool for the epoch
         Rebates.Pool storage rebatePool = rebates[currentEpoch];
+        if (!rebatePool.exists()) {
+            rebatePool.init(alphaNumerator, alphaDenominator);
+        }
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // Distribute rewards if proof of indexing was presented
@@ -1025,17 +1048,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Withdraw and collect funds for an allocation.
-     * @param _allocationID Allocation that is receiving collected funds
+     * @dev Collect query fees for an allocation from the state channel.
+     * @param _allocationID Allocation that is receiving query fees
      * @param _from Source of collected funds for the allocation
-     * @param _tokens Amount of tokens to withdraw
+     * @param _tokens Amount of tokens to collect
      */
     function _collect(
         address _allocationID,
         address _from,
         uint256 _tokens
     ) internal {
-        uint256 rebateFees = _tokens;
+        uint256 queryFees = _tokens;
 
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
@@ -1047,26 +1070,29 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             "Allocation must be active or closed"
         );
 
-        // Collect protocol fees to be burned
-        uint256 protocolFees = _collectProtocolFees(rebateFees);
-        rebateFees = rebateFees.sub(protocolFees);
+        // Calculate protocol fees to be burned
+        uint256 protocolFees = _collectProtocolFees(queryFees);
+        queryFees = queryFees.sub(protocolFees);
 
-        // Calculate curation fees only if the subgraph deployment is curated
-        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, rebateFees);
-        rebateFees = rebateFees.sub(curationFees);
+        // Calculate curation fees (only if the subgraph deployment is curated)
+        uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, queryFees);
+        queryFees = queryFees.sub(curationFees);
 
-        // Collect funds for the allocation
-        alloc.collectedFees = alloc.collectedFees.add(rebateFees);
+        // Collect funds on the allocation
+        alloc.collectedFees = alloc.collectedFees.add(queryFees);
 
         // When allocation is closed redirect funds to the rebate pool
         // This way we can keep collecting tokens even after the allocation is closed and
         // before it gets to the finalized state.
         if (allocState == AllocationState.Closed) {
             Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-            rebatePool.fees = rebatePool.fees.add(rebateFees);
+            rebatePool.fees = rebatePool.fees.add(queryFees);
         }
 
-        // TODO: for consistency we could burn protocol fees here
+        // -- Effects --
+
+        // Burn protocol fees
+        _burnTokens(protocolFees);
 
         // Send curation fees to the curator reserve pool
         if (curationFees > 0) {
@@ -1085,7 +1111,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _allocationID,
             _from,
             curationFees,
-            rebateFees
+            queryFees
         );
     }
 
@@ -1240,11 +1266,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (protocolPercentage == 0) {
             return 0;
         }
-        uint256 protocolFees = uint256(protocolPercentage).mul(_tokens).div(MAX_PPM);
-        if (protocolFees > 0) {
-            graphToken().burn(protocolFees);
-        }
-        return protocolFees;
+        return uint256(protocolPercentage).mul(_tokens).div(MAX_PPM);
     }
 
     /**
@@ -1361,5 +1383,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         }
 
         return totalRewards;
+    }
+
+    /**
+     * @dev Burn tokens held by this contract.
+     * @param _amount Amount of tokens to burn
+     */
+    function _burnTokens(uint256 _amount) internal {
+        if (_amount > 0) {
+            graphToken().burn(_amount);
+        }
     }
 }
