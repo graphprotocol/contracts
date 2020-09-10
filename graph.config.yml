@@ -80,6 +80,9 @@ contracts:
         delegationCapacity: 1 # 100% (multiplier)
       - fn: "setProtocolPercentage"
         protocolPercentage: 10000 # 1% (in basis points)
+      - fn: "setRebateRatio"
+        alphaNumerator: 85
+        alphaDenominator: 100
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true

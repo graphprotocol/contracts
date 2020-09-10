@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./abdk-libraries-solidity/ABDKMathQuad.sol";
+import "./Cobbs.sol";
 
 /**
  * @title A collection of data structures and functions to manage Rebates
@@ -12,91 +12,95 @@ import "./abdk-libraries-solidity/ABDKMathQuad.sol";
  */
 library Rebates {
     using SafeMath for uint256;
-    using ABDKMathQuad for uint256;
-    using ABDKMathQuad for bytes16;
 
-    // Tracks allocations closed on an epoch for claiming
+    // Tracks stats for allocations closed on a particular epoch for claiming
     // The pool also keeps tracks of total query fees collected and stake used
-    // It is intended to have one pool per epoch
+    // Only one rebate pool exists per epoch
     struct Pool {
-        uint256 fees; // total fees in the rebate pool
-        uint256 allocation; // total effective allocation accumulated
-        uint256 unclaimedAllocationsCount; // amount of unclaimed allocations
+        uint256 fees; // total query fees in the rebate pool
+        uint256 allocatedStake; // total effective allocation of stake
+        uint256 claimedRewards; // total claimed rewards from the rebate pool
+        uint32 unclaimedAllocationsCount; // amount of unclaimed allocations
+        uint32 alphaNumerator; // numerator of `alpha` in the cobb-douglas function
+        uint32 alphaDenominator; // denominator of `alpha` in the cobb-douglas function
     }
 
     /**
-     * @dev Deposit tokens into the rebate pool
-     * @param _tokens Amount of fees collected in tokens
-     * @param _allocation Effective stake allocated by the indexer for a period of epochs
+     * @dev Init the rebate pool with the rebate ratio.
+     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
+     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     */
+    function init(
+        Rebates.Pool storage pool,
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator
+    ) internal {
+        pool.alphaNumerator = _alphaNumerator;
+        pool.alphaDenominator = _alphaDenominator;
+    }
+
+    /**
+     * @dev Return true if the rebate pool was already initialized.
+     */
+    function exists(Rebates.Pool storage pool) internal view returns (bool) {
+        return pool.allocatedStake > 0;
+    }
+
+    /**
+     * @dev Return the amount of unclaimed fees.
+     */
+    function unclaimedFees(Rebates.Pool storage pool) internal view returns (uint256) {
+        return pool.fees.sub(pool.claimedRewards);
+    }
+
+    /**
+     * @dev Deposit tokens into the rebate pool.
+     * @param _indexerFees Amount of fees collected in tokens
+     * @param _indexerAllocatedStake Effective stake allocated by indexer for a period of epochs
      */
     function addToPool(
         Rebates.Pool storage pool,
-        uint256 _tokens,
-        uint256 _allocation
+        uint256 _indexerFees,
+        uint256 _indexerAllocatedStake
     ) internal {
-        pool.fees = pool.fees.add(_tokens);
-        pool.allocation = pool.allocation.add(_allocation);
+        pool.fees = pool.fees.add(_indexerFees);
+        pool.allocatedStake = pool.allocatedStake.add(_indexerAllocatedStake);
         pool.unclaimedAllocationsCount += 1;
     }
 
     /**
-     * @dev Redeem tokens from the rebate pool
-     * @param _tokens Amount of fees collected in tokens
-     * @param _allocation Effective stake allocated by the indexer for a period of epochs
-     * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
+     * @dev Redeem tokens from the rebate pool.
+     * @param _indexerFees Amount of fees collected in tokens
+     * @param _indexerAllocatedStake Effective stake allocated by indexer for a period of epochs
+     * @return Amount of reward tokens according to Cobb-Douglas rebate formula
      */
     function redeem(
         Rebates.Pool storage pool,
-        uint256 _tokens,
-        uint256 _allocation
-    ) internal returns (uint256) {
-        uint256 tokens = calcRebateReward(
-            2, // TODO: Fixed to do the sqrt()
-            _tokens,
-            _allocation,
-            pool.allocation,
-            pool.fees
-        );
-        pool.unclaimedAllocationsCount -= 1;
-        return tokens;
-    }
-
-    /**
-     * @dev Calculate rebate using production function
-     * @param _indexerAlloc Effective allocation for (epoch,indexer,subgraphDeploymentID)
-     * @param _indexerFees Fees collected on (epoch,indexer,subgraphDeploymentID)
-     * @param _poolAlloc Pooled effective allocation for epoch
-     * @param _poolFees Pooled collected fees for epoch
-     * @return Amount of tokens to be released according to Cobb-Douglas rebate reward formula
-     */
-    function calcRebateReward(
-        uint256, /*_invAlpha*/
-        uint256 _indexerAlloc,
         uint256 _indexerFees,
-        uint256 _poolAlloc,
-        uint256 _poolFees
-    ) public pure returns (uint256) {
-        // NOTE: We sqrt() because alpha is fractional so we expect the inverse of alpha
-        if (_poolAlloc == 0 || _poolFees == 0) {
-            return 0;
+        uint256 _indexerAllocatedStake
+    ) internal returns (uint256) {
+        // Calculate the rebate rewards for the indexer
+        uint256 totalRewards = pool.fees;
+        uint256 rebateReward = LibCobbDouglas.cobbDouglas(
+            totalRewards,
+            _indexerFees,
+            pool.fees,
+            _indexerAllocatedStake,
+            pool.allocatedStake,
+            pool.alphaNumerator,
+            pool.alphaDenominator
+        );
+
+        // Under NO circumstance we will reward more than total fees in the pool
+        uint256 unclaimedFees = pool.fees.sub(pool.claimedRewards);
+        if (rebateReward > unclaimedFees) {
+            rebateReward = unclaimedFees;
         }
 
-        // Here we use ABDKMathQuad to do the square root of terms
-        // We have to covert it to a bytes16 fixed point number, do sqrt(), then convert it
-        // back to uint256. uint256 wraps the result of toUInt(), since it returns uint64
-        bytes16 iAlloc = _indexerAlloc.fromUInt();
-        bytes16 pAlloc = _poolAlloc.fromUInt();
-        bytes16 aRatio = iAlloc.div(pAlloc);
+        // Update pool state
+        pool.unclaimedAllocationsCount -= 1;
+        pool.claimedRewards = pool.claimedRewards.add(rebateReward);
 
-        bytes16 iFees = _indexerFees.fromUInt();
-        bytes16 pFees = _poolFees.fromUInt();
-        bytes16 fRatio = iFees.div(pFees);
-
-        bytes16 termA = aRatio.sqrt();
-        bytes16 termB = fRatio.sqrt();
-
-        bytes16 reward = termA.mul(termB);
-
-        return uint256(pFees.mul(reward).toUInt());
+        return rebateReward;
     }
 }

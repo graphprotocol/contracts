@@ -225,7 +225,7 @@ describe('Staking:Allocation', () => {
             assetHolder.address,
             metadata,
           )
-        await expect(tx1).revertedWith('Caller must be authorized')
+        await expect(tx1).revertedWith('!auth')
 
         // Should allocate if given operator auth
         await staking.connect(indexer.signer).setOperator(me.address, true)
@@ -427,7 +427,7 @@ describe('Staking:Allocation', () => {
 
       // Close allocation
       const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx).revertedWith('Caller must be authorized')
+      await expect(tx).revertedWith('!auth')
     })
 
     it('reject close if allocation is already closed', async function () {
@@ -446,7 +446,9 @@ describe('Staking:Allocation', () => {
       // Before state
       const beforeStake = await staking.stakes(indexer.address)
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const beforeRebate = await staking.rebates((await epochManager.currentEpoch()).add(toBN('2')))
+      const beforeRebatePool = await staking.rebates(
+        (await epochManager.currentEpoch()).add(toBN('2')),
+      )
 
       // Move at least one epoch to be able to close
       await advanceToNextEpoch(epochManager)
@@ -480,7 +482,7 @@ describe('Staking:Allocation', () => {
       // After state
       const afterStake = await staking.stakes(indexer.address)
       const afterAlloc = await staking.getAllocation(allocationID)
-      const afterRebate = await staking.rebates(currentEpoch)
+      const afterRebatePool = await staking.rebates(currentEpoch)
 
       // Stake updated
       expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.sub(beforeAlloc.tokens))
@@ -488,10 +490,12 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.closedAtEpoch).eq(currentEpoch)
       expect(afterAlloc.effectiveAllocation).eq(effectiveAllocation)
       // Rebate updated
-      expect(afterRebate.fees).eq(beforeRebate.fees.add(beforeAlloc.collectedFees))
-      expect(afterRebate.allocation).eq(beforeRebate.allocation.add(effectiveAllocation))
-      expect(afterRebate.unclaimedAllocationsCount).eq(
-        beforeRebate.unclaimedAllocationsCount.add(toBN('1')),
+      expect(afterRebatePool.fees).eq(beforeRebatePool.fees.add(beforeAlloc.collectedFees))
+      expect(afterRebatePool.allocatedStake).eq(
+        beforeRebatePool.allocatedStake.add(effectiveAllocation),
+      )
+      expect(afterRebatePool.unclaimedAllocationsCount).eq(
+        beforeRebatePool.unclaimedAllocationsCount + 1,
       )
     })
 
@@ -502,7 +506,7 @@ describe('Staking:Allocation', () => {
 
       // Reject to close if the address is not operator
       const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx1).revertedWith('Caller must be authorized')
+      await expect(tx1).revertedWith('!auth')
 
       // Should close if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
@@ -566,7 +570,7 @@ describe('Staking:Allocation', () => {
           currentEpoch,
           beforeAlloc.closedAtEpoch,
           tokensToClaim,
-          beforeRebatePool.unclaimedAllocationsCount.sub(toBN('1')),
+          beforeRebatePool.unclaimedAllocationsCount - 1,
           toGRT('0'),
         )
 
@@ -597,15 +601,15 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.assetHolder).eq(AddressZero)
       // Rebate updated
       expect(afterRebatePool.unclaimedAllocationsCount).eq(
-        beforeRebatePool.unclaimedAllocationsCount.sub(toBN('1')),
+        beforeRebatePool.unclaimedAllocationsCount - 1,
       )
-      if (afterRebatePool.unclaimedAllocationsCount.eq(toBN('0'))) {
+      if (afterRebatePool.unclaimedAllocationsCount === 0) {
         // Rebate pool is empty and then pruned
-        expect(afterRebatePool.allocation).eq(toGRT('0'))
+        expect(afterRebatePool.allocatedStake).eq(toGRT('0'))
         expect(afterRebatePool.fees).eq(toGRT('0'))
       } else {
         // There are still more unclaimed allocations in the rebate pool
-        expect(afterRebatePool.allocation).eq(beforeRebatePool.allocation)
+        expect(afterRebatePool.allocatedStake).eq(beforeRebatePool.allocatedStake)
         expect(afterRebatePool.fees).eq(beforeRebatePool.fees.sub(tokensToClaim))
       }
     }
@@ -627,7 +631,7 @@ describe('Staking:Allocation', () => {
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Active)
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).claim(invalidAllocationID, false)
-      await expect(tx).revertedWith('Caller must be authorized')
+      await expect(tx).revertedWith('!auth')
     })
 
     it('reject claim if allocation is not closed', async function () {
@@ -692,7 +696,7 @@ describe('Staking:Allocation', () => {
 
         // Reject
         const tx1 = staking.connect(me.signer).claim(allocationID, false)
-        await expect(tx1).revertedWith('Caller must be authorized')
+        await expect(tx1).revertedWith('!auth')
 
         // Should claim if given operator auth
         await staking.connect(indexer.signer).setOperator(me.address, true)

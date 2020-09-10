@@ -20,11 +20,15 @@ contract StakingV1Storage is Managed {
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public protocolPercentage;
 
-    // Need to pass this period for channel to be finalized
+    // Period for allocation to be finalized
     uint32 public channelDisputeEpochs;
 
     // Maximum allocation time
     uint32 public maxAllocationEpochs;
+
+    // Rebate ratio
+    uint32 public alphaNumerator;
+    uint32 public alphaDenominator;
 
     // Indexer stakes : indexer => Stake
     mapping(address => Stakes.Indexer) public stakes;

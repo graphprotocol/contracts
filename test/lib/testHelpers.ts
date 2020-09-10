@@ -7,7 +7,9 @@ import { formatUnits } from 'ethers/lib/utils'
 const { hexlify, parseUnits, parseEther, randomBytes } = utils
 
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
-export const toGRT = (value: string): BigNumber => parseUnits(value, '18')
+export const toGRT = (value: string | number): BigNumber => {
+  return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
+}
 export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const logStake = (stakes: any): void => {
