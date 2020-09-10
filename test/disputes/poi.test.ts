@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, utils, Wallet } from 'ethers'
+import { utils } from 'ethers'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -11,17 +11,13 @@ import {
   advanceToNextEpoch,
   deriveChannelKey,
   getAccounts,
-  getChainID,
   randomHexBytes,
   toBN,
   toGRT,
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
-const { defaultAbiCoder: abi, arrayify, concat, hexlify, keccak256 } = utils
-
-const MAX_PPM = 1000000
+const { keccak256 } = utils
 
 describe('DisputeManager:POI', async () => {
   let me: Account
@@ -50,6 +46,7 @@ describe('DisputeManager:POI', async () => {
   const indexerAllocatedTokens = toGRT('10000')
   const allocationID = indexerChannelKey.address
   const subgraphDeploymentID = randomHexBytes(32)
+  const metadata = randomHexBytes(32)
   const poi = randomHexBytes(32) // proof of indexing
 
   async function setupIndexers() {
@@ -75,7 +72,7 @@ describe('DisputeManager:POI', async () => {
           indexerAllocatedTokens,
           indexerPubKey,
           assetHolder.address,
-          toBN('0'),
+          metadata,
         )
     }
   }
@@ -149,7 +146,7 @@ describe('DisputeManager:POI', async () => {
           indexerAllocatedTokens,
           indexerChannelKey.pubKey,
           assetHolder.address,
-          toBN('0'),
+          metadata,
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args

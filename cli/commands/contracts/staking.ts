@@ -34,8 +34,8 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const subgraphDeploymentID = cliArgs.subgraphDeploymentID
   const amount = parseGRT(cliArgs.amount)
   const channelPubKey = cliArgs.channelPubKey
-  const channelProxy = cliArgs.channelProxy
-  const price = cliArgs.price
+  const assetHolder = cliArgs.assetHolder
+  const metadata = cliArgs.metadata
   const staking = cli.contracts.Staking
 
   logger.log(`Allocating ${cliArgs.amount} tokens on ${subgraphDeploymentID}...`)
@@ -43,7 +43,7 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     cli.wallet,
     staking,
     'allocate',
-    ...[subgraphDeploymentID, amount, channelPubKey, channelProxy, price],
+    ...[subgraphDeploymentID, amount, channelPubKey, assetHolder, metadata],
   )
 }
 
@@ -168,14 +168,14 @@ export const stakingCommand = {
               requiresArg: true,
               demandOption: true,
             })
-            .option('channelProxy', {
-              description: 'Address of the multisig proxy used to hold channel funds',
+            .option('assetHolder', {
+              description: 'Address of the contract that hold channel funds',
               type: 'string',
               requiresArg: true,
               demandOption: true,
             })
-            .option('price', {
-              description: 'Price the indexer will charge for serving queries of the subgraphID',
+            .option('metadata', {
+              description: 'IPFS hash of the metadata for the allocation',
               type: 'string',
               requiresArg: true,
               demandOption: true,

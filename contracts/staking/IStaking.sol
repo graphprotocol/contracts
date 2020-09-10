@@ -117,7 +117,7 @@ interface IStaking {
         uint256 _tokens,
         bytes calldata _channelPubKey,
         address _assetHolder,
-        uint256 _price
+        bytes32 _metadata
     ) external;
 
     function allocateFrom(
@@ -126,7 +126,7 @@ interface IStaking {
         uint256 _tokens,
         bytes calldata _channelPubKey,
         address _assetHolder,
-        uint256 _price
+        bytes32 _metadata
     ) external;
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;
@@ -139,7 +139,7 @@ interface IStaking {
         uint256 _tokens,
         bytes calldata _channelPubKey,
         address _assetHolder,
-        uint256 _price
+        bytes32 _metadata
     ) external;
 
     function collect(uint256 _tokens, address _allocationID) external;

@@ -16,7 +16,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
+const { AddressZero, HashZero } = constants
 const MAX_PPM = toBN('1000000')
 const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
@@ -27,7 +27,7 @@ describe('Staking::Delegation', () => {
   let governor: Account
   let indexer: Account
   let indexer2: Account
-  let channelProxy: Account
+  let assetHolder: Account
 
   let fixture: NetworkFixture
 
@@ -37,6 +37,7 @@ describe('Staking::Delegation', () => {
 
   // Test values
   const poi = randomHexBytes()
+  const metadata = HashZero
 
   async function shouldDelegate(sender: Account, tokens: BigNumber) {
     // Before state
@@ -163,7 +164,7 @@ describe('Staking::Delegation', () => {
   }
 
   before(async function () {
-    ;[me, delegator, delegator2, governor, indexer, indexer2, channelProxy] = await getAccounts()
+    ;[me, delegator, delegator2, governor, indexer, indexer2, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ epochManager, grt, staking } = await fixture.load(governor.signer))
@@ -175,7 +176,7 @@ describe('Staking::Delegation', () => {
     }
 
     // Distribute test funds
-    for (const wallet of [me, indexer, channelProxy]) {
+    for (const wallet of [me, indexer, assetHolder]) {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
     }
@@ -427,7 +428,7 @@ describe('Staking::Delegation', () => {
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, toGRT('0.01'))
+        .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
     }
 
     beforeEach(async function () {
@@ -485,7 +486,7 @@ describe('Staking::Delegation', () => {
       await setupAllocation(tokensToAllocate)
 
       // Collect some funds
-      await staking.connect(channelProxy.signer).collect(tokensToCollect, channelID)
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, channelID)
 
       // Advance blocks to get the channel in epoch where it can be closed
       await advanceToNextEpoch(epochManager)
