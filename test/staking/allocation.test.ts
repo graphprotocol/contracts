@@ -63,14 +63,14 @@ describe('Staking:Allocation', () => {
   const channelKey = deriveChannelKey()
   const allocationID = channelKey.address
   const channelPubKey = channelKey.pubKey
-  const price = toGRT('0.01')
+  const metadata = randomHexBytes(32)
   const poi = randomHexBytes()
 
   // Helpers
   const allocate = (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, price)
+      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
   }
 
   before(async function () {
@@ -151,7 +151,7 @@ describe('Staking:Allocation', () => {
           tokensToAllocate,
           allocationID,
           channelPubKey,
-          price,
+          metadata,
           assetHolder.address,
         )
 
@@ -187,7 +187,7 @@ describe('Staking:Allocation', () => {
           tokensToAllocate,
           invalidChannelPubKey,
           assetHolder.address,
-          price,
+          metadata,
         )
       await expect(tx).revertedWith('Invalid channel public key')
     })
@@ -223,7 +223,7 @@ describe('Staking:Allocation', () => {
             tokensToAllocate,
             channelPubKey,
             assetHolder.address,
-            price,
+            metadata,
           )
         await expect(tx1).revertedWith('Caller must be authorized')
 
@@ -237,7 +237,7 @@ describe('Staking:Allocation', () => {
             tokensToAllocate,
             channelPubKey,
             assetHolder.address,
-            price,
+            metadata,
           )
       })
 
@@ -532,7 +532,7 @@ describe('Staking:Allocation', () => {
           tokensToAllocate,
           deriveChannelKey().pubKey,
           assetHolder.address,
-          price,
+          metadata,
         )
       await tx
     })

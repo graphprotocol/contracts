@@ -23,6 +23,8 @@ import {
 
 const MAX_PPM = 1000000
 
+const { HashZero, WeiPerEther } = constants
+
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: BigNumber) => Math.round(toFloat(n))
 
@@ -49,6 +51,7 @@ describe('Rewards', () => {
   const allocationID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
   const channelPubKey =
     '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+  const metadata = HashZero
 
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
   const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
@@ -315,8 +318,8 @@ describe('Rewards', () => {
       // Calculate rewards
       const rewardsPerSignal1 = await tracker1.accumulated
       const rewardsPerSignal2 = await tracker2.accumulated
-      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther)
-      const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(constants.WeiPerEther)
+      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
+      const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(WeiPerEther)
 
       // Get rewards from contract
       const contractRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(
@@ -350,7 +353,7 @@ describe('Rewards', () => {
       const contractRewardsSG1 = (await rewardsManager.subgraphs(subgraphDeploymentID1))
         .accRewardsForSubgraph
       const rewardsPerSignal1 = await tracker1.accruedGRT()
-      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(constants.WeiPerEther)
+      const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
       expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
 
       const contractAccrued = await rewardsManager.accRewardsPerSignal()
@@ -379,7 +382,7 @@ describe('Rewards', () => {
           tokensToAllocate,
           channelPubKey,
           assetHolder.address,
-          toGRT('0.1'),
+          metadata,
         )
 
       // Jump
@@ -392,7 +395,7 @@ describe('Rewards', () => {
         subgraphDeploymentID1,
       )
       const accruedRewardsSG1 = accRewardsForSubgraphSG1.sub(sg1.accRewardsForSubgraphSnapshot)
-      const expectedRewardsAT1 = accruedRewardsSG1.mul(constants.WeiPerEther).div(tokensToAllocate)
+      const expectedRewardsAT1 = accruedRewardsSG1.mul(WeiPerEther).div(tokensToAllocate)
       const contractRewardsAT1 = (
         await rewardsManager.getAccRewardsPerAllocatedToken(subgraphDeploymentID1)
       )[0]
@@ -416,7 +419,7 @@ describe('Rewards', () => {
           tokensToAllocate,
           channelPubKey,
           assetHolder.address,
-          toGRT('0.1'),
+          metadata,
         )
 
       // Jump
@@ -459,7 +462,7 @@ describe('Rewards', () => {
           tokensToAllocate,
           channelPubKey,
           assetHolder.address,
-          toGRT('0.1'),
+          metadata,
         )
 
       // Jump
@@ -474,7 +477,7 @@ describe('Rewards', () => {
         await rewardsManager.getAccRewardsPerAllocatedToken(subgraphDeploymentID1)
       )[0]
 
-      const expectedRewards = contractRewardsAT1.mul(tokensToAllocate).div(constants.WeiPerEther)
+      const expectedRewards = contractRewardsAT1.mul(tokensToAllocate).div(WeiPerEther)
       expect(expectedRewards).eq(contractRewards)
     })
   })
@@ -523,7 +526,7 @@ describe('Rewards', () => {
           tokensToAllocate,
           channelPubKey,
           assetHolder.address,
-          toGRT('0.1'),
+          metadata,
         )
     }
 

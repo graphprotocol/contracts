@@ -19,7 +19,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
+const { AddressZero, HashZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
 
 const MAX_PPM = 1000000
@@ -86,6 +86,7 @@ describe('DisputeManager:Query', async () => {
   const fishermanDeposit = toGRT('1000')
   const indexerTokens = toGRT('100000')
   const indexerAllocatedTokens = toGRT('10000')
+  const metadata = HashZero
 
   const poi = randomHexBytes()
 
@@ -133,7 +134,7 @@ describe('DisputeManager:Query', async () => {
           indexerAllocatedTokens,
           indexerPubKey,
           assetHolder.address,
-          toBN('0'),
+          metadata,
         )
     }
   }
@@ -217,7 +218,7 @@ describe('DisputeManager:Query', async () => {
           indexerAllocatedTokens,
           indexer1ChannelKey.pubKey,
           assetHolder.address,
-          toBN('0'),
+          metadata,
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args

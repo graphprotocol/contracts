@@ -33,7 +33,7 @@ describe('Staking:Stakes', () => {
   let indexer: Account
   let slasher: Account
   let fisherman: Account
-  let channelProxy: Account
+  let assetHolder: Account
 
   let fixture: NetworkFixture
 
@@ -46,13 +46,13 @@ describe('Staking:Stakes', () => {
   const subgraphDeploymentID = randomHexBytes()
   const channelPubKey =
     '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
-  const price = toGRT('0.01')
+  const metadata = randomHexBytes(32)
 
   // Allocate with test values
   const allocate = function (tokens: BigNumber) {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, channelPubKey, channelProxy.address, price)
+      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
   }
 
   // Stake and verify state change
@@ -75,7 +75,7 @@ describe('Staking:Stakes', () => {
   }
 
   before(async function () {
-    ;[me, governor, indexer, slasher, fisherman, channelProxy] = await getAccounts()
+    ;[me, governor, indexer, slasher, fisherman, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, staking } = await fixture.load(governor.signer, slasher.signer))
