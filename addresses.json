@@ -64,10 +64,10 @@
       "txHash": "0xa1a5a010be55c17f0c75d3cc246b4b1350c1c68f293295228f0bd995191dd307",
       "proxy": true,
       "implementation": {
-        "address": "0x1a2901bF471E37670CF5d07169e472eED37CAE9e",
-        "creationCodeHash": "0xa28318663a491c250ff9dbb5e8ef3f7eb609d7a33570f342edd0b4711a59c5d4",
-        "runtimeCodeHash": "0xd69fc2d430241a4a141145dee2de056a375fd1f2b06a6031eb9f54f5f2e109db",
-        "txHash": "0x1899b876724e0576cce4545728ff8e0b66da3e41c2a6abcf477b2a2fab99a007"
+        "address": "0x3bE86AF5845d7a6bA35DAA166a6C5b0bc540dbA9",
+        "creationCodeHash": "0xe4447c3da8168dd1a40de60298016cfee4eb38fe6d640c84f6e3faa09e96a145",
+        "runtimeCodeHash": "0x57678c1c4091b9c6334373acd028f16715a4e09782fc9a21a82bafbf4cb8e498",
+        "txHash": "0x27f05dbe19bee8e538b19b7b4d1a27637e110f6fd834997eef2b8f441ee453ff"
       }
     },
     "GNS": {
