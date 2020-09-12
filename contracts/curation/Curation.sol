@@ -330,28 +330,32 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration, Governed {
         view
         returns (uint256)
     {
-        // Get current tokens and signal
+        // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
-        uint256 newTokens = _tokens;
-        uint256 curTokens = curationPool.tokens;
-        uint256 curSignal = getCurationPoolSignal(_subgraphDeploymentID);
-        uint32 reserveRatio = curationPool.reserveRatio;
 
         // Init curation pool
         if (curationPool.tokens == 0) {
             require(
-                newTokens >= minimumCurationDeposit,
+                _tokens >= minimumCurationDeposit,
                 "Tokens cannot be under minimum curation deposit when curve not initialized"
             );
-            newTokens = newTokens.sub(minimumCurationDeposit);
-            curTokens = minimumCurationDeposit;
-            curSignal = SIGNAL_PER_MINIMUM_DEPOSIT;
-            reserveRatio = defaultReserveRatio;
+            return
+                calculatePurchaseReturn(
+                    SIGNAL_PER_MINIMUM_DEPOSIT,
+                    minimumCurationDeposit,
+                    defaultReserveRatio,
+                    _tokens.sub(minimumCurationDeposit)
+                )
+                    .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
 
-        // Calculate new signal
-        uint256 newSignal = calculatePurchaseReturn(curSignal, curTokens, reserveRatio, newTokens);
-        return newSignal.add(curSignal);
+        return
+            calculatePurchaseReturn(
+                getCurationPoolSignal(_subgraphDeploymentID),
+                curationPool.tokens,
+                curationPool.reserveRatio,
+                _tokens
+            );
     }
 
     /**

@@ -5,7 +5,7 @@ import { Curation } from '../../build/typechain/contracts/Curation'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, randomHexBytes, toBN, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, randomHexBytes, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -25,6 +25,9 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
   return chunks
 }
 
+const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+const toRound = (n: number) => n.toFixed(12)
+
 describe('Curation', () => {
   let me: Account
   let governor: Account
@@ -42,6 +45,36 @@ describe('Curation', () => {
   const curatorTokens = toGRT('1000000000')
   const tokensToDeposit = toGRT('1000')
   const tokensToCollect = toGRT('2000')
+
+  async function calcBondingCurve(
+    supply: BigNumber,
+    reserveBalance: BigNumber,
+    reserveRatio: number,
+    depositAmount: BigNumber,
+  ) {
+    // Handle the initialization of the bonding curve
+    if (supply.eq(0)) {
+      const minDeposit = await curation.minimumCurationDeposit()
+      if (depositAmount.lt(minDeposit)) {
+        throw new Error('deposit must be above minimum')
+      }
+      const defaultReserveRatio = await curation.defaultReserveRatio()
+      const minSupply = toGRT('1')
+      return (
+        (await calcBondingCurve(
+          minSupply,
+          minDeposit,
+          defaultReserveRatio,
+          depositAmount.sub(minDeposit),
+        )) + toFloat(minSupply)
+      )
+    }
+    // Calculate bonding curve in the test
+    return (
+      toFloat(supply) *
+      ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
+    )
+  }
 
   const shouldSignal = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
     const defaultReserveRatio = await curation.defaultReserveRatio()
@@ -382,6 +415,65 @@ describe('Curation', () => {
       expect(afterPoolSignal).eq(toGRT('0'))
       expect(await curation.isCurated(subgraphDeploymentID)).eq(false)
       expect(totalDeposits).eq(totalTokens)
+    })
+  })
+
+  describe('multiple minting', async function () {
+    it('should mint less signal every time due to the bonding curve', async function () {
+      const tokensToDepositMany = [
+        toGRT('1000'), // should mint if we start with number above minimum deposit
+        toGRT('1000'), // every time it should mint less GST due to bonding curve...
+        toGRT('1000'),
+        toGRT('1000'),
+        toGRT('2000'),
+        toGRT('2000'),
+        toGRT('123'),
+        toGRT('1'), // should mint below minimum deposit
+      ]
+      for (const tokensToDeposit of tokensToDepositMany) {
+        const expectedSignal = await calcBondingCurve(
+          await curation.getCurationPoolSignal(subgraphDeploymentID),
+          await curation.getCurationPoolTokens(subgraphDeploymentID),
+          await curation.defaultReserveRatio(),
+          tokensToDeposit,
+        )
+
+        const tx = await curation
+          .connect(curator.signer)
+          .mint(subgraphDeploymentID, tokensToDeposit)
+        const receipt = await tx.wait()
+        const event: Event = receipt.events.pop()
+        const signal = event.args['signal']
+        expect(toRound(expectedSignal)).eq(toRound(toFloat(signal)))
+      }
+    })
+
+    it('should mint when using the edge case of linear function', async function () {
+      // Setup edge case like linear function: 1 GRT = 1 GST
+      await curation.setMinimumCurationDeposit(toGRT('1'))
+      await curation.setDefaultReserveRatio(1000000)
+
+      const tokensToDepositMany = [
+        toGRT('1000'), // should mint if we start with number above minimum deposit
+        toGRT('1000'), // every time it should mint less GST due to bonding curve...
+        toGRT('1000'),
+        toGRT('1000'),
+        toGRT('2000'),
+        toGRT('2000'),
+        toGRT('123'),
+        toGRT('1'), // should mint below minimum deposit
+      ]
+
+      // Mint multiple times
+      for (const tokensToDeposit of tokensToDepositMany) {
+        const tx = await curation
+          .connect(curator.signer)
+          .mint(subgraphDeploymentID, tokensToDeposit)
+        const receipt = await tx.wait()
+        const event: Event = receipt.events.pop()
+        const signal = event.args['signal']
+        expect(tokensToDeposit).eq(signal) // we compare 1:1 ratio
+      }
     })
   })
 })
