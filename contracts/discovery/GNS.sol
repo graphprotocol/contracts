@@ -34,7 +34,7 @@ contract GNS is Managed {
     uint32 private constant defaultReserveRatio = 1000000;
 
     // In parts per hundred
-    uint32 public changeFeePercentage = 50;
+    uint32 public ownerFeePercentage = 50;
 
     // Bonding curve formula
     address public bondingCurve;
@@ -207,14 +207,14 @@ contract GNS is Managed {
     }
 
     /**
-     * @dev Set the change fee percentage. This is used to prevent a subgraph owner to drain all
+     * @dev Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
-     * @param _changeFeePercentage Change fee percentage
+     * @param _ownerFeePercentage Owner fee percentage
      */
-    function setChangeFeePercentage(uint32 _changeFeePercentage) external onlyGovernor {
-        require(_changeFeePercentage <= 100, "Change fee must be 100 or less");
-        changeFeePercentage = _changeFeePercentage;
-        emit ParameterUpdated("changeFeePercentage");
+    function setOwnerFeePercentage(uint32 _ownerFeePercentage) external onlyGovernor {
+        require(_ownerFeePercentage <= 100, "Owner fee must be 100 or less");
+        ownerFeePercentage = _ownerFeePercentage;
+        emit ParameterUpdated("ownerFeePercentage");
     }
 
     /**
@@ -388,12 +388,11 @@ contract GNS is Managed {
         require(namePool.disabled == false, "GNS: Cannot be disabled");
 
         uint256 vSignalOld = nSignalToVSignal(_graphAccount, _subgraphNumber, namePool.nSignal);
-        (uint256 tokens, uint256 withdrawalFees) = _burnVSignal(
+        (uint256 tokens, , uint256 ownerFee) = _burnVSignal(
             _graphAccount,
             namePool.subgraphDeploymentID,
             vSignalOld
         );
-        uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
         namePool.vSignal = namePool.vSignal.sub(vSignalOld);
         // Update name signals deployment ID to match the subgraphs deployment ID
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
@@ -405,7 +404,7 @@ contract GNS is Managed {
             _graphAccount,
             _subgraphNumber,
             vSignalNew,
-            tokens + withdrawalFees,
+            tokens + ownerFee,
             _newSubgraphDeploymentID
         );
     }
@@ -470,12 +469,11 @@ contract GNS is Managed {
         namePool.vSignal = 0;
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
-            (uint256 tokens, uint256 withdrawalFees) = curation().burn(
-                _subgraphDeploymentID,
+            (uint256 tokens, , uint256 ownerFee) = _burnVSignal(
+                _graphAccount,
+                namePool.subgraphDeploymentID,
                 vSignal
             );
-
-            uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
             namePool.withdrawableGRT = tokens + ownerFee;
         }
         // Set the NameCurationPool fields to make it disabled
@@ -566,19 +564,24 @@ contract GNS is Managed {
      * @param _graphAccount Subgraph owner
      * @param _subgraphDeploymentID Subgraph deployment to burn all vSignal from
      * @param _vSignal vSignal being burnt
-     * @return Tokens returned to the gns contract, and withdrawal fees the owner transferred to the gns
+     * @return Tokens returned to the gns contract, withdrawal fees charged, and the owner fee
+     * that the owner reimbursed from the withdrawal fee
      */
     function _burnVSignal(
         address _graphAccount,
         bytes32 _subgraphDeploymentID,
         uint256 _vSignal
-    ) private returns (uint256, uint256) {
+    )
+        private
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
         (uint256 tokens, uint256 withdrawalFees) = curation().burn(_subgraphDeploymentID, _vSignal);
-        require(
-            graphToken().transferFrom(_graphAccount, address(this), withdrawalFees),
-            "GNS: Error reimbursing withdrawal fees"
-        );
-        return (tokens, withdrawalFees);
+        uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
+        return (tokens, withdrawalFees, ownerFee);
     }
 
     /**
@@ -588,7 +591,10 @@ contract GNS is Managed {
      * @return Amount the owner must pay by transferring GRT to the GNS
      */
     function _ownerFee(uint256 _withdrawalFees, address _owner) private returns (uint256) {
-        uint256 ownerFee = _withdrawalFees.mul(changeFeePercentage).div(100);
+        if (ownerFeePercentage == 0) {
+            return 0;
+        }
+        uint256 ownerFee = _withdrawalFees.mul(ownerFeePercentage).div(100);
         // Get the owner of the Name to reimburse the withdrawal fee
         require(
             graphToken().transferFrom(_owner, address(this), ownerFee),
