@@ -41,6 +41,7 @@ export const gettersList = {
   // GNS
   'gns-minimum-signal': { contract: 'GNS', name: 'minimumVSignalStake' },
   'gns-bonding-curve': { contract: 'GNS', name: 'bondingCurve' },
+  'gns-deprecate-fee-percentage': { contract: 'GNS', name: 'changeFeePercentage' },
   // Token
   'token-governor': { contract: 'GraphToken', name: 'governor' },
   'token-supply': { contract: 'GraphToken', name: 'totalSupply' },

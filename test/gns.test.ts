@@ -820,7 +820,6 @@ describe('GNS', () => {
       const newValue = toGRT('100')
       it('should set `minimumVSignalStake`', async function () {
         // Can set if allowed
-        const newValue = toGRT('100')
         await gns.connect(governor.signer).setMinimumVsignal(newValue)
         expect(await gns.minimumVSignalStake()).eq(newValue)
       })
@@ -902,6 +901,22 @@ describe('GNS', () => {
           // we compare 1:1 ratio. Its implied that vSignal is 1 as well (1:1:1)
           expect(tokensToDeposit).eq(nSignalCreated)
         }
+    describe('setDeprecateFeePercentage', function () {
+      const newValue = 10
+      it('should set `minimumVSignalStake`', async function () {
+        // Can set if allowed
+        await gns.connect(governor.signer).setDeprecateFeePercentage(newValue)
+        expect(await gns.deprecateFeePercentage()).eq(newValue)
+      })
+
+      it('reject set `minimumVSignalStake` if out of bounds', async function () {
+        const tx = gns.connect(governor.signer).setDeprecateFeePercentage(101)
+        await expect(tx).revertedWith('Deprecate fee must be 100 or less')
+      })
+
+      it('reject set `minimumVSignalStake` if not allowed', async function () {
+        const tx = gns.connect(me.signer).setDeprecateFeePercentage(newValue)
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
   })
