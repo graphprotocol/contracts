@@ -176,9 +176,7 @@ describe('GNS', () => {
     subgraphToPublish = subgraph0, // Defaults to subgraph created in before()
   ) => {
     // Before stats for the old vSignal curve
-    const tokensBeforeVSigOldCuration = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensBeforeOldCuration = tokensBeforeVSigOldCuration[0]
-    const vSigBeforeOldCuration = tokensBeforeVSigOldCuration[1]
+    const ownerFee = await gns.ownerFeePercentage()
 
     // Before stats for the name curve
     const poolBefore = await gns.nameSignals(graphAccount, subgraphNumber)
@@ -190,11 +188,10 @@ describe('GNS', () => {
       subgraphNumber,
       nSigBefore,
     )
-    const vSignalBurnEstimate = nSignalToTokensResult[0]
     const tokensReceivedEstimate = nSignalToTokensResult[1]
 
     // since in upgrade, owner must refund fees, we need to actually add this back in
-    const feesToAddBackEstimate = nSignalToTokensResult[2]
+    const feesToAddBackEstimate = nSignalToTokensResult[2].div(toBN(100 / ownerFee))
     const upgradeTokenReturn = tokensReceivedEstimate.add(feesToAddBackEstimate)
 
     // Get the value for new vSignal that should be created on the new curve
@@ -228,12 +225,12 @@ describe('GNS', () => {
         subgraphToPublish.subgraphDeploymentID,
       )
 
-    // Check curation vSignal old was lowered and tokens too
+    // Check curation vSignal old are set to zero
     const tokensVSigOldCuration = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
     const tokensAfterOldCuration = tokensVSigOldCuration[0]
     const vSigAfterOldCuration = tokensVSigOldCuration[1]
-    expect(tokensAfterOldCuration).eq(tokensBeforeOldCuration.sub(upgradeTokenReturn))
-    expect(vSigAfterOldCuration).eq(vSigBeforeOldCuration.sub(vSignalBurnEstimate))
+    expect(tokensAfterOldCuration).eq(0)
+    expect(vSigAfterOldCuration).eq(0)
 
     // Check the vSignal of the new curation curve, amd tokens
     const tokensVSigNewCuration = await getTokensAndVSig(subgraphToPublish.subgraphDeploymentID)
@@ -260,15 +257,18 @@ describe('GNS', () => {
     subgraphNumber0: number,
   ) => {
     const curationBefore = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
+    const ownerFee = await gns.ownerFeePercentage()
     // We can use the whole amount, since in this test suite all vSignal is used to be staked on nSignal
     const tokensBefore = curationBefore[0]
     const ownerBalanceBefore = await grt.balanceOf(account.address)
+    const expectedWithdrawalFee = tokensBefore.div(toBN(1000000 / withdrawalPercentage))
+    const expectedOwnerFee = expectedWithdrawalFee.div(toBN(100 / ownerFee))
 
     const tx = gns.connect(account.signer).deprecateSubgraph(graphAccount, subgraphNumber0)
     await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(subgraph0.graphAccount.address, 0)
     await expect(tx)
       .emit(gns, 'NameSignalDisabled')
-      .withArgs(graphAccount, subgraphNumber0, tokensBefore)
+      .withArgs(graphAccount, subgraphNumber0, tokensBefore.sub(expectedOwnerFee))
 
     const deploymentID = await gns.subgraphs(subgraph0.graphAccount.address, 0)
     expect(ethers.constants.HashZero).eq(deploymentID)
@@ -279,11 +279,11 @@ describe('GNS', () => {
     expect(poolVSignalAfter.eq(toBN('0')))
     // Check that the owner balance decreased by the withdrawal fee
     const ownerBalanceAfter = await grt.balanceOf(account.address)
-    expect(ownerBalanceBefore.sub(tokensBefore.div(toBN(1000000 / withdrawalPercentage)))).eq(
-      ownerBalanceAfter,
-    )
+    expect(ownerBalanceBefore.sub(expectedOwnerFee).eq(ownerBalanceAfter))
     // Should be equal since owner pays withdrawal fees
-    expect(poolAfter.withdrawableGRT).eq(tokensBefore)
+    expect(poolAfter.withdrawableGRT).eq(
+      tokensBefore.sub(expectedWithdrawalFee).add(expectedOwnerFee),
+    )
     // Check that deprecated is true
     expect(poolAfter.disabled).eq(true)
     // Check balance of gns increase by withdrawalFees from owner being added
@@ -901,21 +901,21 @@ describe('GNS', () => {
           // we compare 1:1 ratio. Its implied that vSignal is 1 as well (1:1:1)
           expect(tokensToDeposit).eq(nSignalCreated)
         }
-    describe('setDeprecateFeePercentage', function () {
+    describe('setOwnerFeePercentage', function () {
       const newValue = 10
-      it('should set `minimumVSignalStake`', async function () {
+      it('should set `ownerFeePercentage`', async function () {
         // Can set if allowed
-        await gns.connect(governor.signer).setDeprecateFeePercentage(newValue)
-        expect(await gns.deprecateFeePercentage()).eq(newValue)
+        await gns.connect(governor.signer).setOwnerFeePercentage(newValue)
+        expect(await gns.ownerFeePercentage()).eq(newValue)
       })
 
-      it('reject set `minimumVSignalStake` if out of bounds', async function () {
-        const tx = gns.connect(governor.signer).setDeprecateFeePercentage(101)
-        await expect(tx).revertedWith('Deprecate fee must be 100 or less')
+      it('reject set `ownerFeePercentage` if out of bounds', async function () {
+        const tx = gns.connect(governor.signer).setOwnerFeePercentage(101)
+        await expect(tx).revertedWith('Owner fee must be 100 or less')
       })
 
-      it('reject set `minimumVSignalStake` if not allowed', async function () {
-        const tx = gns.connect(me.signer).setDeprecateFeePercentage(newValue)
+      it('reject set `ownerFeePercentage` if not allowed', async function () {
+        const tx = gns.connect(me.signer).setOwnerFeePercentage(newValue)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
