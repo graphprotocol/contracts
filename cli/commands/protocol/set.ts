@@ -43,6 +43,7 @@ export const settersList = {
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
   // GNS
   'gns-minimum-signal': { contract: 'GNS', name: 'setMinimumVsignal' },
+  'gns-deprecate-fee-percentage': { contract: 'GNS', name: 'setChangeFeePercentage' },
   // Token
   'token-transfer-governor': { contract: 'GraphToken', name: 'transferOwnership' },
   'token-accept-governor': { contract: 'GraphToken', name: 'acceptOwnership' },

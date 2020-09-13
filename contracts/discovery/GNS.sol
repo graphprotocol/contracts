@@ -33,15 +33,18 @@ contract GNS is Managed {
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
+    // In parts per hundred
+    uint32 public changeFeePercentage = 50;
+
+    // Bonding curve formula
+    address public bondingCurve;
+
     // Amount of nSignal you get with your minimum vSignal stake
     uint256 private constant VSIGNAL_PER_MINIMUM_NSIGNAL = 1 ether;
 
     // Minimum amount of vSignal that must be staked to start the curve
     // Set to 10**18, as vSignal has 18 decimals
     uint256 public minimumVSignalStake = 10**18;
-
-    // Bonding curve formula
-    address public bondingCurve;
 
     // graphAccountID => subgraphNumber => subgraphDeploymentID
     // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
@@ -201,6 +204,17 @@ contract GNS is Managed {
         require(_minimumVSignalStake > 0, "Minimum vSignal cannot be 0");
         minimumVSignalStake = _minimumVSignalStake;
         emit ParameterUpdated("minimumVSignalStake");
+    }
+
+    /**
+     * @dev Set the change fee percentage. This is used to prevent a subgraph owner to drain all
+     * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
+     * @param _changeFeePercentage Change fee percentage
+     */
+    function setChangeFeePercentage(uint32 _changeFeePercentage) external onlyGovernor {
+        require(_changeFeePercentage <= 100, "Change fee must be 100 or less");
+        changeFeePercentage = _changeFeePercentage;
+        emit ParameterUpdated("changeFeePercentage");
     }
 
     /**
@@ -379,15 +393,13 @@ contract GNS is Managed {
             namePool.subgraphDeploymentID,
             vSignalOld
         );
+        uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
         namePool.vSignal = namePool.vSignal.sub(vSignalOld);
         // Update name signals deployment ID to match the subgraphs deployment ID
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
 
         // nSignal stays constant, but vSignal can change here
-        uint256 vSignalNew = curation.mint(
-            namePool.subgraphDeploymentID,
-            (tokens + withdrawalFees)
-        );
+        uint256 vSignalNew = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee));
         namePool.vSignal = vSignalNew;
         emit NameSignalUpgrade(
             _graphAccount,
@@ -463,12 +475,8 @@ contract GNS is Managed {
                 vSignal
             );
 
-            // Get the owner of the Name to reimburse the withdrawal fee
-            require(
-                graphToken().transferFrom(_graphAccount, address(this), withdrawalFees),
-                "GNS: Error reimbursing withdrawal fees"
-            );
-            namePool.withdrawableGRT = tokens + withdrawalFees;
+            uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
+            namePool.withdrawableGRT = tokens + ownerFee;
         }
         // Set the NameCurationPool fields to make it disabled
         namePool.disabled = true;
@@ -571,6 +579,22 @@ contract GNS is Managed {
             "GNS: Error reimbursing withdrawal fees"
         );
         return (tokens, withdrawalFees);
+    }
+
+    /**
+     * @dev Calculate fee that owner will have to cover for upgrading or deprecating
+     * @param _owner Subgraph owner
+     * @param _withdrawalFees Total withdrawal fee for changing subgraphs
+     * @return Amount the owner must pay by transferring GRT to the GNS
+     */
+    function _ownerFee(uint256 _withdrawalFees, address _owner) private returns (uint256) {
+        uint256 ownerFee = _withdrawalFees.mul(changeFeePercentage).div(100);
+        // Get the owner of the Name to reimburse the withdrawal fee
+        require(
+            graphToken().transferFrom(_owner, address(this), ownerFee),
+            "GNS: Error reimbursing withdrawal fees"
+        );
+        return ownerFee;
     }
 
     /**
