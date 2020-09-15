@@ -643,6 +643,14 @@ contract GNS is Managed {
             namePool.nSignal = VSIGNAL_PER_MINIMUM_NSIGNAL;
             nSignalInit = namePool.nSignal;
             reserveRatio = defaultReserveRatio;
+
+            return
+                BancorFormula(bondingCurve).calculatePurchaseReturn(
+                    namePool.nSignal,
+                    namePool.vSignal,
+                    reserveRatio,
+                    vSignal
+                ) + nSignalInit;
         }
 
         return
@@ -650,8 +658,8 @@ contract GNS is Managed {
                 namePool.nSignal,
                 namePool.vSignal,
                 reserveRatio,
-                vSignal // deposit the vSignal into the nSignal bonding curve
-            ) + nSignalInit;
+                vSignal
+            );
     }
 
     /**
