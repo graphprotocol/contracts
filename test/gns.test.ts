@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber } from 'ethers'
+import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
 import { Gns } from '../build/typechain/contracts/Gns'
 import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
@@ -7,7 +7,7 @@ import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
 import { Curation } from '../build/typechain/contracts/Curation'
 
-import { toBN } from './lib/testHelpers'
+import { toBN, formatGRT } from './lib/testHelpers'
 
 interface Subgraph {
   graphAccount: Account
@@ -21,6 +21,9 @@ interface AccountDefaultName {
   name: string
   nameIdentifier: string
 }
+
+const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+const toRound = (n: number) => n.toFixed(12)
 
 describe('GNS', () => {
   let me: Account
@@ -64,6 +67,70 @@ describe('GNS', () => {
     const grtTokens = curationPool[0]
     const vSig = await curation.getCurationPoolSignal(subgraphID)
     return [grtTokens, vSig]
+  }
+
+  async function calcGNSBondingCurve(
+    gnsSupply: BigNumber, // nSignal
+    gnsReserveBalance: BigNumber, // vSignal
+    gnsReserveRatio: number, // default reserve ratio of GNS
+    depositAmount: BigNumber, // GRT deposited
+    subgraphID: string,
+  ): Promise<number> {
+    const signal = await curation.getCurationPoolSignal(subgraphID)
+    const curationTokens = await curation.getCurationPoolTokens(subgraphID)
+    const curationReserveRatio = await curation.defaultReserveRatio()
+    const expectedSignal = await calcCurationBondingCurve(
+      signal,
+      curationTokens,
+      curationReserveRatio,
+      depositAmount,
+    )
+    const expectedSignalBN = toGRT(String(expectedSignal))
+    // Handle the initialization of the bonding curve
+    if (gnsSupply.eq(0)) {
+      const minDeposit = await gns.minimumVSignalStake()
+      const minSupply = toGRT('1')
+      return (
+        (await calcGNSBondingCurve(
+          minSupply,
+          minDeposit,
+          gnsReserveRatio,
+          depositAmount,
+          subgraphID,
+        )) + toFloat(gnsSupply)
+      )
+    }
+    // Since we known CW = 1, we can do the simplified formula of:
+    return (toFloat(gnsSupply) * toFloat(expectedSignalBN)) / toFloat(gnsReserveBalance)
+  }
+
+  async function calcCurationBondingCurve(
+    supply: BigNumber,
+    reserveBalance: BigNumber,
+    reserveRatio: number,
+    depositAmount: BigNumber,
+  ): Promise<number> {
+    // Handle the initialization of the bonding curve
+    const minSupply = toGRT('1')
+    if (supply.eq(0)) {
+      const minDeposit = await curation.minimumCurationDeposit()
+      if (depositAmount.lt(minDeposit)) {
+        throw new Error('deposit must be above minimum')
+      }
+      return (
+        (await calcCurationBondingCurve(
+          minSupply,
+          minDeposit,
+          reserveRatio,
+          depositAmount.sub(minDeposit),
+        )) + toFloat(minSupply)
+      )
+    }
+    // Calculate bonding curve in the test
+    return (
+      toFloat(supply) *
+      ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
+    )
   }
 
   const publishNewSubgraph = async (
@@ -462,7 +529,6 @@ describe('GNS', () => {
     await grt.connect(me.signer).approve(curation.address, tokens100000)
     await grt.connect(other.signer).approve(gns.address, tokens100000)
     await grt.connect(other.signer).approve(curation.address, tokens100000)
-
     // Update withdrawal fee to test the functionality of it in disableNameSignal()
     await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalPercentage)
   })
@@ -767,6 +833,75 @@ describe('GNS', () => {
       it('reject set `minimumVSignalStake` if not allowed', async function () {
         const tx = gns.connect(me.signer).setMinimumVsignal(newValue)
         await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+    })
+    describe('multiple minting', async function () {
+      it('should mint less signal every time due to the bonding curve', async function () {
+        const tokensToDepositMany = [
+          toGRT('1000'), // should mint if we start with number above minimum deposit
+          toGRT('1000'), // every time it should mint less GST due to bonding curve...
+          toGRT('1'), // should mint below minimum deposit
+          toGRT('1000'),
+          toGRT('1000'),
+          toGRT('2000'),
+          toGRT('2000'),
+          toGRT('123'),
+        ]
+        await publishNewSubgraph(me, me.address, 0)
+        // Check the nSignal pool
+
+        // State updated
+        for (const tokensToDeposit of tokensToDepositMany) {
+          const poolOld = await gns.nameSignals(me.address, 0)
+          const vSig = poolOld[0]
+          const nSig = poolOld[1]
+          const deploymentID = poolOld[2]
+          const reserveRatio = poolOld[3]
+          expect(subgraph0.subgraphDeploymentID).eq(deploymentID)
+          const expectedNSignal = await calcGNSBondingCurve(
+            nSig,
+            vSig,
+            reserveRatio,
+            tokensToDeposit,
+            deploymentID,
+          )
+          const tx = await mintNSignal(me, me.address, 0, tokensToDeposit)
+          const receipt = await tx.wait()
+          const event: Event = receipt.events.pop()
+          const nSignalCreated = event.args['nSignalCreated']
+          expect(toRound(expectedNSignal)).eq(toRound(toFloat(nSignalCreated)))
+        }
+      })
+
+      it('should mint when using the edge case of linear function', async function () {
+        // Setup edge case like linear function: 1 vSignal = 1 nSignal = 1 token
+        await curation.setMinimumCurationDeposit(toGRT('1'))
+        await curation.setDefaultReserveRatio(1000000)
+        await gns.setMinimumVsignal(toGRT('1'))
+        // note - reserve ratio is already set to 1000000 in GNS
+
+        const tokensToDepositMany = [
+          toGRT('1000'), // should mint if we start with number above minimum deposit
+          toGRT('1000'), // every time it should mint less GST due to bonding curve...
+          toGRT('1000'),
+          toGRT('1000'),
+          toGRT('2000'),
+          toGRT('2000'),
+          toGRT('123'),
+          toGRT('1'), // should mint below minimum deposit
+        ]
+
+        await publishNewSubgraph(me, me.address, 0)
+
+        // State updated
+        for (const tokensToDeposit of tokensToDepositMany) {
+          const tx = await mintNSignal(me, me.address, 0, tokensToDeposit)
+          const receipt = await tx.wait()
+          const event: Event = receipt.events.pop()
+          const nSignalCreated = event.args['nSignalCreated']
+          // we compare 1:1 ratio. Its implied that vSignal is 1 as well (1:1:1)
+          expect(tokensToDeposit).eq(nSignalCreated)
+        }
       })
     })
   })
