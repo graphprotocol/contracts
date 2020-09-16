@@ -324,6 +324,22 @@ describe('Curation', () => {
         await shouldCollect(toGRT('200'))
         await shouldCollect(toGRT('500.25'))
       })
+
+      it('should collect tokens and then unsignal all', async function () {
+        await controller
+          .connect(governor.signer)
+          .setContractProxy(utils.id('Staking'), stakingMock.address)
+
+        // Collect increase the pool reserves
+        await shouldCollect(toGRT('100'))
+
+        // When we burn signal we should get more tokens than initially curated
+        const signalToRedeem = await curation.getCuratorSignal(
+          curator.address,
+          subgraphDeploymentID,
+        )
+        await shouldRedeem(signalToRedeem, toGRT('1100'))
+      })
     })
   })
 

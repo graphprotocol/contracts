@@ -165,6 +165,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @return newly accrued rewards per signal since last update
      */
     function getNewRewardsPerSignal() public override view returns (uint256) {
+        IGraphToken graphToken = graphToken();
+
         // Calculate time steps
         uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
         // Optimization to skip calculations if zero time steps elapsed
@@ -178,16 +180,16 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         }
 
         // Zero issuance if no signalled tokens
-        uint256 signalledTokens = curation().getTotalTokens();
+        uint256 signalledTokens = graphToken.balanceOf(address(curation()));
         if (signalledTokens == 0) {
             return 0;
         }
 
         uint256 r = issuanceRate;
-        uint256 p = graphToken().totalSupply();
+        uint256 p = graphToken.totalSupply();
         uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
 
-        // New issuance per signal during time steps
+        // New issuance per signalled token during time steps
         uint256 x = a.sub(p);
 
         // We multiply the decimals to keep the precision as fixed-point number

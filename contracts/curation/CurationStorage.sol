@@ -18,9 +18,6 @@ contract CurationV1Storage is Managed {
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationDeposit;
 
-    // Total tokens in held as reserves received from curators deposits
-    uint256 internal totalTokens;
-
     // Bonding curve formula
     address public bondingCurve;
 
