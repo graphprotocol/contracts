@@ -634,30 +634,25 @@ contract GNS is Managed {
     ) public view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = _vSignal;
-        uint256 nSignalInit = 0;
-        uint32 reserveRatio = namePool.reserveRatio;
+
         // Handle initialization of bonding curve
         if (namePool.vSignal == 0) {
-            namePool.vSignal = minimumVSignalStake;
-            vSignal = vSignal.sub(namePool.vSignal);
-            namePool.nSignal = VSIGNAL_PER_MINIMUM_NSIGNAL;
-            nSignalInit = namePool.nSignal;
-            reserveRatio = defaultReserveRatio;
-
             return
-                BancorFormula(bondingCurve).calculatePurchaseReturn(
-                    namePool.nSignal,
-                    namePool.vSignal,
-                    reserveRatio,
-                    vSignal
-                ) + nSignalInit;
+                BancorFormula(bondingCurve)
+                    .calculatePurchaseReturn(
+                    VSIGNAL_PER_MINIMUM_NSIGNAL,
+                    minimumVSignalStake,
+                    defaultReserveRatio,
+                    vSignal.sub(minimumVSignalStake)
+                )
+                    .add(VSIGNAL_PER_MINIMUM_NSIGNAL);
         }
 
         return
             BancorFormula(bondingCurve).calculatePurchaseReturn(
                 namePool.nSignal,
                 namePool.vSignal,
-                reserveRatio,
+                namePool.reserveRatio,
                 vSignal
             );
     }
