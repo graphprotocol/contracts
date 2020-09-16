@@ -183,14 +183,44 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Need to deposit some funds
         require(_tokens > 0, "Cannot deposit zero tokens");
 
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+
+        // If it hasn't been curated before then initialize the curve
+        if (!isCurated(_subgraphDeploymentID)) {
+            require(
+                _tokens >= minimumCurationDeposit,
+                "Curation deposit is below minimum required"
+            );
+
+            // Initialize
+            curationPool.reserveRatio = defaultReserveRatio;
+
+            // If no signal token for the pool - create one
+            if (address(curationPool.gst) == address(0)) {
+                // TODO: the gas cost of deploying the subgraph token can be greatly optimized
+                // by deploying a proxy each time, sharing the same implementation
+                curationPool.gst = IGraphSignalToken(
+                    address(new GraphSignalToken("GST", address(this)))
+                );
+            }
+        }
+
+        // Trigger update rewards calculation snapshot
+        _updateRewards(_subgraphDeploymentID);
+
         // Transfer tokens from the curator to this contract
+        // This needs to happen after _updateRewards snapshot as that function
+        // is using balanceOf(curation)
         require(
             graphToken().transferFrom(curator, address(this), _tokens),
             "Cannot transfer tokens to deposit"
         );
 
-        // Deposit tokens to a curation pool reserve
-        return _mint(curator, _subgraphDeploymentID, _tokens);
+        // Exchange GRT tokens for GST of the subgraph pool
+        uint256 signal = _mintSignal(curator, _subgraphDeploymentID, _tokens);
+
+        emit Signalled(curator, _subgraphDeploymentID, _tokens, signal);
+        return signal;
     }
 
     /**
@@ -396,9 +426,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Mint signal to the curator
         curationPool.gst.mint(_curator, signal);
 
-        // Update the global reserve
-        totalTokens = totalTokens.add(_tokens);
-
         return signal;
     }
 
@@ -424,9 +451,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Burn signal from curator
         curationPool.gst.burnFrom(_curator, _signal);
 
-        // Update the global reserve
-        totalTokens = totalTokens.sub(outTokens);
-
         return (tokens, withdrawalFees);
     }
 
@@ -449,50 +473,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
-     * @dev Deposit Graph Tokens in exchange for signal of a curation pool.
-     * @param _curator Address of the staking party
-     * @param _subgraphDeploymentID Subgraph deployment from where the curator is minting
-     * @param _tokens Amount of Graph Tokens to deposit
-     * @return Signal minted
-     */
-    function _mint(
-        address _curator,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens
-    ) internal returns (uint256) {
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
-
-        // If it hasn't been curated before then initialize the curve
-        if (!isCurated(_subgraphDeploymentID)) {
-            require(
-                _tokens >= minimumCurationDeposit,
-                "Curation deposit is below minimum required"
-            );
-
-            // Initialize
-            curationPool.reserveRatio = defaultReserveRatio;
-
-            // If no signal token for the pool - create one
-            if (address(curationPool.gst) == address(0)) {
-                // TODO: the gas cost of deploying the subgraph token can be greatly optimized
-                // by deploying a proxy each time, sharing the same implementation
-                curationPool.gst = IGraphSignalToken(
-                    address(new GraphSignalToken("GST", address(this)))
-                );
-            }
-        }
-
-        // Trigger update rewards calculation
-        _updateRewards(_subgraphDeploymentID);
-
-        // Exchange GRT tokens for GST of the subgraph pool
-        uint256 signal = _mintSignal(_curator, _subgraphDeploymentID, _tokens);
-
-        emit Signalled(_curator, _subgraphDeploymentID, _tokens, signal);
-        return signal;
-    }
-
-    /**
      * @dev Triggers an update of rewards due to a change in signal.
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
@@ -502,12 +482,5 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
         return 0;
-    }
-
-    /**
-     * @dev Exter
-     */
-    function getTotalTokens() external override view returns (uint256) {
-        return totalTokens;
     }
 }

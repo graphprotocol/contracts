@@ -78,7 +78,7 @@ describe('Rewards', () => {
     async snapshot() {
       this.accumulated = this.accumulated.add(await this.accruedGRT())
       this.totalSupply = await grt.totalSupply()
-      this.totalSignalled = await curation.getTotalTokens()
+      this.totalSignalled = await grt.balanceOf(curation.address)
       this.lastUpdatedBlock = await latestBlock()
       return this
     }

@@ -13,8 +13,6 @@ interface ICuration {
 
     // -- Configuration --
 
-    function getTotalTokens() external view returns (uint256);
-
     function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
 
     function setMinimumCurationDeposit(uint256 _minimumCurationDeposit) external;
