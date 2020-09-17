@@ -336,5 +336,4 @@
 //   await populateStaking(network, users, proxies)
 // }
 
-const baseSimulation = async (): Promise<void> => {}
-export default baseSimulation
+export const baseSimulation = async (): Promise<void> => {}
