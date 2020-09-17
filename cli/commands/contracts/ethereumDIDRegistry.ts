@@ -5,21 +5,21 @@ import yargs, { Argv } from 'yargs'
 import { IPFS } from '../../helpers'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-import { jsonToAccountMetadata } from './metadataHelpers'
+import { jsonToAccountMetadata } from '../../metadata'
 
 const logger = consola.create({})
 
 const handleAccountMetadata = async (ipfs: string, path: string): Promise<string> => {
   const metadata = jsonToAccountMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-  console.log('Meta data:')
-  console.log('  Code Repository: ', metadata.codeRepository || '')
-  console.log('  Description:     ', metadata.description || '')
-  console.log('  Image:           ', metadata.image || '')
-  console.log('  Name:            ', metadata.name || '')
-  console.log('  Website:         ', metadata.website || '')
+  logger.log('Meta data:')
+  logger.log('  Code Repository: ', metadata.codeRepository || '')
+  logger.log('  Description:     ', metadata.description || '')
+  logger.log('  Image:           ', metadata.image || '')
+  logger.log('  Name:            ', metadata.name || '')
+  logger.log('  Website:         ', metadata.website || '')
 
   const ipfsClient = IPFS.createIpfsClient(ipfs)
-  console.log('\nUpload JSON meta data to IPFS...')
+  logger.log('\nUpload JSON meta data to IPFS...')
   const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
   const metaHash = result[0].hash
   try {
@@ -30,7 +30,7 @@ const handleAccountMetadata = async (ipfs: string, path: string): Promise<string
   } catch (e) {
     throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
   }
-  console.log(`Upload metadata successful: ${metaHash}\n`)
+  logger.log(`Upload metadata successful: ${metaHash}\n`)
   return IPFS.ipfsHashToBytes32(metaHash)
 }
 

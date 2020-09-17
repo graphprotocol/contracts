@@ -1,10 +1,21 @@
+import fs from 'fs'
 import * as dotenv from 'dotenv'
+import consola from 'consola'
 
 import { utils, providers, Wallet, Overrides } from 'ethers'
-import { ipfsHttpClient } from 'ipfs-http-client'
+import ipfsHttpClient from 'ipfs-http-client'
+
 import * as bs58 from 'bs58'
 
+import {
+  SubgraphMetadata,
+  VersionMetadata,
+  jsonToSubgraphMetadata,
+  jsonToVersionMetadata,
+} from './metadata'
+
 dotenv.config()
+const logger = consola.create({})
 
 export const defaultOverrides = (): Overrides => {
   return {
@@ -28,7 +39,6 @@ export class IPFS {
     return ipfsHttpClient({
       protocol: url.protocol.replace(/[:]+$/, ''),
       host: url.hostname,
-      port: url.port,
       'api-path': url.pathname.replace(/\/$/, '') + '/api/v0/',
     })
   }
@@ -38,6 +48,55 @@ export class IPFS {
     return utils.hexlify(hashBytes)
   }
 }
+
+export const pinMetadataToIPFS = async (
+  ipfs: string,
+  type: string,
+  path?: string, // Only pass path or metadata, not both
+  metadata?: SubgraphMetadata | VersionMetadata,
+): Promise<string> => {
+  if (metadata == undefined && path != undefined) {
+    if (type == 'subgraph') {
+      metadata = jsonToSubgraphMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
+      logger.log('Meta data:')
+      logger.log('  Subgraph Description:     ', metadata.description)
+      logger.log('  Subgraph Display Name:    ', metadata.displayName)
+      logger.log('  Subgraph Image:           ', metadata.image)
+      logger.log('  Subgraph Code Repository: ', metadata.codeRepository)
+      logger.log('  Subgraph Website:         ', metadata.website)
+    } else if (type == 'version') {
+      metadata = jsonToVersionMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
+      logger.log('Meta data:')
+      logger.log('  Version Description:      ', metadata.description)
+      logger.log('  Version Label:            ', metadata.label)
+    }
+  }
+
+  const ipfsClient = new ipfsHttpClient(ipfs + 'api/v0')
+  let result
+  logger.log(`\nUpload JSON meta data for ${type} to IPFS...`)
+  try {
+    result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
+  } catch (e) {
+    logger.error(`Failed to upload to IPFS: ${e}`)
+    return
+  }
+
+  const metaHash = result.path
+
+  // TODO - maybe add this back in. ipfs-http-client was updated, so it broke
+  // try {
+  //   const data = await ipfsClient.cat(metaHash)
+  //   if (JSON.stringify(data) !== JSON.stringify(metadata)) {
+  //     throw new Error(`Original meta data and uploaded data are not identical`)
+  //   }
+  // } catch (e) {
+  //   throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
+  // }
+  logger.log(`Upload metadata successful: ${metaHash}\n`)
+  return IPFS.ipfsHashToBytes32(metaHash)
+}
+
 export const mockDeploymentIDsBase58: Array<string> = [
   'Qmb7e8bYoj93F9u33R3JY1H764626C8KHUgWMeVjWPiwdD', //compound
   'QmXenxBqM7uBbRq6y7EAcy86mfcaBkWE53Tz53H3dVeeit', //used synthetix
@@ -77,8 +136,6 @@ export const mockChannelPubKeys: Array<string> = [
   '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d59',
 ]
 
-////////////////// WALLET HELPERS BELOW /////////////////
-
 // Creates an array of wallets connected to a provider
 const configureWallets = (
   mnemonic: string,
@@ -89,7 +146,7 @@ const configureWallets = (
   for (let i = 0; i < count; i++) {
     signers.push(configureWallet(mnemonic, providerEndpoint, i.toString()))
   }
-  console.log(`Created ${count} wallets!`)
+  logger.log(`Created ${count} wallets!`)
   return signers
 }
 

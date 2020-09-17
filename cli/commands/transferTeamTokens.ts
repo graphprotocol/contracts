@@ -5,7 +5,7 @@ import { parseGRT } from '@graphprotocol/common-ts'
 
 import { sendTransaction } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-import { teamAddresses } from '../mockData/teamAddresses'
+import { teamAddresses } from '../teamAddresses'
 
 const logger = consola.create({})
 

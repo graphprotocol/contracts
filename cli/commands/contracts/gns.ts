@@ -6,49 +6,9 @@ import { parseGRT } from '@graphprotocol/common-ts'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { nameToNode } from './ens'
-import { IPFS } from '../../helpers'
+import { IPFS, pinMetadataToIPFS } from '../../helpers'
 
-import {
-  SubgraphMetadata,
-  VersionMetadata,
-  jsonToSubgraphMetadata,
-  jsonToVersionMetadata,
-} from './metadataHelpers'
 const logger = consola.create({})
-
-const handleMetadata = async (ipfs: string, path: string, type: string): Promise<string> => {
-  let metadata: SubgraphMetadata | VersionMetadata
-  if (type == 'subgraph') {
-    metadata = jsonToSubgraphMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-    logger.log('Meta data:')
-    logger.log('  Subgraph Description:     ', metadata.description)
-    logger.log('  Subgraph Display Name:    ', metadata.displayName)
-    logger.log('  Subgraph Image:           ', metadata.image)
-    logger.log('  Subgraph Code Repository: ', metadata.codeRepository)
-    logger.log('  Subgraph Website:         ', metadata.website)
-  } else if (type == 'version') {
-    metadata = jsonToVersionMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-    logger.log('Meta data:')
-    logger.log('  Version Description:      ', metadata.description)
-    logger.log('  Version Label:            ', metadata.label)
-  }
-
-  const ipfsClient = IPFS.createIpfsClient(ipfs)
-
-  logger.log('\nUpload JSON meta data to IPFS...')
-  const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
-  const metaHash = result[0].hash
-  try {
-    const data = JSON.parse(await ipfsClient.cat(metaHash))
-    if (JSON.stringify(data) !== JSON.stringify(metadata)) {
-      throw new Error(`Original meta data and uploaded data are not identical`)
-    }
-  } catch (e) {
-    throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
-  }
-  logger.log(`Upload metadata successful: ${metaHash}\n`)
-  return IPFS.ipfsHashToBytes32(metaHash)
-}
 
 export const setDefaultName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphAccount = cliArgs.graphAccount
@@ -74,8 +34,8 @@ export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs):
   const subgraphPath = cliArgs.subgraphPath
 
   const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
-  const versionHashBytes = await handleMetadata(ipfs, versionPath, 'version')
-  const subgraphHashBytes = await handleMetadata(ipfs, subgraphPath, 'subgraph')
+  const versionHashBytes = await pinMetadataToIPFS(ipfs, 'version', versionPath)
+  const subgraphHashBytes = await pinMetadataToIPFS(ipfs, 'subgraph', subgraphPath)
   const gns = cli.contracts.GNS
 
   logger.log(`Publishing new subgraph for ${graphAccount}`)
@@ -95,7 +55,7 @@ export const publishNewVersion = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const subgraphNumber = cliArgs.subgraphNumber
 
   const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
-  const versionHashBytes = await handleMetadata(ipfs, versionPath, 'version')
+  const versionHashBytes = await pinMetadataToIPFS(ipfs, 'version', versionPath)
   const gns = cli.contracts.GNS
 
   logger.log(`Publishing new subgraph version for ${graphAccount}`)
@@ -123,7 +83,7 @@ export const updateSubgraphMetadata = async (
   const graphAccount = cliArgs.graphAccount
   const subgraphNumber = cliArgs.subgraphNumber
   const subgraphPath = cliArgs.subgraphPath
-  const subgraphHashBytes = await handleMetadata(ipfs, subgraphPath, 'subgraph')
+  const subgraphHashBytes = await pinMetadataToIPFS(ipfs, 'subgraph', subgraphPath)
   const gns = cli.contracts.GNS
 
   logger.log(`Updating subgraph metadata for ${graphAccount}-${subgraphNumber}...`)

@@ -72,9 +72,13 @@ export const sendTransaction = async (
       throw e
     }
   }
-
-  // Wait for transaction to be mined
+  if (tx == undefined) {
+    logger.error(
+      `It appears the function does not exist on this contract, or you have the wrong contract address`,
+    )
+  }
   logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
+  // Wait for transaction to be mined
   const receipt = await wallet.provider.waitForTransaction(tx.hash)
   const networkName = (await wallet.provider.getNetwork()).name
   if (networkName === 'kovan' || networkName === 'rinkeby') {

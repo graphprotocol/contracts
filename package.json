@@ -50,7 +50,7 @@
     "ethlint": "^1.2.5",
     "husky": "^4.2.5",
     "inquirer": "^7.3.3",
-    "ipfs-http-client": "34.0.0",
+    "ipfs-http-client": "47.0.1",
     "lint-staged": "^10.2.13",
     "minimist": "^1.2.5",
     "p-queue": "^6.6.1",
