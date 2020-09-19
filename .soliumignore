@@ -7,5 +7,5 @@ contracts/upgrades/GraphProxy.sol
 contracts/rewards/RewardsManager.sol
 contracts/tests/ens
 contracts/curation/IGraphSignalToken.sol
-
+contracts/staking/libs/LibFixedMath.sol
 contracts/tests/testnet/GSRManager.sol
