@@ -92,9 +92,9 @@ library Rebates {
         );
 
         // Under NO circumstance we will reward more than total fees in the pool
-        uint256 unclaimedFees = pool.fees.sub(pool.claimedRewards);
-        if (rebateReward > unclaimedFees) {
-            rebateReward = unclaimedFees;
+        uint256 _unclaimedFees = pool.fees.sub(pool.claimedRewards);
+        if (rebateReward > _unclaimedFees) {
+            rebateReward = _unclaimedFees;
         }
 
         // Update pool state

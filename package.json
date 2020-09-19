@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@graphprotocol/common-ts": "^0.2.0",
-    "@nomiclabs/buidler": "^1.4.4",
+    "@nomiclabs/buidler": "^1.4.7",
     "@nomiclabs/buidler-ethers": "^2.0.0",
     "@nomiclabs/buidler-etherscan": "^2.0.0",
     "@nomiclabs/buidler-waffle": "^2.0.0",

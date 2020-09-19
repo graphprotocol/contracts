@@ -46,7 +46,7 @@ library LibCobbDouglas {
         uint256 totalStake,
         uint32 alphaNumerator,
         uint32 alphaDenominator
-    ) internal pure returns (uint256 rewards) {
+    ) public pure returns (uint256 rewards) {
         int256 feeRatio = LibFixedMath.toFixed(fees, totalFees);
         int256 stakeRatio = LibFixedMath.toFixed(stake, totalStake);
         if (feeRatio == 0 || stakeRatio == 0) {

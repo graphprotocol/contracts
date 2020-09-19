@@ -162,6 +162,7 @@ const config = {
     ganache: {
       chainId: 1337,
       url: 'http://localhost:8545',
+      gasPrice: 300000000000, // 300 gwei
     },
   },
   etherscan: {

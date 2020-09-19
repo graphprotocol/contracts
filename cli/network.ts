@@ -1,4 +1,6 @@
-import { providers, utils, Contract, ContractFactory, ContractTransaction, Wallet } from 'ethers'
+import { LinkReferences } from '@nomiclabs/buidler/types'
+
+import { providers, utils, Contract, ContractFactory, ContractTransaction, Signer } from 'ethers'
 import consola from 'consola'
 
 import { AddressBook } from './address-book'
@@ -10,6 +12,14 @@ const { keccak256 } = utils
 const logger = consola.create({})
 
 const hash = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
+
+type DeployResult = {
+  contract: Contract
+  creationCodeHash: string
+  runtimeCodeHash: string
+  txHash: string
+  libraries?: { [libraryName: string]: string }
+}
 
 // Simple sanity checks to make sure contracts from our address book have been deployed
 export const isContractDeployed = async (
@@ -55,7 +65,7 @@ export const isContractDeployed = async (
 }
 
 export const sendTransaction = async (
-  wallet: Wallet,
+  sender: Signer,
   contract: Contract,
   fn: string,
   ...params
@@ -79,8 +89,8 @@ export const sendTransaction = async (
   }
   logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
   // Wait for transaction to be mined
-  const receipt = await wallet.provider.waitForTransaction(tx.hash)
-  const networkName = (await wallet.provider.getNetwork()).name
+  const receipt = await sender.provider.waitForTransaction(tx.hash)
+  const networkName = (await sender.provider.getNetwork()).name
   if (networkName === 'kovan' || networkName === 'rinkeby') {
     logger.success(`Transaction mined 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
   } else {
@@ -89,73 +99,109 @@ export const sendTransaction = async (
   return receipt
 }
 
-export const getContractFactory = (name: string): ContractFactory => {
+export const getContractFactory = (
+  name: string,
+  libraries?: { [libraryName: string]: string },
+): ContractFactory => {
   const artifact = loadArtifact(name)
-  return ContractFactory.fromSolidity(artifact)
+  // Fixup libraries
+  if (libraries && Object.keys(libraries).length > 0) {
+    artifact.bytecode = linkLibraries(artifact, libraries)
+  }
+  return new ContractFactory(artifact.abi, artifact.bytecode)
 }
 
 export const getContractAt = (name: string, address: string): Contract => {
-  return getContractFactory(name).attach(address)
+  const artifact = loadArtifact(name)
+  return new Contract(address, artifact.abi)
 }
 
 export const deployContract = async (
   name: string,
   args: Array<string>,
-  wallet: Wallet,
-): Promise<Contract> => {
-  const factory = getContractFactory(name)
+  sender: Signer,
+  autolink = true,
+  silent = false,
+): Promise<DeployResult> => {
+  // This function will autolink, that means it will automatically deploy external libraries
+  // and link them to the contract
+  const libraries = {}
+  if (autolink) {
+    const artifact = loadArtifact(name)
+    if (artifact.linkReferences && Object.keys(artifact.linkReferences).length > 0) {
+      for (const fileReferences of Object.values(artifact.linkReferences)) {
+        for (const libName of Object.keys(fileReferences)) {
+          const deployResult = await deployContract(libName, [], sender, false, silent)
+          libraries[libName] = deployResult.contract.address
+        }
+      }
+    }
+  }
 
-  const contract = await factory.connect(wallet).deploy(...args)
+  // Deploy
+  const factory = getContractFactory(name, libraries)
+  const contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
-  logger.log(`> Deploy ${name}, txHash: ${txHash}`)
-  await wallet.provider.waitForTransaction(txHash)
+  if (!silent) {
+    logger.log(`> Deploy ${name}, txHash: ${txHash}`)
+  }
+  await sender.provider.waitForTransaction(txHash)
 
-  logger.log('= CreationCodeHash: ', hash(factory.bytecode))
-  logger.log('= RuntimeCodeHash: ', hash(await wallet.provider.getCode(contract.address)))
-  logger.success(`${name} has been deployed to address: ${contract.address}`)
+  // Receipt
+  const creationCodeHash = hash(factory.bytecode)
+  const runtimeCodeHash = hash(await sender.provider.getCode(contract.address))
+  if (!silent) {
+    logger.log('= CreationCodeHash: ', creationCodeHash)
+    logger.log('= RuntimeCodeHash: ', runtimeCodeHash)
+    logger.success(`${name} has been deployed to address: ${contract.address}`)
+  }
 
-  return contract
+  return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
 }
 
 export const deployContractAndSave = async (
   name: string,
   args: Array<{ name: string; value: string }>,
-  wallet: Wallet,
+  sender: Signer,
   addressBook: AddressBook,
 ): Promise<Contract> => {
   // Deploy the contract
-  const contract = await deployContract(
+  const deployResult = await deployContract(
     name,
     args.map((a) => a.value),
-    wallet,
+    sender,
   )
 
   // Save address entry
-  const artifact = loadArtifact(name)
   addressBook.setEntry(name, {
-    address: contract.address,
+    address: deployResult.contract.address,
     constructorArgs: args.length === 0 ? undefined : args,
-    creationCodeHash: hash(artifact.bytecode),
-    runtimeCodeHash: hash(await wallet.provider.getCode(contract.address)),
-    txHash: contract.deployTransaction.hash,
+    creationCodeHash: deployResult.creationCodeHash,
+    runtimeCodeHash: deployResult.runtimeCodeHash,
+    txHash: deployResult.txHash,
+    libraries:
+      deployResult.libraries && Object.keys(deployResult.libraries).length > 0
+        ? deployResult.libraries
+        : undefined,
   })
 
-  return contract
+  return deployResult.contract
 }
 
 export const deployContractWithProxyAndSave = async (
   name: string,
   args: Array<{ name: string; value: string }>,
-  wallet: Wallet,
+  sender: Signer,
   addressBook: AddressBook,
 ): Promise<Contract> => {
   // Deploy implementation
-  const contract = await deployContractAndSave(name, [], wallet, addressBook)
+  const contract = await deployContractAndSave(name, [], sender, addressBook)
   // Deploy proxy
-  const proxy = await deployContract('GraphProxy', [contract.address], wallet)
+  const deployResult = await deployContract('GraphProxy', [contract.address], sender)
+  const proxy = deployResult.contract
   // Implementation accepts upgrade
   await sendTransaction(
-    wallet,
+    sender,
     contract,
     'acceptProxy',
     ...[proxy.address, ...args.map((a) => a.value)],
@@ -168,7 +214,7 @@ export const deployContractWithProxyAndSave = async (
     address: proxy.address,
     initArgs: args.length === 0 ? undefined : args,
     creationCodeHash: hash(artifact.bytecode),
-    runtimeCodeHash: hash(await wallet.provider.getCode(proxy.address)),
+    runtimeCodeHash: hash(await sender.provider.getCode(proxy.address)),
     txHash: proxy.deployTransaction.hash,
     proxy: true,
     implementation: contractEntry,
@@ -176,4 +222,35 @@ export const deployContractWithProxyAndSave = async (
 
   // Use interface of contract but with the proxy address
   return contract.attach(proxy.address)
+}
+
+export const linkLibraries = (
+  artifact: {
+    bytecode: string
+    linkReferences?: LinkReferences
+  },
+  libraries?: { [libraryName: string]: string },
+): string => {
+  let bytecode = artifact.bytecode
+
+  if (libraries) {
+    if (artifact.linkReferences) {
+      for (const [fileName, fileReferences] of Object.entries(artifact.linkReferences)) {
+        for (const [libName, fixups] of Object.entries(fileReferences)) {
+          const addr = libraries[libName]
+          if (addr === undefined) {
+            continue
+          }
+
+          for (const fixup of fixups) {
+            bytecode =
+              bytecode.substr(0, 2 + fixup.start * 2) +
+              addr.substr(2) +
+              bytecode.substr(2 + (fixup.start + fixup.length) * 2)
+          }
+        }
+      }
+    }
+  }
+  return bytecode
 }
