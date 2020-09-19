@@ -1,5 +1,6 @@
 import fs from 'fs'
 import { utils } from 'ethers'
+import { LinkReferences } from '@nomiclabs/buidler/types'
 
 type Abi = Array<string | utils.FunctionFragment | utils.EventFragment | utils.ParamType>
 
@@ -8,6 +9,8 @@ type Artifact = {
   abi: Abi
   bytecode: string
   deployedBytecode: string
+  linkReferences?: LinkReferences
+  deployedLinkReferences?: LinkReferences
 }
 
 const ARTIFACTS_PATH = './build/contracts/'

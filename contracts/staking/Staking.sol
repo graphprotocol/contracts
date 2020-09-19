@@ -1262,7 +1262,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of protocol fees
      */
-    function _collectProtocolFees(uint256 _tokens) internal returns (uint256) {
+    function _collectProtocolFees(uint256 _tokens) internal view returns (uint256) {
         if (protocolPercentage == 0) {
             return 0;
         }

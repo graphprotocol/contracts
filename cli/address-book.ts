@@ -12,6 +12,7 @@ export type AddressBookEntry = {
   txHash?: string
   proxy?: boolean
   implementation?: AddressBookEntry
+  libraries?: { [libraryName: string]: string }
 }
 
 export type AddressBookJson = {

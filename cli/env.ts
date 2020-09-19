@@ -29,10 +29,14 @@ export const loadContracts = (
   const contracts = {}
   for (const contractName of addressBook.listEntries()) {
     const contractEntry = addressBook.getEntry(contractName)
-    const contract = getContractAt(contractName, contractEntry.address)
-    contracts[contractName] = contract
-    if (wallet) {
-      contracts[contractName] = contracts[contractName].connect(wallet)
+    try {
+      const contract = getContractAt(contractName, contractEntry.address)
+      contracts[contractName] = contract
+      if (wallet) {
+        contracts[contractName] = contracts[contractName].connect(wallet)
+      }
+    } catch (err) {
+      logger.warn(`Could not load contract ${contractName} - ${err.message}`)
     }
   }
   return contracts

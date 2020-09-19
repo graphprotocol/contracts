@@ -1,7 +1,7 @@
-import { Contract, Signer, ContractFactory } from 'ethers'
-import { ethers } from '@nomiclabs/buidler'
+import { Contract, Signer } from 'ethers'
 
 import { toBN, toGRT } from './testHelpers'
+import { network } from '../../cli'
 
 // Contracts definitions
 import { BancorFormula } from '../../build/typechain/contracts/BancorFormula'
@@ -59,13 +59,10 @@ export const defaults = {
 export async function deployContract(
   contractName: string,
   deployer?: Signer,
-  ...params
+  ...params: Array<string>
 ): Promise<Contract> {
-  let factory: ContractFactory = await ethers.getContractFactory(contractName)
-  if (deployer) {
-    factory = factory.connect(deployer)
-  }
-  return factory.deploy(...params).then((c: Contract) => c.deployed()) as Promise<Contract>
+  const deployResult = await network.deployContract(contractName, params, deployer, true, true)
+  return deployResult.contract
 }
 
 export async function deployController(deployer: Signer): Promise<Controller> {
@@ -76,7 +73,7 @@ export async function deployGRT(deployer: Signer): Promise<GraphToken> {
   return (deployContract(
     'GraphToken',
     deployer,
-    defaults.token.initialSupply,
+    defaults.token.initialSupply.toString(),
   ) as unknown) as Promise<GraphToken>
 }
 
@@ -88,7 +85,7 @@ export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<
   return (deployContract(
     'GSRManager',
     deployer,
-    defaults.gdai.savingsRate,
+    defaults.gdai.savingsRate.toString(),
     gdaiAddress,
   ) as unknown) as Promise<GsrManager>
 }
@@ -136,9 +133,9 @@ export async function deployDisputeManager(
     deployer,
     controller,
     arbitrator,
-    defaults.dispute.minimumDeposit,
-    defaults.dispute.fishermanRewardPercentage,
-    defaults.dispute.slashingPercentage,
+    defaults.dispute.minimumDeposit.toString(),
+    defaults.dispute.fishermanRewardPercentage.toString(),
+    defaults.dispute.slashingPercentage.toString(),
   )) as unknown) as DisputeManager
 
   // Config

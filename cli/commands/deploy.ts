@@ -28,7 +28,7 @@ export const deployCommand = {
         type: 'string',
         requiresArg: true,
       })
-      .option('n', {
+      .option('c', {
         alias: 'contract',
         description: 'Contract name to deploy',
         type: 'string',
