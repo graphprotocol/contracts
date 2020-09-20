@@ -339,7 +339,7 @@ contract GNS is Managed {
         delete subgraphs[_graphAccount][_subgraphNumber];
         emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
 
-        _disableNameSignal(_graphAccount, _subgraphNumber, subgraphDeploymentID);
+        _disableNameSignal(_graphAccount, _subgraphNumber);
     }
 
     /**
@@ -396,14 +396,13 @@ contract GNS is Managed {
         namePool.vSignal = namePool.vSignal.sub(vSignalOld);
         // Update name signals deployment ID to match the subgraphs deployment ID
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-
         // nSignal stays constant, but vSignal can change here
-        uint256 vSignalNew = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee));
-        namePool.vSignal = vSignalNew;
+        namePool.vSignal = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee));
+
         emit NameSignalUpgrade(
             _graphAccount,
             _subgraphNumber,
-            vSignalNew,
+            namePool.vSignal,
             tokens + ownerFee,
             _newSubgraphDeploymentID
         );
@@ -457,23 +456,20 @@ contract GNS is Managed {
      * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
      * @param _graphAccount Account that is deprecating their name curation
      * @param _subgraphNumber Subgraph number
-     * @param _subgraphDeploymentID Subgraph deployment ID of the deprecating subgraph
      */
     function _disableNameSignal(
         address _graphAccount,
-        uint256 _subgraphNumber,
-        bytes32 _subgraphDeploymentID
+        uint256 _subgraphNumber
     ) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = namePool.vSignal;
-        namePool.vSignal = 0;
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
             (uint256 tokens, , uint256 ownerFee) = _burnVSignal(
                 _graphAccount,
                 namePool.subgraphDeploymentID,
-                vSignal
+                namePool.vSignal
             );
+            namePool.vSignal = 0;
             namePool.withdrawableGRT = tokens + ownerFee;
         }
         // Set the NameCurationPool fields to make it disabled
@@ -580,7 +576,7 @@ contract GNS is Managed {
         )
     {
         (uint256 tokens, uint256 withdrawalFees) = curation().burn(_subgraphDeploymentID, _vSignal);
-        uint256 ownerFee = _ownerFee(withdrawalFees, _graphAccount);
+        uint256 ownerFee = _chargeOwnerFee(withdrawalFees, _graphAccount);
         return (tokens, withdrawalFees, ownerFee);
     }
 
@@ -590,7 +586,7 @@ contract GNS is Managed {
      * @param _withdrawalFees Total withdrawal fee for changing subgraphs
      * @return Amount the owner must pay by transferring GRT to the GNS
      */
-    function _ownerFee(uint256 _withdrawalFees, address _owner) private returns (uint256) {
+    function _chargeOwnerFee(uint256 _withdrawalFees, address _owner) private returns (uint256) {
         if (ownerFeePercentage == 0) {
             return 0;
         }
