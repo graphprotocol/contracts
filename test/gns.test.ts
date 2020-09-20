@@ -901,22 +901,25 @@ describe('GNS', () => {
           // we compare 1:1 ratio. Its implied that vSignal is 1 as well (1:1:1)
           expect(tokensToDeposit).eq(nSignalCreated)
         }
-    describe('setOwnerFeePercentage', function () {
-      const newValue = 10
-      it('should set `ownerFeePercentage`', async function () {
-        // Can set if allowed
-        await gns.connect(governor.signer).setOwnerFeePercentage(newValue)
-        expect(await gns.ownerFeePercentage()).eq(newValue)
       })
 
-      it('reject set `ownerFeePercentage` if out of bounds', async function () {
-        const tx = gns.connect(governor.signer).setOwnerFeePercentage(101)
-        await expect(tx).revertedWith('Owner fee must be 100 or less')
-      })
+      describe('setOwnerFeePercentage', function () {
+        const newValue = 10
+        it('should set `ownerFeePercentage`', async function () {
+          // Can set if allowed
+          await gns.connect(governor.signer).setOwnerFeePercentage(newValue)
+          expect(await gns.ownerFeePercentage()).eq(newValue)
+        })
 
-      it('reject set `ownerFeePercentage` if not allowed', async function () {
-        const tx = gns.connect(me.signer).setOwnerFeePercentage(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        it('reject set `ownerFeePercentage` if out of bounds', async function () {
+          const tx = gns.connect(governor.signer).setOwnerFeePercentage(101)
+          await expect(tx).revertedWith('Owner fee must be 100 or less')
+        })
+
+        it('reject set `ownerFeePercentage` if not allowed', async function () {
+          const tx = gns.connect(me.signer).setOwnerFeePercentage(newValue)
+          await expect(tx).revertedWith('Caller must be Controller governor')
+        })
       })
     })
   })
