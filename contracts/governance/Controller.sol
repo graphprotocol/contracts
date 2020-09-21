@@ -16,6 +16,8 @@ contract Controller is IController, Governed, Pausable {
 
     constructor() public {
         Governed._initialize(msg.sender);
+        _setPaused(true);
+        _setRecoveryPaused(true);
     }
 
     /**
