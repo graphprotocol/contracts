@@ -7,7 +7,7 @@ import "../upgrades/GraphUpgradeable.sol";
 
 import "./CurationStorage.sol";
 import "./ICuration.sol";
-import "./GraphSignalToken.sol";
+import "./GraphCurationToken.sol";
 
 /**
  * @title Curation contract
@@ -16,9 +16,9 @@ import "./GraphSignalToken.sol";
  * subgraph deployment they curate.
  * A curators deposit goes to a curation pool along with the deposits of other curators,
  * only one such pool exists for each subgraph deployment.
- * The contract mints Graph Signal Tokens (GST) according to a bonding curve for each individual
+ * The contract mints Graph Curation Shares (GCS) according to a bonding curve for each individual
  * curation pool where GRT is deposited.
- * Holders can burn GST tokens using this contract to get GRT tokens back according to the
+ * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
 contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
@@ -196,11 +196,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             curationPool.reserveRatio = defaultReserveRatio;
 
             // If no signal token for the pool - create one
-            if (address(curationPool.gst) == address(0)) {
+            if (address(curationPool.gcs) == address(0)) {
                 // TODO: the gas cost of deploying the subgraph token can be greatly optimized
                 // by deploying a proxy each time, sharing the same implementation
-                curationPool.gst = IGraphSignalToken(
-                    address(new GraphSignalToken("GST", address(this)))
+                curationPool.gcs = IGraphCurationToken(
+                    address(new GraphCurationToken(address(this)))
                 );
             }
         }
@@ -216,7 +216,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             "Cannot transfer tokens to deposit"
         );
 
-        // Exchange GRT tokens for GST of the subgraph pool
+        // Exchange GRT tokens for GCS of the subgraph pool
         uint256 signal = _mintSignal(curator, _subgraphDeploymentID, _tokens);
 
         emit Signalled(curator, _subgraphDeploymentID, _tokens, signal);
@@ -293,10 +293,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         view
         returns (uint256)
     {
-        if (address(pools[_subgraphDeploymentID].gst) == address(0)) {
+        if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
             return 0;
         }
-        return pools[_subgraphDeploymentID].gst.balanceOf(_curator);
+        return pools[_subgraphDeploymentID].gcs.balanceOf(_curator);
     }
 
     /**
@@ -310,10 +310,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         view
         returns (uint256)
     {
-        if (address(pools[_subgraphDeploymentID].gst) == address(0)) {
+        if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
             return 0;
         }
-        return pools[_subgraphDeploymentID].gst.totalSupply();
+        return pools[_subgraphDeploymentID].gcs.totalSupply();
     }
 
     /**
@@ -424,7 +424,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Update GRT tokens held as reserves
         curationPool.tokens = curationPool.tokens.add(_tokens);
         // Mint signal to the curator
-        curationPool.gst.mint(_curator, signal);
+        curationPool.gcs.mint(_curator, signal);
 
         return signal;
     }
@@ -449,7 +449,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Update GRT tokens held as reserves
         curationPool.tokens = curationPool.tokens.sub(outTokens);
         // Burn signal from curator
-        curationPool.gst.burnFrom(_curator, _signal);
+        curationPool.gcs.burnFrom(_curator, _signal);
 
         return (tokens, withdrawalFees);
     }

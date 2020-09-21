@@ -444,7 +444,7 @@ describe('Curation', () => {
     it('should mint less signal every time due to the bonding curve', async function () {
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit
-        toGRT('1000'), // every time it should mint less GST due to bonding curve...
+        toGRT('1000'), // every time it should mint less GCS due to bonding curve...
         toGRT('1000'),
         toGRT('1000'),
         toGRT('2000'),
@@ -471,13 +471,13 @@ describe('Curation', () => {
     })
 
     it('should mint when using the edge case of linear function', async function () {
-      // Setup edge case like linear function: 1 GRT = 1 GST
+      // Setup edge case like linear function: 1 GRT = 1 GCS
       await curation.setMinimumCurationDeposit(toGRT('1'))
       await curation.setDefaultReserveRatio(1000000)
 
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit
-        toGRT('1000'), // every time it should mint less GST due to bonding curve...
+        toGRT('1000'), // every time it should mint less GCS due to bonding curve...
         toGRT('1000'),
         toGRT('1000'),
         toGRT('2000'),

@@ -5,20 +5,19 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../governance/Governed.sol";
 
 /**
- * @title GraphSignalToken contract
- * @dev This is the implementation of the Curation Signal ERC20 token (GST).
- * GST tokens are created for each subgraph deployment curated in the Curation contract.
- * The Curation contract is the owner of GST tokens and the only one allowed to mint or
- * burn them. GST tokens are transferrable and their holders can do any action allowed
+ * @title GraphCurationToken contract
+ * @dev This is the implementation of the Curation ERC20 token (GCS).
+ * GCS are created for each subgraph deployment curated in the Curation contract.
+ * The Curation contract is the owner of GCS tokens and the only one allowed to mint or
+ * burn them. GCS tokens are transferrable and their holders can do any action allowed
  * in a standard ERC20 token implementation except for burning them.
  */
-contract GraphSignalToken is ERC20, Governed {
+contract GraphCurationToken is ERC20, Governed {
     /**
-     * @dev Graph Token Contract Constructor.
-     * @param _symbol Token symbol
+     * @dev Graph Curation Token Contract Constructor.
      * @param _owner Address of the contract issuing this token
      */
-    constructor(string memory _symbol, address _owner) public ERC20("Graph Signal Token", _symbol) {
+    constructor(address _owner) public ERC20("Graph Curation Share", "GCS") {
         Governed._initialize(_owner);
     }
 
