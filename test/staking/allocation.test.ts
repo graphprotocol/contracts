@@ -491,8 +491,8 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.effectiveAllocation).eq(effectiveAllocation)
       // Rebate updated
       expect(afterRebatePool.fees).eq(beforeRebatePool.fees.add(beforeAlloc.collectedFees))
-      expect(afterRebatePool.allocatedStake).eq(
-        beforeRebatePool.allocatedStake.add(effectiveAllocation),
+      expect(afterRebatePool.effectiveAllocatedStake).eq(
+        beforeRebatePool.effectiveAllocatedStake.add(effectiveAllocation),
       )
       expect(afterRebatePool.unclaimedAllocationsCount).eq(
         beforeRebatePool.unclaimedAllocationsCount + 1,
@@ -605,11 +605,11 @@ describe('Staking:Allocation', () => {
       )
       if (afterRebatePool.unclaimedAllocationsCount === 0) {
         // Rebate pool is empty and then pruned
-        expect(afterRebatePool.allocatedStake).eq(toGRT('0'))
+        expect(afterRebatePool.effectiveAllocatedStake).eq(toGRT('0'))
         expect(afterRebatePool.fees).eq(toGRT('0'))
       } else {
         // There are still more unclaimed allocations in the rebate pool
-        expect(afterRebatePool.allocatedStake).eq(beforeRebatePool.allocatedStake)
+        expect(afterRebatePool.effectiveAllocatedStake).eq(beforeRebatePool.effectiveAllocatedStake)
         expect(afterRebatePool.fees).eq(beforeRebatePool.fees.sub(tokensToClaim))
       }
     }
