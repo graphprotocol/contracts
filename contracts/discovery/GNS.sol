@@ -335,7 +335,6 @@ contract GNS is Managed {
             isPublished(_graphAccount, _subgraphNumber),
             "GNS: Cannot deprecate a subgraph which does not exist"
         );
-        bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         delete subgraphs[_graphAccount][_subgraphNumber];
         emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
 
@@ -457,10 +456,7 @@ contract GNS is Managed {
      * @param _graphAccount Account that is deprecating their name curation
      * @param _subgraphNumber Subgraph number
      */
-    function _disableNameSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber
-    ) private {
+    function _disableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
