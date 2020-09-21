@@ -17,7 +17,6 @@ contract Controller is IController, Governed, Pausable {
     constructor() public {
         Governed._initialize(msg.sender);
         _setPaused(true);
-        _setRecoveryPaused(true);
     }
 
     /**
@@ -63,6 +62,7 @@ contract Controller is IController, Governed, Pausable {
 
     /**
      * @notice Change the recovery paused state of the contract
+     * Recovery pause is intented as a partial pause of the protocol
      */
     function setRecoveryPaused(bool _recoveryPaused) external onlyGovernorOrGuardian {
         _setRecoveryPaused(_recoveryPaused);
@@ -70,6 +70,7 @@ contract Controller is IController, Governed, Pausable {
 
     /**
      * @notice Change the paused state of the contract
+     * Full pause most of protocol functions
      */
     function setPaused(bool _paused) external onlyGovernorOrGuardian {
         _setPaused(_paused);
