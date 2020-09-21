@@ -18,7 +18,7 @@ library Rebates {
     // Only one rebate pool exists per epoch
     struct Pool {
         uint256 fees; // total query fees in the rebate pool
-        uint256 allocatedStake; // total effective allocation of stake
+        uint256 effectiveAllocatedStake; // total effective allocation of stake
         uint256 claimedRewards; // total claimed rewards from the rebate pool
         uint32 unclaimedAllocationsCount; // amount of unclaimed allocations
         uint32 alphaNumerator; // numerator of `alpha` in the cobb-douglas function
@@ -43,7 +43,7 @@ library Rebates {
      * @dev Return true if the rebate pool was already initialized.
      */
     function exists(Rebates.Pool storage pool) internal view returns (bool) {
-        return pool.allocatedStake > 0;
+        return pool.effectiveAllocatedStake > 0;
     }
 
     /**
@@ -56,28 +56,30 @@ library Rebates {
     /**
      * @dev Deposit tokens into the rebate pool.
      * @param _indexerFees Amount of fees collected in tokens
-     * @param _indexerAllocatedStake Effective stake allocated by indexer for a period of epochs
+     * @param _indexerEffectiveAllocatedStake Effective stake allocated by indexer for a period of epochs
      */
     function addToPool(
         Rebates.Pool storage pool,
         uint256 _indexerFees,
-        uint256 _indexerAllocatedStake
+        uint256 _indexerEffectiveAllocatedStake
     ) internal {
         pool.fees = pool.fees.add(_indexerFees);
-        pool.allocatedStake = pool.allocatedStake.add(_indexerAllocatedStake);
+        pool.effectiveAllocatedStake = pool.effectiveAllocatedStake.add(
+            _indexerEffectiveAllocatedStake
+        );
         pool.unclaimedAllocationsCount += 1;
     }
 
     /**
      * @dev Redeem tokens from the rebate pool.
      * @param _indexerFees Amount of fees collected in tokens
-     * @param _indexerAllocatedStake Effective stake allocated by indexer for a period of epochs
+     * @param _indexerEffectiveAllocatedStake Effective stake allocated by indexer for a period of epochs
      * @return Amount of reward tokens according to Cobb-Douglas rebate formula
      */
     function redeem(
         Rebates.Pool storage pool,
         uint256 _indexerFees,
-        uint256 _indexerAllocatedStake
+        uint256 _indexerEffectiveAllocatedStake
     ) internal returns (uint256) {
         // Calculate the rebate rewards for the indexer
         uint256 totalRewards = pool.fees;
@@ -85,8 +87,8 @@ library Rebates {
             totalRewards,
             _indexerFees,
             pool.fees,
-            _indexerAllocatedStake,
-            pool.allocatedStake,
+            _indexerEffectiveAllocatedStake,
+            pool.effectiveAllocatedStake,
             pool.alphaNumerator,
             pool.alphaDenominator
         );
