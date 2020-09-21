@@ -61,11 +61,11 @@ contract Controller is IController, Governed, Pausable {
     }
 
     /**
-     * @notice Change the recovery paused state of the contract
-     * Recovery pause is intented as a partial pause of the protocol
+     * @notice Change the partial paused state of the contract
+     * Partial pause is intented as a partial pause of the protocol
      */
-    function setRecoveryPaused(bool _recoveryPaused) external onlyGovernorOrGuardian {
-        _setRecoveryPaused(_recoveryPaused);
+    function setPartialPaused(bool _partialPaused) external onlyGovernorOrGuardian {
+        _setPartialPaused(_partialPaused);
     }
 
     /**
@@ -100,9 +100,9 @@ contract Controller is IController, Governed, Pausable {
     }
 
     /**
-     * @notice Getter to access recovery paused
+     * @notice Getter to access partial pause status
      */
-    function recoveryPaused() external override view returns (bool) {
-        return _recoveryPaused;
+    function partialPaused() external override view returns (bool) {
+        return _partialPaused;
     }
 }

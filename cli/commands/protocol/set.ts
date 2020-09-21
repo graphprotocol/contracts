@@ -54,7 +54,7 @@ export const settersList = {
   'controller-accept-governor': { contract: 'Controller', name: 'acceptOwnership' },
   'controller-set-contract-proxy': { contract: 'Controller', name: 'setContractProxy' },
   'controller-set-paused': { contract: 'Controller', name: 'setPaused' },
-  'controller-set-recovery-paused': { contract: 'Controller', name: 'setRecoveryPaused' },
+  'controller-set-partial-paused': { contract: 'Controller', name: 'setPartialPaused' },
   'controller-set-pause-guardian': { contract: 'Controller', name: 'setPauseGuardian' },
 }
 

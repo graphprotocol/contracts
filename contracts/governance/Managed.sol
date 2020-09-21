@@ -21,17 +21,17 @@ contract Managed {
     event ParameterUpdated(string param);
     event SetController(address controller);
 
-    function _notRecoveryPaused() internal view {
+    function _notPartialPaused() internal view {
         require(!controller.paused(), "Paused");
-        require(!controller.recoveryPaused(), "Recovery-paused");
+        require(!controller.partialPaused(), "Partial-paused");
     }
 
     function _paused() internal view {
         require(!controller.paused(), "Paused");
     }
 
-    modifier notRecoveryPaused {
-        _notRecoveryPaused();
+    modifier notPartialPaused {
+        _notPartialPaused();
         _;
     }
 

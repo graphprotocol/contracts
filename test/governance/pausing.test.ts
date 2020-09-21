@@ -17,10 +17,10 @@ describe('Pausing', () => {
   let staking: Staking
   let controller: Controller
 
-  const setRecoveryPause = async (account: Account, setValue: boolean) => {
-    const tx = controller.connect(account.signer).setRecoveryPaused(setValue)
-    await expect(tx).emit(controller, 'RecoveryPauseChanged').withArgs(setValue)
-    expect(await controller.recoveryPaused()).eq(setValue)
+  const setPartialPause = async (account: Account, setValue: boolean) => {
+    const tx = controller.connect(account.signer).setPartialPaused(setValue)
+    await expect(tx).emit(controller, 'PartialPauseChanged').withArgs(setValue)
+    expect(await controller.partialPaused()).eq(setValue)
   }
   const setPause = async (account: Account, setValue: boolean) => {
     const tx = controller.connect(account.signer).setPaused(setValue)
@@ -51,29 +51,29 @@ describe('Pausing', () => {
     const tx = controller.connect(me.signer).setPauseGuardian(guardian.address)
     await expect(tx).revertedWith('Only Governor can call')
   })
-  it('should set recoveryPause and unset from governor and guardian', async function () {
-    expect(await controller.recoveryPaused()).eq(false)
+  it('should set partialPaused and unset from governor and guardian', async function () {
+    expect(await controller.partialPaused()).eq(false)
     // Governor set
-    await setRecoveryPause(governor, true)
+    await setPartialPause(governor, true)
     // Governor unset
-    await setRecoveryPause(governor, false)
+    await setPartialPause(governor, false)
 
     await controller.connect(governor.signer).setPauseGuardian(guardian.address)
     // Guardian set
-    await setRecoveryPause(guardian, true)
+    await setPartialPause(guardian, true)
     // Guardian unset
-    await setRecoveryPause(guardian, false)
+    await setPartialPause(guardian, false)
   })
-  it('should fail recovery pause if not guardian or governor', async function () {
+  it('should fail partial pause if not guardian or governor', async function () {
     const tx = controller.connect(me.signer).setPauseGuardian(guardian.address)
     await expect(tx).revertedWith('Only Governor can call')
   })
-  it('should check that a function fails when recoveryPause is set', async function () {
-    await setRecoveryPause(governor, true)
+  it('should check that a function fails when partialPause is set', async function () {
+    await setPartialPause(governor, true)
 
     const tokensToStake = toGRT('100')
     const tx = staking.connect(me.signer).stake(tokensToStake)
-    await expect(tx).revertedWith('Recovery-paused')
+    await expect(tx).revertedWith('Partial-paused')
   })
   it('should set pause and unset from governor and guardian', async function () {
     expect(await controller.paused()).eq(false)

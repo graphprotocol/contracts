@@ -48,7 +48,7 @@ export const gettersList = {
   'controller-governor': { contract: 'Controller', name: 'governor' },
   'controller-get-contract-proxy': { contract: 'Controller', name: 'getContractProxy' },
   'controller-get-paused': { contract: 'Controller', name: 'paused' },
-  'controller-get-recovery-paused': { contract: 'Controller', name: 'recoveryPaused' },
+  'controller-get-partial-paused': { contract: 'Controller', name: 'partialPaused' },
   'controller-get-pause-guardian': { contract: 'Controller', name: 'pauseGuardian' },
 }
 
