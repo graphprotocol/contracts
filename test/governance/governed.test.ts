@@ -20,7 +20,7 @@ describe('Governed', () => {
     governed = ((await factory.connect(governor.signer).deploy()) as unknown) as Governed
   })
 
-  it('should reject transfer if not allowed', async function () {
+  it('reject transfer if not allowed', async function () {
     const tx = governed.connect(me.signer).transferOwnership(me.address)
     await expect(tx).revertedWith('Only Governor can call')
   })
@@ -41,5 +41,16 @@ describe('Governed', () => {
 
     // Clean pending governor
     expect(await governed.pendingGovernor()).eq(AddressZero)
+  })
+
+  it('reject renounce ownership if not allowed', async function () {
+    const tx = governed.connect(me.signer).renounceOwnership()
+    expect(tx).revertedWith('Only Governor can call')
+  })
+
+  it('should renounce ownership', async function () {
+    const tx1 = governed.connect(governor.signer).renounceOwnership()
+    await expect(tx1).emit(governed, 'NewOwnership').withArgs(governor.address, AddressZero)
+    expect(await governed.governor()).eq(AddressZero)
   })
 })

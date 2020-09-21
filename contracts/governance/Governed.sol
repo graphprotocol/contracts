@@ -31,6 +31,18 @@ contract Governed {
     }
 
     /**
+     * @dev Leaves the contract without governor. It will not be possible to call
+     * `onlyGovernor` functions anymore. Can only be called by the current governor.
+     *
+     * NOTE: Renouncing ownership will leave the contract without a governor,
+     * thereby removing any functionality that is only available to the governor.
+     */
+    function renounceOwnership() external onlyGovernor {
+        emit NewOwnership(governor, address(0));
+        governor = address(0);
+    }
+
+    /**
      * @dev Admin function to begin change of governor. The `_newGovernor` must call
      * `acceptOwnership` to finalize the transfer.
      * @param _newGovernor Address of new `governor`
