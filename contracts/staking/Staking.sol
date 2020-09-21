@@ -512,7 +512,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Adress of the indexer
      * @param _tokens Amount of tokens to stake
      */
-    function stakeTo(address _indexer, uint256 _tokens) public override notRecoveryPaused {
+    function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
         require(_tokens > 0, "Cannot stake zero tokens");
 
         // Transfer tokens to stake from caller to this contract
@@ -529,7 +529,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Unstake tokens from the indexer stake, lock them until thawing period expires.
      * @param _tokens Amount of tokens to unstake
      */
-    function unstake(uint256 _tokens) external override notRecoveryPaused {
+    function unstake(uint256 _tokens) external override notPartialPaused {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
@@ -621,7 +621,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
      */
-    function delegate(address _indexer, uint256 _tokens) external override notRecoveryPaused {
+    function delegate(address _indexer, uint256 _tokens) external override notPartialPaused {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
@@ -639,7 +639,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer where tokens had been delegated
      * @param _shares Amount of shares to return and undelegate tokens
      */
-    function undelegate(address _indexer, uint256 _shares) external override notRecoveryPaused {
+    function undelegate(address _indexer, uint256 _shares) external override notPartialPaused {
         _undelegate(msg.sender, _indexer, _shares);
     }
 

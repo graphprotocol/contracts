@@ -1,33 +1,35 @@
 pragma solidity ^0.6.12;
 
 contract Pausable {
-    // Two types of pausing in the protocol
-    bool internal _recoveryPaused;
+    // Partial paused paused exit and enter functions for GRT, but not internal
+    // functions, such as allocating
+    bool internal _partialPaused;
+    // Paused will pause all major protocol functions
     bool internal _paused;
 
     // Time last paused for both pauses
-    uint256 public lastPauseRecoveryTime;
+    uint256 public lastPausePartialTime;
     uint256 public lastPauseTime;
 
     // Pause guardian is a separate entity from the governor that can pause
     address public pauseGuardian;
 
-    event RecoveryPauseChanged(bool isPaused);
+    event PartialPauseChanged(bool isPaused);
     event PauseChanged(bool isPaused);
     event NewPauseGuardian(address oldPauseGuardian, address pauseGuardian);
 
     /**
-     * @notice Change the recovery paused state of the contract
+     * @notice Change the partial paused state of the contract
      */
-    function _setRecoveryPaused(bool _toPause) internal {
-        if (_toPause == _recoveryPaused) {
+    function _setPartialPaused(bool _toPause) internal {
+        if (_toPause == _partialPaused) {
             return;
         }
-        _recoveryPaused = _toPause;
-        if (_recoveryPaused) {
-            lastPauseRecoveryTime = now;
+        _partialPaused = _toPause;
+        if (_partialPaused) {
+            lastPausePartialTime = now;
         }
-        emit RecoveryPauseChanged(_recoveryPaused);
+        emit PartialPauseChanged(_partialPaused);
     }
 
     /**

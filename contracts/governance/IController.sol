@@ -13,5 +13,5 @@ interface IController {
 
     function paused() external view returns (bool);
 
-    function recoveryPaused() external view returns (bool);
+    function partialPaused() external view returns (bool);
 }

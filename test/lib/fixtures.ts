@@ -52,7 +52,7 @@ export class NetworkFixture {
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
-    await controller.connect(deployer).setRecoveryPaused(false)
+    await controller.connect(deployer).setPartialPaused(false)
 
     return {
       controller,
