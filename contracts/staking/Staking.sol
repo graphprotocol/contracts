@@ -814,7 +814,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Validate ownership
-        require(_onlyAuthOrDelegator(alloc.indexer), "!auth");
+        require(_onlyAuthOrDelegator(alloc.indexer), "!auth-or-del");
 
         // TODO: restake when delegator called should not be allowed?
 
@@ -1003,7 +1003,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is closing
-            require(_onlyAuthOrDelegator(alloc.indexer), "!auth");
+            require(_onlyAuthOrDelegator(alloc.indexer), "!auth-or-del");
         } else {
             // Verify that the allocation owner is closing
             require(_onlyAuth(alloc.indexer), "!auth");
