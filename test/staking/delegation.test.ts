@@ -176,7 +176,7 @@ describe('Staking::Delegation', () => {
     }
 
     // Distribute test funds
-    for (const wallet of [me, indexer, assetHolder]) {
+    for (const wallet of [me, indexer, indexer2, assetHolder]) {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
     }
@@ -301,17 +301,28 @@ describe('Staking::Delegation', () => {
   })
 
   describe('lifecycle', function () {
+    beforeEach(async function () {
+      // Stake some funds as indexer
+      await staking.connect(indexer.signer).stake(toGRT('1000'))
+    })
+
     describe('delegate', function () {
-      it('reject to delegate zero tokens', async function () {
+      it('reject delegate with zero tokens', async function () {
         const tokensToDelegate = toGRT('0')
         const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
         await expect(tx).revertedWith('Cannot delegate zero tokens')
       })
 
-      it('reject to delegate to empty address', async function () {
+      it('reject delegate to empty address', async function () {
         const tokensToDelegate = toGRT('100')
         const tx = staking.connect(delegator.signer).delegate(AddressZero, tokensToDelegate)
         await expect(tx).revertedWith('Cannot delegate to empty address')
+      })
+
+      it('reject delegate to non-staked indexer', async function () {
+        const tokensToDelegate = toGRT('100')
+        const tx = staking.connect(delegator.signer).delegate(me.address, tokensToDelegate)
+        await expect(tx).revertedWith('Cannot delegate to non-staked indexer')
       })
 
       it('should delegate tokens and account shares proportionally', async function () {
@@ -408,6 +419,9 @@ describe('Staking::Delegation', () => {
         await advanceToNextEpoch(epochManager) // epoch 1
         await advanceToNextEpoch(epochManager) // epoch 2
 
+        // We stake on indexer2 so the delegator is able to re-delegate to it
+        // if we didn't do it, it will revert because of indexer2 not havings stake
+        await staking.connect(indexer2.signer).stake(toGRT('1000'))
         // Withdraw
         await shouldWithdrawDelegated(delegator, indexer2.address, tokensToWithdraw)
       })
