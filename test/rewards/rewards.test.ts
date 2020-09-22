@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
+import { BigNumber as BN } from 'bignumber.js'
 
 import { NetworkFixture } from '../lib/fixtures'
 
@@ -25,8 +26,7 @@ const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants
 
-const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
-const toRound = (n: BigNumber) => Math.round(toFloat(n))
+const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
 
 describe('Rewards', () => {
   let delegator: Account
@@ -55,9 +55,11 @@ describe('Rewards', () => {
   const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
 
   // Core formula that gets accumulated rewards per signal for a period of time
-  const getRewardsPerSignal = (p: BigNumber, r: BigNumber, t: BigNumber, s: BigNumber): number => {
-    if (!toFloat(s)) return 0
-    return (toRound(p) * toFloat(r) ** t.toNumber() - toFloat(p)) / toFloat(s)
+  const getRewardsPerSignal = (p: BN, r: BN, t: BN, s: BN): string => {
+    if (s.eq(0)) {
+      return '0'
+    }
+    return p.times(r.pow(t)).minus(p).div(s).toPrecision(18).toString()
   }
 
   // Tracks the accumulated rewards as totalSignalled or supply changes across snapshots
@@ -74,7 +76,7 @@ describe('Rewards', () => {
     }
 
     async snapshot() {
-      this.accumulated = this.accumulated.add(await this.accruedGRT())
+      this.accumulated = this.accumulated.add(await this.accrued())
       this.totalSupply = await grt.totalSupply()
       this.totalSignalled = await grt.balanceOf(curation.address)
       this.lastUpdatedBlock = await latestBlock()
@@ -88,21 +90,13 @@ describe('Rewards', () => {
 
     async accrued() {
       const nBlocks = await this.elapsedBlocks()
-      return getRewardsPerSignal(
-        this.totalSupply,
-        ISSUANCE_RATE_PER_BLOCK,
-        nBlocks,
-        this.totalSignalled,
+      const n = getRewardsPerSignal(
+        new BN(this.totalSupply.toString()),
+        new BN(ISSUANCE_RATE_PER_BLOCK.toString()).div(1e18),
+        new BN(nBlocks.toString()),
+        new BN(this.totalSignalled.toString()),
       )
-    }
-
-    async accruedGRT() {
-      const n = await this.accrued()
-      return toGRT(n.toString())
-    }
-
-    async accruedRounded() {
-      return Math.round(await this.accrued())
+      return toGRT(n)
     }
   }
 
@@ -119,10 +113,10 @@ describe('Rewards', () => {
     // Contract calculation
     const contractAccrued = await rewardsManager.getNewRewardsPerSignal()
     // Local calculation
-    const expectedAccrued = await tracker.accruedRounded()
+    const expectedAccrued = await tracker.accrued()
 
     // Check
-    expect(expectedAccrued).eq(toRound(contractAccrued))
+    expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
     return expectedAccrued
   }
 
@@ -268,8 +262,8 @@ describe('Rewards', () => {
       const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
       // Check
-      const expectedAccrued = await tracker.accruedRounded()
-      expect(expectedAccrued).eq(toRound(contractAccrued))
+      const expectedAccrued = await tracker.accrued()
+      expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
     })
 
     it('update the accumulated rewards per signal state after many blocks', async function () {
@@ -286,8 +280,8 @@ describe('Rewards', () => {
       const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
       // Check
-      const expectedAccrued = await tracker.accruedRounded()
-      expect(expectedAccrued).eq(toRound(contractAccrued))
+      const expectedAccrued = await tracker.accrued()
+      expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
     })
   })
 
@@ -350,13 +344,13 @@ describe('Rewards', () => {
       // Check
       const contractRewardsSG1 = (await rewardsManager.subgraphs(subgraphDeploymentID1))
         .accRewardsForSubgraph
-      const rewardsPerSignal1 = await tracker1.accruedGRT()
+      const rewardsPerSignal1 = await tracker1.accrued()
       const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
       expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
 
       const contractAccrued = await rewardsManager.accRewardsPerSignal()
-      const expectedAccrued = await tracker1.accruedRounded()
-      expect(expectedAccrued).eq(toRound(contractAccrued))
+      const expectedAccrued = await tracker1.accrued()
+      expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
 
       const contractBlockUpdated = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
       const expectedBlockUpdated = await latestBlock()
@@ -426,8 +420,8 @@ describe('Rewards', () => {
       // Prepare expected results
       // NOTE: calculated the expected result manually as the above code has 1 off block difference
       // replace with a RewardsManagerMock
-      const expectedSubgraphRewards = 891695471
-      const expectedRewardsAT = 51572
+      const expectedSubgraphRewards = toGRT('891695470')
+      const expectedRewardsAT = toGRT('51571')
 
       // Update
       await rewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentID1)
@@ -439,8 +433,8 @@ describe('Rewards', () => {
       )
       const contractRewardsAT = subgraph.accRewardsPerAllocatedToken
 
-      expect(expectedSubgraphRewards).eq(toRound(contractSubgraphRewards))
-      expect(expectedRewardsAT).eq(toRound(contractRewardsAT))
+      expect(toRound(expectedSubgraphRewards)).eq(toRound(contractSubgraphRewards))
+      expect(toRound(expectedRewardsAT)).eq(toRound(contractRewardsAT))
     })
   })
 
@@ -486,26 +480,6 @@ describe('Rewards', () => {
       queryFeeCut: BigNumber
       cooldownBlocks: number
     }
-
-    async function setupIndexerDelegation(
-      tokensToDelegate: BigNumber,
-      delegationParams: DelegationParameters,
-    ) {
-      // Transfer some funds from the curator, I don't want to mint new tokens
-      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
-      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
-
-      // Delegate
-      await staking
-        .connect(indexer1.signer)
-        .setDelegationParameters(
-          delegationParams.indexingRewardCut,
-          delegationParams.queryFeeCut,
-          delegationParams.cooldownBlocks,
-        )
-      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
-    }
-
     async function setupIndexerAllocation() {
       // Setup
       await epochManager.setEpochLength(10)
@@ -517,6 +491,48 @@ describe('Rewards', () => {
       // Allocate
       const tokensToAllocate = toGRT('12500')
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
+      await staking
+        .connect(indexer1.signer)
+        .allocate(
+          subgraphDeploymentID1,
+          tokensToAllocate,
+          channelPubKey,
+          assetHolder.address,
+          metadata,
+        )
+    }
+
+    async function setupIndexerAllocationWithDelegation(
+      tokensToDelegate: BigNumber,
+      delegationParams: DelegationParameters,
+    ) {
+      const tokensToAllocate = toGRT('12500')
+
+      // Setup
+      await epochManager.setEpochLength(10)
+
+      // Transfer some funds from the curator, I don't want to mint new tokens
+      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
+      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
+
+      // Stake and set delegation parameters
+      await staking.connect(indexer1.signer).stake(tokensToAllocate)
+      await staking
+        .connect(indexer1.signer)
+        .setDelegationParameters(
+          delegationParams.indexingRewardCut,
+          delegationParams.queryFeeCut,
+          delegationParams.cooldownBlocks,
+        )
+
+      // Delegate
+      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
+
+      // Update total signalled
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+
+      // Allocate
       await staking
         .connect(indexer1.signer)
         .allocate(
@@ -569,14 +585,13 @@ describe('Rewards', () => {
     it('should distribute rewards on closed allocation w/delegators', async function () {
       // Setup
       const delegationParams = {
-        indexingRewardCut: toBN('50000'), // 5%
+        indexingRewardCut: toBN('823000'), // 82.30%
         queryFeeCut: toBN('80000'), // 8%
         cooldownBlocks: 5,
       }
       const tokensToDelegate = toGRT('2000')
 
-      await setupIndexerDelegation(tokensToDelegate, delegationParams)
-      await setupIndexerAllocation()
+      await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
 
       // Jump
       await advanceBlocks(await epochManager.epochLength())
@@ -597,7 +612,7 @@ describe('Rewards', () => {
       // Check that rewards are put into indexer stake (only indexer cut)
       // Check that rewards are put into delegators pool accordingly
       // NOTE: calculated manually on a spreadsheet
-      const expectedIndexingRewards = toGRT('1471954234')
+      const expectedIndexingRewards = toGRT('1454109066')
       // Calculate delegators cut
       const indexerRewards = delegationParams.indexingRewardCut
         .mul(expectedIndexingRewards)

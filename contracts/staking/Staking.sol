@@ -517,10 +517,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(_tokens > 0, "Cannot stake zero tokens");
 
         // Transfer tokens to stake from caller to this contract
-        require(
-            graphToken().transferFrom(msg.sender, address(this), _tokens),
-            "Cannot transfer tokens to stake"
-        );
+        require(graphToken().transferFrom(msg.sender, address(this), _tokens), "!transfer");
 
         // Stake the transferred tokens
         _stake(_indexer, _tokens);
@@ -557,7 +554,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(tokensToWithdraw > 0, "No tokens available to withdraw");
 
         // Return tokens to the indexer
-        require(graphToken().transfer(indexer, tokensToWithdraw), "Cannot transfer tokens");
+        require(graphToken().transfer(indexer, tokensToWithdraw), "!transfer");
 
         emit StakeWithdrawn(indexer, tokensToWithdraw);
     }
@@ -611,7 +608,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Give the beneficiary a reward for slashing
         if (_reward > 0) {
-            require(graphToken().transfer(_beneficiary, _reward), "Error sending dispute reward");
+            require(graphToken().transfer(_beneficiary, _reward), "!transfer");
         }
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
@@ -626,10 +623,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
-        require(
-            graphToken().transferFrom(delegator, address(this), _tokens),
-            "Cannot transfer tokens to stake"
-        );
+        require(graphToken().transferFrom(delegator, address(this), _tokens), "!transfer");
 
         // Update state
         _delegate(delegator, _indexer, _tokens);
@@ -677,7 +671,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _delegate(delegator, _newIndexer, tokensToWithdraw);
         } else {
             // Return tokens to the delegator
-            require(graphToken().transfer(delegator, tokensToWithdraw), "Cannot transfer tokens");
+            require(graphToken().transfer(delegator, tokensToWithdraw), "!transfer");
         }
     }
 
@@ -782,10 +776,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // require(alloc.assetHolder == msg.sender, "caller is not authorized");
 
         // Transfer tokens to collect from the authorized sender
-        require(
-            graphToken().transferFrom(msg.sender, address(this), _tokens),
-            "Cannot transfer tokens to collect"
-        );
+        require(graphToken().transferFrom(msg.sender, address(this), _tokens), "!transfer");
 
         _collect(_allocationID, msg.sender, _tokens);
     }
@@ -843,10 +834,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
                 _stake(alloc.indexer, tokensToClaim);
             } else {
                 // Transfer funds back to the indexer
-                require(
-                    graphToken().transfer(alloc.indexer, tokensToClaim),
-                    "Cannot transfer tokens"
-                );
+                require(graphToken().transfer(alloc.indexer, tokensToClaim), "!transfer");
             }
         }
 
@@ -1105,10 +1093,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _indexer,
         uint256 _tokens
     ) internal returns (uint256) {
-        // Can only delegate a non-zero amount of tokens
+        // Only delegate a non-zero amount of tokens
         require(_tokens > 0, "Cannot delegate zero tokens");
-        // Can only delegate to non-empty address
+        // Only delegate to non-empty address
         require(_indexer != address(0), "Cannot delegate to empty address");
+        // Only delegate to staked indexer
+        require(stakes[_indexer].hasTokens(), "Cannot delegate to non-staked indexer");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
