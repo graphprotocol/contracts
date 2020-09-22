@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "0.5.0-testnet-phase1",
+  "version": "0.7.0-testnet-phase2",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
