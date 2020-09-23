@@ -170,10 +170,10 @@ describe('Staking:Stakes', () => {
         const tx1 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
         const receipt1 = await tx1.wait()
         const event1: Event = receipt1.events.pop()
-        const tokensLockedUntil1 = event1.args[2]
+        const tokensLockedUntil1 = event1.args['until']
 
-        // Move forward
-        await advanceBlockTo(tokensLockedUntil1)
+        // Move forward before the tokens are unlocked for withdrawal
+        await advanceBlockTo(tokensLockedUntil1.sub(5))
 
         // Calculate locking time for tokens taking into account the previous unstake request
         const currentBlock = await latestBlock()
@@ -188,9 +188,57 @@ describe('Staking:Stakes', () => {
         // Unstake (2)
         const tx2 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
         const receipt2 = await tx2.wait()
+
+        // Verify events
         const event2: Event = receipt2.events.pop()
-        const tokensLockedUntil2 = event2.args[2]
-        expect(expectedLockedUntil).eq(tokensLockedUntil2)
+        expect(event2.args['until']).eq(expectedLockedUntil)
+
+        // Verify state
+        const afterIndexerStake = await staking.stakes(indexer.address)
+        expect(afterIndexerStake.tokensLocked).eq(tokensToUnstake.mul(2)) // we unstaked two times
+        expect(afterIndexerStake.tokensLockedUntil).eq(expectedLockedUntil)
+      })
+
+      it('should unstake and withdraw if some tokens are unthawed', async function () {
+        const tokensToUnstake = toGRT('10')
+        const thawingPeriod = toBN(await staking.thawingPeriod())
+
+        const beforeIndexerBalance = await grt.balanceOf(indexer.address)
+
+        // Unstake (1)
+        const tx1 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
+        const receipt1 = await tx1.wait()
+        const event1: Event = receipt1.events.pop()
+        const tokensLockedUntil1 = event1.args['until']
+
+        // Move forward after the tokens are unlocked for withdrawal
+        await advanceBlockTo(tokensLockedUntil1)
+
+        // Calculate locking time for tokens taking into account some tokens are withdraweable
+        const currentBlock = await latestBlock()
+        const expectedLockedUntil = currentBlock.add(thawingPeriod).add(toBN('1'))
+
+        // Unstake (2)
+        const tx2 = await staking.connect(indexer.signer).unstake(tokensToUnstake)
+        const receipt2 = await tx2.wait()
+
+        // Verify events
+        const unstakeEvent: Event = receipt2.events.pop()
+        const withdrawEvent: Event = receipt2.events.pop()
+        expect(unstakeEvent.args['until']).eq(expectedLockedUntil)
+        expect(withdrawEvent.args['tokens']).eq(tokensToUnstake)
+
+        // Verify state
+        const afterIndexerStake = await staking.stakes(indexer.address)
+        const afterIndexerBalance = await grt.balanceOf(indexer.address)
+        expect(afterIndexerStake.tokensLocked).eq(tokensToUnstake)
+        expect(afterIndexerStake.tokensLockedUntil).eq(expectedLockedUntil)
+        expect(afterIndexerBalance).eq(beforeIndexerBalance.add(tokensToUnstake))
+      })
+
+      it('reject unstake zero tokens', async function () {
+        const tx = staking.connect(indexer.signer).unstake(toGRT('0'))
+        await expect(tx).revertedWith('Cannot unstake zero tokens')
       })
 
       it('reject unstake more than available tokens', async function () {
