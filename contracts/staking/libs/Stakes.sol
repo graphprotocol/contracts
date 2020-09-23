@@ -56,20 +56,20 @@ library Stakes {
     }
 
     /**
-     * @dev Lock tokens until a thawing period expires.
+     * @dev Lock tokens until a thawing period pass.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
-     * @param _thawingPeriod Period in blocks that need to pass before withdrawal
+     * @param _period Period in blocks that need to pass before withdrawal
      */
     function lockTokens(
         Stakes.Indexer storage stake,
         uint256 _tokens,
-        uint256 _thawingPeriod
+        uint256 _period
     ) internal {
         // Take into account period averaging for multiple unstake requests
-        uint256 lockingPeriod = _thawingPeriod;
+        uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
-            lockingPeriod = stake.getLockingPeriod(_tokens, _thawingPeriod);
+            lockingPeriod = stake.getLockingPeriod(_tokens, _period);
         }
 
         // Update balances

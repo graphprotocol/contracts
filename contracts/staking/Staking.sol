@@ -551,6 +551,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
+        require(_tokens > 0, "Cannot unstake zero tokens");
         require(indexerStake.hasTokens(), "Indexer has no stakes");
         require(
             indexerStake.tokensAvailable() >= _tokens,
@@ -564,6 +565,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             "Stake must be above minimum required"
         );
 
+        // Before locking more tokens, withdraw any unlocked ones
+        uint256 tokensToWithdraw = indexerStake.tokensWithdrawable();
+        if (tokensToWithdraw > 0) {
+            _withdraw(indexer);
+        }
+
         indexerStake.lockTokens(_tokens, thawingPeriod);
 
         emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
@@ -573,16 +580,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Withdraw indexer tokens once the thawing period has passed.
      */
     function withdraw() external override notPaused {
-        address indexer = msg.sender;
-
-        // Get tokens available for withdraw and update balance
-        uint256 tokensToWithdraw = stakes[indexer].withdrawTokens();
-        require(tokensToWithdraw > 0, "No tokens available to withdraw");
-
-        // Return tokens to the indexer
-        require(graphToken().transfer(indexer, tokensToWithdraw), "!transfer");
-
-        emit StakeWithdrawn(indexer, tokensToWithdraw);
+        _withdraw(msg.sender);
     }
 
     /**
@@ -879,6 +877,23 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         }
 
         emit StakeDeposited(_indexer, _tokens);
+    }
+
+    /**
+     * @dev Withdraw indexer tokens once the thawing period has passed.
+     * @param _indexer Address of indexer to withdraw funds from
+     */
+    function _withdraw(address _indexer) internal {
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+
+        // Get tokens available for withdraw and update balance
+        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
+        require(tokensToWithdraw > 0, "No tokens available to withdraw");
+
+        // Return tokens to the indexer
+        require(graphToken().transfer(_indexer, tokensToWithdraw), "!transfer");
+
+        emit StakeWithdrawn(_indexer, tokensToWithdraw);
     }
 
     /**
