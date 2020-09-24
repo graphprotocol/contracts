@@ -493,6 +493,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allowed Whether authorized or not
      */
     function setOperator(address _operator, bool _allowed) external override {
+        require(_operator != msg.sender, "operator != sender");
         operatorAuth[msg.sender][_operator] = _allowed;
         emit SetOperator(msg.sender, _operator, _allowed);
     }
