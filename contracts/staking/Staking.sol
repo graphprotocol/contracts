@@ -504,6 +504,24 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Returns amount of delegated tokens ready to be withdrawn after unbonding period.
+     * @param _delegation Delegation of tokens from delegator to indexer
+     * @return Amount of tokens to withdraw
+     */
+    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
+        public
+        view
+        returns (uint256)
+    {
+        // There must be locked tokens and period passed
+        uint256 currentEpoch = epochManager().currentEpoch();
+        if (_delegation.tokensLockedUntil > 0 && currentEpoch >= _delegation.tokensLockedUntil) {
+            return _delegation.tokensLocked;
+        }
+        return 0;
+    }
+
+    /**
      * @dev Authorize an address to be an operator.
      * @param _operator Address to authorize
      * @param _allowed Whether authorized or not
@@ -665,38 +683,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Withdraw delegated tokens once the unbonding period has passed.
      * @param _indexer Withdraw available tokens delegated to indexer
-     * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
+     * @param _delegateToIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
      */
-    function withdrawDelegated(address _indexer, address _newIndexer) external override notPaused {
-        address delegator = msg.sender;
-
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegationPools[_indexer];
-        Delegation storage delegation = pool.delegators[delegator];
-
-        // There must be locked tokens and period passed
-        uint256 currentEpoch = epochManager().currentEpoch();
-        require(
-            delegation.tokensLockedUntil > 0 && currentEpoch >= delegation.tokensLockedUntil,
-            "No tokens available to withdraw"
-        );
-
-        // Get tokens available for withdrawal
-        uint256 tokensToWithdraw = delegation.tokensLocked;
-
-        // Reset lock
-        delegation.tokensLocked = 0;
-        delegation.tokensLockedUntil = 0;
-
-        emit StakeDelegatedWithdrawn(_indexer, delegator, tokensToWithdraw);
-
-        if (_newIndexer != address(0)) {
-            // Re-delegate tokens to a new indexer
-            _delegate(delegator, _newIndexer, tokensToWithdraw);
-        } else {
-            // Return tokens to the delegator
-            require(graphToken().transfer(delegator, tokensToWithdraw), "!transfer");
-        }
+    function withdrawDelegated(address _indexer, address _delegateToIndexer)
+        external
+        override
+        notPaused
+    {
+        _withdrawDelegated(msg.sender, _indexer, _delegateToIndexer);
     }
 
     /**
@@ -1162,6 +1156,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Delegator need to have enough shares in the pool to undelegate
         require(delegation.shares >= _shares, "Delegator does not have enough shares");
 
+        // Withdraw tokens if available
+        if (getWithdraweableDelegatedTokens(delegation) > 0) {
+            _withdrawDelegated(_delegator, _indexer, address(0));
+        }
+
         // Calculate tokens to get in exchange for the shares
         uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
 
@@ -1183,6 +1182,44 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         );
 
         return tokens;
+    }
+
+    /**
+     * @dev Withdraw delegated tokens once the unbonding period has passed.
+     * @param _delegator Delegator that is withdrawing tokens
+     * @param _indexer Withdraw available tokens delegated to indexer
+     * @param _delegateToIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
+     */
+    function _withdrawDelegated(
+        address _delegator,
+        address _indexer,
+        address _delegateToIndexer
+    ) internal returns (uint256) {
+        // Get the delegation pool of the indexer
+        DelegationPool storage pool = delegationPools[_indexer];
+        Delegation storage delegation = pool.delegators[_delegator];
+
+        // Validation
+        uint256 tokensToWithdraw = getWithdraweableDelegatedTokens(delegation);
+        require(tokensToWithdraw > 0, "No tokens available to withdraw");
+
+        // Reset lock
+        delegation.tokensLocked = 0;
+        delegation.tokensLockedUntil = 0;
+
+        emit StakeDelegatedWithdrawn(_indexer, _delegator, tokensToWithdraw);
+
+        // -- Effects --
+
+        if (_delegateToIndexer != address(0)) {
+            // Re-delegate tokens to a new indexer
+            _delegate(_delegator, _delegateToIndexer, tokensToWithdraw);
+        } else {
+            // Return tokens to the delegator
+            require(graphToken().transfer(_delegator, tokensToWithdraw), "!transfer");
+        }
+
+        return tokensToWithdraw;
     }
 
     /**

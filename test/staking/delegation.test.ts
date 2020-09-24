@@ -381,6 +381,11 @@ describe('Staking::Delegation', () => {
         await advanceToNextEpoch(epochManager)
         await shouldUndelegate(delegator, toGRT('25'))
       })
+
+      it('should undelegate and withdraw freed tokens from unbonding period', async function () {
+        await shouldDelegate(delegator, toGRT('100'))
+        await shouldUndelegate(delegator2, toGRT('50'))
+      })
     })
 
     describe('withdraw', function () {
