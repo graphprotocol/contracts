@@ -15,7 +15,7 @@ export const settersList = {
   'staking-dispute-epochs': { contract: 'Staking', name: 'setChannelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
   'staking-protocol-percentage': { contract: 'Staking', name: 'setProtocolPercentage' },
-  'staking-delegation-capacity': { contract: 'Staking', name: 'setDelegationCapacity' },
+  'staking-delegation-ratio': { contract: 'Staking', name: 'setDelegationRatio' },
   'staking-delegation-parameters-cooldown': {
     contract: 'Staking',
     name: 'setDelegationParametersCooldown',

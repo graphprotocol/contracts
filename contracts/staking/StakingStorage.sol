@@ -49,10 +49,10 @@ contract StakingV1Storage is Managed {
 
     // -- Delegation --
 
-    // Set the delegation capacity multiplier
-    // If delegation capacity is 100 GRT, and an Indexer has staked 5 GRT,
-    // then they can accept 500 GRT as delegated stake
-    uint32 public delegationCapacity;
+    // Set the delegation capacity multiplier defined by the delegation ratio
+    // If delegation ratio is 100, and an Indexer has staked 5 GRT,
+    // then they can use up to 500 GRT from the delegated stake
+    uint32 public delegationRatio;
 
     // Time in blocks an indexer needs to wait to change delegation parameters
     uint32 public delegationParametersCooldown;

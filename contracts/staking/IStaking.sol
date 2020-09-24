@@ -69,7 +69,7 @@ interface IStaking {
 
     function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external;
 
-    function setDelegationCapacity(uint32 _delegationCapacity) external;
+    function setDelegationRatio(uint32 _delegationRatio) external;
 
     function setDelegationParameters(
         uint32 _indexingRewardCut,
