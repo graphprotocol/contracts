@@ -114,12 +114,12 @@ describe('DisputeManager:Query', async () => {
 
     // Stake
     const indexerList = [
-      { wallet: indexer, pubKey: indexer1ChannelKey.pubKey },
-      { wallet: indexer2, pubKey: indexer2ChannelKey.pubKey },
+      { wallet: indexer, allocationID: indexer1ChannelKey.address },
+      { wallet: indexer2, allocationID: indexer2ChannelKey.address },
     ]
     for (const activeIndexer of indexerList) {
       const indexerWallet = activeIndexer.wallet
-      const indexerPubKey = activeIndexer.pubKey
+      const indexerAllocationID = activeIndexer.allocationID
 
       // Give some funds to the indexer
       await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
@@ -132,7 +132,7 @@ describe('DisputeManager:Query', async () => {
         .allocate(
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexerPubKey,
+          indexerAllocationID,
           assetHolder.address,
           metadata,
         )
@@ -216,7 +216,7 @@ describe('DisputeManager:Query', async () => {
         .allocate(
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexer1ChannelKey.pubKey,
+          indexer1ChannelKey.address,
           assetHolder.address,
           metadata,
         )
@@ -433,11 +433,11 @@ describe('DisputeManager:Query', async () => {
               .withArgs(dispute.id, dispute.indexerAddress, fisherman.address, fishermanDeposit)
 
             // After state
-            const afterTishermanBalance = await grt.balanceOf(fisherman.address)
+            const afterFishermanBalance = await grt.balanceOf(fisherman.address)
             const afterTotalSupply = await grt.totalSupply()
 
             // No change in fisherman balance
-            expect(afterTishermanBalance).eq(beforeFishermanBalance)
+            expect(afterFishermanBalance).eq(beforeFishermanBalance)
             // Burn fisherman deposit
             const burnedTokens = fishermanDeposit
             expect(afterTotalSupply).eq(beforeTotalSupply.sub(burnedTokens))

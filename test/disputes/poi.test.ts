@@ -53,11 +53,11 @@ describe('DisputeManager:POI', async () => {
     // Dispute manager is allowed to slash
     await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
 
-    // Stake
-    const indexerList = [{ wallet: indexer, pubKey: indexerChannelKey.pubKey }]
+    // Stake & allocate
+    const indexerList = [{ wallet: indexer, allocationID: indexerChannelKey.address }]
     for (const activeIndexer of indexerList) {
       const indexerWallet = activeIndexer.wallet
-      const indexerPubKey = activeIndexer.pubKey
+      const indexerAllocationID = activeIndexer.allocationID
 
       // Give some funds to the indexer
       await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
@@ -70,7 +70,7 @@ describe('DisputeManager:POI', async () => {
         .allocate(
           subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexerPubKey,
+          indexerAllocationID,
           assetHolder.address,
           metadata,
         )
@@ -144,7 +144,7 @@ describe('DisputeManager:POI', async () => {
         .allocate(
           subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexerChannelKey.pubKey,
+          allocationID,
           assetHolder.address,
           metadata,
         )

@@ -49,8 +49,6 @@ describe('Rewards', () => {
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
   const allocationID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
-  const channelPubKey =
-    '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
   const metadata = HashZero
 
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
@@ -380,7 +378,7 @@ describe('Rewards', () => {
         .allocate(
           subgraphDeploymentID1,
           tokensToAllocate,
-          channelPubKey,
+          allocationID,
           assetHolder.address,
           metadata,
         )
@@ -417,7 +415,7 @@ describe('Rewards', () => {
         .allocate(
           subgraphDeploymentID1,
           tokensToAllocate,
-          channelPubKey,
+          allocationID,
           assetHolder.address,
           metadata,
         )
@@ -460,7 +458,7 @@ describe('Rewards', () => {
         .allocate(
           subgraphDeploymentID1,
           tokensToAllocate,
-          channelPubKey,
+          allocationID,
           assetHolder.address,
           metadata,
         )
@@ -524,7 +522,7 @@ describe('Rewards', () => {
         .allocate(
           subgraphDeploymentID1,
           tokensToAllocate,
-          channelPubKey,
+          allocationID,
           assetHolder.address,
           metadata,
         )

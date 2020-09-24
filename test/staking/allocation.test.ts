@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, utils, BigNumber } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -18,7 +18,6 @@ import {
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-const { computePublicKey } = utils
 
 const MAX_PPM = toBN('1000000')
 
@@ -62,7 +61,6 @@ describe('Staking:Allocation', () => {
   const subgraphDeploymentID = randomHexBytes()
   const channelKey = deriveChannelKey()
   const allocationID = channelKey.address
-  const channelPubKey = channelKey.pubKey
   const metadata = randomHexBytes(32)
   const poi = randomHexBytes()
 
@@ -70,7 +68,7 @@ describe('Staking:Allocation', () => {
   const allocate = (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
+      .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
   }
 
   before(async function () {
@@ -150,7 +148,6 @@ describe('Staking:Allocation', () => {
           currentEpoch,
           tokensToAllocate,
           allocationID,
-          channelPubKey,
           metadata,
           assetHolder.address,
         )
@@ -178,18 +175,17 @@ describe('Staking:Allocation', () => {
       await expect(tx).revertedWith('Cannot allocate zero tokens')
     })
 
-    it('reject allocate with invalid public key', async function () {
-      const invalidChannelPubKey = computePublicKey(channelPubKey, true)
+    it('reject allocate with invalid allocationID', async function () {
       const tx = staking
         .connect(indexer.signer)
         .allocate(
           subgraphDeploymentID,
           tokensToAllocate,
-          invalidChannelPubKey,
+          AddressZero,
           assetHolder.address,
           metadata,
         )
-      await expect(tx).revertedWith('Invalid channel public key')
+      await expect(tx).revertedWith('Invalid allocationID')
     })
 
     it('reject allocate if no tokens staked', async function () {
@@ -221,7 +217,7 @@ describe('Staking:Allocation', () => {
             indexer.address,
             subgraphDeploymentID,
             tokensToAllocate,
-            channelPubKey,
+            allocationID,
             assetHolder.address,
             metadata,
           )
@@ -235,7 +231,7 @@ describe('Staking:Allocation', () => {
             indexer.address,
             subgraphDeploymentID,
             tokensToAllocate,
-            channelPubKey,
+            allocationID,
             assetHolder.address,
             metadata,
           )
@@ -534,7 +530,7 @@ describe('Staking:Allocation', () => {
           indexer.address,
           subgraphDeploymentID,
           tokensToAllocate,
-          deriveChannelKey().pubKey,
+          deriveChannelKey().address,
           assetHolder.address,
           metadata,
         )

@@ -8,6 +8,7 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import {
   advanceBlockTo,
+  deriveChannelKey,
   getAccounts,
   randomHexBytes,
   latestBlock,
@@ -44,15 +45,15 @@ describe('Staking:Stakes', () => {
   const indexerTokens = toGRT('1000')
   const tokensToStake = toGRT('100')
   const subgraphDeploymentID = randomHexBytes()
-  const channelPubKey =
-    '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+  const channelKey = deriveChannelKey()
+  const allocationID = channelKey.address
   const metadata = randomHexBytes(32)
 
   // Allocate with test values
   const allocate = function (tokens: BigNumber) {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
+      .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
   }
 
   // Stake and verify state change
