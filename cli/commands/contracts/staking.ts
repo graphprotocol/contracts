@@ -124,6 +124,13 @@ export const setDelegationParameters = async (
     ...[indexingRewardCut, queryFeeCut, cooldownBlocks],
   )
 }
+export const setOperator = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const operator = cliArgs.operator
+  const allowed = cliArgs.allowed
+  const staking = cli.contracts.Staking
+  logger.log(`Setting operator ${operator} to ${allowed} for account ${cli.walletAddress}`)
+  await sendTransaction(cli.wallet, staking, 'setOperator', ...[operator, allowed])
+}
 
 export const stakingCommand = {
   command: 'staking',
@@ -359,12 +366,32 @@ export const stakingCommand = {
             .option('cooldownBlocks', {
               description: 'Period that need to pass to update delegation parameters',
               type: 'number',
+            })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return setDelegationParameters(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'setOperator',
+        describe: 'Set the operator for a graph account',
+        builder: (yargs: Argv) => {
+          return yargs
+            .option('operator', {
+              description: 'Address of the operator',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('allowed', {
+              description: 'Set to true to be an operator, false to revoke',
+              type: 'boolean',
               requiresArg: true,
               demandOption: true,
             })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return setDelegationParameters(await loadEnv(argv), argv)
+          return setOperator(await loadEnv(argv), argv)
         },
       })
   },
