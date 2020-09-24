@@ -191,16 +191,16 @@ describe('Staking::Delegation', () => {
   })
 
   describe('configuration', function () {
-    describe('delegationCapacity', function () {
-      const delegationCapacity = 5
+    describe('delegationRatio', function () {
+      const delegationRatio = 5
 
-      it('should set `delegationCapacity`', async function () {
-        await staking.connect(governor.signer).setDelegationCapacity(delegationCapacity)
-        expect(await staking.delegationCapacity()).eq(delegationCapacity)
+      it('should set `delegationRatio`', async function () {
+        await staking.connect(governor.signer).setDelegationRatio(delegationRatio)
+        expect(await staking.delegationRatio()).eq(delegationRatio)
       })
 
-      it('reject set `delegationCapacity` if not allowed', async function () {
-        const tx = staking.connect(me.signer).setDelegationCapacity(delegationCapacity)
+      it('reject set `delegationRatio` if not allowed', async function () {
+        const tx = staking.connect(me.signer).setDelegationRatio(delegationRatio)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
@@ -438,7 +438,7 @@ describe('Staking::Delegation', () => {
 
     it('revert allocate when capacity is not enough', async function () {
       // 1:2 delegation capacity
-      await staking.connect(governor.signer).setDelegationCapacity(2)
+      await staking.connect(governor.signer).setDelegationRatio(2)
 
       // Delegate
       await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -452,7 +452,7 @@ describe('Staking::Delegation', () => {
 
     it('should allocate using full delegation capacity', async function () {
       // 1:10 delegation capacity
-      await staking.connect(governor.signer).setDelegationCapacity(10)
+      await staking.connect(governor.signer).setDelegationRatio(10)
 
       // Delegate
       await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -469,7 +469,7 @@ describe('Staking::Delegation', () => {
 
     it('should send delegation cut of query fees to delegation pool', async function () {
       // 1:10 delegation capacity
-      await staking.connect(governor.signer).setDelegationCapacity(10)
+      await staking.connect(governor.signer).setDelegationRatio(10)
 
       // Set delegation rules for the indexer
       const indexingRewardCut = toBN('800000') // indexer keep 80%

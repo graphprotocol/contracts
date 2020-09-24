@@ -279,12 +279,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the delegation capacity multiplier.
-     * @param _delegationCapacity Delegation capacity multiplier
+     * @dev Set the delegation ratio.
+     * If set to 10 it means the indexer can use up to 10x the indexer staked amount
+     * from their delegated tokens
+     * @param _delegationRatio Delegation capacity multiplier
      */
-    function setDelegationCapacity(uint32 _delegationCapacity) external override onlyGovernor {
-        delegationCapacity = _delegationCapacity;
-        emit ParameterUpdated("delegationCapacity");
+    function setDelegationRatio(uint32 _delegationRatio) external override onlyGovernor {
+        delegationRatio = _delegationRatio;
+        emit ParameterUpdated("delegationRatio");
     }
 
     /**
@@ -468,7 +470,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         DelegationPool memory pool = delegationPools[_indexer];
 
-        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(uint256(delegationCapacity));
+        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(uint256(delegationRatio));
         uint256 tokensDelegated = (pool.tokens < tokensDelegatedMax)
             ? pool.tokens
             : tokensDelegatedMax;
@@ -480,7 +482,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // This means the indexer doesn't have available capacity to create new allocations.
         // We can reach this state when the indexer has funds allocated and then any
         // of these conditions happen:
-        // - The delegationCapacity ratio is reduced.
+        // - The delegationRatio ratio is reduced.
         // - The indexer stake is slashed.
         // - A delegator removes enough stake.
         if (tokensUsed > tokensCapacity) {

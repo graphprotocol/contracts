@@ -15,7 +15,7 @@ export const gettersList = {
   'staking-thawing-period': { contract: 'Staking', name: 'thawingPeriod' },
   'staking-dispute-epochs': { contract: 'Staking', name: 'channelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'maxAllocationEpochs' },
-  'staking-delegation-capacity': { contract: 'Staking', name: 'delegationCapacity' },
+  'staking-delegation-ratio': { contract: 'Staking', name: 'delegationRatio' },
   'staking-delegation-parameters-cooldown': {
     contract: 'Staking',
     name: 'delegationParametersCooldown',
