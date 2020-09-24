@@ -93,7 +93,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
      * during `epoch`.
      * `allocationID` indexer derived address used to identify the allocation.
-     * `channelPubKey` is the public key used for routing payments to the indexer channel.
      * `metadata` additional information related to the allocation.
      */
     event AllocationCreated(
@@ -102,7 +101,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 epoch,
         uint256 tokens,
         address allocationID,
-        bytes channelPubKey,
         bytes32 metadata,
         address assetHolder
     );
@@ -684,14 +682,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Allocate available tokens to a subgraph deployment.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelPubKey The public key used to route payments
+     * @param _allocationID The allocation identifier
      * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
     function allocate(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
@@ -699,7 +697,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             msg.sender,
             _subgraphDeploymentID,
             _tokens,
-            _channelPubKey,
+            _allocationID,
             _assetHolder,
             _metadata
         );
@@ -710,7 +708,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelPubKey The public key used to route payments
+     * @param _allocationID The allocation identifier
      * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
@@ -718,18 +716,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
-        _allocate(
-            _indexer,
-            _subgraphDeploymentID,
-            _tokens,
-            _channelPubKey,
-            _assetHolder,
-            _metadata
-        );
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _assetHolder, _metadata);
     }
 
     /**
@@ -752,7 +743,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelPubKey The public key used to route payments
+     * @param _allocationID The allocation identifier
      * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
@@ -762,19 +753,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
         _closeAllocation(_closingAllocationID, _poi);
-        _allocate(
-            _indexer,
-            _subgraphDeploymentID,
-            _tokens,
-            _channelPubKey,
-            _assetHolder,
-            _metadata
-        );
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _assetHolder, _metadata);
     }
 
     /**
@@ -901,7 +885,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
-     * @param _channelPubKey The public key used by the indexer to setup the off-chain channel
+     * @param _allocationID The allocationID will work to identify collected funds related to this allocation
      * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata Metadata related to the allocation
      */
@@ -909,7 +893,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes memory _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) internal {
@@ -920,23 +904,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "Cannot allocate zero tokens");
 
-        // Channel public key must be in uncompressed format
-        require(
-            uint8(_channelPubKey[0]) == 4 && _channelPubKey.length == 65,
-            "Invalid channel public key"
-        );
+        // Check allocation ID
+        require(_allocationID != address(0), "Invalid allocationID");
 
         // Needs to have free capacity not used for other purposes to allocate
         require(getIndexerCapacity(_indexer) >= _tokens, "Not enough tokens available to allocate");
 
-        // A channel public key is derived by the indexer when creating the offchain payment channel.
-        // Get the Ethereum address from the public key and use as allocation identifier.
-        // The allocationID will work to identify collected funds related to this allocation.
-        address allocationID = address(uint256(keccak256(_sliceByte(bytes(_channelPubKey)))));
-
         // Cannot reuse an allocationID that has already been used in an allocation
         require(
-            _getAllocationState(allocationID) == AllocationState.Null,
+            _getAllocationState(_allocationID) == AllocationState.Null,
             "AllocationID already used"
         );
 
@@ -954,7 +930,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _assetHolder, // Source address for allocation collected funds
             _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
         );
-        allocations[allocationID] = alloc;
+        allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
         indexerStake.allocate(alloc.tokens);
@@ -970,8 +946,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _subgraphDeploymentID,
             alloc.createdAtEpoch,
             alloc.tokens,
-            allocationID,
-            _channelPubKey,
+            _allocationID,
             _metadata,
             _assetHolder
         );
@@ -1307,38 +1282,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     {
         bool shouldCap = maxAllocationEpochs > 0 && _numEpochs > maxAllocationEpochs;
         return _tokens.mul((shouldCap) ? maxAllocationEpochs : _numEpochs);
-    }
-
-    /**
-     * @dev Removes the first byte from a bytes array.
-     * @param _bytes Byte array to slice
-     * @return New bytes array
-     */
-    function _sliceByte(bytes memory _bytes) internal pure returns (bytes memory) {
-        bytes memory tempBytes;
-        uint256 length = _bytes.length - 1;
-
-        assembly {
-            tempBytes := mload(0x40)
-
-            let lengthmod := and(length, 31)
-            let mc := add(add(tempBytes, lengthmod), mul(0x20, iszero(lengthmod)))
-            let end := add(mc, length)
-
-            for {
-                let cc := add(add(add(_bytes, lengthmod), mul(0x20, iszero(lengthmod))), 1)
-            } lt(mc, end) {
-                mc := add(mc, 0x20)
-                cc := add(cc, 0x20)
-            } {
-                mstore(mc, mload(cc))
-            }
-
-            mstore(tempBytes, length)
-            mstore(0x40, and(add(mc, 31), not(31)))
-        }
-
-        return tempBytes;
     }
 
     /**

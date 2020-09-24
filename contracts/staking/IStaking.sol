@@ -117,7 +117,7 @@ interface IStaking {
     function allocate(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external;
@@ -126,7 +126,7 @@ interface IStaking {
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external;
@@ -139,7 +139,7 @@ interface IStaking {
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        bytes calldata _channelPubKey,
+        address _allocationID,
         address _assetHolder,
         bytes32 _metadata
     ) external;

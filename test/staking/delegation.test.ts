@@ -8,6 +8,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 import { NetworkFixture } from '../lib/fixtures'
 import {
   advanceToNextEpoch,
+  deriveChannelKey,
   getAccounts,
   latestBlock,
   randomHexBytes,
@@ -421,14 +422,13 @@ describe('Staking::Delegation', () => {
     const tokensToCollect = toGRT('500')
     const tokensToDelegate = toGRT('1800')
     const subgraphDeploymentID = randomHexBytes()
-    const channelID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
-    const channelPubKey =
-      '0x0456708870bfd5d8fc956fe33285dcf59b075cd7a25a21ee00834e480d3754bcda180e670145a290bb4bebca8e105ea7776a7b39e16c4df7d4d1083260c6f05d53'
+    const channelKey = deriveChannelKey()
+    const allocationID = channelKey.address
 
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokens, channelPubKey, assetHolder.address, metadata)
+        .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
     }
 
     beforeEach(async function () {
@@ -463,7 +463,7 @@ describe('Staking::Delegation', () => {
       await setupAllocation(tokensToAllocate)
 
       // State updated
-      const alloc = await staking.getAllocation(channelID)
+      const alloc = await staking.getAllocation(allocationID)
       expect(alloc.tokens).eq(tokensToAllocate)
     })
 
@@ -486,13 +486,13 @@ describe('Staking::Delegation', () => {
       await setupAllocation(tokensToAllocate)
 
       // Collect some funds
-      await staking.connect(assetHolder.signer).collect(tokensToCollect, channelID)
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
 
       // Advance blocks to get the channel in epoch where it can be closed
       await advanceToNextEpoch(epochManager)
 
       // Close allocation
-      await staking.connect(indexer.signer).closeAllocation(channelID, poi)
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
 
       // Advance blocks to get the channel in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)
@@ -501,19 +501,19 @@ describe('Staking::Delegation', () => {
       const beforeDelegationPool = await staking.delegationPools(indexer.address)
 
       // Calculate tokens to claim and expected delegation fees
-      const beforeAlloc = await staking.getAllocation(channelID)
+      const beforeAlloc = await staking.getAllocation(allocationID)
       const delegationFees = percentageOf(queryFeeCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 
       // Claim from rebate pool
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer.signer).claim(channelID, true)
+      const tx = staking.connect(indexer.signer).claim(allocationID, true)
       await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
           indexer.address,
           subgraphDeploymentID,
-          channelID,
+          allocationID,
           currentEpoch,
           beforeAlloc.closedAtEpoch,
           tokensToClaim,
