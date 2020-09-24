@@ -76,8 +76,10 @@ contracts:
         maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
       - fn: "setThawingPeriod"
         thawingPeriod: 275 # ~1 hour (in blocks)
+      - fn: "setDelegationUnbondingPeriod"
+        delegationUnbondingPeriod: 2 # epochs
       - fn: "setDelegationCapacity"
-        delegationCapacity: 1 # 100% (multiplier)
+        delegationCapacity: 100 # 100x (multiplier)
       - fn: "setProtocolPercentage"
         protocolPercentage: 10000 # 1% (in basis points)
       - fn: "setRebateRatio"

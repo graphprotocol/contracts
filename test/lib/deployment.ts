@@ -40,6 +40,7 @@ export const defaults = {
     channelDisputeEpochs: 1,
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
+    delegationUnbondingPeriod: 1, // in epochs
     alphaNumerator: 85,
     alphaDenominator: 100,
   },
@@ -215,6 +216,9 @@ export async function deployStaking(deployer: Signer, controller: string): Promi
   await staking.connect(deployer).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await staking.connect(deployer).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
   await staking.connect(deployer).setThawingPeriod(defaults.staking.thawingPeriod)
+  await staking
+    .connect(deployer)
+    .setDelegationUnbondingPeriod(defaults.staking.delegationUnbondingPeriod)
   await staking
     .connect(deployer)
     .setRebateRatio(defaults.staking.alphaNumerator, defaults.staking.alphaDenominator)
