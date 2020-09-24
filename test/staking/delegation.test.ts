@@ -84,6 +84,7 @@ describe('Staking::Delegation', () => {
       ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
       : toBN(0)
     const beforeDelegatorBalance = await grt.balanceOf(sender.address)
+    const tokensToWithdraw = await staking.getWithdraweableDelegatedTokens(beforeDelegation)
 
     // Calculate tokens to receive
     const tokens = shares.mul(beforePool.shares).div(beforePool.tokens)
@@ -112,11 +113,14 @@ describe('Staking::Delegation', () => {
     expect(afterPool.shares).eq(beforePool.shares.sub(shares))
     expect(afterShares).eq(beforeShares.sub(shares))
     expect(afterTokens).eq(beforeTokens.sub(tokens))
+
     // Undelegated funds must be put on lock
-    expect(afterDelegation.tokensLocked).eq(beforeDelegation.tokensLocked.add(tokens))
+    expect(afterDelegation.tokensLocked).eq(
+      beforeDelegation.tokensLocked.add(tokens).sub(tokensToWithdraw),
+    )
     expect(afterDelegation.tokensLockedUntil).eq(tokensLockedUntil)
-    // No funds must be transferred to the delegator
-    expect(afterDelegatorBalance).eq(beforeDelegatorBalance)
+    // Delegator see balance increased only if there were tokens to withdraw
+    expect(afterDelegatorBalance).eq(beforeDelegatorBalance.add(tokensToWithdraw))
   }
 
   async function shouldWithdrawDelegated(sender: Account, redelegateTo: string, tokens: BigNumber) {
@@ -383,8 +387,12 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate and withdraw freed tokens from unbonding period', async function () {
+        await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
-        await shouldUndelegate(delegator2, toGRT('50'))
+        await shouldUndelegate(delegator, toGRT('50'))
+        await advanceToNextEpoch(epochManager) // epoch 1
+        await advanceToNextEpoch(epochManager) // epoch 2
+        await shouldUndelegate(delegator, toGRT('10'))
       })
     })
 
