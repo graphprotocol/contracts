@@ -29,7 +29,6 @@ export const defaults = {
   },
   dispute: {
     minimumDeposit: toGRT('100'),
-    minimumIndexerStake: toGRT('1'),
     fishermanRewardPercentage: toBN('1000'), // in basis points
     slashingPercentage: toBN('1000'), // in basis points
   },
@@ -37,6 +36,7 @@ export const defaults = {
     lengthInBlocks: toBN((15 * 60) / 15), // 15 minutes in blocks
   },
   staking: {
+    minimumIndexerStake: toGRT('10'),
     channelDisputeEpochs: 1,
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
@@ -128,7 +128,7 @@ export async function deployDisputeManager(
   arbitrator: string,
 ): Promise<DisputeManager> {
   // Deploy
-  const contract = ((await deployContract(
+  return deployContract(
     'DisputeManager',
     deployer,
     controller,
@@ -136,12 +136,7 @@ export async function deployDisputeManager(
     defaults.dispute.minimumDeposit.toString(),
     defaults.dispute.fishermanRewardPercentage.toString(),
     defaults.dispute.slashingPercentage.toString(),
-  )) as unknown) as DisputeManager
-
-  // Config
-  await contract.connect(deployer).setMinimumIndexerStake(defaults.dispute.minimumIndexerStake)
-
-  return contract
+  ) as Promise<DisputeManager>
 }
 
 export async function deployEpochManager(
@@ -212,6 +207,7 @@ export async function deployStaking(deployer: Signer, controller: string): Promi
 
   // Configure
   const staking = contract.attach(proxy.address)
+  await staking.connect(deployer).setMinimumIndexerStake(defaults.staking.minimumIndexerStake)
   await staking.connect(deployer).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
   await staking.connect(deployer).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
   await staking.connect(deployer).setThawingPeriod(defaults.staking.thawingPeriod)

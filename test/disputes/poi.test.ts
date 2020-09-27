@@ -140,7 +140,7 @@ describe('DisputeManager:POI', async () => {
       const tx = disputeManager
         .connect(fisherman.signer)
         .createIndexingDispute(event1.allocationID, fishermanDeposit)
-      await expect(tx).revertedWith('Dispute under minimum indexer stake amount')
+      await expect(tx).revertedWith('Dispute indexer has no stake')
     })
 
     context('> when indexer is staked', function () {
