@@ -103,6 +103,28 @@ export const withdrawDelegated = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   await sendTransaction(cli.wallet, staking, 'withdrawDelegated', ...[indexer, newIndexer])
 }
 
+export const setDelegationParameters = async (
+  cli: CLIEnvironment,
+  cliArgs: CLIArgs,
+): Promise<void> => {
+  const indexingRewardCut = cliArgs.indexingRewardCut
+  const queryFeeCut = cliArgs.queryFeeCut
+  const cooldownBlocks = cliArgs.cooldownBlocks
+  const staking = cli.contracts.Staking
+
+  logger.log(`Setting the following delegation parameters for indexer ${cli.walletAddress}
+      indexingRewardCut = ${indexingRewardCut}
+      queryFeeCut       = ${queryFeeCut}
+      cooldownBlocks    = ${cooldownBlocks}
+  `)
+  await sendTransaction(
+    cli.wallet,
+    staking,
+    'setDelegationParameters',
+    ...[indexingRewardCut, queryFeeCut, cooldownBlocks],
+  )
+}
+
 export const stakingCommand = {
   command: 'staking',
   describe: 'Staking contract calls',
@@ -315,6 +337,34 @@ export const stakingCommand = {
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return withdrawDelegated(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'setDelegationParameters',
+        describe: 'Sets the delegation parameters for an indexer',
+        builder: (yargs: Argv) => {
+          return yargs
+            .option('indexingRewardCut', {
+              description: 'Percentage of indexing rewards left for delegators',
+              type: 'number',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('queryFeeCut', {
+              description: 'Percentage of query fees left for delegators',
+              type: 'number',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('cooldownBlocks', {
+              description: 'Period that need to pass to update delegation parameters',
+              type: 'number',
+              requiresArg: true,
+              demandOption: true,
+            })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return setDelegationParameters(await loadEnv(argv), argv)
         },
       })
   },
