@@ -3,8 +3,9 @@ import { constants } from 'ethers'
 
 import { Staking } from '../../build/typechain/contracts/Staking'
 
+import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, Account } from '../lib/testHelpers'
+import { getAccounts, toBN, toGRT, Account } from '../lib/testHelpers'
 
 const { AddressZero } = constants
 
@@ -33,6 +34,26 @@ describe('Staking:Config', () => {
 
   afterEach(async function () {
     await fixture.tearDown()
+  })
+
+  describe('minimumIndexerStake', function () {
+    it('should set `minimumIndexerStake`', async function () {
+      const oldValue = defaults.staking.minimumIndexerStake
+      const newValue = toGRT('100')
+
+      // Set right in the constructor
+      expect(await staking.minimumIndexerStake()).eq(oldValue)
+
+      // Set new value
+      await staking.connect(governor.signer).setMinimumIndexerStake(newValue)
+      expect(await staking.minimumIndexerStake()).eq(newValue)
+    })
+
+    it('reject set `minimumIndexerStake` if not allowed', async function () {
+      const newValue = toGRT('100')
+      const tx = staking.connect(me.signer).setMinimumIndexerStake(newValue)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
   })
 
   describe('setSlasher', function () {

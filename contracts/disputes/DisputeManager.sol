@@ -92,9 +92,6 @@ contract DisputeManager is Managed {
     // Minimum deposit required to create a Dispute
     uint256 public minimumDeposit;
 
-    // Minimum stake an indexer needs to have to allow be disputed
-    uint256 public minimumIndexerStake;
-
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public fishermanRewardPercentage;
@@ -258,15 +255,6 @@ contract DisputeManager is Managed {
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
         emit ParameterUpdated("slashingPercentage");
-    }
-
-    /**
-     * @dev Set the minimum indexer stake required to allow be disputed.
-     * @param _minimumIndexerStake Minimum indexer stake
-     */
-    function setMinimumIndexerStake(uint256 _minimumIndexerStake) external onlyGovernor {
-        minimumIndexerStake = _minimumIndexerStake;
-        emit ParameterUpdated("minimumIndexerStake");
     }
 
     /**
@@ -460,10 +448,7 @@ contract DisputeManager is Managed {
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        require(
-            staking().getIndexerStakedTokens(indexer) >= minimumIndexerStake,
-            "Dispute under minimum indexer stake amount"
-        );
+        require(staking().hasStake(indexer), "Dispute indexer has no stake");
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
@@ -540,10 +525,7 @@ contract DisputeManager is Managed {
         require(alloc.indexer != address(0), "Dispute allocation must exist");
 
         // The indexer must be disputable
-        require(
-            staking().getIndexerStakedTokens(alloc.indexer) >= minimumIndexerStake,
-            "Dispute under minimum indexer stake amount"
-        );
+        require(staking().hasStake(alloc.indexer), "Dispute indexer has no stake");
 
         // Store dispute
         disputes[disputeID] = Dispute(alloc.indexer, _fisherman, _deposit, 0);

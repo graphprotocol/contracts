@@ -9,6 +9,9 @@ import "./libs/Stakes.sol";
 contract StakingV1Storage is Managed {
     // -- Staking --
 
+    // Minimum amount of tokens an indexer needs to stake
+    uint256 public minimumIndexerStake;
+
     // Time in blocks to unstake
     uint32 public thawingPeriod; // in blocks
 

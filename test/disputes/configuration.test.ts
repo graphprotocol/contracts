@@ -4,7 +4,7 @@ import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, toBN, Account } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -66,26 +66,6 @@ describe('DisputeManager:Config', () => {
       it('reject set `minimumDeposit` if not allowed', async function () {
         const newValue = toBN('1')
         const tx = disputeManager.connect(me.signer).setMinimumDeposit(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
-      })
-    })
-
-    describe('minimumIndexerStake', function () {
-      it('should set `minimumIndexerStake`', async function () {
-        const oldValue = defaults.dispute.minimumIndexerStake
-        const newValue = toGRT('100')
-
-        // Set right in the constructor
-        expect(await disputeManager.minimumIndexerStake()).eq(oldValue)
-
-        // Set new value
-        await disputeManager.connect(governor.signer).setMinimumIndexerStake(newValue)
-        expect(await disputeManager.minimumIndexerStake()).eq(newValue)
-      })
-
-      it('reject set `minimumIndexerStake` if not allowed', async function () {
-        const newValue = toGRT('100')
-        const tx = disputeManager.connect(me.signer).setMinimumIndexerStake(newValue)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
