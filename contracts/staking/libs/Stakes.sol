@@ -151,19 +151,57 @@ library Stakes {
     }
 
     /**
-     * @dev Tokens free balance on the indexer stake.
-     * tokensStaked - tokensAllocated - tokensLocked
+     * @dev Return the amount of tokens staked not considering the ones that are already going
+     * through the thawing period or are ready for withdrawal. We call it secure stake because
+     * it is not subject to change by a withdraw call from the indexer.
+     * @param stake Stake data
+     * @return Token amount
+     */
+    function tokensSecureStake(Stakes.Indexer memory stake) internal pure returns (uint256) {
+        return stake.tokensStaked.sub(stake.tokensLocked);
+    }
+
+    /**
+     * @dev Tokens free balance on the indexer stake that can be used for any purpose.
+     * Any token that is allocated cannot be used as well as tokens that are going through the
+     * thawing period or are withdrawable
+     * Calc: tokensStaked - tokensAllocated - tokensLocked
      * @param stake Stake data
      * @return Token amount
      */
     function tokensAvailable(Stakes.Indexer memory stake) internal pure returns (uint256) {
+        return stake.tokensAvailableWithDelegation(0);
+    }
+
+    /**
+     * @dev Tokens free balance on the indexer stake that can be used for allocations.
+     * This function accepts a parameter for extra delegated capacity that takes into
+     * account delegated tokens
+     * @param stake Stake data
+     * @param _delegatedCapacity Amount of tokens used from delegators to calculate availability
+     * @return Token amount
+     */
+    function tokensAvailableWithDelegation(Stakes.Indexer memory stake, uint256 _delegatedCapacity)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 tokensCapacity = stake.tokensStaked.add(_delegatedCapacity);
         uint256 _tokensUsed = stake.tokensUsed();
-        // Indexer stake is over allocated: return 0 to avoid stake to be used until
-        // the overallocation is restored by staking more tokens or unallocating tokens
-        if (_tokensUsed > stake.tokensStaked) {
+        // If more tokens are used than the current capacity, the indexer is overallocated.
+        // This means the indexer doesn't have available capacity to create new allocations.
+        // We can reach this state when the indexer has funds allocated and then any
+        // of these conditions happen:
+        // - The delegationCapacity ratio is reduced.
+        // - The indexer stake is slashed.
+        // - A delegator removes enough stake.
+        if (_tokensUsed > tokensCapacity) {
+            // Indexer stake is over allocated: return 0 to avoid stake to be used until
+            // the overallocation is restored by staking more tokens, unallocating tokens
+            // or using more delegated funds
             return 0;
         }
-        return stake.tokensStaked.sub(_tokensUsed);
+        return tokensCapacity.sub(_tokensUsed);
     }
 
     /**

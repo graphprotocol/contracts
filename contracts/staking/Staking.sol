@@ -214,6 +214,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Set the minimum indexer stake required to.
+     * @param _minimumIndexerStake Minimum indexer stake
+     */
+    function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
+        minimumIndexerStake = _minimumIndexerStake;
+        emit ParameterUpdated("minimumIndexerStake");
+    }
+
+    /**
      * @dev Set the thawing period for unstaking.
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
@@ -461,6 +470,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Get the total amount of tokens available to use in allocations.
+     * This considers the indexer stake and delegated tokens according to delegation ratio
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
@@ -473,20 +483,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             ? pool.tokens
             : tokensDelegatedMax;
 
-        uint256 tokensUsed = indexerStake.tokensUsed();
-        uint256 tokensCapacity = indexerStake.tokensStaked.add(tokensDelegated);
-
-        // If more tokens are used than the current capacity, the indexer is overallocated.
-        // This means the indexer doesn't have available capacity to create new allocations.
-        // We can reach this state when the indexer has funds allocated and then any
-        // of these conditions happen:
-        // - The delegationCapacity ratio is reduced.
-        // - The indexer stake is slashed.
-        // - A delegator removes enough stake.
-        if (tokensUsed > tokensCapacity) {
-            return 0;
-        }
-        return tokensCapacity.sub(tokensUsed);
+        return indexerStake.tokensAvailableWithDelegation(tokensDelegated);
     }
 
     /**
@@ -515,6 +512,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
         require(_tokens > 0, "Cannot stake zero tokens");
 
+        // Ensure minimum stake
+        require(
+            stakes[_indexer].tokensSecureStake().add(_tokens) >= minimumIndexerStake,
+            "Stake must be above minimum required"
+        );
+
         // Transfer tokens to stake from caller to this contract
         require(
             graphToken().transferFrom(msg.sender, address(this), _tokens),
@@ -539,6 +542,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             "Not enough tokens available to unstake"
         );
 
+        // Ensure minimum stake
+        uint256 newStake = indexerStake.tokensSecureStake().sub(_tokens);
+        require(
+            newStake == 0 || newStake >= minimumIndexerStake,
+            "Stake must be above minimum required"
+        );
+
         indexerStake.lockTokens(_tokens, thawingPeriod);
 
         emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
@@ -549,10 +559,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function withdraw() external override notPaused {
         address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = stakes[indexer];
 
         // Get tokens available for withdraw and update balance
-        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
+        uint256 tokensToWithdraw = stakes[indexer].withdrawTokens();
         require(tokensToWithdraw > 0, "No tokens available to withdraw");
 
         // Return tokens to the indexer
@@ -876,7 +885,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Stake tokens on the indexer
+     * @dev Stake tokens on the indexer.
+     * This function does not check minimum indexer stake requirement to allow
+     * to be called by functions that increase the stake when collecting rewards
+     * without reverting
      * @param _indexer Address of staking party
      * @param _tokens Amount of tokens to stake
      */

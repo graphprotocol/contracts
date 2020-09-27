@@ -232,7 +232,7 @@ describe('DisputeManager:Query', async () => {
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
-      await expect(tx).revertedWith('Dispute under minimum indexer stake amount')
+      await expect(tx).revertedWith('Dispute indexer has no stake')
     })
 
     context('> when indexer is staked', function () {

@@ -53,9 +53,6 @@ contracts:
       minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
-    calls:
-      - fn: "setMinimumIndexerStake"
-        minimumIndexerStake: "1000000000000000000" # 1 GRT (in wei)
   GNS:
     init:
       controller: "${{Controller.address}}"
@@ -86,6 +83,8 @@ contracts:
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
+      - fn: "setMinimumIndexerStake"
+        minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
   RewardsManager:
     init:
       controller: "${{Controller.address}}"

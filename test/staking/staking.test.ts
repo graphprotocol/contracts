@@ -106,8 +106,18 @@ describe('Staking:Stakes', () => {
         await expect(tx).revertedWith('Cannot stake zero tokens')
       })
 
+      it('reject stake less than minimum indexer stake', async function () {
+        expect(toGRT('1')).lte(await staking.minimumIndexerStake())
+        const tx = staking.connect(indexer.signer).stake(toGRT('1'))
+        await expect(tx).revertedWith('Stake must be above minimum required')
+      })
+
       it('should stake tokens', async function () {
         await shouldStake(tokensToStake)
+      })
+
+      it('should stake tokens = minimumIndexerStake', async function () {
+        await shouldStake(await staking.minimumIndexerStake())
       })
     })
 
@@ -145,6 +155,23 @@ describe('Staking:Stakes', () => {
     describe('stake', function () {
       it('should allow re-staking', async function () {
         await shouldStake(tokensToStake)
+      })
+
+      it('reject to stake under the minimum indexer stake after unstake + slash', async function () {
+        // Unstake (we get right on the minimum stake)
+        const minimumIndexerStake = await staking.minimumIndexerStake()
+        const tokensStaked = (await staking.stakes(indexer.address)).tokensStaked
+        const tokensToGetOnMinimumStake = tokensStaked.sub(minimumIndexerStake)
+        await staking.connect(indexer.signer).unstake(tokensToGetOnMinimumStake)
+
+        // Slash some indexer tokens to get under the water of the minimum indexer stake
+        await staking
+          .connect(slasher.signer)
+          .slash(indexer.address, toGRT('10'), toGRT(0), fisherman.address)
+
+        // Stake should require to go over the minimum stake
+        const tx = staking.connect(indexer.signer).stake(toGRT('1'))
+        await expect(tx).revertedWith('Stake must be above minimum required')
       })
     })
 
@@ -197,6 +224,32 @@ describe('Staking:Stakes', () => {
         const tokensOverCapacity = tokensToStake.add(toGRT('1'))
         const tx = staking.connect(indexer.signer).unstake(tokensOverCapacity)
         await expect(tx).revertedWith('Not enough tokens available to unstake')
+      })
+
+      it('reject unstake under the minimum indexer stake', async function () {
+        const minimumIndexerStake = await staking.minimumIndexerStake()
+        const tokensStaked = (await staking.stakes(indexer.address)).tokensStaked
+        const tokensToGetUnderMinimumStake = tokensStaked.sub(minimumIndexerStake).add(1)
+        const tx = staking.connect(indexer.signer).unstake(tokensToGetUnderMinimumStake)
+        await expect(tx).revertedWith('Stake must be above minimum required')
+      })
+
+      it('reject unstake under the minimum indexer stake w/multiple unstake', async function () {
+        const minimumIndexerStake = await staking.minimumIndexerStake()
+        const tokensStaked = (await staking.stakes(indexer.address)).tokensStaked
+
+        // First unstake (we get right on the minimum stake)
+        const tokensToGetOnMinimumStake = tokensStaked.sub(minimumIndexerStake)
+        await staking.connect(indexer.signer).unstake(tokensToGetOnMinimumStake)
+
+        // Second unstake, taking just one token out will make us under the minimum stake
+        const tx = staking.connect(indexer.signer).unstake(toGRT('1'))
+        await expect(tx).revertedWith('Stake must be above minimum required')
+      })
+
+      it('should allow unstake of full amount', async function () {
+        await staking.connect(indexer.signer).unstake(tokensToStake)
+        expect(await staking.getIndexerCapacity(indexer.address)).eq(0)
       })
     })
 

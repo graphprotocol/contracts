@@ -57,6 +57,8 @@ interface IStaking {
 
     // -- Configuration --
 
+    function setMinimumIndexerStake(uint256 _minimumIndexerStake) external;
+
     function setThawingPeriod(uint32 _thawingPeriod) external;
 
     function setCurationPercentage(uint32 _percentage) external;
