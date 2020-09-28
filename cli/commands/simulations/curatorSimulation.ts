@@ -1,10 +1,10 @@
 import consola from 'consola'
 import { parseGRT } from '@graphprotocol/common-ts'
-import { Argv } from 'yargs'
+import yargs, { Argv } from 'yargs'
 
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-import { parseSubgraphsCSV, CurateSimulationTransaction } from './parseCSV'
+import { parseCreateSubgraphsCSV, CurateSimulationTransaction, parseUnsignalCSV } from './parseCSV'
 import { pinMetadataToIPFS, IPFS } from '../../helpers'
 
 const logger = consola.create({})
@@ -68,33 +68,69 @@ const curateOnSubgraphs = async (
   }
 }
 
-export const simulation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const txData = parseSubgraphsCSV(__dirname + cliArgs.path)
+const createAndSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
   logger.log(`Running the curation simulator`)
   await createSubgraphs(cli, txData)
   await curateOnSubgraphs(cli, txData, cliArgs.firstSubgraphNumber)
 }
 
+const unsignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const txData = parseUnsignalCSV(__dirname + cliArgs.path)
+  logger.log(`Burning nSignal for ${txData.length} accounts...`)
+  for (let i = 0; i < txData.length; i++) {
+    const account = txData[i].account
+    const subgraphNumber = txData[i].subgraphNumber
+    const nSignal = parseGRT(txData[i].amount)
+    const gns = cli.contracts.GNS
+    logger.log(`Burning nSignal for ${account}-${subgraphNumber}...`)
+    await sendTransaction(cli.wallet, gns, 'burnNSignal', ...[account, subgraphNumber, nSignal])
+  }
+}
 export const curatorSimulationCommand = {
   command: 'curatorSimulation',
   describe: 'Simulates creating multiple subgraphs and then curating on them, from a csv file',
-  builder: (yargs: Argv) => {
+  builder: (yargs: Argv): yargs.Argv => {
     return yargs
-      .option('path', {
-        description: 'Path of the csv file relative to this folder',
-        type: 'string',
-        requiresArg: true,
-        demandOption: true,
+      .command({
+        command: 'createAndSignal',
+        describe: 'Create and signal on subgraphs by reading data from a csv file',
+        builder: (yargs: Argv) => {
+          return yargs
+            .option('path', {
+              description: 'Path of the csv file relative to this folder',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('firstSubgraphNumber', {
+              description: 'First subgraph to be newly curated',
+              type: 'number',
+              requiresArg: true,
+              demandOption: true,
+            })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return createAndSignal(await loadEnv(argv), argv)
+        },
       })
-      .option('firstSubgraphNumber', {
-        description:
-          'First subgraph to be newly curated. Used so we can curate the right subgraphs',
-        type: 'number',
-        requiresArg: true,
-        demandOption: true,
+      .command({
+        command: 'unsignal',
+        describe: 'Unsignal on a bunch of subgraphs by reading data from a CSV',
+        builder: (yargs: Argv) => {
+          return yargs.option('path', {
+            description: 'Path of the csv file relative to this folder',
+            type: 'string',
+            requiresArg: true,
+            demandOption: true,
+          })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return unsignal(await loadEnv(argv), argv)
+        },
       })
   },
-  handler: async (argv: CLIArgs): Promise<void> => {
-    return simulation(await loadEnv(argv), argv)
+  handler: (): void => {
+    yargs.showHelp()
   },
 }
