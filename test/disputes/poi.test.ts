@@ -20,13 +20,11 @@ import {
 const { keccak256 } = utils
 
 describe('DisputeManager:POI', async () => {
-  let me: Account
   let other: Account
   let governor: Account
   let arbitrator: Account
   let indexer: Account
   let fisherman: Account
-  let indexer2: Account
   let assetHolder: Account
 
   let fixture: NetworkFixture
@@ -67,27 +65,12 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(indexerWallet.signer).stake(indexerTokens)
       await staking
         .connect(indexerWallet.signer)
-        .allocate(
-          subgraphDeploymentID,
-          indexerAllocatedTokens,
-          indexerAllocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID, indexerAllocatedTokens, indexerAllocationID, metadata)
     }
   }
 
   before(async function () {
-    ;[
-      me,
-      other,
-      governor,
-      arbitrator,
-      indexer,
-      fisherman,
-      indexer2,
-      assetHolder,
-    ] = await getAccounts()
+    ;[other, governor, arbitrator, indexer, fisherman, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
@@ -99,6 +82,9 @@ describe('DisputeManager:POI', async () => {
     // Give some funds to the fisherman
     await grt.connect(governor.signer).mint(fisherman.address, fishermanTokens)
     await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
+
+    // Allow the asset holder
+    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -141,13 +127,7 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(indexer.signer).stake(indexerTokens)
       const tx1 = await staking
         .connect(indexer.signer)
-        .allocate(
-          subgraphDeploymentID,
-          indexerAllocatedTokens,
-          allocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID, indexerAllocatedTokens, allocationID, metadata)
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation

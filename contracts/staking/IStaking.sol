@@ -27,7 +27,6 @@ interface IStaking {
         uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when closed
-        address assetHolder; // Authorized caller address of the collect() function
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
     }
 
@@ -83,6 +82,8 @@ interface IStaking {
 
     function setSlasher(address _slasher, bool _allowed) external;
 
+    function setAssetHolder(address _assetHolder, bool _allowed) external;
+
     // -- Operation --
 
     function setOperator(address _operator, bool _allowed) external;
@@ -118,7 +119,6 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external;
 
@@ -127,7 +127,6 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external;
 
@@ -140,7 +139,6 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external;
 

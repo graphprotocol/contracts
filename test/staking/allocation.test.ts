@@ -40,7 +40,6 @@ const calculateEffectiveAllocation = (
 
 describe('Staking:Allocation', () => {
   let me: Account
-  let other: Account
   let governor: Account
   let indexer: Account
   let slasher: Account
@@ -68,11 +67,11 @@ describe('Staking:Allocation', () => {
   const allocate = (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
+      .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
   }
 
   before(async function () {
-    ;[me, other, governor, indexer, slasher, assetHolder] = await getAccounts()
+    ;[me, governor, indexer, slasher, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ curation, epochManager, grt, staking } = await fixture.load(
@@ -83,6 +82,9 @@ describe('Staking:Allocation', () => {
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
     await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+
+    // Allow the asset holder
+    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -149,7 +151,6 @@ describe('Staking:Allocation', () => {
           tokensToAllocate,
           allocationID,
           metadata,
-          assetHolder.address,
         )
 
       // After state
@@ -166,7 +167,6 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.closedAtEpoch).eq(toBN('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
-      expect(afterAlloc.assetHolder).eq(assetHolder.address)
     }
 
     it('reject allocate zero tokens', async function () {
@@ -178,13 +178,7 @@ describe('Staking:Allocation', () => {
     it('reject allocate with invalid allocationID', async function () {
       const tx = staking
         .connect(indexer.signer)
-        .allocate(
-          subgraphDeploymentID,
-          tokensToAllocate,
-          AddressZero,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID, tokensToAllocate, AddressZero, metadata)
       await expect(tx).revertedWith('Invalid allocationID')
     })
 
@@ -218,7 +212,6 @@ describe('Staking:Allocation', () => {
             subgraphDeploymentID,
             tokensToAllocate,
             allocationID,
-            assetHolder.address,
             metadata,
           )
         await expect(tx1).revertedWith('!auth')
@@ -232,7 +225,6 @@ describe('Staking:Allocation', () => {
             subgraphDeploymentID,
             tokensToAllocate,
             allocationID,
-            assetHolder.address,
             metadata,
           )
       })
@@ -319,7 +311,7 @@ describe('Staking:Allocation', () => {
 
     it('reject collect if allocation does not exist', async function () {
       const invalidAllocationID = randomHexBytes(20)
-      const tx = staking.connect(indexer.signer).collect(tokensToCollect, invalidAllocationID)
+      const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, invalidAllocationID)
       await expect(tx).revertedWith('Allocation must be active or closed')
     })
 
@@ -531,7 +523,6 @@ describe('Staking:Allocation', () => {
           subgraphDeploymentID,
           tokensToAllocate,
           deriveChannelKey().address,
-          assetHolder.address,
           metadata,
         )
       await tx
@@ -594,7 +585,6 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.closedAtEpoch).eq(toGRT('0'))
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
-      expect(afterAlloc.assetHolder).eq(AddressZero)
       // Rebate updated
       expect(afterRebatePool.unclaimedAllocationsCount).eq(
         beforeRebatePool.unclaimedAllocationsCount - 1,

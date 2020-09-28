@@ -67,4 +67,9 @@ contract StakingV1Storage is Managed {
 
     // Operator auth : indexer => operator
     mapping(address => mapping(address => bool)) public operatorAuth;
+
+    // -- Asset Holders --
+
+    // Allowed AssetHolders: assetHolder => is allowed
+    mapping(address => bool) public assetHolders;
 }

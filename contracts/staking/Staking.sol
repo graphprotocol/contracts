@@ -101,8 +101,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 epoch,
         uint256 tokens,
         address allocationID,
-        bytes32 metadata,
-        address assetHolder
+        bytes32 metadata
     );
 
     /**
@@ -156,9 +155,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     );
 
     /**
-     * @dev Emitted when `caller` set `slasher` address as `enabled` to slash stakes.
+     * @dev Emitted when `caller` set `slasher` address as `allowed` to slash stakes.
      */
-    event SlasherUpdate(address indexed caller, address indexed slasher, bool enabled);
+    event SlasherUpdate(address indexed caller, address indexed slasher, bool allowed);
+
+    /**
+     * @dev Emitted when `caller` set `assetHolder` address as `allowed` to send funds
+     * to staking contract.
+     */
+    event AssetHolderUpdate(address indexed caller, address indexed assetHolder, bool allowed);
 
     /**
      * @dev Emitted when `indexer` set `operator` access.
@@ -361,8 +366,20 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allowed True if slasher is allowed
      */
     function setSlasher(address _slasher, bool _allowed) external override onlyGovernor {
+        require(_slasher != address(0), "!slasher");
         slashers[_slasher] = _allowed;
         emit SlasherUpdate(msg.sender, _slasher, _allowed);
+    }
+
+    /**
+     * @dev Set an address as allowed asset holder.
+     * @param _assetHolder Address of allowed source for state channel funds
+     * @param _allowed True if asset holder is allowed
+     */
+    function setAssetHolder(address _assetHolder, bool _allowed) external override onlyGovernor {
+        require(_assetHolder != address(0), "!assetHolder");
+        assetHolders[_assetHolder] = _allowed;
+        emit AssetHolderUpdate(msg.sender, _assetHolder, _allowed);
     }
 
     /**
@@ -683,24 +700,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
-     * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
     function allocate(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
-        _allocate(
-            msg.sender,
-            _subgraphDeploymentID,
-            _tokens,
-            _allocationID,
-            _assetHolder,
-            _metadata
-        );
+        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
     }
 
     /**
@@ -709,7 +717,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
-     * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
     function allocateFrom(
@@ -717,10 +724,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _assetHolder, _metadata);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
     }
 
     /**
@@ -744,7 +750,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
-     * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata IPFS hash for additional information about the allocation
      */
     function closeAndAllocate(
@@ -754,11 +759,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) external override notPaused {
         _closeAllocation(_closingAllocationID, _poi);
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _assetHolder, _metadata);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
     }
 
     /**
@@ -770,13 +774,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Allocation identifier validation
         require(_allocationID != address(0), "Invalid allocation");
 
-        // NOTE: commented out for easier test of state-channel integrations
-        // NOTE: this validation might be removed in the future if no harm to the
-        // NOTE: economic incentive structure is done by an external caller use
-        // NOTE: of this function
-        // The contract caller must be an asset holder registered during allocate()
-        // Allocation memory alloc = allocations[_allocationID];
-        // require(alloc.assetHolder == msg.sender, "caller is not authorized");
+        // The contract caller must be an authorized asset holder
+        require(assetHolders[msg.sender] == true, "!assetHolder");
 
         // Transfer tokens to collect from the authorized sender
         require(
@@ -822,7 +821,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         alloc.closedAtEpoch = 0;
         alloc.collectedFees = 0;
         alloc.effectiveAllocation = 0;
-        alloc.assetHolder = address(0); // This avoid collect() to be called
 
         // -- Effects --
 
@@ -886,7 +884,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocationID will work to identify collected funds related to this allocation
-     * @param _assetHolder Authorized sender address of collected funds
      * @param _metadata Metadata related to the allocation
      */
     function _allocate(
@@ -894,7 +891,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        address _assetHolder,
         bytes32 _metadata
     ) internal {
         require(_onlyAuth(_indexer), "!auth");
@@ -927,7 +923,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             0, // closedAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
-            _assetHolder, // Source address for allocation collected funds
             _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
         );
         allocations[_allocationID] = alloc;
@@ -947,8 +942,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             alloc.createdAtEpoch,
             alloc.tokens,
             _allocationID,
-            _metadata,
-            _assetHolder
+            _metadata
         );
     }
 

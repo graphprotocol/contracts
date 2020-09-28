@@ -181,6 +181,9 @@ describe('Staking::Delegation', () => {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
     }
+
+    // Allow the asset holder
+    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -428,7 +431,7 @@ describe('Staking::Delegation', () => {
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
+        .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
     }
 
     beforeEach(async function () {
