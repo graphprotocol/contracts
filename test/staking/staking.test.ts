@@ -34,7 +34,6 @@ describe('Staking:Stakes', () => {
   let indexer: Account
   let slasher: Account
   let fisherman: Account
-  let assetHolder: Account
 
   let fixture: NetworkFixture
 
@@ -53,7 +52,7 @@ describe('Staking:Stakes', () => {
   const allocate = function (tokens: BigNumber) {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, allocationID, assetHolder.address, metadata)
+      .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
   }
 
   // Stake and verify state change
@@ -76,7 +75,7 @@ describe('Staking:Stakes', () => {
   }
 
   before(async function () {
-    ;[me, governor, indexer, slasher, fisherman, assetHolder] = await getAccounts()
+    ;[me, governor, indexer, slasher, fisherman] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, staking } = await fixture.load(governor.signer, slasher.signer))

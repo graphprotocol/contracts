@@ -1,9 +1,12 @@
 import { expect } from 'chai'
+import { constants } from 'ethers'
 
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, Account } from '../lib/testHelpers'
+
+const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
 
@@ -35,13 +38,51 @@ describe('Staking:Config', () => {
   describe('setSlasher', function () {
     it('should set `slasher`', async function () {
       expect(await staking.slashers(me.address)).eq(false)
+
       await staking.connect(governor.signer).setSlasher(me.address, true)
       expect(await staking.slashers(me.address)).eq(true)
+
+      await staking.connect(governor.signer).setSlasher(me.address, false)
+      expect(await staking.slashers(me.address)).eq(false)
     })
 
     it('reject set `slasher` if not allowed', async function () {
       const tx = staking.connect(other.signer).setSlasher(me.address, true)
       await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('reject set `slasher` for zero', async function () {
+      const tx = staking.connect(governor.signer).setSlasher(AddressZero, true)
+      await expect(tx).revertedWith('!slasher')
+    })
+  })
+
+  describe('setAssetHolder', function () {
+    it('should set `assetHolder`', async function () {
+      expect(await staking.assetHolders(me.address)).eq(false)
+
+      const tx1 = staking.connect(governor.signer).setAssetHolder(me.address, true)
+      await expect(tx1)
+        .emit(staking, 'AssetHolderUpdate')
+        .withArgs(governor.address, me.address, true)
+      expect(await staking.assetHolders(me.address)).eq(true)
+
+      const tx2 = staking.connect(governor.signer).setAssetHolder(me.address, false)
+      await expect(tx2)
+        .emit(staking, 'AssetHolderUpdate')
+        .withArgs(governor.address, me.address, false)
+      await staking.connect(governor.signer).setAssetHolder(me.address, false)
+      expect(await staking.assetHolders(me.address)).eq(false)
+    })
+
+    it('reject set `assetHolder` if not allowed', async function () {
+      const tx = staking.connect(other.signer).setAssetHolder(me.address, true)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('reject set `assetHolder` for zero', async function () {
+      const tx = staking.connect(governor.signer).setAssetHolder(AddressZero, true)
+      await expect(tx).revertedWith('!assetHolder')
     })
   })
 

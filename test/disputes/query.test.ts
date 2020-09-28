@@ -133,7 +133,6 @@ describe('DisputeManager:Query', async () => {
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           indexerAllocationID,
-          assetHolder.address,
           metadata,
         )
     }
@@ -161,6 +160,9 @@ describe('DisputeManager:Query', async () => {
     // Give some funds to the fisherman
     await grt.connect(governor.signer).mint(fisherman.address, fishermanTokens)
     await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
+
+    // Allow the asset holder
+    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
 
     // Create an attestation
     const attestation = await buildAttestation(receipt, indexer1ChannelKey.privKey)
@@ -217,7 +219,6 @@ describe('DisputeManager:Query', async () => {
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           indexer1ChannelKey.address,
-          assetHolder.address,
           metadata,
         )
       const receipt1 = await tx1.wait()

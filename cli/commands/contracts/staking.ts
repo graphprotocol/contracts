@@ -34,7 +34,6 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const subgraphDeploymentID = cliArgs.subgraphDeploymentID
   const amount = parseGRT(cliArgs.amount)
   const allocationID = cliArgs.allocationID
-  const assetHolder = cliArgs.assetHolder
   const metadata = cliArgs.metadata
   const staking = cli.contracts.Staking
 
@@ -43,7 +42,7 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     cli.wallet,
     staking,
     'allocate',
-    ...[subgraphDeploymentID, amount, allocationID, assetHolder, metadata],
+    ...[subgraphDeploymentID, amount, allocationID, metadata],
   )
 }
 
@@ -193,12 +192,6 @@ export const stakingCommand = {
             })
             .option('allocationID', {
               description: 'Address used by the indexer as destination of funds of state channel',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('assetHolder', {
-              description: 'Address of the contract that hold channel funds',
               type: 'string',
               requiresArg: true,
               demandOption: true,

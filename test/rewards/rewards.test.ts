@@ -35,7 +35,6 @@ describe('Rewards', () => {
   let curator2: Account
   let indexer1: Account
   let indexer2: Account
-  let assetHolder: Account
   let oracle: Account
 
   let fixture: NetworkFixture
@@ -121,16 +120,7 @@ describe('Rewards', () => {
   }
 
   before(async function () {
-    ;[
-      delegator,
-      governor,
-      curator1,
-      curator2,
-      indexer1,
-      indexer2,
-      assetHolder,
-      oracle,
-    ] = await getAccounts()
+    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
@@ -369,13 +359,7 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          allocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
 
       // Jump
       await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -406,13 +390,7 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          allocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
 
       // Jump
       await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -449,13 +427,7 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          allocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
 
       // Jump
       await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -535,13 +507,7 @@ describe('Rewards', () => {
       // Allocate
       await staking
         .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          allocationID,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
     }
 
     it('should distribute rewards on closed allocation', async function () {
