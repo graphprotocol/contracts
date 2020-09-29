@@ -12,6 +12,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
+    uint256 private constant MIN_ISSUANCE_RATE = 1e18;
 
     // -- Events --
 
@@ -50,6 +51,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      */
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
+        _setIssuanceRate(MIN_ISSUANCE_RATE);
     }
 
     /**
@@ -67,7 +69,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Sets the issuance rate.
-     * @param _issuanceRate Issuance rate
+     * The issuance rate is defined as a percentage increase of the total supply per block.
+     * This means that it needs to be greater than 1.0, any number under 1.0 is not
+     * allowed and an issuance rate of 1.0 means no issuance.
+     * To accomodate a high precision the issuance rate is expressed in wei.
+     * @param _issuanceRate Issuance rate expressed in wei
      */
     function setIssuanceRate(uint256 _issuanceRate) public override onlyGovernor {
         _setIssuanceRate(_issuanceRate);
@@ -78,6 +84,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _issuanceRate Issuance rate
      */
     function _setIssuanceRate(uint256 _issuanceRate) internal {
+        require(_issuanceRate >= MIN_ISSUANCE_RATE, "Issuance rate under minimun allowed");
+
         // Called since `issuance rate` will change
         updateAccRewardsPerSignal();
 
@@ -165,8 +173,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @return newly accrued rewards per signal since last update
      */
     function getNewRewardsPerSignal() public override view returns (uint256) {
-        IGraphToken graphToken = graphToken();
-
         // Calculate time steps
         uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
         // Optimization to skip calculations if zero time steps elapsed
@@ -174,12 +180,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        // Zero issuance
-        if (issuanceRate == 0) {
+        // Zero issuance under a rate of 1.0
+        if (issuanceRate <= MIN_ISSUANCE_RATE) {
             return 0;
         }
 
         // Zero issuance if no signalled tokens
+        IGraphToken graphToken = graphToken();
         uint256 signalledTokens = graphToken.balanceOf(address(curation()));
         if (signalledTokens == 0) {
             return 0;
