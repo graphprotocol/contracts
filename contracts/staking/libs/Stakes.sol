@@ -176,12 +176,6 @@ library Stakes {
         if (stake.tokensLockedUntil == 0 || block.number < stake.tokensLockedUntil) {
             return 0;
         }
-        // Cannot withdraw more than currently staked
-        // This condition can happen if while tokens are locked for withdrawal a slash condition happens
-        // In that case the total staked tokens could be below the amount to be withdrawn
-        if (stake.tokensLocked > stake.tokensStaked) {
-            return stake.tokensStaked;
-        }
         return stake.tokensLocked;
     }
 }
