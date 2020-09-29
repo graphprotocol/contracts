@@ -2,6 +2,8 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+
 import "../governance/Managed.sol";
 
 /*
@@ -717,7 +719,11 @@ contract DisputeManager is Managed {
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
         // NOTE: The signer of the attestation is the indexer that served the request
-        return _recover(messageHash, _attestation.v, _attestation.r, _attestation.s);
+        return
+            ECDSA.recover(
+                messageHash,
+                abi.encodePacked(_attestation.r, _attestation.s, _attestation.v)
+            );
     }
 
     /**
@@ -753,41 +759,6 @@ contract DisputeManager is Managed {
         bytes32 s = _toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
 
         return Attestation(requestCID, responseCID, subgraphDeploymentID, v, r, s);
-    }
-
-    /**
-     * @dev Returns the address that signed a hashed message (`hash`) with
-     * signature `v`, `r', `s`. This address can then be used for verification purposes.
-     * @return The address recovered from the hash and signature.
-     */
-    function _recover(
-        bytes32 _hash,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-    ) internal pure returns (address) {
-        // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
-        // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
-        // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
-        // signatures from current libraries generate a unique signature with an s-value in the lower half order.
-        //
-        // If your library generates malleable signatures, such as s-values in the upper range, calculate a new s-value
-        // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
-        // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
-        // these malleable signatures as well.
-        if (uint256(_s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            revert("ECDSA: invalid signature 's' value");
-        }
-
-        if (_v != 27 && _v != 28) {
-            revert("ECDSA: invalid signature 'v' value");
-        }
-
-        // If the signature is valid (and not malleable), return the signer address
-        address signer = ecrecover(_hash, _v, _r, _s);
-        require(signer != address(0), "ECDSA: invalid signature");
-
-        return signer;
     }
 
     /**

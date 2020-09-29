@@ -2,6 +2,7 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import "../governance/Governed.sol";
 
@@ -112,11 +113,8 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
             )
         );
 
-        address recoveredAddress = ecrecover(digest, _v, _r, _s);
-        require(
-            recoveredAddress != address(0) && _owner == recoveredAddress,
-            "GRT: invalid permit"
-        );
+        address recoveredAddress = ECDSA.recover(digest, abi.encodePacked(_r, _s, _v));
+        require(_owner == recoveredAddress, "GRT: invalid permit");
         require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
         _approve(_owner, _spender, _value);
