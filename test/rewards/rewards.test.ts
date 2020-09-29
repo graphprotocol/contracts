@@ -1,12 +1,14 @@
 import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 
+import { deployContract } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
+import { RewardsManagerMock } from '../../build/typechain/contracts/RewardsManagerMock'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import {
@@ -45,6 +47,7 @@ describe('Rewards', () => {
   let epochManager: EpochManager
   let staking: Staking
   let rewardsManager: RewardsManager
+  let rewardsManagerMock: RewardsManagerMock
 
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
@@ -142,6 +145,11 @@ describe('Rewards', () => {
     ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
       governor.signer,
     ))
+
+    rewardsManagerMock = ((await deployContract(
+      'RewardsManagerMock',
+      governor.signer,
+    )) as unknown) as RewardsManagerMock
 
     // 5% minute rate (4 blocks)
     await rewardsManager.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
@@ -628,6 +636,18 @@ describe('Rewards', () => {
       await expect(tx)
         .emit(rewardsManager, 'RewardsDenied')
         .withArgs(indexer1.address, allocationID, await epochManager.currentEpoch())
+    })
+  })
+
+  describe('pow', function () {
+    it('exponentiation works under normal boundaries (annual rate from 1% to 700%, 90 days period)', async function () {
+      const baseRatio = toGRT('0.000000004641377923') // 1% annual rate
+      const timePeriods = (60 * 60 * 24 * 10) / 15 // 90 days in blocks
+      for (let i = 0; i < 50; i = i + 4) {
+        const r = baseRatio.mul(i * 4).add(toGRT('1'))
+        const h = await rewardsManagerMock.pow(r, timePeriods, toGRT('1'))
+        console.log('\tr:', formatGRT(r), '=> c:', formatGRT(h))
+      }
     })
   })
 })
