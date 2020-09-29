@@ -5,6 +5,7 @@ contracts/discovery/erc1056
 contracts/token/IGraphToken.sol
 contracts/upgrades/GraphProxy.sol
 contracts/rewards/RewardsManager.sol
+contracts/tests/RewardsManagerMock.sol
 contracts/tests/ens
 contracts/curation/IGraphCurationToken.sol
 contracts/staking/libs/LibFixedMath.sol
