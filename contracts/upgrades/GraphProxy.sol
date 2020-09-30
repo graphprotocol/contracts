@@ -23,7 +23,7 @@ contract GraphProxy is GraphProxyStorage {
         );
 
         _setAdmin(msg.sender);
-        upgradeTo(_impl);
+        _setPendingImplementation(_impl);
     }
 
     /**

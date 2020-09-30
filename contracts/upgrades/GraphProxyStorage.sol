@@ -46,6 +46,11 @@ contract GraphProxyStorage {
     event ImplementationUpdated(address oldImplementation, address newImplementation);
 
     /**
+     * @dev Emitted when the admin account has changed.
+     */
+    event AdminUpdated(address oldAdmin, address newAdmin);
+
+    /**
      * @dev Modifier to check whether the `msg.sender` is the admin.
      */
     modifier onlyAdmin() {
@@ -72,6 +77,8 @@ contract GraphProxyStorage {
         assembly {
             sstore(slot, _newAdmin)
         }
+
+        emit AdminUpdated(_admin(), _newAdmin);
     }
 
     /**
