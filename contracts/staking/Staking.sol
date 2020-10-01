@@ -606,7 +606,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 _tokens,
         uint256 _reward,
         address _beneficiary
-    ) external override onlySlasher {
+    ) external override onlySlasher notPartialPaused {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only able to slash a non-zero number of tokens

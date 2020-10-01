@@ -251,7 +251,7 @@ contract GNS is Managed, IGNS {
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata,
         bytes32 _subgraphMetadata
-    ) external override onlyGraphAccountOwner(_graphAccount) {
+    ) external override notPaused onlyGraphAccountOwner(_graphAccount) {
         uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
         _publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         graphAccountSubgraphNumbers[_graphAccount]++;
@@ -273,7 +273,7 @@ contract GNS is Managed, IGNS {
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
-    ) external override onlyGraphAccountOwner(_graphAccount) {
+    ) external override notPaused onlyGraphAccountOwner(_graphAccount) {
         require(
             isPublished(_graphAccount, _subgraphNumber),
             "GNS: Cannot update version if not published, or has been deprecated"
@@ -321,6 +321,7 @@ contract GNS is Managed, IGNS {
     function deprecateSubgraph(address _graphAccount, uint256 _subgraphNumber)
         external
         override
+        notPaused
         onlyGraphAccountOwner(_graphAccount)
     {
         require(
@@ -409,7 +410,7 @@ contract GNS is Managed, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _tokens
-    ) external override {
+    ) external override notPartialPaused {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
         require(
@@ -429,7 +430,7 @@ contract GNS is Managed, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignal
-    ) external override {
+    ) external override notPartialPaused {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 curatorNSignal = namePool.curatorNSignal[nameCurator];
@@ -471,7 +472,11 @@ contract GNS is Managed, IGNS {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      */
-    function withdraw(address _graphAccount, uint256 _subgraphNumber) external override {
+    function withdraw(address _graphAccount, uint256 _subgraphNumber)
+        external
+        override
+        notPartialPaused
+    {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == true, "GNS: Name bonding curve must be disabled first");
         require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
