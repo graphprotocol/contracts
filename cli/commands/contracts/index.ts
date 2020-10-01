@@ -8,6 +8,7 @@ import { gnsCommand } from './gns'
 import { graphTokenCommand } from './graphToken'
 import { gdaiCommand } from './gsr-gdai'
 import { stakingCommand } from './staking'
+import { anyCommand } from './any'
 
 import { CLIArgs } from '../../env'
 
@@ -24,6 +25,7 @@ export const contractsCommand = {
       .command(graphTokenCommand)
       .command(gdaiCommand)
       .command(stakingCommand)
+      .command(anyCommand)
   },
   handler: (argv: CLIArgs): void => {
     yargs.showHelp()

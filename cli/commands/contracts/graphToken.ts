@@ -42,6 +42,16 @@ export const approve = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   await sendTransaction(cli.wallet, graphToken, 'approve', ...[account, amount])
 }
 
+export const allowance = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const account = cliArgs.account
+  const spender = cliArgs.spender
+  const graphToken = cli.contracts.GraphToken
+
+  logger.log(`Checking ${account} allowance set for spender ${spender}...`)
+  const res = await graphToken.allowance(account, spender)
+  logger.success(`allowance = ${res}`)
+}
+
 export const graphTokenCommand = {
   command: 'graphToken',
   describe: 'Graph Token contract calls',
@@ -126,6 +136,28 @@ export const graphTokenCommand = {
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return approve(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'allowance',
+        describe: 'Check GRT allowance',
+        builder: (yargs: Argv) => {
+          return yargs
+            .option('account', {
+              description: 'The account who gave an allowance',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('spender', {
+              description: 'The spender',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return allowance(await loadEnv(argv), argv)
         },
       })
   },

@@ -92,9 +92,13 @@ export const sendTransaction = async (
   const receipt = await sender.provider.waitForTransaction(tx.hash)
   const networkName = (await sender.provider.getNetwork()).name
   if (networkName === 'kovan' || networkName === 'rinkeby') {
-    logger.success(`Transaction mined 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+    receipt.status // 1 = success, 0 = failure
+      ? logger.success(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+      : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
   } else {
-    logger.success(`Transaction mined ${tx.hash}`)
+    receipt.status
+      ? logger.success(`Transaction succeeded: ${tx.hash}`)
+      : logger.warn(`Transaction failed: ${tx.hash}`)
   }
   return receipt
 }
