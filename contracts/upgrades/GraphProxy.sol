@@ -1,5 +1,7 @@
 pragma solidity ^0.6.12;
 
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./GraphProxyStorage.sol";
 
 /**
@@ -69,6 +71,7 @@ contract GraphProxy is GraphProxyStorage {
      */
     function acceptUpgrade() external {
         address _pendingImplementation = _pendingimplementation();
+        require(Address.isContract(_pendingImplementation), "Implementation must be a contract");
         require(
             _pendingImplementation != address(0) && msg.sender == _pendingImplementation,
             "Caller must be the pending implementation"
