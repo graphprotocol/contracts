@@ -394,14 +394,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Get the GRT token used by the contract.
-     * @return GRT token contract address
-     */
-    function token() public view returns (IGraphToken) {
-        return graphToken();
-    }
-
-    /**
      * @dev Return if allocationID is used.
      * @param _allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
