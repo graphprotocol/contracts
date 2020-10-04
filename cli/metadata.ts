@@ -4,6 +4,7 @@ interface AccountMetadata {
   image: string
   name: string
   website: string
+  displayName
 }
 
 interface SubgraphMetadata {
@@ -45,6 +46,7 @@ const jsonToAccountMetadata = (json): AccountMetadata => {
     image: checkString(json.image),
     name: checkString(json.name),
     website: checkString(json.website),
+    displayName: checkString(json.displayName),
   }
   return accountMetadata
 }
