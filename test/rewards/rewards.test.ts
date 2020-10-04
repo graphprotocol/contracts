@@ -30,7 +30,7 @@ const { HashZero, WeiPerEther } = constants
 
 const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
 
-describe.only('Rewards', () => {
+describe('Rewards', () => {
   let delegator: Account
   let governor: Account
   let curator1: Account
