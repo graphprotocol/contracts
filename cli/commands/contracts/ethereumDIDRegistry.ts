@@ -17,6 +17,7 @@ const handleAccountMetadata = async (ipfs: string, path: string): Promise<string
   logger.log('  Image:           ', metadata.image || '')
   logger.log('  Name:            ', metadata.name || '')
   logger.log('  Website:         ', metadata.website || '')
+  logger.log('  Display name:    ', metadata.displayName || '')
 
   const ipfsClient = IPFS.createIpfsClient(ipfs)
   logger.log('\nUpload JSON meta data to IPFS...')
