@@ -35,6 +35,7 @@ describe('Rewards', () => {
   let curator2: Account
   let indexer1: Account
   let indexer2: Account
+  let assetHolder: Account
   let oracle: Account
 
   let fixture: NetworkFixture
@@ -465,13 +466,7 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
-          subgraphDeploymentID1,
-          tokensToAllocate,
-          channelPubKey,
-          assetHolder.address,
-          metadata,
-        )
+        .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
     }
 
     async function setupIndexerAllocationWithDelegation(
