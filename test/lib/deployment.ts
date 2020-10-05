@@ -247,3 +247,27 @@ export async function deployRewardsManager(
     false,
   ) as unknown as RewardsManager
 }
+
+export async function deployGraphGovernance(
+  deployer: Signer,
+  governor: string,
+): Promise<GraphGovernance> {
+  // Impl
+  const contract = ((await deployContract(
+    'GraphGovernance',
+    deployer,
+  )) as unknown) as GraphGovernance
+
+  // Proxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
+    deployer,
+    contract.address,
+  )) as unknown) as GraphProxy
+
+  // Impl accept and initialize
+  await contract.connect(deployer).acceptProxy(proxy.address, governor)
+
+  // Use proxy to forward calls to implementation contract
+  return Promise.resolve(contract.attach(proxy.address))
+}
