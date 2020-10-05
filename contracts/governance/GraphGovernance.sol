@@ -1,15 +1,10 @@
 pragma solidity ^0.6.12;
 
-import "./Governed.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
-contract GraphGovernance is Governed {
-    enum ProposalStatus { Null, Unresolved, Approved, Rejected }
+import "./GraphGovernanceStorage.sol";
 
-    // -- State --
-
-    mapping(bytes32 => ProposalStatus) private _proposals;
-    mapping(address => bool) private _proposers;
-
+contract GraphGovernance is GraphGovernanceStorage, GraphUpgradeable, IGraphGovernance {
     // -- Events --
 
     event ProposalCreated(address submitter, bytes32 metadata);
@@ -23,8 +18,23 @@ contract GraphGovernance is Governed {
         _;
     }
 
-    constructor() public {
-        Governed._initialize(msg.sender);
+    /**
+     * @dev Initialize this contract.
+     */
+    function initialize(address _governor) public onlyImpl {
+        Governed._initialize(_governor);
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
+     */
+    function acceptProxy(IGraphProxy _proxy, address _governor) external {
+        // Accept to be the implementation for this proxy
+        _acceptUpgrade(_proxy);
+
+        // Initialization
+        GraphGovernance(address(_proxy)).initialize(_governor);
     }
 
     // -- Proposers --
