@@ -78,6 +78,8 @@ contract GraphGovernance is GraphGovernanceStorage, GraphUpgradeable, IGraphGove
      * @param _allowed True if set as allowed
      */
     function _setProposer(address _account, bool _allowed) internal {
+        require(_account != address(0), "!account");
+
         _proposers[_account] = _allowed;
         emit ProposerUpdated(_account, _allowed);
     }
@@ -128,6 +130,7 @@ contract GraphGovernance is GraphGovernanceStorage, GraphUpgradeable, IGraphGove
      * @param _metadata Proposal identifier. This is an IPFS hash to the content of the proposal
      */
     function approveProposal(bytes32 _metadata) external override onlyGovernor {
+        require(isProposalCreated(_metadata), "!proposal");
         require(!isProposalResolved(_metadata), "resolved");
 
         _proposals[_metadata] = ProposalStatus.Approved;
@@ -139,6 +142,7 @@ contract GraphGovernance is GraphGovernanceStorage, GraphUpgradeable, IGraphGove
      * @param _metadata Proposal identifier. This is an IPFS hash to the content of the proposal
      */
     function rejectProposal(bytes32 _metadata) external override onlyGovernor {
+        require(isProposalCreated(_metadata), "!proposal");
         require(!isProposalResolved(_metadata), "resolved");
 
         _proposals[_metadata] = ProposalStatus.Rejected;
