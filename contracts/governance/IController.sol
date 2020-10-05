@@ -1,8 +1,6 @@
 pragma solidity ^0.6.12;
 
 interface IController {
-    event SetContractProxy(bytes32 id, address contractAddress);
-
     function getGovernor() external view returns (address);
 
     // -- Registry --

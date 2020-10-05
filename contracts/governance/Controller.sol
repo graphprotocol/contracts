@@ -14,6 +14,8 @@ contract Controller is IController, Governed, Pausable {
     // Track contract ids to contract proxy address
     mapping(bytes32 => address) private registry;
 
+    event SetContractProxy(bytes32 id, address contractAddress);
+
     constructor() public {
         Governed._initialize(msg.sender);
         _setPaused(true);

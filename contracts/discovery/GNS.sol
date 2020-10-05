@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../governance/Managed.sol";
 import "../bancor/BancorFormula.sol";
 
+import "./IGNS.sol";
 import "./erc1056/IEthereumDIDRegistry.sol";
 
 /**
@@ -15,20 +16,10 @@ import "./erc1056/IEthereumDIDRegistry.sol";
  * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
  * readable names. All human readable names emitted in events.
  */
-contract GNS is Managed {
+contract GNS is Managed, IGNS {
     using SafeMath for uint256;
 
     // -- State --
-
-    struct NameCurationPool {
-        uint256 vSignal; // The token of the subgraph deployment bonding curve
-        uint256 nSignal; // The token of the name curation bonding curve
-        mapping(address => uint256) curatorNSignal;
-        bytes32 subgraphDeploymentID;
-        uint32 reserveRatio;
-        bool disabled;
-        uint256 withdrawableGRT;
-    }
 
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
@@ -191,7 +182,7 @@ contract GNS is Managed {
     /**
      * @dev Approve curation contract to pull funds.
      */
-    function approveAll() external onlyGovernor {
+    function approveAll() external override onlyGovernor {
         graphToken().approve(address(curation()), uint256(-1));
     }
 
@@ -200,7 +191,7 @@ contract GNS is Managed {
      * @notice Update the minimum vSignal amount to `_minimumVSignalStake`
      * @param _minimumVSignalStake Minimum amount of vSignal required
      */
-    function setMinimumVsignal(uint256 _minimumVSignalStake) external onlyGovernor {
+    function setMinimumVsignal(uint256 _minimumVSignalStake) external override onlyGovernor {
         require(_minimumVSignalStake > 0, "Minimum vSignal cannot be 0");
         minimumVSignalStake = _minimumVSignalStake;
         emit ParameterUpdated("minimumVSignalStake");
@@ -211,7 +202,7 @@ contract GNS is Managed {
      * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
      * @param _ownerFeePercentage Owner fee percentage
      */
-    function setOwnerFeePercentage(uint32 _ownerFeePercentage) external onlyGovernor {
+    function setOwnerFeePercentage(uint32 _ownerFeePercentage) external override onlyGovernor {
         require(_ownerFeePercentage <= 100, "Owner fee must be 100 or less");
         ownerFeePercentage = _ownerFeePercentage;
         emit ParameterUpdated("ownerFeePercentage");
@@ -229,7 +220,7 @@ contract GNS is Managed {
         uint8 _nameSystem,
         bytes32 _nameIdentifier,
         string calldata _name
-    ) external onlyGraphAccountOwner(_graphAccount) {
+    ) external override onlyGraphAccountOwner(_graphAccount) {
         emit SetDefaultName(_graphAccount, _nameSystem, _nameIdentifier, _name);
     }
 
@@ -243,7 +234,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         bytes32 _subgraphMetadata
-    ) public onlyGraphAccountOwner(_graphAccount) {
+    ) public override onlyGraphAccountOwner(_graphAccount) {
         emit SubgraphMetadataUpdated(_graphAccount, _subgraphNumber, _subgraphMetadata);
     }
 
@@ -260,7 +251,7 @@ contract GNS is Managed {
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata,
         bytes32 _subgraphMetadata
-    ) external onlyGraphAccountOwner(_graphAccount) {
+    ) external override onlyGraphAccountOwner(_graphAccount) {
         uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
         _publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         graphAccountSubgraphNumbers[_graphAccount]++;
@@ -282,7 +273,7 @@ contract GNS is Managed {
         uint256 _subgraphNumber,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
-    ) external onlyGraphAccountOwner(_graphAccount) {
+    ) external override onlyGraphAccountOwner(_graphAccount) {
         require(
             isPublished(_graphAccount, _subgraphNumber),
             "GNS: Cannot update version if not published, or has been deprecated"
@@ -329,6 +320,7 @@ contract GNS is Managed {
      */
     function deprecateSubgraph(address _graphAccount, uint256 _subgraphNumber)
         external
+        override
         onlyGraphAccountOwner(_graphAccount)
     {
         require(
@@ -417,7 +409,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _tokens
-    ) external {
+    ) external override {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
         require(
@@ -437,7 +429,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignal
-    ) external {
+    ) external override {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 curatorNSignal = namePool.curatorNSignal[nameCurator];
@@ -479,7 +471,7 @@ contract GNS is Managed {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      */
-    function withdraw(address _graphAccount, uint256 _subgraphNumber) external {
+    function withdraw(address _graphAccount, uint256 _subgraphNumber) external override {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == true, "GNS: Name bonding curve must be disabled first");
         require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
@@ -606,7 +598,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _tokens
-    ) public view returns (uint256, uint256) {
+    ) public override view returns (uint256, uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = curation().tokensToSignal(namePool.subgraphDeploymentID, _tokens);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
@@ -626,6 +618,7 @@ contract GNS is Managed {
         uint256 _nSignal
     )
         public
+        override
         view
         returns (
             uint256,
@@ -653,7 +646,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _vSignal
-    ) public view returns (uint256) {
+    ) public override view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = _vSignal;
 
@@ -690,7 +683,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignal
-    ) public view returns (uint256) {
+    ) public override view returns (uint256) {
         NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
@@ -712,7 +705,7 @@ contract GNS is Managed {
         address _graphAccount,
         uint256 _subgraphNumber,
         address _curator
-    ) public view returns (uint256) {
+    ) public override view returns (uint256) {
         return nameSignals[_graphAccount][_subgraphNumber].curatorNSignal[_curator];
     }
 
@@ -724,6 +717,7 @@ contract GNS is Managed {
      */
     function isPublished(address _graphAccount, uint256 _subgraphNumber)
         public
+        override
         view
         returns (bool)
     {
