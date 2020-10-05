@@ -40,7 +40,7 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      reserveRatio: 500000 # 50% (in basis points)
+      reserveRatio: 300000 # 30% (in basis points)
       minimumCurationDeposit: "100000000000000000000" # 100 GRT
     proxy: true
     calls:
