@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import "../governance/Managed.sol";
 
+import "./IDisputeManager.sol";
+
 /*
  * @title DisputeManager
  * @dev Provides a way to align the incentives of participants by having slashing as deterrent
@@ -29,37 +31,8 @@ import "../governance/Managed.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract DisputeManager is Managed {
+contract DisputeManager is Managed, IDisputeManager {
     using SafeMath for uint256;
-
-    // -- Dispute --
-
-    // Disputes contain info neccessary for the Arbitrator to verify and resolve
-    struct Dispute {
-        address indexer;
-        address fisherman;
-        uint256 deposit;
-        bytes32 relatedDisputeID;
-    }
-
-    // -- Attestation --
-
-    // Receipt content sent from indexer in response to request
-    struct Receipt {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentID;
-    }
-
-    // Attestation sent from indexer in response to a request
-    struct Attestation {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentID;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
 
     uint256 private constant ATTESTATION_SIZE_BYTES = 161;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
@@ -219,7 +192,7 @@ contract DisputeManager is Managed {
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address _arbitrator) external onlyGovernor {
+    function setArbitrator(address _arbitrator) external override onlyGovernor {
         arbitrator = _arbitrator;
         emit ParameterUpdated("arbitrator");
     }
@@ -229,7 +202,7 @@ contract DisputeManager is Managed {
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
-    function setMinimumDeposit(uint256 _minimumDeposit) external onlyGovernor {
+    function setMinimumDeposit(uint256 _minimumDeposit) external override onlyGovernor {
         minimumDeposit = _minimumDeposit;
         emit ParameterUpdated("minimumDeposit");
     }
@@ -239,7 +212,7 @@ contract DisputeManager is Managed {
      * @notice Update the reward percentage to `_percentage`
      * @param _percentage Reward as a percentage of indexer stake
      */
-    function setFishermanRewardPercentage(uint32 _percentage) external onlyGovernor {
+    function setFishermanRewardPercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
         fishermanRewardPercentage = _percentage;
@@ -250,7 +223,7 @@ contract DisputeManager is Managed {
      * @dev Set the percentage used for slashing indexers.
      * @param _percentage Percentage used for slashing
      */
-    function setSlashingPercentage(uint32 _percentage) external onlyGovernor {
+    function setSlashingPercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;
@@ -262,7 +235,7 @@ contract DisputeManager is Managed {
      * @notice Return if dispute with ID `_disputeID` exists
      * @param _disputeID True if dispute already exists
      */
-    function isDisputeCreated(bytes32 _disputeID) public view returns (bool) {
+    function isDisputeCreated(bytes32 _disputeID) public override view returns (bool) {
         return disputes[_disputeID].fisherman != address(0);
     }
 
@@ -274,7 +247,7 @@ contract DisputeManager is Managed {
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(Receipt memory _receipt) public view returns (bytes32) {
+    function encodeHashReceipt(Receipt memory _receipt) public override view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -302,7 +275,7 @@ contract DisputeManager is Managed {
     function areConflictingAttestations(
         Attestation memory _attestation1,
         Attestation memory _attestation2
-    ) public pure returns (bool) {
+    ) public override pure returns (bool) {
         return (_attestation1.requestCID == _attestation2.requestCID &&
             _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
             _attestation1.responseCID != _attestation2.responseCID);
@@ -313,7 +286,12 @@ contract DisputeManager is Managed {
      * @param _attestation Attestation
      * @return Indexer address
      */
-    function getAttestationIndexer(Attestation memory _attestation) public view returns (address) {
+    function getAttestationIndexer(Attestation memory _attestation)
+        public
+        override
+        view
+        returns (address)
+    {
         // Get attestation signer, allocationID
         address allocationID = _recoverAttestationSigner(_attestation);
 
@@ -332,7 +310,7 @@ contract DisputeManager is Managed {
      * @param _indexer Indexer to be slashed
      * @return Reward calculated as percentage of the indexer slashed funds
      */
-    function getTokensToReward(address _indexer) public view returns (uint256) {
+    function getTokensToReward(address _indexer) public override view returns (uint256) {
         uint256 tokens = getTokensToSlash(_indexer);
         if (tokens == 0) {
             return 0;
@@ -345,7 +323,7 @@ contract DisputeManager is Managed {
      * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
-    function getTokensToSlash(address _indexer) public view returns (uint256) {
+    function getTokensToSlash(address _indexer) public override view returns (uint256) {
         uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
         if (tokens == 0) {
             return 0;
@@ -362,6 +340,7 @@ contract DisputeManager is Managed {
      */
     function createQueryDispute(bytes calldata _attestationData, uint256 _deposit)
         external
+        override
         returns (bytes32)
     {
         // Get funds from submitter
@@ -387,11 +366,12 @@ contract DisputeManager is Managed {
      * one will be automatically resolved.
      * @param _attestationData1 First attestation data submitted
      * @param _attestationData1 Second attestation data submitted
+     * @return DisputeID1, DisputeID2
      */
     function createQueryDisputeConflict(
         bytes calldata _attestationData1,
         bytes calldata _attestationData2
-    ) external {
+    ) external override returns (bytes32, bytes32) {
         address fisherman = msg.sender;
 
         // Parse each attestation
@@ -425,6 +405,8 @@ contract DisputeManager is Managed {
 
         // Emit event that links the two created disputes
         emit DisputeLinked(dID1, dID2);
+
+        return (dID1, dID2);
     }
 
     /**
@@ -493,6 +475,7 @@ contract DisputeManager is Managed {
      */
     function createIndexingDispute(address _allocationID, uint256 _deposit)
         external
+        override
         returns (bytes32)
     {
         // Get funds from submitter
@@ -540,7 +523,7 @@ contract DisputeManager is Managed {
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
      */
-    function acceptDispute(bytes32 _disputeID) external onlyArbitrator {
+    function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         Dispute memory dispute = disputes[_disputeID];
@@ -575,7 +558,7 @@ contract DisputeManager is Managed {
      * @notice Reject a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be rejected
      */
-    function rejectDispute(bytes32 _disputeID) external onlyArbitrator {
+    function rejectDispute(bytes32 _disputeID) external override onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         Dispute memory dispute = disputes[_disputeID];
@@ -602,7 +585,7 @@ contract DisputeManager is Managed {
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
-    function drawDispute(bytes32 _disputeID) external onlyArbitrator {
+    function drawDispute(bytes32 _disputeID) external override onlyArbitrator {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
         Dispute memory dispute = disputes[_disputeID];
