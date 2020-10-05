@@ -760,7 +760,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * Funds received are only accepted from a valid source.
      * @param _tokens Amount of tokens to collect
      */
-    function collect(uint256 _tokens, address _allocationID) external override notPaused {
+    function collect(uint256 _tokens, address _allocationID) external override {
         // Allocation identifier validation
         require(_allocationID != address(0), "Invalid allocation");
 
