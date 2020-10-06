@@ -430,7 +430,7 @@ describe('Staking:Stakes', () => {
         expect(tokensAvailable).eq(toGRT('-50'))
 
         const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
-        await expect(tx).revertedWith('Not enough tokens available to unstake')
+        await expect(tx).revertedWith('!stake-avail')
       })
 
       it('reject to slash zero tokens', async function () {
