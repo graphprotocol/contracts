@@ -49,9 +49,11 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _controller) external onlyImpl {
+    function initialize(address _controller, uint256 _issuanceRate) external onlyImpl {
         Managed._initialize(_controller);
-        _setIssuanceRate(MIN_ISSUANCE_RATE);
+
+        // Settings
+        _setIssuanceRate(_issuanceRate);
     }
 
     /**
@@ -59,12 +61,16 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _proxy Graph proxy delegate caller
      * @param _controller Controller for this contract
      */
-    function acceptProxy(IGraphProxy _proxy, address _controller) external {
+    function acceptProxy(
+        IGraphProxy _proxy,
+        address _controller,
+        uint256 _issuanceRate
+    ) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        RewardsManager(address(_proxy)).initialize(_controller);
+        RewardsManager(address(_proxy)).initialize(_controller, _issuanceRate);
     }
 
     /**
@@ -83,7 +89,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Sets the issuance rate.
      * @param _issuanceRate Issuance rate
      */
-    function _setIssuanceRate(uint256 _issuanceRate) internal {
+    function _setIssuanceRate(uint256 _issuanceRate) private {
         require(_issuanceRate >= MIN_ISSUANCE_RATE, "Issuance rate under minimun allowed");
 
         // Called since `issuance rate` will change

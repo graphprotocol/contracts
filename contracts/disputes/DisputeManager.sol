@@ -170,10 +170,11 @@ contract DisputeManager is Managed, IDisputeManager {
     ) public {
         Managed._initialize(_controller);
 
-        arbitrator = _arbitrator;
-        minimumDeposit = _minimumDeposit;
-        fishermanRewardPercentage = _fishermanRewardPercentage;
-        slashingPercentage = _slashingPercentage;
+        // Settings
+        _setArbitrator(_arbitrator);
+        _setMinimumDeposit(_minimumDeposit);
+        _setFishermanRewardPercentage(_fishermanRewardPercentage);
+        _setSlashingPercentage(_slashingPercentage);
 
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
@@ -194,6 +195,15 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _arbitrator The address of the arbitration contract or party
      */
     function setArbitrator(address _arbitrator) external override onlyGovernor {
+        _setArbitrator(_arbitrator);
+    }
+
+    /**
+     * @dev Internal: Set the arbitrator address.
+     * @notice Update the arbitrator to `_arbitrator`
+     * @param _arbitrator The address of the arbitration contract or party
+     */
+    function _setArbitrator(address _arbitrator) private {
         arbitrator = _arbitrator;
         emit ParameterUpdated("arbitrator");
     }
@@ -204,6 +214,15 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
     function setMinimumDeposit(uint256 _minimumDeposit) external override onlyGovernor {
+        _setMinimumDeposit(_minimumDeposit);
+    }
+
+    /**
+     * @dev Internal: Set the minimum deposit required to create a dispute.
+     * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
+     * @param _minimumDeposit The minimum deposit in Graph Tokens
+     */
+    function _setMinimumDeposit(uint256 _minimumDeposit) private {
         minimumDeposit = _minimumDeposit;
         emit ParameterUpdated("minimumDeposit");
     }
@@ -214,6 +233,15 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _percentage Reward as a percentage of indexer stake
      */
     function setFishermanRewardPercentage(uint32 _percentage) external override onlyGovernor {
+        _setFishermanRewardPercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set the percent reward that the fisherman gets when slashing occurs.
+     * @notice Update the reward percentage to `_percentage`
+     * @param _percentage Reward as a percentage of indexer stake
+     */
+    function _setFishermanRewardPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
         fishermanRewardPercentage = _percentage;
@@ -225,6 +253,14 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _percentage Percentage used for slashing
      */
     function setSlashingPercentage(uint32 _percentage) external override onlyGovernor {
+        _setSlashingPercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set the percentage used for slashing indexers.
+     * @param _percentage Percentage used for slashing
+     */
+    function _setSlashingPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
         slashingPercentage = _percentage;

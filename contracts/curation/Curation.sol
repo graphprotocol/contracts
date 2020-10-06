@@ -69,13 +69,16 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         address _controller,
         address _bondingCurve,
         uint32 _defaultReserveRatio,
+        uint32 _withdrawalFeePercentage,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
         Managed._initialize(_controller);
-
         bondingCurve = _bondingCurve;
-        defaultReserveRatio = _defaultReserveRatio;
-        minimumCurationDeposit = _minimumCurationDeposit;
+
+        // Settings
+        _setDefaultReserveRatio(_defaultReserveRatio);
+        _setWithdrawalFeePercentage(_withdrawalFeePercentage);
+        _setMinimumCurationDeposit(_minimumCurationDeposit);
     }
 
     /**
@@ -90,6 +93,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         address _controller,
         address _bondingCurve,
         uint32 _defaultReserveRatio,
+        uint32 _withdrawalFeePercentage,
         uint256 _minimumCurationDeposit
     ) external {
         // Accept to be the implementation for this proxy
@@ -100,6 +104,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             _controller,
             _bondingCurve,
             _defaultReserveRatio,
+            _withdrawalFeePercentage,
             _minimumCurationDeposit
         );
     }
@@ -110,6 +115,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
     function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
+        _setDefaultReserveRatio(_defaultReserveRatio);
+    }
+
+    /**
+     * @dev Internal: Set the default reserve ratio percentage for a curation pool.
+     * @notice Update the default reserver ratio to `_defaultReserveRatio`
+     * @param _defaultReserveRatio Reserve ratio (in PPM)
+     */
+    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
         // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
@@ -131,6 +145,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         override
         onlyGovernor
     {
+        _setMinimumCurationDeposit(_minimumCurationDeposit);
+    }
+
+    /**
+     * @dev Internal: Set the minimum deposit amount for curators.
+     * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
+     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
+     */
+    function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
         require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
         minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");
@@ -141,6 +164,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _percentage Percentage fee charged when withdrawing GRT tokens
      */
     function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
+        _setWithdrawalFeePercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set the fee percentage to charge when a curator withdraws GRT tokens.
+     * @param _percentage Percentage fee charged when withdrawing GRT tokens
+     */
+    function _setWithdrawalFeePercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
         require(
             _percentage <= MAX_PPM,

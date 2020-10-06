@@ -25,7 +25,7 @@ export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
-    withdrawalFeePercentage: 50000,
+    withdrawalFeePercentage: 0,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
@@ -53,7 +53,7 @@ export const defaults = {
     initialSupply: toGRT('100000000'), // 100 M
   },
   rewards: {
-    issuanceRate: toGRT('1.000000023206889619'),
+    issuanceRate: toGRT('1.000000023206889619'), // 5% annual rate
   },
 }
 
@@ -116,6 +116,7 @@ export async function deployCuration(deployer: Signer, controller: string): Prom
       controller,
       bondingCurve.address,
       defaults.curation.reserveRatio,
+      defaults.curation.withdrawalFeePercentage,
       defaults.curation.minimumCurationDeposit,
     )
 
@@ -240,7 +241,9 @@ export async function deployRewardsManager(
   )) as unknown) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(deployer).acceptProxy(proxy.address, controller)
+  await contract
+    .connect(deployer)
+    .acceptProxy(proxy.address, controller, defaults.rewards.issuanceRate)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))
