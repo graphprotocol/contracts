@@ -44,11 +44,9 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       reserveRatio: 500000 # 50% (in basis points)
+      withdrawalFeePercentage: 50000 # 5% (in basis points)
       minimumCurationDeposit: "100000000000000000000" # 100 GRT
     proxy: true
-    calls:
-      - fn: "setWithdrawalFeePercentage"
-        withdrawalFeePercentage: 50000 # 5% (in basis points)
   DisputeManager:
     init:
       controller: "${{Controller.address}}"
@@ -84,7 +82,5 @@ contracts:
   RewardsManager:
     init:
       controller: "${{Controller.address}}"
-    calls:
-      - fn: "setIssuanceRate"
-        issuanceRate: "1000000023206889619" # 5% annual rate
+      issuanceRate: "1000000023206889619" # 5% annual rate
     proxy: true
