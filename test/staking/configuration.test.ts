@@ -131,7 +131,7 @@ describe('Staking:Config', () => {
     it('reject set `curationPercentage` if out of bounds', async function () {
       const newValue = MAX_PPM.add(toBN('1'))
       const tx = staking.connect(governor.signer).setCurationPercentage(newValue)
-      await expect(tx).revertedWith('Curation percentage must be below or equal to MAX_PPM')
+      await expect(tx).revertedWith('>percentage')
     })
 
     it('reject set `curationPercentage` if not allowed', async function () {
@@ -151,7 +151,7 @@ describe('Staking:Config', () => {
     it('reject set `protocolPercentage` if out of bounds', async function () {
       const newValue = MAX_PPM.add(toBN('1'))
       const tx = staking.connect(governor.signer).setProtocolPercentage(newValue)
-      await expect(tx).revertedWith('Protocol percentage must be below or equal to MAX_PPM')
+      await expect(tx).revertedWith('>percentage')
     })
 
     it('reject set `protocolPercentage` if not allowed', async function () {
@@ -202,10 +202,10 @@ describe('Staking:Config', () => {
 
     it('reject set `rebateRatio` if out of bounds', async function () {
       const tx1 = staking.connect(governor.signer).setRebateRatio(0, 1)
-      await expect(tx1).revertedWith('=zero')
+      await expect(tx1).revertedWith('!alpha')
 
       const tx2 = staking.connect(governor.signer).setRebateRatio(1, 0)
-      await expect(tx2).revertedWith('=zero')
+      await expect(tx2).revertedWith('!alpha')
     })
 
     it('reject set `rebateRatio` if not allowed', async function () {
