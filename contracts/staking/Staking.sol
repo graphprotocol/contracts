@@ -211,18 +211,20 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Managed._initialize(_controller);
 
         // Settings
-        minimumIndexerStake = _minimumIndexerStake;
-        thawingPeriod = _thawingPeriod;
-        protocolPercentage = _protocolPercentage;
-        curationPercentage = _curationPercentage;
-        channelDisputeEpochs = _channelDisputeEpochs;
-        maxAllocationEpochs = _maxAllocationEpochs;
-        delegationUnbondingPeriod = _delegationUnbondingPeriod;
-        delegationRatio = _delegationRatio;
+        _setMinimumIndexerStake(_minimumIndexerStake);
+        _setThawingPeriod(_thawingPeriod);
 
-        // Rebate Ratio
-        alphaNumerator = _rebateAlphaNumerator;
-        alphaDenominator = _rebateAlphaDenominator;
+        _setProtocolPercentage(_protocolPercentage);
+        _setCurationPercentage(_curationPercentage);
+
+        _setChannelDisputeEpochs(_channelDisputeEpochs);
+        _setMaxAllocationEpochs(_maxAllocationEpochs);
+
+        _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
+        _setDelegationRatio(_delegationRatio);
+        _setDelegationParametersCooldown(0);
+
+        _setRebateRatio(_rebateAlphaNumerator, _rebateAlphaDenominator);
     }
 
     /**
@@ -268,6 +270,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
+        _setMinimumIndexerStake(_minimumIndexerStake);
+    }
+
+    /**
+     * @dev Internal: Set the minimum indexer stake required to.
+     * @param _minimumIndexerStake Minimum indexer stake
+     */
+    function _setMinimumIndexerStake(uint256 _minimumIndexerStake) private {
         minimumIndexerStake = _minimumIndexerStake;
         emit ParameterUpdated("minimumIndexerStake");
     }
@@ -277,6 +287,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
     function setThawingPeriod(uint32 _thawingPeriod) external override onlyGovernor {
+        _setThawingPeriod(_thawingPeriod);
+    }
+
+    /**
+     * @dev Internal: Set the thawing period for unstaking.
+     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
+     */
+    function _setThawingPeriod(uint32 _thawingPeriod) private {
         thawingPeriod = _thawingPeriod;
         emit ParameterUpdated("thawingPeriod");
     }
@@ -286,6 +304,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _percentage Percentage of query fees sent to curators
      */
     function setCurationPercentage(uint32 _percentage) external override onlyGovernor {
+        _setCurationPercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set the curation percentage of query fees sent to curators.
+     * @param _percentage Percentage of query fees sent to curators
+     */
+    function _setCurationPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, ">percentage");
         curationPercentage = _percentage;
@@ -297,6 +323,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _percentage Percentage of query fees to burn as protocol fee
      */
     function setProtocolPercentage(uint32 _percentage) external override onlyGovernor {
+        _setProtocolPercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set a protocol percentage to burn when collecting query fees.
+     * @param _percentage Percentage of query fees to burn as protocol fee
+     */
+    function _setProtocolPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
         require(_percentage <= MAX_PPM, ">percentage");
         protocolPercentage = _percentage;
@@ -308,6 +342,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _channelDisputeEpochs Period in epochs
      */
     function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external override onlyGovernor {
+        _setChannelDisputeEpochs(_channelDisputeEpochs);
+    }
+
+    /**
+     * @dev Internal: Set the period in epochs that need to pass before fees in rebate pool can be claimed.
+     * @param _channelDisputeEpochs Period in epochs
+     */
+    function _setChannelDisputeEpochs(uint32 _channelDisputeEpochs) private {
         channelDisputeEpochs = _channelDisputeEpochs;
         emit ParameterUpdated("channelDisputeEpochs");
     }
@@ -317,6 +359,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external override onlyGovernor {
+        _setMaxAllocationEpochs(_maxAllocationEpochs);
+    }
+
+    /**
+     * @dev Internal: Set the max time allowed for indexers stake on allocations.
+     * @param _maxAllocationEpochs Allocation duration limit in epochs
+     */
+    function _setMaxAllocationEpochs(uint32 _maxAllocationEpochs) private {
         maxAllocationEpochs = _maxAllocationEpochs;
         emit ParameterUpdated("maxAllocationEpochs");
     }
@@ -331,6 +381,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         override
         onlyGovernor
     {
+        _setRebateRatio(_alphaNumerator, _alphaDenominator);
+    }
+
+    /**
+     * @dev Set the rebate ratio (fees to allocated stake).
+     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
+     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     */
+    function _setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) private {
         require(_alphaNumerator > 0 && _alphaDenominator > 0, "!alpha");
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -344,6 +403,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _delegationRatio Delegation capacity multiplier
      */
     function setDelegationRatio(uint32 _delegationRatio) external override onlyGovernor {
+        _setDelegationRatio(_delegationRatio);
+    }
+
+    /**
+     * @dev Internal: Set the delegation ratio.
+     * If set to 10 it means the indexer can use up to 10x the indexer staked amount
+     * from their delegated tokens
+     * @param _delegationRatio Delegation capacity multiplier
+     */
+    function _setDelegationRatio(uint32 _delegationRatio) private {
         delegationRatio = _delegationRatio;
         emit ParameterUpdated("delegationRatio");
     }
@@ -395,6 +464,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _blocks Number of blocks to set the delegation parameters cooldown period
      */
     function setDelegationParametersCooldown(uint32 _blocks) external override onlyGovernor {
+        _setDelegationParametersCooldown(_blocks);
+    }
+
+    /**
+     * @dev Internal: Set the time in blocks an indexer needs to wait to change delegation parameters.
+     * @param _blocks Number of blocks to set the delegation parameters cooldown period
+     */
+    function _setDelegationParametersCooldown(uint32 _blocks) private {
         delegationParametersCooldown = _blocks;
         emit ParameterUpdated("delegationParametersCooldown");
     }
@@ -408,6 +485,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         override
         onlyGovernor
     {
+        _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
+    }
+
+    /**
+     * @dev Internal: Set the period for undelegation of stake from indexer.
+     * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
+     */
+    function _setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) private {
         delegationUnbondingPeriod = _delegationUnbondingPeriod;
         emit ParameterUpdated("delegationUnbondingPeriod");
     }
