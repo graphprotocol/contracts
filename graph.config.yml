@@ -66,30 +66,21 @@ contracts:
   Staking:
     init:
       controller: "${{Controller.address}}"
+      minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
+      thawingPeriod: 275 # ~1 hour (in blocks)
+      protocolPercentage: 10000 # 1% (in basis points)
+      percentage: 100000 # 10%
+      channelDisputeEpochs: 4
+      maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
+      delegationUnbondingPeriod: 2 # epochs
+      delegationRatio: 100 # 100x (multiplier)
+      rebateAlphaNumerator: 85
+      rebateAlphaDenominator: 100
     proxy: true
     calls:
-      - fn: "setCurationPercentage"
-        percentage: 100000 # 10%
-      - fn: "setChannelDisputeEpochs"
-        channelDisputeEpochs: 4
-      - fn: "setMaxAllocationEpochs"
-        maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
-      - fn: "setThawingPeriod"
-        thawingPeriod: 275 # ~1 hour (in blocks)
-      - fn: "setDelegationUnbondingPeriod"
-        delegationUnbondingPeriod: 2 # epochs
-      - fn: "setDelegationRatio"
-        delegationRatio: 100 # 100x (multiplier)
-      - fn: "setProtocolPercentage"
-        protocolPercentage: 10000 # 1% (in basis points)
-      - fn: "setRebateRatio"
-        alphaNumerator: 85
-        alphaDenominator: 100
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
-      - fn: "setMinimumIndexerStake"
-        minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
   RewardsManager:
     init:
       controller: "${{Controller.address}}"

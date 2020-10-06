@@ -195,12 +195,34 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _controller) external onlyImpl {
+    function initialize(
+        address _controller,
+        uint256 _minimumIndexerStake,
+        uint32 _thawingPeriod,
+        uint32 _protocolPercentage,
+        uint32 _curationPercentage,
+        uint32 _channelDisputeEpochs,
+        uint32 _maxAllocationEpochs,
+        uint32 _delegationUnbondingPeriod,
+        uint32 _delegationRatio,
+        uint32 _rebateAlphaNumerator,
+        uint32 _rebateAlphaDenominator
+    ) external onlyImpl {
         Managed._initialize(_controller);
 
-        // By default 100% rebate ratio to fees
-        alphaNumerator = 1;
-        alphaDenominator = 1;
+        // Settings
+        minimumIndexerStake = _minimumIndexerStake;
+        thawingPeriod = _thawingPeriod;
+        protocolPercentage = _protocolPercentage;
+        curationPercentage = _curationPercentage;
+        channelDisputeEpochs = _channelDisputeEpochs;
+        maxAllocationEpochs = _maxAllocationEpochs;
+        delegationUnbondingPeriod = _delegationUnbondingPeriod;
+        delegationRatio = _delegationRatio;
+
+        // Rebate Ratio
+        alphaNumerator = _rebateAlphaNumerator;
+        alphaDenominator = _rebateAlphaDenominator;
     }
 
     /**
@@ -208,12 +230,37 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _proxy Graph proxy delegate caller
      * @param _controller Controller for this contract
      */
-    function acceptProxy(IGraphProxy _proxy, address _controller) external {
+    function acceptProxy(
+        IGraphProxy _proxy,
+        address _controller,
+        uint256 _minimumIndexerStake,
+        uint32 _thawingPeriod,
+        uint32 _protocolPercentage,
+        uint32 _curationPercentage,
+        uint32 _channelDisputeEpochs,
+        uint32 _maxAllocationEpochs,
+        uint32 _delegationUnbondingPeriod,
+        uint32 _delegationRatio,
+        uint32 _rebateAlphaNumerator,
+        uint32 _rebateAlphaDenominator
+    ) external {
         // Accept to be the implementation for this proxy
         _acceptUpgrade(_proxy);
 
         // Initialization
-        Staking(address(_proxy)).initialize(_controller);
+        Staking(address(_proxy)).initialize(
+            _controller,
+            _minimumIndexerStake,
+            _thawingPeriod,
+            _protocolPercentage,
+            _curationPercentage,
+            _channelDisputeEpochs,
+            _maxAllocationEpochs,
+            _delegationUnbondingPeriod,
+            _delegationRatio,
+            _rebateAlphaNumerator,
+            _rebateAlphaDenominator
+        );
     }
 
     /**
@@ -240,7 +287,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function setCurationPercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, "Curation percentage must be below or equal to MAX_PPM");
+        require(_percentage <= MAX_PPM, ">percentage");
         curationPercentage = _percentage;
         emit ParameterUpdated("curationPercentage");
     }
@@ -251,7 +298,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function setProtocolPercentage(uint32 _percentage) external override onlyGovernor {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, "Protocol percentage must be below or equal to MAX_PPM");
+        require(_percentage <= MAX_PPM, ">percentage");
         protocolPercentage = _percentage;
         emit ParameterUpdated("protocolPercentage");
     }
@@ -284,7 +331,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         override
         onlyGovernor
     {
-        require(_alphaNumerator > 0 && _alphaDenominator > 0, "=zero");
+        require(_alphaNumerator > 0 && _alphaDenominator > 0, "!alpha");
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
         emit ParameterUpdated("rebateRatio");
@@ -315,24 +362,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexer = msg.sender;
 
         // Incentives must be within bounds
-        require(_queryFeeCut <= MAX_PPM, "QueryFeeCut must be below or equal to MAX_PPM");
-        require(
-            _indexingRewardCut <= MAX_PPM,
-            "IndexingRewardCut must be below or equal to MAX_PPM"
-        );
+        require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
+        require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
 
         // Cooldown period set by indexer cannot be below protocol global setting
-        require(
-            _cooldownBlocks >= delegationParametersCooldown,
-            "Cooldown cannot be below minimum"
-        );
+        require(_cooldownBlocks >= delegationParametersCooldown, "<cooldown");
 
         // Verify the cooldown period passed
         DelegationPool storage pool = delegationPools[indexer];
         require(
             pool.updatedAtBlock == 0 ||
                 pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
-            "Must expire cooldown period to update parameters"
+            "!cooldown"
         );
 
         // Update delegation params
@@ -519,7 +560,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allowed Whether authorized or not
      */
     function setOperator(address _operator, bool _allowed) external override {
-        require(_operator != msg.sender, "operator != sender");
+        require(_operator != msg.sender, "operator == sender");
         operatorAuth[msg.sender][_operator] = _allowed;
         emit SetOperator(msg.sender, _operator, _allowed);
     }
@@ -547,12 +588,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to stake
      */
     function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
-        require(_tokens > 0, "Cannot stake zero tokens");
+        require(_tokens > 0, "!tokens");
 
         // Ensure minimum stake
         require(
             stakes[_indexer].tokensSecureStake().add(_tokens) >= minimumIndexerStake,
-            "Stake must be above minimum required"
+            "!minimumIndexerStake"
         );
 
         // Transfer tokens to stake from caller to this contract
@@ -570,19 +611,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        require(_tokens > 0, "Cannot unstake zero tokens");
-        require(indexerStake.hasTokens(), "Indexer has no stakes");
-        require(
-            indexerStake.tokensAvailable() >= _tokens,
-            "Not enough tokens available to unstake"
-        );
+        require(_tokens > 0, "!tokens");
+        require(indexerStake.hasTokens(), "!stake");
+        require(indexerStake.tokensAvailable() >= _tokens, "!stake-avail");
 
         // Ensure minimum stake
         uint256 newStake = indexerStake.tokensSecureStake().sub(_tokens);
-        require(
-            newStake == 0 || newStake >= minimumIndexerStake,
-            "Stake must be above minimum required"
-        );
+        require(newStake == 0 || newStake >= minimumIndexerStake, "!minimumIndexerStake");
 
         // Before locking more tokens, withdraw any unlocked ones
         uint256 tokensToWithdraw = indexerStake.tokensWithdrawable();
@@ -619,17 +654,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only able to slash a non-zero number of tokens
-        require(_tokens > 0, "Cannot slash zero tokens");
+        require(_tokens > 0, "!tokens");
 
         // Rewards comes from tokens slashed balance
-        require(_tokens >= _reward, "Reward cannot be higher than slashed amount");
+        require(_tokens >= _reward, "rewards>slash");
 
         // Cannot slash stake of an indexer without any or enough stake
-        require(indexerStake.hasTokens(), "Indexer has no stakes");
-        require(_tokens <= indexerStake.tokensStaked, "Cannot slash more than staked amount");
+        require(indexerStake.hasTokens(), "!stake");
+        require(_tokens <= indexerStake.tokensStaked, "slash>stake");
 
         // Validate beneficiary of slashed tokens
-        require(_beneficiary != address(0), "Beneficiary must not be an empty address");
+        require(_beneficiary != address(0), "!beneficiary");
 
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
@@ -771,7 +806,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function collect(uint256 _tokens, address _allocationID) external override {
         // Allocation identifier validation
-        require(_allocationID != address(0), "Invalid allocation");
+        require(_allocationID != address(0), "!alloc");
 
         // The contract caller must be an authorized asset holder
         require(assetHolders[msg.sender] == true, "!assetHolder");
@@ -798,7 +833,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // TODO: restake when delegator called should not be allowed?
 
         // Funds can only be claimed after a period of time passed since allocation was closed
-        require(allocState == AllocationState.Finalized, "Allocation must be in finalized state");
+        require(allocState == AllocationState.Finalized, "!finalized");
 
         // Process rebate reward
         Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
@@ -883,7 +918,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Get tokens available for withdraw and update balance
         uint256 tokensToWithdraw = indexerStake.withdrawTokens();
-        require(tokensToWithdraw > 0, "No tokens available to withdraw");
+        require(tokensToWithdraw > 0, "!tokens");
 
         // Return tokens to the indexer
         require(graphToken().transfer(_indexer, tokensToWithdraw), "!transfer");
@@ -911,19 +946,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only allocations with a non-zero token amount are allowed
-        require(_tokens > 0, "Cannot allocate zero tokens");
+        require(_tokens > 0, "!tokens");
 
         // Check allocation ID
-        require(_allocationID != address(0), "Invalid allocationID");
+        require(_allocationID != address(0), "!alloc");
 
         // Needs to have free capacity not used for other purposes to allocate
-        require(getIndexerCapacity(_indexer) >= _tokens, "Not enough tokens available to allocate");
+        require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
 
         // Cannot reuse an allocationID that has already been used in an allocation
-        require(
-            _getAllocationState(_allocationID) == AllocationState.Null,
-            "AllocationID already used"
-        );
+        require(_getAllocationState(_allocationID) == AllocationState.Null, "!null");
 
         // Creates an allocation
         // Allocation identifiers are not reused
@@ -970,7 +1002,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Allocation must exist and be active
-        require(allocState == AllocationState.Active, "Allocation must be active");
+        require(allocState == AllocationState.Active, "!active");
 
         // Get indexer stakes
         Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
@@ -980,7 +1012,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 epochs = alloc.createdAtEpoch < currentEpoch
             ? currentEpoch.sub(alloc.createdAtEpoch)
             : 0;
-        require(epochs > 0, "Must pass at least one epoch");
+        require(epochs > 0, "<epochs");
 
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
@@ -1049,7 +1081,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // The allocation must be active or closed
         require(
             allocState == AllocationState.Active || allocState == AllocationState.Closed,
-            "Allocation must be active or closed"
+            "!collect"
         );
 
         // Calculate protocol fees to be burned
@@ -1081,7 +1113,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             // TODO: the approve call can be optimized by approving the curation contract to fetch
             // funds from the Staking contract for infinity funds just once for a security tradeoff
             ICuration curation = curation();
-            require(graphToken().approve(address(curation), curationFees), "Token approval failed");
+            require(graphToken().approve(address(curation), curationFees), "!approve");
             curation.collect(alloc.subgraphDeploymentID, curationFees);
         }
 
@@ -1110,11 +1142,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 _tokens
     ) internal returns (uint256) {
         // Only delegate a non-zero amount of tokens
-        require(_tokens > 0, "Cannot delegate zero tokens");
+        require(_tokens > 0, "!tokens");
         // Only delegate to non-empty address
-        require(_indexer != address(0), "Cannot delegate to empty address");
+        require(_indexer != address(0), "!indexer");
         // Only delegate to staked indexer
-        require(stakes[_indexer].hasTokens(), "Cannot delegate to non-staked indexer");
+        require(stakes[_indexer].hasTokens(), "!stake");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
@@ -1148,14 +1180,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 _shares
     ) internal returns (uint256) {
         // Can only undelegate a non-zero amount of shares
-        require(_shares > 0, "Cannot undelegate zero shares");
+        require(_shares > 0, "!shares");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
         Delegation storage delegation = pool.delegators[_delegator];
 
         // Delegator need to have enough shares in the pool to undelegate
-        require(delegation.shares >= _shares, "Delegator does not have enough shares");
+        require(delegation.shares >= _shares, "!shares-avail");
 
         // Withdraw tokens if available
         if (getWithdraweableDelegatedTokens(delegation) > 0) {
@@ -1202,7 +1234,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Validation
         uint256 tokensToWithdraw = getWithdraweableDelegatedTokens(delegation);
-        require(tokensToWithdraw > 0, "No tokens available to withdraw");
+        require(tokensToWithdraw > 0, "!tokens");
 
         // Reset lock
         delegation.tokensLocked = 0;

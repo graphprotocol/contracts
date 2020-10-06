@@ -103,13 +103,13 @@ describe('Staking:Stakes', () => {
     describe('stake', function () {
       it('reject stake zero tokens', async function () {
         const tx = staking.connect(indexer.signer).stake(toGRT('0'))
-        await expect(tx).revertedWith('Cannot stake zero tokens')
+        await expect(tx).revertedWith('!tokens')
       })
 
       it('reject stake less than minimum indexer stake', async function () {
         expect(toGRT('1')).lte(await staking.minimumIndexerStake())
         const tx = staking.connect(indexer.signer).stake(toGRT('1'))
-        await expect(tx).revertedWith('Stake must be above minimum required')
+        await expect(tx).revertedWith('!minimumIndexerStake')
       })
 
       it('should stake tokens', async function () {
@@ -125,7 +125,7 @@ describe('Staking:Stakes', () => {
       it('reject unstake tokens', async function () {
         const tokensToUnstake = toGRT('2')
         const tx = staking.connect(indexer.signer).unstake(tokensToUnstake)
-        await expect(tx).revertedWith('Indexer has no stakes')
+        await expect(tx).revertedWith('!stake')
       })
     })
 
@@ -136,7 +136,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
-        await expect(tx).revertedWith('Indexer has no stakes')
+        await expect(tx).revertedWith('!stake')
       })
     })
   })
@@ -171,7 +171,7 @@ describe('Staking:Stakes', () => {
 
         // Stake should require to go over the minimum stake
         const tx = staking.connect(indexer.signer).stake(toGRT('1'))
-        await expect(tx).revertedWith('Stake must be above minimum required')
+        await expect(tx).revertedWith('!minimumIndexerStake')
       })
     })
 
@@ -265,13 +265,13 @@ describe('Staking:Stakes', () => {
 
       it('reject unstake zero tokens', async function () {
         const tx = staking.connect(indexer.signer).unstake(toGRT('0'))
-        await expect(tx).revertedWith('Cannot unstake zero tokens')
+        await expect(tx).revertedWith('!tokens')
       })
 
       it('reject unstake more than available tokens', async function () {
         const tokensOverCapacity = tokensToStake.add(toGRT('1'))
         const tx = staking.connect(indexer.signer).unstake(tokensOverCapacity)
-        await expect(tx).revertedWith('Not enough tokens available to unstake')
+        await expect(tx).revertedWith('!stake-avail')
       })
 
       it('reject unstake under the minimum indexer stake', async function () {
@@ -279,7 +279,7 @@ describe('Staking:Stakes', () => {
         const tokensStaked = (await staking.stakes(indexer.address)).tokensStaked
         const tokensToGetUnderMinimumStake = tokensStaked.sub(minimumIndexerStake).add(1)
         const tx = staking.connect(indexer.signer).unstake(tokensToGetUnderMinimumStake)
-        await expect(tx).revertedWith('Stake must be above minimum required')
+        await expect(tx).revertedWith('!minimumIndexerStake')
       })
 
       it('reject unstake under the minimum indexer stake w/multiple unstake', async function () {
@@ -292,7 +292,7 @@ describe('Staking:Stakes', () => {
 
         // Second unstake, taking just one token out will make us under the minimum stake
         const tx = staking.connect(indexer.signer).unstake(toGRT('1'))
-        await expect(tx).revertedWith('Stake must be above minimum required')
+        await expect(tx).revertedWith('!minimumIndexerStake')
       })
 
       it('should allow unstake of full amount', async function () {
@@ -304,7 +304,7 @@ describe('Staking:Stakes', () => {
     describe('withdraw', function () {
       it('reject withdraw if no tokens available', async function () {
         const tx = staking.connect(indexer.signer).withdraw()
-        await expect(tx).revertedWith('No tokens available to withdraw')
+        await expect(tx).revertedWith('!tokens')
       })
 
       it('should withdraw if tokens available', async function () {
@@ -317,7 +317,7 @@ describe('Staking:Stakes', () => {
 
         // Withdraw on locking period (should fail)
         const tx2 = staking.connect(indexer.signer).withdraw()
-        await expect(tx2).revertedWith('No tokens available to withdraw')
+        await expect(tx2).revertedWith('!tokens')
 
         // Move forward
         await advanceBlockTo(tokensLockedUntil)
@@ -439,7 +439,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, me.address)
-        await expect(tx).revertedWith('Cannot slash zero tokens')
+        await expect(tx).revertedWith('!tokens')
       })
 
       it('reject to slash indexer if caller is not slasher', async function () {
@@ -457,7 +457,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, AddressZero)
-        await expect(tx).revertedWith('Beneficiary must not be an empty address')
+        await expect(tx).revertedWith('!beneficiary')
       })
 
       it('reject to slash indexer if reward is greater than slash amount', async function () {
@@ -466,7 +466,7 @@ describe('Staking:Stakes', () => {
         const tx = staking
           .connect(slasher.signer)
           .slash(indexer.address, tokensToSlash, tokensToReward, fisherman.address)
-        await expect(tx).revertedWith('Reward cannot be higher than slashed amoun')
+        await expect(tx).revertedWith('rewards>slash')
       })
     })
   })

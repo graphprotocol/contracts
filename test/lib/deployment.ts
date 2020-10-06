@@ -209,22 +209,25 @@ export async function deployStaking(deployer: Signer, controller: string): Promi
   )) as unknown) as GraphProxy
 
   // Impl accept and initialize
-  await contract.connect(deployer).acceptProxy(proxy.address, controller)
+  await contract
+    .connect(deployer)
+    .acceptProxy(
+      proxy.address,
+      controller,
+      defaults.staking.minimumIndexerStake,
+      defaults.staking.thawingPeriod,
+      0,
+      0,
+      defaults.staking.channelDisputeEpochs,
+      defaults.staking.maxAllocationEpochs,
+      defaults.staking.delegationUnbondingPeriod,
+      0,
+      defaults.staking.alphaNumerator,
+      defaults.staking.alphaDenominator,
+    )
 
   // Configure
-  const staking = contract.attach(proxy.address)
-  await staking.connect(deployer).setMinimumIndexerStake(defaults.staking.minimumIndexerStake)
-  await staking.connect(deployer).setChannelDisputeEpochs(defaults.staking.channelDisputeEpochs)
-  await staking.connect(deployer).setMaxAllocationEpochs(defaults.staking.maxAllocationEpochs)
-  await staking.connect(deployer).setThawingPeriod(defaults.staking.thawingPeriod)
-  await staking
-    .connect(deployer)
-    .setDelegationUnbondingPeriod(defaults.staking.delegationUnbondingPeriod)
-  await staking
-    .connect(deployer)
-    .setRebateRatio(defaults.staking.alphaNumerator, defaults.staking.alphaDenominator)
-
-  return staking
+  return contract.attach(proxy.address)
 }
 
 export async function deployRewardsManager(

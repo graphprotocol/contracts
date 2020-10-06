@@ -169,6 +169,7 @@ contract DisputeManager is Managed, IDisputeManager {
         uint32 _slashingPercentage
     ) public {
         Managed._initialize(_controller);
+
         arbitrator = _arbitrator;
         minimumDeposit = _minimumDeposit;
         fishermanRewardPercentage = _fishermanRewardPercentage;
