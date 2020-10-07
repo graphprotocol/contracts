@@ -11,7 +11,7 @@ export const any = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> 
   const contract = cliArgs.contract
   const func = cliArgs.func
   const addressEntry = cli.addressBook.getEntry(contract)
-  const params = cliArgs.params.toString().split(',')
+  const params = cliArgs.params ? cliArgs.params.toString().split(',') : []
   const attachedContract = getContractAt(contract, addressEntry.address).connect(cli.wallet)
 
   if (cliArgs.type == 'get') {
@@ -52,7 +52,7 @@ export const anyCommand = {
         description: 'All parameters, comma separated',
         type: 'string',
         requiresArg: true,
-        demandOption: true,
+        demandOption: false,
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
