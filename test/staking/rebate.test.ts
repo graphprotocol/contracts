@@ -37,6 +37,14 @@ describe('Staking:Rebate', () => {
     { totalRewards: 1400, fees: 0, totalFees: 1400, stake: 1200, totalStake: 7300 },
   ]
 
+  // Edge case #1 - No closed allocations any query fees
+  const edgeCases1: RebateTestCase[] = [
+    { totalRewards: 0, fees: 0, totalFees: 0, stake: 5000, totalStake: 7300 },
+    { totalRewards: 0, fees: 0, totalFees: 0, stake: 600, totalStake: 7300 },
+    { totalRewards: 0, fees: 0, totalFees: 0, stake: 500, totalStake: 7300 },
+    { totalRewards: 0, fees: 0, totalFees: 0, stake: 1200, totalStake: 7300 },
+  ]
+
   // This function calculates the Cobb-Douglas formula in Typescript so we can compare against
   // the Solidity implementation
   // TODO: consider using bignumber.js to get extra precision
@@ -49,6 +57,9 @@ describe('Staking:Rebate', () => {
     alphaNumerator: number,
     alphaDenominator: number,
   ) {
+    if (totalFees === 0) {
+      return 0
+    }
     const feeRatio = fees / totalFees
     const stakeRatio = stake / totalStake
     const alpha = alphaNumerator / alphaDenominator
@@ -143,6 +154,38 @@ describe('Staking:Rebate', () => {
     return rx.events[0].args[0]
   }
 
+  async function testAlphas(fn, testCases) {
+    // Typical alpha
+    it('alpha 0.90', async function () {
+      const alpha: RebateRatio = [90, 100]
+      await fn(testCases, alpha)
+    })
+
+    // Typical alpha
+    it('alpha 0.25', async function () {
+      const alpha: RebateRatio = [1, 4]
+      await fn(testCases, alpha)
+    })
+
+    // Periodic alpha
+    it('alpha 0.33~', async function () {
+      const alpha: RebateRatio = [1, 3]
+      await fn(testCases, alpha)
+    })
+
+    // Small alpha
+    it('alpha 0.005', async function () {
+      const alpha: RebateRatio = [1, 200]
+      await fn(testCases, alpha)
+    })
+
+    // Edge alpha
+    it('alpha 1', async function () {
+      const alpha: RebateRatio = [1, 1]
+      await fn(testCases, alpha)
+    })
+  }
+
   beforeEach(async function () {
     ;[deployer, other] = await getAccounts()
     rebatePoolMock = ((await deployContract(
@@ -152,98 +195,32 @@ describe('Staking:Rebate', () => {
   })
 
   describe('should match cobb-douglas Solidity implementation', function () {
-    // Typical alpha
-    it('alpha 0.90', async function () {
-      const alpha: RebateRatio = [90, 100]
-      await shouldMatchFormulas(testCases, alpha)
+    describe('normal test case', function () {
+      testAlphas(shouldMatchFormulas, testCases)
     })
 
-    // Typical alpha
-    it('alpha 0.25', async function () {
-      const alpha: RebateRatio = [1, 4]
-      await shouldMatchFormulas(testCases, alpha)
-    })
-
-    // Periodic alpha
-    it('alpha 0.33~', async function () {
-      const alpha: RebateRatio = [1, 3]
-      await shouldMatchFormulas(testCases, alpha)
-    })
-
-    // Small alpha
-    it('alpha 0.005', async function () {
-      const alpha: RebateRatio = [1, 200]
-      await shouldMatchFormulas(testCases, alpha)
-    })
-
-    // Edge alpha
-    it('alpha 1', async function () {
-      const alpha: RebateRatio = [1, 1]
-      await shouldMatchFormulas(testCases, alpha)
+    describe('edge #1 test case', function () {
+      testAlphas(shouldMatchFormulas, edgeCases1)
     })
   })
 
   describe('should match rewards out from rebates', function () {
-    // Typical alpha
-    it('alpha 0.90', async function () {
-      const alpha: RebateRatio = [90, 100]
-      await shouldMatchOut(testCases, alpha)
+    describe('normal test case', function () {
+      testAlphas(shouldMatchOut, testCases)
     })
 
-    // Typical alpha
-    it('alpha 0.25', async function () {
-      const alpha: RebateRatio = [1, 4]
-      await shouldMatchOut(testCases, alpha)
-    })
-
-    // Periodic alpha
-    it('alpha 0.33~', async function () {
-      const alpha: RebateRatio = [1, 3]
-      await shouldMatchOut(testCases, alpha)
-    })
-
-    // Small alpha
-    it('alpha 0.005', async function () {
-      const alpha: RebateRatio = [1, 200]
-      await shouldMatchOut(testCases, alpha)
-    })
-
-    // Edge alpha
-    it('alpha 1', async function () {
-      const alpha: RebateRatio = [1, 1]
-      await shouldMatchOut(testCases, alpha)
+    describe('edge #1 test case', function () {
+      testAlphas(shouldMatchOut, edgeCases1)
     })
   })
 
   describe('should always be that sum of rebate rewards obtained <= to total rewards', function () {
-    // Typical alpha
-    it('alpha 0.90', async function () {
-      const alpha: RebateRatio = [90, 100]
-      await shouldConserveBalances(testCases, alpha)
+    describe('normal test case', function () {
+      testAlphas(shouldConserveBalances, testCases)
     })
 
-    // Typical alpha
-    it('alpha 0.25', async function () {
-      const alpha: RebateRatio = [1, 4]
-      await shouldConserveBalances(testCases, alpha)
-    })
-
-    // Periodic alpha
-    it('alpha 0.33~', async function () {
-      const alpha: RebateRatio = [1, 3]
-      await shouldConserveBalances(testCases, alpha)
-    })
-
-    // Small alpha
-    it('alpha 0.005', async function () {
-      const alpha: RebateRatio = [1, 200]
-      await shouldConserveBalances(testCases, alpha)
-    })
-
-    // Edge alpha
-    it('alpha 1', async function () {
-      const alpha: RebateRatio = [1, 1]
-      await shouldConserveBalances(testCases, alpha)
+    describe('edge #1 test case', function () {
+      testAlphas(shouldConserveBalances, edgeCases1)
     })
   })
 })

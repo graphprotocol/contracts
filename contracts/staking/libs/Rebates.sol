@@ -81,22 +81,25 @@ library Rebates {
         uint256 _indexerFees,
         uint256 _indexerEffectiveAllocatedStake
     ) internal returns (uint256) {
-        // Calculate the rebate rewards for the indexer
-        uint256 totalRewards = pool.fees;
-        uint256 rebateReward = LibCobbDouglas.cobbDouglas(
-            totalRewards,
-            _indexerFees,
-            pool.fees,
-            _indexerEffectiveAllocatedStake,
-            pool.effectiveAllocatedStake,
-            pool.alphaNumerator,
-            pool.alphaDenominator
-        );
+        uint256 rebateReward = 0;
 
-        // Under NO circumstance we will reward more than total fees in the pool
-        uint256 _unclaimedFees = pool.fees.sub(pool.claimedRewards);
-        if (rebateReward > _unclaimedFees) {
-            rebateReward = _unclaimedFees;
+        // Calculate the rebate rewards for the indexer
+        if (pool.fees > 0) {
+            rebateReward = LibCobbDouglas.cobbDouglas(
+                pool.fees, // totalRewards
+                _indexerFees,
+                pool.fees,
+                _indexerEffectiveAllocatedStake,
+                pool.effectiveAllocatedStake,
+                pool.alphaNumerator,
+                pool.alphaDenominator
+            );
+
+            // Under NO circumstance we will reward more than total fees in the pool
+            uint256 _unclaimedFees = pool.fees.sub(pool.claimedRewards);
+            if (rebateReward > _unclaimedFees) {
+                rebateReward = _unclaimedFees;
+            }
         }
 
         // Update pool state
