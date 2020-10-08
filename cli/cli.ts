@@ -10,6 +10,7 @@ import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts'
 import { transferTeamTokensCommand } from './commands/transferTeamTokens'
 import { simulationCommand } from './commands/simulations'
+import { airdropCommand } from './commands/airdrop'
 
 import { cliOpts } from './constants'
 
@@ -29,5 +30,6 @@ yargs
   .command(contractsCommand)
   .command(transferTeamTokensCommand)
   .command(simulationCommand)
+  .command(airdropCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv

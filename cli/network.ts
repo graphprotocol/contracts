@@ -73,11 +73,11 @@ export const sendTransaction = async (
   // Send transaction
   let tx: ContractTransaction
   try {
-    tx = await contract.functions[fn](...params)
+    tx = await contract.connect(sender).functions[fn](...params)
   } catch (e) {
     if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       logger.warn(`Gas could not be estimated - trying defaultOverrides`)
-      tx = await contract.functions[fn](...params, defaultOverrides())
+      tx = await contract.connect(sender).functions[fn](...params, defaultOverrides())
     } else {
       throw e
     }
@@ -87,7 +87,8 @@ export const sendTransaction = async (
       `It appears the function does not exist on this contract, or you have the wrong contract address`,
     )
   }
-  logger.log(`> Sent transaction ${fn}: ${params}, txHash: ${tx.hash}`)
+  logger.log(`> Sent transaction ${fn}: [${params}] txHash: ${tx.hash}`)
+
   // Wait for transaction to be mined
   const receipt = await sender.provider.waitForTransaction(tx.hash)
   const networkName = (await sender.provider.getNetwork()).name
