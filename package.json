@@ -16,6 +16,7 @@
     "@ethersproject/contracts": "^5.0.3"
   },
   "devDependencies": {
+    "@ethersproject/experimental": "^5.0.5",
     "@graphprotocol/common-ts": "^0.2.0",
     "@nomiclabs/buidler": "^1.4.7",
     "@nomiclabs/buidler-ethers": "^2.0.0",
