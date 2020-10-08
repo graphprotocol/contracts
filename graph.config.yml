@@ -55,6 +55,7 @@ contracts:
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
   GNS:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"

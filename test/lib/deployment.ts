@@ -174,13 +174,23 @@ export async function deployGNS(
     deployer,
   )) as unknown) as BancorFormula
 
-  return (deployContract(
-    'GNS',
+  // Impl
+  const contract = (await (deployContract('GNS', deployer) as unknown)) as Gns
+
+  // Proxy
+  const proxy = ((await deployContract(
+    'GraphProxy',
     deployer,
-    controller,
-    bondingCurve.address,
-    didRegistry,
-  ) as unknown) as Promise<Gns>
+    contract.address,
+  )) as unknown) as GraphProxy
+
+  // Impl accept and initialize
+  await contract
+    .connect(deployer)
+    .acceptProxy(proxy.address, controller, bondingCurve.address, didRegistry)
+
+  // Use proxy to forward calls to implementation contract
+  return Promise.resolve(contract.attach(proxy.address))
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {

@@ -3,11 +3,11 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../governance/Managed.sol";
 import "../bancor/BancorFormula.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
 import "./IGNS.sol";
-import "./erc1056/IEthereumDIDRegistry.sol";
+import "./GNSStorage.sol";
 
 /**
  * @title GNS
@@ -16,40 +16,14 @@ import "./erc1056/IEthereumDIDRegistry.sol";
  * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
  * readable names. All human readable names emitted in events.
  */
-contract GNS is Managed, IGNS {
+contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     using SafeMath for uint256;
-
-    // -- State --
 
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
-    // In parts per hundred
-    uint32 public ownerFeePercentage = 50;
-
-    // Bonding curve formula
-    address public bondingCurve;
-
     // Amount of nSignal you get with your minimum vSignal stake
     uint256 private constant VSIGNAL_PER_MINIMUM_NSIGNAL = 1 ether;
-
-    // Minimum amount of vSignal that must be staked to start the curve
-    // Set to 10**18, as vSignal has 18 decimals
-    uint256 public minimumVSignalStake = 10**18;
-
-    // graphAccountID => subgraphNumber => subgraphDeploymentID
-    // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
-    //                  is used to point to a subgraphID (graphAccountID + subgraphNumber)
-    mapping(address => mapping(uint256 => bytes32)) public subgraphs;
-
-    // graphAccountID => subgraph deployment counter
-    mapping(address => uint256) public graphAccountSubgraphNumbers;
-
-    // graphAccountID => subgraphNumber => NameCurationPool
-    mapping(address => mapping(uint256 => NameCurationPool)) public nameSignals;
-
-    // ERC-1056 contract reference
-    IEthereumDIDRegistry public erc1056Registry;
 
     // -- Events --
 
@@ -165,18 +139,37 @@ contract GNS is Managed, IGNS {
     }
 
     /**
-     * @dev Contract Constructor.
-     * @param _bondingCurve Contract that provides the bonding curve formula to use
-     * @param _didRegistry Address of the Ethereum DID registry
+     * @dev Initialize this contract.
      */
-    constructor(
+    function initialize(
         address _controller,
         address _bondingCurve,
         address _didRegistry
-    ) public {
+    ) external onlyImpl {
         Managed._initialize(_controller);
+
         bondingCurve = _bondingCurve;
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
+        minimumVSignalStake = 10**18;
+        ownerFeePercentage = 50;
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and run initializer.
+     * @param _proxy Graph proxy delegate caller
+     * @param _controller Controller for this contract
+     */
+    function acceptProxy(
+        IGraphProxy _proxy,
+        address _controller,
+        address _bondingCurve,
+        address _didRegistry
+    ) external {
+        // Accept to be the implementation for this proxy
+        _acceptUpgrade(_proxy);
+
+        // Initialization
+        GNS(address(_proxy)).initialize(_controller, _bondingCurve, _didRegistry);
     }
 
     /**
