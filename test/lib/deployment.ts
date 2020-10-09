@@ -188,8 +188,13 @@ export async function deployEthereumDIDRegistry(deployer: Signer): Promise<Ether
   >
 }
 
-export async function deployServiceRegistry(deployer: Signer): Promise<ServiceRegistry> {
-  return (deployContract('ServiceRegistry', deployer) as unknown) as Promise<ServiceRegistry>
+export async function deployServiceRegistry(
+  deployer: Signer,
+  controller: string,
+): Promise<ServiceRegistry> {
+  return (deployContract('ServiceRegistry', deployer, controller) as unknown) as Promise<
+    ServiceRegistry
+  >
 }
 
 export async function deployStaking(deployer: Signer, controller: string): Promise<Staking> {
