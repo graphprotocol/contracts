@@ -90,6 +90,8 @@ interface IStaking {
 
     function setOperator(address _operator, bool _allowed) external;
 
+    function isOperator(address _operator, address _indexer) external view returns (bool);
+
     // -- Staking --
 
     function stake(uint256 _tokens) external;
