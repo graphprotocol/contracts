@@ -29,10 +29,10 @@ contracts:
     init:
       controller: "${{Controller.address}}"
   EpochManager:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       lengthInBlocks: 275 # ~1 hour (in blocks)
-    proxy: true
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
@@ -40,18 +40,18 @@ contracts:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
   Curation:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      reserveRatio: 500000 # 50% (in basis points)
+      reserveRatio: 333333 # ~33.33% (in basis points)
       withdrawalFeePercentage: 50000 # 5% (in basis points)
-      minimumCurationDeposit: "100000000000000000000" # 100 GRT
-    proxy: true
+      minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
+      minimumDeposit: "10000000000000000000" # 10 GRT (in wei)
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
   GNS:
@@ -63,25 +63,25 @@ contracts:
     calls:
       - fn: "approveAll"
   Staking:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
       thawingPeriod: 275 # ~1 hour (in blocks)
       protocolPercentage: 10000 # 1% (in basis points)
-      percentage: 100000 # 10%
+      curationPercentage: 100000 # 10%
       channelDisputeEpochs: 4
       maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
       delegationUnbondingPeriod: 2 # epochs
       delegationRatio: 100 # 100x (multiplier)
       rebateAlphaNumerator: 85
       rebateAlphaDenominator: 100
-    proxy: true
     calls:
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
   RewardsManager:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       issuanceRate: "1000000023206889619" # 5% annual rate
-    proxy: true
