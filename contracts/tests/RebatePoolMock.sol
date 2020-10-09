@@ -46,6 +46,10 @@ contract RebatePoolMock {
         uint32 _alphaNumerator,
         uint32 _alphaDenominator
     ) external pure returns (uint256) {
+        if (_totalFees == 0) {
+            return 0;
+        }
+
         return
             LibCobbDouglas.cobbDouglas(
                 _totalRewards,
