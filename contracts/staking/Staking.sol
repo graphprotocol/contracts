@@ -182,7 +182,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Check if the caller is authorized (indexer or operator)
      */
     function _onlyAuth(address _indexer) internal view returns (bool) {
-        return msg.sender == _indexer || operatorAuth[_indexer][msg.sender] == true;
+        return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
     }
 
     /**
@@ -522,6 +522,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(_operator != msg.sender, "operator != sender");
         operatorAuth[msg.sender][_operator] = _allowed;
         emit SetOperator(msg.sender, _operator, _allowed);
+    }
+
+    /**
+     * @dev Return true if operator is allowed for indexer.
+     * @param _operator Address of the operator
+     * @param _indexer Address of the indexer
+     */
+    function isOperator(address _operator, address _indexer) public override view returns (bool) {
+        return operatorAuth[_indexer][_operator];
     }
 
     /**

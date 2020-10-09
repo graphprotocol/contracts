@@ -33,7 +33,7 @@ export class NetworkFixture {
       arbitratorAddress,
     )
     const rewardsManager = await deployment.deployRewardsManager(deployer, controller.address)
-    const serviceRegistry = await deployment.deployServiceRegistry(deployer)
+    const serviceRegistry = await deployment.deployServiceRegistry(deployer, controller.address)
 
     // Setup controller
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)

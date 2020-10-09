@@ -1,6 +1,8 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "../governance/Managed.sol";
+
 import "./IServiceRegistry.sol";
 
 /**
@@ -8,7 +10,7 @@ import "./IServiceRegistry.sol";
  * @dev This contract supports the service discovery process by allowing indexers to
  * register their service url and any other relevant information.
  */
-contract ServiceRegistry is IServiceRegistry {
+contract ServiceRegistry is Managed, IServiceRegistry {
     // -- State --
 
     mapping(address => IndexerService) public services;
@@ -19,28 +21,87 @@ contract ServiceRegistry is IServiceRegistry {
     event ServiceUnregistered(address indexed indexer);
 
     /**
+     * @dev Check if the caller is authorized (indexer or operator)
+     */
+    function _onlyAuth(address _indexer) internal view returns (bool) {
+        return msg.sender == _indexer || staking().isOperator(msg.sender, _indexer) == true;
+    }
+
+    /**
+     * @dev Contract Constructor.
+     * @param _controller Controller address
+     */
+    constructor(address _controller) public {
+        Managed._initialize(_controller);
+    }
+
+    /**
      * @dev Register an indexer service
      * @param _url URL of the indexer service
      * @param _geohash Geohash of the indexer service location
      */
     function register(string calldata _url, string calldata _geohash) external override {
-        address indexer = msg.sender;
+        _register(msg.sender, _url, _geohash);
+    }
+
+    /**
+     * @dev Register an indexer service
+     * @param _indexer Address of the indexer
+     * @param _url URL of the indexer service
+     * @param _geohash Geohash of the indexer service location
+     */
+    function registerFor(
+        address _indexer,
+        string calldata _url,
+        string calldata _geohash
+    ) external override {
+        _register(_indexer, _url, _geohash);
+    }
+
+    /**
+     * @dev Internal: Register an indexer service
+     * @param _indexer Address of the indexer
+     * @param _url URL of the indexer service
+     * @param _geohash Geohash of the indexer service location
+     */
+    function _register(
+        address _indexer,
+        string calldata _url,
+        string calldata _geohash
+    ) internal {
+        require(_onlyAuth(_indexer), "!auth");
         require(bytes(_url).length > 0, "Service must specify a URL");
 
-        services[indexer] = IndexerService(_url, _geohash);
+        services[_indexer] = IndexerService(_url, _geohash);
 
-        emit ServiceRegistered(indexer, _url, _geohash);
+        emit ServiceRegistered(_indexer, _url, _geohash);
     }
 
     /**
      * @dev Unregister an indexer service
      */
     function unregister() external override {
-        address indexer = msg.sender;
-        require(isRegistered(indexer), "Service already unregistered");
+        _unregister(msg.sender);
+    }
 
-        delete services[indexer];
-        emit ServiceUnregistered(indexer);
+    /**
+     * @dev Unregister an indexer service
+     * @param _indexer Address of the indexer
+     */
+    function unregisterFor(address _indexer) external override {
+        _unregister(_indexer);
+    }
+
+    /**
+     * @dev Unregister an indexer service
+     * @param _indexer Address of the indexer
+     */
+    function _unregister(address _indexer) internal {
+        require(_onlyAuth(_indexer), "!auth");
+        require(isRegistered(_indexer), "Service already unregistered");
+
+        delete services[_indexer];
+        emit ServiceUnregistered(_indexer);
     }
 
     /**
