@@ -669,7 +669,7 @@ describe('GNS', () => {
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
       it('should fail when upgrade tries to point to a pre-curated', async function () {
-        await curation.connect(me.signer).mint(subgraph1.subgraphDeploymentID, tokens1000)
+        await curation.connect(me.signer).mint(subgraph1.subgraphDeploymentID, tokens1000, 0)
         const tx = gns
           .connect(me.signer)
           .publishNewVersion(

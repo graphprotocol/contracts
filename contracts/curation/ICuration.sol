@@ -21,11 +21,17 @@ interface ICuration {
 
     // -- Curation --
 
-    function mint(bytes32 _subgraphDeploymentID, uint256 _tokens) external returns (uint256);
+    function mint(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        uint256 _signalOutMin
+    ) external returns (uint256);
 
-    function burn(bytes32 _subgraphDeploymentID, uint256 _signal)
-        external
-        returns (uint256, uint256);
+    function burn(
+        bytes32 _subgraphDeploymentID,
+        uint256 _signal,
+        uint256 _tokensOutMin
+    ) external returns (uint256, uint256);
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
 
