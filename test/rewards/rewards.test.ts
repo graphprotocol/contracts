@@ -246,7 +246,7 @@ describe('Rewards', () => {
       it('accrued per signal when tokens signalled', async function () {
         // Update total signalled
         const tokensToSignal = toGRT('1000')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, tokensToSignal)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, tokensToSignal, 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
@@ -254,13 +254,13 @@ describe('Rewards', () => {
 
       it('accrued per signal when signalled tokens w/ many subgraphs', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'))
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
 
         // Update total signalled
-        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, toGRT('250'))
+        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, toGRT('250'), 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
@@ -270,7 +270,7 @@ describe('Rewards', () => {
     describe('updateAccRewardsPerSignal', function () {
       it('update the accumulated rewards per signal state', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'))
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Snapshot
         const tracker = await RewardsTracker.create()
 
@@ -285,7 +285,7 @@ describe('Rewards', () => {
 
       it('update the accumulated rewards per signal state after many blocks', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'))
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Snapshot
         const tracker = await RewardsTracker.create()
 
@@ -306,12 +306,12 @@ describe('Rewards', () => {
       it('accrued for each subgraph', async function () {
         // Curator1 - Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
         const tracker1 = await RewardsTracker.create()
 
         // Curator2 - Update total signalled
         const signalled2 = toGRT('500')
-        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, signalled2)
+        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, signalled2, 0)
 
         // Snapshot
         const tracker2 = await RewardsTracker.create()
@@ -348,7 +348,7 @@ describe('Rewards', () => {
       it('update the accumulated rewards for subgraph state', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
         // Snapshot
         const tracker1 = await RewardsTracker.create()
 
@@ -379,7 +379,7 @@ describe('Rewards', () => {
       it('accrued per allocated token', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
@@ -410,7 +410,7 @@ describe('Rewards', () => {
       it('update the accumulated rewards for allocated tokens state', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
@@ -447,7 +447,7 @@ describe('Rewards', () => {
       it('calculate rewards using the subgraph signalled + allocated tokens', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
@@ -486,7 +486,7 @@ describe('Rewards', () => {
 
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
@@ -524,7 +524,7 @@ describe('Rewards', () => {
 
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1)
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         await staking

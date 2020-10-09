@@ -402,7 +402,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         // Update name signals deployment ID to match the subgraphs deployment ID
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
         // nSignal stays constant, but vSignal can change here
-        namePool.vSignal = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee));
+        namePool.vSignal = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee), 0);
 
         emit NameSignalUpgrade(
             _graphAccount,
@@ -523,7 +523,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             "GNS: Cannot transfer tokens to mint n signal"
         );
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = curation().mint(namePool.subgraphDeploymentID, _tokens);
+        uint256 vSignal = curation().mint(namePool.subgraphDeploymentID, _tokens, 0);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         namePool.vSignal = namePool.vSignal.add(vSignal);
         namePool.nSignal = namePool.nSignal.add(nSignal);
@@ -547,7 +547,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal);
+        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal, 0);
         namePool.vSignal = namePool.vSignal.sub(vSignal);
         namePool.nSignal = namePool.nSignal.sub(_nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
@@ -581,7 +581,11 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             uint256
         )
     {
-        (uint256 tokens, uint256 withdrawalFees) = curation().burn(_subgraphDeploymentID, _vSignal);
+        (uint256 tokens, uint256 withdrawalFees) = curation().burn(
+            _subgraphDeploymentID,
+            _vSignal,
+            0
+        );
         uint256 ownerFee = _chargeOwnerFee(withdrawalFees, _graphAccount);
         return (tokens, withdrawalFees, ownerFee);
     }
