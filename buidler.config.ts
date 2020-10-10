@@ -16,6 +16,7 @@ usePlugin('@nomiclabs/buidler-ethers')
 usePlugin('@nomiclabs/buidler-etherscan')
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin('buidler-gas-reporter')
+usePlugin('buidler-typechain')
 usePlugin('solidity-coverage')
 
 // Networks
@@ -174,6 +175,10 @@ const config = {
     showTimeSpent: true,
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
+  },
+  typechain: {
+    outDir: 'build/typechain/contracts',
+    target: 'ethers-v5',
   },
 }
 
