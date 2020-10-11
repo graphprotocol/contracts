@@ -20,19 +20,27 @@ export class NetworkFixture {
     const slasherAddress = await slasher.getAddress()
 
     // Deploy contracts
+    const proxyAdmin = await deployment.deployProxyAdmin(deployer)
     const controller = await deployment.deployController(deployer)
-    const epochManager = await deployment.deployEpochManager(deployer, controller.address)
+    const epochManager = await deployment.deployEpochManager(
+      deployer,
+      controller.address,
+      proxyAdmin,
+    )
     const grt = await deployment.deployGRT(deployer)
-    const curation = await deployment.deployCuration(deployer, controller.address)
-    const didRegistry = await deployment.deployEthereumDIDRegistry(deployer)
-    const gns = await deployment.deployGNS(deployer, controller.address, didRegistry.address)
-    const staking = await deployment.deployStaking(deployer, controller.address)
+    const curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
+    const gns = await deployment.deployGNS(deployer, controller.address, proxyAdmin)
+    const staking = await deployment.deployStaking(deployer, controller.address, proxyAdmin)
     const disputeManager = await deployment.deployDisputeManager(
       deployer,
       controller.address,
       arbitratorAddress,
     )
-    const rewardsManager = await deployment.deployRewardsManager(deployer, controller.address)
+    const rewardsManager = await deployment.deployRewardsManager(
+      deployer,
+      controller.address,
+      proxyAdmin,
+    )
     const serviceRegistry = await deployment.deployServiceRegistry(deployer, controller.address)
 
     // Setup controller

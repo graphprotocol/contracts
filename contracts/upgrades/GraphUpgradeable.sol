@@ -43,9 +43,21 @@ contract GraphUpgradeable {
     }
 
     /**
-     * @dev Admin function for new implementation to accept its role as implementation.
+     * @dev Accept to be an implementation of proxy.
      */
-    function _acceptUpgrade(IGraphProxy _proxy) internal onlyProxyAdmin(_proxy) {
+    function acceptProxy(IGraphProxy _proxy) external onlyProxyAdmin(_proxy) {
         _proxy.acceptUpgrade();
+    }
+
+    /**
+     * @dev Accept to be an implementation of proxy and then call a function from the new
+     * implementation as specified by `_data`, which should be an encoded function call. This is
+     * useful to initialize new storage variables in the proxied contract.
+     */
+    function acceptProxyAndCall(IGraphProxy _proxy, bytes calldata _data)
+        external
+        onlyProxyAdmin(_proxy)
+    {
+        _proxy.acceptUpgradeAndCall(_data);
     }
 }

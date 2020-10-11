@@ -10,14 +10,18 @@ import "./Pausable.sol";
  * @dev Controller is a registry of contracts for convience. Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-contract Controller is IController, Governed, Pausable {
+contract Controller is Governed, Pausable, IController {
     // Track contract ids to contract proxy address
     mapping(bytes32 => address) private registry;
 
     event SetContractProxy(bytes32 id, address contractAddress);
 
+    /** 
+     * @dev Contract constructor.
+     */
     constructor() {
         Governed._initialize(msg.sender);
+
         _setPaused(true);
     }
 
@@ -39,6 +43,8 @@ contract Controller is IController, Governed, Pausable {
         return governor;
     }
 
+    // -- Registry --
+
     /**
      * @notice Register contract id and mapped address
      * @param _id Contract id (keccak256 hash of contract name)
@@ -54,6 +60,14 @@ contract Controller is IController, Governed, Pausable {
     }
 
     /**
+     * @notice Get contract proxy address by its id
+     * @param _id Contract id
+     */
+    function getContractProxy(bytes32 _id) public override view returns (address) {
+        return registry[_id];
+    }
+
+    /**
      * @notice Update contract's controller
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _controller Controller address
@@ -61,6 +75,8 @@ contract Controller is IController, Governed, Pausable {
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
         return IManaged(registry[_id]).setController(_controller);
     }
+
+    // -- Pausing --
 
     /**
      * @notice Change the partial paused state of the contract
@@ -84,14 +100,6 @@ contract Controller is IController, Governed, Pausable {
      */
     function setPauseGuardian(address _newPauseGuardian) external override onlyGovernor {
         _setPauseGuardian(_newPauseGuardian);
-    }
-
-    /**
-     * @notice Get contract proxy address by its id
-     * @param _id Contract id
-     */
-    function getContractProxy(bytes32 _id) public override view returns (address) {
-        return registry[_id];
     }
 
     /**

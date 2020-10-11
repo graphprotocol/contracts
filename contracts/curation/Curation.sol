@@ -82,34 +82,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
-     * @dev Accept to be an implementation of proxy and run initializer.
-     * @param _proxy Graph proxy delegate caller
-     * @param _controller Controller for this contract
-     * @param _defaultReserveRatio Reserve ratio to initialize the bonding curve of CurationPool
-     * @param _minimumCurationDeposit Minimum amount of tokens that curators can deposit
-     */
-    function acceptProxy(
-        IGraphProxy _proxy,
-        address _controller,
-        address _bondingCurve,
-        uint32 _defaultReserveRatio,
-        uint32 _withdrawalFeePercentage,
-        uint256 _minimumCurationDeposit
-    ) external {
-        // Accept to be the implementation for this proxy
-        _acceptUpgrade(_proxy);
-
-        // Initialization
-        Curation(address(_proxy)).initialize(
-            _controller,
-            _bondingCurve,
-            _defaultReserveRatio,
-            _withdrawalFeePercentage,
-            _minimumCurationDeposit
-        );
-    }
-
-    /**
      * @dev Set the default reserve ratio percentage for a curation pool.
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)

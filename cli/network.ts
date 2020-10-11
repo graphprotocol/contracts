@@ -142,6 +142,15 @@ export const getContractAt = (
   return new Contract(address, loadArtifact(name).abi, signerOrProvider)
 }
 
+export const deployProxy = async (
+  implementation: string,
+  proxyAdmin: string,
+  sender: Signer,
+  silent = false,
+): Promise<DeployResult> => {
+  return deployContract('GraphProxy', [implementation, proxyAdmin], sender, false, silent)
+}
+
 export const deployContract = async (
   name: string,
   args: Array<any>,
@@ -231,7 +240,9 @@ export const deployContractWithProxyAndSave = async (
   // Deploy implementation
   const contract = await deployContractAndSave(name, [], sender, addressBook)
   // Deploy proxy
-  const deployResult = await deployContract('GraphProxy', [contract.address], sender)
+  // TODO: change sender.getAddress() for ProxyAdmin
+  // TODO: initialize proxies
+  const deployResult = await deployProxy(contract.address, await sender.getAddress(), sender)
   const proxy = deployResult.contract
   // Implementation accepts upgrade
   await sendTransaction(sender, contract, 'acceptProxy', [

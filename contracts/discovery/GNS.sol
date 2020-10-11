@@ -157,24 +157,6 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     }
 
     /**
-     * @dev Accept to be an implementation of proxy and run initializer.
-     * @param _proxy Graph proxy delegate caller
-     * @param _controller Controller for this contract
-     */
-    function acceptProxy(
-        IGraphProxy _proxy,
-        address _controller,
-        address _bondingCurve,
-        address _didRegistry
-    ) external {
-        // Accept to be the implementation for this proxy
-        _acceptUpgrade(_proxy);
-
-        // Initialization
-        GNS(address(_proxy)).initialize(_controller, _bondingCurve, _didRegistry);
-    }
-
-    /**
      * @dev Approve curation contract to pull funds.
      */
     function approveAll() external override onlyGovernor {
