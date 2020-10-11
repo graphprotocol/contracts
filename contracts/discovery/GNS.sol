@@ -150,8 +150,10 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         bondingCurve = _bondingCurve;
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
-        minimumVSignalStake = 10**18;
-        ownerFeePercentage = 50;
+
+        // Settings
+        _setMinimumVsignal(10**18);
+        _setOwnerFeePercentage(50);
     }
 
     /**
@@ -185,6 +187,15 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _minimumVSignalStake Minimum amount of vSignal required
      */
     function setMinimumVsignal(uint256 _minimumVSignalStake) external override onlyGovernor {
+        _setMinimumVsignal(_minimumVSignalStake);
+    }
+
+    /**
+     * @dev Internal: Set the minimum vSignal to be staked to create nSignal
+     * @notice Update the minimum vSignal amount to `_minimumVSignalStake`
+     * @param _minimumVSignalStake Minimum amount of vSignal required
+     */
+    function _setMinimumVsignal(uint256 _minimumVSignalStake) internal {
         require(_minimumVSignalStake > 0, "Minimum vSignal cannot be 0");
         minimumVSignalStake = _minimumVSignalStake;
         emit ParameterUpdated("minimumVSignalStake");
@@ -196,6 +207,15 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _ownerFeePercentage Owner fee percentage
      */
     function setOwnerFeePercentage(uint32 _ownerFeePercentage) external override onlyGovernor {
+        _setOwnerFeePercentage(_ownerFeePercentage);
+    }
+
+    /**
+     * @dev Internal: Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
+     * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
+     * @param _ownerFeePercentage Owner fee percentage
+     */
+    function _setOwnerFeePercentage(uint32 _ownerFeePercentage) internal {
         require(_ownerFeePercentage <= 100, "Owner fee must be 100 or less");
         ownerFeePercentage = _ownerFeePercentage;
         emit ParameterUpdated("ownerFeePercentage");

@@ -266,7 +266,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the minimum indexer stake required to.
+     * @dev Set the minimum indexer stake required.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
@@ -274,7 +274,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Internal: Set the minimum indexer stake required to.
+     * @dev Internal: Set the minimum indexer stake required.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function _setMinimumIndexerStake(uint256 _minimumIndexerStake) private {
