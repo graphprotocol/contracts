@@ -229,45 +229,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Accept to be an implementation of proxy and run initializer.
-     * @param _proxy Graph proxy delegate caller
-     * @param _controller Controller for this contract
-     */
-    function acceptProxy(
-        IGraphProxy _proxy,
-        address _controller,
-        uint256 _minimumIndexerStake,
-        uint32 _thawingPeriod,
-        uint32 _protocolPercentage,
-        uint32 _curationPercentage,
-        uint32 _channelDisputeEpochs,
-        uint32 _maxAllocationEpochs,
-        uint32 _delegationUnbondingPeriod,
-        uint32 _delegationRatio,
-        uint32 _rebateAlphaNumerator,
-        uint32 _rebateAlphaDenominator
-    ) external {
-        // Accept to be the implementation for this proxy
-        _acceptUpgrade(_proxy);
-
-        // Initialization
-        Staking(address(_proxy)).initialize(
-            _controller,
-            _minimumIndexerStake,
-            _thawingPeriod,
-            _protocolPercentage,
-            _curationPercentage,
-            _channelDisputeEpochs,
-            _maxAllocationEpochs,
-            _delegationUnbondingPeriod,
-            _delegationRatio,
-            _rebateAlphaNumerator,
-            _rebateAlphaDenominator
-        );
-    }
-
-    /**
-     * @dev Set the minimum indexer stake required.
+     * @dev Set the minimum indexer stake required to.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {

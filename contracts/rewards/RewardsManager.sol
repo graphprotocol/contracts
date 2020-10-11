@@ -57,23 +57,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Accept to be an implementation of proxy and run initializer.
-     * @param _proxy Graph proxy delegate caller
-     * @param _controller Controller for this contract
-     */
-    function acceptProxy(
-        IGraphProxy _proxy,
-        address _controller,
-        uint256 _issuanceRate
-    ) external {
-        // Accept to be the implementation for this proxy
-        _acceptUpgrade(_proxy);
-
-        // Initialization
-        RewardsManager(address(_proxy)).initialize(_controller, _issuanceRate);
-    }
-
-    /**
      * @dev Sets the issuance rate.
      * The issuance rate is defined as a percentage increase of the total supply per block.
      * This means that it needs to be greater than 1.0, any number under 1.0 is not

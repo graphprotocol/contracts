@@ -6,6 +6,7 @@ import { network } from '../../cli'
 // Contracts definitions
 import { BancorFormula } from '../../build/typechain/contracts/BancorFormula'
 import { Controller } from '../../build/typechain/contracts/Controller'
+import { GraphProxyAdmin } from '../../build/typechain/contracts/GraphProxyAdmin'
 import { GraphProxy } from '../../build/typechain/contracts/GraphProxy'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -57,6 +58,15 @@ export const defaults = {
   },
 }
 
+export async function deployProxy(
+  implementation: string,
+  proxyAdmin: string,
+  deployer: Signer,
+): Promise<Contract> {
+  const deployResult = await network.deployProxy(implementation, proxyAdmin, deployer, true)
+  return deployResult.contract
+}
+
 export async function deployContract(
   contractName: string,
   deployer?: Signer,
@@ -64,6 +74,10 @@ export async function deployContract(
 ): Promise<Contract> {
   const deployResult = await network.deployContract(contractName, params, deployer, true, true)
   return deployResult.contract
+}
+
+export async function deployProxyAdmin(deployer: Signer): Promise<GraphProxyAdmin> {
+  return deployContract('GraphProxyAdmin', deployer) as Promise<GraphProxyAdmin>
 }
 
 export async function deployController(deployer: Signer): Promise<Controller> {
@@ -91,7 +105,11 @@ export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<
   ) as unknown) as Promise<GsrManager>
 }
 
-export async function deployCuration(deployer: Signer, controller: string): Promise<Curation> {
+export async function deployCuration(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<Curation> {
   // Dependency
   const bondingCurve = ((await deployContract(
     'BancorFormula',
@@ -99,26 +117,20 @@ export async function deployCuration(deployer: Signer, controller: string): Prom
   )) as unknown) as BancorFormula
 
   // Impl
-  const contract = ((await deployContract('Curation', deployer)) as unknown) as Curation
-
+  const contract = (await deployContract('Curation', deployer)) as Curation
   // Proxy
-  const proxy = ((await deployContract(
-    'GraphProxy',
-    deployer,
-    contract.address,
-  )) as unknown) as GraphProxy
-
+  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
   // Impl accept and initialize
-  await contract
+  const initTx = await contract.populateTransaction.initialize(
+    controller,
+    bondingCurve.address,
+    defaults.curation.reserveRatio,
+    defaults.curation.withdrawalFeePercentage,
+    defaults.curation.minimumCurationDeposit,
+  )
+  await proxyAdmin
     .connect(deployer)
-    .acceptProxy(
-      proxy.address,
-      controller,
-      bondingCurve.address,
-      defaults.curation.reserveRatio,
-      defaults.curation.withdrawalFeePercentage,
-      defaults.curation.minimumCurationDeposit,
-    )
+    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))
@@ -144,21 +156,20 @@ export async function deployDisputeManager(
 export async function deployEpochManager(
   deployer: Signer,
   controller: string,
+  proxyAdmin: GraphProxyAdmin,
 ): Promise<EpochManager> {
   // Impl
   const contract = ((await deployContract('EpochManager', deployer)) as unknown) as EpochManager
-
   // Proxy
-  const proxy = ((await deployContract(
-    'GraphProxy',
-    deployer,
-    contract.address,
-  )) as unknown) as GraphProxy
-
+  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
   // Impl accept and initialize
-  await contract
+  const initTx = await contract.populateTransaction.initialize(
+    controller,
+    defaults.epochs.lengthInBlocks,
+  )
+  await proxyAdmin
     .connect(deployer)
-    .acceptProxy(proxy.address, controller, defaults.epochs.lengthInBlocks)
+    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
 
   return contract.attach(proxy.address)
 }
@@ -166,9 +177,10 @@ export async function deployEpochManager(
 export async function deployGNS(
   deployer: Signer,
   controller: string,
-  didRegistry: string,
+  proxyAdmin: GraphProxyAdmin,
 ): Promise<Gns> {
   // Dependency
+  const didRegistry = await deployEthereumDIDRegistry(deployer)
   const bondingCurve = ((await deployContract(
     'BancorFormula',
     deployer,
@@ -178,16 +190,17 @@ export async function deployGNS(
   const contract = (await (deployContract('GNS', deployer) as unknown)) as Gns
 
   // Proxy
-  const proxy = ((await deployContract(
-    'GraphProxy',
-    deployer,
-    contract.address,
-  )) as unknown) as GraphProxy
+  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
 
   // Impl accept and initialize
-  await contract
+  const initTx = await contract.populateTransaction.initialize(
+    controller,
+    bondingCurve.address,
+    didRegistry.address,
+  )
+  await proxyAdmin
     .connect(deployer)
-    .acceptProxy(proxy.address, controller, bondingCurve.address, didRegistry)
+    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))
@@ -208,34 +221,32 @@ export async function deployServiceRegistry(
   >
 }
 
-export async function deployStaking(deployer: Signer, controller: string): Promise<Staking> {
+export async function deployStaking(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<Staking> {
   // Impl
   const contract = ((await deployContract('Staking', deployer)) as unknown) as Staking
-
   // Proxy
-  const proxy = ((await deployContract(
-    'GraphProxy',
-    deployer,
-    contract.address,
-  )) as unknown) as GraphProxy
-
+  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
   // Impl accept and initialize
-  await contract
+  const initTx = await contract.populateTransaction.initialize(
+    controller,
+    defaults.staking.minimumIndexerStake,
+    defaults.staking.thawingPeriod,
+    0,
+    0,
+    defaults.staking.channelDisputeEpochs,
+    defaults.staking.maxAllocationEpochs,
+    defaults.staking.delegationUnbondingPeriod,
+    0,
+    defaults.staking.alphaNumerator,
+    defaults.staking.alphaDenominator,
+  )
+  await proxyAdmin
     .connect(deployer)
-    .acceptProxy(
-      proxy.address,
-      controller,
-      defaults.staking.minimumIndexerStake,
-      defaults.staking.thawingPeriod,
-      0,
-      0,
-      defaults.staking.channelDisputeEpochs,
-      defaults.staking.maxAllocationEpochs,
-      defaults.staking.delegationUnbondingPeriod,
-      0,
-      defaults.staking.alphaNumerator,
-      defaults.staking.alphaDenominator,
-    )
+    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
 
   // Configure
   return contract.attach(proxy.address)
@@ -244,21 +255,20 @@ export async function deployStaking(deployer: Signer, controller: string): Promi
 export async function deployRewardsManager(
   deployer: Signer,
   controller: string,
+  proxyAdmin: GraphProxyAdmin,
 ): Promise<RewardsManager> {
   // Impl
   const contract = ((await deployContract('RewardsManager', deployer)) as unknown) as RewardsManager
-
   // Proxy
-  const proxy = ((await deployContract(
-    'GraphProxy',
-    deployer,
-    contract.address,
-  )) as unknown) as GraphProxy
-
+  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
   // Impl accept and initialize
-  await contract
+  const initTx = await contract.populateTransaction.initialize(
+    controller,
+    defaults.rewards.issuanceRate,
+  )
+  await proxyAdmin
     .connect(deployer)
-    .acceptProxy(proxy.address, controller, defaults.rewards.issuanceRate)
+    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
 
   // Use proxy to forward calls to implementation contract
   return Promise.resolve(contract.attach(proxy.address))

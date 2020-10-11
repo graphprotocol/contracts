@@ -28,7 +28,12 @@ describe('EpochManager', () => {
 
   beforeEach(async function () {
     const controller = await deployment.deployController(governor.signer)
-    epochManager = await deployment.deployEpochManager(governor.signer, controller.address)
+    const proxyAdmin = await deployment.deployProxyAdmin(governor.signer)
+    epochManager = await deployment.deployEpochManager(
+      governor.signer,
+      controller.address,
+      proxyAdmin,
+    )
   })
 
   describe('configuration', () => {
