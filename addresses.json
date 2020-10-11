@@ -48,11 +48,17 @@
       "txHash": "0xa4ccf67643edb59f637df841dc513f52113ed2cdb8f4511269a9d2ed662ee13b"
     },
     "ServiceRegistry": {
-      "address": "0xCb9709796026166895e6b3Bb7dB52F671c0e5c53",
-      "creationCodeHash": "0xd9e0a912e374931129a7fd9a810ec0845a7f8d8f9502055f15271be19d9f21eb",
-      "runtimeCodeHash": "0xf21c89af6ccd2f3ae9f3b031b4cb2c6e4a4f9760fe28b90f1ae94841be495158",
-      "txHash": "0x5066ed3be59a5350f29989806f2a800e0403ee0372da2d729512e4896915ab99"
-    },
+      "address": "0x464e2bfa5959496C0BF5dFE8ee26FA6921ffaF67",
+      "constructorArgs": [
+        {
+          "name": "controller",
+          "value": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
+        }
+      ],
+      "creationCodeHash": "0x0735ff768a9c163d8197d73296be869f01db75c3a6d1ad35b8555b8d23efc681",
+      "runtimeCodeHash": "0xcf0e89f7268d4190f3c5f4f9d64acfc994243650deb9dfa84d119c3d5e91e009",
+      "txHash": "0x2a4218430e3f72769f6b0e126972ea37bfb67b15b122f178c6fb213feac917f5"
+    }, 
     "Curation": {
       "address": "0xca6ef6CA7ed916E70dA81c3fCA0AA09F80fe3Fb9",
       "initArgs": [
