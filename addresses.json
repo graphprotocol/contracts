@@ -48,10 +48,10 @@
       "txHash": "0x5548131cfd0f829fe3d3bba705da330bf251bf3b390a0e4e379338181c438c5a"
     },
     "ServiceRegistry": {
-      "address": "0x950469De63ba033D0506e51f725f65294B9E5ae8",
-      "creationCodeHash": "0xd9e0a912e374931129a7fd9a810ec0845a7f8d8f9502055f15271be19d9f21eb",
-      "runtimeCodeHash": "0xf21c89af6ccd2f3ae9f3b031b4cb2c6e4a4f9760fe28b90f1ae94841be495158",
-      "txHash": "0x92fae493063246319493685fc179dd3a1ca7db0468e9552042de2c63f03d585c"
+      "address": "0x2a4b314F70C58F41d68D9e46401196a615d9f8F2",
+      "creationCodeHash": "0x0735ff768a9c163d8197d73296be869f01db75c3a6d1ad35b8555b8d23efc681",
+      "runtimeCodeHash": "0xcf0e89f7268d4190f3c5f4f9d64acfc994243650deb9dfa84d119c3d5e91e009",
+      "txHash": "0x7b29fff100c716ed4b6b530bf7fab42de725162499d04c68e0333a864099ac6b"
     },
     "Curation": {
       "address": "0xBE56BcaA3CC795cb937Aa9Aa3e124c40468b6229",
