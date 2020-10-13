@@ -10,7 +10,7 @@ FILES=(
     "contracts/discovery/GNS.sol"
     "contracts/discovery/ServiceRegistry.sol"
     "contracts/curation/Curation.sol"
-    "contracts/curation/GraphSignalToken.sol"
+    "contracts/curation/GraphCurationToken.sol"
     "contracts/staking/Staking.sol"
     "contracts/rewards/RewardsManager.sol"
     "contracts/token/GraphToken.sol"

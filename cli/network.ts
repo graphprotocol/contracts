@@ -64,6 +64,24 @@ export const isContractDeployed = async (
   return true
 }
 
+export const waitTransaction = async (
+  sender: Signer,
+  tx: ContractTransaction,
+): Promise<providers.TransactionReceipt> => {
+  const receipt = await sender.provider.waitForTransaction(tx.hash)
+  const networkName = (await sender.provider.getNetwork()).name
+  if (networkName === 'kovan' || networkName === 'rinkeby') {
+    receipt.status // 1 = success, 0 = failure
+      ? logger.success(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+      : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+  } else {
+    receipt.status
+      ? logger.success(`Transaction succeeded: ${tx.hash}`)
+      : logger.warn(`Transaction failed: ${tx.hash}`)
+  }
+  return receipt
+}
+
 export const sendTransaction = async (
   sender: Signer,
   contract: Contract,
@@ -90,18 +108,7 @@ export const sendTransaction = async (
   logger.log(`> Sent transaction ${fn}: [${params}] txHash: ${tx.hash}`)
 
   // Wait for transaction to be mined
-  const receipt = await sender.provider.waitForTransaction(tx.hash)
-  const networkName = (await sender.provider.getNetwork()).name
-  if (networkName === 'kovan' || networkName === 'rinkeby') {
-    receipt.status // 1 = success, 0 = failure
-      ? logger.success(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
-      : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
-  } else {
-    receipt.status
-      ? logger.success(`Transaction succeeded: ${tx.hash}`)
-      : logger.warn(`Transaction failed: ${tx.hash}`)
-  }
-  return receipt
+  return waitTransaction(sender, tx)
 }
 
 export const getContractFactory = (
@@ -116,9 +123,12 @@ export const getContractFactory = (
   return new ContractFactory(artifact.abi, artifact.bytecode)
 }
 
-export const getContractAt = (name: string, address: string): Contract => {
-  const artifact = loadArtifact(name)
-  return new Contract(address, artifact.abi)
+export const getContractAt = (
+  name: string,
+  address: string,
+  signerOrProvider?: Signer | providers.Provider,
+): Contract => {
+  return new Contract(address, loadArtifact(name).abi, signerOrProvider)
 }
 
 export const deployContract = async (
