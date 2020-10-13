@@ -5,6 +5,7 @@ import { extendEnvironment, task, usePlugin } from '@nomiclabs/buidler/config'
 import { getAddressBook } from './cli/address-book'
 import { cliOpts } from './cli/constants'
 import { loadContracts, loadEnv } from './cli/env'
+import { getContractAt } from './cli/network'
 import { migrate } from './cli/commands/migrate'
 import { verify } from './cli/commands/verify'
 
@@ -59,7 +60,7 @@ function setupNetworkProviders(buidlerConfig) {
 // Env
 
 extendEnvironment((bre) => {
-  bre['load'] = async () => {
+  bre['loadContracts'] = async () => {
     const accounts = await bre.ethers.getSigners()
     const addressBook = getAddressBook(
       cliOpts.addressBook.default,
@@ -67,6 +68,8 @@ extendEnvironment((bre) => {
     )
     return loadContracts(addressBook, accounts[0] as Wallet)
   }
+  bre['getContractAt'] = (name: string, address: string) =>
+    getContractAt(name, address, bre.ethers.provider)
 })
 
 // Tasks
