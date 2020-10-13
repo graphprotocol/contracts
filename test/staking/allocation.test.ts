@@ -617,7 +617,7 @@ describe('Staking:Allocation', () => {
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Active)
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(indexer.signer).claim(invalidAllocationID, false)
-      await expect(tx).revertedWith('!auth')
+      await expect(tx).revertedWith('!finalized')
     })
 
     it('reject claim if allocation is not closed', async function () {
@@ -676,17 +676,29 @@ describe('Staking:Allocation', () => {
         expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToCollect))
       })
 
+      it('should claim rebate (by public)', async function () {
+        // Advance blocks to get the allocation in epoch where it can be claimed
+        await advanceToNextEpoch(epochManager)
+
+        // Should claim by public, but cannot restake
+        const beforeIndexerStake = await staking.stakes(indexer.address)
+        await staking.connect(me.signer).claim(allocationID, true)
+        const afterIndexerStake = await staking.stakes(indexer.address)
+        expect(afterIndexerStake.tokensStaked).eq(beforeIndexerStake.tokensStaked)
+      })
+
       it('should claim rebate (by operator)', async function () {
         // Advance blocks to get the allocation in epoch where it can be claimed
         await advanceToNextEpoch(epochManager)
 
-        // Reject
-        const tx1 = staking.connect(me.signer).claim(allocationID, false)
-        await expect(tx1).revertedWith('!auth')
-
-        // Should claim if given operator auth
+        // Add as operator
         await staking.connect(indexer.signer).setOperator(me.address, true)
-        await staking.connect(me.signer).claim(allocationID, false)
+
+        // Should claim if given operator auth and can do restake
+        const beforeIndexerStake = await staking.stakes(indexer.address)
+        await staking.connect(me.signer).claim(allocationID, true)
+        const afterIndexerStake = await staking.stakes(indexer.address)
+        expect(afterIndexerStake.tokensStaked).not.eq(beforeIndexerStake.tokensStaked)
       })
 
       it('reject claim if already claimed', async function () {

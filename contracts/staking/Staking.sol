@@ -912,10 +912,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
 
-        // Validate ownership
-        require(_onlyAuthOrDelegator(alloc.indexer), "!auth-or-del");
-
-        // TODO: restake when delegator called should not be allowed?
+        // Only the indexer or operator can decide if to restake
+        bool restake = _onlyAuth(alloc.indexer) ? _restake : false;
 
         // Funds can only be claimed after a period of time passed since allocation was closed
         require(allocState == AllocationState.Finalized, "!finalized");
@@ -949,7 +947,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // When there are tokens to claim from the rebate pool, transfer or restake
         if (tokensToClaim > 0) {
             // Assign claimed tokens
-            if (_restake) {
+            if (restake) {
                 // Restake to place fees into the indexer stake
                 _stake(alloc.indexer, tokensToClaim);
             } else {
