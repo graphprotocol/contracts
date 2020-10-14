@@ -29,10 +29,10 @@ contracts:
     init:
       controller: "${{Controller.address}}"
   EpochManager:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       lengthInBlocks: 275 # ~1 hour (in blocks)
-    proxy: true
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
@@ -40,12 +40,12 @@ contracts:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
   Curation:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      reserveRatio: 300000 # 30% (in basis points)
-      minimumCurationDeposit: "100000000000000000000" # 100 GRT
-    proxy: true
+      reserveRatio: 333333 # 33.33% (in basis points)
+      minimumCurationDeposit: "1000000000000000000" # 1 GRT
     calls:
       - fn: "setWithdrawalFeePercentage"
         withdrawalFeePercentage: 50000 # 5% (in basis points)
@@ -53,7 +53,7 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "100000000000000000000" # 100 GRT (in wei)
+      minimumDeposit: "10000000000000000000" # 10 GRT (in wei)
       fishermanRewardPercentage: 100000 # 10% (in basis points)
       slashingPercentage: 100000 # 10% (in basis points)
   GNS:
@@ -64,9 +64,9 @@ contracts:
     calls:
       - fn: "approveAll"
   Staking:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
-    proxy: true
     calls:
       - fn: "setCurationPercentage"
         percentage: 100000 # 10%
@@ -77,7 +77,7 @@ contracts:
       - fn: "setThawingPeriod"
         thawingPeriod: 275 # ~1 hour (in blocks)
       - fn: "setDelegationUnbondingPeriod"
-        delegationUnbondingPeriod: 2 # epochs
+        delegationUnbondingPeriod: 24 # epochs
       - fn: "setDelegationRatio"
         delegationRatio: 100 # 100x (multiplier)
       - fn: "setProtocolPercentage"
@@ -91,9 +91,9 @@ contracts:
       - fn: "setMinimumIndexerStake"
         minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
   RewardsManager:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
     calls:
       - fn: "setIssuanceRate"
         issuanceRate: "1000000023206889619" # 5% annual rate
-    proxy: true
