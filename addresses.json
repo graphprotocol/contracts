@@ -6,6 +6,12 @@
     "GDAI": {
       "address": "0xFb49BDaA59d4B7aE6260D22b7D86e6Fe94031b82"
     },
+    "IENS": {
+      "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+    },
+    "IEthereumDIDRegistry": {
+      "address": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
+    },
     "BancorFormula": {
       "address": "0xE73E9807D23213C478641FE23Ec4994827327bBF",
       "creationCodeHash": "0x2826b7b3e57b89d22e500ffdccd50bbf48787cf51bc56739b23f94f34970379d",
