@@ -48,7 +48,7 @@ function setupNetworkProviders(buidlerConfig) {
     buidlerConfig.networks[netConfig.network] = {
       chainId: netConfig.chainId,
       url: getInfuraProviderURL(netConfig.network),
-      gas: netConfig.gasPrice || 'auto',
+      gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: {
         mnemonic: getAccountMnemonic(),
