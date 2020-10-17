@@ -923,4 +923,34 @@ describe('GNS', () => {
       })
     })
   })
+
+  describe('Two named subgraphs point to the same subgraph deployment ID', function () {
+    it('handle minimum signal', async function () {
+      // Publish a named subgraph-0 -> subgraphDeployment0
+      await gns
+        .connect(me.signer)
+        .publishNewSubgraph(
+          me.address,
+          subgraph0.subgraphDeploymentID,
+          subgraph0.versionMetadata,
+          subgraph0.subgraphMetadata,
+        )
+      // Curate on the first subgraph
+      await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('100'))
+
+      // Publish a named subgraph-1 -> subgraphDeployment0
+      await gns
+        .connect(me.signer)
+        .publishNewSubgraph(
+          me.address,
+          subgraph0.subgraphDeploymentID,
+          subgraph0.versionMetadata,
+          subgraph0.subgraphMetadata,
+        )
+      // Curate on the second subgraph
+      await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'))
+      // NOTE: This fails because the GNS expects a minimum V Signal but as this subgraph was
+      // curated before the signal it receives is less than the minimum
+    })
+  })
 })
