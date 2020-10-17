@@ -213,12 +213,10 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
         totalAmount,
       )} tokens (${totalAmount} wei)`,
     )
-    await sendTransaction(
-      cli.wallet,
-      graphToken,
-      'approve',
-      ...[disperseContract.address, totalAmount],
-    )
+    await sendTransaction(cli.wallet, graphToken, 'approve', [
+      disperseContract.address,
+      totalAmount,
+    ])
   }
 
   // Distribute
@@ -245,12 +243,11 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
         )
       }
       try {
-        const receipt = await sendTransaction(
-          nonceManager,
-          disperseContract,
-          'disperseToken',
-          ...[graphToken.address, addressList, amountList],
-        )
+        const receipt = await sendTransaction(nonceManager, disperseContract, 'disperseToken', [
+          graphToken.address,
+          addressList,
+          amountList,
+        ])
         saveResumeList(cliArgs.resumefile, receipt.transactionHash, batch)
       } catch (err) {
         logger.error(`Failed to send #${batchNum}`, err)

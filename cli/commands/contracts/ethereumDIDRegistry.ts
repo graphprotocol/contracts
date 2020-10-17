@@ -44,12 +44,12 @@ export const setAttribute = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
   const metaHashBytes = await handleAccountMetadata(ipfsEndpoint, metadataPath)
 
   logger.log(`Setting attribute on ethereum DID registry ...`)
-  await sendTransaction(
-    cli.wallet,
-    ethereumDIDRegistry,
-    'setAttribute',
-    ...[cli.walletAddress, name, metaHashBytes, 0],
-  )
+  await sendTransaction(cli.wallet, ethereumDIDRegistry, 'setAttribute', [
+    cli.walletAddress,
+    name,
+    metaHashBytes,
+    0,
+  ])
 }
 
 export const ethereumDIDRegistryCommand = {

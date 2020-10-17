@@ -38,12 +38,12 @@ const createSubgraphs = async (
     logger.log(`  Version Hash: ${versionHashBytes}`)
     logger.log(`  Subgraph Hash: ${subgraphHashBytes}`)
 
-    await sendTransaction(
-      cli.wallet,
-      gns,
-      'publishNewSubgraph',
-      ...[graphAccount, subgraphDeploymentIDBytes, versionHashBytes, subgraphHashBytes],
-    )
+    await sendTransaction(cli.wallet, gns, 'publishNewSubgraph', [
+      graphAccount,
+      subgraphDeploymentIDBytes,
+      versionHashBytes,
+      subgraphHashBytes,
+    ])
   }
 }
 
@@ -62,12 +62,11 @@ const curateOnSubgraphs = async (
 
     logger.log(`Minting nSignal for ${graphAccount}-${firstSubgraphNumber}...`)
     // TODO - this fails on gas estimate, might need to hardcode it in, but this happens for other funcs too
-    await sendTransaction(
-      cli.wallet,
-      gns,
-      'mintNSignal',
-      ...[graphAccount, firstSubgraphNumber, tokens],
-    )
+    await sendTransaction(cli.wallet, gns, 'mintNSignal', [
+      graphAccount,
+      firstSubgraphNumber,
+      tokens,
+    ])
     firstSubgraphNumber++
   }
 }
@@ -79,7 +78,7 @@ const createAndSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const graphToken = cli.contracts.GraphToken
 
   logger.log(`Approving MAX tokens for user GNS to spend on behalf of ${cli.walletAddress}...`)
-  await sendTransaction(cli.wallet, graphToken, 'approve', ...[gnsAddr, maxUint])
+  await sendTransaction(cli.wallet, graphToken, 'approve', [gnsAddr, maxUint])
 
   const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
   logger.log(`Running createAndSignal for ${txData.length} subgraphs`)
@@ -103,7 +102,7 @@ const unsignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> =>
     const account = txData[i].account
     const subgraphNumber = txData[i].subgraphNumber
     logger.log(`Burning ${formatGRT(burnAmount)} nSignal for ${account}-${subgraphNumber}...`)
-    await sendTransaction(cli.wallet, gns, 'burnNSignal', ...[account, subgraphNumber, burnAmount])
+    await sendTransaction(cli.wallet, gns, 'burnNSignal', [account, subgraphNumber, burnAmount])
   }
 }
 export const curatorSimulationCommand = {

@@ -1,11 +1,19 @@
 import { LinkReferences } from '@nomiclabs/buidler/types'
 
-import { providers, utils, Contract, ContractFactory, ContractTransaction, Signer } from 'ethers'
+import {
+  providers,
+  utils,
+  Contract,
+  ContractFactory,
+  ContractTransaction,
+  Signer,
+  Overrides,
+} from 'ethers'
 import consola from 'consola'
 
 import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
-import { defaultOverrides } from './helpers'
+import { defaultOverrides } from './defaults'
 
 const { keccak256 } = utils
 
@@ -86,26 +94,29 @@ export const sendTransaction = async (
   sender: Signer,
   contract: Contract,
   fn: string,
-  ...params
+  params?: Array<any>,
+  overrides?: Overrides,
 ): Promise<providers.TransactionReceipt> => {
-  // Send transaction
-  let tx: ContractTransaction
-  try {
-    tx = await contract.connect(sender).functions[fn](...params)
-  } catch (e) {
-    if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
-      logger.warn(`Gas could not be estimated - trying defaultOverrides`)
-      tx = await contract.connect(sender).functions[fn](...params, defaultOverrides())
-    } else {
-      throw e
-    }
+  // Setup overrides
+  if (overrides) {
+    params.push(overrides)
+  } else {
+    params.push(defaultOverrides)
   }
-  if (tx == undefined) {
+
+  // Send transaction
+  const tx: ContractTransaction = await contract.connect(sender).functions[fn](...params)
+  if (tx === undefined) {
     logger.error(
       `It appears the function does not exist on this contract, or you have the wrong contract address`,
     )
+    throw new Error('Transaction error')
   }
-  logger.log(`> Sent transaction ${fn}: [${params}] txHash: ${tx.hash}`)
+  logger.log(
+    `> Sent transaction ${fn}: [${params.slice(0, -1)}] \n  contract: ${
+      contract.address
+    }\n  txHash: ${tx.hash}`,
+  )
 
   // Wait for transaction to be mined
   return waitTransaction(sender, tx)
@@ -133,10 +144,11 @@ export const getContractAt = (
 
 export const deployContract = async (
   name: string,
-  args: Array<string>,
+  args: Array<any>,
   sender: Signer,
   autolink = true,
   silent = false,
+  overrides?: Overrides,
 ): Promise<DeployResult> => {
   // This function will autolink, that means it will automatically deploy external libraries
   // and link them to the contract
@@ -151,6 +163,13 @@ export const deployContract = async (
         }
       }
     }
+  }
+
+  // Setup overrides
+  if (overrides) {
+    args.push(overrides)
+  } else {
+    args.push(defaultOverrides)
   }
 
   // Deploy
@@ -215,12 +234,10 @@ export const deployContractWithProxyAndSave = async (
   const deployResult = await deployContract('GraphProxy', [contract.address], sender)
   const proxy = deployResult.contract
   // Implementation accepts upgrade
-  await sendTransaction(
-    sender,
-    contract,
-    'acceptProxy',
-    ...[proxy.address, ...args.map((a) => a.value)],
-  )
+  await sendTransaction(sender, contract, 'acceptProxy', [
+    proxy.address,
+    ...args.map((a) => a.value),
+  ])
 
   // Overwrite address entry with proxy
   const artifact = loadArtifact('GraphProxy')

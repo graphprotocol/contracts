@@ -18,12 +18,7 @@ export const setDefaultName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
   const gns = cli.contracts.GNS
 
   logger.log(`Setting default name as ${name} for ${graphAccount}...`)
-  await sendTransaction(
-    cli.wallet,
-    gns,
-    'setDefaultName',
-    ...[graphAccount, nameSystem, node, name],
-  )
+  await sendTransaction(cli.wallet, gns, 'setDefaultName', [graphAccount, nameSystem, node, name])
 }
 
 export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -39,12 +34,12 @@ export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs):
   const gns = cli.contracts.GNS
 
   logger.log(`Publishing new subgraph for ${graphAccount}`)
-  await sendTransaction(
-    cli.wallet,
-    gns,
-    'publishNewSubgraph',
-    ...[graphAccount, subgraphDeploymentIDBytes, versionHashBytes, subgraphHashBytes],
-  )
+  await sendTransaction(cli.wallet, gns, 'publishNewSubgraph', [
+    graphAccount,
+    subgraphDeploymentIDBytes,
+    versionHashBytes,
+    subgraphHashBytes,
+  ])
 }
 
 export const publishNewVersion = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -59,12 +54,12 @@ export const publishNewVersion = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const gns = cli.contracts.GNS
 
   logger.log(`Publishing new subgraph version for ${graphAccount}`)
-  await sendTransaction(
-    cli.wallet,
-    gns,
-    'publishNewVersion',
-    ...[graphAccount, subgraphNumber, subgraphDeploymentIDBytes, versionHashBytes],
-  )
+  await sendTransaction(cli.wallet, gns, 'publishNewVersion', [
+    graphAccount,
+    subgraphNumber,
+    subgraphDeploymentIDBytes,
+    versionHashBytes,
+  ])
 }
 
 export const deprecate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -72,7 +67,7 @@ export const deprecate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<
   const subgraphNumber = cliArgs.subgraphNumber
   const gns = cli.contracts.GNS
   logger.log(`Deprecating subgraph ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'deprecate', ...[graphAccount, subgraphNumber])
+  await sendTransaction(cli.wallet, gns, 'deprecate', [graphAccount, subgraphNumber])
 }
 
 export const updateSubgraphMetadata = async (
@@ -87,12 +82,11 @@ export const updateSubgraphMetadata = async (
   const gns = cli.contracts.GNS
 
   logger.log(`Updating subgraph metadata for ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(
-    cli.wallet,
-    gns,
-    'updateSubgraphMetadata',
-    ...[graphAccount, subgraphNumber, subgraphHashBytes],
-  )
+  await sendTransaction(cli.wallet, gns, 'updateSubgraphMetadata', [
+    graphAccount,
+    subgraphNumber,
+    subgraphHashBytes,
+  ])
 }
 
 export const mintNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -102,7 +96,7 @@ export const mintNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promis
   const gns = cli.contracts.GNS
 
   logger.log(`Minting nSignal for ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'mintNSignal', ...[graphAccount, subgraphNumber, tokens])
+  await sendTransaction(cli.wallet, gns, 'mintNSignal', [graphAccount, subgraphNumber, tokens])
 }
 
 export const burnNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -112,7 +106,7 @@ export const burnNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promis
   const gns = cli.contracts.GNS
 
   logger.log(`Burning nSignal from ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'burnNSignal', ...[graphAccount, subgraphNumber, nSignal])
+  await sendTransaction(cli.wallet, gns, 'burnNSignal', [graphAccount, subgraphNumber, nSignal])
 }
 
 export const withdrawGRT = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -121,7 +115,7 @@ export const withdrawGRT = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promis
   const gns = cli.contracts.GNS
 
   logger.log(`Withdrawing locked GRT from subgraph ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'withdrawGRT', ...[graphAccount, subgraphNumber])
+  await sendTransaction(cli.wallet, gns, 'withdrawGRT', [graphAccount, subgraphNumber])
 }
 
 export const gnsCommand = {

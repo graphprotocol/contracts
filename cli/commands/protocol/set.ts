@@ -83,7 +83,7 @@ export const setProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
 
   // Send tx
   const contract = getContractAt(fn.contract, addressEntry.address).connect(cli.wallet)
-  await sendTransaction(cli.wallet, contract, fn.name, ...params)
+  await sendTransaction(cli.wallet, contract, fn.name, params)
 }
 
 export const setCommand = {

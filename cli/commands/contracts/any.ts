@@ -21,7 +21,7 @@ export const any = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> 
     logger.success(`${func} = ${value}`)
   } else if (cliArgs.type == 'set') {
     logger.log(`Setting ${func}...`)
-    await sendTransaction(cli.wallet, attachedContract, func, ...params)
+    await sendTransaction(cli.wallet, attachedContract, func, params)
   }
 }
 
