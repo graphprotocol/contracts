@@ -44,16 +44,16 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      reserveRatio: 333333 # ~33.33% (in basis points)
-      withdrawalFeePercentage: 50000 # 5% (in basis points)
+      reserveRatio: 333333 # ~33.33% (parts per million)
+      withdrawalFeePercentage: 50000 # 5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
       minimumDeposit: "10000000000000000000" # 10 GRT (in wei)
-      fishermanRewardPercentage: 100000 # 10% (in basis points)
-      slashingPercentage: 100000 # 10% (in basis points)
+      fishermanRewardPercentage: 100000 # 10% (parts per million)
+      slashingPercentage: 100000 # 10% (parts per million)
   GNS:
     proxy: true
     init:
@@ -68,7 +68,7 @@ contracts:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
       thawingPeriod: 275 # ~1 hour (in blocks)
-      protocolPercentage: 10000 # 1% (in basis points)
+      protocolPercentage: 10000 # 1% (parts per million)
       curationPercentage: 100000 # 10%
       channelDisputeEpochs: 4
       maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
@@ -77,6 +77,8 @@ contracts:
       rebateAlphaNumerator: 85
       rebateAlphaDenominator: 100
     calls:
+      - fn: "setDelegationTaxPercentage"
+        delegationTaxPercentage: 10000 # 1% (parts per million)
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
