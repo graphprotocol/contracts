@@ -12,7 +12,7 @@ import { transferTeamTokensCommand } from './commands/transferTeamTokens'
 import { simulationCommand } from './commands/simulations'
 import { airdropCommand } from './commands/airdrop'
 
-import { cliOpts } from './constants'
+import { cliOpts } from './defaults'
 
 dotenv.config()
 

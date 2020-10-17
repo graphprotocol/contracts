@@ -3,7 +3,7 @@ import { constants, utils } from 'ethers'
 import yargs, { Argv } from 'yargs'
 
 import { loadCallParams, readConfig, getContractConfig } from '../config'
-import { cliOpts } from '../constants'
+import { cliOpts } from '../defaults'
 import {
   isContractDeployed,
   deployContractAndSave,
@@ -100,7 +100,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
           cli.wallet,
           entry.contract,
           call.fn,
-          ...loadCallParams(call.params, cli.addressBook),
+          loadCallParams(call.params, cli.addressBook),
         )
       }
       logger.log('')

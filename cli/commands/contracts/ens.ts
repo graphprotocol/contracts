@@ -15,7 +15,7 @@ export const registerTestName = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
   const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
   logger.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
   logger.log(`Registering ${name} with ${cli.walletAddress} on the test registrar`)
-  await sendTransaction(cli.wallet, testRegistrar, 'register', ...[label, cli.walletAddress])
+  await sendTransaction(cli.wallet, testRegistrar, 'register', [label, cli.walletAddress])
 }
 export const checkOwner = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const name = cliArgs.name

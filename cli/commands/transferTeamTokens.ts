@@ -24,7 +24,7 @@ export const transferTeamTokens = async (cli: CLIEnvironment, cliArgs: CLIArgs):
       if (balance.gt(BALANCE_THRESHOLD)) {
         logger.log(`${member.address} over balance`)
       } else {
-        await sendTransaction(cli.wallet, graphToken, 'transfer', ...[member.address, amount])
+        await sendTransaction(cli.wallet, graphToken, 'transfer', [member.address, amount])
       }
     })
   }

@@ -59,12 +59,12 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   // Upgrade to new implementation
   const pendingImplementation = (await proxy.functions['pendingImplementation']())[0]
   if (pendingImplementation != implAddress) {
-    await sendTransaction(cli.wallet, proxy, 'upgradeTo', ...[implAddress])
+    await sendTransaction(cli.wallet, proxy, 'upgradeTo', [implAddress])
   }
 
   // Accept upgrade from the implementation
   const contractArgs = initArgs ? initArgs.split(',') : []
-  await sendTransaction(cli.wallet, contract, 'acceptProxy', ...[proxy.address, ...contractArgs])
+  await sendTransaction(cli.wallet, contract, 'acceptProxy', [proxy.address, ...contractArgs])
 
   // TODO
   // -- update entry

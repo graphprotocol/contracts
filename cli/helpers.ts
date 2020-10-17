@@ -2,7 +2,7 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import consola from 'consola'
 
-import { utils, providers, Wallet, Overrides } from 'ethers'
+import { utils, providers, Wallet } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 
 import * as bs58 from 'bs58'
@@ -15,14 +15,8 @@ import {
 } from './metadata'
 
 dotenv.config()
-const logger = consola.create({})
 
-export const defaultOverrides = (): Overrides => {
-  return {
-    gasPrice: utils.parseUnits('25', 'gwei'),
-    gasLimit: 2000000,
-  }
-}
+const logger = consola.create({})
 
 export class IPFS {
   static createIpfsClient(node: string): typeof ipfsHttpClient {

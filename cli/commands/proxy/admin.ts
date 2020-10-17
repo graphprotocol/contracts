@@ -44,7 +44,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
 
   // Update admin
   const contract = getContractAt('GraphProxy', addressEntry.address).connect(cli.wallet)
-  await sendTransaction(cli.wallet, contract, 'setAdmin', ...[adminAddress])
+  await sendTransaction(cli.wallet, contract, 'setAdmin', [adminAddress])
   consola.success('Done')
 }
 

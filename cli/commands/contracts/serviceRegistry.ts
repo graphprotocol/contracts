@@ -11,7 +11,7 @@ export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const serviceRegistry = cli.contracts.ServiceRegistry
 
   logger.log(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
-  await sendTransaction(cli.wallet, serviceRegistry, 'register', ...[url, geoHash])
+  await sendTransaction(cli.wallet, serviceRegistry, 'register', [url, geoHash])
 }
 export const unregister = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const serviceRegistry = cli.contracts.ServiceRegistry

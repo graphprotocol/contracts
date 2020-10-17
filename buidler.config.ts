@@ -3,7 +3,7 @@ import { Wallet } from 'ethers'
 import { extendEnvironment, task, usePlugin } from '@nomiclabs/buidler/config'
 
 import { getAddressBook } from './cli/address-book'
-import { cliOpts } from './cli/constants'
+import { cliOpts } from './cli/defaults'
 import { loadContracts, loadEnv } from './cli/env'
 import { getContractAt } from './cli/network'
 import { migrate } from './cli/commands/migrate'

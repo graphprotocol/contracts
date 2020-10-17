@@ -3,6 +3,7 @@ import { utils, BigNumber, Contract, Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
 import { getAddressBook, AddressBook } from './address-book'
+import { defaultOverrides } from './defaults'
 import { getContractAt } from './network'
 import { getProvider } from './utils'
 
@@ -42,6 +43,14 @@ export const loadContracts = (
   return contracts
 }
 
+export const displayGasOverrides = () => {
+  const r = { gasPrice: 'auto', gasLimit: 'auto', ...defaultOverrides }
+  if (r['gasPrice']) {
+    r['gasPrice'] = r['gasPrice'].toString()
+  }
+  return r
+}
+
 export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnvironment> => {
   if (!wallet) {
     wallet = Wallet.fromMnemonic(argv.mnemonic, `m/44'/60'/0'/0/${argv.accountNumber}`).connect(
@@ -60,6 +69,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   logger.log(
     `Connected Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
   )
+  logger.log('Gas settings:', displayGasOverrides(), '\n')
 
   return {
     balance,

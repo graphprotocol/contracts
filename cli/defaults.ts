@@ -1,11 +1,16 @@
 import { Options } from 'yargs'
+import { utils, Overrides } from 'ethers'
 
-export const defaults = {
+export const local = {
   mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
   providerUrl: 'http://localhost:8545',
   addressBookPath: './addresses.json',
   graphConfigPath: './graph.config.yml',
   accountNumber: '0',
+}
+export const defaultOverrides: Overrides = {
+  // gasPrice: utils.parseUnits('25', 'gwei'), // auto
+  // gasLimit: 2000000, // auto
 }
 
 export const cliOpts = {
@@ -14,35 +19,35 @@ export const cliOpts = {
     description: 'The path to your address book file',
     type: 'string',
     group: 'Config',
-    default: defaults.addressBookPath,
+    default: local.addressBookPath,
   },
   graphConfig: {
     alias: 'graph-config',
     description: 'The path to the config file',
     type: 'string',
     group: 'Config',
-    default: defaults.graphConfigPath,
+    default: local.graphConfigPath,
   },
   providerUrl: {
     alias: 'provider-url',
     description: 'The URL of an Ethereum provider',
     type: 'string',
     group: 'Ethereum',
-    default: defaults.providerUrl,
+    default: local.providerUrl,
   },
   mnemonic: {
     alias: 'mnemonic',
     description: 'The mnemonic for an account which will pay for gas',
     type: 'string',
     group: 'Ethereum',
-    default: defaults.mnemonic,
+    default: local.mnemonic,
   },
   accountNumber: {
     alias: 'account-number',
     description: 'The account number of the mnemonic',
     type: 'string',
     group: 'Ethereum',
-    default: defaults.accountNumber,
+    default: local.accountNumber,
   },
   force: {
     alias: 'force',

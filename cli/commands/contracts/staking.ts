@@ -12,7 +12,7 @@ export const stake = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void
   const staking = cli.contracts.Staking
 
   logger.log(`Staking ${cliArgs.amount} tokens...`)
-  await sendTransaction(cli.wallet, staking, 'stake', ...[amount])
+  await sendTransaction(cli.wallet, staking, 'stake', [amount])
 }
 
 export const unstake = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -20,7 +20,7 @@ export const unstake = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const staking = cli.contracts.Staking
 
   logger.log(`Unstaking ${cliArgs.amount} tokens...`)
-  await sendTransaction(cli.wallet, staking, 'unstake', ...[amount])
+  await sendTransaction(cli.wallet, staking, 'unstake', [amount])
 }
 
 export const withdraw = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -38,12 +38,12 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const staking = cli.contracts.Staking
 
   logger.log(`Allocating ${cliArgs.amount} tokens on ${subgraphDeploymentID}...`)
-  await sendTransaction(
-    cli.wallet,
-    staking,
-    'allocate',
-    ...[subgraphDeploymentID, amount, allocationID, metadata],
-  )
+  await sendTransaction(cli.wallet, staking, 'allocate', [
+    subgraphDeploymentID,
+    amount,
+    allocationID,
+    metadata,
+  ])
 }
 
 export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -51,7 +51,7 @@ export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pr
   const staking = cli.contracts.Staking
 
   logger.log(`Closing allocation with allocationID ${allocationID}...`)
-  await sendTransaction(cli.wallet, staking, 'close', ...[allocationID])
+  await sendTransaction(cli.wallet, staking, 'close', [allocationID])
 }
 
 export const collect = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -68,7 +68,7 @@ export const claim = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void
   const staking = cli.contracts.Staking
 
   logger.log(`Claiming on ${channelID} with restake = ${restake}...`)
-  await sendTransaction(cli.wallet, staking, 'claim', ...[channelID, restake])
+  await sendTransaction(cli.wallet, staking, 'claim', [channelID, restake])
 }
 
 export const delegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -77,7 +77,7 @@ export const delegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const staking = cli.contracts.Staking
 
   logger.log(`Delegating ${cliArgs.amount} tokens to indexer ${indexer}...`)
-  await sendTransaction(cli.wallet, staking, 'delegate', ...[indexer, amount])
+  await sendTransaction(cli.wallet, staking, 'delegate', [indexer, amount])
 }
 
 export const undelegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -86,7 +86,7 @@ export const undelegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise
   const staking = cli.contracts.Staking
 
   logger.log(`Undelegating ${cliArgs.amount} tokens from indexer ${indexer}...`)
-  await sendTransaction(cli.wallet, staking, 'undelegate', ...[indexer, amount])
+  await sendTransaction(cli.wallet, staking, 'undelegate', [indexer, amount])
 }
 
 export const withdrawDelegated = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -99,7 +99,7 @@ export const withdrawDelegated = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   } else {
     logger.log(`Withdrawing from ${indexer} without restaking`)
   }
-  await sendTransaction(cli.wallet, staking, 'withdrawDelegated', ...[indexer, newIndexer])
+  await sendTransaction(cli.wallet, staking, 'withdrawDelegated', [indexer, newIndexer])
 }
 
 export const setDelegationParameters = async (
@@ -116,19 +116,18 @@ export const setDelegationParameters = async (
       queryFeeCut       = ${queryFeeCut}
       cooldownBlocks    = ${cooldownBlocks}
   `)
-  await sendTransaction(
-    cli.wallet,
-    staking,
-    'setDelegationParameters',
-    ...[indexingRewardCut, queryFeeCut, cooldownBlocks],
-  )
+  await sendTransaction(cli.wallet, staking, 'setDelegationParameters', [
+    indexingRewardCut,
+    queryFeeCut,
+    cooldownBlocks,
+  ])
 }
 export const setOperator = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const operator = cliArgs.operator
   const allowed = cliArgs.allowed
   const staking = cli.contracts.Staking
   logger.log(`Setting operator ${operator} to ${allowed} for account ${cli.walletAddress}`)
-  await sendTransaction(cli.wallet, staking, 'setOperator', ...[operator, allowed])
+  await sendTransaction(cli.wallet, staking, 'setOperator', [operator, allowed])
 }
 
 export const stakingCommand = {
