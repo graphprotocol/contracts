@@ -63,6 +63,10 @@ contract StakingV1Storage is Managed {
     // Time in epochs a delegator needs to wait to withdraw delegated stake
     uint32 public delegationUnbondingPeriod; // in epochs
 
+    // Percentage of tokens to tax a delegation deposit
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public delegationTaxPercentage;
+
     // Delegation pools : indexer => DelegationPool
     mapping(address => IStaking.DelegationPool) public delegationPools;
 

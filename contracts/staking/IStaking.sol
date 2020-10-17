@@ -82,6 +82,8 @@ interface IStaking {
 
     function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external;
 
+    function setDelegationTaxPercentage(uint32 _percentage) external;
+
     function setSlasher(address _slasher, bool _allowed) external;
 
     function setAssetHolder(address _assetHolder, bool _allowed) external;

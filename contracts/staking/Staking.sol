@@ -223,6 +223,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
         _setDelegationRatio(_delegationRatio);
         _setDelegationParametersCooldown(0);
+        _setDelegationTaxPercentage(0);
 
         _setRebateRatio(_rebateAlphaNumerator, _rebateAlphaDenominator);
     }
@@ -495,6 +496,25 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     function _setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) private {
         delegationUnbondingPeriod = _delegationUnbondingPeriod;
         emit ParameterUpdated("delegationUnbondingPeriod");
+    }
+
+    /**
+     * @dev Set a delegation tax percentage to burn when delegated funds are deposited.
+     * @param _percentage Percentage of delegated tokens to burn as delegation tax
+     */
+    function setDelegationTaxPercentage(uint32 _percentage) external override onlyGovernor {
+        _setDelegationTaxPercentage(_percentage);
+    }
+
+    /**
+     * @dev Internal: Set a delegation tax percentage to burn when delegated funds are deposited.
+     * @param _percentage Percentage of delegated tokens to burn as delegation tax
+     */
+    function _setDelegationTaxPercentage(uint32 _percentage) private {
+        // Must be within 0% to 100% (inclusive)
+        require(_percentage <= MAX_PPM, ">percentage");
+        delegationTaxPercentage = _percentage;
+        emit ParameterUpdated("delegationTaxPercentage");
     }
 
     /**
@@ -1201,7 +1221,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // -- Effects --
 
-        // Burn protocol fees
+        // Burn protocol fees if any
         _burnTokens(protocolFees);
 
         // Send curation fees to the curator reserve pool
@@ -1248,17 +1268,28 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         DelegationPool storage pool = delegationPools[_indexer];
         Delegation storage delegation = pool.delegators[_delegator];
 
+        // Collect delegation tax
+        uint256 delegationTax = _collectDelegationTax(_tokens);
+        uint256 delegatedTokens = _tokens.sub(delegationTax);
+
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0) ? _tokens : _tokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares = (pool.tokens == 0)
+            ? delegatedTokens
+            : delegatedTokens.mul(pool.shares).div(pool.tokens);
 
         // Update the delegation pool
-        pool.tokens = pool.tokens.add(_tokens);
+        pool.tokens = pool.tokens.add(delegatedTokens);
         pool.shares = pool.shares.add(shares);
 
         // Update the delegation
         delegation.shares = delegation.shares.add(shares);
 
-        emit StakeDelegated(_indexer, _delegator, _tokens, shares);
+        // -- Effects --
+
+        // Burn the delegation tax if any
+        _burnTokens(delegationTax);
+
+        emit StakeDelegated(_indexer, _delegator, delegatedTokens, shares);
 
         return shares;
     }
@@ -1413,7 +1444,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect and burn the protocol fees for an amount of tokens.
+     * @dev Calculate the protocol fees to be burned for an amount of tokens.
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of protocol fees
      */
@@ -1422,6 +1453,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             return 0;
         }
         return uint256(protocolPercentage).mul(_tokens).div(MAX_PPM);
+    }
+
+    /**
+     * @dev Calculate the delegation tax to be burned for an amount of tokens.
+     * @param _tokens Total tokens received used to calculate the amount of tax to collect
+     * @return Amount of delegation tax
+     */
+    function _collectDelegationTax(uint256 _tokens) internal view returns (uint256) {
+        if (delegationTaxPercentage == 0) {
+            return 0;
+        }
+        return uint256(delegationTaxPercentage).mul(_tokens).div(MAX_PPM);
     }
 
     /**

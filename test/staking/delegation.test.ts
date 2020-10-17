@@ -42,6 +42,7 @@ describe('Staking::Delegation', () => {
 
   async function shouldDelegate(sender: Account, tokens: BigNumber) {
     // Before state
+    const beforeTotalSupply = await grt.totalSupply()
     const beforePool = await staking.delegationPools(indexer.address)
     const beforeDelegation = await staking.getDelegation(indexer.address, sender.address)
     const beforeShares = beforeDelegation.shares
@@ -49,18 +50,24 @@ describe('Staking::Delegation', () => {
       ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
       : toBN(0)
 
+    // Get current delegation tax percentage for deposits
+    const delegationTaxPercentage = BigNumber.from(await staking.delegationTaxPercentage())
+    const delegationTax = delegationTaxPercentage.mul(tokens).div(MAX_PPM)
+    const delegatedTokens = tokens.sub(delegationTax)
+
     // Calculate shares to receive
     const shares = beforePool.tokens.eq(toBN('0'))
-      ? tokens
-      : tokens.mul(beforePool.tokens).div(beforePool.shares)
+      ? delegatedTokens
+      : delegatedTokens.mul(beforePool.tokens).div(beforePool.shares)
 
     // Delegate
     const tx = staking.connect(sender.signer).delegate(indexer.address, tokens)
     await expect(tx)
       .emit(staking, 'StakeDelegated')
-      .withArgs(indexer.address, sender.address, tokens, shares)
+      .withArgs(indexer.address, sender.address, delegatedTokens, shares)
 
     // After state
+    const afterTotalSupply = await grt.totalSupply()
     const afterPool = await staking.delegationPools(indexer.address)
     const afterDelegation = await staking.getDelegation(indexer.address, sender.address)
     const afterShares = afterDelegation.shares
@@ -69,10 +76,11 @@ describe('Staking::Delegation', () => {
       : toBN(0)
 
     // State updated
-    expect(afterPool.tokens).eq(beforePool.tokens.add(tokens))
+    expect(afterPool.tokens).eq(beforePool.tokens.add(delegatedTokens))
     expect(afterPool.shares).eq(beforePool.shares.add(shares))
     expect(afterShares).eq(beforeShares.add(shares))
-    expect(afterTokens).eq(beforeTokens.add(tokens))
+    expect(afterTokens).eq(beforeTokens.add(delegatedTokens))
+    expect(afterTotalSupply).eq(beforeTotalSupply.sub(delegationTax))
   }
 
   async function shouldUndelegate(sender: Account, shares: BigNumber) {
@@ -227,6 +235,26 @@ describe('Staking::Delegation', () => {
       })
     })
 
+    describe('delegationTaxPercentage', function () {
+      it('should set `delegationTaxPercentage`', async function () {
+        for (const newValue of [toBN('0'), toBN('5'), MAX_PPM]) {
+          await staking.connect(governor.signer).setDelegationTaxPercentage(newValue)
+          expect(await staking.delegationTaxPercentage()).eq(newValue)
+        }
+      })
+
+      it('reject set `delegationTaxPercentage` if out of bounds', async function () {
+        const newValue = MAX_PPM.add(toBN('1'))
+        const tx = staking.connect(governor.signer).setDelegationTaxPercentage(newValue)
+        await expect(tx).revertedWith('>percentage')
+      })
+
+      it('reject set `delegationTaxPercentage` if not allowed', async function () {
+        const tx = staking.connect(me.signer).setDelegationTaxPercentage(50)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+    })
+
     describe('delegationParameters', function () {
       const indexingRewardCut = toBN('50000')
       const queryFeeCut = toBN('80000')
@@ -349,6 +377,23 @@ describe('Staking::Delegation', () => {
       it('should delegate a high number of tokens', async function () {
         await shouldDelegate(delegator, toGRT('100'))
         await shouldDelegate(delegator, toGRT('1000000000000000000'))
+      })
+
+      describe('delegation tax', function () {
+        it('should delegate and burn delegation deposit tax (0.0001%)', async function () {
+          await staking.setDelegationTaxPercentage(1)
+          await shouldDelegate(delegator, toGRT('10000000'))
+        })
+
+        it('should delegate and burn delegation deposit tax (1%)', async function () {
+          await staking.setDelegationTaxPercentage(10000)
+          await shouldDelegate(delegator, toGRT('10000000'))
+        })
+
+        it('should delegate and burn delegation deposit tax (100%)', async function () {
+          await staking.setDelegationTaxPercentage(1000000)
+          await shouldDelegate(delegator, toGRT('10000000'))
+        })
       })
     })
 
