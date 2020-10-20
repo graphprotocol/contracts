@@ -73,7 +73,7 @@ export const sendTransaction = async (
   // Send transaction
   let tx: ContractTransaction
   try {
-    tx = await contract.connect(sender).functions[fn](...params)
+    tx = await contract.connect(sender).functions[fn](...params) // Remember, curation script isn't working with this right now
   } catch (e) {
     if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       logger.warn(`Gas could not be estimated - trying defaultOverrides`)
