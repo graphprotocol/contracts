@@ -56,8 +56,7 @@ const curateOnSubgraphs = async (
   for (let i = 0; i < txData.length; i++) {
     const subgraph = txData[i]
     const graphAccount = cli.walletAddress
-    const signal = subgraph.signal.replace(/"/g, '')
-    const tokens = parseGRT(signal)
+    const tokens = parseGRT(subgraph.signal)
     const gns = cli.contracts.GNS
 
     logger.log(`Minting nSignal for ${graphAccount}-${firstSubgraphNumber}...`)
@@ -71,7 +70,13 @@ const curateOnSubgraphs = async (
   }
 }
 
-const createAndSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+const create = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
+  logger.log(`Running create for ${txData.length} subgraphs`)
+  await createSubgraphs(cli, txData)
+}
+
+const signal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   // First approve the GNS
   const maxUint = '115792089237316195423570985008687907853269984665640564039457584007913129639935'
   const gnsAddr = cli.contracts.GNS.address
@@ -81,8 +86,7 @@ const createAndSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   await sendTransaction(cli.wallet, graphToken, 'approve', [gnsAddr, maxUint])
 
   const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
-  logger.log(`Running createAndSignal for ${txData.length} subgraphs`)
-  await createSubgraphs(cli, txData)
+  logger.log(`Running signal for ${txData.length} subgraphs`)
   await curateOnSubgraphs(cli, txData, cliArgs.firstSubgraphNumber)
 }
 
@@ -111,8 +115,23 @@ export const curatorSimulationCommand = {
   builder: (yargs: Argv): yargs.Argv => {
     return yargs
       .command({
-        command: 'createAndSignal',
+        command: 'create',
         describe: 'Create and signal on subgraphs by reading data from a csv file',
+        builder: (yargs: Argv) => {
+          return yargs.option('path', {
+            description: 'Path of the csv file relative to this folder',
+            type: 'string',
+            requiresArg: true,
+            demandOption: true,
+          })
+        },
+        handler: async (argv: CLIArgs): Promise<void> => {
+          return create(await loadEnv(argv), argv)
+        },
+      })
+      .command({
+        command: 'signal',
+        describe: 'Signal on a bunch of subgraphs by reading data from a CSV',
         builder: (yargs: Argv) => {
           return yargs
             .option('path', {
@@ -129,7 +148,7 @@ export const curatorSimulationCommand = {
             })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return createAndSignal(await loadEnv(argv), argv)
+          return signal(await loadEnv(argv), argv)
         },
       })
       .command({

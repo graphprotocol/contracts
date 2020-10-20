@@ -1,0 +1,88 @@
+displayName,description,subgraphID,signal,codeRepository,image
+Uniswap V2,historical data and analytics for Uniswap V2,QmWTrJJ9W8h3JE19FhCzzPYsJ2tgXZCdUqnbyuo64ToTBN,1010000,https://github.com/uniswap/uniswap-v2-subgraph,https://storage.googleapis.com/subgraph-images/1591820950702256x256_App_Icon_Gradient.png
+Ethereum Blocks,Indexing all Ethereum Block data,QmNtTKStPBm3bnghvyKLNY5B8etER8CG9ei9m7APT1kdx6,75514,https://github.com/blocklytics/ethereum-blocks,https://storage.googleapis.com/subgraph-images/1579070275738ethereum_logo_square.png
+Brightid Honey Faucet Xdai,Subgraph for BrightId Honey Faucet on xDai,QmYMUQESxrhz7UkwnshnCEbprLWQbZVPyNd3jFggS8FAtK,71722,,https://storage.googleapis.com/subgraph-images/default/sg-9.png
+LINKUSD,Subgraph for LINKUSD,Qmbpwh32waJ21xgYLBw9ZV9v5ikehANXqQTaxErii7ypbT,210447,,https://storage.googleapis.com/subgraph-images/default/sg-3.png
+Balancer,Generalized AMM and portfolio manager,QmbS7vmAWXJqsJEnAbvNSBYQXxCUmZWHFQygHPbyb3vy3N,58478,,https://storage.googleapis.com/subgraph-images/1582850720988pebbles-padcircle-white.256w.png
+Synthetix Rates,Rate updates from Synthetix,QmPYVDfyyQ72dwr4HPG8JC1SZGvLhewMTqfDwByH6M1dPa,554340,,https://storage.googleapis.com/subgraph-images/1569418199094Pasted_Image_9_25_19__9_29_AM.jpg
+SakeSwap Subgraph V2,Analytics for SakeSwap,QmcAGrSedyweWQhKCbdMUxbX2ddMiSJwWRRc3NcDtoXnDE,38619,https://github.com/therealsakeswap/sakeswap-subgraph-univ2,https://storage.googleapis.com/subgraph-images/default/sg-8.png
+Opyn,Opyn Mainnet Subgraph,QmNVmy3hA6JVqZfMGoQc68GsB9GzGiEVLjhR1pHLY2xwuS,1221,https://https://github.com/aparnakr/OpynGraph,https://storage.googleapis.com/subgraph-images/1581473209487Opyn.png
+Curve,Trades and liquidity details for Curve.fi DeFi platform,QmVaFg6W4vofpNSsMNVx1SNDn4n8bQm9ou95JH6FDiKqQ1,132196,,https://storage.googleapis.com/subgraph-images/default/sg-4.png
+Uniswap,Uniswap is a decentralized protocol for automated token exchange on Ethereum.,QmRuorV4Ck1sVdpfpAAwfYXnf3cfSkbDwZvvzWud9SH8Dg,19564,,https://storage.googleapis.com/subgraph-images/1548114951622uniswap.png
+Gringotts,Gringotts Wizarding Bank,QmPmPrNHGkWZLMuXiNf59odjxSAwMBciMNNenf9MSqyBfy,584040,,https://storage.googleapis.com/subgraph-images/1601451095309gringotts.jpg
+Mintbase,All stores and those stores tokens,QmW5UcMhXwXrMqRpTdT3MKB7HYDxbsp5oe9Atkuh4sgAA5,17572,https://github.com/Mintbase/graph-mint-factory,https://storage.googleapis.com/subgraph-images/1573754371189logo-solo-white.png
+Aragon Conviction Voting Xdai,Conviction voting subgraph Xdai,QmWPnuoYxQrb8Hc5MNZboRmyAqjYhV5B8ndgyHywUptcRV,1306,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Aavegotchi Aragon,Aavegotchi Bonding Curve,QmY6Si48nCutHkofaXDL1mJd4XUxs2SCPeo4G6CT661z4P,12224,,https://storage.googleapis.com/subgraph-images/default/sg-7.png
+SushiSwap Subgraph Fork,A fork of Uniswap subgraph to test things out,QmPSzSpAHozDWgqsa9FMKk2qd1xrhEZJfhGxskgz4b8HoQ,11808,,https://storage.googleapis.com/subgraph-images/default/sg-3.png
+Known Origin,KnownOrigin artwork listings,QmTFeK8XKtA6hm2nZ8ectqyqTmx1ga8qiMpxQyyxfBrduv,227640,https://github.com/knownorigin/known-origin-subgraph,https://storage.googleapis.com/subgraph-images/1575098880182440px_LogoIcn.png
+mStable protocol,Mint redeem and save mStable assets with this data,QmWNP1jqMZm61G8FbsLzi9Mnii5qRXbkadBxXVHZPqzKri,8821,,https://storage.googleapis.com/subgraph-images/1586091586012mstable_logo_circle_m_black.jpg
+Token Sets,Crypto management made easy,QmZ6noN8Ek4dPpyvmSv4AdAtefVWtUsopBc8hFKFiWo1Uw,8002,https://github.com/Destiner/TokenSets-subgraph,https://storage.googleapis.com/subgraph-images/1569163566860TokenSets.png
+UMA,UMA Subgraph,QmVviUCWpxxZuwekyHe87vspJsaugG1KDkfqEwjm3788ku,5781,https://github.com/protofire/uma-subgraph,https://storage.googleapis.com/subgraph-images/1601561900375DsMClZnT_400x400.jpg
+Synthetix Exchanges,A subgraph on all exchanges in Synthetix,QmX9CNPbbYoFGvucHzNJkjTAMGKNWzUSFveWmgdoB6WVJm,5441,https://github.com/Synthetixio/synthetix-subgraph,https://storage.googleapis.com/subgraph-images/1569869352912Slack___jordan___Synthetix.jpg
+Bancor V2,Bancor v2,QmbykNCTDoRx5NMgJgoXY7YARoV3xTRNfs4cWifsc3fm7u,5390,,https://storage.googleapis.com/subgraph-images/default/sg-1.png
+Protocol,Aave's Protocol subgraph(legacy),QmU3qzWocSGuywhLonGiYmv22XS5sHatfEBp3vrJrRGdD6,5182,https://github.com/aave/aave-protocol/tree/master/thegraph,https://storage.googleapis.com/subgraph-images/1578403270665sticker_aave_telegram.png
+Try Second Graph,mooniswap 2,QmQgmUrUKBkQfsKdNNnfcUpUxRvyrX27W4knuhn4q6GfpH,40420,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+exchange,exchange,QmWpFQJWVBkzTfabZL5DxnAvdhjP5FjbBW87jP2XcjyuUb,3990,,https://storage.googleapis.com/subgraph-images/default/sg-3.png
+Protocol Multy Raw,Aave protocol subgraph with all pools data,QmS8ZBEgXisX7yEm8daSQmmVkwQ6wH6WU1B4nBkYKrjHo2,3679,https://github.com/graphprotocol/aave-protocol,https://storage.googleapis.com/subgraph-images/1590485690460sticker_aave_telegram.png
+Xdai Blocks,All the blocks on Xdai,QmVxQBxjdswNYNmz2ocSDknkbnCwvQLJd1onxwuHtuoumd,3338,,https://storage.googleapis.com/subgraph-images/default/sg-1.png
+SushiSwap,Swap data from sushiswap,QmUmgYJL3yp7EiSgxQ3zVxmDMJn3ZXDnYZWija4BWciEvu,2930,,https://storage.googleapis.com/subgraph-images/default/sg-7.png
+Marketplace,Decentraland's Marketplace,QmXdZDKnDX2o9qfupGDTXFM1xxspndHrHAGpbkWAPMs6Qk,2773,https://github.com/decentraland/marketplace,https://storage.googleapis.com/subgraph-images/1578327676983color.png
+KeeperDAO,KeeperDAO,QmW6BrjSMPUSjMApTNYZShHi9XShgziC5YppGvqyjjAAX1,2546,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+Multisig Mainnet,Multisig (network: Mainnet),Qmd8JSo29vQX3iP45JMVEL2zQJ6bQEMkqnWsoW3eRjMJEn,2528,,https://storage.googleapis.com/subgraph-images/default/sg-8.png
+Unlock,Unlock on mainnet,QmR2uzq3Tt3htYTmefFwJ6eX2aYySY6ZRZkW9LZG39Byrh,2521,https://github.com/unlock-protocol/unlock-subgraph,https://storage.googleapis.com/subgraph-images/1569531464009unlock.png
+Miniswap,MiniSwap provides a decentralised platform.,QmZ4fvpTgWCL3oQbf7uzy9bszotLTxv6pGbYfGk7VopTst,2373,,https://storage.googleapis.com/subgraph-images/1601020924950MIniswap600.png
+Easy Staking,EasyStaking,QmfVC5EMxkkyh6tLt94o8Kh239WVNppDP6jLJncviCSK4k,2314,,https://storage.googleapis.com/subgraph-images/default/sg-4.png
+RenVM,RenVM graph explorer,QmP595e8r4VRPcKG5bfHUSN4ybbYnZkjgYkSHjfDw5YshY,2114,https://github.com/renproject/renvm-subgraph,https://storage.googleapis.com/subgraph-images/1590115100825icon-white.png
+Livepeer,A protocol for affordable and reliable video encoding.,QmaEsTQhqGfZMjHYpNxmcxU3pD4GbAU6u5F8AqePeQumYv,2067,https://github.com/livepeer/livepeerjs/tree/master/packages/subgraph,https://storage.googleapis.com/subgraph-images/1565207456060livepeer.png
+Ephimera,Ephimera,QmNkNBJKGzN65UtD3PKC2zV7EeHrHtWZsRErRsxyq55xw1,2015,,https://storage.googleapis.com/subgraph-images/default/sg-9.png
+thelao1,lao,QmXAkoTqZZus7qd6JJ7dycKPwYWQuBu1raPBNfhq59gaGL,1915,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Tellor Dispute V2,tellor dispute center v2,QmfCaCcQnfBWXgCpbtf9kKWosVqUbeGLfEomYVJkMBqKj9,1601,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+KeeperDAO Staging,KeeperDAO staging environment,QmTnwP1Bs61Bpb2GNBjYBFmVreZzDx3xDowQGGC63WxsWF,1564,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+NIFTEX Uniswap Graph,NIFTEX Uniswap Pools Data,QmdoMvZbk2YDyDVQjhS73RfqymffMxz4EW1uS9RhEEfqog,1558,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Cream Swap V2,Crypto Rules Everything Around Me C.R.E.A.M.,QmcPSRpF28QSWpgAgNPFVyiGYd75L5aSrKGLXhmaFW5bSK,1403,,https://storage.googleapis.com/subgraph-images/1602679008376CREAM_transparent_Secondary_straight_color.png
+LINKUSD rinkeby,LINKUSD on Rinkeby,QmYefoMwvtKYPQVrZZRTaVeX1K2CP51Eft8E7Dt8LeCRsa,1181,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Prod,2nd Layer Protocol Embedding Smart Contracts into HTTP Links,QmQhuSbS2J5DzbHVFNLKYqFJDS9hhLxyWys6uGZDamhPeD,1176,https://github.com/2key/2key-subgraphs,https://storage.googleapis.com/subgraph-images/15644936648972key-white-bg.gif
+Flamingo NFT,Flamingo NFT (mainnet),Qma3LJSzh4q5RGS5inHMLiGCBVTQ16PnGeRJscCDcQsWkH,1163,,https://storage.googleapis.com/subgraph-images/default/sg-7.png
+Stake Subgraph V2,Stake Subgraph V2,QmUEfxv9AQmn1BoAr8C56Z3oALGrEkG7V2doGjYDpVuBH5,1115,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+Oneinchswapped3,Stats,QmcYkKNVBW67p9UWFMEcETWjgKqjnJ1nupPmJQoaLPW7CU,1087,,https://storage.googleapis.com/subgraph-images/default/sg-10.png
+Honey Pot Xdai,Honey pot subgraph for xdai network,QmRQJBmUh1vxp184FScwLeKviNXiazbxWKRBWkeh1HXhVw,974,,https://storage.googleapis.com/subgraph-images/1601582404472bee.png
+Try Graph,test,Qmd3yXPzi3cRBW8assGLHDi65s6EZagparh55fZ2FGP7Tf,943,,https://storage.googleapis.com/subgraph-images/default/sg-8.png
+Sablier,Mainnet subgraph,QmamoWRdcCzkgYDXLFzxdoejzCJMvJYfdNwQorWU4B4Rtg,398000,,https://storage.googleapis.com/subgraph-images/1573584068471icon_spaced_gradient_2.png
+Balancer Beta,Balancer,QmXPQBpRJ8Vjut71DyYWst8VkCbhdKCAJ9f4q3BWboXd87,765,,https://storage.googleapis.com/subgraph-images/default/sg-1.png
+Circlesxdai,Circles subgraph for The Graph to fastly query available data in the Circles UBI ecosystem,QmVRkGqh7mCsZdgfMGQDLUjTYDbR6u51jWCTsG2mj8wLHf,728,,https://storage.googleapis.com/subgraph-images/16006014343575qr4Cm5q_400x400.jpg
+Keeper Pool Mainnet,Keeper Pool Related Data in Mainnet Network,QmX28DCsTkd9TWLssR1YRwBr6weQ61t5VTnHimff1zZMCT,728,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Uniswap,Subgraph to organize Uniswap transaction data,QmQ2Hm4EqUycftdZqmMftgghZ8DpsbUh3T6FHkEvBMp1Yr,136400,https://github.com/graphprotocol/uniswap-subgraph,https://storage.googleapis.com/subgraph-images/1548114951622uniswap.png
+v8_12_exp_xdai,arc index xdai,QmSZ6wNaTQdCCqsfPNPrCXq9oGLKt7rRE3cHYWDjiTksjq,636,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+Mint Factory,Capture all the sub contracts,QmYUdKTsNe9fDuWZMeXTAF7tKosSuokzgauHQSEUUU89B1,619,https://github.com/Mintbase/graph-mint-factory,https://storage.googleapis.com/subgraph-images/1573378599056logo-solo-white.png
+Staging,2nd Layer Protocol Embedding Smart Contracts into HTTP Links,QmVivTDmJMXJXyJcjcFDV2NLqf27xMzedXmCvmFcPdFoco,573,https://github.com/2key/2key-subgraphs,https://storage.googleapis.com/subgraph-images/15644935789752Key_Logo_Final Formats-FIX_LightGreen.png
+Purple Warlock Staging,A graph for the demo,QmSgYxcy6AJ41ZdvmVgdZYEU4yzeccZeCQK8QNn75X5wtL,109600,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+Pollen,Pollen is a fully decentralized DAO-governed DeFi Asset Pool,QmeHPFWH8qmEBpzZRTzjEa7vajnbGQZ2SzJ8v6fkA6W9nX,541,https://github.com/PollenDeFi/pollen-subgraph,https://storage.googleapis.com/subgraph-images/1595078030985logo192.png
+v39_8,arc index mainnet,QmWex7boz79MGkYmcLbjDg4N13kLsLQAtTfLyjcz6RgJ9i,475,,https://storage.googleapis.com/subgraph-images/default/sg-4.png
+ENS,A secure & decentralized way to address resources on and off the blockchain using simple human-readable names. Access domains and transfer history.,QmY8Uzg61ttrogeTyCKLcDDR4gKNK44g9qkGDqeProkSHE,456,,https://storage.googleapis.com/subgraph-images/1548795052635ENS_Logo_WHITE.png
+Gotchiv1,Gotchi test 1 on rinkeby,QmNVAQpyWNiHQrmvXLQSCG7PLDEUcQ9Ay3nU9j5ppTgFFU,447,,https://storage.googleapis.com/subgraph-images/default/sg-6.png
+Yearn Vault ROI Dev,Development subgraph for yearn vault ROI,Qmdab4gjWa1yCACgAAcWjab2c16oqmPo6j5WtZjZ21UxcZ,9614,,https://storage.googleapis.com/subgraph-images/default/sg-5.png
+Pooltogether,Records data for PoolTogether,QmecFPxMeFeHETwJdrivTNecBTCko5nyRGgidRrVp4BSfc,437,https://github.com/pooltogether/pooltogether-subgraph,https://storage.googleapis.com/subgraph-images/1599758845172pooltogether-purple-mark@2x.png
+Cream Swap Beta,Crypto Rules Everything Around Me C.R.E.A.M.,QmREAAZS5ZB5nAABCutPRVBGVgaVHz21e1miwWXnpGZm51,404,https://github.com/CreamFi/balancer-subgraph,https://storage.googleapis.com/subgraph-images/1599400535254CREAM_transparent_Secondary_straight_color.png
+mStable Governance,mStable Governance Subgraph,QmdXYzFaj3nqURSpx7jWvkiYnzVaMobTnQfXzPYYjnYLqv,396,,https://storage.googleapis.com/subgraph-images/1599839414747mta.png
+Develop,2nd Layer Protocol Embedding Smart Contracts into HTTP Links,QmafKiDwT7EBJYL9y3rdfnBFUWzkGNytoGzUsiJAxePnLm,383,https://github.com/2key/2key-subgraphs,https://storage.googleapis.com/subgraph-images/15644929968952key_logo_final_formats-fixv2_samlil_1_copy_3__1___2_.png
+ptf vesting,PTF Vesting,QmdTVBZyFKcRQRHW7U8ph9Mt4oDBvBrD679FxWQQGiUoJF,356,,https://storage.googleapis.com/subgraph-images/1600677311813Bull BW.png
+Uniswap,Uniswap data importer for Unspent.io,QmRpG1kMLJxnruvCScfs4JYPeHJEnJk1ZsEdhpfqaGPUHs,351,,https://storage.googleapis.com/subgraph-images/default/sg-6.png
+F8N XDai,Subgraph for xDai,QmYnxSNW9iDPNvHQyP5HZsMsn7chXeKKY7yaQ1uSBvyx28,347,,https://storage.googleapis.com/subgraph-images/default/sg-10.png
+Mooniswap,stat for mooniswap,QmUBFkuoDzxHx2EPxwGQdBwshqTF79fzKQnXjTRNVHwg6e,26,,https://storage.googleapis.com/subgraph-images/default/sg-4.png
+Circles,Subgraph for Circles community currency,QmcyT4SWn7ctMsm1avAV3jnmCL7u3ZK93XrxcJJJt7hUF5,340,https://github.com/CirclesUBI/circles-subgraph/,https://storage.googleapis.com/subgraph-images/1595251875896circleslogo.jpg
+AirSwap,Trading history indexers delegates and more.,QmZ28XHpz1BNhR5jU2ABCqo2PqHutAPE8woaW1tYdDFDqV,51150,https://github.com/airswap/airswap-protocols,https://storage.googleapis.com/subgraph-images/158680119781426823563.png
+protocol,Gnosis Protocol,QmQrapV3GN6GnkMByUbf6Xrw1xVqSNAbQtNkXsy6xKAs15,328,https://github.com/gnosis/dex-subgraph,https://storage.googleapis.com/subgraph-images/1585926751418Gnosis_protocol_2019_logo_all_rgb_orange.png
+Swap Subgraph,Swap Subgraph for Crypto.com DeFi,QmXhAzDVyYnxSLaeLGDpN941WJ3tyatqhyxh9ScwM82cgJ,325,,https://storage.googleapis.com/subgraph-images/default/sg-6.png
+chapter2,To Assist Uniswap2,QmXRD5WZYtVERWkTpFvmqWGkpbbQ1KmsLUgCiRckkNmSJp,302,https://github.com/???,https://storage.googleapis.com/subgraph-images/1601209694793test.jpg
+Protocol Raw,Aave protocol data in small units,QmNQz8mhUnkAcfDDEuKZaVdBwffZtYfoUtbQ9NYpaSS1QH,275,https://github.com/aave/aave-protocol/tree/master/thegraph,https://storage.googleapis.com/subgraph-images/1579854627676sticker_aave_telegram.png
+Aragon Voting Mainnet,Subgraph for Aragon Connect Voting,QmZ92X4yhsjb7hnttAQMHeG1mH9C2SbLmiSGirHpU74iLW,233,https://github.com/aragon/connect,https://storage.googleapis.com/subgraph-images/1591893467064aralogo1.png
+Nifty Ink,A subgraph for nifty.ink (in development),QmS8beCgmU8JLgXCTn7jxkCRtZ5p5mirh1Npcuk7RrBmNJ,226,,https://storage.googleapis.com/subgraph-images/1600381719322party-dinosaur.gif
+Nifty Ink Main,Mainnet Nifty Ink Subgraph,Qma7vTnYU9V5FuZhAgwo9zw289KAD8mh4JKMMtMZP8nSVT,222,,https://storage.googleapis.com/subgraph-images/default/sg-7.png
+Protocol Multy Kovan Raw,Aave protocol subgraph with all pools data,QmPrz3AMvEJR5dbaxHWvDawJQBFWYRTuSHp5rdrQowSayj,219,https://github.com/graphprotocol/aave-protocol,https://storage.googleapis.com/subgraph-images/1590485671765sticker_aave_telegram.png
+Curve VotingEscrow Mainnet,Curve VotingEscrow Mainnet subgraph,QmXwR6LiGaP9yYTsSq8wGUS91Bqat7dStDsuH2XSoeKctY,213,,https://storage.googleapis.com/subgraph-images/default/sg-9.png
+Chapter3,Miniswap mainnet channel,QmYPh4BHfJRszYBP7tnPFPHpKf2DdyHAtgRbE8PAnU1fZN,20100,https://github.com/???,https://storage.googleapis.com/subgraph-images/1601393873317zz.jpg
+LAND Manager,LAND permissions with a timestamp,QmZWZWLQqY7FqsjjTsShheSZDSmj1Q3RLogNSwME3yep4Q,200,https://github.com/nicosantangelo/watchtower,https://storage.googleapis.com/subgraph-images/1590095332591dlc.png
+Always For Sale Gallery,Always for sale art gallery,QmWNcVnVeLHW2QzbUvgEycYdPCNEict1Kd7n9p8ywNPTqD,187,,https://storage.googleapis.com/subgraph-images/default/sg-4.png
+NexusMutualTVL,tvl for nexus mutual,QmSErYUZkNj4jy7vVYAZikPdXnbjWS3kW1GWZ9Ff29bKSU,186,,https://storage.googleapis.com/subgraph-images/default/sg-2.png
+mStable protocol ropsten,A subgraph for mStable's testnet,QmPNCGkzNffdimLqmchcf7EdT5UwwDjkVcUpgwivkt8RtH,184,,https://storage.googleapis.com/subgraph-images/1590589045486mstable_logo_circle_m_black.jpg
+Compound V2,A protocol for algorithmic efficient Money Markets.,QmTN6gMCBCYTgbis33eSvr6sLsQoQ3R6a2KzR7CqmMABQP,182000,,https://storage.googleapis.com/subgraph-images/1573145149921compound.png
