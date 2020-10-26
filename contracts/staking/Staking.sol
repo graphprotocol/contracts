@@ -181,15 +181,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Check if the caller is authorized (indexer or operator)
      */
-    function _onlyAuth(address _indexer) internal view returns (bool) {
+    function _isAuth(address _indexer) internal view returns (bool) {
         return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
     }
 
     /**
      * @dev Check if the caller is authorized (indexer, operator or delegator)
      */
-    function _onlyAuthOrDelegator(address _indexer) internal view returns (bool) {
-        return _onlyAuth(_indexer) || delegationPools[_indexer].delegators[msg.sender].shares > 0;
+    function _isAuthOrDelegator(address _indexer) internal view returns (bool) {
+        return _isAuth(_indexer) || delegationPools[_indexer].delegators[msg.sender].shares > 0;
     }
 
     /**
@@ -908,7 +908,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
 
         // Only the indexer or operator can decide if to restake
-        bool restake = _onlyAuth(alloc.indexer) ? _restake : false;
+        bool restake = _isAuth(alloc.indexer) ? _restake : false;
 
         // Funds can only be claimed after a period of time passed since allocation was closed
         require(allocState == AllocationState.Finalized, "!finalized");
@@ -1019,7 +1019,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _allocationID,
         bytes32 _metadata
     ) internal {
-        require(_onlyAuth(_indexer), "!auth");
+        require(_isAuth(_indexer), "!auth");
 
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
@@ -1095,10 +1095,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Validate ownership
         if (epochs > maxAllocationEpochs) {
             // Verify that the allocation owner or delegator is closing
-            require(_onlyAuthOrDelegator(alloc.indexer), "!auth-or-del");
+            require(_isAuthOrDelegator(alloc.indexer), "!auth-or-del");
         } else {
             // Verify that the allocation owner is closing
-            require(_onlyAuth(alloc.indexer), "!auth");
+            require(_isAuth(alloc.indexer), "!auth");
         }
 
         // Close the allocation and start counting a period to settle remaining payments from
@@ -1113,8 +1113,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         }
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Distribute rewards if proof of indexing was presented
-        if (_poi != 0) {
+        // Distribute rewards if proof of indexing was presented by the indexer or operator
+        if (_isAuth(msg.sender) && _poi != 0) {
             _distributeRewards(_allocationID, alloc.indexer);
         }
 
