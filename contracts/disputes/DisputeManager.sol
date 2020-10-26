@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -167,7 +167,7 @@ contract DisputeManager is Managed, IDisputeManager {
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _slashingPercentage
-    ) public {
+    ) {
         Managed._initialize(_controller);
 
         // Settings

@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "../governance/Managed.sol";
@@ -31,7 +31,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
      * @dev Contract Constructor.
      * @param _controller Controller address
      */
-    constructor(address _controller) public {
+    constructor(address _controller) {
         Managed._initialize(_controller);
     }
 

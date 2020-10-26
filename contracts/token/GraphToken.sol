@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
@@ -55,7 +55,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @dev Graph Token Contract Constructor.
      * @param _initialSupply Initial supply of GRT
      */
-    constructor(uint256 _initialSupply) public ERC20("Graph Token", "GRT") {
+    constructor(uint256 _initialSupply) ERC20("Graph Token", "GRT") {
         Governed._initialize(msg.sender);
 
         // The Governor has the initial supply of tokens

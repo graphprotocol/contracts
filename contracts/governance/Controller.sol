@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "./IController.sol";
 import "./IManaged.sol";
@@ -16,7 +16,7 @@ contract Controller is IController, Governed, Pausable {
 
     event SetContractProxy(bytes32 id, address contractAddress);
 
-    constructor() public {
+    constructor() {
         Governed._initialize(msg.sender);
         _setPaused(true);
     }

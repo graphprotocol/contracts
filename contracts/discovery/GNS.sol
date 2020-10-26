@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -617,7 +617,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _subgraphNumber,
         uint256 _tokens
     ) public override view returns (uint256, uint256) {
-        NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = curation().tokensToSignal(namePool.subgraphDeploymentID, _tokens);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         return (vSignal, nSignal);
@@ -644,7 +644,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             uint256
         )
     {
-        NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
         (uint256 tokens, uint256 withdrawalFees) = curation().signalToTokens(
             namePool.subgraphDeploymentID,
@@ -665,7 +665,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _subgraphNumber,
         uint256 _vSignal
     ) public override view returns (uint256) {
-        NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = _vSignal;
 
         // Handle initialization of bonding curve
@@ -702,7 +702,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _subgraphNumber,
         uint256 _nSignal
     ) public override view returns (uint256) {
-        NameCurationPool memory namePool = nameSignals[_graphAccount][_subgraphNumber];
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
                 namePool.nSignal,

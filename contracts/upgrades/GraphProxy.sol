@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
@@ -14,7 +14,7 @@ contract GraphProxy is GraphProxyStorage {
      * @dev Contract constructor.
      * @param _impl Address of the initial implementation
      */
-    constructor(address _impl) public {
+    constructor(address _impl) {
         assert(ADMIN_SLOT == bytes32(uint256(keccak256("eip1967.proxy.admin")) - 1));
         assert(
             IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)

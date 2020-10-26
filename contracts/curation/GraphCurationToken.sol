@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -17,7 +17,7 @@ contract GraphCurationToken is ERC20, Governed {
      * @dev Graph Curation Token Contract Constructor.
      * @param _owner Address of the contract issuing this token
      */
-    constructor(address _owner) public ERC20("Graph Curation Share", "GCS") {
+    constructor(address _owner) ERC20("Graph Curation Share", "GCS") {
         Governed._initialize(_owner);
     }
 

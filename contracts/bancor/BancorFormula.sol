@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -13,30 +13,30 @@ contract BancorFormula {
     uint8 private constant MAX_PRECISION = 127;
 
     /**
-     * Auto-generated via 'PrintIntScalingFactors.py'
+     * @dev Auto-generated via 'PrintIntScalingFactors.py'
      */
     uint256 private constant FIXED_1 = 0x080000000000000000000000000000000;
     uint256 private constant FIXED_2 = 0x100000000000000000000000000000000;
     uint256 private constant MAX_NUM = 0x200000000000000000000000000000000;
 
     /**
-     * Auto-generated via 'PrintLn2ScalingFactors.py'
+     * @dev Auto-generated via 'PrintLn2ScalingFactors.py'
      */
     uint256 private constant LN2_NUMERATOR = 0x3f80fe03f80fe03f80fe03f80fe03f8;
     uint256 private constant LN2_DENOMINATOR = 0x5b9de1d10bf4103d647b0955897ba80;
 
     /**
-     * Auto-generated via 'PrintFunctionOptimalLog.py' and 'PrintFunctionOptimalExp.py'
+     * @dev Auto-generated via 'PrintFunctionOptimalLog.py' and 'PrintFunctionOptimalExp.py'
      */
     uint256 private constant OPT_LOG_MAX_VAL = 0x15bf0a8b1457695355fb8ac404e7a79e3;
     uint256 private constant OPT_EXP_MAX_VAL = 0x800000000000000000000000000000000;
 
     /**
-     * Auto-generated via 'PrintFunctionConstructor.py'
+     * @dev Auto-generated via 'PrintFunctionConstructor.py'
      */
     uint256[128] private maxExpArray;
 
-    constructor() public {
+    constructor() {
         //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
         //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
         //  maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;
