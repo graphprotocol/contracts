@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 contract Pausable {
     // Partial paused paused exit and enter functions for GRT, but not internal
@@ -27,7 +27,7 @@ contract Pausable {
         }
         _partialPaused = _toPause;
         if (_partialPaused) {
-            lastPausePartialTime = now;
+            lastPausePartialTime = block.timestamp;
         }
         emit PartialPauseChanged(_partialPaused);
     }
@@ -41,7 +41,7 @@ contract Pausable {
         }
         _paused = _toPause;
         if (_paused) {
-            lastPauseTime = now;
+            lastPauseTime = block.timestamp;
         }
         emit PauseChanged(_paused);
     }

@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "../governance/Governed.sol";
 
@@ -6,7 +6,7 @@ import "../governance/Governed.sol";
  * @title GovernedMock contract
  */
 contract GovernedMock is Governed {
-    constructor() public {
+    constructor() {
         Governed._initialize(msg.sender);
     }
 }

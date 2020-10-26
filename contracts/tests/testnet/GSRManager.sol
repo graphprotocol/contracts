@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 import "../../governance/Governed.sol";
 import "./GDAI.sol";
@@ -29,11 +29,11 @@ contract GSRManager is Governed {
     /**
      * @dev Graph Saving Rate constructor.
      */
-    constructor(uint256 _savingsRate, address _gdai) public {
+    constructor(uint256 _savingsRate, address _gdai) {
         require(_savingsRate != 0, "Savings rate can't be zero");
         Governed._initialize(msg.sender);
         cumulativeInterestRate = ISSUANCE_RATE_DECIMALS;
-        lastDripTime = now;
+        lastDripTime = block.timestamp;
         savingsRate = _savingsRate;
         token = GDAI(_gdai);
     }
@@ -52,7 +52,7 @@ contract GSRManager is Governed {
         updatedRate = calcUpdatedRate();
         uint256 rateDifference = updatedRate.sub(cumulativeInterestRate);
         cumulativeInterestRate = updatedRate;
-        lastDripTime = now;
+        lastDripTime = block.timestamp;
         token.mint(address(this), reserves.mul(rateDifference).div(ISSUANCE_RATE_DECIMALS));
         emit Drip(cumulativeInterestRate, lastDripTime);
     }
@@ -80,7 +80,7 @@ contract GSRManager is Governed {
     // Calculate the new cumulative interest rate
     function calcUpdatedRate() public view returns (uint256 updatedRate) {
         updatedRate = cumulativeInterestRate
-            .mul(_pow(savingsRate, now - lastDripTime, ISSUANCE_RATE_DECIMALS))
+            .mul(_pow(savingsRate, block.timestamp - lastDripTime, ISSUANCE_RATE_DECIMALS))
             .div(ISSUANCE_RATE_DECIMALS);
     }
 

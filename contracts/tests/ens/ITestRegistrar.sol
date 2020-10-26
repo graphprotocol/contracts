@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 interface ITestRegistrar {
     function register(bytes32 label, address owner) external;

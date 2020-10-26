@@ -16,7 +16,7 @@
 
 */
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 // solhint-disable indent
 /// @dev Signed, fixed-point, 127-bit precision math library.

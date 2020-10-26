@@ -8,7 +8,7 @@ https://etherscan.io/address/0xdca7ef03e98e0dc2b855be647c39abe984fcf21b#code
 As well as all testnets
 */
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 contract EthereumDIDRegistry {
     mapping(address => address) public owners;
@@ -47,30 +47,34 @@ contract EthereumDIDRegistry {
         return identity;
     }
 
-    function checkSignature(address identity, uint8 sigV, bytes32 sigR, bytes32 sigS, bytes32 hash)
-        internal
-        returns (address)
-    {
+    function checkSignature(
+        address identity,
+        uint8 sigV,
+        bytes32 sigR,
+        bytes32 sigS,
+        bytes32 hash
+    ) internal returns (address) {
         address signer = ecrecover(hash, sigV, sigR, sigS);
         require(signer == identityOwner(identity), "Signer must be the identity owner");
         nonce[signer]++;
         return signer;
     }
 
-    function validDelegate(address identity, bytes32 delegateType, address delegate)
-        public
-        view
-        returns (bool)
-    {
+    function validDelegate(
+        address identity,
+        bytes32 delegateType,
+        address delegate
+    ) public view returns (bool) {
         uint256 validity = delegates[identity][keccak256(abi.encode(delegateType))][delegate];
         /* solium-disable-next-line security/no-block-members*/
-        return (validity > now);
+        return (validity > block.timestamp);
     }
 
-    function changeOwner(address identity, address actor, address newOwner)
-        internal
-        onlyOwner(identity, actor)
-    {
+    function changeOwner(
+        address identity,
+        address actor,
+        address newOwner
+    ) internal onlyOwner(identity, actor) {
         owners[identity] = newOwner;
         emit DIDOwnerChanged(identity, newOwner, changed[identity]);
         changed[identity] = block.number;
@@ -109,21 +113,26 @@ contract EthereumDIDRegistry {
         uint256 validity
     ) internal onlyOwner(identity, actor) {
         /* solium-disable-next-line security/no-block-members*/
-        delegates[identity][keccak256(abi.encode(delegateType))][delegate] = now + validity;
+        delegates[identity][keccak256(abi.encode(delegateType))][delegate] =
+            block.timestamp +
+            validity;
         emit DIDDelegateChanged(
             identity,
             delegateType,
             delegate,
             /* solium-disable-next-line security/no-block-members*/
-            now + validity,
+            block.timestamp + validity,
             changed[identity]
         );
         changed[identity] = block.number;
     }
 
-    function addDelegate(address identity, bytes32 delegateType, address delegate, uint256 validity)
-        public
-    {
+    function addDelegate(
+        address identity,
+        bytes32 delegateType,
+        address delegate,
+        uint256 validity
+    ) public {
         addDelegate(identity, msg.sender, delegateType, delegate, validity);
     }
 
@@ -158,18 +167,30 @@ contract EthereumDIDRegistry {
         );
     }
 
-    function revokeDelegate(address identity, address actor, bytes32 delegateType, address delegate)
-        internal
-        onlyOwner(identity, actor)
-    {
+    function revokeDelegate(
+        address identity,
+        address actor,
+        bytes32 delegateType,
+        address delegate
+    ) internal onlyOwner(identity, actor) {
         /* solium-disable-next-line security/no-block-members*/
-        delegates[identity][keccak256(abi.encode(delegateType))][delegate] = now;
+        delegates[identity][keccak256(abi.encode(delegateType))][delegate] = block.timestamp;
         /* solium-disable-next-line security/no-block-members*/
-        emit DIDDelegateChanged(identity, delegateType, delegate, now, changed[identity]);
+        emit DIDDelegateChanged(
+            identity,
+            delegateType,
+            delegate,
+            block.timestamp,
+            changed[identity]
+        );
         changed[identity] = block.number;
     }
 
-    function revokeDelegate(address identity, bytes32 delegateType, address delegate) public {
+    function revokeDelegate(
+        address identity,
+        bytes32 delegateType,
+        address delegate
+    ) public {
         revokeDelegate(identity, msg.sender, delegateType, delegate);
     }
 
@@ -209,13 +230,22 @@ contract EthereumDIDRegistry {
         uint256 validity
     ) internal onlyOwner(identity, actor) {
         /* solium-disable-next-line security/no-block-members*/
-        emit DIDAttributeChanged(identity, name, value, now + validity, changed[identity]);
+        emit DIDAttributeChanged(
+            identity,
+            name,
+            value,
+            block.timestamp + validity,
+            changed[identity]
+        );
         changed[identity] = block.number;
     }
 
-    function setAttribute(address identity, bytes32 name, bytes memory value, uint256 validity)
-        public
-    {
+    function setAttribute(
+        address identity,
+        bytes32 name,
+        bytes memory value,
+        uint256 validity
+    ) public {
         setAttribute(identity, msg.sender, name, value, validity);
     }
 
@@ -250,15 +280,21 @@ contract EthereumDIDRegistry {
         );
     }
 
-    function revokeAttribute(address identity, address actor, bytes32 name, bytes memory value)
-        internal
-        onlyOwner(identity, actor)
-    {
+    function revokeAttribute(
+        address identity,
+        address actor,
+        bytes32 name,
+        bytes memory value
+    ) internal onlyOwner(identity, actor) {
         emit DIDAttributeChanged(identity, name, value, 0, changed[identity]);
         changed[identity] = block.number;
     }
 
-    function revokeAttribute(address identity, bytes32 name, bytes memory value) public {
+    function revokeAttribute(
+        address identity,
+        bytes32 name,
+        bytes memory value
+    ) public {
         revokeAttribute(identity, msg.sender, name, value);
     }
 
@@ -284,5 +320,4 @@ contract EthereumDIDRegistry {
         );
         revokeAttribute(identity, checkSignature(identity, sigV, sigR, sigS, hash), name, value);
     }
-
 }

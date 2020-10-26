@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "../upgrades/GraphUpgradeable.sol";
@@ -611,7 +611,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getIndexerCapacity(address _indexer) public override view returns (uint256) {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
-        DelegationPool memory pool = delegationPools[_indexer];
+        DelegationPool storage pool = delegationPools[_indexer];
 
         uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(uint256(delegationRatio));
         uint256 tokensDelegated = (pool.tokens < tokensDelegatedMax)

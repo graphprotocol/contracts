@@ -106,7 +106,7 @@ const config = {
     artifacts: './build/contracts',
   },
   solc: {
-    version: '0.6.12',
+    version: '0.7.3',
     optimizer: {
       enabled: true,
       runs: 200,

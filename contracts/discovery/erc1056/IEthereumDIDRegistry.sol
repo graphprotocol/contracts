@@ -1,7 +1,8 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.3;
 
 interface IEthereumDIDRegistry {
     function identityOwner(address identity) external view returns (address);
+
     function setAttribute(
         address identity,
         bytes32 name,
