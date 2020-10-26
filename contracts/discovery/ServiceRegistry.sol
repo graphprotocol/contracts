@@ -23,7 +23,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
     /**
      * @dev Check if the caller is authorized (indexer or operator)
      */
-    function _onlyAuth(address _indexer) internal view returns (bool) {
+    function _isAuth(address _indexer) internal view returns (bool) {
         return msg.sender == _indexer || staking().isOperator(msg.sender, _indexer) == true;
     }
 
@@ -69,7 +69,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
         string calldata _url,
         string calldata _geohash
     ) internal {
-        require(_onlyAuth(_indexer), "!auth");
+        require(_isAuth(_indexer), "!auth");
         require(bytes(_url).length > 0, "Service must specify a URL");
 
         services[_indexer] = IndexerService(_url, _geohash);
@@ -97,7 +97,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
      * @param _indexer Address of the indexer
      */
     function _unregister(address _indexer) internal {
-        require(_onlyAuth(_indexer), "!auth");
+        require(_isAuth(_indexer), "!auth");
         require(isRegistered(_indexer), "Service already unregistered");
 
         delete services[_indexer];
