@@ -9,7 +9,7 @@ dist/
 # Coverage tests
 coverage/
 
-# Buidler cache
+# Hardhat cache
 cached/
 
 # Ignore solc bin output

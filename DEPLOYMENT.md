@@ -10,7 +10,7 @@ This script accepts multiple commands that you can print using:
 cli/cli.ts --help
 ```
 
-For convenience, the script can also be used as a buidler command with `buidler migrate` and it can be also run with:
+For convenience, the script can also be used as a hardhat command with `hardhat migrate` and it can be also run with:
 
 ```
 npm run deploy
@@ -45,9 +45,9 @@ npm run deploy -- --network {networkName}
 npm run deploy -- --network kovan
 ```
 
-The network must be configured in the `builder.config.ts` as explained in https://buidler.dev/config/#networks-configuration.
+The network must be configured in the `hardhat.config.ts` as explained in https://hardhat.org/config.
 
-To deploy using your own wallet add the HD Wallet Config to the `builder.config.ts` file according to https://buidler.dev/config/#hd-wallet-config.
+To deploy using your own wallet add the HD Wallet Config to the `hardhat.config.ts` file according to https://hardhat.org/config/#hd-wallet-config.
 
 ### Configuration
 

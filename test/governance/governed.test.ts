@@ -1,10 +1,12 @@
 import { expect } from 'chai'
-import { ethers } from '@nomiclabs/buidler'
+import hre from 'hardhat'
+import '@nomiclabs/hardhat-ethers'
 
 import { Governed } from '../../build/typechain/contracts/Governed'
 
 import { getAccounts, Account } from '../lib/testHelpers'
 
+const { ethers } = hre
 const { AddressZero } = ethers.constants
 
 describe('Governed', () => {

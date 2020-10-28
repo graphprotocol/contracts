@@ -1,5 +1,5 @@
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
-import buidler from '@nomiclabs/buidler'
+import hre from 'hardhat'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { formatUnits } from 'ethers/lib/utils'
@@ -25,11 +25,11 @@ export interface Account {
   readonly address: string
 }
 
-export const provider = (): providers.JsonRpcProvider => buidler.waffle.provider
+export const provider = (): providers.JsonRpcProvider => hre.waffle.provider
 
 export const getAccounts = async (): Promise<Account[]> => {
   const accounts = []
-  const signers: Signer[] = await buidler.ethers.getSigners()
+  const signers: Signer[] = await hre.ethers.getSigners()
   for (const signer of signers) {
     accounts.push({ signer, address: await signer.getAddress() })
   }
@@ -38,7 +38,7 @@ export const getAccounts = async (): Promise<Account[]> => {
 
 export const getChainID = (): Promise<number> => {
   // HACK: this fixes ganache returning always 1 when a contract calls the chainid() opcode
-  if (buidler.network.name == 'ganache') {
+  if (hre.network.name == 'ganache') {
     return Promise.resolve(1)
   }
   return provider()

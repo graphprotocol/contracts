@@ -25,12 +25,12 @@ of The Graph Network.
 
 Testing is done with the following stack:
 - Waffle
-- Buidler
+- Hardhat
 - Typescript
 - Ethers
 
 To test all files, use `npm run test`. To test a single file run:
-`npx buidler test test/<FILE_NAME>.ts`.
+`npx hardhat test test/<FILE_NAME>.ts`.
 
 ### Contract addresses
 

@@ -1,4 +1,4 @@
-import { LinkReferences } from '@nomiclabs/buidler/types'
+import { LinkReferences } from 'hardhat/types'
 
 import {
   providers,

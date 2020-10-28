@@ -1,6 +1,7 @@
-import fs from 'fs'
+import path from 'path'
+import { Artifacts } from 'hardhat/internal/artifacts'
+import { LinkReferences } from 'hardhat/types'
 import { utils } from 'ethers'
-import { LinkReferences } from '@nomiclabs/buidler/types'
 
 type Abi = Array<string | utils.FunctionFragment | utils.EventFragment | utils.ParamType>
 
@@ -13,9 +14,10 @@ type Artifact = {
   deployedLinkReferences?: LinkReferences
 }
 
-const ARTIFACTS_PATH = './build/contracts/'
+const ARTIFACTS_PATH = path.resolve('build/contracts')
+
+const artifacts = new Artifacts(ARTIFACTS_PATH)
 
 export const loadArtifact = (name: string): Artifact => {
-  const path = `${ARTIFACTS_PATH}${name}.json`
-  return JSON.parse(fs.readFileSync(path, 'utf8') || '{}') as Artifact
+  return artifacts.readArtifactSync(name)
 }

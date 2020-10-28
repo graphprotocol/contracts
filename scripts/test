@@ -38,15 +38,14 @@ fi
 mkdir -p reports
 
 npm run compile
-npm run typechain
 
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
-  npx buidler test --network ganache
+  npx hardhat test --network ganache
   result=$?
 else
   # Run using the default evm
-  npx buidler test "$@"
+  npx hardhat test "$@"
   result=$?
 fi
 
