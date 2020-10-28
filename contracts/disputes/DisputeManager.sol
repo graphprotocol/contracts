@@ -475,7 +475,8 @@ contract DisputeManager is Managed, IDisputeManager {
                 _attestation.requestCID,
                 _attestation.responseCID,
                 _attestation.subgraphDeploymentID,
-                indexer
+                indexer,
+                _fisherman
             )
         );
 
