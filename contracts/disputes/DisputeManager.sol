@@ -37,6 +37,15 @@ contract DisputeManager is Managed, IDisputeManager {
     uint256 private constant ATTESTATION_SIZE_BYTES = 161;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
+    uint256 private constant SIG_V_LENGTH = 1;
+    uint256 private constant SIG_R_LENGTH = 32;
+    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES;
+    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES + SIG_V_LENGTH;
+    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_V_LENGTH + SIG_R_LENGTH;
+
+    uint256 private constant UINT8_BYTE_LENGTH = 1;
+    uint256 private constant BYTES32_BYTE_LENGTH = 32;
+
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
@@ -756,9 +765,9 @@ contract DisputeManager is Managed, IDisputeManager {
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct
-        uint8 v = _toUint8(_data, RECEIPT_SIZE_BYTES);
-        bytes32 r = _toBytes32(_data, RECEIPT_SIZE_BYTES + 1);
-        bytes32 s = _toBytes32(_data, RECEIPT_SIZE_BYTES + 33);
+        uint8 v = _toUint8(_data, SIG_V_OFFSET);
+        bytes32 r = _toBytes32(_data, SIG_R_OFFSET);
+        bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
 
         return Attestation(requestCID, responseCID, subgraphDeploymentID, v, r, s);
     }
@@ -768,7 +777,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
-        require(_bytes.length >= (_start + 1), "Bytes: out of bounds");
+        require(_bytes.length >= (_start + UINT8_BYTE_LENGTH), "Bytes: out of bounds");
         uint8 tempUint;
 
         assembly {
@@ -783,7 +792,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
-        require(_bytes.length >= (_start + 32), "Bytes: out of bounds");
+        require(_bytes.length >= (_start + BYTES32_BYTE_LENGTH), "Bytes: out of bounds");
         bytes32 tempBytes32;
 
         assembly {
