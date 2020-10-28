@@ -33,14 +33,19 @@ interface Dispute {
   receipt: Receipt
 }
 
-function createDisputeID(attestation: Attestation, indexerAddress: string) {
+function createDisputeID(
+  attestation: Attestation,
+  indexerAddress: string,
+  submitterAddress: string,
+) {
   return solidityKeccak256(
-    ['bytes32', 'bytes32', 'bytes32', 'address'],
+    ['bytes32', 'bytes32', 'bytes32', 'address', 'address'],
     [
       attestation.requestCID,
       attestation.responseCID,
       attestation.subgraphDeploymentID,
       indexerAddress,
+      submitterAddress,
     ],
   )
 }
@@ -66,8 +71,9 @@ describe('DisputeManager:Query', async () => {
   let governor: Account
   let arbitrator: Account
   let indexer: Account
-  let fisherman: Account
   let indexer2: Account
+  let fisherman: Account
+  let fisherman2: Account
   let assetHolder: Account
 
   let fixture: NetworkFixture
@@ -145,8 +151,9 @@ describe('DisputeManager:Query', async () => {
       governor,
       arbitrator,
       indexer,
-      fisherman,
       indexer2,
+      fisherman,
+      fisherman2,
       assetHolder,
     ] = await getAccounts()
 
@@ -158,8 +165,10 @@ describe('DisputeManager:Query', async () => {
     ))
 
     // Give some funds to the fisherman
-    await grt.connect(governor.signer).mint(fisherman.address, fishermanTokens)
-    await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
+    for (const dst of [fisherman, fisherman2]) {
+      await grt.connect(governor.signer).mint(dst.address, fishermanTokens)
+      await grt.connect(dst.signer).approve(disputeManager.address, fishermanTokens)
+    }
 
     // Allow the asset holder
     await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
@@ -169,7 +178,7 @@ describe('DisputeManager:Query', async () => {
 
     // Create dispute data
     dispute = {
-      id: createDisputeID(attestation, indexer.address),
+      id: createDisputeID(attestation, indexer.address, fisherman.address),
       attestation,
       encodedAttestation: encodeAttestation(attestation),
       indexerAddress: indexer.address,
@@ -326,7 +335,7 @@ describe('DisputeManager:Query', async () => {
             // Create dispute (same receipt but different indexer)
             const attestation = await buildAttestation(receipt, indexer2ChannelKey.privKey)
             const newDispute: Dispute = {
-              id: createDisputeID(attestation, indexer2.address),
+              id: createDisputeID(attestation, indexer2.address, fisherman.address),
               attestation,
               encodedAttestation: encodeAttestation(attestation),
               indexerAddress: indexer2.address,
@@ -347,6 +356,12 @@ describe('DisputeManager:Query', async () => {
                 newDispute.receipt.subgraphDeploymentID,
                 newDispute.encodedAttestation,
               )
+          })
+
+          it('should create dispute as long as it is from different fisherman', async function () {
+            await disputeManager
+              .connect(fisherman2.signer)
+              .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
           })
 
           it('reject create duplicated dispute', async function () {
@@ -503,8 +518,8 @@ describe('DisputeManager:Query', async () => {
 
     it('should create dispute', async function () {
       const [attestation1, attestation2] = await getConflictingAttestations()
-      const dID1 = createDisputeID(attestation1, indexer.address)
-      const dID2 = createDisputeID(attestation2, indexer2.address)
+      const dID1 = createDisputeID(attestation1, indexer.address, fisherman.address)
+      const dID2 = createDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDisputeConflict(
@@ -522,8 +537,8 @@ describe('DisputeManager:Query', async () => {
 
     async function setupConflictingDisputes() {
       const [attestation1, attestation2] = await getConflictingAttestations()
-      const dID1 = createDisputeID(attestation1, indexer.address)
-      const dID2 = createDisputeID(attestation2, indexer2.address)
+      const dID1 = createDisputeID(attestation1, indexer.address, fisherman.address)
+      const dID2 = createDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDisputeConflict(
