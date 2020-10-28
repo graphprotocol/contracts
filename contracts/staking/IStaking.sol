@@ -111,11 +111,11 @@ interface IStaking {
 
     // -- Delegation --
 
-    function delegate(address _indexer, uint256 _tokens) external;
+    function delegate(address _indexer, uint256 _tokens) external returns (uint256);
 
-    function undelegate(address _indexer, uint256 _shares) external;
+    function undelegate(address _indexer, uint256 _shares) external returns (uint256);
 
-    function withdrawDelegated(address _indexer, address _newIndexer) external;
+    function withdrawDelegated(address _indexer, address _newIndexer) external returns (uint256);
 
     // -- Channel management and allocations --
 

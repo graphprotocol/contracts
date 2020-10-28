@@ -781,24 +781,36 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Delegate tokens to an indexer.
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
+     * @return Amount of shares issued of the delegation pool
      */
-    function delegate(address _indexer, uint256 _tokens) external override notPartialPaused {
+    function delegate(address _indexer, uint256 _tokens)
+        external
+        override
+        notPartialPaused
+        returns (uint256)
+    {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
         require(graphToken().transferFrom(delegator, address(this), _tokens), "!transfer");
 
         // Update state
-        _delegate(delegator, _indexer, _tokens);
+        return _delegate(delegator, _indexer, _tokens);
     }
 
     /**
      * @dev Undelegate tokens from an indexer.
      * @param _indexer Address of the indexer where tokens had been delegated
      * @param _shares Amount of shares to return and undelegate tokens
+     * @return Amount of tokens returned for the shares of the delegation pool
      */
-    function undelegate(address _indexer, uint256 _shares) external override notPartialPaused {
-        _undelegate(msg.sender, _indexer, _shares);
+    function undelegate(address _indexer, uint256 _shares)
+        external
+        override
+        notPartialPaused
+        returns (uint256)
+    {
+        return _undelegate(msg.sender, _indexer, _shares);
     }
 
     /**
@@ -810,8 +822,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         external
         override
         notPaused
+        returns (uint256)
     {
-        _withdrawDelegated(msg.sender, _indexer, _delegateToIndexer);
+        return _withdrawDelegated(msg.sender, _indexer, _delegateToIndexer);
     }
 
     /**
@@ -1469,20 +1482,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Assign rewards for the closed allocation to indexer and delegators.
      * @param _allocationID Allocation
      */
-    function _distributeRewards(address _allocationID, address _indexer)
-        internal
-        returns (uint256)
-    {
+    function _distributeRewards(address _allocationID, address _indexer) internal {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) == address(0)) {
-            return 0;
+            return;
         }
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
         uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
         if (totalRewards == 0) {
-            return 0;
+            return;
         }
 
         // Calculate delegation rewards and add them to the delegation pool
@@ -1493,8 +1503,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (indexerRewards > 0) {
             _stake(_indexer, indexerRewards);
         }
-
-        return totalRewards;
     }
 
     /**
