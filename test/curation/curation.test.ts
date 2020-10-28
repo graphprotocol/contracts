@@ -286,6 +286,15 @@ describe('Curation', () => {
       const expectedSignal = signalAmountFor1000Tokens
       await shouldSignal(tokensToDeposit, expectedSignal)
     })
+
+    it('should revert curate if over slippage', async function () {
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = signalAmountFor1000Tokens
+      const tx = curation
+        .connect(curator.signer)
+        .mint(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
+      await expect(tx).revertedWith('Slippage protection')
+    })
   })
 
   describe('collect', async function () {
@@ -398,6 +407,16 @@ describe('Curation', () => {
       const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const expectedTokens = tokensToDeposit
       await shouldRedeem(signalToRedeem, expectedTokens)
+    })
+
+    it('should revert redeem if over slippage', async function () {
+      const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+      const expectedTokens = tokensToDeposit
+
+      const tx = curation
+        .connect(curator.signer)
+        .burn(subgraphDeploymentID, signalToRedeem, expectedTokens.add(1))
+      await expect(tx).revertedWith('Slippage protection')
     })
   })
 
