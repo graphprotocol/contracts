@@ -252,7 +252,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint256 tokensOutAndTax = tokensOut.add(withdrawalFees);
 
         // Slippage protection
-        require(tokensOutAndTax > _tokensOutMin, "Slippage protection");
+        require(tokensOutAndTax >= _tokensOutMin, "Slippage protection");
 
         // Trigger update rewards calculation
         _updateRewards(_subgraphDeploymentID);
