@@ -26,7 +26,7 @@ for path in ${FILES[@]}; do
     parts=( $path )
     name=${parts[${#parts[@]}-1]}
     echo "Flatten > ${name}"
-    truffle-flattener "${path}" | awk '/SPDX-License-Identifier/&&c++>0 {next} 1' | awk '/pragma experimental ABIEncoderV2;/&&c++>0 {next} 1' > "${OUT_DIR}/${name}"
+    hardhat flatten "${path}" > "${OUT_DIR}/${name}"
 done
 
 echo "Done!"

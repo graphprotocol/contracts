@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
-import { extendEnvironment, task, usePlugin } from '@nomiclabs/buidler/config'
+import { extendEnvironment, task } from 'hardhat/config'
 
 import { getAddressBook } from './cli/address-book'
 import { cliOpts } from './cli/defaults'
@@ -13,12 +13,15 @@ dotenv.config()
 
 // Plugins
 
-usePlugin('@nomiclabs/buidler-ethers')
-usePlugin('@nomiclabs/buidler-etherscan')
-usePlugin('@nomiclabs/buidler-waffle')
-usePlugin('buidler-gas-reporter')
-usePlugin('buidler-typechain')
-usePlugin('solidity-coverage')
+import '@nomiclabs/hardhat-ethers'
+import '@nomiclabs/hardhat-etherscan'
+import '@nomiclabs/hardhat-waffle'
+import 'hardhat-abi-exporter'
+import 'hardhat-typechain'
+
+// Not supported for now in hardhat
+// usePlugin('buidler-gas-reporter')
+// usePlugin('solidity-coverage')
 
 // Networks
 
@@ -43,9 +46,9 @@ function getInfuraProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
 
-function setupNetworkProviders(buidlerConfig) {
+function setupNetworkProviders(hardhatConfig) {
   for (const netConfig of networkConfigs) {
-    buidlerConfig.networks[netConfig.network] = {
+    hardhatConfig.networks[netConfig.network] = {
       chainId: netConfig.chainId,
       url: getInfuraProviderURL(netConfig.network),
       gas: netConfig.gas || 'auto',
@@ -59,23 +62,23 @@ function setupNetworkProviders(buidlerConfig) {
 
 // Env
 
-extendEnvironment((bre) => {
-  bre['loadContracts'] = async () => {
-    const accounts = await bre.ethers.getSigners()
+extendEnvironment((hre) => {
+  hre['loadContracts'] = async () => {
+    const accounts = await hre.ethers.getSigners()
     const addressBook = getAddressBook(
       cliOpts.addressBook.default,
-      bre.network.config.chainId.toString(),
+      hre.network.config.chainId.toString(),
     )
-    return loadContracts(addressBook, accounts[0] as Wallet)
+    return loadContracts(addressBook, (accounts[0] as unknown) as Wallet)
   }
-  bre['getContractAt'] = (name: string, address: string) =>
-    getContractAt(name, address, bre.ethers.provider)
+  hre['getContractAt'] = (name: string, address: string) =>
+    getContractAt(name, address, hre.ethers.provider)
 })
 
 // Tasks
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, bre) => {
-  const accounts = await bre.ethers.getSigners()
+task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners()
   for (const account of accounts) {
     console.log(await account.getAddress())
   }
@@ -85,19 +88,17 @@ task('migrate', 'Migrate contracts')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addFlag('force', cliOpts.force.description)
-  .setAction(async (taskArgs, bre) => {
-    const accounts = await bre.ethers.getSigners()
-    await migrate(await loadEnv(taskArgs, accounts[0] as Wallet), taskArgs)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    await migrate(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet), taskArgs)
   })
 
 task('verify-all', 'Verify contracts in Etherscan')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .setAction(async (taskArgs, bre) => {
-    const accounts = await bre.ethers.getSigners()
-    await verify(await loadEnv(taskArgs, accounts[0] as Wallet))
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    await verify(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet))
   })
-
-// Config - Go to https://buidler.dev/config/ to learn more
 
 const config = {
   paths: {
@@ -105,19 +106,21 @@ const config = {
     tests: './test',
     artifacts: './build/contracts',
   },
-  solc: {
+  solidity: {
     version: '0.7.3',
-    optimizer: {
-      enabled: true,
-      runs: 200,
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
     },
   },
-  defaultNetwork: 'buidlerevm',
+  defaultNetwork: 'hardhat',
   networks: {
-    buidlerevm: {
+    hardhat: {
       chainId: 1337,
       loggingEnabled: false,
-      gas: 11000000,
+      gas: 12000000,
       gasPrice: 'auto',
       blockGasLimit: 12000000,
       accounts: [
@@ -182,6 +185,11 @@ const config = {
   typechain: {
     outDir: 'build/typechain/contracts',
     target: 'ethers-v5',
+  },
+  abiExporter: {
+    path: './build/abis',
+    clear: false,
+    flat: true,
   },
 }
 
