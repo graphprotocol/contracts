@@ -468,11 +468,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Triggers an update of rewards due to a change in signal.
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
-    function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
+    function _updateRewards(bytes32 _subgraphDeploymentID) internal {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) != address(0)) {
-            return rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
+            rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
-        return 0;
     }
 }
