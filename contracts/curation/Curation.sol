@@ -201,6 +201,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokens Amount of Graph Tokens to deposit
+     * @param _signalOutMin Expected minimum amount of signal to receive
      * @return Signal minted
      */
     function mint(
@@ -259,6 +260,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @notice Burn _signal from the SubgraphDeployment curation pool
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
      * @param _signal Amount of signal to return
+     * @param _tokensOutMin Expected minimum amount of tokens to receive
      * @return Tokens returned and withdrawal fees
      */
     function burn(
