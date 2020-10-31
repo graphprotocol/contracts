@@ -51,6 +51,7 @@
     "ethlint": "^1.2.5",
     "hardhat": "^2.0.2",
     "hardhat-abi-exporter": "^2.0.5",
+    "hardhat-contract-sizer": "^2.0.1",
     "hardhat-gas-reporter": "^1.0.0",
     "hardhat-typechain": "^0.3.3",
     "husky": "^4.2.5",
@@ -94,7 +95,9 @@
     "analyze": "scripts/analyze",
     "flatten": "scripts/flatten",
     "typechain": "hardhat typechain",
-    "verify": "hardhat verify"
+    "verify": "hardhat verify",
+    "size": "hardhat size-contracts"
+
   },
   "lint-staged": {
     "contracts/*.sol": [

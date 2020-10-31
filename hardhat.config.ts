@@ -19,6 +19,7 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-typechain'
 import 'hardhat-gas-reporter'
+import 'hardhat-contract-sizer'
 import '@tenderly/hardhat-tenderly'
 
 // TODO: Not supported for now in hardhat
@@ -195,6 +196,10 @@ const config = {
   tenderly: {
     project: '',
     username: '',
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: false,
   },
 }
 
