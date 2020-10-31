@@ -18,9 +18,10 @@ import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-typechain'
+import 'hardhat-gas-reporter'
+import '@tenderly/hardhat-tenderly'
 
-// Not supported for now in hardhat
-// usePlugin('buidler-gas-reporter')
+// TODO: Not supported for now in hardhat
 // usePlugin('solidity-coverage')
 
 // Networks
@@ -190,6 +191,10 @@ const config = {
     path: './build/abis',
     clear: false,
     flat: true,
+  },
+  tenderly: {
+    project: '',
+    username: '',
   },
 }
 
