@@ -1,12 +1,9 @@
-import { constants } from 'ethers'
 import consola from 'consola'
 import inquirer from 'inquirer'
 import yargs, { Argv } from 'yargs'
 
-import { getContractAt, isContractDeployed, sendTransaction } from '../../network'
+import { getContractAt, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const { AddressZero } = constants
 
 const logger = consola.create({})
 
@@ -42,9 +39,19 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     return
   }
 
-  // Update admin
-  const contract = getContractAt('GraphProxy', addressEntry.address).connect(cli.wallet)
-  await sendTransaction(cli.wallet, contract, 'setAdmin', [adminAddress])
+  // Get the proxy admin
+  const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
+  if (!proxyAdminEntry || !proxyAdminEntry.address) {
+    logger.fatal('Missing GraphProxyAdmin configuration')
+    return
+  }
+  const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address).connect(cli.wallet)
+
+  // Change proxy admin
+  await sendTransaction(cli.wallet, proxyAdmin, 'changeProxyAdmin', [
+    addressEntry.address,
+    adminAddress,
+  ])
   consola.success('Done')
 }
 

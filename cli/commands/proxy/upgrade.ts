@@ -43,12 +43,20 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
     return
   }
 
+  // Get the proxy admin
+  const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
+  if (!proxyAdminEntry || !proxyAdminEntry.address) {
+    logger.fatal('Missing GraphProxyAdmin configuration')
+    return
+  }
+  const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address).connect(cli.wallet)
+
   // Get the current proxy and the new implementation contract
   const proxy = getContractAt('GraphProxy', addressEntry.address).connect(cli.wallet)
   const contract = getContractAt(contractName, implAddress).connect(cli.wallet)
 
   // Check if implementation already set
-  const currentImpl = (await proxy.functions['implementation']())[0]
+  const currentImpl = await proxyAdmin.getProxyImplementation(proxy.address)
   if (currentImpl === implAddress) {
     logger.error(
       `Contract ${implAddress} is already the current implementation for proxy ${proxy.address}`,
@@ -57,14 +65,22 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   }
 
   // Upgrade to new implementation
-  const pendingImplementation = (await proxy.functions['pendingImplementation']())[0]
-  if (pendingImplementation != implAddress) {
-    await sendTransaction(cli.wallet, proxy, 'upgradeTo', [implAddress])
+  const pendingImpl = await proxyAdmin.getProxyImplementation(proxy.address)
+  if (pendingImpl != implAddress) {
+    await sendTransaction(cli.wallet, proxyAdmin, 'upgrade', [proxy.address, implAddress])
   }
 
   // Accept upgrade from the implementation
-  const contractArgs = initArgs ? initArgs.split(',') : []
-  await sendTransaction(cli.wallet, contract, 'acceptProxy', [proxy.address, ...contractArgs])
+  if (initArgs) {
+    const initTx = await contract.populateTransaction.initialize(...initArgs.split(','))
+    await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxyAndCall', [
+      implAddress,
+      proxy.address,
+      initTx.data,
+    ])
+  } else {
+    await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxy', [implAddress, proxy.address])
+  }
 
   // TODO
   // -- update entry
