@@ -7,7 +7,6 @@ import { network } from '../../cli'
 import { BancorFormula } from '../../build/typechain/contracts/BancorFormula'
 import { Controller } from '../../build/typechain/contracts/Controller'
 import { GraphProxyAdmin } from '../../build/typechain/contracts/GraphProxyAdmin'
-import { GraphProxy } from '../../build/typechain/contracts/GraphProxy'
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -19,6 +18,9 @@ import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
 import { EthereumDidRegistry } from '../../build/typechain/contracts/EthereumDidRegistry'
 import { Gdai } from '../../build/typechain/contracts/Gdai'
 import { GsrManager } from '../../build/typechain/contracts/GsrManager'
+
+// Disable logging for tests
+network.logger.pause()
 
 // Default configuration used in tests
 
@@ -63,7 +65,7 @@ export async function deployProxy(
   proxyAdmin: string,
   deployer: Signer,
 ): Promise<Contract> {
-  const deployResult = await network.deployProxy(implementation, proxyAdmin, deployer, true)
+  const deployResult = await network.deployProxy(implementation, proxyAdmin, deployer)
   return deployResult.contract
 }
 
@@ -72,7 +74,7 @@ export async function deployContract(
   deployer?: Signer,
   ...params: Array<string>
 ): Promise<Contract> {
-  const deployResult = await network.deployContract(contractName, params, deployer, true, true)
+  const deployResult = await network.deployContract(contractName, params, deployer, true)
   return deployResult.contract
 }
 
@@ -116,24 +118,20 @@ export async function deployCuration(
     deployer,
   )) as unknown) as BancorFormula
 
-  // Impl
-  const contract = (await deployContract('Curation', deployer)) as Curation
-  // Proxy
-  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
-  // Impl accept and initialize
-  const initTx = await contract.populateTransaction.initialize(
-    controller,
-    bondingCurve.address,
-    defaults.curation.reserveRatio,
-    defaults.curation.withdrawalFeePercentage,
-    defaults.curation.minimumCurationDeposit,
-  )
-  await proxyAdmin
-    .connect(deployer)
-    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
-
-  // Use proxy to forward calls to implementation contract
-  return Promise.resolve(contract.attach(proxy.address))
+  // Deploy
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'Curation',
+    [
+      controller,
+      bondingCurve.address,
+      defaults.curation.reserveRatio,
+      defaults.curation.withdrawalFeePercentage,
+      defaults.curation.minimumCurationDeposit,
+    ],
+    deployer,
+    false,
+  ) as unknown) as Curation
 }
 
 export async function deployDisputeManager(
@@ -158,20 +156,13 @@ export async function deployEpochManager(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<EpochManager> {
-  // Impl
-  const contract = ((await deployContract('EpochManager', deployer)) as unknown) as EpochManager
-  // Proxy
-  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
-  // Impl accept and initialize
-  const initTx = await contract.populateTransaction.initialize(
-    controller,
-    defaults.epochs.lengthInBlocks,
-  )
-  await proxyAdmin
-    .connect(deployer)
-    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
-
-  return contract.attach(proxy.address)
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'EpochManager',
+    [controller, defaults.epochs.lengthInBlocks],
+    deployer,
+    false,
+  ) as unknown) as EpochManager
 }
 
 export async function deployGNS(
@@ -186,24 +177,14 @@ export async function deployGNS(
     deployer,
   )) as unknown) as BancorFormula
 
-  // Impl
-  const contract = (await (deployContract('GNS', deployer) as unknown)) as Gns
-
-  // Proxy
-  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
-
-  // Impl accept and initialize
-  const initTx = await contract.populateTransaction.initialize(
-    controller,
-    bondingCurve.address,
-    didRegistry.address,
-  )
-  await proxyAdmin
-    .connect(deployer)
-    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
-
-  // Use proxy to forward calls to implementation contract
-  return Promise.resolve(contract.attach(proxy.address))
+  // Deploy
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'GNS',
+    [controller, bondingCurve.address, didRegistry.address],
+    deployer,
+    false,
+  ) as unknown) as Gns
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {
@@ -226,30 +207,25 @@ export async function deployStaking(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<Staking> {
-  // Impl
-  const contract = ((await deployContract('Staking', deployer)) as unknown) as Staking
-  // Proxy
-  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
-  // Impl accept and initialize
-  const initTx = await contract.populateTransaction.initialize(
-    controller,
-    defaults.staking.minimumIndexerStake,
-    defaults.staking.thawingPeriod,
-    0,
-    0,
-    defaults.staking.channelDisputeEpochs,
-    defaults.staking.maxAllocationEpochs,
-    defaults.staking.delegationUnbondingPeriod,
-    0,
-    defaults.staking.alphaNumerator,
-    defaults.staking.alphaDenominator,
-  )
-  await proxyAdmin
-    .connect(deployer)
-    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
-
-  // Configure
-  return contract.attach(proxy.address)
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'Staking',
+    [
+      controller,
+      defaults.staking.minimumIndexerStake,
+      defaults.staking.thawingPeriod,
+      0,
+      0,
+      defaults.staking.channelDisputeEpochs,
+      defaults.staking.maxAllocationEpochs,
+      defaults.staking.delegationUnbondingPeriod,
+      0,
+      defaults.staking.alphaNumerator,
+      defaults.staking.alphaDenominator,
+    ],
+    deployer,
+    true,
+  ) as unknown) as Staking
 }
 
 export async function deployRewardsManager(
@@ -257,19 +233,11 @@ export async function deployRewardsManager(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<RewardsManager> {
-  // Impl
-  const contract = ((await deployContract('RewardsManager', deployer)) as unknown) as RewardsManager
-  // Proxy
-  const proxy = (await deployProxy(contract.address, proxyAdmin.address, deployer)) as GraphProxy
-  // Impl accept and initialize
-  const initTx = await contract.populateTransaction.initialize(
-    controller,
-    defaults.rewards.issuanceRate,
-  )
-  await proxyAdmin
-    .connect(deployer)
-    .acceptProxyAndCall(contract.address, proxy.address, initTx.data)
-
-  // Use proxy to forward calls to implementation contract
-  return Promise.resolve(contract.attach(proxy.address))
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'RewardsManager',
+    [controller, defaults.rewards.issuanceRate],
+    deployer,
+    false,
+  ) as unknown) as RewardsManager
 }

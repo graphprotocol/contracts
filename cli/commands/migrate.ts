@@ -15,7 +15,9 @@ import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 const { EtherSymbol } = constants
 const { formatEther } = utils
 
+// Contracts are deployed in the order defined in this list
 const allContracts = [
+  'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
   'EpochManager',
