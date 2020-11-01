@@ -17,7 +17,7 @@ import { defaultOverrides } from './defaults'
 
 const { keccak256 } = utils
 
-const logger = consola.create({})
+export const logger = consola.create({})
 
 const hash = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
@@ -143,20 +143,27 @@ export const getContractAt = (
 }
 
 export const deployProxy = async (
-  implementation: string,
-  proxyAdmin: string,
+  implementationAddress: string,
+  proxyAdminAddress: string,
   sender: Signer,
-  silent = false,
+  overrides?: Overrides,
 ): Promise<DeployResult> => {
-  return deployContract('GraphProxy', [implementation, proxyAdmin], sender, false, silent)
+  return deployContract(
+    'GraphProxy',
+    [implementationAddress, proxyAdminAddress],
+    sender,
+    false,
+    overrides,
+  )
 }
+
+export const deployProxyAndAccept = async () => {}
 
 export const deployContract = async (
   name: string,
   args: Array<any>,
   sender: Signer,
   autolink = true,
-  silent = false,
   overrides?: Overrides,
 ): Promise<DeployResult> => {
   // This function will autolink, that means it will automatically deploy external libraries
@@ -167,7 +174,7 @@ export const deployContract = async (
     if (artifact.linkReferences && Object.keys(artifact.linkReferences).length > 0) {
       for (const fileReferences of Object.values(artifact.linkReferences)) {
         for (const libName of Object.keys(fileReferences)) {
-          const deployResult = await deployContract(libName, [], sender, false, silent)
+          const deployResult = await deployContract(libName, [], sender, false, overrides)
           libraries[libName] = deployResult.contract.address
         }
       }
@@ -185,21 +192,46 @@ export const deployContract = async (
   const factory = getContractFactory(name, libraries)
   const contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
-  if (!silent) {
-    logger.log(`> Deploy ${name}, txHash: ${txHash}`)
-  }
+  logger.log(`> Deploy ${name}, txHash: ${txHash}`)
   await sender.provider.waitForTransaction(txHash)
 
   // Receipt
   const creationCodeHash = hash(factory.bytecode)
   const runtimeCodeHash = hash(await sender.provider.getCode(contract.address))
-  if (!silent) {
-    logger.log('= CreationCodeHash: ', creationCodeHash)
-    logger.log('= RuntimeCodeHash: ', runtimeCodeHash)
-    logger.success(`${name} has been deployed to address: ${contract.address}`)
-  }
+  logger.log('= CreationCodeHash: ', creationCodeHash)
+  logger.log('= RuntimeCodeHash: ', runtimeCodeHash)
+  logger.success(`${name} has been deployed to address: ${contract.address}`)
 
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
+}
+
+export const deployContractWithProxy = async (
+  proxyAdmin: Contract,
+  name: string,
+  args: Array<any>,
+  sender: Signer,
+  autolink = true,
+  overrides?: Overrides,
+): Promise<Contract> => {
+  // Deploy implementation
+  const { contract } = await deployContract(name, [], sender, autolink, overrides)
+  // Deploy proxy
+  const { contract: proxy } = await deployProxy(
+    contract.address,
+    proxyAdmin.address,
+    sender,
+    overrides,
+  )
+  // Implementation accepts upgrade
+  const initTx = await contract.populateTransaction.initialize(...args)
+  await sendTransaction(
+    sender,
+    proxyAdmin,
+    'acceptProxyAndCall',
+    [contract.address, proxy.address, initTx.data],
+    overrides,
+  )
+  return contract.attach(proxy.address)
 }
 
 export const deployContractAndSave = async (
@@ -237,17 +269,23 @@ export const deployContractWithProxyAndSave = async (
   sender: Signer,
   addressBook: AddressBook,
 ): Promise<Contract> => {
+  // Get the GraphProxyAdmin to own the GraphProxy for this contract
+  const proxyAdminEntry = addressBook.getEntry('GraphProxyAdmin')
+  if (!proxyAdminEntry) {
+    throw new Error('GraphProxyAdmin not detected in the config, must be deployed first!')
+  }
+  const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address)
+
   // Deploy implementation
   const contract = await deployContractAndSave(name, [], sender, addressBook)
   // Deploy proxy
-  // TODO: change sender.getAddress() for ProxyAdmin
-  // TODO: initialize proxies
-  const deployResult = await deployProxy(contract.address, await sender.getAddress(), sender)
-  const proxy = deployResult.contract
+  const { contract: proxy } = await deployProxy(contract.address, proxyAdmin.address, sender)
   // Implementation accepts upgrade
-  await sendTransaction(sender, contract, 'acceptProxy', [
+  const initTx = await contract.populateTransaction.initialize(...args.map((a) => a.value))
+  await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
+    contract.address,
     proxy.address,
-    ...args.map((a) => a.value),
+    initTx.data,
   ])
 
   // Overwrite address entry with proxy
