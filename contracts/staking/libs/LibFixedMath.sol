@@ -16,6 +16,8 @@
 
 */
 
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity ^0.7.3;
 
 // solhint-disable indent
