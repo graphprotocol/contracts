@@ -381,10 +381,28 @@ describe('Staking:Allocation', () => {
       // Advance blocks to get allocation in epoch where it can no longer collect funds (finalized)
       await advanceToNextEpoch(epochManager)
 
+      // Before state
+      const beforeTotalSupply = await grt.totalSupply()
+
       // Revert if allocation is finalized
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
       const tx2 = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
-      await expect(tx2).revertedWith('!collect')
+      await expect(tx2)
+        .emit(staking, 'AllocationCollected')
+        .withArgs(
+          indexer.address,
+          subgraphDeploymentID,
+          await epochManager.currentEpoch(),
+          tokensToCollect,
+          allocationID,
+          assetHolder.address,
+          0,
+          0,
+        )
+
+      // Check funds are effectively burned
+      const afterTotalSupply = await grt.totalSupply()
+      expect(afterTotalSupply).eq(beforeTotalSupply.sub(tokensToCollect))
     })
   })
 

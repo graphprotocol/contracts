@@ -784,7 +784,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Remove tokens to slash from the stake
         indexerStake.release(_tokens);
 
-        // -- Effects --
+        // -- Interactions --
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
         _burnTokens(_tokens.sub(_reward));
@@ -969,7 +969,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         alloc.collectedFees = 0;
         alloc.effectiveAllocation = 0;
 
-        // -- Effects --
+        // -- Interactions --
 
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
@@ -1194,15 +1194,20 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
 
-        // The allocation must be active or closed
-        require(
-            allocState == AllocationState.Active || allocState == AllocationState.Closed,
-            "!collect"
-        );
+        // The allocation must exist
+        require(allocState != AllocationState.Null, "!collect");
 
-        // Calculate protocol fees to be burned
-        uint256 protocolFees = _collectProtocolFees(queryFees);
-        queryFees = queryFees.sub(protocolFees);
+        // Process protocol fees
+        uint256 protocolFees = 0;
+        if (allocState == AllocationState.Active || allocState == AllocationState.Closed) {
+            // Calculate protocol fees to be burned under normal conditions
+            protocolFees = _collectProtocolFees(queryFees);
+            queryFees = queryFees.sub(protocolFees);
+        } else {
+            // Protocol tax is 100% for collected query fees over channelDisputePeriod
+            protocolFees = queryFees;
+            queryFees = 0;
+        }
 
         // Calculate curation fees (only if the subgraph deployment is curated)
         uint256 curationFees = _collectCurationFees(alloc.subgraphDeploymentID, queryFees);
@@ -1219,7 +1224,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             rebatePool.fees = rebatePool.fees.add(queryFees);
         }
 
-        // -- Effects --
+        // -- Interactions --
 
         // Burn protocol fees if any
         _burnTokens(protocolFees);
@@ -1284,7 +1289,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Update the delegation
         delegation.shares = delegation.shares.add(shares);
 
-        // -- Effects --
+        // -- Interactions --
 
         // Burn the delegation tax if any
         _burnTokens(delegationTax);
@@ -1369,7 +1374,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         emit StakeDelegatedWithdrawn(_indexer, _delegator, tokensToWithdraw);
 
-        // -- Effects --
+        // -- Interactions --
 
         if (_delegateToIndexer != address(0)) {
             // Re-delegate tokens to a new indexer
