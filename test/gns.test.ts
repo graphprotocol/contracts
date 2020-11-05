@@ -373,7 +373,9 @@ describe('GNS', () => {
     const signals = await gns.tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
     const vSigEstimate = signals[0]
     const nSigEstimate = signals[1]
-    const tx = gns.connect(account.signer).mintNSignal(graphAccount, subgraphNumber0, graphTokens)
+    const tx = gns
+      .connect(account.signer)
+      .mintNSignal(graphAccount, subgraphNumber0, graphTokens, 0)
     await expect(tx)
       .emit(gns, 'NSignalMinted')
       .withArgs(
@@ -429,7 +431,7 @@ describe('GNS', () => {
     // Do withdraw tx
     const tx = gns
       .connect(account.signer)
-      .burnNSignal(graphAccount, subgraphNumber0, usersNSigBefore)
+      .burnNSignal(graphAccount, subgraphNumber0, usersNSigBefore, 0)
     await expect(tx)
       .emit(gns, 'NSignalBurned')
       .withArgs(
@@ -749,11 +751,11 @@ describe('GNS', () => {
       it('should fail when name signal is disabled', async function () {
         await publishNewSubgraph(me, me.address, subgraphNumber0)
         await deprecateSubgraph(me, me.address, 0)
-        const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000)
+        const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
         await expect(tx).revertedWith('GNS: Cannot be disabled')
       })
       it('should fail if you try to deposit on a non existing name', async function () {
-        const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000)
+        const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
         await expect(tx).revertedWith('GNS: Must deposit on a name signal that exists')
       })
     })
@@ -768,7 +770,7 @@ describe('GNS', () => {
       it('should fail when name signal is disabled', async function () {
         await deprecateSubgraph(me, me.address, 0)
         // just test 1 since it will fail
-        const tx = gns.connect(me.signer).burnNSignal(me.address, subgraphNumber0, 1)
+        const tx = gns.connect(me.signer).burnNSignal(me.address, subgraphNumber0, 1, 0)
         await expect(tx).revertedWith('GNS: Cannot be disabled')
       })
       it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
@@ -777,6 +779,7 @@ describe('GNS', () => {
           subgraphNumber0,
           // 1000000 * 10^18 nSignal is a lot, and will cause fail
           toBN('1000000000000000000000000'),
+          0,
         )
         await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
       })
