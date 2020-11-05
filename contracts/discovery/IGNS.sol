@@ -55,13 +55,15 @@ interface IGNS {
     function mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _nSignalOutMin
     ) external;
 
     function burnNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _nSignal,
+        uint256 _tokensOutMin
     ) external;
 
     function withdraw(address _graphAccount, uint256 _subgraphNumber) external;

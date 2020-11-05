@@ -254,6 +254,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             _subgraphDeploymentID != oldSubgraphDeploymentID,
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
+
         _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
     }
@@ -275,6 +276,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Stores a subgraph deployment ID, which indicates a version has been created
         subgraphs[_graphAccount][_subgraphNumber] = _subgraphDeploymentID;
+
         // Emit version and name data
         emit SubgraphPublished(
             _graphAccount,
@@ -376,11 +378,13 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number
      * @param _tokens The amount of tokens the nameCurator wants to deposit
+     * @param _nSignalOutMin Expected minimum amount of name signal to receive
      */
     function mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _nSignalOutMin
     ) external override notPartialPaused {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
@@ -388,7 +392,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             namePool.subgraphDeploymentID != 0,
             "GNS: Must deposit on a name signal that exists"
         );
-        _mintNSignal(_graphAccount, _subgraphNumber, _tokens);
+
+        _mintNSignal(_graphAccount, _subgraphNumber, _tokens, _nSignalOutMin);
     }
 
     /**
@@ -396,21 +401,24 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
+     * @param _tokensOutMin Expected minimum amount of tokens to receive
      */
     function burnNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _nSignal,
+        uint256 _tokensOutMin
     ) external override notPartialPaused {
-        address nameCurator = msg.sender;
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 curatorNSignal = namePool.curatorNSignal[nameCurator];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
+
+        uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
         require(
             _nSignal <= curatorNSignal,
             "GNS: Curator cannot withdraw more nSignal than they have"
         );
-        _burnNSignal(_graphAccount, _subgraphNumber, _nSignal);
+
+        _burnNSignal(_graphAccount, _subgraphNumber, _nSignal, _tokensOutMin);
     }
 
     /**
@@ -469,24 +477,36 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      * @param _tokens GRT being deposited into vSignal to create nSignal
+     * @param _nSignalOutMin Expected minimum amount of name signal to receive
      * @return vSignal and tokens
      */
     function _mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _nSignalOutMin
     ) private returns (uint256, uint256) {
+        // Pull tokens from sender
         require(
             graphToken().transferFrom(msg.sender, address(this), _tokens),
             "GNS: Cannot transfer tokens to mint n signal"
         );
+
+        // Get name signal to mint for tokens deposited
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = curation().mint(namePool.subgraphDeploymentID, _tokens, 0);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
+
+        // Slippage protection
+        require(nSignal >= _nSignalOutMin, "Slippage protection");
+
+        // Update pools
         namePool.vSignal = namePool.vSignal.add(vSignal);
         namePool.nSignal = namePool.nSignal.add(nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].add(nSignal);
+
         emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal, _tokens);
+
         return (vSignal, nSignal);
     }
 
@@ -495,26 +515,33 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      * @param _nSignal nSignal being burnt to receive vSignal to be burnt into GRT
+     * @param _tokensOutMin Expected minimum amount of tokens to receive
      * @return vSignal and nSignal
      */
     function _burnNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _nSignal,
+        uint256 _tokensOutMin
     ) private returns (uint256, uint256) {
-        address nameCurator = msg.sender;
+        // Get tokens for name signal amount to burn
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal, 0);
+        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
+
+        // Update pools
         namePool.vSignal = namePool.vSignal.sub(vSignal);
         namePool.nSignal = namePool.nSignal.sub(_nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
+
         // Return the tokens to the nameCurator
         require(
-            graphToken().transfer(nameCurator, tokens),
+            graphToken().transfer(msg.sender, tokens),
             "GNS: Error sending nameCurators tokens"
         );
+
         emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
+
         return (vSignal, tokens);
     }
 
