@@ -543,6 +543,7 @@ describe('GNS', () => {
           .emit(gns, 'SetDefaultName')
           .withArgs(subgraph0.graphAccount.address, 0, defaultName.nameIdentifier, defaultName.name)
       })
+
       it('setDefaultName fails if not owner', async function () {
         const tx = gns
           .connect(other.signer)
@@ -550,6 +551,7 @@ describe('GNS', () => {
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
     })
+
     describe('updateSubgraphMetadata', function () {
       it('updateSubgraphMetadata emits the event', async function () {
         const tx = gns
@@ -559,6 +561,7 @@ describe('GNS', () => {
           .emit(gns, 'SubgraphMetadataUpdated')
           .withArgs(subgraph0.graphAccount.address, 0, subgraph0.subgraphMetadata)
       })
+
       it('updateSubgraphMetadata fails if not owner', async function () {
         const tx = gns
           .connect(other.signer)
@@ -619,9 +622,11 @@ describe('GNS', () => {
         await publishNewSubgraph(me, me.address, 0)
         await mintNSignal(me, me.address, 0, tokens10000)
       })
+
       it('should publish a new version on an existing subgraph', async function () {
         await publishNewVersion(me, me.address, 0, subgraph1)
       })
+
       it('should reject a new version with the same subgraph deployment ID', async function () {
         const tx = gns
           .connect(me.signer)
@@ -635,6 +640,7 @@ describe('GNS', () => {
           'GNS: Cannot publish a new version with the same subgraph deployment ID',
         )
       })
+
       it('should reject publishing a version to a numbered subgraph that does not exist', async function () {
         const wrongNumberedSubgraph = 9999
         const tx = gns
@@ -649,6 +655,7 @@ describe('GNS', () => {
           'GNS: Cannot update version if not published, or has been deprecated',
         )
       })
+
       it('reject if not the owner', async function () {
         const tx = gns
           .connect(other.signer)
@@ -660,6 +667,7 @@ describe('GNS', () => {
           )
         await expect(tx).revertedWith('GNS: Only graph account owner can call')
       })
+
       it('should fail when upgrade tries to point to a pre-curated', async function () {
         await curation.connect(me.signer).mint(subgraph1.subgraphDeploymentID, tokens1000, 0)
         const tx = gns
@@ -674,6 +682,7 @@ describe('GNS', () => {
           'GNS: Owner cannot point to a subgraphID that has been pre-curated',
         )
       })
+
       it('should fail when trying to upgrade when there is no nSignal', async function () {
         await burnNSignal(me, me.address, 0)
         const tx = gns
@@ -688,6 +697,7 @@ describe('GNS', () => {
           'GNS: There must be nSignal on this subgraph for curve math to work',
         )
       })
+
       it('should fail when subgraph is deprecated', async function () {
         await deprecateSubgraph(me, me.address, 0)
         const tx = gns
@@ -709,9 +719,11 @@ describe('GNS', () => {
         await publishNewSubgraph(me, me.address, 0)
         await mintNSignal(me, me.address, 0, tokens10000)
       })
+
       it('should deprecate a subgraph', async function () {
         await deprecateSubgraph(me, me.address, 0)
       })
+
       it('should prevent a deprecated subgraph from being republished', async function () {
         await deprecateSubgraph(me, me.address, 0)
         const tx = gns
@@ -726,6 +738,7 @@ describe('GNS', () => {
           'Cannot update version if not published, or has been deprecated',
         )
       })
+
       it('reject if the subgraph does not exist', async function () {
         const wrongNumberedSubgraph = 2340
         const tx = gns
@@ -733,6 +746,7 @@ describe('GNS', () => {
           .deprecateSubgraph(subgraph1.graphAccount.address, wrongNumberedSubgraph)
         await expect(tx).revertedWith('GNS: Cannot deprecate a subgraph which does not exist')
       })
+
       it('reject deprecate if not the owner', async function () {
         const tx = gns
           .connect(other.signer)
@@ -743,36 +757,59 @@ describe('GNS', () => {
   })
   describe('Curating on names', async function () {
     const subgraphNumber0 = 0
+
     describe('mintNSignal()', async function () {
       it('should deposit into the name signal curve', async function () {
         await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
+
       it('should fail when name signal is disabled', async function () {
         await publishNewSubgraph(me, me.address, subgraphNumber0)
         await deprecateSubgraph(me, me.address, 0)
         const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
         await expect(tx).revertedWith('GNS: Cannot be disabled')
       })
+
       it('should fail if you try to deposit on a non existing name', async function () {
         const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
         await expect(tx).revertedWith('GNS: Must deposit on a name signal that exists')
       })
+
+      it('reject minting if under slippage', async function () {
+        // First publish the subgraph
+        await publishNewSubgraph(me, me.address, subgraphNumber0)
+
+        // Set slippage to be 1 less than expected result to force reverting
+        const { 1: expectedNSignal } = await gns.tokensToNSignal(
+          me.address,
+          subgraphNumber0,
+          tokens1000,
+        )
+        const tx = gns
+          .connect(me.signer)
+          .mintNSignal(me.address, subgraphNumber0, tokens1000, expectedNSignal.add(1))
+        await expect(tx).revertedWith('Slippage protection')
+      })
     })
+
     describe('burnNSignal()', async function () {
       beforeEach(async () => {
         await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
+
       it('should withdraw from the name signal curve', async function () {
         await burnNSignal(other, me.address, subgraphNumber0)
       })
+
       it('should fail when name signal is disabled', async function () {
         await deprecateSubgraph(me, me.address, 0)
         // just test 1 since it will fail
         const tx = gns.connect(me.signer).burnNSignal(me.address, subgraphNumber0, 1, 0)
         await expect(tx).revertedWith('GNS: Cannot be disabled')
       })
+
       it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
         const tx = gns.connect(me.signer).burnNSignal(
           me.address,
@@ -783,32 +820,65 @@ describe('GNS', () => {
         )
         await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
       })
+
+      it('reject burning if under slippage', async function () {
+        // Get current curator name signal
+        const curatorNSignal = await gns.getCuratorNSignal(
+          me.address,
+          subgraphNumber0,
+          other.address,
+        )
+
+        // Withdraw
+        const { 1: expectedTokens, 2: curationTax } = await gns.nSignalToTokens(
+          me.address,
+          subgraphNumber0,
+          curatorNSignal,
+        )
+
+        // Force a revert by asking 1 more token than the function will return
+        const tx = gns
+          .connect(other.signer)
+          .burnNSignal(
+            me.address,
+            subgraphNumber0,
+            curatorNSignal,
+            expectedTokens.add(curationTax).add(1),
+          )
+        await expect(tx).revertedWith('Slippage protection')
+      })
     })
+
     describe('withdraw()', async function () {
       beforeEach(async () => {
         await publishNewSubgraph(me, me.address, subgraphNumber0)
         await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
       })
+
       it('should withdraw GRT from a disabled name signal', async function () {
         await deprecateSubgraph(me, me.address, 0)
         await withdraw(other, me.address, subgraphNumber0)
       })
+
       it('should fail if not disabled', async function () {
         const tx = gns.connect(other.signer).withdraw(me.address, subgraphNumber0)
         await expect(tx).revertedWith('GNS: Name bonding curve must be disabled first')
       })
+
       it('should fail when there is no more GRT to withdraw', async function () {
         await deprecateSubgraph(me, me.address, 0)
         await withdraw(other, me.address, subgraphNumber0)
         const tx = gns.connect(other.signer).withdraw(me.address, subgraphNumber0)
         await expect(tx).revertedWith('GNS: No more GRT to withdraw')
       })
+
       it('should fail if the curator has no nSignal', async function () {
         await deprecateSubgraph(me, me.address, 0)
         const tx = gns.connect(me.signer).withdraw(me.address, subgraphNumber0)
         await expect(tx).revertedWith('GNS: Curator must have some nSignal to withdraw GRT')
       })
     })
+
     describe('multiple minting', async function () {
       it('should mint less signal every time due to the bonding curve', async function () {
         const tokensToDepositMany = [
@@ -910,7 +980,7 @@ describe('GNS', () => {
           subgraph0.subgraphMetadata,
         )
       // Curate on the first subgraph
-      await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('100'))
+      await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('100'), 0)
 
       // Publish a named subgraph-1 -> subgraphDeployment0
       await gns
@@ -922,7 +992,7 @@ describe('GNS', () => {
           subgraph0.subgraphMetadata,
         )
       // Curate on the second subgraph should work
-      await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'))
+      await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'), 0)
     })
   })
 })

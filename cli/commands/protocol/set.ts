@@ -42,7 +42,6 @@ export const settersList = {
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
   // GNS
-  'gns-minimum-signal': { contract: 'GNS', name: 'setMinimumVsignal' },
   'gns-owner-fee-percentage': { contract: 'GNS', name: 'setOwnerFeePercentage' },
   // Token
   'token-transfer-governor': { contract: 'GraphToken', name: 'transferOwnership' },
