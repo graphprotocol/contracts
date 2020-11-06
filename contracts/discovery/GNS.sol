@@ -498,7 +498,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
 
         // Slippage protection
-        require(nSignal >= _nSignalOutMin, "Slippage protection");
+        require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
 
         // Update pools
         namePool.vSignal = namePool.vSignal.add(vSignal);
