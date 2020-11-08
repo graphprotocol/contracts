@@ -26,7 +26,7 @@ export const gettersList = {
   'curation-reserve-ratio': { contract: 'Curation', name: 'defaultReserveRatio' },
   'curation-percentage': { contract: 'Staking', name: 'curationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'minimumCurationDeposit' },
-  'curation-withdrawal-percentage': { contract: 'Curation', name: 'withdrawalFeePercentage' },
+  'curation-tax-percentage': { contract: 'Curation', name: 'curationTaxPercentage' },
   'curation-bonding-curve': { contract: 'Curation', name: 'bondingCurve' },
   // Disputes
   'disputes-arbitrator': { contract: 'DisputeManager', name: 'arbitrator' },

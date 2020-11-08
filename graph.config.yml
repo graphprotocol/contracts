@@ -45,7 +45,7 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       reserveRatio: 333333 # ~33.33% (parts per million)
-      withdrawalFeePercentage: 50000 # 5% (parts per million)
+      curationTaxPercentage: 50000 # 5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
     init:

@@ -19,21 +19,21 @@ interface ICuration {
 
     function setMinimumCurationDeposit(uint256 _minimumCurationDeposit) external;
 
-    function setWithdrawalFeePercentage(uint32 _percentage) external;
+    function setCurationTaxPercentage(uint32 _percentage) external;
 
     // -- Curation --
 
     function mint(
         bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
+        uint256 _tokensIn,
         uint256 _signalOutMin
-    ) external returns (uint256);
+    ) external returns (uint256, uint256);
 
     function burn(
         bytes32 _subgraphDeploymentID,
-        uint256 _signal,
+        uint256 _signalIn,
         uint256 _tokensOutMin
-    ) external returns (uint256, uint256);
+    ) external returns (uint256);
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
 
@@ -50,13 +50,13 @@ interface ICuration {
 
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
-        external
-        view
-        returns (uint256);
-
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         external
         view
         returns (uint256, uint256);
+
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
+        external
+        view
+        returns (uint256);
 }

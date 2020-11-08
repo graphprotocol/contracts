@@ -28,7 +28,7 @@ export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
-    withdrawalFeePercentage: 0,
+    curationTaxPercentage: 0,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
@@ -126,7 +126,7 @@ export async function deployCuration(
       controller,
       bondingCurve.address,
       defaults.curation.reserveRatio,
-      defaults.curation.withdrawalFeePercentage,
+      defaults.curation.curationTaxPercentage,
       defaults.curation.minimumCurationDeposit,
     ],
     deployer,

@@ -80,22 +80,22 @@ describe('Curation:Config', () => {
     })
   })
 
-  describe('withdrawalFeePercentage', function () {
-    it('should set `withdrawalFeePercentage`', async function () {
-      const withdrawalFeePercentage = defaults.curation.withdrawalFeePercentage
+  describe('curationTaxPercentage', function () {
+    it('should set `curationTaxPercentage`', async function () {
+      const curationTaxPercentage = defaults.curation.curationTaxPercentage
 
       // Set new value
-      await curation.connect(governor.signer).setWithdrawalFeePercentage(0)
-      await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalFeePercentage)
+      await curation.connect(governor.signer).setCurationTaxPercentage(0)
+      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
     })
 
-    it('reject set `withdrawalFeePercentage` if out of bounds', async function () {
-      const tx = curation.connect(governor.signer).setWithdrawalFeePercentage(MAX_PPM + 1)
-      await expect(tx).revertedWith('Withdrawal fee percentage must be below or equal to MAX_PPM')
+    it('reject set `curationTaxPercentage` if out of bounds', async function () {
+      const tx = curation.connect(governor.signer).setCurationTaxPercentage(MAX_PPM + 1)
+      await expect(tx).revertedWith('Curation tax percentage must be below or equal to MAX_PPM')
     })
 
-    it('reject set `withdrawalFeePercentage` if not allowed', async function () {
-      const tx = curation.connect(me.signer).setWithdrawalFeePercentage(0)
+    it('reject set `curationTaxPercentage` if not allowed', async function () {
+      const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })

@@ -37,25 +37,25 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     /**
      * @dev Emitted when `curator` deposited `tokens` on `subgraphDeploymentID` as curation signal.
      * The `curator` receives `signal` amount according to the curation pool bonding curve.
+     * An amount of `curationTax` will be collected and burned.
      */
     event Signalled(
         address indexed curator,
         bytes32 indexed subgraphDeploymentID,
         uint256 tokens,
-        uint256 signal
+        uint256 signal,
+        uint256 curationTax
     );
 
     /**
      * @dev Emitted when `curator` burned `signal` for a `subgraphDeploymentID`.
      * The curator will receive `tokens` according to the value of the bonding curve.
-     * An amount of `withdrawalFees` will be collected and burned.
      */
     event Burned(
         address indexed curator,
         bytes32 indexed subgraphDeploymentID,
         uint256 tokens,
-        uint256 signal,
-        uint256 withdrawalFees
+        uint256 signal
     );
 
     /**
@@ -71,7 +71,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         address _controller,
         address _bondingCurve,
         uint32 _defaultReserveRatio,
-        uint32 _withdrawalFeePercentage,
+        uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
         Managed._initialize(_controller);
@@ -79,7 +79,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         // Settings
         _setDefaultReserveRatio(_defaultReserveRatio);
-        _setWithdrawalFeePercentage(_withdrawalFeePercentage);
+        _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
     }
 
@@ -129,30 +129,31 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
         require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
+
         minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");
     }
 
     /**
-     * @dev Set the fee percentage to charge when a curator withdraws GRT tokens.
-     * @param _percentage Percentage fee charged when withdrawing GRT tokens
+     * @dev Set the curation tax percentage to charge when a curator deposits GRT tokens.
+     * @param _percentage Curation tax percentage charged when depositing GRT tokens
      */
-    function setWithdrawalFeePercentage(uint32 _percentage) external override onlyGovernor {
-        _setWithdrawalFeePercentage(_percentage);
+    function setCurationTaxPercentage(uint32 _percentage) external override onlyGovernor {
+        _setCurationTaxPercentage(_percentage);
     }
 
     /**
-     * @dev Internal: Set the fee percentage to charge when a curator withdraws GRT tokens.
-     * @param _percentage Percentage fee charged when withdrawing GRT tokens
+     * @dev Internal: Set the curation tax percentage to charge when a curator deposits GRT tokens.
+     * @param _percentage Curation tax percentage charged when depositing GRT tokens
      */
-    function _setWithdrawalFeePercentage(uint32 _percentage) private {
-        // Must be within 0% to 100% (inclusive)
+    function _setCurationTaxPercentage(uint32 _percentage) private {
         require(
             _percentage <= MAX_PPM,
-            "Withdrawal fee percentage must be below or equal to MAX_PPM"
+            "Curation tax percentage must be below or equal to MAX_PPM"
         );
-        withdrawalFeePercentage = _percentage;
-        emit ParameterUpdated("withdrawalFeePercentage");
+
+        curationTaxPercentage = _percentage;
+        emit ParameterUpdated("curationTaxPercentage");
     }
 
     /**
@@ -168,26 +169,35 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         );
 
         // Collect tokens and assign them to the reserves
-        _collect(_subgraphDeploymentID, _tokens);
+        require(
+            isCurated(_subgraphDeploymentID),
+            "Subgraph deployment must be curated to collect fees"
+        );
+
+        // Collect new funds into reserve
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        curationPool.tokens = curationPool.tokens.add(_tokens);
+
+        emit Collected(_subgraphDeploymentID, _tokens);
     }
 
     /**
      * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
-     * @param _tokens Amount of Graph Tokens to deposit
+     * @param _tokensIn Amount of Graph Tokens to deposit
      * @param _signalOutMin Expected minimum amount of signal to receive
-     * @return Signal minted
+     * @return Signal minted and deposit tax
      */
     function mint(
         bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
+        uint256 _tokensIn,
         uint256 _signalOutMin
-    ) external override notPartialPaused returns (uint256) {
+    ) external override notPartialPaused returns (uint256, uint256) {
         // Need to deposit some funds
-        require(_tokens > 0, "Cannot deposit zero tokens");
+        require(_tokensIn > 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool
-        uint256 signalOut = tokensToSignal(_subgraphDeploymentID, _tokens);
+        (uint256 signalOut, uint256 curationTax) = tokensToSignal(_subgraphDeploymentID, _tokensIn);
 
         // Slippage protection
         require(signalOut >= _signalOutMin, "Slippage protection");
@@ -216,75 +226,73 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Transfer tokens from the curator to this contract
         // This needs to happen after _updateRewards snapshot as that function
         // is using balanceOf(curation)
+        IGraphToken graphToken = graphToken();
         require(
-            graphToken().transferFrom(curator, address(this), _tokens),
+            graphToken.transferFrom(curator, address(this), _tokensIn),
             "Cannot transfer tokens to deposit"
         );
 
-        // Update curation pool
-        curationPool.tokens = curationPool.tokens.add(_tokens); // Update GRT tokens held as reserves
-        curationPool.gcs.mint(curator, signalOut); // Mint signal to the curator
+        // Burn withdrawal fees
+        if (curationTax > 0) {
+            graphToken.burn(curationTax);
+        }
 
-        emit Signalled(curator, _subgraphDeploymentID, _tokens, signalOut);
-        return signalOut;
+        // Update curation pool
+        curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
+        curationPool.gcs.mint(curator, signalOut);
+
+        emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
+
+        return (signalOut, curationTax);
     }
 
     /**
      * @dev Return an amount of signal to get tokens back.
      * @notice Burn _signal from the SubgraphDeployment curation pool
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
-     * @param _signal Amount of signal to return
+     * @param _signalIn Amount of signal to return
      * @param _tokensOutMin Expected minimum amount of tokens to receive
-     * @return Tokens returned and withdrawal fees
+     * @return Tokens returned
      */
     function burn(
         bytes32 _subgraphDeploymentID,
-        uint256 _signal,
+        uint256 _signalIn,
         uint256 _tokensOutMin
-    ) external override notPartialPaused returns (uint256, uint256) {
+    ) external override notPartialPaused returns (uint256) {
         address curator = msg.sender;
 
         // Validations
-        require(_signal > 0, "Cannot burn zero signal");
+        require(_signalIn > 0, "Cannot burn zero signal");
         require(
-            getCuratorSignal(curator, _subgraphDeploymentID) >= _signal,
+            getCuratorSignal(curator, _subgraphDeploymentID) >= _signalIn,
             "Cannot burn more signal than you own"
         );
 
         // Get the amount of tokens to refund based on returned signal
-        (uint256 tokensOut, uint256 withdrawalFees) = signalToTokens(
-            _subgraphDeploymentID,
-            _signal
-        );
-        uint256 tokensOutAndTax = tokensOut.add(withdrawalFees);
+        uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn);
 
         // Slippage protection
-        require(tokensOutAndTax >= _tokensOutMin, "Slippage protection");
+        require(tokensOut >= _tokensOutMin, "Slippage protection");
 
         // Trigger update rewards calculation
         _updateRewards(_subgraphDeploymentID);
 
         // Update curation pool
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.sub(tokensOutAndTax); // Update GRT tokens held as reserves
-        curationPool.gcs.burnFrom(curator, _signal); // Burn signal from curator
+        curationPool.tokens = curationPool.tokens.sub(tokensOut);
+        curationPool.gcs.burnFrom(curator, _signalIn);
 
         // If all signal burnt delete the curation pool
         if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
             delete pools[_subgraphDeploymentID];
         }
 
-        // Burn withdrawal fees
-        IGraphToken graphToken = graphToken();
-        if (withdrawalFees > 0) {
-            graphToken.burn(withdrawalFees);
-        }
-
         // Return the tokens to the curator
-        require(graphToken.transfer(curator, tokensOut), "Error sending curator tokens");
+        require(graphToken().transfer(curator, tokensOut), "Error sending curator tokens");
 
-        emit Burned(curator, _subgraphDeploymentID, tokensOut, _signal, withdrawalFees);
-        return (tokensOut, withdrawalFees);
+        emit Burned(curator, _subgraphDeploymentID, tokensOut, _signalIn);
+
+        return tokensOut;
     }
 
     /**
@@ -347,13 +355,30 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
     /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
+     * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
-     * @param _tokens Amount of tokens used to mint signal
-     * @return Amount of signal that can be bought
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of signal that can be bought and tokens substracted for the tax
      */
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokens)
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         public
         override
+        view
+        returns (uint256, uint256)
+    {
+        uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
+        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
+        return (signalOut, curationTax);
+    }
+
+    /**
+     * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of signal that can be bought with tokens
+     */
+    function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        public
         view
         returns (uint256)
     {
@@ -363,7 +388,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Init curation pool
         if (curationPool.tokens == 0) {
             require(
-                _tokens >= minimumCurationDeposit,
+                _tokensIn >= minimumCurationDeposit,
                 "Curation deposit is below minimum required"
             );
             return
@@ -372,7 +397,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
                     SIGNAL_PER_MINIMUM_DEPOSIT,
                     minimumCurationDeposit,
                     defaultReserveRatio,
-                    _tokens.sub(minimumCurationDeposit)
+                    _tokensIn.sub(minimumCurationDeposit)
                 )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
@@ -382,21 +407,21 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
                 getCurationPoolSignal(_subgraphDeploymentID),
                 curationPool.tokens,
                 curationPool.reserveRatio,
-                _tokens
+                _tokensIn
             );
     }
 
     /**
      * @dev Calculate number of tokens to get when burning signal from a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to burn signal
-     * @param _signal Amount of signal to burn
-     * @return Amount of tokens to get after burning signal and withdrawal fees
+     * @param _signalIn Amount of signal to burn
+     * @return Amount of tokens to get for an amount of signal
      */
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signal)
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         public
         override
         view
-        returns (uint256, uint256)
+        returns (uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
@@ -405,37 +430,17 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             "Subgraph deployment must be curated to perform calculations"
         );
         require(
-            curationPoolSignal >= _signal,
+            curationPoolSignal >= _signalIn,
             "Signal must be above or equal to signal issued in the curation pool"
         );
 
-        uint256 tokens = BancorFormula(bondingCurve).calculateSaleReturn(
-            curationPoolSignal,
-            curationPool.tokens,
-            curationPool.reserveRatio,
-            _signal
-        );
-        uint256 withdrawalFees = tokens.mul(uint256(withdrawalFeePercentage)).div(MAX_PPM);
-
-        return (tokens.sub(withdrawalFees), withdrawalFees);
-    }
-
-    /**
-     * @dev Assign Graph Tokens received from staking to the curation pool reserve.
-     * @param _subgraphDeploymentID Subgraph deployment where funds should be allocated as reserves
-     * @param _tokens Amount of Graph Tokens to add to reserves
-     */
-    function _collect(bytes32 _subgraphDeploymentID, uint256 _tokens) internal {
-        require(
-            isCurated(_subgraphDeploymentID),
-            "Subgraph deployment must be curated to collect fees"
-        );
-
-        // Collect new funds into reserve
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.add(_tokens);
-
-        emit Collected(_subgraphDeploymentID, _tokens);
+        return
+            BancorFormula(bondingCurve).calculateSaleReturn(
+                curationPoolSignal,
+                curationPool.tokens,
+                curationPool.reserveRatio,
+                _signalIn
+            );
     }
 
     /**
