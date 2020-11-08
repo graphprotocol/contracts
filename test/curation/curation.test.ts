@@ -78,50 +78,8 @@ describe('Curation', () => {
     )
   }
 
-  const shouldSignal = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
-    const defaultReserveRatio = await curation.defaultReserveRatio()
-
+  const shouldMint = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
     // Before state
-    const beforeCuratorTokens = await grt.balanceOf(curator.address)
-    const beforeCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const beforePool = await curation.pools(subgraphDeploymentID)
-    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const beforeTotalBalance = await grt.balanceOf(curation.address)
-
-    // Curate
-    const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
-    await expect(tx)
-      .emit(curation, 'Signalled')
-      .withArgs(curator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal)
-
-    // After state
-    const afterCuratorTokens = await grt.balanceOf(curator.address)
-    const afterCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const afterPool = await curation.pools(subgraphDeploymentID)
-    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const afterTotalBalance = await grt.balanceOf(curation.address)
-
-    // Tokens transferred properly
-    expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToDeposit))
-    expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
-    // Allocated and balance updated
-    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit))
-    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
-    expect(afterPool.reserveRatio).eq(defaultReserveRatio)
-    // Contract balance updated
-    expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToDeposit))
-    // Uses default reserve ratio
-    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
-  }
-
-  const shouldRedeem = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
-    // Before balances
     const beforeTokenTotalSupply = await grt.totalSupply()
     const beforeCuratorTokens = await grt.balanceOf(curator.address)
     const beforeCuratorSignal = await curation.getCuratorSignal(
@@ -133,20 +91,56 @@ describe('Curation', () => {
     const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Calculations
-    const withdrawalFeePercentage = await curation.withdrawalFeePercentage()
-    const withdrawalFees = expectedTokens.mul(toBN(withdrawalFeePercentage)).div(toBN(MAX_PPM))
+    const curationTaxPercentage = await curation.curationTaxPercentage()
+    const curationTax = tokensToDeposit.mul(toBN(curationTaxPercentage)).div(toBN(MAX_PPM))
+
+    // Curate
+    const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+    await expect(tx)
+      .emit(curation, 'Signalled')
+      .withArgs(curator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, curationTax)
+
+    // After state
+    const afterTokenTotalSupply = await grt.totalSupply()
+    const afterCuratorTokens = await grt.balanceOf(curator.address)
+    const afterCuratorSignal = await curation.getCuratorSignal(
+      curator.address,
+      subgraphDeploymentID,
+    )
+    const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const afterTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curator balance updated
+    expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToDeposit))
+    expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
+    // Allocated and balance updated
+    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit.sub(curationTax)))
+    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
+    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    // Contract balance updated
+    expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit.sub(curationTax)))
+    // Total supply is reduced to curation tax burning
+    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(curationTax))
+  }
+
+  const shouldBurn = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
+    // Before balances
+    const beforeTokenTotalSupply = await grt.totalSupply()
+    const beforeCuratorTokens = await grt.balanceOf(curator.address)
+    const beforeCuratorSignal = await curation.getCuratorSignal(
+      curator.address,
+      subgraphDeploymentID,
+    )
+    const beforePool = await curation.pools(subgraphDeploymentID)
+    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Redeem
     const tx = curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem, 0)
     await expect(tx)
       .emit(curation, 'Burned')
-      .withArgs(
-        curator.address,
-        subgraphDeploymentID,
-        expectedTokens.sub(withdrawalFees),
-        signalToRedeem,
-        withdrawalFees,
-      )
+      .withArgs(curator.address, subgraphDeploymentID, expectedTokens, signalToRedeem)
 
     // After balances
     const afterTokenTotalSupply = await grt.totalSupply()
@@ -160,15 +154,15 @@ describe('Curation', () => {
     const afterTotalTokens = await grt.balanceOf(curation.address)
 
     // Curator balance updated
-    expect(afterCuratorTokens).eq(beforeCuratorTokens.add(expectedTokens).sub(withdrawalFees))
+    expect(afterCuratorTokens).eq(beforeCuratorTokens.add(expectedTokens))
     expect(afterCuratorSignal).eq(beforeCuratorSignal.sub(signalToRedeem))
     // Curation balance updated
     expect(afterPool.tokens).eq(beforePool.tokens.sub(expectedTokens))
     expect(afterPoolSignal).eq(beforePoolSignal.sub(signalToRedeem))
     // Contract balance updated
     expect(afterTotalTokens).eq(beforeTotalTokens.sub(expectedTokens))
-    // Withdrawal fees are burned
-    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(withdrawalFees))
+    // Total supply is conserved
+    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply)
   }
 
   const shouldCollect = async (tokensToCollect: BigNumber) => {
@@ -227,35 +221,34 @@ describe('Curation', () => {
 
       // Conversion
       const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-      const { 0: expectedTokens } = await curation.signalToTokens(subgraphDeploymentID, signal)
+      const expectedTokens = await curation.signalToTokens(subgraphDeploymentID, signal)
       expect(expectedTokens).eq(tokensToDeposit)
     })
 
-    it('convert signal to tokens (with withdrawal fees)', async function () {
-      // Set fees for withdrawal
-      const withdrawalFeePercentage = 50000 // 5%
-      await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalFeePercentage)
+    it('convert signal to tokens (with curation tax)', async function () {
+      // Set curation tax
+      const curationTaxPercentage = 50000 // 5%
+      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
 
       // Curate
+      const expectedCurationTax = tokensToDeposit.mul(curationTaxPercentage).div(MAX_PPM)
+      const { 1: curationTax } = await curation.tokensToSignal(
+        subgraphDeploymentID,
+        tokensToDeposit,
+      )
       await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
-
-      // Expected
-      const expectedWithdrawalFees = tokensToDeposit.mul(withdrawalFeePercentage).div(MAX_PPM)
 
       // Conversion
       const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-      const { 0: tokens, 1: withdrawalFees } = await curation.signalToTokens(
-        subgraphDeploymentID,
-        signal,
-      )
-      expect(tokens).eq(tokensToDeposit.sub(expectedWithdrawalFees))
-      expect(withdrawalFees).eq(expectedWithdrawalFees)
+      const tokens = await curation.signalToTokens(subgraphDeploymentID, signal)
+      expect(tokens).eq(tokensToDeposit.sub(expectedCurationTax))
+      expect(expectedCurationTax).eq(curationTax)
     })
 
     it('convert tokens to signal', async function () {
       // Conversion
       const tokens = toGRT('1000')
-      const signal = await curation.tokensToSignal(subgraphDeploymentID, tokens)
+      const { 0: signal } = await curation.tokensToSignal(subgraphDeploymentID, tokens)
       expect(signal).eq(signalAmountFor1000Tokens)
     })
 
@@ -278,13 +271,26 @@ describe('Curation', () => {
     it('should deposit on a subgraph deployment', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
       const expectedSignal = toGRT('1')
-      await shouldSignal(tokensToDeposit, expectedSignal)
+      await shouldMint(tokensToDeposit, expectedSignal)
     })
 
-    it('should assign the right amount of signal according to bonding curve', async function () {
+    it('should get signal according to bonding curve', async function () {
       const tokensToDeposit = toGRT('1000')
       const expectedSignal = signalAmountFor1000Tokens
-      await shouldSignal(tokensToDeposit, expectedSignal)
+      await shouldMint(tokensToDeposit, expectedSignal)
+    })
+
+    it('should get signal according to bonding curve (and account for curation tax)', async function () {
+      // Set curation tax
+      await curation.connect(governor.signer).setCurationTaxPercentage(50000) // 5%
+
+      // Mint
+      const tokensToDeposit = toGRT('1000')
+      const { 0: expectedSignal } = await curation.tokensToSignal(
+        subgraphDeploymentID,
+        tokensToDeposit,
+      )
+      await shouldMint(tokensToDeposit, expectedSignal)
     })
 
     it('should revert curate if over slippage', async function () {
@@ -345,12 +351,12 @@ describe('Curation', () => {
           curator.address,
           subgraphDeploymentID,
         )
-        await shouldRedeem(signalToRedeem, toGRT('1100'))
+        await shouldBurn(signalToRedeem, toGRT('1100'))
       })
     })
   })
 
-  describe('redeem', async function () {
+  describe('burn', async function () {
     beforeEach(async function () {
       await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
     })
@@ -369,25 +375,22 @@ describe('Curation', () => {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
       const expectedTokens = toGRT('532.455532033675866536')
-      await shouldRedeem(signalToRedeem, expectedTokens)
+      await shouldBurn(signalToRedeem, expectedTokens)
     })
 
     it('should allow to redeem *fully*', async function () {
       // Get all signal of the curator
       const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const expectedTokens = tokensToDeposit
-      await shouldRedeem(signalToRedeem, expectedTokens)
+      await shouldBurn(signalToRedeem, expectedTokens)
     })
 
     it('should allow to redeem back below minimum deposit', async function () {
       // Redeem "almost" all signal
       const signal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const signalToRedeem = signal.sub(toGRT('0.000001'))
-      const { 0: expectedTokens } = await curation.signalToTokens(
-        subgraphDeploymentID,
-        signalToRedeem,
-      )
-      await shouldRedeem(signalToRedeem, expectedTokens)
+      const expectedTokens = await curation.signalToTokens(subgraphDeploymentID, signalToRedeem)
+      await shouldBurn(signalToRedeem, expectedTokens)
 
       // The pool should have less tokens that required by minimumCurationDeposit
       const afterPool = await curation.pools(subgraphDeploymentID)
@@ -395,18 +398,11 @@ describe('Curation', () => {
 
       // Should be able to deposit more after being under minimumCurationDeposit
       const tokensToDeposit = toGRT('1')
-      const expectedSignal = await curation.tokensToSignal(subgraphDeploymentID, tokensToDeposit)
-      await shouldSignal(tokensToDeposit, expectedSignal)
-    })
-
-    it('should allow to redeem and account for withdrawal fees', async function () {
-      // Set fees for withdrawal
-      await curation.connect(governor.signer).setWithdrawalFeePercentage(50000) // 5%
-
-      // Get all signal of the curator
-      const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
-      const expectedTokens = tokensToDeposit
-      await shouldRedeem(signalToRedeem, expectedTokens)
+      const { 0: expectedSignal } = await curation.tokensToSignal(
+        subgraphDeploymentID,
+        tokensToDeposit,
+      )
+      await shouldMint(tokensToDeposit, expectedSignal)
     })
 
     it('should revert redeem if over slippage', async function () {

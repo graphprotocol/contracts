@@ -8,9 +8,9 @@ import "../governance/Managed.sol";
 contract CurationV1Storage is Managed {
     // -- State --
 
-    // Fee charged when curator withdraw a deposit
+    // Tax charged when curator deposit funds
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public withdrawalFeePercentage;
+    uint32 public curationTaxPercentage;
 
     // Default reserve ratio to configure curator shares bonding curve
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)

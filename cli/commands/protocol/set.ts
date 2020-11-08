@@ -28,7 +28,7 @@ export const settersList = {
   'curation-reserve-ratio': { contract: 'Curation', name: 'setDefaultReserveRatio' },
   'curation-percentage': { contract: 'Staking', name: 'setCurationPercentage' },
   'curation-minimum-deposit': { contract: 'Curation', name: 'setMinimumCurationDeposit' },
-  'curation-withdrawal-percentage': { contract: 'Curation', name: 'setWithdrawalFeePercentage' },
+  'curation-tax-percentage': { contract: 'Curation', name: 'setCurationTaxPercentage' },
   // Disputes
   'disputes-arbitrator': { contract: 'DisputeManager', name: 'setArbitrator' },
   'disputes-minimum-deposit': { contract: 'DisputeManager', name: 'setMinimumDeposit' },
