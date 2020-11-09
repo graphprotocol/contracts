@@ -16,10 +16,6 @@ contract GNSV1Storage is Managed {
     // Bonding curve formula
     address public bondingCurve;
 
-    // Minimum amount of vSignal that must be staked to start the curve
-    // Set to 10**18, as vSignal has 18 decimals
-    uint256 public minimumVSignalStake;
-
     // graphAccountID => subgraphNumber => subgraphDeploymentID
     // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
     //                  is used to point to a subgraphID (graphAccountID + subgraphNumber)
