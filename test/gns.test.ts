@@ -88,17 +88,7 @@ describe('GNS', () => {
     const expectedSignalBN = toGRT(String(expectedSignal))
     // Handle the initialization of the bonding curve
     if (gnsSupply.eq(0)) {
-      const minDeposit = await gns.minimumVSignalStake()
-      const minSupply = toGRT('1')
-      return (
-        (await calcGNSBondingCurve(
-          minSupply,
-          minDeposit,
-          gnsReserveRatio,
-          depositAmount,
-          subgraphID,
-        )) + toFloat(gnsSupply)
-      )
+      return expectedSignal
     }
     // Since we known CW = 1, we can do the simplified formula of:
     return (toFloat(gnsSupply) * toFloat(expectedSignalBN)) / toFloat(gnsReserveBalance)
@@ -816,24 +806,6 @@ describe('GNS', () => {
         await expect(tx).revertedWith('GNS: Curator must have some nSignal to withdraw GRT')
       })
     })
-    describe('setMinimumVsignal', function () {
-      const newValue = toGRT('100')
-      it('should set `minimumVSignalStake`', async function () {
-        // Can set if allowed
-        await gns.connect(governor.signer).setMinimumVsignal(newValue)
-        expect(await gns.minimumVSignalStake()).eq(newValue)
-      })
-
-      it('reject set `minimumVSignalStake` if out of bounds', async function () {
-        const tx = gns.connect(governor.signer).setMinimumVsignal(0)
-        await expect(tx).revertedWith('Minimum vSignal cannot be 0')
-      })
-
-      it('reject set `minimumVSignalStake` if not allowed', async function () {
-        const tx = gns.connect(me.signer).setMinimumVsignal(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
-      })
-    })
     describe('multiple minting', async function () {
       it('should mint less signal every time due to the bonding curve', async function () {
         const tokensToDepositMany = [
@@ -876,7 +848,6 @@ describe('GNS', () => {
         // Setup edge case like linear function: 1 vSignal = 1 nSignal = 1 token
         await curation.setMinimumCurationDeposit(toGRT('1'))
         await curation.setDefaultReserveRatio(1000000)
-        await gns.setMinimumVsignal(toGRT('1'))
         // note - reserve ratio is already set to 1000000 in GNS
 
         const tokensToDepositMany = [
@@ -947,10 +918,8 @@ describe('GNS', () => {
           subgraph0.versionMetadata,
           subgraph0.subgraphMetadata,
         )
-      // Curate on the second subgraph
+      // Curate on the second subgraph should work
       await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'))
-      // NOTE: This fails because the GNS expects a minimum V Signal but as this subgraph was
-      // curated before the signal it receives is less than the minimum
     })
   })
 })

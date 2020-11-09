@@ -22,9 +22,6 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
-    // Amount of nSignal you get with your minimum vSignal stake
-    uint256 private constant VSIGNAL_PER_MINIMUM_NSIGNAL = 1 ether;
-
     // -- Events --
 
     /**
@@ -152,7 +149,6 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
 
         // Settings
-        _setMinimumVsignal(10**18);
         _setOwnerFeePercentage(50);
     }
 
@@ -161,26 +157,6 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function approveAll() external override onlyGovernor {
         graphToken().approve(address(curation()), uint256(-1));
-    }
-
-    /**
-     * @dev Set the minimum vSignal to be staked to create nSignal
-     * @notice Update the minimum vSignal amount to `_minimumVSignalStake`
-     * @param _minimumVSignalStake Minimum amount of vSignal required
-     */
-    function setMinimumVsignal(uint256 _minimumVSignalStake) external override onlyGovernor {
-        _setMinimumVsignal(_minimumVSignalStake);
-    }
-
-    /**
-     * @dev Internal: Set the minimum vSignal to be staked to create nSignal
-     * @notice Update the minimum vSignal amount to `_minimumVSignalStake`
-     * @param _minimumVSignalStake Minimum amount of vSignal required
-     */
-    function _setMinimumVsignal(uint256 _minimumVSignalStake) internal {
-        require(_minimumVSignalStake > 0, "Minimum vSignal cannot be 0");
-        minimumVSignalStake = _minimumVSignalStake;
-        emit ParameterUpdated("minimumVSignalStake");
     }
 
     /**
@@ -652,19 +628,10 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _vSignal
     ) public override view returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = _vSignal;
 
-        // Handle initialization of bonding curve
+        // Handle initialization by using 1:1 version to name signal
         if (namePool.vSignal == 0) {
-            return
-                BancorFormula(bondingCurve)
-                    .calculatePurchaseReturn(
-                    VSIGNAL_PER_MINIMUM_NSIGNAL,
-                    minimumVSignalStake,
-                    defaultReserveRatio,
-                    vSignal.sub(minimumVSignalStake)
-                )
-                    .add(VSIGNAL_PER_MINIMUM_NSIGNAL);
+            return _vSignal;
         }
 
         return
@@ -672,7 +639,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
                 namePool.nSignal,
                 namePool.vSignal,
                 namePool.reserveRatio,
-                vSignal
+                _vSignal
             );
     }
 

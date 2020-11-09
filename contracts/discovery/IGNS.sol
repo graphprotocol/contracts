@@ -17,8 +17,6 @@ interface IGNS {
 
     function approveAll() external;
 
-    function setMinimumVsignal(uint256 _minimumVSignalStake) external;
-
     function setOwnerFeePercentage(uint32 _ownerFeePercentage) external;
 
     // -- Publishing --
