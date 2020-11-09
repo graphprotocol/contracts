@@ -19,7 +19,7 @@ interface IGNS {
 
     function approveAll() external;
 
-    function setOwnerFeePercentage(uint32 _ownerFeePercentage) external;
+    function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external;
 
     // -- Publishing --
 
@@ -57,7 +57,7 @@ interface IGNS {
     function mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens,
+        uint256 _tokensIn,
         uint256 _nSignalOutMin
     ) external;
 
@@ -75,13 +75,7 @@ interface IGNS {
     function tokensToNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens
-    ) external view returns (uint256, uint256);
-
-    function nSignalToTokens(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _tokensIn
     )
         external
         view
@@ -91,16 +85,22 @@ interface IGNS {
             uint256
         );
 
+    function nSignalToTokens(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        uint256 _nSignalIn
+    ) external view returns (uint256, uint256);
+
     function vSignalToNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _vSignal
+        uint256 _vSignalIn
     ) external view returns (uint256);
 
     function nSignalToVSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _nSignalIn
     ) external view returns (uint256);
 
     function getCuratorNSignal(

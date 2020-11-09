@@ -13,7 +13,7 @@ contract GNSV1Storage is Managed {
     // -- State --
 
     // In parts per hundred
-    uint32 public ownerFeePercentage;
+    uint32 public ownerTaxPercentage;
 
     // Bonding curve formula
     address public bondingCurve;

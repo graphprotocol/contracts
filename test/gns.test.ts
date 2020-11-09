@@ -39,7 +39,7 @@ describe('GNS', () => {
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
   const tokens100000 = toGRT('100000')
-  const withdrawalPercentage = 50000
+  const curationTaxPercentage = 50000
   let subgraph0: Subgraph
   let subgraph1: Subgraph
   let defaultName: AccountDefaultName
@@ -62,11 +62,10 @@ describe('GNS', () => {
     }
   }
 
-  const getTokensAndVSig = async (subgraphID: string): Promise<Array<BigNumber>> => {
+  const getTokensAndVSignal = async (subgraphID: string): Promise<Array<BigNumber>> => {
     const curationPool = await curation.pools(subgraphID)
-    const grtTokens = curationPool[0]
-    const vSig = await curation.getCurationPoolSignal(subgraphID)
-    return [grtTokens, vSig]
+    const vSignal = await curation.getCurationPoolSignal(subgraphID)
+    return [curationPool.tokens, vSignal]
   }
 
   async function calcGNSBondingCurve(
@@ -85,7 +84,8 @@ describe('GNS', () => {
       curationReserveRatio,
       depositAmount,
     )
-    const expectedSignalBN = toGRT(String(expectedSignal))
+    const expectedSignalBN = toGRT(String(expectedSignal.toFixed(18)))
+
     // Handle the initialization of the bonding curve
     if (gnsSupply.eq(0)) {
       return expectedSignal
@@ -159,6 +159,7 @@ describe('GNS', () => {
     expect(reserveRatio).eq(1000000)
     return tx
   }
+
   const publishNewVersion = async (
     account: Account,
     graphAccount: string,
@@ -166,26 +167,30 @@ describe('GNS', () => {
     subgraphToPublish = subgraph0, // Defaults to subgraph created in before()
   ) => {
     // Before stats for the old vSignal curve
-    const ownerFee = await gns.ownerFeePercentage()
+    const ownerTaxPercentage = await gns.ownerTaxPercentage()
 
     // Before stats for the name curve
-    const poolBefore = await gns.nameSignals(graphAccount, subgraphNumber)
-    const nSigBefore = poolBefore[1]
+    const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber)
 
     // Check what selling all nSignal, which == selling all vSignal, should return for tokens
-    const nSignalToTokensResult = await gns.nSignalToTokens(
+    const { 1: tokensReceivedEstimate } = await gns.nSignalToTokens(
       graphAccount,
       subgraphNumber,
-      nSigBefore,
+      namePoolBefore.nSignal,
     )
-    const tokensReceivedEstimate = nSignalToTokensResult[1]
-
-    // since in upgrade, owner must refund fees, we need to actually add this back in
-    const feesToAddBackEstimate = nSignalToTokensResult[2].div(toBN(100 / ownerFee))
-    const upgradeTokenReturn = tokensReceivedEstimate.add(feesToAddBackEstimate)
 
     // Get the value for new vSignal that should be created on the new curve
-    const newVSignalEstimate = await curation.tokensToSignal(
+    const { 1: curationTax } = await curation.tokensToSignal(
+      subgraphToPublish.subgraphDeploymentID,
+      tokensReceivedEstimate,
+    )
+
+    // Since in upgrade, owner must refund part of curation tax, we need to actually add this back in
+    const ownerTax = curationTax.mul(ownerTaxPercentage).div(toBN(100))
+    const upgradeTokenReturn = tokensReceivedEstimate.add(ownerTax)
+
+    // Re-estimate amount of signal to get considering the owner tax paid by the owner
+    const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
       subgraphToPublish.subgraphDeploymentID,
       upgradeTokenReturn,
     )
@@ -216,27 +221,24 @@ describe('GNS', () => {
       )
 
     // Check curation vSignal old are set to zero
-    const tokensVSigOldCuration = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensAfterOldCuration = tokensVSigOldCuration[0]
-    const vSigAfterOldCuration = tokensVSigOldCuration[1]
+    const [tokensAfterOldCuration, vSignalAfterOldCuration] = await getTokensAndVSignal(
+      subgraph0.subgraphDeploymentID,
+    )
     expect(tokensAfterOldCuration).eq(0)
-    expect(vSigAfterOldCuration).eq(0)
+    expect(vSignalAfterOldCuration).eq(0)
 
     // Check the vSignal of the new curation curve, amd tokens
-    const tokensVSigNewCuration = await getTokensAndVSig(subgraphToPublish.subgraphDeploymentID)
-    const tokensAfterNewCurve = tokensVSigNewCuration[0]
-    const vSigAfterNewCurve = tokensVSigNewCuration[1]
-    expect(tokensAfterNewCurve).eq(upgradeTokenReturn)
-    expect(vSigAfterNewCurve).eq(newVSignalEstimate)
+    const [tokensAfterNewCurve, vSignalAfterNewCurve] = await getTokensAndVSignal(
+      subgraphToPublish.subgraphDeploymentID,
+    )
+    expect(tokensAfterNewCurve).eq(upgradeTokenReturn.sub(newCurationTaxEstimate))
+    expect(vSignalAfterNewCurve).eq(newVSignalEstimate)
 
     // Check the nSignal pool
-    const pool = await gns.nameSignals(graphAccount, subgraphNumber)
-    const vSigPool = pool[0]
-    const nSigAfter = pool[1]
-    const deploymentID = pool[2]
-    expect(vSigAfterNewCurve).eq(vSigPool).eq(newVSignalEstimate)
-    expect(nSigBefore).eq(nSigAfter) // should not change
-    expect(deploymentID).eq(subgraphToPublish.subgraphDeploymentID)
+    const namePoolAfter = await gns.nameSignals(graphAccount, subgraphNumber)
+    expect(namePoolAfter.vSignal).eq(vSignalAfterNewCurve).eq(newVSignalEstimate)
+    expect(namePoolAfter.nSignal).eq(namePoolBefore.nSignal) // should not change
+    expect(namePoolAfter.subgraphDeploymentID).eq(subgraphToPublish.subgraphDeploymentID)
 
     return tx
   }
@@ -246,19 +248,15 @@ describe('GNS', () => {
     graphAccount: string,
     subgraphNumber0: number,
   ) => {
-    const curationBefore = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const ownerFee = await gns.ownerFeePercentage()
+    const [tokensBefore] = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
     // We can use the whole amount, since in this test suite all vSignal is used to be staked on nSignal
-    const tokensBefore = curationBefore[0]
     const ownerBalanceBefore = await grt.balanceOf(account.address)
-    const expectedWithdrawalFee = tokensBefore.div(toBN(1000000 / withdrawalPercentage))
-    const expectedOwnerFee = expectedWithdrawalFee.div(toBN(100 / ownerFee))
 
     const tx = gns.connect(account.signer).deprecateSubgraph(graphAccount, subgraphNumber0)
     await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(subgraph0.graphAccount.address, 0)
     await expect(tx)
       .emit(gns, 'NameSignalDisabled')
-      .withArgs(graphAccount, subgraphNumber0, tokensBefore.sub(expectedOwnerFee))
+      .withArgs(graphAccount, subgraphNumber0, tokensBefore)
 
     const deploymentID = await gns.subgraphs(subgraph0.graphAccount.address, 0)
     expect(ethers.constants.HashZero).eq(deploymentID)
@@ -267,16 +265,14 @@ describe('GNS', () => {
     const poolAfter = await gns.nameSignals(graphAccount, subgraphNumber0)
     const poolVSignalAfter = poolAfter.vSignal
     expect(poolVSignalAfter.eq(toBN('0')))
-    // Check that the owner balance decreased by the withdrawal fee
+    // Check that the owner balance decreased by the curation tax
     const ownerBalanceAfter = await grt.balanceOf(account.address)
-    expect(ownerBalanceBefore.sub(expectedOwnerFee).eq(ownerBalanceAfter))
-    // Should be equal since owner pays withdrawal fees
-    expect(poolAfter.withdrawableGRT).eq(
-      tokensBefore.sub(expectedWithdrawalFee).add(expectedOwnerFee),
-    )
+    expect(ownerBalanceBefore.eq(ownerBalanceAfter))
+    // Should be equal since owner pays curation tax
+    expect(poolAfter.withdrawableGRT).eq(tokensBefore)
     // Check that deprecated is true
     expect(poolAfter.disabled).eq(true)
-    // Check balance of gns increase by withdrawalFees from owner being added
+    // Check balance of gns increase by curation tax from owner being added
     const gnsBalanceAfter = await grt.balanceOf(gns.address)
     expect(gnsBalanceAfter).eq(poolAfter.withdrawableGRT)
     return tx
@@ -289,7 +285,7 @@ describe('GNS', () => {
     newSubgraphDeplyomentID: string,
   ): Promise<ContractTransaction> => {
     // Before stats for the old vSignal curve
-    const tokensBeforeVSigOldCuration = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
+    const tokensBeforeVSigOldCuration = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
     const tokensBeforeOldCuration = tokensBeforeVSigOldCuration[0]
     const vSigBeforeOldCuration = tokensBeforeVSigOldCuration[1]
 
@@ -331,16 +327,16 @@ describe('GNS', () => {
       )
 
     // Check curation vSignal old was lowered and tokens too
-    const tokensVSigOldCuration = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensAfterOldCuration = tokensVSigOldCuration[0]
-    const vSigAfterOldCuration = tokensVSigOldCuration[1]
+    const [tokensAfterOldCuration, vSigAfterOldCuration] = await getTokensAndVSignal(
+      subgraph0.subgraphDeploymentID,
+    )
     expect(tokensAfterOldCuration).eq(tokensBeforeOldCuration.sub(upgradeTokenReturn))
     expect(vSigAfterOldCuration).eq(vSigBeforeOldCuration.sub(vSignalBurnEstimate))
 
     // Check the vSignal of the new curation curve, amd tokens
-    const tokensVSigNewCuration = await getTokensAndVSig(newSubgraphDeplyomentID)
-    const tokensAfterNewCurve = tokensVSigNewCuration[0]
-    const vSigAfterNewCurve = tokensVSigNewCuration[1]
+    const [tokensAfterNewCurve, vSigAfterNewCurve] = await getTokensAndVSignal(
+      newSubgraphDeplyomentID,
+    )
     expect(tokensAfterNewCurve).eq(upgradeTokenReturn)
     expect(vSigAfterNewCurve).eq(newVSignalEstimate)
 
@@ -362,17 +358,16 @@ describe('GNS', () => {
     subgraphNumber0: number,
     graphTokens: BigNumber,
   ): Promise<ContractTransaction> => {
-    // Before checks
-    const curationBefore = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensBefore = curationBefore[0]
-    const vSigBefore = curationBefore[1]
-    const poolBefore = await gns.nameSignals(graphAccount, subgraphNumber0)
-    const nSigBefore = poolBefore[1]
+    // Before state
+    const [tokensBefore, vSignalBefore] = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
+    const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber0)
 
     // Deposit
-    const signals = await gns.tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
-    const vSigEstimate = signals[0]
-    const nSigEstimate = signals[1]
+    const { 0: vSignalExpected, 1: nSignalExpected, 2: curationTax } = await gns.tokensToNSignal(
+      graphAccount,
+      subgraphNumber0,
+      graphTokens,
+    )
     const tx = gns
       .connect(account.signer)
       .mintNSignal(graphAccount, subgraphNumber0, graphTokens, 0)
@@ -382,20 +377,19 @@ describe('GNS', () => {
         graphAccount,
         subgraphNumber0,
         account.address,
-        nSigEstimate,
-        vSigEstimate,
+        nSignalExpected,
+        vSignalExpected,
         graphTokens,
       )
 
-    const tokensVSig = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensAfter = tokensVSig[0]
-    const vSigCuration = tokensVSig[1]
-    expect(graphTokens.add(tokensBefore)).eq(tokensAfter)
+    // After state
+    const [tokensAfter, vSignalAfter] = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
+    const namePoolAfter = await gns.nameSignals(graphAccount, subgraphNumber0)
 
-    const poolAfter = await gns.nameSignals(graphAccount, subgraphNumber0)
-    const nSig = poolAfter[1]
-    expect(vSigCuration).eq(vSigEstimate.add(vSigBefore))
-    expect(nSigEstimate.add(nSigBefore)).eq(nSig)
+    expect(tokensAfter).eq(tokensBefore.add(graphTokens.sub(curationTax)))
+    expect(vSignalAfter).eq(vSignalBefore.add(vSignalExpected))
+    expect(namePoolAfter.nSignal).eq(namePoolBefore.nSignal.add(nSignalExpected))
+    expect(namePoolAfter.vSignal).eq(vSignalBefore.add(vSignalExpected))
 
     return tx
   }
@@ -406,54 +400,45 @@ describe('GNS', () => {
     subgraphNumber0: number,
   ): Promise<ContractTransaction> => {
     // Before checks
-    const curationBefore = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensBefore = curationBefore[0]
-    const vSigBefore = curationBefore[1]
-    const poolBefore = await gns.nameSignals(graphAccount, subgraphNumber0)
-    const nSigBefore = poolBefore[1]
-
-    const usersNSigBefore = await gns.getCuratorNSignal(
+    const [tokensBefore, vSigBefore] = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
+    const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber0)
+    const usersNSignalBefore = await gns.getCuratorNSignal(
       graphAccount,
       subgraphNumber0,
       account.address,
     )
 
     // Withdraw
-    const vSigAndTokensEstimate = await gns.nSignalToTokens(
+    const { 0: vSignalExpected, 1: tokensExpected } = await gns.nSignalToTokens(
       graphAccount,
       subgraphNumber0,
-      usersNSigBefore,
+      usersNSignalBefore,
     )
-    const vSigEstimate = vSigAndTokensEstimate[0]
-    const tokensEstimate = vSigAndTokensEstimate[1]
-    const feeEstimate = vSigAndTokensEstimate[2]
 
     // Do withdraw tx
     const tx = gns
       .connect(account.signer)
-      .burnNSignal(graphAccount, subgraphNumber0, usersNSigBefore, 0)
+      .burnNSignal(graphAccount, subgraphNumber0, usersNSignalBefore, 0)
     await expect(tx)
       .emit(gns, 'NSignalBurned')
       .withArgs(
         graphAccount,
         subgraphNumber0,
         account.address,
-        usersNSigBefore,
-        vSigEstimate,
-        tokensEstimate,
+        usersNSignalBefore,
+        vSignalExpected,
+        tokensExpected,
       )
 
     // After checks
-    const tokensVSig = await getTokensAndVSig(subgraph0.subgraphDeploymentID)
-    const tokensAfter = tokensVSig[0]
+    const [tokensAfter, vSignalCurationAfter] = await getTokensAndVSignal(
+      subgraph0.subgraphDeploymentID,
+    )
+    const namePoolAfter = await gns.nameSignals(graphAccount, subgraphNumber0)
 
-    const vSigCurationAfter = tokensVSig[1]
-    expect(tokensBefore).eq(tokensAfter.add(tokensEstimate).add(feeEstimate))
-
-    const poolAfter = await gns.nameSignals(graphAccount, subgraphNumber0)
-    const nSig = poolAfter[1]
-    expect(vSigCurationAfter).eq(vSigBefore.sub(vSigEstimate))
-    expect(nSigBefore.sub(usersNSigBefore)).eq(nSig)
+    expect(tokensAfter).eq(tokensBefore.sub(tokensExpected))
+    expect(vSignalCurationAfter).eq(vSigBefore.sub(vSignalExpected))
+    expect(namePoolAfter.nSignal).eq(namePoolBefore.nSignal.sub(usersNSignalBefore))
 
     return tx
   }
@@ -521,8 +506,8 @@ describe('GNS', () => {
     await grt.connect(me.signer).approve(curation.address, tokens100000)
     await grt.connect(other.signer).approve(gns.address, tokens100000)
     await grt.connect(other.signer).approve(curation.address, tokens100000)
-    // Update withdrawal fee to test the functionality of it in disableNameSignal()
-    await curation.connect(governor.signer).setWithdrawalFeePercentage(withdrawalPercentage)
+    // Update curation tax to test the functionality of it in disableNameSignal()
+    await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
   })
 
   beforeEach(async function () {
@@ -830,7 +815,7 @@ describe('GNS', () => {
         )
 
         // Withdraw
-        const { 1: expectedTokens, 2: curationTax } = await gns.nSignalToTokens(
+        const { 1: expectedTokens } = await gns.nSignalToTokens(
           me.address,
           subgraphNumber0,
           curatorNSignal,
@@ -839,12 +824,7 @@ describe('GNS', () => {
         // Force a revert by asking 1 more token than the function will return
         const tx = gns
           .connect(other.signer)
-          .burnNSignal(
-            me.address,
-            subgraphNumber0,
-            curatorNSignal,
-            expectedTokens.add(curationTax).add(1),
-          )
+          .burnNSignal(me.address, subgraphNumber0, curatorNSignal, expectedTokens.add(1))
         await expect(tx).revertedWith('Slippage protection')
       })
     })
@@ -884,7 +864,7 @@ describe('GNS', () => {
         const tokensToDepositMany = [
           toGRT('1000'), // should mint if we start with number above minimum deposit
           toGRT('1000'), // every time it should mint less GCS due to bonding curve...
-          toGRT('1'), // should mint below minimum deposit
+          toGRT('1.06'), // should mint minimum deposit including tax
           toGRT('1000'),
           toGRT('1000'),
           toGRT('2000'),
@@ -892,22 +872,21 @@ describe('GNS', () => {
           toGRT('123'),
         ]
         await publishNewSubgraph(me, me.address, 0)
-        // Check the nSignal pool
 
         // State updated
+        const curationTaxPercentage = await curation.curationTaxPercentage()
+
         for (const tokensToDeposit of tokensToDepositMany) {
           const poolOld = await gns.nameSignals(me.address, 0)
-          const vSig = poolOld[0]
-          const nSig = poolOld[1]
-          const deploymentID = poolOld[2]
-          const reserveRatio = poolOld[3]
-          expect(subgraph0.subgraphDeploymentID).eq(deploymentID)
+          expect(subgraph0.subgraphDeploymentID).eq(poolOld.subgraphDeploymentID)
+
+          const curationTax = toBN(curationTaxPercentage).mul(tokensToDeposit).div(toBN(1000000))
           const expectedNSignal = await calcGNSBondingCurve(
-            nSig,
-            vSig,
-            reserveRatio,
-            tokensToDeposit,
-            deploymentID,
+            poolOld.nSignal,
+            poolOld.vSignal,
+            poolOld.reserveRatio,
+            tokensToDeposit.sub(curationTax),
+            poolOld.subgraphDeploymentID,
           )
           const tx = await mintNSignal(me, me.address, 0, tokensToDeposit)
           const receipt = await tx.wait()
@@ -938,30 +917,26 @@ describe('GNS', () => {
 
         // State updated
         for (const tokensToDeposit of tokensToDepositMany) {
-          const tx = await mintNSignal(me, me.address, 0, tokensToDeposit)
-          const receipt = await tx.wait()
-          const event: Event = receipt.events.pop()
-          const nSignalCreated = event.args['nSignalCreated']
-          // we compare 1:1 ratio. Its implied that vSignal is 1 as well (1:1:1)
-          expect(tokensToDeposit).eq(nSignalCreated)
+          await mintNSignal(me, me.address, 0, tokensToDeposit)
         }
       })
 
-      describe('setOwnerFeePercentage', function () {
+      describe('setOwnerTaxPercentage', function () {
         const newValue = 10
-        it('should set `ownerFeePercentage`', async function () {
+
+        it('should set `ownerTaxPercentage`', async function () {
           // Can set if allowed
-          await gns.connect(governor.signer).setOwnerFeePercentage(newValue)
-          expect(await gns.ownerFeePercentage()).eq(newValue)
+          await gns.connect(governor.signer).setOwnerTaxPercentage(newValue)
+          expect(await gns.ownerTaxPercentage()).eq(newValue)
         })
 
-        it('reject set `ownerFeePercentage` if out of bounds', async function () {
-          const tx = gns.connect(governor.signer).setOwnerFeePercentage(101)
-          await expect(tx).revertedWith('Owner fee must be 100 or less')
+        it('reject set `ownerTaxPercentage` if out of bounds', async function () {
+          const tx = gns.connect(governor.signer).setOwnerTaxPercentage(101)
+          await expect(tx).revertedWith('Owner tax must be 100 or less')
         })
 
-        it('reject set `ownerFeePercentage` if not allowed', async function () {
-          const tx = gns.connect(me.signer).setOwnerFeePercentage(newValue)
+        it('reject set `ownerTaxPercentage` if not allowed', async function () {
+          const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
           await expect(tx).revertedWith('Caller must be Controller governor')
         })
       })
@@ -969,7 +944,9 @@ describe('GNS', () => {
   })
 
   describe('Two named subgraphs point to the same subgraph deployment ID', function () {
-    it('handle minimum signal', async function () {
+    it('handle initialization under minimum signal values', async function () {
+      await curation.setMinimumCurationDeposit(toGRT('1'))
+
       // Publish a named subgraph-0 -> subgraphDeployment0
       await gns
         .connect(me.signer)
@@ -980,7 +957,7 @@ describe('GNS', () => {
           subgraph0.subgraphMetadata,
         )
       // Curate on the first subgraph
-      await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('100'), 0)
+      await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('90000'), 0)
 
       // Publish a named subgraph-1 -> subgraphDeployment0
       await gns

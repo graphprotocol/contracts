@@ -378,7 +378,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @return Amount of signal that can be bought with tokens
      */
     function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        public
+        internal
         view
         returns (uint256)
     {

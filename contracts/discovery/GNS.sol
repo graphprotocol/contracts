@@ -21,6 +21,8 @@ import "./GNSStorage.sol";
 contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     using SafeMath for uint256;
 
+    uint256 private constant MAX_UINT256 = 2**256 - 1;
+
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
@@ -151,34 +153,34 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
 
         // Settings
-        _setOwnerFeePercentage(50);
+        _setOwnerTaxPercentage(50);
     }
 
     /**
      * @dev Approve curation contract to pull funds.
      */
     function approveAll() external override onlyGovernor {
-        graphToken().approve(address(curation()), uint256(-1));
+        graphToken().approve(address(curation()), MAX_UINT256);
     }
 
     /**
      * @dev Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
-     * @param _ownerFeePercentage Owner fee percentage
+     * @param _ownerTaxPercentage Owner tax percentage
      */
-    function setOwnerFeePercentage(uint32 _ownerFeePercentage) external override onlyGovernor {
-        _setOwnerFeePercentage(_ownerFeePercentage);
+    function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external override onlyGovernor {
+        _setOwnerTaxPercentage(_ownerTaxPercentage);
     }
 
     /**
-     * @dev Internal: Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
+     * @dev Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
-     * @param _ownerFeePercentage Owner fee percentage
+     * @param _ownerTaxPercentage Owner tax percentage
      */
-    function _setOwnerFeePercentage(uint32 _ownerFeePercentage) internal {
-        require(_ownerFeePercentage <= 100, "Owner fee must be 100 or less");
-        ownerFeePercentage = _ownerFeePercentage;
-        emit ParameterUpdated("ownerFeePercentage");
+    function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) internal {
+        require(_ownerTaxPercentage <= 100, "Owner tax must be 100 or less");
+        ownerTaxPercentage = _ownerTaxPercentage;
+        emit ParameterUpdated("ownerTaxPercentage");
     }
 
     /**
@@ -303,6 +305,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             isPublished(_graphAccount, _subgraphNumber),
             "GNS: Cannot deprecate a subgraph which does not exist"
         );
+
         delete subgraphs[_graphAccount][_subgraphNumber];
         emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
 
@@ -317,14 +320,14 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        bytes32 subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
+        namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         namePool.reserveRatio = defaultReserveRatio;
-        namePool.subgraphDeploymentID = subgraphDeploymentID;
+
         emit NameSignalEnabled(
             _graphAccount,
             _subgraphNumber,
-            subgraphDeploymentID,
-            defaultReserveRatio
+            namePool.subgraphDeploymentID,
+            namePool.reserveRatio
         );
     }
 
@@ -354,23 +357,26 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         );
         require(namePool.disabled == false, "GNS: Cannot be disabled");
 
-        uint256 vSignalOld = nSignalToVSignal(_graphAccount, _subgraphNumber, namePool.nSignal);
-        (uint256 tokens, , uint256 ownerFee) = _burnVSignal(
-            _graphAccount,
-            namePool.subgraphDeploymentID,
-            vSignalOld
-        );
-        namePool.vSignal = namePool.vSignal.sub(vSignalOld);
-        // Update name signals deployment ID to match the subgraphs deployment ID
+        // Burn all version signal in the name pool for tokens
+        uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
+
+        // Take the owner cut of the curation tax
+        (, uint256 curationTax) = curation.tokensToSignal(namePool.subgraphDeploymentID, tokens);
+        uint256 ownerTax = _chargeOwnerTax(curationTax, _graphAccount);
+
+        // Update pool: constant nSignal, vSignal can change
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-        // nSignal stays constant, but vSignal can change here
-        namePool.vSignal = curation.mint(namePool.subgraphDeploymentID, (tokens + ownerFee), 0);
+        (namePool.vSignal, ) = curation.mint(
+            namePool.subgraphDeploymentID,
+            tokens.add(ownerTax), // Cover part of the tax by the owner
+            0
+        );
 
         emit NameSignalUpgrade(
             _graphAccount,
             _subgraphNumber,
             namePool.vSignal,
-            tokens + ownerFee,
+            tokens.add(ownerTax),
             _newSubgraphDeploymentID
         );
     }
@@ -379,15 +385,16 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Allow a name curator to mint some nSignal by depositing GRT
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number
-     * @param _tokens The amount of tokens the nameCurator wants to deposit
+     * @param _tokensIn The amount of tokens the nameCurator wants to deposit
      * @param _nSignalOutMin Expected minimum amount of name signal to receive
      */
     function mintNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens,
+        uint256 _tokensIn,
         uint256 _nSignalOutMin
     ) external override notPartialPaused {
+        // Pool checks
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
         require(
@@ -395,7 +402,25 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             "GNS: Must deposit on a name signal that exists"
         );
 
-        _mintNSignal(_graphAccount, _subgraphNumber, _tokens, _nSignalOutMin);
+        // Pull tokens from sender
+        require(
+            graphToken().transferFrom(msg.sender, address(this), _tokensIn),
+            "GNS: Cannot transfer tokens to mint n signal"
+        );
+
+        // Get name signal to mint for tokens deposited
+        (uint256 vSignal, ) = curation().mint(namePool.subgraphDeploymentID, _tokensIn, 0);
+        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
+
+        // Slippage protection
+        require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
+
+        // Update pools
+        namePool.vSignal = namePool.vSignal.add(vSignal);
+        namePool.nSignal = namePool.nSignal.add(nSignal);
+        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].add(nSignal);
+
+        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal, _tokensIn);
     }
 
     /**
@@ -411,16 +436,33 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _nSignal,
         uint256 _tokensOutMin
     ) external override notPartialPaused {
+        // Pool checks
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == false, "GNS: Cannot be disabled");
 
+        // Curator balance checks
         uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
         require(
             _nSignal <= curatorNSignal,
             "GNS: Curator cannot withdraw more nSignal than they have"
         );
 
-        _burnNSignal(_graphAccount, _subgraphNumber, _nSignal, _tokensOutMin);
+        // Get tokens for name signal amount to burn
+        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
+        uint256 tokens = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
+
+        // Update pools
+        namePool.vSignal = namePool.vSignal.sub(vSignal);
+        namePool.nSignal = namePool.nSignal.sub(_nSignal);
+        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
+
+        // Return the tokens to the nameCurator
+        require(
+            graphToken().transfer(msg.sender, tokens),
+            "GNS: Error sending nameCurators tokens"
+        );
+
+        emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
     }
 
     /**
@@ -432,18 +474,20 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function _disableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
-            (uint256 tokens, , uint256 ownerFee) = _burnVSignal(
-                _graphAccount,
+            namePool.withdrawableGRT = curation().burn(
                 namePool.subgraphDeploymentID,
-                namePool.vSignal
+                namePool.vSignal,
+                0
             );
             namePool.vSignal = 0;
-            namePool.withdrawableGRT = tokens + ownerFee;
         }
+
         // Set the NameCurationPool fields to make it disabled
         namePool.disabled = true;
+
         emit NameSignalDisabled(_graphAccount, _subgraphNumber, namePool.withdrawableGRT);
     }
 
@@ -458,173 +502,61 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         override
         notPartialPaused
     {
+        // Pool checks
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         require(namePool.disabled == true, "GNS: Name bonding curve must be disabled first");
         require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
+
+        // Curator balance checks
         uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
         require(curatorNSignal > 0, "GNS: Curator must have some nSignal to withdraw GRT");
-        uint256 tokens = curatorNSignal.mul(namePool.withdrawableGRT).div(namePool.nSignal);
+
+        // Get curator share of tokens to be withdrawn
+        uint256 tokensOut = curatorNSignal.mul(namePool.withdrawableGRT).div(namePool.nSignal);
         namePool.curatorNSignal[msg.sender] = 0;
         namePool.nSignal = namePool.nSignal.sub(curatorNSignal);
-        namePool.withdrawableGRT = namePool.withdrawableGRT.sub(tokens);
+        namePool.withdrawableGRT = namePool.withdrawableGRT.sub(tokensOut);
+
         require(
-            graphToken().transfer(msg.sender, tokens),
+            graphToken().transfer(msg.sender, tokensOut),
             "GNS: Error withdrawing tokens for nameCurator"
         );
-        emit GRTWithdrawn(_graphAccount, _subgraphNumber, msg.sender, curatorNSignal, tokens);
+
+        emit GRTWithdrawn(_graphAccount, _subgraphNumber, msg.sender, curatorNSignal, tokensOut);
     }
 
     /**
-     * @dev Calculations for buying name signal
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _tokens GRT being deposited into vSignal to create nSignal
-     * @param _nSignalOutMin Expected minimum amount of name signal to receive
-     * @return vSignal and tokens
-     */
-    function _mintNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _tokens,
-        uint256 _nSignalOutMin
-    ) private returns (uint256, uint256) {
-        // Pull tokens from sender
-        require(
-            graphToken().transferFrom(msg.sender, address(this), _tokens),
-            "GNS: Cannot transfer tokens to mint n signal"
-        );
-
-        // Get name signal to mint for tokens deposited
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = curation().mint(namePool.subgraphDeploymentID, _tokens, 0);
-        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
-
-        // Slippage protection
-        require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
-
-        // Update pools
-        namePool.vSignal = namePool.vSignal.add(vSignal);
-        namePool.nSignal = namePool.nSignal.add(nSignal);
-        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].add(nSignal);
-
-        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal, _tokens);
-
-        return (vSignal, nSignal);
-    }
-
-    /**
-     * @dev Calculations for burning name signal
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignal nSignal being burnt to receive vSignal to be burnt into GRT
-     * @param _tokensOutMin Expected minimum amount of tokens to receive
-     * @return vSignal and nSignal
-     */
-    function _burnNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignal,
-        uint256 _tokensOutMin
-    ) private returns (uint256, uint256) {
-        // Get tokens for name signal amount to burn
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, ) = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
-
-        // Update pools
-        namePool.vSignal = namePool.vSignal.sub(vSignal);
-        namePool.nSignal = namePool.nSignal.sub(_nSignal);
-        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
-
-        // Return the tokens to the nameCurator
-        require(
-            graphToken().transfer(msg.sender, tokens),
-            "GNS: Error sending nameCurators tokens"
-        );
-
-        emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
-
-        return (vSignal, tokens);
-    }
-
-    /**
-     * @dev Calculations burning vSignal from disabled or upgrade, while keeping n signal constant.
-     * Takes the withdrawal fee from the name owner so they cannot grief all the name curators
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphDeploymentID Subgraph deployment to burn all vSignal from
-     * @param _vSignal vSignal being burnt
-     * @return Tokens returned to the gns contract, withdrawal fees charged, and the owner fee
-     * that the owner reimbursed from the withdrawal fee
-     */
-    function _burnVSignal(
-        address _graphAccount,
-        bytes32 _subgraphDeploymentID,
-        uint256 _vSignal
-    )
-        private
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        (uint256 tokens, uint256 withdrawalFees) = curation().burn(
-            _subgraphDeploymentID,
-            _vSignal,
-            0
-        );
-        uint256 ownerFee = _chargeOwnerFee(withdrawalFees, _graphAccount);
-        return (tokens, withdrawalFees, ownerFee);
-    }
-
-    /**
-     * @dev Calculate fee that owner will have to cover for upgrading or deprecating
+     * @dev Calculate tax that owner will have to cover for upgrading or deprecating.
+     * @param _curationTax Total curation tax for changing subgraphs
      * @param _owner Subgraph owner
-     * @param _withdrawalFees Total withdrawal fee for changing subgraphs
      * @return Amount the owner must pay by transferring GRT to the GNS
      */
-    function _chargeOwnerFee(uint256 _withdrawalFees, address _owner) private returns (uint256) {
-        if (ownerFeePercentage == 0) {
+    function _chargeOwnerTax(uint256 _curationTax, address _owner) private returns (uint256) {
+        if (_curationTax == 0 || ownerTaxPercentage == 0) {
             return 0;
         }
-        uint256 ownerFee = _withdrawalFees.mul(ownerFeePercentage).div(100);
-        // Get the owner of the Name to reimburse the withdrawal fee
+
+        uint256 ownerTax = _curationTax.mul(ownerTaxPercentage).div(100);
+
+        // Get the owner of the subgraph to reimburse the curation tax
         require(
-            graphToken().transferFrom(_owner, address(this), ownerFee),
-            "GNS: Error reimbursing withdrawal fees"
+            graphToken().transferFrom(_owner, address(this), ownerTax),
+            "GNS: Error reimbursing curation tax"
         );
-        return ownerFee;
+        return ownerTax;
     }
 
     /**
-     * @dev Calculate nSignal to be returned for an amount of tokens
+     * @dev Calculate name signal to be returned for an amount of tokens.
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _tokens Tokens being exchanged for nSignal
-     * @return Amount of vSignal and nSignal that can be returned
+     * @param _tokensIn Tokens being exchanged for name signal
+     * @return Amount of name signal and curation tax
      */
     function tokensToNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _tokens
-    ) public override view returns (uint256, uint256) {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = curation().tokensToSignal(namePool.subgraphDeploymentID, _tokens);
-        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
-        return (vSignal, nSignal);
-    }
-
-    /**
-     * @dev Calculate n signal to be returned for an amount of tokens
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignal nSignal being exchanged for tokens
-     * @return Amount of vSignal and tokens that can be returned
-     */
-    function nSignalToTokens(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _tokensIn
     )
         public
         override
@@ -636,31 +568,49 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         )
     {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        (uint256 tokens, uint256 withdrawalFees) = curation().signalToTokens(
+        (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
             namePool.subgraphDeploymentID,
-            vSignal
+            _tokensIn
         );
-        return (vSignal, tokens, withdrawalFees);
+        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
+        return (vSignal, nSignal, curationTax);
     }
 
     /**
-     * @dev Calculate nSignal to be returned for an amount of vSignal
+     * @dev Calculate tokens returned for an amount of name signal.
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _vSignal being used for calculation
+     * @param _nSignalIn Name signal being exchanged for tokens
+     * @return Amount of tokens returned for an amount of nSignal
+     */
+    function nSignalToTokens(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        uint256 _nSignalIn
+    ) public override view returns (uint256, uint256) {
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
+        uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
+        return (vSignal, tokensOut);
+    }
+
+    /**
+     * @dev Calculate nSignal to be returned for an amount of vSignal.
+     * @param _graphAccount Subgraph owner
+     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
+     * @param _vSignalIn Amount of vSignal to exchange for name signal
      * @return Amount of nSignal that can be bought
      */
     function vSignalToNSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _vSignal
+        uint256 _vSignalIn
     ) public override view returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
 
         // Handle initialization by using 1:1 version to name signal
         if (namePool.vSignal == 0) {
-            return _vSignal;
+            return _vSignalIn;
         }
 
         return
@@ -668,21 +618,21 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
                 namePool.nSignal,
                 namePool.vSignal,
                 namePool.reserveRatio,
-                _vSignal
+                _vSignalIn
             );
     }
 
     /**
-     * @dev Calculate vSignal to be returned for an amount of nSignal
+     * @dev Calculate vSignal to be returned for an amount of name signal.
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignal nSignal being exchanged for vSignal
+     * @param _nSignalIn Name signal being exchanged for vSignal
      * @return Amount of vSignal that can be returned
      */
     function nSignalToVSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _nSignal
+        uint256 _nSignalIn
     ) public override view returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
@@ -690,7 +640,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
                 namePool.nSignal,
                 namePool.vSignal,
                 namePool.reserveRatio,
-                _nSignal
+                _nSignalIn
             );
     }
 
