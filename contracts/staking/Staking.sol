@@ -856,6 +856,23 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Close multiple allocations and free the staked tokens.
+     * To be eligible for rewards a proof of indexing must be presented.
+     * Presenting a bad proof is subject to slashable condition.
+     * To opt out for rewards set _poi to 0x0
+     * @param _requests An array of CloseAllocationRequest
+     */
+    function closeAllocationMany(CloseAllocationRequest[] calldata _requests)
+        external
+        override
+        notPaused
+    {
+        for (uint256 i = 0; i < _requests.length; i++) {
+            _closeAllocation(_requests[i].allocationID, _requests[i].poi);
+        }
+    }
+
+    /**
      * @dev Close and allocate. This will perform a close and then create a new Allocation
      * atomically on the same transaction.
      * @param _closingAllocationID The identifier of the allocation to be closed
