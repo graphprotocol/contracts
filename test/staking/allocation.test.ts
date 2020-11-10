@@ -518,6 +518,32 @@ describe('Staking:Allocation', () => {
       await staking.connect(indexer.signer).setOperator(me.address, true)
       await staking.connect(me.signer).closeAllocation(allocationID, poi)
     })
+
+    it('should close many allocations in batch', async function () {
+      // Setup a second allocation
+      await staking.connect(indexer.signer).stake(tokensToAllocate)
+      const allocationID2 = deriveChannelKey().address
+      await staking
+        .connect(indexer.signer)
+        .allocate(subgraphDeploymentID, tokensToAllocate, allocationID2, metadata)
+
+      // Move at least one epoch to be able to close
+      await advanceToNextEpoch(epochManager)
+      await advanceToNextEpoch(epochManager)
+
+      // Close multiple allocations in one tx
+      const requests = [
+        {
+          allocationID: allocationID,
+          poi: poi,
+        },
+        {
+          allocationID: allocationID2,
+          poi: poi,
+        },
+      ]
+      await staking.connect(indexer.signer).closeAllocationMany(requests)
+    })
   })
 
   describe('closeAndAllocate', function () {

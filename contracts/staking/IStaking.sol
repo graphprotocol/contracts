@@ -30,6 +30,16 @@ interface IStaking {
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
     }
 
+    /**
+     * @dev Represents a request to close an allocation with a specific proof of indexing.
+     * This is passed when calling closeAllocationMany to define the closing parameters for
+     * each allocation.
+     */
+    struct CloseAllocationRequest {
+        address allocationID;
+        bytes32 poi;
+    }
+
     // -- Delegation Data --
 
     /**
@@ -137,6 +147,8 @@ interface IStaking {
     ) external;
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;
+
+    function closeAllocationMany(CloseAllocationRequest[] calldata _requests) external;
 
     function closeAndAllocate(
         address _oldAllocationID,
