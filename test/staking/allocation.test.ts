@@ -745,6 +745,22 @@ describe('Staking:Allocation', () => {
         expect(afterIndexerStake.tokensStaked).not.eq(beforeIndexerStake.tokensStaked)
       })
 
+      it('should claim many rebates with restake', async function () {
+        // Advance blocks to get the allocation in epoch where it can be claimed
+        await advanceToNextEpoch(epochManager)
+
+        // Before state
+        const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+
+        // Claim with restake
+        expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
+        await staking.connect(indexer.signer).claimMany([allocationID], true)
+
+        // Verify that the claimed tokens are restaked
+        const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+        expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToCollect))
+      })
+
       it('reject claim if already claimed', async function () {
         // Advance blocks to get the allocation finalized
         await advanceToNextEpoch(epochManager)
