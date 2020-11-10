@@ -152,6 +152,8 @@ interface IStaking {
 
     function claim(address _allocationID, bool _restake) external;
 
+    function claimMany(address[] calldata _allocationID, bool _restake) external;
+
     // -- Getters and calculations --
 
     function hasStake(address _indexer) external view returns (bool);

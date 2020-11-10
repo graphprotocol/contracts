@@ -903,64 +903,22 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _restake True if restake fees instead of transfer to indexer
      */
     function claim(address _allocationID, bool _restake) external override notPaused {
-        // Get allocation
-        Allocation storage alloc = allocations[_allocationID];
-        AllocationState allocState = _getAllocationState(_allocationID);
+        _claim(_allocationID, _restake);
+    }
 
-        // Only the indexer or operator can decide if to restake
-        bool restake = _isAuth(alloc.indexer) ? _restake : false;
-
-        // Funds can only be claimed after a period of time passed since allocation was closed
-        require(allocState == AllocationState.Finalized, "!finalized");
-
-        // Process rebate reward
-        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-        uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
-
-        // Calculate delegation rewards and add them to the delegation pool
-        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
-        tokensToClaim = tokensToClaim.sub(delegationRewards);
-
-        // Purge allocation data except for:
-        // - indexer: used in disputes and to avoid reusing an allocationID
-        // - subgraphDeploymentID: used in disputes
-        uint256 closedAtEpoch = alloc.closedAtEpoch;
-        alloc.tokens = 0; // This avoid collect(), close() and claim() to be called
-        alloc.createdAtEpoch = 0;
-        alloc.closedAtEpoch = 0;
-        alloc.collectedFees = 0;
-        alloc.effectiveAllocation = 0;
-
-        // -- Interactions --
-
-        // When all allocations processed then burn unclaimed fees and prune rebate pool
-        if (rebatePool.unclaimedAllocationsCount == 0) {
-            _burnTokens(rebatePool.unclaimedFees());
-            delete rebates[closedAtEpoch];
+    /**
+     * @dev Claim tokens from the rebate pool for many allocations.
+     * @param _allocationID Array of allocations from where we are claiming tokens
+     * @param _restake True if restake fees instead of transfer to indexer
+     */
+    function claimMany(address[] calldata _allocationID, bool _restake)
+        external
+        override
+        notPaused
+    {
+        for (uint256 i = 0; i < _allocationID.length; i++) {
+            _claim(_allocationID[i], _restake);
         }
-
-        // When there are tokens to claim from the rebate pool, transfer or restake
-        if (tokensToClaim > 0) {
-            // Assign claimed tokens
-            if (restake) {
-                // Restake to place fees into the indexer stake
-                _stake(alloc.indexer, tokensToClaim);
-            } else {
-                // Transfer funds back to the indexer
-                require(graphToken().transfer(alloc.indexer, tokensToClaim), "!transfer");
-            }
-        }
-
-        emit RebateClaimed(
-            alloc.indexer,
-            alloc.subgraphDeploymentID,
-            _allocationID,
-            epochManager().currentEpoch(),
-            closedAtEpoch,
-            tokensToClaim,
-            rebatePool.unclaimedAllocationsCount,
-            delegationRewards
-        );
     }
 
     /**
@@ -1209,6 +1167,72 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _from,
             curationFees,
             queryFees
+        );
+    }
+
+    /**
+     * @dev Claim tokens from the rebate pool.
+     * @param _allocationID Allocation from where we are claiming tokens
+     * @param _restake True if restake fees instead of transfer to indexer
+     */
+    function _claim(address _allocationID, bool _restake) internal {
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
+        AllocationState allocState = _getAllocationState(_allocationID);
+
+        // Only the indexer or operator can decide if to restake
+        bool restake = _isAuth(alloc.indexer) ? _restake : false;
+
+        // Funds can only be claimed after a period of time passed since allocation was closed
+        require(allocState == AllocationState.Finalized, "!finalized");
+
+        // Process rebate reward
+        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+        uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
+
+        // Calculate delegation rewards and add them to the delegation pool
+        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
+        tokensToClaim = tokensToClaim.sub(delegationRewards);
+
+        // Purge allocation data except for:
+        // - indexer: used in disputes and to avoid reusing an allocationID
+        // - subgraphDeploymentID: used in disputes
+        uint256 closedAtEpoch = alloc.closedAtEpoch;
+        alloc.tokens = 0; // This avoid collect(), close() and claim() to be called
+        alloc.createdAtEpoch = 0;
+        alloc.closedAtEpoch = 0;
+        alloc.collectedFees = 0;
+        alloc.effectiveAllocation = 0;
+
+        // -- Interactions --
+
+        // When all allocations processed then burn unclaimed fees and prune rebate pool
+        if (rebatePool.unclaimedAllocationsCount == 0) {
+            _burnTokens(rebatePool.unclaimedFees());
+            delete rebates[closedAtEpoch];
+        }
+
+        // When there are tokens to claim from the rebate pool, transfer or restake
+        if (tokensToClaim > 0) {
+            // Assign claimed tokens
+            if (restake) {
+                // Restake to place fees into the indexer stake
+                _stake(alloc.indexer, tokensToClaim);
+            } else {
+                // Transfer funds back to the indexer
+                require(graphToken().transfer(alloc.indexer, tokensToClaim), "!transfer");
+            }
+        }
+
+        emit RebateClaimed(
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            _allocationID,
+            epochManager().currentEpoch(),
+            closedAtEpoch,
+            tokensToClaim,
+            rebatePool.unclaimedAllocationsCount,
+            delegationRewards
         );
     }
 
