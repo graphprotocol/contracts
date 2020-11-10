@@ -957,6 +957,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             pool.indexingRewardCut = MAX_PPM;
             pool.queryFeeCut = MAX_PPM;
             pool.updatedAtBlock = block.number;
+
+            emit DelegationParametersUpdated(_indexer, pool.indexingRewardCut, pool.queryFeeCut, 0);
         }
 
         emit StakeDeposited(_indexer, _tokens);

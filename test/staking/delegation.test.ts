@@ -324,7 +324,10 @@ describe('Staking::Delegation', () => {
         expect(beforeParams.updatedAtBlock).eq(0)
 
         // Indexer stake tokens
-        await staking.connect(indexer.signer).stake(toGRT('200'))
+        const tx = staking.connect(indexer.signer).stake(toGRT('200'))
+        await expect(tx)
+          .emit(staking, 'DelegationParametersUpdated')
+          .withArgs(indexer.address, MAX_PPM, MAX_PPM, 0)
 
         // State updated
         const afterParams = await staking.delegationPools(indexer.address)
