@@ -28,8 +28,12 @@ contract Managed {
         require(!controller.partialPaused(), "Partial-paused");
     }
 
-    function _paused() internal view {
+    function _notPaused() internal view {
         require(!controller.paused(), "Paused");
+    }
+
+    function _onlyGovernor() internal view {
+        require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
     }
 
     modifier notPartialPaused {
@@ -38,7 +42,7 @@ contract Managed {
     }
 
     modifier notPaused {
-        _paused();
+        _notPaused();
         _;
     }
 
@@ -49,7 +53,7 @@ contract Managed {
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
+        _onlyGovernor();
         _;
     }
 

@@ -392,7 +392,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint32 _indexingRewardCut,
         uint32 _queryFeeCut,
         uint32 _cooldownBlocks
-    ) external override {
+    ) public override {
         address indexer = msg.sender;
 
         // Incentives must be within bounds
@@ -954,13 +954,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         indexerStake.deposit(_tokens);
 
         // Initialize the delegation pool the first time
-        DelegationPool storage pool = delegationPools[_indexer];
-        if (pool.updatedAtBlock == 0) {
-            pool.indexingRewardCut = MAX_PPM;
-            pool.queryFeeCut = MAX_PPM;
-            pool.updatedAtBlock = block.number;
-
-            emit DelegationParametersUpdated(_indexer, pool.indexingRewardCut, pool.queryFeeCut, 0);
+        if (delegationPools[_indexer].updatedAtBlock == 0) {
+            setDelegationParameters(MAX_PPM, MAX_PPM, delegationParametersCooldown);
         }
 
         emit StakeDeposited(_indexer, _tokens);
