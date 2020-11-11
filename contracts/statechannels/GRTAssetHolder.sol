@@ -5,10 +5,11 @@ import "@statechannels/nitro-protocol/contracts/ERC20AssetHolder.sol";
 
 import "../governance/IController.sol";
 import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
 
 /// @title GRTAssetHolder - Container for funds used to pay an indexer off-chain
 contract GRTAssetHolder is ERC20AssetHolder {
+    uint256 private constant MAX_UINT256 = 2**256 - 1;
+
     IController public Controller;
 
     constructor(
@@ -25,7 +26,10 @@ contract GRTAssetHolder is ERC20AssetHolder {
     }
 
     function approveAll() external {
-        require(Token.approve(address(staking()), uint256(-1)), "Token approval failed");
+        require(
+            Token.approve(address(staking()), MAX_UINT256),
+            "GRTAssetHolder: Token approval failed"
+        );
     }
 
     function _transferAsset(address payable destination, uint256 amount) internal override {
