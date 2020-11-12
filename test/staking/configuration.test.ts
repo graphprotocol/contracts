@@ -54,6 +54,11 @@ describe('Staking:Config', () => {
       const tx = staking.connect(me.signer).setMinimumIndexerStake(newValue)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
+
+    it('reject set `minimumIndexerStake` to zero', async function () {
+      const tx = staking.connect(governor.signer).setMinimumIndexerStake(0)
+      await expect(tx).revertedWith('!minimumIndexerStake')
+    })
   })
 
   describe('setSlasher', function () {
@@ -101,7 +106,7 @@ describe('Staking:Config', () => {
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
 
-    it('reject set `assetHolder` for zero', async function () {
+    it('reject set `assetHolder` to address zero', async function () {
       const tx = staking.connect(governor.signer).setAssetHolder(AddressZero, true)
       await expect(tx).revertedWith('!assetHolder')
     })
@@ -118,6 +123,11 @@ describe('Staking:Config', () => {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setChannelDisputeEpochs(newValue)
       await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('reject set `channelDisputeEpochs` to zero', async function () {
+      const tx = staking.connect(governor.signer).setChannelDisputeEpochs(0)
+      await expect(tx).revertedWith('!channelDisputeEpochs')
     })
   })
 
@@ -185,6 +195,11 @@ describe('Staking:Config', () => {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setThawingPeriod(newValue)
       await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('reject set `thawingPeriod` to zero', async function () {
+      const tx = staking.connect(governor.signer).setThawingPeriod(0)
+      await expect(tx).revertedWith('!thawingPeriod')
     })
   })
 

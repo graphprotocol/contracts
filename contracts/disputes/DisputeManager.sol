@@ -215,6 +215,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _arbitrator The address of the arbitration contract or party
      */
     function _setArbitrator(address _arbitrator) private {
+        require(_arbitrator != address(0), "Arbitrator must be set");
         arbitrator = _arbitrator;
         emit ParameterUpdated("arbitrator");
     }
@@ -234,6 +235,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
     function _setMinimumDeposit(uint256 _minimumDeposit) private {
+        require(_minimumDeposit > 0, "Minimum deposit must be set");
         minimumDeposit = _minimumDeposit;
         emit ParameterUpdated("minimumDeposit");
     }

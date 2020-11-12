@@ -75,6 +75,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
         Managed._initialize(_controller);
+
+        require(_bondingCurve != address(0), "Bonding curve must be set");
         bondingCurve = _bondingCurve;
 
         // Settings
