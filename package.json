@@ -23,6 +23,7 @@
     "@nomiclabs/buidler-etherscan": "^2.0.0",
     "@nomiclabs/buidler-waffle": "^2.0.0",
     "@openzeppelin/contracts": "^3.1.0",
+    "@statechannels/nitro-protocol": "^0.7.1-next.534a803ee.74",
     "@typechain/ethers-v5": "^1.0.0",
     "@types/bs58": "^4.0.1",
     "@types/dotenv": "^8.2.0",

@@ -99,7 +99,7 @@ contracts:
         issuanceRate: "1000000023206889619" # 5% annual rate
   GRTAssetHolder:
     init:
-      adjudicatorAddress: "0x0000000000000000000000000000000000000000"
+      adjudicatorAddress: "0xaa94bed44fc8195b029628341f13a695f1348c04"
       tokenAddress: "${{GraphToken.address}}"
       controllerAddress: "${{Controller.address}}"
     calls:
