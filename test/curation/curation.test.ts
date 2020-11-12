@@ -171,6 +171,7 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Source of tokens must be the staking for this to work
+    await grt.connect(stakingMock.signer).transfer(curation.address, tokensToCollect)
     const tx = curation.connect(stakingMock.signer).collect(subgraphDeploymentID, tokensToCollect)
     await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
 
