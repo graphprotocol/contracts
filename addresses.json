@@ -184,6 +184,26 @@
       "creationCodeHash": "0x6cace467fae50b904432567bf66e50cfe962059dde2d92a1f73b1f593f09f1a2",
       "runtimeCodeHash": "0xb4eadf15394d92b208d86c2425485b40068f181d56bdabd9ff65872be3277ec0",
       "txHash": "0xaf36f5693902b67ff825611f5acb783771bae141150d461b20f6ae4fba76a930"
+    },
+    "GRTAssetHolder": {
+      "address": "0x2A7fC13Bd6Ba6A79eC95c4b9f78f1DeFC9BC5124",
+      "constructorArgs": [
+        {
+          "name": "AdjudicatorAddress",
+          "value": "0xaa94bed44fc8195b029628341f13a695f1348c04"
+        },
+        {
+          "name": "TokenAddress",
+          "value": "0x496eec523c74c4BbF071e0c75573c9deb07929f4"
+        },
+        {
+          "name": "ControllerAddress",
+          "value": "0x221C65EDE92652654d410A0C73951bae0d5744eD"
+        }
+      ],
+      "creationCodeHash": "0x7506049eaaacb56a052babe8a1531af1ceffda8a9c55e62cab48305e12258aca",
+      "runtimeCodeHash": "0x0f9b73cb726734001906aa5da5cb27814d42297a56094a2990946bbaa01c19b0",
+      "txHash": "0xc78560ce6959cf3078397c64d8fa120f468e91a19d8775439bd397fc99a76b69"
     }
   },
   "42": {
