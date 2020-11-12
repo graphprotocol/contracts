@@ -10,3 +10,4 @@ contracts/tests/ens
 contracts/curation/IGraphCurationToken.sol
 contracts/staking/libs/LibFixedMath.sol
 contracts/tests/testnet/GSRManager.sol
+contracts/statechannels

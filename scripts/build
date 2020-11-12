@@ -5,6 +5,10 @@ set -eo pipefail
 # Allow these interfaces to be used from 0.6.x and 0.7.x contracts
 sed -i 's/pragma solidity ^0.7.0/pragma solidity >=0.6.0 <0.8.0/g' node_modules/@openzeppelin/contracts/math/SafeMath.sol
 sed -i 's/pragma solidity ^0.7.0/pragma solidity >=0.6.0 <0.8.0/g' node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol
+sed -i 's/pragma solidity ^0.7.0/pragma solidity >=0.6.0 <0.8.0/g' node_modules/@openzeppelin/contracts/cryptography/ECDSA.sol
+
+# Compile AttestationApp along with the rest of the contracts
+cp node_modules/@graphprotocol/statechannels/contracts/Attestation*.sol contracts/statechannels
 
 # Build
 npm run compile

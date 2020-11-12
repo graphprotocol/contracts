@@ -22,3 +22,6 @@ bin/
 
 # Sliter
 /reports
+
+# Third-party
+contracts/statechannels/Attestation*.sol
