@@ -96,4 +96,4 @@ contracts:
       controller: "${{Controller.address}}"
     calls:
       - fn: "setIssuanceRate"
-        issuanceRate: "1000000023206889619" # 5% annual rate
+        issuanceRate: "1000000012184945188" # 3% annual rate
