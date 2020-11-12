@@ -160,17 +160,16 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
     /**
      * @dev Assign Graph Tokens collected as curation fees to the curation pool reserve.
+     * This function can only be called by the Staking contract and will do the bookeeping of
+     * transferred tokens into this contract.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
-    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override onlyStaking {
-        // Transfer tokens collected from the staking contract to this contract
-        require(
-            graphToken().transferFrom(address(staking()), address(this), _tokens),
-            "Cannot transfer tokens to collect"
-        );
+    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
+        // Only Staking contract is authorized as caller
+        require(msg.sender == address(staking()), "Caller must be the staking contract");
 
-        // Collect tokens and assign them to the reserves
+        // Must be curated to accept tokens
         require(
             isCurated(_subgraphDeploymentID),
             "Subgraph deployment must be curated to collect fees"

@@ -57,16 +57,6 @@ contract Managed {
         _;
     }
 
-    modifier onlyStaking() {
-        require(msg.sender == address(staking()), "Caller must be the staking contract");
-        _;
-    }
-
-    modifier onlyCuration() {
-        require(msg.sender == address(curation()), "Caller must be the curation contract");
-        _;
-    }
-
     /**
      * @dev Initialize the controller
      */

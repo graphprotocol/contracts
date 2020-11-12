@@ -346,13 +346,17 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Pull rewards from the contract for a particular allocation.
-     * This function will mint the necessary tokens to reward based on the inflation calculation
+     * This function can only be called by the Staking contract.
+     * This function will mint the necessary tokens to reward based on the inflation calculation.
      * @param _allocationID Allocation
      * @return Assigned rewards amount
      */
-    function takeRewards(address _allocationID) external override onlyStaking returns (uint256) {
-        IGraphToken graphToken = graphToken();
+    function takeRewards(address _allocationID) external override returns (uint256) {
+        // Only Staking contract is authorized as caller
         IStaking staking = staking();
+        require(msg.sender == address(staking), "Caller must be the staking contract");
+
+        IGraphToken graphToken = graphToken();
         IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
 
         uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
