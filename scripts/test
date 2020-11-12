@@ -37,7 +37,7 @@ fi
 
 mkdir -p reports
 
-npm run compile
+npm run build
 
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
