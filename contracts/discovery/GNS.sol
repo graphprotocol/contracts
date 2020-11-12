@@ -159,7 +159,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     /**
      * @dev Approve curation contract to pull funds.
      */
-    function approveAll() external override onlyGovernor {
+    function approveAll() external override {
         graphToken().approve(address(curation()), MAX_UINT256);
     }
 

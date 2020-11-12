@@ -231,6 +231,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Approve curation contract to pull funds.
+     */
+    function approveAll() external override {
+        graphToken().approve(address(curation()), uint256(-1));
+    }
+
+    /**
      * @dev Set the minimum indexer stake required to.
      * @param _minimumIndexerStake Minimum indexer stake
      */
@@ -594,15 +601,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @return Amount of tokens staked by the indexer
      */
     function getIndexerCapacity(address _indexer) public override view returns (uint256) {
-        Stakes.Indexer memory indexerStake = stakes[_indexer];
-        DelegationPool storage pool = delegationPools[_indexer];
+        Stakes.Indexer storage indexerStake = stakes[_indexer];
+        uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
-        uint256 tokensDelegatedMax = indexerStake.tokensStaked.mul(uint256(delegationRatio));
-        uint256 tokensDelegated = (pool.tokens < tokensDelegatedMax)
-            ? pool.tokens
-            : tokensDelegatedMax;
+        uint256 tokensDelegatedCap = indexerStake.tokensStaked.mul(uint256(delegationRatio));
+        uint256 tokensDelegatedCapacity = (tokensDelegated < tokensDelegatedCap)
+            ? tokensDelegated
+            : tokensDelegatedCap;
 
-        return indexerStake.tokensAvailableWithDelegation(tokensDelegated);
+        return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
     }
 
     /**
@@ -950,8 +957,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function _stake(address _indexer, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
-        Stakes.Indexer storage indexerStake = stakes[_indexer];
-        indexerStake.deposit(_tokens);
+        stakes[_indexer].deposit(_tokens);
 
         // Initialize the delegation pool the first time
         if (delegationPools[_indexer].updatedAtBlock == 0) {
@@ -966,10 +972,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of indexer to withdraw funds from
      */
     function _withdraw(address _indexer) internal {
-        Stakes.Indexer storage indexerStake = stakes[_indexer];
-
         // Get tokens available for withdraw and update balance
-        uint256 tokensToWithdraw = indexerStake.withdrawTokens();
+        uint256 tokensToWithdraw = stakes[_indexer].withdrawTokens();
         require(tokensToWithdraw > 0, "!tokens");
 
         // Return tokens to the indexer
@@ -994,8 +998,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _metadata
     ) internal {
         require(_isAuth(_indexer), "!auth");
-
-        Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "!tokens");
@@ -1025,7 +1027,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
-        indexerStake.allocate(alloc.tokens);
+        stakes[_indexer].allocate(alloc.tokens);
 
         // Track total allocations per subgraph
         // Used for rewards calculations
@@ -1167,11 +1169,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Send curation fees to the curator reserve pool
         if (curationFees > 0) {
-            // TODO: the approve call can be optimized by approving the curation contract to fetch
-            // funds from the Staking contract for infinity funds just once for a security tradeoff
-            ICuration curation = curation();
-            require(graphToken().approve(address(curation), curationFees), "!approve");
-            curation.collect(alloc.subgraphDeploymentID, curationFees);
+            curation().collect(alloc.subgraphDeploymentID, curationFees);
         }
 
         emit AllocationCollected(
@@ -1210,22 +1208,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationRewards);
 
-        // Purge allocation data except for:
-        // - indexer: used in disputes and to avoid reusing an allocationID
-        // - subgraphDeploymentID: used in disputes
-        uint256 closedAtEpoch = alloc.closedAtEpoch;
+        // Update the allocate state
         alloc.tokens = 0; // This avoid collect(), close() and claim() to be called
-        alloc.createdAtEpoch = 0;
-        alloc.closedAtEpoch = 0;
-        alloc.collectedFees = 0;
-        alloc.effectiveAllocation = 0;
 
         // -- Interactions --
 
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
             _burnTokens(rebatePool.unclaimedFees());
-            delete rebates[closedAtEpoch];
+            delete rebates[alloc.closedAtEpoch];
         }
 
         // When there are tokens to claim from the rebate pool, transfer or restake
@@ -1245,7 +1236,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             alloc.subgraphDeploymentID,
             _allocationID,
             epochManager().currentEpoch(),
-            closedAtEpoch,
+            alloc.closedAtEpoch,
             tokensToClaim,
             rebatePool.unclaimedAllocationsCount,
             delegationRewards
@@ -1480,7 +1471,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @return AllocationState
      */
     function _getAllocationState(address _allocationID) internal view returns (AllocationState) {
-        Allocation memory alloc = allocations[_allocationID];
+        Allocation storage alloc = allocations[_allocationID];
 
         if (alloc.indexer == address(0)) {
             return AllocationState.Null;
@@ -1488,11 +1479,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (alloc.tokens == 0) {
             return AllocationState.Claimed;
         }
-        if (alloc.closedAtEpoch == 0) {
+
+        uint256 closedAtEpoch = alloc.closedAtEpoch;
+        if (closedAtEpoch == 0) {
             return AllocationState.Active;
         }
 
-        uint256 epochs = epochManager().epochsSince(alloc.closedAtEpoch);
+        uint256 epochs = epochManager().epochsSince(closedAtEpoch);
         if (epochs >= channelDisputeEpochs) {
             return AllocationState.Finalized;
         }

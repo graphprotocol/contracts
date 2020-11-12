@@ -82,7 +82,7 @@ contracts:
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
-  RewardsManager:
+      - fn: "approveAll"
     proxy: true
     init:
       controller: "${{Controller.address}}"

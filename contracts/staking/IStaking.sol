@@ -68,6 +68,8 @@ interface IStaking {
 
     // -- Configuration --
 
+    function approveAll() external;
+
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external;
 
     function setThawingPeriod(uint32 _thawingPeriod) external;

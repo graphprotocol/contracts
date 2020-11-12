@@ -608,7 +608,6 @@ describe('Staking:Allocation', () => {
       // After state
       const afterBalance = await grt.balanceOf(indexer.address)
       const afterStake = await staking.stakes(indexer.address)
-      const afterAlloc = await staking.allocations(allocationID)
       const afterRebatePool = await staking.rebates(beforeAlloc.closedAtEpoch)
 
       // Funds distributed to indexer
@@ -623,12 +622,6 @@ describe('Staking:Allocation', () => {
       } else {
         expect(afterStake.tokensStaked).eq(beforeStake.tokensStaked)
       }
-      // Allocation updated (purged)
-      expect(afterAlloc.tokens).eq(toGRT('0'))
-      expect(afterAlloc.createdAtEpoch).eq(toGRT('0'))
-      expect(afterAlloc.closedAtEpoch).eq(toGRT('0'))
-      expect(afterAlloc.collectedFees).eq(toGRT('0'))
-      expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
       // Rebate updated
       expect(afterRebatePool.unclaimedAllocationsCount).eq(
         beforeRebatePool.unclaimedAllocationsCount - 1,

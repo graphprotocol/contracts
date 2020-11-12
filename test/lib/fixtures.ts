@@ -54,6 +54,7 @@ export class NetworkFixture {
 
     // Setup contracts
     await staking.connect(deployer).setSlasher(slasherAddress, true)
+    await staking.connect(deployer).approveAll()
     await grt.connect(deployer).addMinter(rewardsManager.address)
     await gns.connect(deployer).approveAll()
     await rewardsManager.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
