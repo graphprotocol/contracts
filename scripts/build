@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+cp node_modules/@graphprotocol/statechannels/contracts/Attestation*.sol contracts/statechannels
+
 npm run compile
 npm run flatten
 npm run abi:extract
