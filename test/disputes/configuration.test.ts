@@ -1,3 +1,4 @@
+import { constants } from 'ethers'
 import { expect } from 'chai'
 
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
@@ -5,6 +6,8 @@ import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, Account } from '../lib/testHelpers'
+
+const { AddressZero } = constants
 
 const MAX_PPM = 1000000
 
@@ -47,6 +50,11 @@ describe('DisputeManager:Config', () => {
       it('reject set `arbitrator` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setArbitrator(arbitrator.address)
         await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+
+      it('reject set `arbitrator` to address zero', async function () {
+        const tx = disputeManager.connect(governor.signer).setArbitrator(AddressZero)
+        await expect(tx).revertedWith('Arbitrator must be set')
       })
     })
 

@@ -8,6 +8,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
+  advanceBlock,
   advanceToNextEpoch,
   deriveChannelKey,
   getAccounts,
@@ -120,8 +121,8 @@ describe('DisputeManager:POI', async () => {
       await grt.connect(governor.signer).mint(assetHolder.address, indexerCollectedTokens)
       await grt.connect(assetHolder.signer).approve(staking.address, indexerCollectedTokens)
 
-      // Set the thawing period to zero to make the test easier
-      await staking.connect(governor.signer).setThawingPeriod(toBN('0'))
+      // Set the thawing period to one to make the test easier
+      await staking.connect(governor.signer).setThawingPeriod(toBN('1'))
 
       // Indexer stake funds, allocate, close, unstake and withdraw the stake fully
       await staking.connect(indexer.signer).stake(indexerTokens)
@@ -134,7 +135,8 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
       await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)
-      await staking.connect(indexer.signer).withdraw() // no thawing period so we are good
+      await advanceBlock() // pass thawing period
+      await staking.connect(indexer.signer).withdraw()
 
       // Create dispute
       const tx = disputeManager

@@ -71,7 +71,7 @@ contract Managed {
      * @dev Initialize the controller
      */
     function _initialize(address _controller) internal {
-        controller = IController(_controller);
+        _setController(_controller);
     }
 
     /**
@@ -79,6 +79,15 @@ contract Managed {
      * @param _controller Controller contract address
      */
     function setController(address _controller) external onlyController {
+        _setController(_controller);
+    }
+
+    /**
+     * @dev Set controller.
+     * @param _controller Controller contract address
+     */
+    function _setController(address _controller) internal {
+        require(_controller != address(0), "Controller must be set");
         controller = IController(_controller);
         emit SetController(_controller);
     }

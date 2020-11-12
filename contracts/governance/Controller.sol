@@ -57,8 +57,22 @@ contract Controller is Governed, Pausable, IController {
         override
         onlyGovernor
     {
+        require(_contractAddress != address(0), "Contract address must be set");
         registry[_id] = _contractAddress;
         emit SetContractProxy(_id, _contractAddress);
+    }
+
+    /**
+     * @notice Unregister a contract address
+     * @param _id Contract id (keccak256 hash of contract name)
+     */
+    function unsetContractProxy(bytes32 _id)
+        external
+        override
+        onlyGovernor
+    {
+        registry[_id] = address(0);
+        emit SetContractProxy(_id, address(0));
     }
 
     /**
@@ -75,6 +89,7 @@ contract Controller is Governed, Pausable, IController {
      * @param _controller Controller address
      */
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
+        require(_controller != address(0), "Controller must be set");
         return IManaged(registry[_id]).setController(_controller);
     }
 
@@ -101,6 +116,7 @@ contract Controller is Governed, Pausable, IController {
      * @param _newPauseGuardian The address of the new Pause Guardian
      */
     function setPauseGuardian(address _newPauseGuardian) external override onlyGovernor {
+        require(_newPauseGuardian != address(0), "PauseGuardian must be set");
         _setPauseGuardian(_newPauseGuardian);
     }
 
