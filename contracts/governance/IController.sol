@@ -9,6 +9,8 @@ interface IController {
 
     function setContractProxy(bytes32 _id, address _contractAddress) external;
 
+    function unsetContractProxy(bytes32 _id) external;
+
     function updateController(bytes32 _id, address _controller) external;
 
     function getContractProxy(bytes32 _id) external view returns (address);

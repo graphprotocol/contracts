@@ -243,6 +243,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function _setMinimumIndexerStake(uint256 _minimumIndexerStake) private {
+        require(_minimumIndexerStake > 0, "!minimumIndexerStake");
         minimumIndexerStake = _minimumIndexerStake;
         emit ParameterUpdated("minimumIndexerStake");
     }
@@ -260,6 +261,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
     function _setThawingPeriod(uint32 _thawingPeriod) private {
+        require(_thawingPeriod > 0, "!thawingPeriod");
         thawingPeriod = _thawingPeriod;
         emit ParameterUpdated("thawingPeriod");
     }
@@ -315,6 +317,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _channelDisputeEpochs Period in epochs
      */
     function _setChannelDisputeEpochs(uint32 _channelDisputeEpochs) private {
+        require(_channelDisputeEpochs > 0, "!channelDisputeEpochs");
         channelDisputeEpochs = _channelDisputeEpochs;
         emit ParameterUpdated("channelDisputeEpochs");
     }
@@ -458,6 +461,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
      */
     function _setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) private {
+        require(_delegationUnbondingPeriod > 0, "!delegationUnbondingPeriod");
         delegationUnbondingPeriod = _delegationUnbondingPeriod;
         emit ParameterUpdated("delegationUnbondingPeriod");
     }
