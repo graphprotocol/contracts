@@ -214,8 +214,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
-                // TODO: the gas cost of deploying the subgraph token can be greatly optimized
-                // by deploying a proxy each time, sharing the same implementation
+                // TODO: Use a minimal proxy to reduce gas cost
+                // https://github.com/graphprotocol/contracts/issues/405
+                // --abarmat-- 20201113
                 curationPool.gcs = IGraphCurationToken(
                     address(new GraphCurationToken(address(this)))
                 );
