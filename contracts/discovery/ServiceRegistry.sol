@@ -70,7 +70,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
         address _indexer,
         string calldata _url,
         string calldata _geohash
-    ) internal {
+    ) private {
         require(_isAuth(_indexer), "!auth");
         require(bytes(_url).length > 0, "Service must specify a URL");
 
@@ -98,7 +98,7 @@ contract ServiceRegistry is Managed, IServiceRegistry {
      * @dev Unregister an indexer service
      * @param _indexer Address of the indexer
      */
-    function _unregister(address _indexer) internal {
+    function _unregister(address _indexer) private {
         require(_isAuth(_indexer), "!auth");
         require(isRegistered(_indexer), "Service already unregistered");
 

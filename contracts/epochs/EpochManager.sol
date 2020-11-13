@@ -87,7 +87,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return blockhash for a block.
      * @return BlockHash for `_block` number
      */
-    function blockHash(uint256 _block) public override view returns (bytes32) {
+    function blockHash(uint256 _block) external override view returns (bytes32) {
         uint256 currentBlock = blockNum();
 
         require(_block < currentBlock, "Can only retrieve past block hashes");
@@ -119,7 +119,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return the number of blocks that passed since current epoch started.
      * @return Blocks that passed since start of epoch
      */
-    function currentEpochBlockSinceStart() public override view returns (uint256) {
+    function currentEpochBlockSinceStart() external override view returns (uint256) {
         return blockNum() - currentEpochBlock();
     }
 
@@ -128,7 +128,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @param _epoch Epoch to use as since epoch value
      * @return Number of epochs and current epoch
      */
-    function epochsSince(uint256 _epoch) public override view returns (uint256) {
+    function epochsSince(uint256 _epoch) external override view returns (uint256) {
         uint256 epoch = currentEpoch();
         return _epoch < epoch ? epoch.sub(_epoch) : 0;
     }

@@ -345,7 +345,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @return Amount of token reserves in the curation pool
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
-        public
+        external
         override
         view
         returns (uint256)
@@ -378,7 +378,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @return Amount of signal that can be bought with tokens
      */
     function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        internal
+        private
         view
         returns (uint256)
     {
@@ -447,7 +447,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Triggers an update of rewards due to a change in signal.
      * @param _subgraphDeploymentID Subgrapy deployment updated
      */
-    function _updateRewards(bytes32 _subgraphDeploymentID) internal {
+    function _updateRewards(bytes32 _subgraphDeploymentID) private {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) != address(0)) {
             rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);

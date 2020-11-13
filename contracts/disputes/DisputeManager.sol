@@ -473,7 +473,7 @@ contract DisputeManager is Managed, IDisputeManager {
         uint256 _deposit,
         Attestation memory _attestation,
         bytes memory _attestationData
-    ) internal returns (bytes32) {
+    ) private returns (bytes32) {
         // Get the indexer that signed the attestation
         address indexer = getAttestationIndexer(_attestation);
 
@@ -545,7 +545,7 @@ contract DisputeManager is Managed, IDisputeManager {
         address _fisherman,
         uint256 _deposit,
         address _allocationID
-    ) internal returns (bytes32) {
+    ) private returns (bytes32) {
         // Create a disputeID
         bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
 
@@ -661,7 +661,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
-    function _isDisputeInConflict(Dispute memory _dispute) internal pure returns (bool) {
+    function _isDisputeInConflict(Dispute memory _dispute) private pure returns (bool) {
         return _dispute.relatedDisputeID != 0;
     }
 
@@ -670,7 +670,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _dispute Dispute
      * @return True if resolved
      */
-    function _resolveDisputeInConflict(Dispute memory _dispute) internal returns (bool) {
+    function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             delete disputes[relatedDisputeID];
@@ -683,7 +683,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @dev Pull deposit from submitter account.
      * @param _deposit Amount of tokens to deposit
      */
-    function _pullSubmitterDeposit(uint256 _deposit) internal {
+    function _pullSubmitterDeposit(uint256 _deposit) private {
         // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
 
@@ -701,7 +701,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _challenger Address of the challenger
      * @return Dispute reward tokens
      */
-    function _slashIndexer(address _indexer, address _challenger) internal returns (uint256) {
+    function _slashIndexer(address _indexer, address _challenger) private returns (uint256) {
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
         uint256 tokensToSlash = getTokensToSlash(_indexer);
@@ -719,7 +719,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @return Signer address
      */
     function _recoverAttestationSigner(Attestation memory _attestation)
-        internal
+        private
         view
         returns (address)
     {
@@ -744,7 +744,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @dev Get the running network chain ID
      * @return The chain ID
      */
-    function _getChainID() internal pure returns (uint256) {
+    function _getChainID() private pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
@@ -756,7 +756,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @dev Parse the bytes attestation into a struct from `_data`.
      * @return Attestation struct
      */
-    function _parseAttestation(bytes memory _data) internal pure returns (Attestation memory) {
+    function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
         // Check attestation data length
         require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
@@ -779,7 +779,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @dev Parse a uint8 from `_bytes` starting at offset `_start`.
      * @return uint8 value
      */
-    function _toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
+    function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
         require(_bytes.length >= (_start + UINT8_BYTE_LENGTH), "Bytes: out of bounds");
         uint8 tempUint;
 
@@ -794,7 +794,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @dev Parse a bytes32 from `_bytes` starting at offset `_start`.
      * @return bytes32 value
      */
-    function _toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
+    function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
         require(_bytes.length >= (_start + BYTES32_BYTE_LENGTH), "Bytes: out of bounds");
         bytes32 tempBytes32;
 
