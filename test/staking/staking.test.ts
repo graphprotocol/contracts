@@ -49,10 +49,16 @@ describe('Staking:Stakes', () => {
   const metadata = randomHexBytes(32)
 
   // Allocate with test values
-  const allocate = function (tokens: BigNumber) {
+  const allocate = async (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
+      .allocate(
+        subgraphDeploymentID,
+        tokens,
+        allocationID,
+        metadata,
+        await channelKey.generateProof(indexer.address),
+      )
   }
 
   // Stake and verify state change

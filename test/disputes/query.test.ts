@@ -121,26 +121,34 @@ describe('DisputeManager:Query', async () => {
 
     // Stake
     const indexerList = [
-      { wallet: indexer, allocationID: indexer1ChannelKey.address },
-      { wallet: indexer2, allocationID: indexer2ChannelKey.address },
+      {
+        account: indexer,
+        allocationID: indexer1ChannelKey.address,
+        channelKey: indexer1ChannelKey,
+      },
+      {
+        account: indexer2,
+        allocationID: indexer2ChannelKey.address,
+        channelKey: indexer2ChannelKey,
+      },
     ]
     for (const activeIndexer of indexerList) {
-      const indexerWallet = activeIndexer.wallet
-      const indexerAllocationID = activeIndexer.allocationID
+      const { channelKey, allocationID, account: indexerAccount } = activeIndexer
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
-      await grt.connect(indexerWallet.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor.signer).mint(indexerAccount.address, indexerTokens)
+      await grt.connect(indexerAccount.signer).approve(staking.address, indexerTokens)
 
       // Indexer stake funds
-      await staking.connect(indexerWallet.signer).stake(indexerTokens)
+      await staking.connect(indexerAccount.signer).stake(indexerTokens)
       await staking
-        .connect(indexerWallet.signer)
+        .connect(indexerAccount.signer)
         .allocate(
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
-          indexerAllocationID,
+          allocationID,
           metadata,
+          await channelKey.generateProof(indexerAccount.address),
         )
     }
   }
@@ -230,6 +238,7 @@ describe('DisputeManager:Query', async () => {
           indexerAllocatedTokens,
           indexer1ChannelKey.address,
           metadata,
+          await indexer1ChannelKey.generateProof(indexer.address),
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args

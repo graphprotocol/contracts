@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
+import { constants, BigNumber, ethers } from 'ethers'
 
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
@@ -64,10 +64,16 @@ describe('Staking:Allocation', () => {
   const poi = randomHexBytes()
 
   // Helpers
-  const allocate = (tokens: BigNumber) => {
+  const allocate = async (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
+      .allocate(
+        subgraphDeploymentID,
+        tokens,
+        allocationID,
+        metadata,
+        await channelKey.generateProof(indexer.address),
+      )
   }
 
   before(async function () {
@@ -178,7 +184,7 @@ describe('Staking:Allocation', () => {
     it('reject allocate with invalid allocationID', async function () {
       const tx = staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokensToAllocate, AddressZero, metadata)
+        .allocate(subgraphDeploymentID, tokensToAllocate, AddressZero, metadata, randomHexBytes(20))
       await expect(tx).revertedWith('!alloc')
     })
 
@@ -204,6 +210,8 @@ describe('Staking:Allocation', () => {
       })
 
       it('should allocate on behalf of indexer', async function () {
+        const proof = await channelKey.generateProof(indexer.address)
+
         // Reject to allocate if the address is not operator
         const tx1 = staking
           .connect(me.signer)
@@ -213,6 +221,7 @@ describe('Staking:Allocation', () => {
             tokensToAllocate,
             allocationID,
             metadata,
+            proof,
           )
         await expect(tx1).revertedWith('!auth')
 
@@ -226,6 +235,7 @@ describe('Staking:Allocation', () => {
             tokensToAllocate,
             allocationID,
             metadata,
+            proof,
           )
       })
 
@@ -234,6 +244,35 @@ describe('Staking:Allocation', () => {
         await shouldAllocate(someTokensToAllocate)
         const tx = allocate(someTokensToAllocate)
         await expect(tx).revertedWith('!null')
+      })
+
+      describe('reject allocate on invalid proof', function () {
+        it('invalid message', async function () {
+          const invalidProof = await channelKey.generateProof(randomHexBytes(20))
+          const tx = staking
+            .connect(indexer.signer)
+            .allocate(
+              subgraphDeploymentID,
+              tokensToAllocate,
+              indexer.address,
+              metadata,
+              invalidProof,
+            )
+          await expect(tx).revertedWith('!proof')
+        })
+
+        it('invalid proof signature format', async function () {
+          const tx = staking
+            .connect(indexer.signer)
+            .allocate(
+              subgraphDeploymentID,
+              tokensToAllocate,
+              indexer.address,
+              metadata,
+              randomHexBytes(32),
+            )
+          await expect(tx).revertedWith('ECDSA: invalid signature length')
+        })
       })
     })
   })
@@ -522,10 +561,17 @@ describe('Staking:Allocation', () => {
     it('should close many allocations in batch', async function () {
       // Setup a second allocation
       await staking.connect(indexer.signer).stake(tokensToAllocate)
-      const allocationID2 = deriveChannelKey().address
+      const channelKey2 = deriveChannelKey()
+      const allocationID2 = channelKey2.address
       await staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokensToAllocate, allocationID2, metadata)
+        .allocate(
+          subgraphDeploymentID,
+          tokensToAllocate,
+          allocationID2,
+          metadata,
+          await channelKey2.generateProof(indexer.address),
+        )
 
       // Move at least one epoch to be able to close
       await advanceToNextEpoch(epochManager)
@@ -558,6 +604,8 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Close and allocate
+      const newChannelKey = deriveChannelKey()
+      const newAllocationID = newChannelKey.address
       const tx = staking
         .connect(indexer.signer)
         .closeAndAllocate(
@@ -566,8 +614,9 @@ describe('Staking:Allocation', () => {
           indexer.address,
           subgraphDeploymentID,
           tokensToAllocate,
-          deriveChannelKey().address,
+          newAllocationID,
           metadata,
+          await newChannelKey.generateProof(indexer.address),
         )
       await tx
     })

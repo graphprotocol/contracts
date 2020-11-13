@@ -3,6 +3,8 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+
 import "../upgrades/GraphUpgradeable.sol";
 
 import "./IStaking.sol";
@@ -821,14 +823,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
      * @param _metadata IPFS hash for additional information about the allocation
+     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function allocate(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external override notPaused {
-        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
+        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
     }
 
     /**
@@ -838,15 +842,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
      * @param _metadata IPFS hash for additional information about the allocation
+     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function allocateFrom(
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external override notPaused {
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
     }
 
     /**
@@ -888,6 +894,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocation identifier
      * @param _metadata IPFS hash for additional information about the allocation
+     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function closeAndAllocate(
         address _closingAllocationID,
@@ -896,10 +903,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external override notPaused {
         _closeAllocation(_closingAllocationID, _poi);
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
     }
 
     /**
@@ -989,13 +997,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Amount of tokens to allocate
      * @param _allocationID The allocationID will work to identify collected funds related to this allocation
      * @param _metadata Metadata related to the allocation
+     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function _allocate(
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) internal {
         require(_isAuth(_indexer), "!auth");
 
@@ -1004,14 +1014,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Only allocations with a non-zero token amount are allowed
         require(_tokens > 0, "!tokens");
 
-        // Check allocation ID
+        // Check allocation
         require(_allocationID != address(0), "!alloc");
+        require(_getAllocationState(_allocationID) == AllocationState.Null, "!null");
+
+        // Caller must prove that they own the private key for the allocationID adddress
+        // The proof is an Ethereum signed message of KECCAK256(indexerAddress,allocationID)
+        bytes32 messageHash = keccak256(abi.encodePacked(_indexer, _allocationID));
+        bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
+        require(ECDSA.recover(digest, _proof) == _allocationID, "!proof");
 
         // Needs to have free capacity not used for other purposes to allocate
         require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
-
-        // Cannot reuse an allocationID that has already been used in an allocation
-        require(_getAllocationState(_allocationID) == AllocationState.Null, "!null");
 
         // Creates an allocation
         // Allocation identifiers are not reused

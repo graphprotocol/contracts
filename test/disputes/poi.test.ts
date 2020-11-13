@@ -53,20 +53,27 @@ describe('DisputeManager:POI', async () => {
     await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
 
     // Stake & allocate
-    const indexerList = [{ wallet: indexer, allocationID: indexerChannelKey.address }]
+    const indexerList = [
+      { account: indexer, allocationID: indexerChannelKey.address, channelKey: indexerChannelKey },
+    ]
     for (const activeIndexer of indexerList) {
-      const indexerWallet = activeIndexer.wallet
-      const indexerAllocationID = activeIndexer.allocationID
+      const { channelKey, allocationID, account: indexerAccount } = activeIndexer
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexerWallet.address, indexerTokens)
-      await grt.connect(indexerWallet.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor.signer).mint(indexerAccount.address, indexerTokens)
+      await grt.connect(indexerAccount.signer).approve(staking.address, indexerTokens)
 
       // Indexer stake funds
-      await staking.connect(indexerWallet.signer).stake(indexerTokens)
+      await staking.connect(indexerAccount.signer).stake(indexerTokens)
       await staking
-        .connect(indexerWallet.signer)
-        .allocate(subgraphDeploymentID, indexerAllocatedTokens, indexerAllocationID, metadata)
+        .connect(indexerAccount.signer)
+        .allocate(
+          subgraphDeploymentID,
+          indexerAllocatedTokens,
+          allocationID,
+          metadata,
+          await channelKey.generateProof(indexerAccount.address),
+        )
     }
   }
 
@@ -128,7 +135,13 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(indexer.signer).stake(indexerTokens)
       const tx1 = await staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, indexerAllocatedTokens, allocationID, metadata)
+        .allocate(
+          subgraphDeploymentID,
+          indexerAllocatedTokens,
+          allocationID,
+          metadata,
+          await indexerChannelKey.generateProof(indexer.address),
+        )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
