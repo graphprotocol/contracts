@@ -506,7 +506,13 @@ describe('Staking::Delegation', () => {
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(subgraphDeploymentID, tokens, allocationID, metadata)
+        .allocate(
+          subgraphDeploymentID,
+          tokens,
+          allocationID,
+          metadata,
+          await channelKey.generateProof(indexer.address),
+        )
     }
 
     beforeEach(async function () {

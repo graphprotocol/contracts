@@ -14,6 +14,7 @@ import { Staking } from '../../build/typechain/contracts/Staking'
 
 import {
   advanceBlocks,
+  deriveChannelKey,
   getAccounts,
   randomHexBytes,
   latestBlock,
@@ -48,9 +49,13 @@ describe('Rewards', () => {
   let rewardsManager: RewardsManager
   let rewardsManagerMock: RewardsManagerMock
 
+  // Derive some channel keys for each indexer used to sign attestations
+  const channelKey = deriveChannelKey()
+
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
-  const allocationID = '0x6367E9dD7641e0fF221740b57B8C730031d72530'
+
+  const allocationID = channelKey.address
   const metadata = HashZero
 
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
@@ -386,7 +391,13 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID,
+            metadata,
+            await channelKey.generateProof(indexer1.address),
+          )
 
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -417,7 +428,13 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID,
+            metadata,
+            await channelKey.generateProof(indexer1.address),
+          )
 
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -454,7 +471,13 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID,
+            metadata,
+            await channelKey.generateProof(indexer1.address),
+          )
 
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
@@ -493,7 +516,13 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID,
+            metadata,
+            await channelKey.generateProof(indexer1.address),
+          )
       }
 
       async function setupIndexerAllocationWithDelegation(
@@ -529,7 +558,13 @@ describe('Rewards', () => {
         // Allocate
         await staking
           .connect(indexer1.signer)
-          .allocate(subgraphDeploymentID1, tokensToAllocate, allocationID, metadata)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID,
+            metadata,
+            await channelKey.generateProof(indexer1.address),
+          )
       }
 
       it('should distribute rewards on closed allocation', async function () {

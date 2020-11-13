@@ -137,7 +137,8 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external;
 
     function allocateFrom(
@@ -145,7 +146,8 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external;
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;
@@ -159,7 +161,8 @@ interface IStaking {
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
         address _allocationID,
-        bytes32 _metadata
+        bytes32 _metadata,
+        bytes calldata _proof
     ) external;
 
     function collect(uint256 _tokens, address _allocationID) external;
