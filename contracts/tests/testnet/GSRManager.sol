@@ -95,7 +95,7 @@ contract GSRManager is Governed {
     /** TODO - have a math library and use it here and in RewardsMAnager
      * @dev Raises x to the power of n with scaling factor of base.
      * Based on: https://github.com/makerdao/dss/blob/master/src/pot.sol#L81
-     * @param x Base of the exponentation
+     * @param x Base of the exponentiation
      * @param n Exponent
      * @param base Scaling factor
      * @return z Exponential of n with base x

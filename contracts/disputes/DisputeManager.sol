@@ -23,7 +23,7 @@ import "./IDisputeManager.sol";
  * Indexers use the derived private key for an allocation to sign attestations.
  *
  * Indexing Disputes:
- * Indexers present a Proof of Indexing (POI) when they close allocations to proove
+ * Indexers present a Proof of Indexing (POI) when they close allocations to prove
  * they were indexing a subgraph. The Staking contract emits that proof with the format
  * keccak256(indexer.address, POI).
  * Any challenger can dispute the validity of a POI by submitting a dispute to this contract

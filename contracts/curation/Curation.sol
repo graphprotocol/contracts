@@ -358,7 +358,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
      * @param _tokensIn Amount of tokens used to mint signal
-     * @return Amount of signal that can be bought and tokens substracted for the tax
+     * @return Amount of signal that can be bought and tokens subtracted for the tax
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         public
@@ -445,7 +445,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
     /**
      * @dev Triggers an update of rewards due to a change in signal.
-     * @param _subgraphDeploymentID Subgrapy deployment updated
+     * @param _subgraphDeploymentID Subgraph deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal {
         IRewardsManager rewardsManager = rewardsManager();

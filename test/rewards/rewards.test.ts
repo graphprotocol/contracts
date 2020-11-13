@@ -164,7 +164,7 @@ describe('Rewards', () => {
       it('reject set issuance rate to less than minimum allowed', async function () {
         const newIssuanceRate = toGRT('0.1') // this get a bignumber with 1e17
         const tx = rewardsManager.connect(governor.signer).setIssuanceRate(newIssuanceRate)
-        await expect(tx).revertedWith('Issuance rate under minimun allowed')
+        await expect(tx).revertedWith('Issuance rate under minimum allowed')
       })
 
       it('should set issuance rate to minimum allowed', async function () {

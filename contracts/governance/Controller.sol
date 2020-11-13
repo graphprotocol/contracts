@@ -9,7 +9,7 @@ import "./Pausable.sol";
 
 /**
  * @title Graph Controller contract
- * @dev Controller is a registry of contracts for convience. Inspired by Livepeer:
+ * @dev Controller is a registry of contracts for convenience. Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 contract Controller is Governed, Pausable, IController {
@@ -82,7 +82,7 @@ contract Controller is Governed, Pausable, IController {
 
     /**
      * @notice Change the partial paused state of the contract
-     * Partial pause is intented as a partial pause of the protocol
+     * Partial pause is intended as a partial pause of the protocol
      */
     function setPartialPaused(bool _partialPaused) external override onlyGovernorOrGuardian {
         _setPartialPaused(_partialPaused);
