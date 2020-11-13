@@ -170,7 +170,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @dev Add a new minter.
      * @param _account Address of the minter
      */
-    function _addMinter(address _account) internal {
+    function _addMinter(address _account) private {
         _minters[_account] = true;
         emit MinterAdded(_account);
     }
@@ -179,7 +179,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @dev Remove a minter.
      * @param _account Address of the minter
      */
-    function _removeMinter(address _account) internal {
+    function _removeMinter(address _account) private {
         _minters[_account] = false;
         emit MinterRemoved(_account);
     }
@@ -188,7 +188,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
      * @dev Get the running network chain ID.
      * @return The chain ID
      */
-    function _getChainID() internal pure returns (uint256) {
+    function _getChainID() private pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()

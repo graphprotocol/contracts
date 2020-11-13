@@ -185,14 +185,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Check if the caller is authorized (indexer or operator)
      */
-    function _isAuth(address _indexer) internal view returns (bool) {
+    function _isAuth(address _indexer) private view returns (bool) {
         return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
     }
 
     /**
      * @dev Check if the caller is authorized (indexer, operator or delegator)
      */
-    function _isAuthOrDelegator(address _indexer) internal view returns (bool) {
+    function _isAuthOrDelegator(address _indexer) private view returns (bool) {
         return _isAuth(_indexer) || delegationPools[_indexer].delegators[msg.sender].shares > 0;
     }
 
@@ -960,7 +960,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of staking party
      * @param _tokens Amount of tokens to stake
      */
-    function _stake(address _indexer, uint256 _tokens) internal {
+    function _stake(address _indexer, uint256 _tokens) private {
         // Deposit tokens into the indexer stake
         Stakes.Indexer storage indexerStake = stakes[_indexer];
         indexerStake.deposit(_tokens);
@@ -977,7 +977,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Withdraw indexer tokens once the thawing period has passed.
      * @param _indexer Address of indexer to withdraw funds from
      */
-    function _withdraw(address _indexer) internal {
+    function _withdraw(address _indexer) private {
         Stakes.Indexer storage indexerStake = stakes[_indexer];
 
         // Get tokens available for withdraw and update balance
@@ -1006,7 +1006,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _allocationID,
         bytes32 _metadata,
         bytes calldata _proof
-    ) internal {
+    ) private {
         require(_isAuth(_indexer), "!auth");
 
         Stakes.Indexer storage indexerStake = stakes[_indexer];
@@ -1066,7 +1066,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
-    function _closeAllocation(address _allocationID, bytes32 _poi) internal {
+    function _closeAllocation(address _allocationID, bytes32 _poi) private {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
@@ -1141,7 +1141,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _allocationID,
         address _from,
         uint256 _tokens
-    ) internal {
+    ) private {
         uint256 queryFees = _tokens;
 
         // Get allocation
@@ -1209,7 +1209,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Allocation from where we are claiming tokens
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function _claim(address _allocationID, bool _restake) internal {
+    function _claim(address _allocationID, bool _restake) private {
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         AllocationState allocState = _getAllocationState(_allocationID);
@@ -1281,7 +1281,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _delegator,
         address _indexer,
         uint256 _tokens
-    ) internal returns (uint256) {
+    ) private returns (uint256) {
         // Only delegate a non-zero amount of tokens
         require(_tokens > 0, "!tokens");
         // Only delegate to non-empty address
@@ -1330,7 +1330,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _delegator,
         address _indexer,
         uint256 _shares
-    ) internal returns (uint256) {
+    ) private returns (uint256) {
         // Can only undelegate a non-zero amount of shares
         require(_shares > 0, "!shares");
 
@@ -1379,7 +1379,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address _delegator,
         address _indexer,
         address _delegateToIndexer
-    ) internal returns (uint256) {
+    ) private returns (uint256) {
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
         Delegation storage delegation = pool.delegators[_delegator];
@@ -1415,7 +1415,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @return Amount of delegation rewards
      */
     function _collectDelegationQueryRewards(address _indexer, uint256 _tokens)
-        internal
+        private
         returns (uint256)
     {
         uint256 delegationRewards = 0;
@@ -1436,7 +1436,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @return Amount of delegation rewards
      */
     function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens)
-        internal
+        private
         returns (uint256)
     {
         uint256 delegationRewards = 0;
@@ -1473,7 +1473,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of protocol fees
      */
-    function _collectProtocolFees(uint256 _tokens) internal view returns (uint256) {
+    function _collectProtocolFees(uint256 _tokens) private view returns (uint256) {
         if (protocolPercentage == 0) {
             return 0;
         }
@@ -1485,7 +1485,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _tokens Total tokens received used to calculate the amount of tax to collect
      * @return Amount of delegation tax
      */
-    function _collectDelegationTax(uint256 _tokens) internal view returns (uint256) {
+    function _collectDelegationTax(uint256 _tokens) private view returns (uint256) {
         if (delegationTaxPercentage == 0) {
             return 0;
         }
@@ -1497,7 +1497,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Allocation identifier
      * @return AllocationState
      */
-    function _getAllocationState(address _allocationID) internal view returns (AllocationState) {
+    function _getAllocationState(address _allocationID) private view returns (AllocationState) {
         Allocation memory alloc = allocations[_allocationID];
 
         if (alloc.indexer == address(0)) {
@@ -1536,7 +1536,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Triggers an update of rewards due to a change in allocations.
      * @param _subgraphDeploymentID Subgraph deployment updated
      */
-    function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
+    function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) == address(0)) {
             return 0;
@@ -1548,7 +1548,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Assign rewards for the closed allocation to indexer and delegators.
      * @param _allocationID Allocation
      */
-    function _distributeRewards(address _allocationID, address _indexer) internal {
+    function _distributeRewards(address _allocationID, address _indexer) private {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) == address(0)) {
             return;
@@ -1575,7 +1575,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Burn tokens held by this contract.
      * @param _amount Amount of tokens to burn
      */
-    function _burnTokens(uint256 _amount) internal {
+    function _burnTokens(uint256 _amount) private {
         if (_amount > 0) {
             graphToken().burn(_amount);
         }
