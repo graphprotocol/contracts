@@ -18,7 +18,7 @@ contract Pausable {
 
     event PartialPauseChanged(bool isPaused);
     event PauseChanged(bool isPaused);
-    event NewPauseGuardian(address oldPauseGuardian, address pauseGuardian);
+    event NewPauseGuardian(address indexed oldPauseGuardian, address indexed pauseGuardian);
 
     /**
      * @notice Change the partial paused state of the contract

@@ -37,20 +37,23 @@ contract GraphProxyStorage {
      * @dev Emitted when pendingImplementation is changed.
      */
     event PendingImplementationUpdated(
-        address oldPendingImplementation,
-        address newPendingImplementation
+        address indexed oldPendingImplementation,
+        address indexed newPendingImplementation
     );
 
     /**
      * @dev Emitted when pendingImplementation is accepted,
      * which means contract implementation is updated.
      */
-    event ImplementationUpdated(address oldImplementation, address newImplementation);
+    event ImplementationUpdated(
+        address indexed oldImplementation,
+        address indexed newImplementation
+    );
 
     /**
      * @dev Emitted when the admin account has changed.
      */
-    event AdminUpdated(address oldAdmin, address newAdmin);
+    event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
 
     /**
      * @dev Modifier to check whether the `msg.sender` is the admin.

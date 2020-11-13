@@ -155,7 +155,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * This event will be emitted after each DisputeCreated event is emitted
      * for each of the individual disputes.
      */
-    event DisputeLinked(bytes32 disputeID1, bytes32 disputeID2);
+    event DisputeLinked(bytes32 indexed disputeID1, bytes32 indexed disputeID2);
 
     /**
      * @dev Check if the caller is the arbitrator.

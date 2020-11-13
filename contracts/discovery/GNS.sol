@@ -32,7 +32,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Emitted when graph account sets their default name
      */
     event SetDefaultName(
-        address graphAccount,
+        address indexed graphAccount,
         uint256 nameSystem, // only ENS for now
         bytes32 nameIdentifier,
         string name
@@ -42,8 +42,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Emitted when graph account sets a subgraphs metadata on IPFS
      */
     event SubgraphMetadataUpdated(
-        address graphAccount,
-        uint256 subgraphNumber,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
         bytes32 subgraphMetadata
     );
 
@@ -53,25 +53,25 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * The event also emits a `metadataHash` with subgraph details and version details.
      */
     event SubgraphPublished(
-        address graphAccount,
-        uint256 subgraphNumber,
-        bytes32 subgraphDeploymentID,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        bytes32 indexed subgraphDeploymentID,
         bytes32 versionMetadata
     );
 
     /**
      * @dev Emitted when a graph account deprecated one of their subgraphs
      */
-    event SubgraphDeprecated(address graphAccount, uint256 subgraphNumber);
+    event SubgraphDeprecated(address indexed graphAccount, uint256 indexed subgraphNumber);
 
     /**
      * @dev Emitted when a graphAccount creates an nSignal bonding curve that
      * points to a subgraph deployment
      */
     event NameSignalEnabled(
-        address graphAccount,
-        uint256 subgraphNumber,
-        bytes32 subgraphDeploymentID,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        bytes32 indexed subgraphDeploymentID,
         uint32 reserveRatio
     );
 
@@ -79,9 +79,9 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Emitted when a name curator deposits their vSignal into an nSignal curve to mint nSignal
      */
     event NSignalMinted(
-        address graphAccount,
-        uint256 subgraphNumber,
-        address nameCurator,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        address indexed nameCurator,
         uint256 nSignalCreated,
         uint256 vSignalCreated,
         uint256 tokensDeposited
@@ -92,9 +92,9 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * the vSignal, and receives GRT
      */
     event NSignalBurned(
-        address graphAccount,
-        uint256 subgraphNumber,
-        address nameCurator,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        address indexed nameCurator,
         uint256 nSignalBurnt,
         uint256 vSignalBurnt,
         uint256 tokensReceived
@@ -106,25 +106,29 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * new vSignal curve, creating new nSignal
      */
     event NameSignalUpgrade(
-        address graphAccount,
-        uint256 subgraphNumber,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
         uint256 newVSignalCreated,
         uint256 tokensSignalled,
-        bytes32 subgraphDeploymentID
+        bytes32 indexed subgraphDeploymentID
     );
 
     /**
      * @dev Emitted when an nSignal curve has been permanently disabled
      */
-    event NameSignalDisabled(address graphAccount, uint256 subgraphNumber, uint256 withdrawableGRT);
+    event NameSignalDisabled(
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        uint256 withdrawableGRT
+    );
 
     /**
      * @dev Emitted when a nameCurator withdraws their GRT from a deprecated name signal pool
      */
     event GRTWithdrawn(
-        address graphAccount,
-        uint256 subgraphNumber,
-        address nameCurator,
+        address indexed graphAccount,
+        uint256 indexed subgraphNumber,
+        address indexed nameCurator,
         uint256 nSignalBurnt,
         uint256 withdrawnGRT
     );

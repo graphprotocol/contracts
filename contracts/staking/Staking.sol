@@ -102,7 +102,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address allocationID,
+        address indexed allocationID,
         bytes32 metadata
     );
 
@@ -116,7 +116,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address allocationID,
+        address indexed allocationID,
         address from,
         uint256 curationFees,
         uint256 rebateFees
@@ -133,7 +133,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 indexed subgraphDeploymentID,
         uint256 epoch,
         uint256 tokens,
-        address allocationID,
+        address indexed allocationID,
         uint256 effectiveAllocation,
         address sender,
         bytes32 poi
@@ -148,7 +148,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     event RebateClaimed(
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
-        address allocationID,
+        address indexed allocationID,
         uint256 epoch,
         uint256 forEpoch,
         uint256 tokens,
@@ -170,7 +170,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Emitted when `indexer` set `operator` access.
      */
-    event SetOperator(address indexed indexer, address operator, bool allowed);
+    event SetOperator(address indexed indexer, address indexed operator, bool allowed);
 
     /**
      * @dev Check if the caller is the slasher.
