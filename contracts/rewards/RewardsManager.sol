@@ -66,7 +66,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * To accommodate a high precision the issuance rate is expressed in wei.
      * @param _issuanceRate Issuance rate expressed in wei
      */
-    function setIssuanceRate(uint256 _issuanceRate) public override onlyGovernor {
+    function setIssuanceRate(uint256 _issuanceRate) external override onlyGovernor {
         _setIssuanceRate(_issuanceRate);
     }
 
@@ -133,7 +133,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny Whether to set the subgraph as denied for claiming rewards or not
      */
-    function _setDenied(bytes32 _subgraphDeploymentID, bool _deny) internal {
+    function _setDenied(bytes32 _subgraphDeploymentID, bool _deny) private {
         uint256 sinceBlock = _deny ? block.number : 0;
         denylist[_subgraphDeploymentID] = sinceBlock;
         emit RewardsDenylistUpdated(_subgraphDeploymentID, sinceBlock);
@@ -272,7 +272,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @return Accumulated rewards for subgraph
      */
     function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID)
-        public
+        external
         override
         returns (uint256)
     {
@@ -317,7 +317,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
-    function getRewards(address _allocationID) public override view returns (uint256) {
+    function getRewards(address _allocationID) external override view returns (uint256) {
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(
@@ -342,7 +342,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 _tokens,
         uint256 _startAccRewardsPerAllocatedToken,
         uint256 _endAccRewardsPerAllocatedToken
-    ) internal pure returns (uint256) {
+    ) private pure returns (uint256) {
         uint256 newAccrued = _endAccRewardsPerAllocatedToken.sub(_startAccRewardsPerAllocatedToken);
         return newAccrued.mul(_tokens).div(TOKEN_DECIMALS);
     }
@@ -397,7 +397,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 x,
         uint256 n,
         uint256 base
-    ) internal pure returns (uint256 z) {
+    ) private pure returns (uint256 z) {
         assembly {
             switch x
                 case 0 {

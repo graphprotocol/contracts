@@ -181,7 +181,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
      * @param _ownerTaxPercentage Owner tax percentage
      */
-    function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) internal {
+    function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
         require(_ownerTaxPercentage <= 100, "Owner tax must be 100 or less");
         ownerTaxPercentage = _ownerTaxPercentage;
         emit ParameterUpdated("ownerTaxPercentage");
