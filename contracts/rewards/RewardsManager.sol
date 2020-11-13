@@ -291,9 +291,6 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * Must be called before allocation on a subgraph changes.
      * NOTE: Hook called from the Staking contract on allocate() and close()
      *
-     * TODO: Some staticcalls can be optimized by making the Staking contract pass
-     * more information in the call
-     *
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph
      */
