@@ -29,7 +29,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     // -- Events --
 
     /**
-     * @dev Emitted when graph account sets their default name
+     * @dev Emitted when graph account sets its default name
      */
     event SetDefaultName(
         address indexed graphAccount,
@@ -60,7 +60,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     );
 
     /**
-     * @dev Emitted when a graph account deprecated one of their subgraphs
+     * @dev Emitted when a graph account deprecated one of its subgraphs
      */
     event SubgraphDeprecated(address indexed graphAccount, uint256 indexed subgraphNumber);
 
@@ -76,7 +76,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     );
 
     /**
-     * @dev Emitted when a name curator deposits their vSignal into an nSignal curve to mint nSignal
+     * @dev Emitted when a name curator deposits its vSignal into an nSignal curve to mint nSignal
      */
     event NSignalMinted(
         address indexed graphAccount,
@@ -88,7 +88,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     );
 
     /**
-     * @dev Emitted when a name curator burns their nSignal, which in turn burns
+     * @dev Emitted when a name curator burns its nSignal, which in turn burns
      * the vSignal, and receives GRT
      */
     event NSignalBurned(
@@ -101,7 +101,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     );
 
     /**
-     * @dev Emitted when a graph account upgrades their nSignal curve to point to a new
+     * @dev Emitted when a graph account upgrades its nSignal curve to point to a new
      * subgraph deployment, burning all the old vSignal and depositing the GRT into the
      * new vSignal curve, creating new nSignal
      */
@@ -123,7 +123,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     );
 
     /**
-     * @dev Emitted when a nameCurator withdraws their GRT from a deprecated name signal pool
+     * @dev Emitted when a nameCurator withdraws its GRT from a deprecated name signal pool
      */
     event GRTWithdrawn(
         address indexed graphAccount,
@@ -189,7 +189,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
     /**
      * @dev Allows a graph account to set a default name
-     * @param _graphAccount Account that is setting their name
+     * @param _graphAccount Account that is setting its name
      * @param _nameSystem Name system account already has ownership of a name in
      * @param _nameIdentifier The unique identifier that is used to identify the name in the system
      * @param _name The name being set as default
@@ -241,8 +241,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     }
 
     /**
-     * @dev Allows a graph account to publish a new version of their subgraph.
-     * Version is derived from the occurance of SubgraphPublished being emitted.
+     * @dev Allows a graph account to publish a new version of its subgraph.
+     * Version is derived from the occurrence of SubgraphPublished being emitted.
      * The first time SubgraphPublished is called would be Version 0
      * @param _graphAccount Account that is publishing the subgraph
      * @param _subgraphNumber Subgraph number for the account
@@ -348,8 +348,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _subgraphNumber,
         bytes32 _newSubgraphDeploymentID
     ) private {
-        // This is to prevent the owner from front running their name curators signal by posting
-        // their own signal ahead, bringing the name curators in, and dumping on them
+        // This is to prevent the owner from front running its name curators signal by posting
+        // its own signal ahead, bringing the name curators in, and dumping on them
         ICuration curation = curation();
         require(
             !curation.isCurated(_newSubgraphDeploymentID),
@@ -430,7 +430,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     }
 
     /**
-     * @dev Allow a nameCurator to burn some of their nSignal and get GRT in return
+     * @dev Allow a nameCurator to burn some of its nSignal and get GRT in return
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
@@ -475,7 +475,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Owner disables the subgraph. This means the subgraph-number combination can no longer
      * be used for name signal. The nSignal curve is destroyed, the vSignal is burned, and the GNS
      * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
-     * @param _graphAccount Account that is deprecating their name curation
+     * @param _graphAccount Account that is deprecating its name curation
      * @param _subgraphNumber Subgraph number
      */
     function _disableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
@@ -499,7 +499,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
     /**
      * @dev When the subgraph curve is disabled, all nameCurators can call this function and
-     * withdraw the GRT they are entitled for their original deposit of vSignal
+     * withdraw the GRT they are entitled for its original deposit of vSignal
      * @param _graphAccount Subgraph owner
      * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
      */

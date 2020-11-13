@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 interface IDisputeManager {
     // -- Dispute --
 
-    // Disputes contain info neccessary for the Arbitrator to verify and resolve
+    // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
         address indexer;
         address fisherman;

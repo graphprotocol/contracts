@@ -659,7 +659,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Deposit tokens on the indexer stake.
-     * @param _indexer Adress of the indexer
+     * @param _indexer Address of the indexer
      * @param _tokens Amount of tokens to stake
      */
     function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
@@ -1521,7 +1521,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Get the effective stake allocation considering epochs from allocation to closing.
      * @param _tokens Amount of tokens allocated
      * @param _numEpochs Number of epochs that passed from allocation to closing
-     * @return Effective allocated tokens accross epochs
+     * @return Effective allocated tokens across epochs
      */
     function _getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
         private
@@ -1534,7 +1534,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Triggers an update of rewards due to a change in allocations.
-     * @param _subgraphDeploymentID Subgrapy deployment updated
+     * @param _subgraphDeploymentID Subgraph deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) internal returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();

@@ -63,7 +63,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * The issuance rate is defined as a percentage increase of the total supply per block.
      * This means that it needs to be greater than 1.0, any number under 1.0 is not
      * allowed and an issuance rate of 1.0 means no issuance.
-     * To accomodate a high precision the issuance rate is expressed in wei.
+     * To accommodate a high precision the issuance rate is expressed in wei.
      * @param _issuanceRate Issuance rate expressed in wei
      */
     function setIssuanceRate(uint256 _issuanceRate) public override onlyGovernor {
@@ -75,7 +75,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _issuanceRate Issuance rate
      */
     function _setIssuanceRate(uint256 _issuanceRate) private {
-        require(_issuanceRate >= MIN_ISSUANCE_RATE, "Issuance rate under minimun allowed");
+        require(_issuanceRate >= MIN_ISSUANCE_RATE, "Issuance rate under minimum allowed");
 
         // Called since `issuance rate` will change
         updateAccRewardsPerSignal();
@@ -388,7 +388,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Raises x to the power of n with scaling factor of base.
      * Based on: https://github.com/makerdao/dss/blob/master/src/pot.sol#L81
-     * @param x Base of the exponentation
+     * @param x Base of the exponentiation
      * @param n Exponent
      * @param base Scaling factor
      * @return z Exponential of n with base x
