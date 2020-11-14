@@ -69,7 +69,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
 
     /**
      * @dev Return true if the current epoch has already run.
-     * @return Return true if epoch has run
+     * @return Return true if current epoch is the last epoch that has run
      */
     function isCurrentEpochRun() public override view returns (bool) {
         return lastRunEpoch == currentEpoch();

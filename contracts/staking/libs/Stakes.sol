@@ -117,7 +117,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
      * @param _thawingPeriod Period in blocks that need to pass before withdrawal
-     * @return True if staked
+     * @return The weighted average locking period
      */
     function getLockingPeriod(
         Stakes.Indexer memory stake,

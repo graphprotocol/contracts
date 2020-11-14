@@ -488,7 +488,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set an address as allowed slasher.
+     * @dev Set or unset an address as allowed slasher.
      * @param _slasher Address of the party allowed to slash indexers
      * @param _allowed True if slasher is allowed
      */
@@ -630,7 +630,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Authorize an address to be an operator.
+     * @dev Authorize or unauthorize an address to be an operator.
      * @param _operator Address to authorize
      * @param _allowed Whether authorized or not
      */

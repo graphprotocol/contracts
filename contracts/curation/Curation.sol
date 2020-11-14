@@ -100,7 +100,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
     function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
-        // Reserve Ratio must be within 0% to 100% (exclusive, in PPM)
+        // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
         require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
         require(
             _defaultReserveRatio <= MAX_PPM,

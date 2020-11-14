@@ -18,7 +18,7 @@ import "./IDisputeManager.sol";
  * There are two types of disputes that can be created: Query disputes and Indexing disputes.
  *
  * Query Disputes:
- * Graph nodes receive queries and return responses with a signed receipts called attestations.
+ * Graph nodes receive queries and return responses with signed receipts called attestations.
  * An attestation can be disputed if the consumer thinks the query response was invalid.
  * Indexers use the derived private key for an allocation to sign attestations.
  *
@@ -415,7 +415,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * Two linked disputes will be created and if the arbitrator resolve one, the other
      * one will be automatically resolved.
      * @param _attestationData1 First attestation data submitted
-     * @param _attestationData1 Second attestation data submitted
+     * @param _attestationData2 Second attestation data submitted
      * @return DisputeID1, DisputeID2
      */
     function createQueryDisputeConflict(
