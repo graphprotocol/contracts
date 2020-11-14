@@ -575,12 +575,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
+        Dispute memory dispute =_resolveDispute(_disputeID);
 
         // Slash
         uint256 tokensToReward = _slashIndexer(dispute.indexer, dispute.fisherman);
@@ -610,18 +605,13 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be rejected
      */
     function rejectDispute(bytes32 _disputeID) external override onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
+        Dispute memory dispute =_resolveDispute(_disputeID);
 
         // Handle conflicting dispute if any
         require(
             !_isDisputeInConflict(dispute),
             "Dispute for conflicting attestation, must accept the related ID to reject"
         );
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
 
         // Burn the fisherman's deposit
         if (dispute.deposit > 0) {
@@ -637,12 +627,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be disregarded
      */
     function drawDispute(bytes32 _disputeID) external override onlyArbitrator {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-        Dispute memory dispute = disputes[_disputeID];
-
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
+        Dispute memory dispute =_resolveDispute(_disputeID);
 
         // Return deposit to the fisherman
         if (dispute.deposit > 0) {
@@ -656,6 +641,22 @@ contract DisputeManager is Managed, IDisputeManager {
         _resolveDisputeInConflict(dispute);
 
         emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
+    }
+
+    /**
+     * @dev Resolve a dispute by removing it from storage and returning a memory copy.
+     * @param _disputeID ID of the dispute to resolve
+     * @return Dispute
+     */
+    function _resolveDispute(bytes32 _disputeID) private returns (Dispute memory) {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+
+        Dispute memory dispute = disputes[_disputeID];
+
+        // Resolve dispute
+        delete disputes[_disputeID]; // Re-entrancy
+
+        return dispute;
     }
 
     /**
