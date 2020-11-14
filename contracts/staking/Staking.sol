@@ -508,7 +508,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isChannel(address _allocationID) external override view returns (bool) {
+    function isAllocation(address _allocationID) external override view returns (bool) {
         return _getAllocationState(_allocationID) != AllocationState.Null;
     }
 

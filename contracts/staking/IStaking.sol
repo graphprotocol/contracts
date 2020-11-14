@@ -180,7 +180,7 @@ interface IStaking {
 
     function getAllocationState(address _allocationID) external view returns (AllocationState);
 
-    function isChannel(address _allocationID) external view returns (bool);
+    function isAllocation(address _allocationID) external view returns (bool);
 
     function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
         external

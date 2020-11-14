@@ -35,7 +35,7 @@ contract GRTAssetHolder is ERC20AssetHolder {
     function _transferAsset(address payable destination, uint256 amount) internal override {
         IStaking _staking = staking();
 
-        if (_staking.isChannel(destination)) {
+        if (_staking.isAllocation(destination)) {
             _staking.collect(amount, destination);
             return;
         }
