@@ -229,7 +229,9 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     ) external override notPaused onlyGraphAccountOwner(_graphAccount) {
         uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
         _publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
-        graphAccountSubgraphNumbers[_graphAccount]++;
+        graphAccountSubgraphNumbers[_graphAccount] = graphAccountSubgraphNumbers[_graphAccount].add(
+            1
+        );
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
         _enableNameSignal(_graphAccount, subgraphNumber);
     }

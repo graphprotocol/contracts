@@ -5,6 +5,7 @@ pragma solidity ^0.7.3;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../governance/Governed.sol";
 
@@ -20,9 +21,10 @@ import "../governance/Governed.sol";
  *
  * The governor can add the RewardsManager contract to mint indexing rewards.
  *
- * Governor keys can be disposed after the initial distribution.
  */
 contract GraphToken is Governed, ERC20, ERC20Burnable {
+    using SafeMath for uint256;
+
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
@@ -108,12 +110,13 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
                         _owner,
                         _spender,
                         _value,
-                        nonces[_owner]++,
+                        nonces[_owner],
                         _deadline
                     )
                 )
             )
         );
+        nonces[_owner] = nonces[_owner].add(1);
 
         address recoveredAddress = ECDSA.recover(digest, abi.encodePacked(_r, _s, _v));
         require(_owner == recoveredAddress, "GRT: invalid permit");
