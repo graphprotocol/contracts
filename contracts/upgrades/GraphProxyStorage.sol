@@ -95,8 +95,8 @@ contract GraphProxyStorage {
     }
 
     /**
-     * @dev Returns the current implementation.
-     * @return impl Address of the current implementation
+     * @dev Returns the current pending implementation.
+     * @return impl Address of the current pending implementation
      */
     function _pendingImplementation() internal view returns (address impl) {
         bytes32 slot = PENDING_IMPLEMENTATION_SLOT;
@@ -121,8 +121,8 @@ contract GraphProxyStorage {
     }
 
     /**
-     * @dev Sets the implementation address of the proxy.
-     * @param _newImplementation Address of the new implementation
+     * @dev Sets the pending implementation address of the proxy.
+     * @param _newImplementation Address of the new pending implementation
      */
     function _setPendingImplementation(address _newImplementation) internal {
         address oldPendingImplementation = _pendingImplementation();

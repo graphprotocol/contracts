@@ -13,10 +13,10 @@ import "./GNSStorage.sol";
 
 /**
  * @title GNS
- * @dev The Graph Name System contract provides a decentralized namings system for subgraphs
+ * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
  * used in the scope of the Graph Network. It translates subgraph names into subgraph versions.
- * Each version is associated with a Subgraph Deployment. The contract no knowledge of human
- * readable names. All human readable names emitted in events.
+ * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
+ * human-readable names. All human readable names emitted in events.
  */
 contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     using SafeMath for uint256;
@@ -292,7 +292,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
     /**
      * @dev Deprecate a subgraph. Can only be done by the graph account owner.
-     * @param _graphAccount Account that is publishing the subgraph
+     * @param _graphAccount Account that is deprecating the subgraph
      * @param _subgraphNumber Subgraph number for the account
      */
     function deprecateSubgraph(address _graphAccount, uint256 _subgraphNumber)
