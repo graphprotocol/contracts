@@ -3,6 +3,16 @@
 pragma solidity ^0.7.3;
 
 interface IRewardsManager {
+    /**
+     * @dev Stores accumulated rewards and snapshots related to a particular SubgraphDeployment.
+     */
+    struct Subgraph {
+        uint256 accRewardsForSubgraph;
+        uint256 accRewardsForSubgraphSnapshot;
+        uint256 accRewardsPerSignalSnapshot;
+        uint256 accRewardsPerAllocatedToken;
+    }
+
     // -- Params --
 
     function setIssuanceRate(uint256 _issuanceRate) external;
