@@ -41,7 +41,11 @@ export class NetworkFixture {
       controller.address,
       proxyAdmin,
     )
-    const serviceRegistry = await deployment.deployServiceRegistry(deployer, controller.address)
+    const serviceRegistry = await deployment.deployServiceRegistry(
+      deployer,
+      controller.address,
+      proxyAdmin,
+    )
 
     // Setup controller
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)

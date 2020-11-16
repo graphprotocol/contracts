@@ -196,10 +196,16 @@ export async function deployEthereumDIDRegistry(deployer: Signer): Promise<Ether
 export async function deployServiceRegistry(
   deployer: Signer,
   controller: string,
+  proxyAdmin: GraphProxyAdmin,
 ): Promise<ServiceRegistry> {
-  return (deployContract('ServiceRegistry', deployer, controller) as unknown) as Promise<
-    ServiceRegistry
-  >
+  // Deploy
+  return (network.deployContractWithProxy(
+    proxyAdmin,
+    'ServiceRegistry',
+    [controller],
+    deployer,
+    false,
+  ) as unknown) as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(

@@ -4,7 +4,9 @@ pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "../governance/Managed.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
+import "./ServiceRegistryStorage.sol";
 import "./IServiceRegistry.sol";
 
 /**
@@ -12,11 +14,7 @@ import "./IServiceRegistry.sol";
  * @dev This contract supports the service discovery process by allowing indexers to
  * register their service url and any other relevant information.
  */
-contract ServiceRegistry is Managed, IServiceRegistry {
-    // -- State --
-
-    mapping(address => IndexerService) public services;
-
+contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IServiceRegistry {
     // -- Events --
 
     event ServiceRegistered(address indexed indexer, string url, string geohash);
@@ -30,10 +28,9 @@ contract ServiceRegistry is Managed, IServiceRegistry {
     }
 
     /**
-     * @dev Contract Constructor.
-     * @param _controller Controller address
+     * @dev Initialize this contract.
      */
-    constructor(address _controller) {
+    function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
     }
 
