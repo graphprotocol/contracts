@@ -32,7 +32,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 275 # ~1 hour (in blocks)
+      lengthInBlocks: 138 # ~30 min (in blocks)
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
@@ -44,7 +44,7 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      reserveRatio: 333333 # ~33.33% (parts per million)
+      reserveRatio: 500000 # 50% (parts per million)
       curationTaxPercentage: 50000 # 5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
@@ -70,8 +70,8 @@ contracts:
       thawingPeriod: 275 # ~1 hour (in blocks)
       protocolPercentage: 10000 # 1% (parts per million)
       curationPercentage: 100000 # 10%
-      channelDisputeEpochs: 4
-      maxAllocationEpochs: 24 # Based on epoch length this is ~1 day (in epochs)
+      channelDisputeEpochs: 8
+      maxAllocationEpochs: 24 # Based on epoch length this is ~12 hrs (in epochs)
       delegationUnbondingPeriod: 2 # epochs
       delegationRatio: 100 # 100x (multiplier)
       rebateAlphaNumerator: 85
@@ -86,7 +86,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      issuanceRate: "1000000023206889619" # 5% annual rate
+      issuanceRate: "1000000012184945188" # 3% annual rate. rate*365*60*60*24/13
   GRTAssetHolder:
     init:
       adjudicatorAddress: "0xaa94bed44fc8195b029628341f13a695f1348c04"
