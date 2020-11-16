@@ -26,6 +26,7 @@ contracts:
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
   ServiceRegistry:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
   EpochManager:
