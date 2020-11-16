@@ -8,6 +8,7 @@ import {
   ContractTransaction,
   Signer,
   Overrides,
+  BigNumber,
 } from 'ethers'
 import consola from 'consola'
 
@@ -15,9 +16,20 @@ import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
 import { defaultOverrides } from './defaults'
 
-const { keccak256 } = utils
+const { keccak256, randomBytes, parseUnits, hexlify } = utils
 
 export const logger = consola.create({})
+
+export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
+export const toGRT = (value: string | number): BigNumber => {
+  return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
+}
+export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
+  new providers.JsonRpcProvider(providerUrl, network)
+
+export const getChainID = (): number => {
+  return 4 // Only works for rinkeby right now
+}
 
 const hash = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 

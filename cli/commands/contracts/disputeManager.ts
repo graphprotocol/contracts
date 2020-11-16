@@ -1,13 +1,13 @@
 import consola from 'consola'
 import yargs, { Argv } from 'yargs'
-import { constants, utils, Wallet, providers, BigNumber } from 'ethers'
+import { constants, utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
-import { sendTransaction } from '../../network'
+import { sendTransaction, getChainID, getProvider, toGRT, randomHexBytes } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 const { HashZero } = constants
-const { defaultAbiCoder: abi, arrayify, concat, hexlify, randomBytes, parseUnits } = utils
+const { defaultAbiCoder: abi, arrayify, concat, hexlify } = utils
 
 interface ChannelKey {
   privKey: string
@@ -16,16 +16,6 @@ interface ChannelKey {
 }
 
 const logger = consola.create({})
-export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
-export const toGRT = (value: string | number): BigNumber => {
-  return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
-}
-export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
-  new providers.JsonRpcProvider(providerUrl, network)
-
-export const getChainID = (): number => {
-  return 4 // Only works for rinkeby right now
-}
 
 async function buildAttestation(receipt: Receipt, signer: string, disputeManagerAddress: string) {
   const attestation = await createAttestation(signer, getChainID(), disputeManagerAddress, receipt)
@@ -77,12 +67,12 @@ async function setupIndexer(
   logger.log('Staking...')
   await sendTransaction(cli.wallet, staking, 'stake', [indexerTokens])
   logger.log('Allocating...')
-  await sendTransaction(
-    cli.wallet,
-    staking,
-    'allocate',
-    [receipt.subgraphDeploymentID, indexerAllocatedTokens, indexerChannelKey.address, metadata],
-  )
+  await sendTransaction(cli.wallet, staking, 'allocate', [
+    receipt.subgraphDeploymentID,
+    indexerAllocatedTokens,
+    indexerChannelKey.address,
+    metadata,
+  ])
 }
 
 // This just creates any query dispute conflict to test the subgraph, no real data is sent
@@ -122,12 +112,10 @@ export const createTestQueryDisputeConflict = async (
   )
 
   logger.log(`Creating conflicting attestations...`)
-  await sendTransaction(
-    cli.wallet,
-    disputeManager,
-    'createQueryDisputeConflict',
-    [encodeAttestation(attestation1), encodeAttestation(attestation2)],
-  )
+  await sendTransaction(cli.wallet, disputeManager, 'createQueryDisputeConflict', [
+    encodeAttestation(attestation1),
+    encodeAttestation(attestation2),
+  ])
 }
 
 // This just creates any indexing dispute to test the subgraph, no real data is sent
@@ -156,12 +144,10 @@ export const createTestIndexingDispute = async (
   await sendTransaction(cli.wallet, grt, 'approve', [disputeManager.address, deposit])
 
   logger.log(`Creating indexing dispute...`)
-  await sendTransaction(
-    cli.wallet,
-    disputeManager,
-    'createIndexingDispute',
-    [indexerChannelKey.address, deposit],
-  )
+  await sendTransaction(cli.wallet, disputeManager, 'createIndexingDispute', [
+    indexerChannelKey.address,
+    deposit,
+  ])
 }
 
 export const accept = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
