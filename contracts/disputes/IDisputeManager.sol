@@ -28,9 +28,9 @@ interface IDisputeManager {
         bytes32 requestCID;
         bytes32 responseCID;
         bytes32 subgraphDeploymentID;
-        uint8 v;
         bytes32 r;
         bytes32 s;
+        uint8 v;
     }
 
     // -- Configuration --
