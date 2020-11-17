@@ -21,7 +21,7 @@ import {
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256 } = utils
+const { defaultAbiCoder: abi, arrayify, concat, hexlify, solidityKeccak256, joinSignature } = utils
 
 const MAX_PPM = 1000000
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
@@ -58,11 +58,7 @@ function encodeAttestation(attestation: Attestation): string {
       [attestation.requestCID, attestation.responseCID, attestation.subgraphDeploymentID],
     ),
   )
-  const sig = concat([
-    arrayify(hexlify(attestation.v)),
-    arrayify(attestation.r),
-    arrayify(attestation.s),
-  ])
+  const sig = joinSignature(attestation)
   return hexlify(concat([data, sig]))
 }
 

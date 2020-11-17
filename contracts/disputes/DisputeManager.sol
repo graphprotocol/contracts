@@ -39,11 +39,11 @@ contract DisputeManager is Managed, IDisputeManager {
     uint256 private constant ATTESTATION_SIZE_BYTES = 161;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
-    uint256 private constant SIG_V_LENGTH = 1;
     uint256 private constant SIG_R_LENGTH = 32;
-    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES;
-    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES + SIG_V_LENGTH;
-    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_V_LENGTH + SIG_R_LENGTH;
+    uint256 private constant SIG_S_LENGTH = 32;
+    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
+    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
+    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
@@ -771,11 +771,11 @@ contract DisputeManager is Managed, IDisputeManager {
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct
-        uint8 v = _toUint8(_data, SIG_V_OFFSET);
         bytes32 r = _toBytes32(_data, SIG_R_OFFSET);
         bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
+        uint8 v = _toUint8(_data, SIG_V_OFFSET);
 
-        return Attestation(requestCID, responseCID, subgraphDeploymentID, v, r, s);
+        return Attestation(requestCID, responseCID, subgraphDeploymentID, r, s, v);
     }
 
     /**
