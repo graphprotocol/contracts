@@ -585,7 +585,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _delegator Address of the delegator
      * @return True if delegator of indexer
      */
-    function isDelegator(address _indexer, address _delegator) public view returns (bool) {
+    function isDelegator(address _indexer, address _delegator) public override view returns (bool) {
         return delegationPools[_indexer].delegators[_delegator].shares > 0;
     }
 

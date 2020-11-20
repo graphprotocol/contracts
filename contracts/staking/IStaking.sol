@@ -194,4 +194,6 @@ interface IStaking {
         external
         view
         returns (Delegation memory);
+
+    function isDelegator(address _indexer, address _delegator) external view returns (bool);
 }
