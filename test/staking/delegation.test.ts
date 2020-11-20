@@ -551,6 +551,19 @@ describe('Staking::Delegation', () => {
       expect(alloc.tokens).eq(tokensToAllocate)
     })
 
+    it('should account delegation for indexer capacity properly', async function () {
+      // 1:10 delegation capacity
+      await staking.connect(governor.signer).setDelegationRatio(10)
+
+      // Delegate
+      await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+
+      // If we unstake all, the indexer capacity should go to zero
+      // Should not be able to use delegated tokens
+      await staking.connect(indexer.signer).unstake(tokensToStake)
+      expect(await staking.getIndexerCapacity(indexer.address)).eq(0)
+    })
+
     it('should send delegation cut of query fees to delegation pool', async function () {
       // 1:10 delegation capacity
       await staking.connect(governor.signer).setDelegationRatio(10)
