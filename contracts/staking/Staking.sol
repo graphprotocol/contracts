@@ -129,6 +129,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * The `effectiveAllocation` are the tokens allocated from creation to closing.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
+     * `isDelegator` is true if the sender was one of the indexer's delegators.
      */
     event AllocationClosed(
         address indexed indexer,
@@ -138,7 +139,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexed allocationID,
         uint256 effectiveAllocation,
         address sender,
-        bytes32 poi
+        bytes32 poi,
+        bool isDelegator
     );
 
     /**
@@ -187,13 +189,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function _isAuth(address _indexer) private view returns (bool) {
         return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
-    }
-
-    /**
-     * @dev Check if the caller is authorized (indexer, operator or delegator)
-     */
-    function _isAuthOrDelegator(address _indexer) private view returns (bool) {
-        return _isAuth(_indexer) || delegationPools[_indexer].delegators[msg.sender].shares > 0;
     }
 
     /**
@@ -582,6 +577,16 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         returns (Delegation memory)
     {
         return delegationPools[_indexer].delegators[_delegator];
+    }
+
+    /**
+     * @dev Return whether the delegator has delegated to the indexer.
+     * @param _indexer Address of the indexer where funds have been delegated
+     * @param _delegator Address of the delegator
+     * @return True if delegator of indexer
+     */
+    function isDelegator(address _indexer, address _delegator) public view returns (bool) {
+        return delegationPools[_indexer].delegators[_delegator].shares > 0;
     }
 
     /**
@@ -1118,15 +1123,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _poi Proof of indexing submitted for the allocated period
      */
     function _closeAllocation(address _allocationID, bytes32 _poi) private {
-        // Get allocation
-        Allocation storage alloc = allocations[_allocationID];
-        AllocationState allocState = _getAllocationState(_allocationID);
-
         // Allocation must exist and be active
+        AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState == AllocationState.Active, "!active");
 
-        // Get indexer stakes
-        Stakes.Indexer storage indexerStake = stakes[alloc.indexer];
+        // Get allocation
+        Allocation storage alloc = allocations[_allocationID];
 
         // Validate that an allocation cannot be closed before one epoch
         uint256 currentEpoch = epochManager().currentEpoch();
@@ -1135,13 +1137,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             : 0;
         require(epochs > 0, "<epochs");
 
-        // Validate ownership
+        // Indexer or operator can close an allocation
+        // Delegators are also allowed but only after maxAllocationEpochs passed
+        bool isIndexer = _isAuth(alloc.indexer);
         if (epochs > maxAllocationEpochs) {
-            // Verify that the allocation owner or delegator is closing
-            require(_isAuthOrDelegator(alloc.indexer), "!auth-or-del");
+            require(isIndexer || isDelegator(alloc.indexer, msg.sender), "!auth-or-del");
         } else {
-            // Verify that the allocation owner is closing
-            require(_isAuth(alloc.indexer), "!auth");
+            require(isIndexer, "!auth");
         }
 
         // Close the allocation and start counting a period to settle remaining payments from
@@ -1157,12 +1159,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // Distribute rewards if proof of indexing was presented by the indexer or operator
-        if (_isAuth(msg.sender) && _poi != 0) {
+        if (isIndexer && _poi != 0) {
             _distributeRewards(_allocationID, alloc.indexer);
         }
 
         // Free allocated tokens from use
-        indexerStake.unallocate(alloc.tokens);
+        stakes[alloc.indexer].unallocate(alloc.tokens);
 
         // Track total allocations per subgraph
         // Used for rewards calculations
@@ -1178,7 +1180,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             _allocationID,
             alloc.effectiveAllocation,
             msg.sender,
-            _poi
+            _poi,
+            !isIndexer
         );
     }
 
