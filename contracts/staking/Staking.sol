@@ -952,8 +952,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
                 allocState == AllocationState.Closed)
                 ? protocolPercentage
                 : MAX_PPM;
-            uint256 protocolFees = _collectTax(graphToken, queryFees, usedProtocolPercentage);
-            queryFees = queryFees.sub(protocolFees);
+            uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
+            queryFees = queryFees.sub(protocolTax);
 
             // -- Collect curation fees --
             // Only if the subgraph deployment is curated
@@ -1128,12 +1128,12 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(allocState == AllocationState.Active, "!active");
 
         // Get allocation
-        Allocation storage alloc = allocations[_allocationID];
+        Allocation memory alloc = allocations[_allocationID];
 
         // Validate that an allocation cannot be closed before one epoch
-        uint256 currentEpoch = epochManager().currentEpoch();
-        uint256 epochs = alloc.createdAtEpoch < currentEpoch
-            ? currentEpoch.sub(alloc.createdAtEpoch)
+        alloc.closedAtEpoch = epochManager().currentEpoch();
+        uint256 epochs = alloc.createdAtEpoch < alloc.closedAtEpoch
+            ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
             : 0;
         require(epochs > 0, "<epochs");
 
@@ -1146,13 +1146,20 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             require(isIndexer, "!auth");
         }
 
+        // Calculate effective allocation for the amount of epochs it remained allocated
+        alloc.effectiveAllocation = _getEffectiveAllocation(
+            maxAllocationEpochs,
+            alloc.tokens,
+            epochs
+        );
+
         // Close the allocation and start counting a period to settle remaining payments from
         // state channels.
-        alloc.closedAtEpoch = currentEpoch;
-        alloc.effectiveAllocation = _getEffectiveAllocation(alloc.tokens, epochs);
+        allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
+        allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
 
         // Account collected fees and effective allocation in rebate pool for the epoch
-        Rebates.Pool storage rebatePool = rebates[currentEpoch];
+        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
         if (!rebatePool.exists()) {
             rebatePool.init(alphaNumerator, alphaDenominator);
         }
@@ -1196,23 +1203,21 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         require(allocState == AllocationState.Finalized, "!finalized");
 
         // Get allocation
-        Allocation storage alloc = allocations[_allocationID];
-        address indexer = alloc.indexer;
-        uint256 closedAtEpoch = alloc.closedAtEpoch;
+        Allocation memory alloc = allocations[_allocationID];
 
         // Only the indexer or operator can decide if to restake
-        bool restake = _isAuth(indexer) ? _restake : false;
+        bool restake = _isAuth(alloc.indexer) ? _restake : false;
 
         // Process rebate reward
-        Rebates.Pool storage rebatePool = rebates[closedAtEpoch];
+        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
         uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Calculate delegation rewards and add them to the delegation pool
-        uint256 delegationRewards = _collectDelegationQueryRewards(indexer, tokensToClaim);
+        // Add delegation rewards to the delegation pool
+        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationRewards);
 
         // Update the allocate state
-        alloc.tokens = 0; // This avoid collect(), close() and claim() to be called
+        allocations[_allocationID].tokens = 0; // This avoid collect(), close() and claim() to be called
 
         // -- Interactions --
 
@@ -1221,7 +1226,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
             _burnTokens(graphToken, rebatePool.unclaimedFees());
-            delete rebates[closedAtEpoch];
+            delete rebates[alloc.closedAtEpoch];
         }
 
         // When there are tokens to claim from the rebate pool, transfer or restake
@@ -1229,19 +1234,19 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             // Assign claimed tokens
             if (restake) {
                 // Restake to place fees into the indexer stake
-                _stake(indexer, tokensToClaim);
+                _stake(alloc.indexer, tokensToClaim);
             } else {
                 // Transfer funds back to the indexer
-                require(graphToken.transfer(indexer, tokensToClaim), "!transfer");
+                require(graphToken.transfer(alloc.indexer, tokensToClaim), "!transfer");
             }
         }
 
         emit RebateClaimed(
-            indexer,
+            alloc.indexer,
             alloc.subgraphDeploymentID,
             _allocationID,
             epochManager().currentEpoch(),
-            closedAtEpoch,
+            alloc.closedAtEpoch,
             tokensToClaim,
             rebatePool.unclaimedAllocationsCount,
             delegationRewards
@@ -1504,17 +1509,18 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Get the effective stake allocation considering epochs from allocation to closing.
+     * @param _maxAllocationEpochs Max amount of epochs to cap the allocated stake
      * @param _tokens Amount of tokens allocated
      * @param _numEpochs Number of epochs that passed from allocation to closing
      * @return Effective allocated tokens across epochs
      */
-    function _getEffectiveAllocation(uint256 _tokens, uint256 _numEpochs)
-        private
-        view
-        returns (uint256)
-    {
-        bool shouldCap = maxAllocationEpochs > 0 && _numEpochs > maxAllocationEpochs;
-        return _tokens.mul((shouldCap) ? maxAllocationEpochs : _numEpochs);
+    function _getEffectiveAllocation(
+        uint256 _maxAllocationEpochs,
+        uint256 _tokens,
+        uint256 _numEpochs
+    ) private pure returns (uint256) {
+        bool shouldCap = _maxAllocationEpochs > 0 && _numEpochs > _maxAllocationEpochs;
+        return _tokens.mul((shouldCap) ? _maxAllocationEpochs : _numEpochs);
     }
 
     /**
