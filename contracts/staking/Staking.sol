@@ -929,43 +929,47 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
-        // Pull tokens to collect from the authorized sender
-        IGraphToken graphToken = graphToken();
-        require(graphToken.transferFrom(msg.sender, address(this), _tokens), "!transfer");
-
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
-        bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
         uint256 queryFees = _tokens;
+        uint256 curationFees = 0;
+        bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
-        // -- Collect protocol tax --
-        // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-        uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-            allocState == AllocationState.Closed)
-            ? protocolPercentage
-            : MAX_PPM;
-        uint256 protocolFees = _collectTax(graphToken, queryFees, usedProtocolPercentage);
-        queryFees = queryFees.sub(protocolFees);
+        // Process query fees only if non-zero amount
+        if (queryFees > 0) {
+            // Pull tokens to collect from the authorized sender
+            IGraphToken graphToken = graphToken();
+            require(graphToken.transferFrom(msg.sender, address(this), _tokens), "!transfer");
 
-        // -- Collect curation fees --
-        // Only if the subgraph deployment is curated
-        uint256 curationFees = _collectCurationFees(
-            graphToken,
-            subgraphDeploymentID,
-            queryFees,
-            curationPercentage
-        );
-        queryFees = queryFees.sub(curationFees);
+            // -- Collect protocol tax --
+            // If the Allocation is not active or closed we are going to charge a 100% protocol tax
+            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
+                allocState == AllocationState.Closed)
+                ? protocolPercentage
+                : MAX_PPM;
+            uint256 protocolFees = _collectTax(graphToken, queryFees, usedProtocolPercentage);
+            queryFees = queryFees.sub(protocolFees);
 
-        // Add funds to the allocation
-        alloc.collectedFees = alloc.collectedFees.add(queryFees);
+            // -- Collect curation fees --
+            // Only if the subgraph deployment is curated
+            curationFees = _collectCurationFees(
+                graphToken,
+                subgraphDeploymentID,
+                queryFees,
+                curationPercentage
+            );
+            queryFees = queryFees.sub(curationFees);
 
-        // When allocation is closed redirect funds to the rebate pool
-        // This way we can keep collecting tokens even after the allocation is closed and
-        // before it gets to the finalized state.
-        if (allocState == AllocationState.Closed) {
-            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-            rebatePool.fees = rebatePool.fees.add(queryFees);
+            // Add funds to the allocation
+            alloc.collectedFees = alloc.collectedFees.add(queryFees);
+
+            // When allocation is closed redirect funds to the rebate pool
+            // This way we can keep collecting tokens even after the allocation is closed and
+            // before it gets to the finalized state.
+            if (allocState == AllocationState.Closed) {
+                Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+                rebatePool.fees = rebatePool.fees.add(queryFees);
+            }
         }
 
         emit AllocationCollected(
