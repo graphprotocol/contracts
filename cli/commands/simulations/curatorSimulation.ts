@@ -56,7 +56,8 @@ const curateOnSubgraphs = async (
   for (let i = 0; i < txData.length; i++) {
     const subgraph = txData[i]
     const graphAccount = cli.walletAddress
-    const tokens = parseGRT(subgraph.signal)
+    const tokens = parseGRT(subgraph.signal) // need to add in quotes, parseCSV does not
+    const minNSignal = parseGRT(`0`)
     const gns = cli.contracts.GNS
 
     logger.log(`Minting nSignal for ${graphAccount}-${firstSubgraphNumber}...`)
@@ -65,6 +66,7 @@ const curateOnSubgraphs = async (
       graphAccount,
       firstSubgraphNumber,
       tokens,
+      minNSignal,
     ])
     firstSubgraphNumber++
   }
