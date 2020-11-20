@@ -600,10 +600,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @return Amount of tokens staked by the indexer
      */
     function getIndexerCapacity(address _indexer) public override view returns (uint256) {
-        Stakes.Indexer storage indexerStake = stakes[_indexer];
+        Stakes.Indexer memory indexerStake = stakes[_indexer];
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
-        uint256 tokensDelegatedCap = indexerStake.tokensStaked.mul(uint256(delegationRatio));
+        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
         uint256 tokensDelegatedCapacity = (tokensDelegated < tokensDelegatedCap)
             ? tokensDelegated
             : tokensDelegatedCap;
