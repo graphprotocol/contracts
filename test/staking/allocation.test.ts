@@ -522,6 +522,7 @@ describe('Staking:Allocation', () => {
           effectiveAllocation,
           indexer.address,
           poi,
+          false,
         )
 
       // After state
@@ -556,6 +557,49 @@ describe('Staking:Allocation', () => {
       // Should close if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
       await staking.connect(me.signer).closeAllocation(allocationID, poi)
+    })
+
+    it('should close an allocation (by delegator)', async function () {
+      // Move max allocation epochs to close by delegator
+      const maxAllocationEpochs = await staking.maxAllocationEpochs()
+      for (let i = 0; i < maxAllocationEpochs + 1; i++) {
+        await advanceToNextEpoch(epochManager)
+      }
+
+      // Reject to close if the address is not delegator
+      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      await expect(tx1).revertedWith('!auth')
+
+      // Calculations
+      const beforeAlloc = await staking.getAllocation(allocationID)
+      const currentEpoch = await epochManager.currentEpoch()
+      const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
+      const effectiveAllocation = calculateEffectiveAllocation(
+        beforeAlloc.tokens,
+        epochs,
+        toBN(maxAllocationEpochs),
+      )
+
+      // Setup
+      await grt.connect(governor.signer).mint(me.address, toGRT('1'))
+      await grt.connect(me.signer).approve(staking.address, toGRT('1'))
+      await staking.connect(me.signer).delegate(indexer.address, toGRT('1'))
+
+      // Should close by delegator
+      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      await expect(tx)
+        .emit(staking, 'AllocationClosed')
+        .withArgs(
+          indexer.address,
+          subgraphDeploymentID,
+          currentEpoch,
+          beforeAlloc.tokens,
+          allocationID,
+          effectiveAllocation,
+          me.address,
+          poi,
+          true,
+        )
     })
 
     it('should close many allocations in batch', async function () {
