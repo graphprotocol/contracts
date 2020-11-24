@@ -35,6 +35,7 @@ export class NetworkFixture {
       deployer,
       controller.address,
       arbitratorAddress,
+      proxyAdmin,
     )
     const rewardsManager = await deployment.deployRewardsManager(
       deployer,

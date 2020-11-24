@@ -7,7 +7,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import "../governance/Managed.sol";
+import "../upgrades/GraphUpgradeable.sol";
 
+import "./DisputeManagerStorage.sol";
 import "./IDisputeManager.sol";
 
 /*
@@ -33,20 +35,8 @@ import "./IDisputeManager.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract DisputeManager is Managed, IDisputeManager {
+contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeManager {
     using SafeMath for uint256;
-
-    uint256 private constant ATTESTATION_SIZE_BYTES = 161;
-    uint256 private constant RECEIPT_SIZE_BYTES = 96;
-
-    uint256 private constant SIG_R_LENGTH = 32;
-    uint256 private constant SIG_S_LENGTH = 32;
-    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
-    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
-    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
-
-    uint256 private constant UINT8_BYTE_LENGTH = 1;
-    uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
     // -- EIP-712  --
 
@@ -63,30 +53,19 @@ contract DisputeManager is Managed, IDisputeManager {
 
     // -- Constants --
 
-    // 100% in parts per million
-    uint256 private constant MAX_PPM = 1000000;
+    uint256 private constant ATTESTATION_SIZE_BYTES = 161;
+    uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
-    // -- State --
+    uint256 private constant SIG_R_LENGTH = 32;
+    uint256 private constant SIG_S_LENGTH = 32;
+    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
+    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
+    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
 
-    bytes32 private DOMAIN_SEPARATOR;
+    uint256 private constant UINT8_BYTE_LENGTH = 1;
+    uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
-    // The arbitrator is solely in control of arbitrating disputes
-    address public arbitrator;
-
-    // Minimum deposit required to create a Dispute
-    uint256 public minimumDeposit;
-
-    // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public fishermanRewardPercentage;
-
-    // Percentage of indexer stake to slash on disputes
-    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public slashingPercentage;
-
-    // Disputes created : disputeID => Dispute
-    // disputeID - check creation functions to see how disputeID is built
-    mapping(bytes32 => Dispute) public disputes;
+    uint256 private constant MAX_PPM = 1000000; // 100% in parts per million
 
     // -- Events --
 
@@ -166,19 +145,19 @@ contract DisputeManager is Managed, IDisputeManager {
     }
 
     /**
-     * @dev Contract Constructor
+     * @dev Initialize this contract.
      * @param _arbitrator Arbitrator role
      * @param _minimumDeposit Minimum deposit required to create a Dispute
-     * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (basis points)
-     * @param _slashingPercentage Percentage of indexer stake slashed (basis points)
+     * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
+     * @param _slashingPercentage Percentage of indexer stake slashed (ppm)
      */
-    constructor(
+    function initialize(
         address _controller,
         address _arbitrator,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _slashingPercentage
-    ) {
+    ) external onlyImpl {
         Managed._initialize(_controller);
 
         // Settings
@@ -575,7 +554,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute =_resolveDispute(_disputeID);
+        Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Slash
         uint256 tokensToReward = _slashIndexer(dispute.indexer, dispute.fisherman);
@@ -605,7 +584,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be rejected
      */
     function rejectDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute =_resolveDispute(_disputeID);
+        Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Handle conflicting dispute if any
         require(
@@ -627,7 +606,7 @@ contract DisputeManager is Managed, IDisputeManager {
      * @param _disputeID ID of the dispute to be disregarded
      */
     function drawDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute =_resolveDispute(_disputeID);
+        Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Return deposit to the fisherman
         if (dispute.deposit > 0) {
