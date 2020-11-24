@@ -138,16 +138,21 @@ export async function deployDisputeManager(
   deployer: Signer,
   controller: string,
   arbitrator: string,
+  proxyAdmin: GraphProxyAdmin,
 ): Promise<DisputeManager> {
   // Deploy
-  return deployContract(
+  return network.deployContractWithProxy(
+    proxyAdmin,
     'DisputeManager',
+    [
+      controller,
+      arbitrator,
+      defaults.dispute.minimumDeposit.toString(),
+      defaults.dispute.fishermanRewardPercentage.toString(),
+      defaults.dispute.slashingPercentage.toString(),
+    ],
     deployer,
-    controller,
-    arbitrator,
-    defaults.dispute.minimumDeposit.toString(),
-    defaults.dispute.fishermanRewardPercentage.toString(),
-    defaults.dispute.slashingPercentage.toString(),
+    false,
   ) as Promise<DisputeManager>
 }
 

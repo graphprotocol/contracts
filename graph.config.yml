@@ -49,6 +49,7 @@ contracts:
       curationTaxPercentage: 50000 # 5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
+    proxy: true
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
