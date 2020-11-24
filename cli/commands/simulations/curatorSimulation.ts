@@ -108,7 +108,7 @@ const unsignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> =>
     const account = txData[i].account
     const subgraphNumber = txData[i].subgraphNumber
     logger.log(`Burning ${formatGRT(burnAmount)} nSignal for ${account}-${subgraphNumber}...`)
-    await sendTransaction(cli.wallet, gns, 'burnNSignal', [account, subgraphNumber, burnAmount])
+    await sendTransaction(cli.wallet, gns, 'burnNSignal', [account, subgraphNumber, burnAmount, 0])
   }
 }
 export const curatorSimulationCommand = {
