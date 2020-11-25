@@ -15,10 +15,10 @@ contract GRTAssetHolder is ERC20AssetHolder {
     constructor(
         address _AdjudicatorAddress,
         address _TokenAddress,
-        address _ControllerAddress
+        IController _Controller
     ) public ERC20AssetHolder(_AdjudicatorAddress, _TokenAddress) {
         AdjudicatorAddress = _AdjudicatorAddress;
-        Controller = IController(_ControllerAddress);
+        Controller = _Controller;
     }
 
     function staking() public view returns (IStaking) {
