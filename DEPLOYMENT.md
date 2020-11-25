@@ -107,3 +107,20 @@ Some contracts require the address from previously deployed contracts. For that 
 4. Merge this update into master, branch off and save for whatever version of the testnet is going on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
 5. Pull the updated package into the subgraph, and other apps that depend on the package.json.
 6. Send tokens to the whole team with `./cli/cli.ts transferTeamTokens --amount 10000000`
+
+### Updating NPM packages and tagging on github and other testnet tasks
+
+If you are deploying the testnet, remember to deploy a new GDAI and GSR, as you
+don't want to re-use the previous GSR.
+
+```
+./cli/cli.ts deploy --contract GDAI
+./cli/cli.ts deploy --contract GSRManager --init 1000000001547125958,<GDAI_ADDR>
+```
+
+Please remember to rename the Graph Token and GDAI symbols for the appropriate testnet or mainnet
+configuration.
+
+Make sure to release an NPM package with the correct name for the release, as well as a github tag
+with the exact same name. Remember to check any manual addresses that must be added to the
+`addresses.json`. Make sure to deploy a new subgraph and ensure it is hooked up correctly.

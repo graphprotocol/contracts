@@ -10,7 +10,7 @@ export const local = {
 }
 export const defaultOverrides: Overrides = {
   gasPrice: utils.parseUnits('25', 'gwei'), // auto
-  gasLimit: 2000000, // auto
+  gasLimit: 10000000, // auto
 }
 
 export const cliOpts = {

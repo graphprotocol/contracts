@@ -17,7 +17,7 @@ contract GDAI is Governed, ERC20, ERC20Burnable {
     /**
      * @dev GDAI constructor.
      */
-    constructor() ERC20("Graph DAI", "GDAI") {
+    constructor() ERC20("Graph DAI", "GDAI-P2.2") {
         Governed._initialize(msg.sender);
 
         // The Governor is sent all tokens

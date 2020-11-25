@@ -88,7 +88,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      issuanceRate: "1000000004101798" # 1% annual rate. rate^(365*60*60*24/13)
+      issuanceRate: "1000000004101798248" # 1% annual rate. rate^(365*60*60*24/13)
   GRTAssetHolder:
     init:
       adjudicatorAddress: "0xaa94bed44fc8195b029628341f13a695f1348c04"
