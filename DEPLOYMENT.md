@@ -111,12 +111,14 @@ Some contracts require the address from previously deployed contracts. For that 
 ### Updating NPM packages and tagging on github and other testnet tasks
 
 If you are deploying the testnet, remember to deploy a new GDAI and GSR, as you
-don't want to re-use the previous GSR.
+don't want to re-use the previous GSR. Remember to build the contracts.
 
 ```
 ./cli/cli.ts deploy --contract GDAI
 ./cli/cli.ts deploy --contract GSRManager --init 1000000001547125958,<GDAI_ADDR>
 ```
+
+Remember to deploy the uniswap pool. And to set the GSRManager in the GDAI contract.
 
 Please remember to rename the Graph Token and GDAI symbols for the appropriate testnet or mainnet
 configuration.
