@@ -1216,8 +1216,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
         tokensToClaim = tokensToClaim.sub(delegationRewards);
 
-        // Update the allocate state
+        // Purge allocation data except for:
+        // - indexer: used in disputes and to avoid reusing an allocationID
+        // - subgraphDeploymentID: used in disputes
         allocations[_allocationID].tokens = 0; // This avoid collect(), close() and claim() to be called
+        allocations[_allocationID].createdAtEpoch = 0;
+        allocations[_allocationID].closedAtEpoch = 0;
+        allocations[_allocationID].collectedFees = 0;
+        allocations[_allocationID].effectiveAllocation = 0;
+        allocations[_allocationID].accRewardsPerAllocatedToken = 0;
 
         // -- Interactions --
 
