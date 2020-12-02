@@ -102,6 +102,21 @@ task('verify-all', 'Verify contracts in Etherscan')
     await verify(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet))
   })
 
+task('print-fn-hashes', 'Print function hashes for a contract')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const env = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+
+    console.log('## Staking ##')
+    for (const fn of Object.entries(env.contracts.Staking.functions)) {
+      const [fnSig] = fn
+      if (fnSig.indexOf('(') != -1) {
+        console.log(fnSig, '->', hre.ethers.utils.id(fnSig).slice(0, 10))
+      }
+    }
+  })
+
 const config = {
   paths: {
     sources: './contracts',
