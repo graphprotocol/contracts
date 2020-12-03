@@ -1,3 +1,4 @@
+import Table from 'cli-table'
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
 import { extendEnvironment, task } from 'hardhat/config'
@@ -30,13 +31,14 @@ import '@tenderly/hardhat-tenderly'
 interface NetworkConfig {
   network: string
   chainId: number
+  url?: string
   gas?: number | 'auto'
   gasPrice?: number | 'auto'
 }
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
-  { network: 'rinkeby', chainId: 4 },
+  { network: 'rinkeby', chainId: 4, url: 'http://localhost:7545' },
   { network: 'kovan', chainId: 42 },
 ]
 
@@ -44,7 +46,7 @@ function getAccountMnemonic() {
   return process.env.MNEMONIC || ''
 }
 
-function getInfuraProviderURL(network: string) {
+function getDefaultProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
 
@@ -52,7 +54,7 @@ function setupNetworkProviders(hardhatConfig) {
   for (const netConfig of networkConfigs) {
     hardhatConfig.networks[netConfig.network] = {
       chainId: netConfig.chainId,
-      url: getInfuraProviderURL(netConfig.network),
+      url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
       gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: {
@@ -79,7 +81,7 @@ extendEnvironment((hre) => {
 
 // Tasks
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+task('list-accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners()
   for (const account of accounts) {
     console.log(await account.getAddress())
@@ -100,6 +102,32 @@ task('verify-all', 'Verify contracts in Etherscan')
   .setAction(async (taskArgs, hre) => {
     const accounts = await hre.ethers.getSigners()
     await verify(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet))
+  })
+
+task('list-rebates', 'List rebate pools')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const { contracts } = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+    const { formatEther } = hre.ethers.utils
+
+    const table = new Table({
+      head: ['Epoch', 'Total Fees', 'Claimed Amount', 'Unclaimed Allocs'],
+      colWidths: [10, 40, 40, 20],
+    })
+
+    const currentEpoch = await contracts.EpochManager.currentEpoch()
+    for (let i = 0; i < 48; i++) {
+      const epoch = currentEpoch.sub(i)
+      const rebatePool = await contracts.Staking.rebates(epoch)
+      table.push([
+        epoch,
+        formatEther(rebatePool.fees),
+        formatEther(rebatePool.claimedRewards),
+        rebatePool.unclaimedAllocationsCount,
+      ])
+    }
+    console.log(table.toString())
   })
 
 const config = {
