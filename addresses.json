@@ -275,11 +275,11 @@
       "txHash": "0x4dc8ce8a5798bc344acdd4d5353f1ebe7af2b1ef622b40acf941d173d082bf5f"
     },
     "GRTAssetHolder": {
-      "address": "0xE2b30B251E74bF33e5d8F795b576292c135E8a89",
+      "address": "0x94896da4a6608b4C9C9F287873cc607BaC204804",
       "constructorArgs": [
         {
           "name": "adjudicatorAddress",
-          "value": "0xaa94bed44fc8195b029628341f13a695f1348c04"
+          "value": "0x94Fca2E2F57B25b2D9eA5d4FCEd6c5d8d9ad3172"
         },
         {
           "name": "tokenAddress",
@@ -292,7 +292,7 @@
       ],
       "creationCodeHash": "0xd912c1d3be60f8d4d3fb29cd203c926639a6b8546612953a33cf6810989cee59",
       "runtimeCodeHash": "0xdd3f9efcf92f1cf52471d8f4442649ce8a8315a3a4a554a49221f0dae16fca45",
-      "txHash": "0x938548ff845b3e5da5ba58571c908c0894890069aa7c49c77695224a7b3a6bcf"
+      "txHash": "0x76641360856c3097b62773e942d194b0d3880f2cb56e192e141d8b03dbafac6d"
     },
     "AttestationApp": {
       "address": "0x02cbecbEE7Ad3f74d95b50755C26a16534F53C1A",
