@@ -4,6 +4,7 @@ pragma solidity ^0.7.3;
 
 import "./IManaged.sol";
 import "./IController.sol";
+
 import "../curation/ICuration.sol";
 import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
@@ -89,7 +90,7 @@ contract Managed {
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(controller.getContractProxy(keccak256("Curation")));
+        return ICuration(addressCache[keccak256("Curation")]);
     }
 
     /**
@@ -97,7 +98,7 @@ contract Managed {
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(controller.getContractProxy(keccak256("EpochManager")));
+        return IEpochManager(addressCache[keccak256("EpochManager")]);
     }
 
     /**
@@ -105,7 +106,7 @@ contract Managed {
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(controller.getContractProxy(keccak256("RewardsManager")));
+        return IRewardsManager(addressCache[keccak256("RewardsManager")]);
     }
 
     /**
@@ -113,7 +114,7 @@ contract Managed {
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(controller.getContractProxy(keccak256("Staking")));
+        return IStaking(addressCache[keccak256("Staking")]);
     }
 
     /**
@@ -121,6 +122,19 @@ contract Managed {
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(controller.getContractProxy(keccak256("GraphToken")));
+        return IGraphToken(addressCache[keccak256("GraphToken")]);
+    }
+
+    function _cacheAddress(string memory name) internal {
+        bytes32 nameHash = keccak256(abi.encodePacked(name));
+        addressCache[nameHash] = controller.getContractProxy(nameHash);
+    }
+
+    function refresh() external {
+        _cacheAddress("GraphToken");
+        _cacheAddress("EpochManager");
+        _cacheAddress("Curation");
+        _cacheAddress("Staking");
+        _cacheAddress("RewardsManager");
     }
 }
