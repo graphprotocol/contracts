@@ -1,3 +1,4 @@
+import axios from 'axios'
 import Table from 'cli-table'
 import * as dotenv from 'dotenv'
 import { Wallet } from 'ethers'
@@ -38,7 +39,7 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
-  { network: 'rinkeby', chainId: 4, url: 'http://localhost:7545' },
+  { network: 'rinkeby', chainId: 4 },
   { network: 'kovan', chainId: 42 },
 ]
 
@@ -128,6 +129,21 @@ task('list-rebates', 'List rebate pools')
       ])
     }
     console.log(table.toString())
+  })
+
+task('claim-rebates', 'List rebate pools')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const { contracts } = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+
+    const query = '{allocations(where: { closedAtEpoch: 308, status_not: "Claimed" }) {id}}'
+    const url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/graph-testnet-phase2v2'
+    const res = await axios.post(url, { query })
+    const allocationIDs = res.data.data.allocations.map((e) => e.id)
+    console.log('Claiming', allocationIDs)
+    const tx = await contracts.Staking.claimMany(allocationIDs, false)
+    console.log(tx.hash)
   })
 
 const config = {
