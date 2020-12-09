@@ -2,13 +2,17 @@
 
 pragma solidity ^0.7.3;
 
+import "../governance/IController.sol";
 import "../governance/Managed.sol";
 import "../staking/IStaking.sol";
+
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
-contract StakingV1Storage is Managed {
+contract StakingV1Storage {
+    IController public controller;
+
     // -- Staking --
 
     // Minimum amount of tokens an indexer needs to stake
@@ -81,4 +85,6 @@ contract StakingV1Storage is Managed {
 
     // Allowed AssetHolders: assetHolder => is allowed
     mapping(address => bool) public assetHolders;
+
+    mapping(bytes32 => address) public contractsCache;
 }
