@@ -58,11 +58,12 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
 
     // Setup contracts
-    await staking.connect(deployer).refresh()
-    await gns.connect(deployer).refresh()
-    await curation.connect(deployer).refresh()
-    await serviceRegistry.connect(deployer).refresh()
-    await rewardsManager.connect(deployer).refresh()
+    await curation.connect(deployer).syncAllContracts()
+    await gns.connect(deployer).syncAllContracts()
+    await serviceRegistry.connect(deployer).syncAllContracts()
+    await disputeManager.connect(deployer).syncAllContracts()
+    await rewardsManager.connect(deployer).syncAllContracts()
+    await staking.connect(deployer).syncAllContracts()
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await grt.connect(deployer).addMinter(rewardsManager.address)

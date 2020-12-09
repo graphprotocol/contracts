@@ -90,7 +90,7 @@ contract Managed {
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(addressCache[keccak256("Curation")]);
+        return ICuration(resolveContract(keccak256("Curation")));
     }
 
     /**
@@ -98,7 +98,7 @@ contract Managed {
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(addressCache[keccak256("EpochManager")]);
+        return IEpochManager(resolveContract(keccak256("EpochManager")));
     }
 
     /**
@@ -106,7 +106,7 @@ contract Managed {
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(addressCache[keccak256("RewardsManager")]);
+        return IRewardsManager(resolveContract(keccak256("RewardsManager")));
     }
 
     /**
@@ -114,7 +114,7 @@ contract Managed {
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(addressCache[keccak256("Staking")]);
+        return IStaking(resolveContract(keccak256("Staking")));
     }
 
     /**
@@ -122,19 +122,40 @@ contract Managed {
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(addressCache[keccak256("GraphToken")]);
+        return IGraphToken(resolveContract(keccak256("GraphToken")));
     }
 
-    function _cacheAddress(string memory name) internal {
+    /**
+     * @dev Resolve a contract address from the cache or the Controller if not found
+     * @return Address of the contract
+     */
+    function resolveContract(bytes32 _nameHash) internal view returns (address) {
+        address contractAddress = addressCache[_nameHash];
+        if (contractAddress == address(0)) {
+            contractAddress = controller.getContractProxy(_nameHash);
+        }
+        return contractAddress;
+    }
+
+    /**
+     * @dev Cache a contract address from the Controller registry
+     */
+    function _syncContract(string memory name) internal {
         bytes32 nameHash = keccak256(abi.encodePacked(name));
-        addressCache[nameHash] = controller.getContractProxy(nameHash);
+        address contractAddress = controller.getContractProxy(nameHash);
+        if (addressCache[nameHash] != contractAddress) {
+            addressCache[nameHash] = contractAddress;
+        }
     }
 
-    function refresh() external {
-        _cacheAddress("GraphToken");
-        _cacheAddress("EpochManager");
-        _cacheAddress("Curation");
-        _cacheAddress("Staking");
-        _cacheAddress("RewardsManager");
+    /**
+     * @dev Sync protocol contract addresses from the Controller registry
+     */
+    function syncAllContracts() external {
+        _syncContract("Curation");
+        _syncContract("EpochManager");
+        _syncContract("RewardsManager");
+        _syncContract("Staking");
+        _syncContract("GraphToken");
     }
 }
