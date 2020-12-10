@@ -19,6 +19,8 @@ import "../token/IGraphToken.sol";
 contract Managed {
     // Controller that contract is registered with
     IController public controller;
+    mapping(bytes32 => address) public addressCache;
+    uint256[10] private __gap;
 
     event ParameterUpdated(string param);
     event SetController(address controller);
