@@ -356,6 +356,19 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
+     * @dev Get curation tax percentage
+     * @return Amount the curation tax percentage in PPM
+     */
+    function getCurationTaxPercentage()
+        external
+        override
+        view
+        returns (uint32)
+    {
+        return curationTaxPercentage;
+    }
+
+    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
