@@ -168,7 +168,7 @@ describe('GNS', () => {
   ) => {
     // Before stats for the old vSignal curve
     const ownerTaxPercentage = await gns.ownerTaxPercentage()
-
+    const curationTaxPercentage = await curation.curationTaxPercentage()
     // Before stats for the name curve
     const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber)
 
@@ -178,15 +178,20 @@ describe('GNS', () => {
       subgraphNumber,
       namePoolBefore.nSignal,
     )
+    // Example:
+    // Deposit 100, 5 is taxed, 95 GRT in curve
+    // Upgrade - calculate 5% tax on 95 --> 4.75 GRT
+    // Multiple by ownerPercentage --> 50% * 4.75 = 2.375 GRT
+    // Owner adds 2.375 to the amount, we deposit 97.375 GRT into the curve
+    // In the end there will be 92.5 GRT left after the taxation of
+    // the upgrade
 
-    // Get the value for new vSignal that should be created on the new curve
-    const { 1: curationTax } = await curation.tokensToSignal(
-      subgraphToPublish.subgraphDeploymentID,
-      tokensReceivedEstimate,
-    )
+    // nSignalToTokens returns the amount of tokens with tax removed
+    // already. So we must add in the tokens removed
+    const MAX_PPM = 1000000
+    const ownerFullTax = tokensReceivedEstimate.mul(curationTaxPercentage).div(MAX_PPM)
 
-    // Since in upgrade, owner must refund part of curation tax, we need to actually add this back in
-    const ownerTax = curationTax.mul(ownerTaxPercentage).div(toBN(100))
+    const ownerTax = ownerFullTax.mul(ownerTaxPercentage).div(MAX_PPM)
     const upgradeTokenReturn = tokensReceivedEstimate.add(ownerTax)
 
     // Re-estimate amount of signal to get considering the owner tax paid by the owner
@@ -931,8 +936,8 @@ describe('GNS', () => {
         })
 
         it('reject set `ownerTaxPercentage` if out of bounds', async function () {
-          const tx = gns.connect(governor.signer).setOwnerTaxPercentage(101)
-          await expect(tx).revertedWith('Owner tax must be 100 or less')
+          const tx = gns.connect(governor.signer).setOwnerTaxPercentage(1000001)
+          await expect(tx).revertedWith('Owner tax must be MAX_PPM or less')
         })
 
         it('reject set `ownerTaxPercentage` if not allowed', async function () {

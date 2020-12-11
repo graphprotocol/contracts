@@ -23,6 +23,9 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
     uint256 private constant MAX_UINT256 = 2**256 - 1;
 
+    // 100% in parts per million
+    uint32 private constant MAX_PPM = 1000000;
+
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
@@ -157,7 +160,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         erc1056Registry = IEthereumDIDRegistry(_didRegistry);
 
         // Settings
-        _setOwnerTaxPercentage(50);
+        _setOwnerTaxPercentage(500000);
     }
 
     /**
@@ -182,7 +185,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _ownerTaxPercentage Owner tax percentage
      */
     function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
-        require(_ownerTaxPercentage <= 100, "Owner tax must be 100 or less");
+        require(_ownerTaxPercentage <= MAX_PPM, "Owner tax must be MAX_PPM or less");
         ownerTaxPercentage = _ownerTaxPercentage;
         emit ParameterUpdated("ownerTaxPercentage");
     }
@@ -366,23 +369,20 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         // Burn all version signal in the name pool for tokens
         uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
 
-        // Take the owner cut of the curation tax
-        (, uint256 curationTax) = curation.tokensToSignal(namePool.subgraphDeploymentID, tokens);
-        uint256 ownerTax = _chargeOwnerTax(curationTax, _graphAccount);
+        // Take the owner cut of the curation tax, add it to the total
+        uint32 curationTaxPercentage = curation.getCurationTaxPercentage();
+
+        uint256 tokensWithTax = _chargeOwnerTax(tokens, _graphAccount, curationTaxPercentage);
 
         // Update pool: constant nSignal, vSignal can change
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-        (namePool.vSignal, ) = curation.mint(
-            namePool.subgraphDeploymentID,
-            tokens.add(ownerTax), // Cover part of the tax by the owner
-            0
-        );
+        (namePool.vSignal, ) = curation.mint(namePool.subgraphDeploymentID, tokensWithTax, 0);
 
         emit NameSignalUpgrade(
             _graphAccount,
             _subgraphNumber,
             namePool.vSignal,
-            tokens.add(ownerTax),
+            tokensWithTax,
             _newSubgraphDeploymentID
         );
     }
@@ -533,23 +533,35 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
     /**
      * @dev Calculate tax that owner will have to cover for upgrading or deprecating.
-     * @param _curationTax Total curation tax for changing subgraphs
+     * @param _tokens Tokens that were received from deprecating the old subgraph
      * @param _owner Subgraph owner
-     * @return Amount the owner must pay by transferring GRT to the GNS
+     * @param _curationTaxPercentage Tax percentage on curation deposits from Curation contract
+     * @return Total tokens that will be sent to curation, _tokens + ownerTax
      */
-    function _chargeOwnerTax(uint256 _curationTax, address _owner) private returns (uint256) {
-        if (_curationTax == 0 || ownerTaxPercentage == 0) {
+    function _chargeOwnerTax(
+        uint256 _tokens,
+        address _owner,
+        uint32 _curationTaxPercentage
+    ) private returns (uint256) {
+        if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
             return 0;
         }
 
-        uint256 ownerTax = _curationTax.mul(ownerTaxPercentage).div(100);
+        // calculate tax on current tokens
+        uint256 topUpTax = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        // take full tax, and multiply it by owner percentage to
+        // find the amount owner needs to add
+        uint256 ownerTax = topUpTax.mul(ownerTaxPercentage).div(MAX_PPM);
 
         // Get the owner of the subgraph to reimburse the curation tax
         require(
             graphToken().transferFrom(_owner, address(this), ownerTax),
             "GNS: Error reimbursing curation tax"
         );
-        return ownerTax;
+
+        // new amount is the total tokens before plus the owner tax
+        uint256 totalSentToCuration = _tokens.add(ownerTax);
+        return totalSentToCuration;
     }
 
     /**
@@ -565,8 +577,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _tokensIn
     )
         public
-        override
         view
+        override
         returns (
             uint256,
             uint256,
@@ -593,7 +605,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256, uint256) {
+    ) public view override returns (uint256, uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
         uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
@@ -611,7 +623,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _vSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
 
         // Handle initialization by using 1:1 version to name signal
@@ -639,7 +651,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
@@ -661,7 +673,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         address _curator
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         return nameSignals[_graphAccount][_subgraphNumber].curatorNSignal[_curator];
     }
 
@@ -673,8 +685,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function isPublished(address _graphAccount, uint256 _subgraphNumber)
         public
-        override
         view
+        override
         returns (bool)
     {
         return subgraphs[_graphAccount][_subgraphNumber] != 0;

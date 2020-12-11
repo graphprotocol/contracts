@@ -59,4 +59,6 @@ interface ICuration {
         external
         view
         returns (uint256);
+
+    function getCurationTaxPercentage() external view returns (uint32);
 }
