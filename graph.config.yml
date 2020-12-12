@@ -69,7 +69,7 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
-      thawingPeriod: 6646 # 24 hours (in blocks)
+      thawingPeriod: 186092 # 28 days (in blocks)
       protocolPercentage: 10000 # 1% (parts per million)
       curationPercentage: 100000 # 10% (parts per million)
       channelDisputeEpochs: 7 # (in epochs)
