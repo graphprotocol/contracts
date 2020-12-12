@@ -154,7 +154,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             "Curation tax percentage must be below or equal to MAX_PPM"
         );
 
-        curationTaxPercentage = _percentage;
+        _curationTaxPercentage = _percentage;
         emit ParameterUpdated("curationTaxPercentage");
     }
 
@@ -359,13 +359,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Get curation tax percentage
      * @return Amount the curation tax percentage in PPM
      */
-    function getCurationTaxPercentage()
-        external
-        override
-        view
-        returns (uint32)
-    {
-        return curationTaxPercentage;
+    function curationTaxPercentage() external override view returns (uint32) {
+        return _curationTaxPercentage;
     }
 
     /**
@@ -381,7 +376,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         view
         returns (uint256, uint256)
     {
-        uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
+        uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);
     }
