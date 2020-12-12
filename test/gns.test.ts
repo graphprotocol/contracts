@@ -203,14 +203,7 @@ describe('GNS', () => {
       totalAdjustedUp,
     )
 
-    console.log('taxOnOriginal: ', taxOnOriginal.toString())
-    console.log('totalWithoutOwnerTax: ', totalWithoutOwnerTax.toString())
-    console.log('ownerTax: ', ownerTax.toString())
-    console.log('totalWithOwnerTax: ', totalWithOwnerTax.toString())
-    console.log('total adj up: ', totalAdjustedUp.toString())
-
-    console.log('total adj up: ', totalAdjustedUp.toString())
-
+    // Send transaction
     const tx = gns
       .connect(account.signer)
       .publishNewVersion(
