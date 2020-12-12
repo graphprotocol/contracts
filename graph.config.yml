@@ -1,5 +1,5 @@
 general:
-  arbitrator: &arbitrator "0x23D1B1823e6Cb5229137424f88C70fdA1539F1F9"
+  arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3"
 
 contracts:
   Controller:
@@ -33,7 +33,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 138 # ~30 min (in blocks)
+      lengthInBlocks: 6646 # 24 hours (in 13 second blocks)
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
@@ -46,16 +46,16 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       reserveRatio: 500000 # 50% (parts per million)
-      curationTaxPercentage: 50000 # 5% (parts per million)
+      curationTaxPercentage: 25000 # 2.5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
     proxy: true
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "10000000000000000000" # 10 GRT (in wei)
-      fishermanRewardPercentage: 100000 # 10% (parts per million)
-      slashingPercentage: 100000 # 10% (parts per million)
+      minimumDeposit: "10000000000000000000000" # 10,000 GRT (in wei)
+      fishermanRewardPercentage: 500000 # 50% (parts per million)
+      slashingPercentage: 25000 # 2.5% (parts per million)
   GNS:
     proxy: true
     init:
@@ -68,19 +68,19 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      minimumIndexerStake: "10000000000000000000" # 10 GRT (in wei)
-      thawingPeriod: 275 # ~1 hour (in blocks)
+      minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
+      thawingPeriod: 6646 # 24 hours (in blocks)
       protocolPercentage: 10000 # 1% (parts per million)
-      curationPercentage: 100000 # 10%
-      channelDisputeEpochs: 8
-      maxAllocationEpochs: 24 # Based on epoch length this is ~12 hrs (in epochs)
-      delegationUnbondingPeriod: 2 # epochs
-      delegationRatio: 100 # 100x (multiplier)
-      rebateAlphaNumerator: 85
-      rebateAlphaDenominator: 100
+      curationPercentage: 100000 # 10% (parts per million)
+      channelDisputeEpochs: 7 # (in epochs)
+      maxAllocationEpochs: 28 # Based on epoch length this is 28 days (in epochs)
+      delegationUnbondingPeriod: 28 # Based on epoch length this is 28 days (in epochs)
+      delegationRatio: 16 # 16x (delegated stake to indexer stake multiplier)
+      rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
+      rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
     calls:
       - fn: "setDelegationTaxPercentage"
-        delegationTaxPercentage: 10000 # 1% (parts per million)
+        delegationTaxPercentage: 5000 # 0.5% (parts per million)
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
@@ -88,7 +88,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      issuanceRate: "1000000012184945188" # 3% annual rate. rate*365*60*60*24/13
+      issuanceRate: "1000000012184945188" # 3% annual rate (per block increase of total supply, blocks in a year = 365*60*60*24/13)
   GRTAssetHolder:
     init:
       adjudicatorAddress: "0xaa94bed44fc8195b029628341f13a695f1348c04"
