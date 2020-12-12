@@ -173,6 +173,7 @@ describe('GNS', () => {
     const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber)
 
     // Check what selling all nSignal, which == selling all vSignal, should return for tokens
+    // NOTE - no tax on burning on nSignal
     const { 1: tokensReceivedEstimate } = await gns.nSignalToTokens(
       graphAccount,
       subgraphNumber,
@@ -182,23 +183,33 @@ describe('GNS', () => {
     // Deposit 100, 5 is taxed, 95 GRT in curve
     // Upgrade - calculate 5% tax on 95 --> 4.75 GRT
     // Multiple by ownerPercentage --> 50% * 4.75 = 2.375 GRT
-    // Owner adds 2.375 to the amount, we deposit 97.375 GRT into the curve
-    // In the end there will be 92.5 GRT left after the taxation of
-    // the upgrade
+    // Owner adds 2.375 to 90.25, we deposit 92.625 GRT into the curve
+    // Divide this by 0.95 to get exactly 97.5 total tokens to be deposited
 
     // nSignalToTokens returns the amount of tokens with tax removed
     // already. So we must add in the tokens removed
     const MAX_PPM = 1000000
-    const ownerFullTax = tokensReceivedEstimate.mul(curationTaxPercentage).div(MAX_PPM)
+    const taxOnOriginal = tokensReceivedEstimate.mul(curationTaxPercentage).div(MAX_PPM)
+    const totalWithoutOwnerTax = tokensReceivedEstimate.sub(taxOnOriginal)
+    const ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM)
 
-    const ownerTax = ownerFullTax.mul(ownerTaxPercentage).div(MAX_PPM)
-    const upgradeTokenReturn = tokensReceivedEstimate.add(ownerTax)
+    const totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax)
+
+    const totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(MAX_PPM - curationTaxPercentage)
 
     // Re-estimate amount of signal to get considering the owner tax paid by the owner
     const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
       subgraphToPublish.subgraphDeploymentID,
-      upgradeTokenReturn,
+      totalAdjustedUp,
     )
+
+    console.log('taxOnOriginal: ', taxOnOriginal.toString())
+    console.log('totalWithoutOwnerTax: ', totalWithoutOwnerTax.toString())
+    console.log('ownerTax: ', ownerTax.toString())
+    console.log('totalWithOwnerTax: ', totalWithOwnerTax.toString())
+    console.log('total adj up: ', totalAdjustedUp.toString())
+
+    console.log('total adj up: ', totalAdjustedUp.toString())
 
     const tx = gns
       .connect(account.signer)
@@ -221,7 +232,7 @@ describe('GNS', () => {
         graphAccount,
         subgraphNumber,
         newVSignalEstimate,
-        upgradeTokenReturn,
+        totalAdjustedUp,
         subgraphToPublish.subgraphDeploymentID,
       )
 
@@ -236,7 +247,7 @@ describe('GNS', () => {
     const [tokensAfterNewCurve, vSignalAfterNewCurve] = await getTokensAndVSignal(
       subgraphToPublish.subgraphDeploymentID,
     )
-    expect(tokensAfterNewCurve).eq(upgradeTokenReturn.sub(newCurationTaxEstimate))
+    expect(tokensAfterNewCurve).eq(totalAdjustedUp.sub(newCurationTaxEstimate))
     expect(vSignalAfterNewCurve).eq(newVSignalEstimate)
 
     // Check the nSignal pool
