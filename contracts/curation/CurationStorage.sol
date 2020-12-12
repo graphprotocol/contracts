@@ -10,7 +10,7 @@ contract CurationV1Storage is Managed {
 
     // Tax charged when curator deposit funds
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public curationTaxPercentage;
+    uint32 internal _curationTaxPercentage;
 
     // Default reserve ratio to configure curator shares bonding curve
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
