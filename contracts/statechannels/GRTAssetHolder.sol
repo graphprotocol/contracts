@@ -1,6 +1,9 @@
-pragma solidity ^0.6.12;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@statechannels/nitro-protocol/contracts/ERC20AssetHolder.sol";
 
 import "../governance/IController.sol";
@@ -14,9 +17,9 @@ contract GRTAssetHolder is ERC20AssetHolder {
 
     constructor(
         address _AdjudicatorAddress,
-        address _TokenAddress,
+        IERC20 _TokenAddress,
         IController _Controller
-    ) public ERC20AssetHolder(_AdjudicatorAddress, _TokenAddress) {
+    ) ERC20AssetHolder(_AdjudicatorAddress, _TokenAddress) {
         AdjudicatorAddress = _AdjudicatorAddress;
         Controller = _Controller;
     }
