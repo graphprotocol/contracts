@@ -28,8 +28,8 @@ const allContracts = [
   'Staking',
   'RewardsManager',
   'DisputeManager',
-  'GRTAssetHolder',
-  'AttestationApp',
+  // 'GRTAssetHolder',
+  // 'AttestationApp',
 ]
 
 const logger = consola.create({})
