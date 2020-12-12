@@ -371,7 +371,6 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Take the owner cut of the curation tax, add it to the total
         uint32 curationTaxPercentage = curation.getCurationTaxPercentage();
-
         uint256 tokensWithTax = _chargeOwnerTax(tokens, _graphAccount, curationTaxPercentage);
 
         // Update pool: constant nSignal, vSignal can change
@@ -547,21 +546,32 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             return 0;
         }
 
-        // calculate tax on current tokens
-        uint256 topUpTax = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
-        // take full tax, and multiply it by owner percentage to
-        // find the amount owner needs to add
-        uint256 ownerTax = topUpTax.mul(ownerTaxPercentage).div(MAX_PPM);
+        // Tax on the total bonding curve funds
+        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        // Total after the tax
+        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
+        // The portion of tax that the owner will pay
+        uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
+
+        uint256 totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax);
+
+        // The total after tax, plus owner partial repay, divided by
+        // the tax, to adjust it slightly upwards. ex:
+            // 100 GRT, 5 GRT Tax, owner pays 100% --> 5 GRT
+            // To get 100 in the protocol after tax, Owner deposits
+            // ~5.26, as ~105.26 * .95 = 100
+        uint256 totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(
+            uint256(MAX_PPM).sub(uint256(_curationTaxPercentage))
+        );
+
+        uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
 
         // Get the owner of the subgraph to reimburse the curation tax
         require(
-            graphToken().transferFrom(_owner, address(this), ownerTax),
+            graphToken().transferFrom(_owner, address(this), ownerTaxAdjustedUp),
             "GNS: Error reimbursing curation tax"
         );
-
-        // new amount is the total tokens before plus the owner tax
-        uint256 totalSentToCuration = _tokens.add(ownerTax);
-        return totalSentToCuration;
+        return totalAdjustedUp;
     }
 
     /**
