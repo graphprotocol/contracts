@@ -61,11 +61,9 @@ export class NetworkFixture {
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await grt.connect(deployer).addMinter(rewardsManager.address)
     await gns.connect(deployer).approveAll()
-    await rewardsManager.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
-    await controller.connect(deployer).setPartialPaused(false)
 
     return {
       controller,
@@ -77,6 +75,7 @@ export class NetworkFixture {
       staking,
       rewardsManager,
       serviceRegistry,
+      proxyAdmin,
     }
   }
 
