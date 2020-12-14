@@ -3,7 +3,6 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@statechannels/nitro-protocol/contracts/ERC20AssetHolder.sol";
 
 import "../governance/IController.sol";
@@ -17,7 +16,7 @@ contract GRTAssetHolder is ERC20AssetHolder {
 
     constructor(
         address _AdjudicatorAddress,
-        IERC20 _TokenAddress,
+        address _TokenAddress,
         IController _Controller
     ) ERC20AssetHolder(_AdjudicatorAddress, _TokenAddress) {
         AdjudicatorAddress = _AdjudicatorAddress;
