@@ -30,6 +30,7 @@ import '@tenderly/hardhat-tenderly'
 interface NetworkConfig {
   network: string
   chainId: number
+  url?: string
   gas?: number | 'auto'
   gasPrice?: number | 'auto'
 }
@@ -44,7 +45,7 @@ function getAccountMnemonic() {
   return process.env.MNEMONIC || ''
 }
 
-function getInfuraProviderURL(network: string) {
+function getDefaultProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
 
@@ -52,7 +53,7 @@ function setupNetworkProviders(hardhatConfig) {
   for (const netConfig of networkConfigs) {
     hardhatConfig.networks[netConfig.network] = {
       chainId: netConfig.chainId,
-      url: getInfuraProviderURL(netConfig.network),
+      url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
       gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: {
@@ -213,8 +214,8 @@ const config = {
     flat: true,
   },
   tenderly: {
-    project: '',
-    username: '',
+    project: 'graph-network',
+    username: 'abarmat',
   },
   contractSizer: {
     alphaSort: true,
