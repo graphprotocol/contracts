@@ -1,7 +1,6 @@
 # Graph Protocol Solidity Smart Contracts
 
-![Version Badge](https://img.shields.io/badge/version-0.2.0-lightgrey.svg)
-![WIP Badge](https://img.shields.io/badge/status-POC-blue.svg)
+![Version Badge](https://img.shields.io/badge/version-1.0.0-lightgrey.svg)
 
 ## Contracts
 
