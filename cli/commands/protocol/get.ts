@@ -40,7 +40,7 @@ export const gettersList = {
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
   // GNS
   'gns-bonding-curve': { contract: 'GNS', name: 'bondingCurve' },
-  'gns-owner-fee-percentage': { contract: 'GNS', name: 'ownerFeePercentage' },
+  'gns-owner-tax-percentage': { contract: 'GNS', name: 'ownerTaxPercentage' },
   // Token
   'token-governor': { contract: 'GraphToken', name: 'governor' },
   'token-supply': { contract: 'GraphToken', name: 'totalSupply' },
