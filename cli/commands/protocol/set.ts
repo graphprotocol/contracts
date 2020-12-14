@@ -42,7 +42,7 @@ export const settersList = {
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
   // GNS
-  'gns-owner-fee-percentage': { contract: 'GNS', name: 'setOwnerFeePercentage' },
+  'gns-owner-tax-percentage': { contract: 'GNS', name: 'setOwnerTaxPercentage' },
   // Token
   'token-transfer-governor': { contract: 'GraphToken', name: 'transferOwnership' },
   'token-accept-governor': { contract: 'GraphToken', name: 'acceptOwnership' },
