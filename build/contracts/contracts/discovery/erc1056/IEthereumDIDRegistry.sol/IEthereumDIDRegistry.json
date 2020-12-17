@@ -1,0 +1,58 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IEthereumDIDRegistry",
+  "sourceName": "contracts/discovery/erc1056/IEthereumDIDRegistry.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        }
+      ],
+      "name": "identityOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "name",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "value",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "validity",
+          "type": "uint256"
+        }
+      ],
+      "name": "setAttribute",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

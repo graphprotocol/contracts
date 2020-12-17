@@ -1,0 +1,51 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalRewards",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalFees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "stake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "alphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "alphaDenominator",
+        "type": "uint32"
+      }
+    ],
+    "name": "cobbDouglas",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "rewards",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  }
+]

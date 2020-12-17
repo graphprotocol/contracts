@@ -1,0 +1,102 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAssetHolder",
+  "sourceName": "@statechannels/nitro-protocol/contracts/interfaces/IAssetHolder.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "channelId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "destination",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "AssetTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "destination",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountDeposited",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "destinationHoldings",
+          "type": "uint256"
+        }
+      ],
+      "name": "Deposited",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "guarantorChannelId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "guaranteeBytes",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "allocationBytes",
+          "type": "bytes"
+        }
+      ],
+      "name": "claimAll",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "channelId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "allocationBytes",
+          "type": "bytes"
+        }
+      ],
+      "name": "transferAll",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

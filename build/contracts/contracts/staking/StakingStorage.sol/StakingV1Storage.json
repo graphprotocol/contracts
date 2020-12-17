@@ -1,0 +1,495 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StakingV1Storage",
+  "sourceName": "contracts/staking/StakingStorage.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "param",
+          "type": "string"
+        }
+      ],
+      "name": "ParameterUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "controller",
+          "type": "address"
+        }
+      ],
+      "name": "SetController",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "addressCache",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "allocations",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "indexer",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "subgraphDeploymentID",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokens",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "createdAtEpoch",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "closedAtEpoch",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "collectedFees",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "effectiveAllocation",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "accRewardsPerAllocatedToken",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "alphaDenominator",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "alphaNumerator",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "assetHolders",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "channelDisputeEpochs",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "controller",
+      "outputs": [
+        {
+          "internalType": "contract IController",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "curationPercentage",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "delegationParametersCooldown",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "delegationPools",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "cooldownBlocks",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "indexingRewardCut",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "queryFeeCut",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAtBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokens",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "delegationRatio",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "delegationTaxPercentage",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "delegationUnbondingPeriod",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxAllocationEpochs",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minimumIndexerStake",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "operatorAuth",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "protocolPercentage",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rebates",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "fees",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "effectiveAllocatedStake",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimedRewards",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint32",
+          "name": "unclaimedAllocationsCount",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "alphaNumerator",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "alphaDenominator",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_controller",
+          "type": "address"
+        }
+      ],
+      "name": "setController",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "slashers",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "stakes",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokensStaked",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokensAllocated",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokensLocked",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokensLockedUntil",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "subgraphAllocations",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "thawingPeriod",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b50610800806100206000396000f3fe608060405234801561001057600080fd5b506004361061014d5760003560e01c8063b87fcbff116100c3578063dc675a651161007c578063dc675a65146103e4578063e2e946561461041d578063e6aeb7961461044b578063f2485bf214610453578063f77c47911461045b578063fb765938146104635761014d565b8063b87fcbff14610346578063ba8c81931461036c578063bfdfa7af14610374578063cdc747dd1461037c578063ce85361314610384578063d3cb644c1461038c5761014d565b80638a7ff87d116101155780638a7ff87d1461027257806392511c8f1461027a57806392eefe9b146102df578063a26b90f214610307578063b1468f521461030f578063b6846e471461033e5761014d565b806316934fc41461015257806352a9039c1461019e5780636b535d7e1461020f5780637ef820701461024957806385b52ad01461026a575b600080fd5b6101786004803603602081101561016857600080fd5b50356001600160a01b031661046b565b604080519485526020850193909352838301919091526060830152519081900360800190f35b6101c4600480360360208110156101b457600080fd5b50356001600160a01b0316610492565b604080516001600160a01b0390991689526020890197909752878701959095526060870193909352608086019190915260a085015260c084015260e083015251908190036101000190f35b6102356004803603602081101561022557600080fd5b50356001600160a01b03166104df565b604080519115158252519081900360200190f35b6102516104f4565b6040805163ffffffff9092168252519081900360200190f35b610251610507565b61025161051b565b6102a06004803603602081101561029057600080fd5b50356001600160a01b031661052f565b6040805163ffffffff9788168152958716602087015293909516848401526060840191909152608083015260a082019290925290519081900360c00190f35b610305600480360360208110156102f557600080fd5b50356001600160a01b0316610572565b005b6102516105dd565b61032c6004803603602081101561032557600080fd5b50356105f0565b60408051918252519081900360200190f35b610251610602565b6102356004803603602081101561035c57600080fd5b50356001600160a01b0316610615565b61025161062a565b61025161063d565b610251610649565b610251610655565b6103a9600480360360208110156103a257600080fd5b5035610668565b6040805196875260208701959095528585019390935263ffffffff9182166060860152811660808501521660a0830152519081900360c00190f35b610401600480360360208110156103fa57600080fd5b50356106ac565b604080516001600160a01b039092168252519081900360200190f35b6102356004803603604081101561043357600080fd5b506001600160a01b03813581169160200135166106c7565b6102516106e7565b61032c6106fa565b610401610700565b61025161070f565b600e6020526000908152604090208054600182015460028301546003909301549192909184565b600f60205260009081526040902080546001820154600283015460038401546004850154600586015460068701546007909701546001600160a01b03909616969495939492939192909188565b60166020526000908152604090205460ff1681565b600d54600160a01b900463ffffffff1681565b600d54640100000000900463ffffffff1681565b601354640100000000900463ffffffff1681565b601460205260009081526040902080546001820154600283015460039093015463ffffffff808416946401000000008504821694600160401b9004909116929186565b6000546001600160a01b031633146105d1576040805162461bcd60e51b815260206004820152601960248201527f43616c6c6572206d75737420626520436f6e74726f6c6c657200000000000000604482015290519081900360640190fd5b6105da81610722565b50565b600d54600160401b900463ffffffff1681565b60106020526000908152604090205481565b601354600160401b900463ffffffff1681565b60126020526000908152604090205460ff1681565b600d54600160601b900463ffffffff1681565b60135463ffffffff1681565b600d5463ffffffff1681565b600d54600160c01b900463ffffffff1681565b60116020526000908152604090208054600182015460028301546003909301549192909163ffffffff808216916401000000008104821691600160401b9091041686565b6001602052600090815260409020546001600160a01b031681565b601560209081526000928352604080842090915290825290205460ff1681565b601354600160601b900463ffffffff1681565b600c5481565b6000546001600160a01b031681565b600d54600160801b900463ffffffff1681565b6001600160a01b038116610776576040805162461bcd60e51b815260206004820152601660248201527510dbdb9d1c9bdb1b195c881b5d5cdd081899481cd95d60521b604482015290519081900360640190fd5b600080546001600160a01b0383166001600160a01b0319909116811790915560408051918252517f4ff638452bbf33c012645d18ae6f05515ff5f2d1dfb0cece8cbf018c60903f709181900360200190a15056fea26469706673582212204d6d903de6f5c7cac005c9de9cf1aaddc090a726d411420d752944ae646cce3f64736f6c63430007040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061014d5760003560e01c8063b87fcbff116100c3578063dc675a651161007c578063dc675a65146103e4578063e2e946561461041d578063e6aeb7961461044b578063f2485bf214610453578063f77c47911461045b578063fb765938146104635761014d565b8063b87fcbff14610346578063ba8c81931461036c578063bfdfa7af14610374578063cdc747dd1461037c578063ce85361314610384578063d3cb644c1461038c5761014d565b80638a7ff87d116101155780638a7ff87d1461027257806392511c8f1461027a57806392eefe9b146102df578063a26b90f214610307578063b1468f521461030f578063b6846e471461033e5761014d565b806316934fc41461015257806352a9039c1461019e5780636b535d7e1461020f5780637ef820701461024957806385b52ad01461026a575b600080fd5b6101786004803603602081101561016857600080fd5b50356001600160a01b031661046b565b604080519485526020850193909352838301919091526060830152519081900360800190f35b6101c4600480360360208110156101b457600080fd5b50356001600160a01b0316610492565b604080516001600160a01b0390991689526020890197909752878701959095526060870193909352608086019190915260a085015260c084015260e083015251908190036101000190f35b6102356004803603602081101561022557600080fd5b50356001600160a01b03166104df565b604080519115158252519081900360200190f35b6102516104f4565b6040805163ffffffff9092168252519081900360200190f35b610251610507565b61025161051b565b6102a06004803603602081101561029057600080fd5b50356001600160a01b031661052f565b6040805163ffffffff9788168152958716602087015293909516848401526060840191909152608083015260a082019290925290519081900360c00190f35b610305600480360360208110156102f557600080fd5b50356001600160a01b0316610572565b005b6102516105dd565b61032c6004803603602081101561032557600080fd5b50356105f0565b60408051918252519081900360200190f35b610251610602565b6102356004803603602081101561035c57600080fd5b50356001600160a01b0316610615565b61025161062a565b61025161063d565b610251610649565b610251610655565b6103a9600480360360208110156103a257600080fd5b5035610668565b6040805196875260208701959095528585019390935263ffffffff9182166060860152811660808501521660a0830152519081900360c00190f35b610401600480360360208110156103fa57600080fd5b50356106ac565b604080516001600160a01b039092168252519081900360200190f35b6102356004803603604081101561043357600080fd5b506001600160a01b03813581169160200135166106c7565b6102516106e7565b61032c6106fa565b610401610700565b61025161070f565b600e6020526000908152604090208054600182015460028301546003909301549192909184565b600f60205260009081526040902080546001820154600283015460038401546004850154600586015460068701546007909701546001600160a01b03909616969495939492939192909188565b60166020526000908152604090205460ff1681565b600d54600160a01b900463ffffffff1681565b600d54640100000000900463ffffffff1681565b601354640100000000900463ffffffff1681565b601460205260009081526040902080546001820154600283015460039093015463ffffffff808416946401000000008504821694600160401b9004909116929186565b6000546001600160a01b031633146105d1576040805162461bcd60e51b815260206004820152601960248201527f43616c6c6572206d75737420626520436f6e74726f6c6c657200000000000000604482015290519081900360640190fd5b6105da81610722565b50565b600d54600160401b900463ffffffff1681565b60106020526000908152604090205481565b601354600160401b900463ffffffff1681565b60126020526000908152604090205460ff1681565b600d54600160601b900463ffffffff1681565b60135463ffffffff1681565b600d5463ffffffff1681565b600d54600160c01b900463ffffffff1681565b60116020526000908152604090208054600182015460028301546003909301549192909163ffffffff808216916401000000008104821691600160401b9091041686565b6001602052600090815260409020546001600160a01b031681565b601560209081526000928352604080842090915290825290205460ff1681565b601354600160601b900463ffffffff1681565b600c5481565b6000546001600160a01b031681565b600d54600160801b900463ffffffff1681565b6001600160a01b038116610776576040805162461bcd60e51b815260206004820152601660248201527510dbdb9d1c9bdb1b195c881b5d5cdd081899481cd95d60521b604482015290519081900360640190fd5b600080546001600160a01b0383166001600160a01b0319909116811790915560408051918252517f4ff638452bbf33c012645d18ae6f05515ff5f2d1dfb0cece8cbf018c60903f709181900360200190a15056fea26469706673582212204d6d903de6f5c7cac005c9de9cf1aaddc090a726d411420d752944ae646cce3f64736f6c63430007040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

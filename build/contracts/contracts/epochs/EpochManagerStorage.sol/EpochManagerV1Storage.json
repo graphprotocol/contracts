@@ -1,0 +1,134 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "EpochManagerV1Storage",
+  "sourceName": "contracts/epochs/EpochManagerStorage.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "param",
+          "type": "string"
+        }
+      ],
+      "name": "ParameterUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "controller",
+          "type": "address"
+        }
+      ],
+      "name": "SetController",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "addressCache",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "controller",
+      "outputs": [
+        {
+          "internalType": "contract IController",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "epochLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastLengthUpdateBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastLengthUpdateEpoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastRunEpoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_controller",
+          "type": "address"
+        }
+      ],
+      "name": "setController",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b506102a8806100206000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c8063cc65149b1161005b578063cc65149b146100cc578063dc675a65146100d4578063f77c47911461010d578063faa1a23c146101155761007d565b806357d775f81461008257806392eefe9b1461009c578063b4146a0b146100c4575b600080fd5b61008a61011d565b60408051918252519081900360200190f35b6100c2600480360360208110156100b257600080fd5b50356001600160a01b0316610123565b005b61008a61018e565b61008a610194565b6100f1600480360360208110156100ea57600080fd5b503561019a565b604080516001600160a01b039092168252519081900360200190f35b6100f16101b5565b61008a6101c4565b600c5481565b6000546001600160a01b03163314610182576040805162461bcd60e51b815260206004820152601960248201527f43616c6c6572206d75737420626520436f6e74726f6c6c657200000000000000604482015290519081900360640190fd5b61018b816101ca565b50565b600e5481565b600f5481565b6001602052600090815260409020546001600160a01b031681565b6000546001600160a01b031681565b600d5481565b6001600160a01b03811661021e576040805162461bcd60e51b815260206004820152601660248201527510dbdb9d1c9bdb1b195c881b5d5cdd081899481cd95d60521b604482015290519081900360640190fd5b600080546001600160a01b0383166001600160a01b0319909116811790915560408051918252517f4ff638452bbf33c012645d18ae6f05515ff5f2d1dfb0cece8cbf018c60903f709181900360200190a15056fea2646970667358221220b4d8cad460c05a78c1412b6240ddeb1600aa6ce9b338f2292b49fd907cd1d3c564736f6c63430007040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061007d5760003560e01c8063cc65149b1161005b578063cc65149b146100cc578063dc675a65146100d4578063f77c47911461010d578063faa1a23c146101155761007d565b806357d775f81461008257806392eefe9b1461009c578063b4146a0b146100c4575b600080fd5b61008a61011d565b60408051918252519081900360200190f35b6100c2600480360360208110156100b257600080fd5b50356001600160a01b0316610123565b005b61008a61018e565b61008a610194565b6100f1600480360360208110156100ea57600080fd5b503561019a565b604080516001600160a01b039092168252519081900360200190f35b6100f16101b5565b61008a6101c4565b600c5481565b6000546001600160a01b03163314610182576040805162461bcd60e51b815260206004820152601960248201527f43616c6c6572206d75737420626520436f6e74726f6c6c657200000000000000604482015290519081900360640190fd5b61018b816101ca565b50565b600e5481565b600f5481565b6001602052600090815260409020546001600160a01b031681565b6000546001600160a01b031681565b600d5481565b6001600160a01b03811661021e576040805162461bcd60e51b815260206004820152601660248201527510dbdb9d1c9bdb1b195c881b5d5cdd081899481cd95d60521b604482015290519081900360640190fd5b600080546001600160a01b0383166001600160a01b0319909116811790915560408051918252517f4ff638452bbf33c012645d18ae6f05515ff5f2d1dfb0cece8cbf018c60903f709181900360200190a15056fea2646970667358221220b4d8cad460c05a78c1412b6240ddeb1600aa6ce9b338f2292b49fd907cd1d3c564736f6c63430007040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

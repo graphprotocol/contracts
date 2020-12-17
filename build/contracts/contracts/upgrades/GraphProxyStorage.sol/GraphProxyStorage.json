@@ -1,0 +1,68 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "GraphProxyStorage",
+  "sourceName": "contracts/upgrades/GraphProxyStorage.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldImplementation",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "ImplementationUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldPendingImplementation",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newPendingImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "PendingImplementationUpdated",
+      "type": "event"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220813a9e96e117427f34fb947427eaa720b7ed45489ced5c368825cd6ea344a1a964736f6c63430007040033",
+  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220813a9e96e117427f34fb947427eaa720b7ed45489ced5c368825cd6ea344a1a964736f6c63430007040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

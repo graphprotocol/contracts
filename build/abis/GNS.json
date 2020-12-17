@@ -1,0 +1,983 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nameCurator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nSignalBurnt",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "withdrawnGRT",
+        "type": "uint256"
+      }
+    ],
+    "name": "GRTWithdrawn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nameCurator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nSignalBurnt",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "vSignalBurnt",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokensReceived",
+        "type": "uint256"
+      }
+    ],
+    "name": "NSignalBurned",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nameCurator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nSignalCreated",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "vSignalCreated",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokensDeposited",
+        "type": "uint256"
+      }
+    ],
+    "name": "NSignalMinted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "withdrawableGRT",
+        "type": "uint256"
+      }
+    ],
+    "name": "NameSignalDisabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "subgraphDeploymentID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "reserveRatio",
+        "type": "uint32"
+      }
+    ],
+    "name": "NameSignalEnabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newVSignalCreated",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokensSignalled",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "subgraphDeploymentID",
+        "type": "bytes32"
+      }
+    ],
+    "name": "NameSignalUpgrade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "param",
+        "type": "string"
+      }
+    ],
+    "name": "ParameterUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "controller",
+        "type": "address"
+      }
+    ],
+    "name": "SetController",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nameSystem",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "nameIdentifier",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "name": "SetDefaultName",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "SubgraphDeprecated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "subgraphMetadata",
+        "type": "bytes32"
+      }
+    ],
+    "name": "SubgraphMetadataUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "graphAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "subgraphDeploymentID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "versionMetadata",
+        "type": "bytes32"
+      }
+    ],
+    "name": "SubgraphPublished",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IGraphProxy",
+        "name": "_proxy",
+        "type": "address"
+      }
+    ],
+    "name": "acceptProxy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IGraphProxy",
+        "name": "_proxy",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_data",
+        "type": "bytes"
+      }
+    ],
+    "name": "acceptProxyAndCall",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "addressCache",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "approveAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bondingCurve",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_nSignal",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokensOutMin",
+        "type": "uint256"
+      }
+    ],
+    "name": "burnNSignal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "controller",
+    "outputs": [
+      {
+        "internalType": "contract IController",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "deprecateSubgraph",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "erc1056Registry",
+    "outputs": [
+      {
+        "internalType": "contract IEthereumDIDRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_curator",
+        "type": "address"
+      }
+    ],
+    "name": "getCuratorNSignal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "graphAccountSubgraphNumbers",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_controller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_bondingCurve",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_didRegistry",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "isPublished",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokensIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_nSignalOutMin",
+        "type": "uint256"
+      }
+    ],
+    "name": "mintNSignal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_nSignalIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "nSignalToTokens",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_nSignalIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "nSignalToVSignal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "nameSignals",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "vSignal",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nSignal",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "subgraphDeploymentID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "reserveRatio",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "disabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "withdrawableGRT",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ownerTaxPercentage",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_subgraphDeploymentID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_versionMetadata",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_subgraphMetadata",
+        "type": "bytes32"
+      }
+    ],
+    "name": "publishNewSubgraph",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_subgraphDeploymentID",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_versionMetadata",
+        "type": "bytes32"
+      }
+    ],
+    "name": "publishNewVersion",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_controller",
+        "type": "address"
+      }
+    ],
+    "name": "setController",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_nameSystem",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_nameIdentifier",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      }
+    ],
+    "name": "setDefaultName",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "_ownerTaxPercentage",
+        "type": "uint32"
+      }
+    ],
+    "name": "setOwnerTaxPercentage",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "subgraphs",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokensIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokensToNSignal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_subgraphMetadata",
+        "type": "bytes32"
+      }
+    ],
+    "name": "updateSubgraphMetadata",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_vSignalIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "vSignalToNSignal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_graphAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_subgraphNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

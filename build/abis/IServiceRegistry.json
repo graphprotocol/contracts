@@ -1,0 +1,82 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexer",
+        "type": "address"
+      }
+    ],
+    "name": "isRegistered",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_url",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_geohash",
+        "type": "string"
+      }
+    ],
+    "name": "register",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexer",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_url",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_geohash",
+        "type": "string"
+      }
+    ],
+    "name": "registerFor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unregister",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexer",
+        "type": "address"
+      }
+    ],
+    "name": "unregisterFor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

@@ -1,0 +1,188 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "Redeemed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_indexerFees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_indexerAllocatedStake",
+        "type": "uint256"
+      }
+    ],
+    "name": "add",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "alphaDenominator",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "alphaNumerator",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_totalRewards",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_fees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalFees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_stake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_alphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_alphaDenominator",
+        "type": "uint32"
+      }
+    ],
+    "name": "cobbDouglas",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_indexerFees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_indexerAllocatedStake",
+        "type": "uint256"
+      }
+    ],
+    "name": "pop",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rebatePool",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fees",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "effectiveAllocatedStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "claimedRewards",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "unclaimedAllocationsCount",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "alphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "alphaDenominator",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "_alphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_alphaDenominator",
+        "type": "uint32"
+      }
+    ],
+    "name": "setRebateRatio",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

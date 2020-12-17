@@ -1,0 +1,222 @@
+{
+  "id": "afdb3e33-ebf0-4066-895c-cf980546c59f",
+  "_format": "hh-sol-build-info-1",
+  "solcVersion": "0.7.4",
+  "solcLongVersion": "0.7.4+commit.3f05b770",
+  "input": {
+    "language": "Solidity",
+    "sources": {
+      "contracts/tests/ens/ITestRegistrar.sol": {
+        "content": "pragma solidity ^0.7.3;\n\ninterface ITestRegistrar {\n    function register(bytes32 label, address owner) external;\n}\n"
+      }
+    },
+    "settings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers"
+          ],
+          "": [
+            "ast"
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "contracts": {
+      "contracts/tests/ens/ITestRegistrar.sol": {
+        "ITestRegistrar": {
+          "abi": [
+            {
+              "inputs": [
+                {
+                  "internalType": "bytes32",
+                  "name": "label",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                }
+              ],
+              "name": "register",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            }
+          ],
+          "evm": {
+            "bytecode": {
+              "generatedSources": [],
+              "linkReferences": {},
+              "object": "",
+              "opcodes": "",
+              "sourceMap": ""
+            },
+            "deployedBytecode": {
+              "generatedSources": [],
+              "immutableReferences": {},
+              "linkReferences": {},
+              "object": "",
+              "opcodes": "",
+              "sourceMap": ""
+            },
+            "methodIdentifiers": {
+              "register(bytes32,address)": "d22057a9"
+            }
+          }
+        }
+      }
+    },
+    "errors": [
+      {
+        "component": "general",
+        "errorCode": "1878",
+        "formattedMessage": "contracts/tests/ens/ITestRegistrar.sol: Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n",
+        "message": "SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.",
+        "severity": "warning",
+        "sourceLocation": {
+          "end": -1,
+          "file": "contracts/tests/ens/ITestRegistrar.sol",
+          "start": -1
+        },
+        "type": "Warning"
+      }
+    ],
+    "sources": {
+      "contracts/tests/ens/ITestRegistrar.sol": {
+        "ast": {
+          "absolutePath": "contracts/tests/ens/ITestRegistrar.sol",
+          "exportedSymbols": {
+            "ITestRegistrar": [
+              9
+            ]
+          },
+          "id": 10,
+          "nodeType": "SourceUnit",
+          "nodes": [
+            {
+              "id": 1,
+              "literals": [
+                "solidity",
+                "^",
+                "0.7",
+                ".3"
+              ],
+              "nodeType": "PragmaDirective",
+              "src": "0:23:0"
+            },
+            {
+              "abstract": false,
+              "baseContracts": [],
+              "contractDependencies": [],
+              "contractKind": "interface",
+              "fullyImplemented": false,
+              "id": 9,
+              "linearizedBaseContracts": [
+                9
+              ],
+              "name": "ITestRegistrar",
+              "nodeType": "ContractDefinition",
+              "nodes": [
+                {
+                  "functionSelector": "d22057a9",
+                  "id": 8,
+                  "implemented": false,
+                  "kind": "function",
+                  "modifiers": [],
+                  "name": "register",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 6,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 3,
+                        "mutability": "mutable",
+                        "name": "label",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 8,
+                        "src": "74:13:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        },
+                        "typeName": {
+                          "id": 2,
+                          "name": "bytes32",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "74:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_bytes32",
+                            "typeString": "bytes32"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 5,
+                        "mutability": "mutable",
+                        "name": "owner",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 8,
+                        "src": "89:13:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        "typeName": {
+                          "id": 4,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "89:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "73:30:0"
+                  },
+                  "returnParameters": {
+                    "id": 7,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "112:0:0"
+                  },
+                  "scope": 9,
+                  "src": "56:57:0",
+                  "stateMutability": "nonpayable",
+                  "virtual": false,
+                  "visibility": "external"
+                }
+              ],
+              "scope": 10,
+              "src": "25:90:0"
+            }
+          ],
+          "src": "0:116:0"
+        },
+        "id": 0
+      }
+    }
+  }
+}

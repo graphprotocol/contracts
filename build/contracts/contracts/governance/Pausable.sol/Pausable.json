@@ -1,0 +1,95 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Pausable",
+  "sourceName": "contracts/governance/Pausable.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldPauseGuardian",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "pauseGuardian",
+          "type": "address"
+        }
+      ],
+      "name": "NewPauseGuardian",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isPaused",
+          "type": "bool"
+        }
+      ],
+      "name": "PartialPauseChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isPaused",
+          "type": "bool"
+        }
+      ],
+      "name": "PauseChanged",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "lastPausePartialTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastPauseTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pauseGuardian",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5060d28061001f6000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c806324a3d6221460415780636cda379814606357806391b4ded914607b575b600080fd5b60476081565b604080516001600160a01b039092168252519081900360200190f35b60696090565b60408051918252519081900360200190f35b60696096565b6003546001600160a01b031681565b60015481565b6002548156fea26469706673582212209874e3f101034eaef9e6f9a652956b7488c321326eb43aaa0d6115cf0d01a1d664736f6c63430007040033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b5060043610603c5760003560e01c806324a3d6221460415780636cda379814606357806391b4ded914607b575b600080fd5b60476081565b604080516001600160a01b039092168252519081900360200190f35b60696090565b60408051918252519081900360200190f35b60696096565b6003546001600160a01b031681565b60015481565b6002548156fea26469706673582212209874e3f101034eaef9e6f9a652956b7488c321326eb43aaa0d6115cf0d01a1d664736f6c63430007040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

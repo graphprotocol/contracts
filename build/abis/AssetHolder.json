@@ -1,0 +1,237 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "channelId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "destination",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "AssetTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "destination",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountDeposited",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "destinationHoldings",
+        "type": "uint256"
+      }
+    ],
+    "name": "Deposited",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "AdjudicatorAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "assetOutcomeHashes",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "guarantorChannelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "guaranteeBytes",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "allocationBytes",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "destination",
+        "type": "bytes32"
+      }
+    ],
+    "name": "claim",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "guarantorChannelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "guaranteeBytes",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "allocationBytes",
+        "type": "bytes"
+      }
+    ],
+    "name": "claimAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "holdings",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "channelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "assetOutcomeHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "setAssetOutcomeHash",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "success",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "fromChannelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "allocationBytes",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "destination",
+        "type": "bytes32"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "channelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "allocationBytes",
+        "type": "bytes"
+      }
+    ],
+    "name": "transferAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "channelId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "allocationBytes",
+        "type": "bytes"
+      }
+    ],
+    "name": "transferAllAdjudicatorOnly",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
