@@ -1,5 +1,7 @@
+import Table from 'cli-table'
+import axios from 'axios'
 import * as dotenv from 'dotenv'
-import { Wallet } from 'ethers'
+import { BigNumber, Wallet, utils } from 'ethers'
 import { extendEnvironment, task } from 'hardhat/config'
 
 import { getAddressBook } from './cli/address-book'
@@ -8,6 +10,8 @@ import { loadContracts, loadEnv } from './cli/env'
 import { getContractAt } from './cli/network'
 import { migrate } from './cli/commands/migrate'
 import { verify } from './cli/commands/verify'
+
+const { formatEther, parseEther } = utils
 
 dotenv.config()
 
@@ -116,6 +120,140 @@ task('print-fn-hashes', 'Print function hashes for a contract')
         console.log(fnSig, '->', hre.ethers.utils.id(fnSig).slice(0, 10))
       }
     }
+  })
+
+task('list-rebates', 'List rebate pools')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const { contracts } = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+    const { formatEther } = hre.ethers.utils
+
+    const table = new Table({
+      head: ['Epoch', 'Total Fees', 'Claimed Amount', 'Unclaimed Allocs'],
+      colWidths: [10, 40, 40, 20],
+    })
+
+    const currentEpoch = await contracts.EpochManager.currentEpoch()
+    for (let i = 0; i < 5; i++) {
+      const epoch = currentEpoch.sub(i)
+      const rebatePool = await contracts.Staking.rebates(epoch)
+      table.push([
+        epoch,
+        formatEther(rebatePool.fees),
+        formatEther(rebatePool.claimedRewards),
+        rebatePool.unclaimedAllocationsCount,
+      ])
+    }
+    console.log(table.toString())
+  })
+
+task('list-allos', 'List allocations')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const { contracts } = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+
+    const query = `{
+        allocations(where: { status: "Active" }, first: 1000) { 
+          id 
+          allocatedTokens 
+          subgraphDeployment { id }
+          createdAt
+          createdAtEpoch
+          indexer { id stakedTokens }
+        }
+      }
+      `
+    const url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet'
+    const res = await axios.post(url, { query })
+    const allos = res.data.data.allocations
+
+    const table = new Table({
+      head: ['ID', 'Indexer', 'SID', 'Allocated', 'IdxRewards', 'IdxCut', 'Cooldown', 'Epoch'],
+      colWidths: [20, 20, 10, 20, 20, 10, 10, 10],
+    })
+
+    const currentBlock = await hre.ethers.provider.send('eth_blockNumber', [])
+
+    let totalIndexingRewards = hre.ethers.BigNumber.from(0)
+    let totalAllocated = hre.ethers.BigNumber.from(0)
+    for (const allo of allos) {
+      const pool = await contracts.Staking.delegationPools(allo.indexer.id)
+      const r = await contracts.RewardsManager.getRewards(allo.id)
+      table.push([
+        allo.id,
+        allo.indexer.id,
+        allo.subgraphDeployment.id,
+        formatEther(allo.allocatedTokens),
+        formatEther(r),
+        pool.indexingRewardCut / 10000,
+        pool.updatedAtBlock.add(pool.cooldownBlocks).toNumber() - currentBlock,
+        allo.createdAtEpoch,
+      ])
+
+      totalIndexingRewards = totalIndexingRewards.add(r)
+      totalAllocated = totalAllocated.add(allo.allocatedTokens)
+    }
+    console.log(table.toString())
+    console.log('total entries: ', allos.length)
+    console.log('total pending idx-rewards: ', hre.ethers.utils.formatEther(totalIndexingRewards))
+    console.log('total allocated: ', hre.ethers.utils.formatEther(totalAllocated))
+  })
+
+task('list-indexers', 'List indexers')
+  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .setAction(async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners()
+    const { contracts } = await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet)
+
+    const query = `{
+        indexers(where: {stakedTokens_gt: "0"}, first: 1000) {
+          id
+          stakedTokens
+          delegatedTokens
+          allocatedTokens
+          allocationCount
+        }
+      }`
+    const url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet'
+    const res = await axios.post(url, { query })
+    const indexers = res.data.data.indexers
+
+    const table = new Table({
+      head: ['ID', 'Stake', 'Delegated', 'Capacity Ratio', 'Allocated', 'Used', 'N'],
+      colWidths: [20, 20, 20, 20, 20, 10, 5],
+    })
+
+    let totalStaked = hre.ethers.BigNumber.from(0)
+    let totalDelegated = hre.ethers.BigNumber.from(0)
+    let totalAllocated = hre.ethers.BigNumber.from(0)
+    for (const indexer of indexers) {
+      const t = indexer.stakedTokens / 1e18 + indexer.delegatedTokens / 1e18
+      const b = indexer.allocatedTokens / 1e18 / t
+      const maxCapacity = indexer.stakedTokens / 1e18 + (indexer.stakedTokens / 1e18) * 16
+      const capacityRatio =
+        (indexer.stakedTokens / 1e18 + indexer.delegatedTokens / 1e18) / maxCapacity
+
+      table.push([
+        indexer.id,
+        formatEther(indexer.stakedTokens),
+        formatEther(indexer.delegatedTokens),
+        capacityRatio.toFixed(2),
+        formatEther(indexer.allocatedTokens),
+        b.toFixed(2),
+        indexer.allocationCount,
+      ])
+      totalStaked = totalStaked.add(indexer.stakedTokens)
+      totalDelegated = totalDelegated.add(indexer.delegatedTokens)
+      totalAllocated = totalAllocated.add(indexer.allocatedTokens)
+    }
+
+    console.log(table.toString())
+    console.log('# indexers: ', indexers.length)
+    console.log('total staked: ', formatEther(totalStaked))
+    console.log('total delegated: ', formatEther(totalDelegated))
+    console.log('total allocated: ', formatEther(totalAllocated))
   })
 
 const config = {
