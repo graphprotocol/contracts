@@ -33,7 +33,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 6646 # 24 hours (in 13 second blocks)
+      lengthInBlocks: 1108 # 4 hours (in 13 second blocks)
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
@@ -69,12 +69,12 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
-      thawingPeriod: 186092 # 28 days (in blocks)
+      thawingPeriod: 6646 # 10 days (in blocks)
       protocolPercentage: 10000 # 1% (parts per million)
       curationPercentage: 100000 # 10% (parts per million)
-      channelDisputeEpochs: 7 # (in epochs)
-      maxAllocationEpochs: 28 # Based on epoch length this is 28 days (in epochs)
-      delegationUnbondingPeriod: 28 # Based on epoch length this is 28 days (in epochs)
+      channelDisputeEpochs: 2 # (in epochs)
+      maxAllocationEpochs: 6 # Based on epoch length this is 28 days (in epochs)
+      delegationUnbondingPeriod: 6 # Based on epoch length this is 28 days (in epochs)
       delegationRatio: 16 # 16x (delegated stake to indexer stake multiplier)
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
