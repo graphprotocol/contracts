@@ -274,12 +274,6 @@
     }
   },
   "4": {
-    "GSRManager": {
-      "address": "0x22bDA4D668132a916717AbA8595d192564A639DE"
-    },
-    "GDAI": {
-      "address": "0xaCf3F4093B9851292181BEE2F80D2A450dB25D7a"
-    },
     "IENS": {
       "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
     },
