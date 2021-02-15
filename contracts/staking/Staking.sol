@@ -177,6 +177,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     event SetOperator(address indexed indexer, address indexed operator, bool allowed);
 
     /**
+     * @dev Emitted when `indexer` set an address to receive rewards.
+     */
+    event SetRewardsDestination(address indexed indexer, address indexed destination);
+
+    /**
      * @dev Check if the caller is the slasher.
      */
     modifier onlySlasher {
@@ -609,9 +614,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity = (tokensDelegated < tokensDelegatedCap)
-            ? tokensDelegated
-            : tokensDelegatedCap;
+        uint256 tokensDelegatedCapacity =
+            (tokensDelegated < tokensDelegatedCap) ? tokensDelegated : tokensDelegatedCap;
 
         return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
     }
@@ -723,6 +727,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function setRewardsDestination(address _destination) public override {
         rewardsDestination[msg.sender] = _destination;
+        emit SetRewardsDestination(msg.sender, _destination);
     }
 
     /**
@@ -758,9 +763,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Unlock locked tokens to avoid the indexer to withdraw them
         if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
             uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
-            uint256 tokensToUnlock = (tokensOverAllocated > indexerStake.tokensLocked)
-                ? indexerStake.tokensLocked
-                : tokensOverAllocated;
+            uint256 tokensToUnlock =
+                (tokensOverAllocated > indexerStake.tokensLocked)
+                    ? indexerStake.tokensLocked
+                    : tokensOverAllocated;
             indexerStake.unlockTokens(tokensToUnlock);
         }
 
@@ -956,10 +962,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-                allocState == AllocationState.Closed)
-                ? protocolPercentage
-                : MAX_PPM;
+            uint256 usedProtocolPercentage =
+                (allocState == AllocationState.Active || allocState == AllocationState.Closed)
+                    ? protocolPercentage
+                    : MAX_PPM;
             uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
@@ -1094,16 +1100,17 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Creates an allocation
         // Allocation identifiers are not reused
         // The assetHolder address can send collected funds to the allocation
-        Allocation memory alloc = Allocation(
-            _indexer,
-            _subgraphDeploymentID,
-            _tokens, // Tokens allocated
-            epochManager().currentEpoch(), // createdAtEpoch
-            0, // closedAtEpoch
-            0, // Initialize collected fees
-            0, // Initialize effective allocation
-            _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
-        );
+        Allocation memory alloc =
+            Allocation(
+                _indexer,
+                _subgraphDeploymentID,
+                _tokens, // Tokens allocated
+                epochManager().currentEpoch(), // createdAtEpoch
+                0, // closedAtEpoch
+                0, // Initialize collected fees
+                0, // Initialize effective allocation
+                _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
+            );
         allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
@@ -1111,8 +1118,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Track total allocations per subgraph
         // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
-            .subgraphDeploymentID]
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+            alloc.subgraphDeploymentID
+        ]
             .add(alloc.tokens);
 
         emit AllocationCreated(
@@ -1140,9 +1148,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
-        uint256 epochs = alloc.createdAtEpoch < alloc.closedAtEpoch
-            ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
-            : 0;
+        uint256 epochs =
+            alloc.createdAtEpoch < alloc.closedAtEpoch
+                ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
+                : 0;
         require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
@@ -1183,8 +1192,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Track total allocations per subgraph
         // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
-            .subgraphDeploymentID]
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+            alloc.subgraphDeploymentID
+        ]
             .sub(alloc.tokens);
 
         emit AllocationClosed(
@@ -1287,9 +1297,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0)
-            ? delegatedTokens
-            : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares =
+            (pool.tokens == 0)
+                ? delegatedTokens
+                : delegatedTokens.mul(pool.shares).div(pool.tokens);
 
         // Update the delegation pool
         pool.tokens = pool.tokens.add(delegatedTokens);

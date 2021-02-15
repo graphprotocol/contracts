@@ -567,7 +567,7 @@ describe('Rewards', () => {
           )
       }
 
-      it('should distribute rewards on closed allocation', async function () {
+      it('should distribute rewards on closed allocation and stake', async function () {
         // Setup
         await setupIndexerAllocation()
 
@@ -577,6 +577,8 @@ describe('Rewards', () => {
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
         const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+        const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const beforeStakingBalance = await grt.balanceOf(staking.address)
 
         const expectedIndexingRewards = toGRT('1471954234')
 
@@ -594,13 +596,71 @@ describe('Rewards', () => {
         // After state
         const afterTokenSupply = await grt.totalSupply()
         const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+        const afterIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const afterStakingBalance = await grt.balanceOf(staking.address)
 
         // Check that rewards are put into indexer stake
         // NOTE: calculated manually on a spreadsheet
         const expectedIndexerStake = beforeIndexer1Stake.add(expectedIndexingRewards)
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
-        // Check
+        // Check stake should have increased with the rewards staked
         expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+        // Check indexer balance remains the same
+        expect(afterIndexer1Balance).eq(beforeIndexer1Balance)
+        // Check indexing rewards are kept in the staking contract
+        expect(toRound(afterStakingBalance)).eq(
+          toRound(beforeStakingBalance.add(expectedIndexingRewards)),
+        )
+        // Check that tokens have been minted
+        expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
+      })
+
+      it('should distribute rewards on closed allocation and send to destination', async function () {
+        await staking.connect(indexer1.signer).setRewardsDestination(indexer1.address)
+
+        // Setup
+        await setupIndexerAllocation()
+
+        // Jump
+        await advanceBlocks(await epochManager.epochLength())
+
+        // Before state
+        const beforeTokenSupply = await grt.totalSupply()
+        const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+        const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const beforeStakingBalance = await grt.balanceOf(staking.address)
+
+        const expectedIndexingRewards = toGRT('1471954234')
+
+        // Close allocation. At this point rewards should be collected for that indexer
+        const tx = await staking
+          .connect(indexer1.signer)
+          .closeAllocation(allocationID, randomHexBytes())
+        const receipt = await tx.wait()
+        const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
+        expect(event.indexer).eq(indexer1.address)
+        expect(event.allocationID).eq(allocationID)
+        expect(event.epoch).eq(await epochManager.currentEpoch())
+        expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
+
+        // After state
+        const afterTokenSupply = await grt.totalSupply()
+        const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+        const afterIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const afterStakingBalance = await grt.balanceOf(staking.address)
+
+        // Check that rewards are put into indexer stake
+        // NOTE: calculated manually on a spreadsheet
+        const expectedIndexerStake = beforeIndexer1Stake
+        const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
+        // Check stake should not have changed
+        expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+        // Check indexing rewards are received by the rewards destination
+        expect(toRound(afterIndexer1Balance)).eq(
+          toRound(beforeIndexer1Balance.add(expectedIndexingRewards)),
+        )
+        // Check indexing rewards are sent from the staking contract
+        expect(afterStakingBalance).eq(beforeStakingBalance)
         // Check that tokens have been minted
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })

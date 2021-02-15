@@ -137,6 +137,28 @@ describe('Staking:Allocation', () => {
     })
   })
 
+  describe('rewardsDestination', function () {
+    it('should set rewards destination', async function () {
+      // Before state
+      const beforeDestination = await staking.rewardsDestination(indexer.address)
+
+      // Set
+      const tx = staking.connect(indexer.signer).setRewardsDestination(me.address)
+      await expect(tx).emit(staking, 'SetRewardsDestination').withArgs(indexer.address, me.address)
+
+      // After state
+      const afterDestination = await staking.rewardsDestination(indexer.address)
+
+      // State updated
+      expect(beforeDestination).eq(AddressZero)
+      expect(afterDestination).eq(me.address)
+
+      // Must be able to set back to zero
+      await staking.rewardsDestination(AddressZero)
+      expect(await staking.rewardsDestination(indexer.address)).eq(AddressZero)
+    })
+  })
+
   /**
    * Allocate
    */
