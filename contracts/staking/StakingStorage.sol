@@ -82,3 +82,7 @@ contract StakingV1Storage is Managed {
     // Allowed AssetHolders: assetHolder => is allowed
     mapping(address => bool) public assetHolders;
 }
+
+contract StakingV2Storage is StakingV1Storage {
+    mapping(address => address) public rewardsDestination;
+}

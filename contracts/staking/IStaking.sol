@@ -123,6 +123,8 @@ interface IStaking {
 
     function withdraw() external;
 
+    function setRewardsDestination(address _destination) external;
+
     // -- Delegation --
 
     function delegate(address _indexer, uint256 _tokens) external returns (uint256);

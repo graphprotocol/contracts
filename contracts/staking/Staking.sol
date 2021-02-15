@@ -15,7 +15,7 @@ import "./libs/Stakes.sol";
 /**
  * @title Staking contract
  */
-contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
+contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
@@ -509,7 +509,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isAllocation(address _allocationID) external override view returns (bool) {
+    function isAllocation(address _allocationID) external view override returns (bool) {
         return _getAllocationState(_allocationID) != AllocationState.Null;
     }
 
@@ -518,7 +518,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexer) external override view returns (bool) {
+    function hasStake(address _indexer) external view override returns (bool) {
         return stakes[_indexer].hasTokens();
     }
 
@@ -529,8 +529,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getAllocation(address _allocationID)
         external
-        override
         view
+        override
         returns (Allocation memory)
     {
         return allocations[_allocationID];
@@ -543,8 +543,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getAllocationState(address _allocationID)
         external
-        override
         view
+        override
         returns (AllocationState)
     {
         return _getAllocationState(_allocationID);
@@ -557,8 +557,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
         external
-        override
         view
+        override
         returns (uint256)
     {
         return subgraphAllocations[_subgraphDeploymentID];
@@ -572,8 +572,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getDelegation(address _indexer, address _delegator)
         external
-        override
         view
+        override
         returns (Delegation memory)
     {
         return delegationPools[_indexer].delegators[_delegator];
@@ -585,7 +585,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _delegator Address of the delegator
      * @return True if delegator of indexer
      */
-    function isDelegator(address _indexer, address _delegator) public override view returns (bool) {
+    function isDelegator(address _indexer, address _delegator) public view override returns (bool) {
         return delegationPools[_indexer].delegators[_delegator].shares > 0;
     }
 
@@ -594,7 +594,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakedTokens(address _indexer) external override view returns (uint256) {
+    function getIndexerStakedTokens(address _indexer) external view override returns (uint256) {
         return stakes[_indexer].tokensStaked;
     }
 
@@ -604,7 +604,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerCapacity(address _indexer) public override view returns (uint256) {
+    function getIndexerCapacity(address _indexer) public view override returns (uint256) {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
@@ -650,7 +650,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _operator Address of the operator
      * @param _indexer Address of the indexer
      */
-    function isOperator(address _operator, address _indexer) public override view returns (bool) {
+    function isOperator(address _operator, address _indexer) public view override returns (bool) {
         return operatorAuth[_indexer][_operator];
     }
 
@@ -715,6 +715,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function withdraw() external override notPaused {
         _withdraw(msg.sender);
+    }
+
+    /**
+     * @dev Set the destination where to send rewards.
+     * @param _destination Rewards destination address. If set to zero, rewards will be restaked
+     */
+    function setRewardsDestination(address _destination) public override {
+        rewardsDestination[msg.sender] = _destination;
     }
 
     /**
@@ -1237,16 +1245,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         }
 
         // When there are tokens to claim from the rebate pool, transfer or restake
-        if (tokensToClaim > 0) {
-            // Assign claimed tokens
-            if (restake) {
-                // Restake to place fees into the indexer stake
-                _stake(alloc.indexer, tokensToClaim);
-            } else {
-                // Transfer funds back to the indexer
-                require(graphToken.transfer(alloc.indexer, tokensToClaim), "!transfer");
-            }
-        }
+        _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
 
         emit RebateClaimed(
             alloc.indexer,
@@ -1551,6 +1550,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         if (address(rewardsManager) == address(0)) {
             return;
         }
+
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
@@ -1563,9 +1563,43 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 delegationRewards = _collectDelegationIndexingRewards(_indexer, totalRewards);
         uint256 indexerRewards = totalRewards.sub(delegationRewards);
 
-        // Add the rest of the rewards to the indexer stake
-        if (indexerRewards > 0) {
-            _stake(_indexer, indexerRewards);
+        // Send the indexer rewards
+        _sendRewards(
+            graphToken(),
+            indexerRewards,
+            _indexer,
+            rewardsDestination[_indexer] == address(0)
+        );
+    }
+
+    /**
+     * @dev Send rewards to the appropiate destination.
+     * @param _graphToken Graph token
+     * @param _amount Number of rewards tokens
+     * @param _beneficiary Address of the beneficiary of rewards
+     * @param _restake Whether to restake or not
+     */
+    function _sendRewards(
+        IGraphToken _graphToken,
+        uint256 _amount,
+        address _beneficiary,
+        bool _restake
+    ) private {
+        if (_amount == 0) return;
+
+        if (_restake) {
+            // Restake to place fees into the indexer stake
+            _stake(_beneficiary, _amount);
+        } else {
+            // Transfer funds to the beneficiary's designated rewards destination if set
+            address destination = rewardsDestination[_beneficiary];
+            require(
+                _graphToken.transfer(
+                    destination == address(0) ? _beneficiary : destination,
+                    _amount
+                ),
+                "!transfer"
+            );
         }
     }
 
