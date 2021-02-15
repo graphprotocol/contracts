@@ -29,6 +29,11 @@ enum AllocationState {
   Claimed,
 }
 
+enum RewardsDestination {
+  Stake,
+  RewardsPool,
+}
+
 const calculateEffectiveAllocation = (
   tokens: BigNumber,
   numEpochs: BigNumber,
@@ -411,7 +416,7 @@ describe('Staking:Allocation', () => {
       // Advance blocks to get the allocation in epoch where it can be closed
       await advanceToNextEpoch(epochManager)
       // Close the allocation
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
 
       // Collect fees into the allocation
       const tx1 = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
@@ -457,12 +462,12 @@ describe('Staking:Allocation', () => {
 
     it('reject close a non-existing allocation', async function () {
       const invalidAllocationID = randomHexBytes(20)
-      const tx = staking.connect(indexer.signer).closeAllocation(invalidAllocationID, poi)
+      const tx = staking.connect(indexer.signer).closeAllocation(invalidAllocationID, poi, true)
       await expect(tx).revertedWith('!active')
     })
 
     it('reject close before at least one epoch has passed', async function () {
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
       await expect(tx).revertedWith('<epochs')
     })
 
@@ -471,7 +476,7 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Close allocation
-      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi, true)
       await expect(tx).revertedWith('!auth')
     })
 
@@ -480,10 +485,10 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // First closing
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
 
       // Second closing
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
       await expect(tx).revertedWith('!active')
     })
 
@@ -510,7 +515,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Close allocation
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
       await expect(tx)
         .emit(staking, 'AllocationClosed')
         .withArgs(
@@ -551,12 +556,12 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Reject to close if the address is not operator
-      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi, true)
       await expect(tx1).revertedWith('!auth')
 
       // Should close if given operator auth
       await staking.connect(indexer.signer).setOperator(me.address, true)
-      await staking.connect(me.signer).closeAllocation(allocationID, poi)
+      await staking.connect(me.signer).closeAllocation(allocationID, poi, true)
     })
 
     it('should close an allocation (by delegator)', async function () {
@@ -567,7 +572,7 @@ describe('Staking:Allocation', () => {
       }
 
       // Reject to close if the address is not delegator
-      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi, true)
       await expect(tx1).revertedWith('!auth')
 
       // Calculations
@@ -586,7 +591,7 @@ describe('Staking:Allocation', () => {
       await staking.connect(me.signer).delegate(indexer.address, toGRT('1'))
 
       // Should close by delegator
-      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi, true)
       await expect(tx)
         .emit(staking, 'AllocationClosed')
         .withArgs(
@@ -626,10 +631,12 @@ describe('Staking:Allocation', () => {
         {
           allocationID: allocationID,
           poi: poi,
+          restake: true,
         },
         {
           allocationID: allocationID2,
           poi: poi,
+          restake: true,
         },
       ]
       await staking.connect(indexer.signer).closeAllocationMany(requests)
@@ -655,6 +662,7 @@ describe('Staking:Allocation', () => {
         .closeAndAllocate(
           allocationID,
           HashZero,
+          false,
           indexer.address,
           subgraphDeploymentID,
           tokensToAllocate,
@@ -704,12 +712,8 @@ describe('Staking:Allocation', () => {
       const afterAlloc = await staking.allocations(allocationID)
       const afterRebatePool = await staking.rebates(beforeAlloc.closedAtEpoch)
 
-      // Funds distributed to indexer
-      if (restake) {
-        expect(afterBalance).eq(beforeBalance)
-      } else {
-        expect(afterBalance).eq(beforeBalance.add(tokensToClaim))
-      }
+      // Funds are not sent to indexer but to the stake or rewards pool
+      expect(afterBalance).eq(beforeBalance)
       // Stake updated
       if (restake) {
         expect(afterStake.tokensStaked).eq(beforeStake.tokensStaked.add(tokensToClaim))
@@ -773,32 +777,34 @@ describe('Staking:Allocation', () => {
         await advanceToNextEpoch(epochManager)
 
         // Close the allocation
-        await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+        await staking.connect(indexer.signer).closeAllocation(allocationID, poi, true)
       })
 
       it('reject claim if closed but channel dispute epochs has not passed', async function () {
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Closed)
-        const tx = staking.connect(indexer.signer).claim(allocationID, false)
+        const tx = staking.connect(indexer.signer).claim(allocationID, true)
         await expect(tx).revertedWith('!finalized')
       })
 
-      it('should claim rebate', async function () {
+      it('should claim rebate (rewards pool)', async function () {
         // Advance blocks to get the allocation finalized
         await advanceToNextEpoch(epochManager)
 
         // Before state
-        const beforeIndexerTokens = await grt.balanceOf(indexer.address)
+        const beforeRewardsPool = await staking.rewardsPools(indexer.address)
 
         // Claim with no restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
         await shouldClaim(allocationID, false)
 
-        // Verify that the claimed tokens are transferred to the indexer
-        const afterIndexerTokens = await grt.balanceOf(indexer.address)
-        expect(afterIndexerTokens).eq(beforeIndexerTokens.add(tokensToCollect))
+        // Verify that the claimed tokens are kept in a rewards pool
+        const afterRewardsPool = await staking.rewardsPools(indexer.address)
+        expect(afterRewardsPool.tokensLocked).eq(
+          beforeRewardsPool.tokensLocked.add(tokensToCollect),
+        )
       })
 
-      it('should claim rebate with restake', async function () {
+      it('should claim rebate (restake)', async function () {
         // Advance blocks to get the allocation finalized
         await advanceToNextEpoch(epochManager)
 

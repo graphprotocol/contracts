@@ -40,6 +40,7 @@ interface IStaking {
     struct CloseAllocationRequest {
         address allocationID;
         bytes32 poi;
+        bool restake;
     }
 
     // -- Delegation Data --
@@ -123,6 +124,8 @@ interface IStaking {
 
     function withdraw() external;
 
+    function withdrawRewards(address _beneficiary) external;
+
     // -- Delegation --
 
     function delegate(address _indexer, uint256 _tokens) external returns (uint256);
@@ -150,13 +153,18 @@ interface IStaking {
         bytes calldata _proof
     ) external;
 
-    function closeAllocation(address _allocationID, bytes32 _poi) external;
+    function closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bool _restake
+    ) external;
 
     function closeAllocationMany(CloseAllocationRequest[] calldata _requests) external;
 
     function closeAndAllocate(
         address _oldAllocationID,
         bytes32 _poi,
+        bool _restake,
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,

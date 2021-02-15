@@ -4,9 +4,11 @@ pragma solidity ^0.7.3;
 
 import "../governance/Managed.sol";
 import "../staking/IStaking.sol";
+
 import "./IStaking.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
+import "./libs/Rewards.sol";
 
 contract StakingV1Storage is Managed {
     // -- Staking --
@@ -81,4 +83,9 @@ contract StakingV1Storage is Managed {
 
     // Allowed AssetHolders: assetHolder => is allowed
     mapping(address => bool) public assetHolders;
+}
+
+contract StakingV2Storage is StakingV1Storage {
+    // Pool that holds rewards : beneficiary => accumulated rewards
+    mapping(address => Rewards.Pool) public rewardsPools;
 }

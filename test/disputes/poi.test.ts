@@ -146,7 +146,7 @@ describe('DisputeManager:POI', async () => {
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
       await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
-      await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
+      await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi, true)
       await staking.connect(indexer.signer).unstake(indexerTokens)
       await advanceBlock() // pass thawing period
       await staking.connect(indexer.signer).withdraw()

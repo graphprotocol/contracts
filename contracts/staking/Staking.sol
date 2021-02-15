@@ -12,14 +12,16 @@ import "./StakingStorage.sol";
 import "./libs/MathUtils.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
+import "./libs/Rewards.sol";
 
 /**
  * @title Staking contract
  */
-contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
+contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
+    using Rewards for Rewards.Pool;
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
@@ -50,6 +52,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Emitted when `indexer` withdrew `tokens` staked.
      */
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
+
+    /**
+     * @dev Emitted when `owner` withdrew `tokens` from the rewards pool to `beneficiary` address.
+     */
+    event RewardsWithdrawn(address indexed owner, address indexed beneficiary, uint256 tokens);
 
     /**
      * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
@@ -717,6 +724,24 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Withdraw all available rewards.
+     * @param _beneficiary Address to send rewards
+     */
+    function withdrawRewards(address _beneficiary) external override notPaused {
+        Rewards.Pool memory rewardsPool = rewardsPools[msg.sender];
+
+        require(rewardsPool.tokensLocked > 0, "rewards-empty");
+        require(rewardsPool.tokensLockedUntil <= block.number, "rewards-locked");
+        require(_beneficiary != address(0), "!rewards-beneficiary");
+
+        rewardsPools[msg.sender].reset();
+
+        _pushTokens(graphToken(), _beneficiary, rewardsPool.tokensLocked);
+
+        emit RewardsWithdrawn(msg.sender, _beneficiary, rewardsPool.tokensLocked);
+    }
+
+    /**
      * @dev Slash the indexer stake. Delegated tokens are not subject to slashing.
      * Can only be called by the slasher role.
      * @param _indexer Address of indexer to slash
@@ -864,9 +889,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * To opt out for rewards set _poi to 0x0
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
+     * @param _restake Stake indexing rewards
      */
-    function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
-        _closeAllocation(_allocationID, _poi);
+    function closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bool _restake
+    ) external override notPaused {
+        _closeAllocation(_allocationID, _poi, _restake);
     }
 
     /**
@@ -882,7 +912,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         notPaused
     {
         for (uint256 i = 0; i < _requests.length; i++) {
-            _closeAllocation(_requests[i].allocationID, _requests[i].poi);
+            _closeAllocation(_requests[i].allocationID, _requests[i].poi, _requests[i].restake);
         }
     }
 
@@ -891,6 +921,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * atomically on the same transaction.
      * @param _closingAllocationID The identifier of the allocation to be closed
      * @param _poi Proof of indexing submitted for the allocated period
+     * @param _restake Stake indexing rewards
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
@@ -901,6 +932,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     function closeAndAllocate(
         address _closingAllocationID,
         bytes32 _poi,
+        bool _restake,
         address _indexer,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
@@ -908,7 +940,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         bytes32 _metadata,
         bytes calldata _proof
     ) external override notPaused {
-        _closeAllocation(_closingAllocationID, _poi);
+        _closeAllocation(_closingAllocationID, _poi, _restake);
         _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
     }
 
@@ -1118,8 +1150,13 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Close an allocation and free the staked tokens.
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
+     * @param _restake Stake indexing rewards
      */
-    function _closeAllocation(address _allocationID, bytes32 _poi) private {
+    function _closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bool _restake
+    ) private {
         // Allocation must exist and be active
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState == AllocationState.Active, "!active");
@@ -1162,7 +1199,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Distribute rewards if proof of indexing was presented by the indexer or operator
         if (isIndexer && _poi != 0) {
-            _distributeRewards(_allocationID, alloc.indexer);
+            _distributeRewards(_allocationID, alloc.indexer, _restake);
         }
 
         // Free allocated tokens from use
@@ -1224,25 +1261,14 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // -- Interactions --
 
-        IGraphToken graphToken = graphToken();
-
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
-            _burnTokens(graphToken, rebatePool.unclaimedFees());
+            _burnTokens(graphToken(), rebatePool.unclaimedFees());
             delete rebates[alloc.closedAtEpoch];
         }
 
-        // When there are tokens to claim from the rebate pool, transfer or restake
-        if (tokensToClaim > 0) {
-            // Assign claimed tokens
-            if (restake) {
-                // Restake to place fees into the indexer stake
-                _stake(alloc.indexer, tokensToClaim);
-            } else {
-                // Transfer funds back to the indexer
-                _pushTokens(graphToken, alloc.indexer, tokensToClaim);
-            }
-        }
+        // Send the query fees rebate rewards for the indexer
+        _sendIndexerRewards(tokensToClaim, alloc.indexer, restake);
 
         emit RebateClaimed(
             alloc.indexer,
@@ -1542,12 +1568,19 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Assign rewards for the closed allocation to indexer and delegators.
      * @param _allocationID Allocation
+     * @param _indexer Indexer to receive rewards
+     * @param _restake Stake indexing rewards
      */
-    function _distributeRewards(address _allocationID, address _indexer) private {
+    function _distributeRewards(
+        address _allocationID,
+        address _indexer,
+        bool _restake
+    ) private {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) == address(0)) {
             return;
         }
+
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
@@ -1560,9 +1593,29 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         uint256 delegationRewards = _collectDelegationIndexingRewards(_indexer, totalRewards);
         uint256 indexerRewards = totalRewards.sub(delegationRewards);
 
-        // Add the rest of the rewards to the indexer stake
-        if (indexerRewards > 0) {
-            _stake(_indexer, indexerRewards);
+        // Send the indexing rewards to the indexer
+        _sendIndexerRewards(indexerRewards, _indexer, _restake);
+    }
+
+    /**
+     * @dev Send rewards to the appropiate destination.
+     * @param _amount Number of rewards tokens
+     * @param _indexer Address of the indexer receiving rewards
+     * @param _restake Whether to restake or not
+     */
+    function _sendIndexerRewards(
+        uint256 _amount,
+        address _indexer,
+        bool _restake
+    ) private {
+        if (_amount == 0) return;
+
+        if (_restake) {
+            // Restake to place fees into the indexer stake
+            _stake(_indexer, _amount);
+        } else {
+            // Transfer funds to the beneficiary's rewards pool
+            rewardsPools[_indexer].lockTokens(_amount, thawingPeriod);
         }
     }
 
