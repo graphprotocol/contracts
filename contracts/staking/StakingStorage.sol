@@ -84,6 +84,8 @@ contract StakingV1Storage is Managed {
 }
 
 contract StakingV2Storage is StakingV1Storage {
-    mapping(address => address) public rewardsDestination;
+    // Destination of accrued rewards : beneficiary => rewards destination
+    mapping(address => IStaking.RewardsDestination) public rewardsDestination;
+    // Pool that holds rewards : beneficiary => accumulated rewards
     mapping(address => uint256) public rewardsPool;
 }

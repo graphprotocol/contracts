@@ -179,7 +179,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Emitted when `indexer` set an address to receive rewards.
      */
-    event SetRewardsDestination(address indexed indexer, address indexed destination);
+    event SetRewardsDestination(address indexed indexer, RewardsDestination destination);
 
     /**
      * @dev Check if the caller is the slasher.
@@ -725,9 +725,21 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @dev Set the destination where to send rewards.
      * @param _destination Rewards destination address. If set to zero, rewards will be restaked
      */
-    function setRewardsDestination(address _destination) public override {
+    function setRewardsDestination(RewardsDestination _destination) external override {
         rewardsDestination[msg.sender] = _destination;
         emit SetRewardsDestination(msg.sender, _destination);
+    }
+
+    /**
+     * @dev Withdraw accrued rewards.
+     * @param _beneficiary Address to send rewards
+     */
+    function withdrawRewards(address _beneficiary) external override {
+        require(rewardsPool[msg.sender] > 0, "!rewards-tokens");
+
+        require(graphToken().transfer(_beneficiary, rewardsPool[msg.sender]), "!transfer");
+
+        // TODO: emit event
     }
 
     /**
@@ -1246,16 +1258,14 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // -- Interactions --
 
-        IGraphToken graphToken = graphToken();
-
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
-            _burnTokens(graphToken, rebatePool.unclaimedFees());
+            _burnTokens(graphToken(), rebatePool.unclaimedFees());
             delete rebates[alloc.closedAtEpoch];
         }
 
         // When there are tokens to claim from the rebate pool, transfer or restake
-        _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
+        _sendRewards(tokensToClaim, alloc.indexer, restake);
 
         emit RebateClaimed(
             alloc.indexer,
@@ -1576,22 +1586,19 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Send the indexer rewards
         _sendRewards(
-            graphToken(),
             indexerRewards,
             _indexer,
-            rewardsDestination[_indexer] == address(0)
+            rewardsDestination[_indexer] == RewardsDestination.Stake
         );
     }
 
     /**
      * @dev Send rewards to the appropiate destination.
-     * @param _graphToken Graph token
      * @param _amount Number of rewards tokens
      * @param _beneficiary Address of the beneficiary of rewards
      * @param _restake Whether to restake or not
      */
     function _sendRewards(
-        IGraphToken _graphToken,
         uint256 _amount,
         address _beneficiary,
         bool _restake
@@ -1602,16 +1609,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             // Restake to place fees into the indexer stake
             _stake(_beneficiary, _amount);
         } else {
-            // Transfer funds to the beneficiary's designated rewards destination if set
+            // Transfer funds to the beneficiary's rewards pool
             rewardsPool[_beneficiary] = rewardsPool[_beneficiary].add(_amount);
-            // address destination = rewardsDestination[_beneficiary];
-            // require(
-            //     _graphToken.transfer(
-            //         destination == address(0) ? _beneficiary : destination,
-            //         _amount
-            //     ),
-            //     "!transfer"
-            // );
         }
     }
 

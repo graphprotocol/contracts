@@ -18,6 +18,14 @@ interface IStaking {
     enum AllocationState { Null, Active, Closed, Finalized, Claimed }
 
     /**
+     * @dev Possible states of Rewards Destination
+     * States:
+     * - Stake = Rewards are sent to the indexer stake, subject to thawing period
+     * - RewardsPool = Rewards are sent to a rewards pool
+     */
+    enum RewardsDestination { Stake, RewardsPool }
+
+    /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and consumed in claim()
      */
@@ -123,7 +131,9 @@ interface IStaking {
 
     function withdraw() external;
 
-    function setRewardsDestination(address _destination) external;
+    function setRewardsDestination(RewardsDestination _destination) external;
+
+    function withdrawRewards(address _beneficiary) external;
 
     // -- Delegation --
 

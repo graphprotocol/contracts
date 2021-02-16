@@ -25,6 +25,11 @@ import {
   advanceToNextEpoch,
 } from '../lib/testHelpers'
 
+enum RewardsDestination {
+  Stake,
+  RewardsPool,
+}
+
 const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants
@@ -615,8 +620,8 @@ describe('Rewards', () => {
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })
 
-      it.only('should distribute rewards on closed allocation and send to destination', async function () {
-        await staking.connect(indexer1.signer).setRewardsDestination(indexer1.address)
+      it('should distribute rewards on closed allocation and send to rewards pool', async function () {
+        await staking.connect(indexer1.signer).setRewardsDestination(RewardsDestination.RewardsPool)
 
         // Setup
         await setupIndexerAllocation()

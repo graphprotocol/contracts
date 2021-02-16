@@ -29,6 +29,11 @@ enum AllocationState {
   Claimed,
 }
 
+enum RewardsDestination {
+  Stake,
+  RewardsPool,
+}
+
 const calculateEffectiveAllocation = (
   tokens: BigNumber,
   numEpochs: BigNumber,
@@ -143,19 +148,23 @@ describe('Staking:Allocation', () => {
       const beforeDestination = await staking.rewardsDestination(indexer.address)
 
       // Set
-      const tx = staking.connect(indexer.signer).setRewardsDestination(me.address)
-      await expect(tx).emit(staking, 'SetRewardsDestination').withArgs(indexer.address, me.address)
+      const tx = staking
+        .connect(indexer.signer)
+        .setRewardsDestination(RewardsDestination.RewardsPool)
+      await expect(tx)
+        .emit(staking, 'SetRewardsDestination')
+        .withArgs(indexer.address, RewardsDestination.RewardsPool)
 
       // After state
       const afterDestination = await staking.rewardsDestination(indexer.address)
 
       // State updated
-      expect(beforeDestination).eq(AddressZero)
-      expect(afterDestination).eq(me.address)
+      expect(beforeDestination).eq(RewardsDestination.Stake)
+      expect(afterDestination).eq(RewardsDestination.RewardsPool)
 
-      // Must be able to set back to zero
-      await staking.rewardsDestination(AddressZero)
-      expect(await staking.rewardsDestination(indexer.address)).eq(AddressZero)
+      // Must be able to change it back
+      await staking.connect(indexer.signer).setRewardsDestination(RewardsDestination.Stake)
+      expect(await staking.rewardsDestination(indexer.address)).eq(RewardsDestination.Stake)
     })
   })
 
@@ -726,12 +735,8 @@ describe('Staking:Allocation', () => {
       const afterAlloc = await staking.allocations(allocationID)
       const afterRebatePool = await staking.rebates(beforeAlloc.closedAtEpoch)
 
-      // Funds distributed to indexer
-      if (restake) {
-        expect(afterBalance).eq(beforeBalance)
-      } else {
-        expect(afterBalance).eq(beforeBalance.add(tokensToClaim))
-      }
+      // Funds are not sent to indexer but to the stake or rewards pool
+      expect(afterBalance).eq(beforeBalance)
       // Stake updated
       if (restake) {
         expect(afterStake.tokensStaked).eq(beforeStake.tokensStaked.add(tokensToClaim))
@@ -809,15 +814,15 @@ describe('Staking:Allocation', () => {
         await advanceToNextEpoch(epochManager)
 
         // Before state
-        const beforeIndexerTokens = await grt.balanceOf(indexer.address)
+        const beforeRewardsPool = await staking.rewardsPool(indexer.address)
 
         // Claim with no restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
         await shouldClaim(allocationID, false)
 
-        // Verify that the claimed tokens are transferred to the indexer
-        const afterIndexerTokens = await grt.balanceOf(indexer.address)
-        expect(afterIndexerTokens).eq(beforeIndexerTokens.add(tokensToCollect))
+        // Verify that the claimed tokens are kept in a rewards pool
+        const afterRewardsPool = await staking.rewardsPool(indexer.address)
+        expect(afterRewardsPool).eq(beforeRewardsPool.add(tokensToCollect))
       })
 
       it('should claim rebate with restake', async function () {
