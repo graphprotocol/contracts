@@ -615,7 +615,7 @@ describe('Rewards', () => {
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })
 
-      it('should distribute rewards on closed allocation and send to destination', async function () {
+      it.only('should distribute rewards on closed allocation and send to destination', async function () {
         await staking.connect(indexer1.signer).setRewardsDestination(indexer1.address)
 
         // Setup
@@ -655,12 +655,12 @@ describe('Rewards', () => {
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
         // Check stake should not have changed
         expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
-        // Check indexing rewards are received by the rewards destination
-        expect(toRound(afterIndexer1Balance)).eq(
-          toRound(beforeIndexer1Balance.add(expectedIndexingRewards)),
+        // Check indexer balance remains the same
+        expect(afterIndexer1Balance).eq(beforeIndexer1Balance)
+        // Check indexing rewards are kept in the staking contract
+        expect(toRound(afterStakingBalance)).eq(
+          toRound(beforeStakingBalance.add(expectedIndexingRewards)),
         )
-        // Check indexing rewards are sent from the staking contract
-        expect(afterStakingBalance).eq(beforeStakingBalance)
         // Check that tokens have been minted
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })

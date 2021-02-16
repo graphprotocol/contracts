@@ -85,4 +85,5 @@ contract StakingV1Storage is Managed {
 
 contract StakingV2Storage is StakingV1Storage {
     mapping(address => address) public rewardsDestination;
+    mapping(address => uint256) public rewardsPool;
 }

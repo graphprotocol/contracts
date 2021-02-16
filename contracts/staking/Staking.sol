@@ -1603,14 +1603,15 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             _stake(_beneficiary, _amount);
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
-            address destination = rewardsDestination[_beneficiary];
-            require(
-                _graphToken.transfer(
-                    destination == address(0) ? _beneficiary : destination,
-                    _amount
-                ),
-                "!transfer"
-            );
+            rewardsPool[_beneficiary] = rewardsPool[_beneficiary].add(_amount);
+            // address destination = rewardsDestination[_beneficiary];
+            // require(
+            //     _graphToken.transfer(
+            //         destination == address(0) ? _beneficiary : destination,
+            //         _amount
+            //     ),
+            //     "!transfer"
+            // );
         }
     }
 
