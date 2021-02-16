@@ -725,7 +725,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @dev Set the destination where to send rewards.
      * @param _destination Rewards destination address. If set to zero, rewards will be restaked
      */
-    function setRewardsDestination(address _destination) public override {
+    function setRewardsDestination(address _destination) external override {
         rewardsDestination[msg.sender] = _destination;
         emit SetRewardsDestination(msg.sender, _destination);
     }

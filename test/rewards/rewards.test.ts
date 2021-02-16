@@ -649,7 +649,7 @@ describe('Rewards', () => {
         const afterIndexer1Balance = await grt.balanceOf(indexer1.address)
         const afterStakingBalance = await grt.balanceOf(staking.address)
 
-        // Check that rewards are put into indexer stake
+        // Check that rewards are properly assigned
         // NOTE: calculated manually on a spreadsheet
         const expectedIndexerStake = beforeIndexer1Stake
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
@@ -659,7 +659,7 @@ describe('Rewards', () => {
         expect(toRound(afterIndexer1Balance)).eq(
           toRound(beforeIndexer1Balance.add(expectedIndexingRewards)),
         )
-        // Check indexing rewards are sent from the staking contract
+        // Check indexing rewards were not sent to the staking contract
         expect(afterStakingBalance).eq(beforeStakingBalance)
         // Check that tokens have been minted
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))

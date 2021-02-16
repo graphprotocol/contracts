@@ -84,5 +84,6 @@ contract StakingV1Storage is Managed {
 }
 
 contract StakingV2Storage is StakingV1Storage {
+    // Destination of accrued rewards : beneficiary => rewards destination
     mapping(address => address) public rewardsDestination;
 }
