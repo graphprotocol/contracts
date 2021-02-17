@@ -154,7 +154,7 @@ describe('Staking:Allocation', () => {
       expect(afterDestination).eq(me.address)
 
       // Must be able to set back to zero
-      await staking.rewardsDestination(AddressZero)
+      await staking.connect(indexer.signer).setRewardsDestination(AddressZero)
       expect(await staking.rewardsDestination(indexer.address)).eq(AddressZero)
     })
   })
