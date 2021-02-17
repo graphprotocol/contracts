@@ -616,7 +616,8 @@ describe('Rewards', () => {
       })
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
-        await staking.connect(indexer1.signer).setRewardsDestination(indexer1.address)
+        const destinationAddress = randomHexBytes(20)
+        await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
 
         // Setup
         await setupIndexerAllocation()
@@ -627,7 +628,7 @@ describe('Rewards', () => {
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
         const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-        const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const beforeDestinationBalance = await grt.balanceOf(destinationAddress)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
         const expectedIndexingRewards = toGRT('1471954234')
@@ -646,7 +647,7 @@ describe('Rewards', () => {
         // After state
         const afterTokenSupply = await grt.totalSupply()
         const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-        const afterIndexer1Balance = await grt.balanceOf(indexer1.address)
+        const afterDestinationBalance = await grt.balanceOf(destinationAddress)
         const afterStakingBalance = await grt.balanceOf(staking.address)
 
         // Check that rewards are properly assigned
@@ -656,8 +657,8 @@ describe('Rewards', () => {
         // Check stake should not have changed
         expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
         // Check indexing rewards are received by the rewards destination
-        expect(toRound(afterIndexer1Balance)).eq(
-          toRound(beforeIndexer1Balance.add(expectedIndexingRewards)),
+        expect(toRound(afterDestinationBalance)).eq(
+          toRound(beforeDestinationBalance.add(expectedIndexingRewards)),
         )
         // Check indexing rewards were not sent to the staking contract
         expect(afterStakingBalance).eq(beforeStakingBalance)
