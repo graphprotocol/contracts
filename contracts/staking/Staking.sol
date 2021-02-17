@@ -51,6 +51,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
 
     /**
+     * @dev Emitted when `owner` withdrew `tokens` from the rewards pool to `beneficiary` address.
+     */
+    event RewardsWithdrawn(address indexed owner, address indexed beneficiary, uint256 tokens);
+
+    /**
      * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
      * Tracks `reward` amount of tokens given to `beneficiary`.
      */
@@ -735,11 +740,13 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @param _beneficiary Address to send rewards
      */
     function withdrawRewards(address _beneficiary) external override {
-        require(rewardsPool[msg.sender] > 0, "!rewards-tokens");
+        uint256 tokens = rewardsPool[msg.sender];
+        require(tokens > 0, "!rewards-tokens");
+        require(_beneficiary != address(0), "!rewards-beneficiary");
 
-        require(graphToken().transfer(_beneficiary, rewardsPool[msg.sender]), "!transfer");
+        require(graphToken().transfer(_beneficiary, tokens), "!transfer");
 
-        // TODO: emit event
+        emit RewardsWithdrawn(msg.sender, _beneficiary, tokens);
     }
 
     /**
