@@ -600,7 +600,6 @@ describe('Rewards', () => {
         const afterStakingBalance = await grt.balanceOf(staking.address)
 
         // Check that rewards are put into indexer stake
-        // NOTE: calculated manually on a spreadsheet
         const expectedIndexerStake = beforeIndexer1Stake.add(expectedIndexingRewards)
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
         // Check stake should have increased with the rewards staked
@@ -651,7 +650,6 @@ describe('Rewards', () => {
         const afterStakingBalance = await grt.balanceOf(staking.address)
 
         // Check that rewards are properly assigned
-        // NOTE: calculated manually on a spreadsheet
         const expectedIndexerStake = beforeIndexer1Stake
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
         // Check stake should not have changed
