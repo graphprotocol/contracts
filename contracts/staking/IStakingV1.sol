@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "./IStakingData.sol";
 
-interface IStaking is IStakingData {
+interface IStakingV1 is IStakingData {
     // -- Allocation Data --
 
     /**
@@ -85,8 +85,6 @@ interface IStaking is IStakingData {
     ) external;
 
     function withdraw() external;
-
-    function setRewardsDestination(address _destination) external;
 
     // -- Delegation --
 
