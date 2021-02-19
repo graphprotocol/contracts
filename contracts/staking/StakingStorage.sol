@@ -3,8 +3,8 @@
 pragma solidity ^0.7.3;
 
 import "../governance/Managed.sol";
-import "../staking/IStaking.sol";
-import "./IStaking.sol";
+
+import "./IStakingData.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
@@ -39,7 +39,7 @@ contract StakingV1Storage is Managed {
     mapping(address => Stakes.Indexer) public stakes;
 
     // Allocations : allocationID => Allocation
-    mapping(address => IStaking.Allocation) public allocations;
+    mapping(address => IStakingData.Allocation) public allocations;
 
     // Subgraph Allocations: subgraphDeploymentID => tokens
     mapping(bytes32 => uint256) public subgraphAllocations;
@@ -70,7 +70,7 @@ contract StakingV1Storage is Managed {
     uint32 public delegationTaxPercentage;
 
     // Delegation pools : indexer => DelegationPool
-    mapping(address => IStaking.DelegationPool) public delegationPools;
+    mapping(address => IStakingData.DelegationPool) public delegationPools;
 
     // -- Operators --
 
