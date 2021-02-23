@@ -21,6 +21,7 @@ import 'hardhat-typechain'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@tenderly/hardhat-tenderly'
+import '@openzeppelin/hardhat-upgrades'
 
 // TODO: Not supported for now in hardhat
 // usePlugin('solidity-coverage')
