@@ -1,8 +1,8 @@
-import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
 import hre from 'hardhat'
+import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
+import { formatUnits } from 'ethers/lib/utils'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { formatUnits } from 'ethers/lib/utils'
 
 const { hexlify, parseUnits, parseEther, randomBytes } = utils
 
