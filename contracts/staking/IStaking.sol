@@ -19,16 +19,6 @@ interface IStaking is IStakingData {
      */
     enum AllocationState { Null, Active, Closed, Finalized, Claimed }
 
-    /**
-     * @dev Represents a request to close an allocation with a specific proof of indexing.
-     * This is passed when calling closeAllocationMany to define the closing parameters for
-     * each allocation.
-     */
-    struct CloseAllocationRequest {
-        address allocationID;
-        bytes32 poi;
-    }
-
     // -- Configuration --
 
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external;

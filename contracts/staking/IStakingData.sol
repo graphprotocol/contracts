@@ -19,6 +19,16 @@ interface IStakingData {
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
     }
 
+    /**
+     * @dev Represents a request to close an allocation with a specific proof of indexing.
+     * This is passed when calling closeAllocationMany to define the closing parameters for
+     * each allocation.
+     */
+    struct CloseAllocationRequest {
+        address allocationID;
+        bytes32 poi;
+    }
+
     // -- Delegation Data --
 
     /**
