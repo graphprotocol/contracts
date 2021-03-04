@@ -17,7 +17,9 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   logger.log('First calling approve() to ensure curation contract can call transferFrom()...')
   await sendTransaction(cli.wallet, graphToken, 'approve', [curation.address, amount])
   logger.log(`Signaling on ${subgraphID} with ${cliArgs.amount} tokens...`)
-  await sendTransaction(cli.wallet, curation, 'mint', [subgraphID, amount, 0])
+  await sendTransaction(cli.wallet, curation, 'mint', [subgraphID, amount, 0], {
+    gasLimit: 2000000,
+  })
 }
 export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const subgraphID = cliArgs.subgraphID
