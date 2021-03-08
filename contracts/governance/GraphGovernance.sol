@@ -13,8 +13,18 @@ import "./GraphGovernanceStorage.sol";
 contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGovernance {
     // -- Events --
 
-    event ProposalCreated(address submitter, bytes32 proposalId, bytes32 votesProof);
-    event ProposalUpdated(address submitter, bytes32 proposalId, bytes32 votesProof);
+    event ProposalCreated(
+        address submitter,
+        bytes32 proposalId,
+        bytes32 votesProof,
+        ProposalResolution resolution
+    );
+    event ProposalUpdated(
+        address submitter,
+        bytes32 proposalId,
+        bytes32 votesProof,
+        ProposalResolution resolution
+    );
 
     /**
      * @notice Initialize this contract.
@@ -44,13 +54,13 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         bytes32 _votesProof,
         ProposalResolution _resolution
     ) external override onlyGovernor {
-        require(_proposalId != 0x0, "!pid");
+        require(_proposalId != 0x0, "!proposalId");
         require(_votesProof != 0x0, "!votesProof");
-        require(_resolution != ProposalResolution.Null);
+        require(_resolution != ProposalResolution.Null, "!resolved");
         require(!isProposalCreated(_proposalId), "proposed");
 
         proposals[_proposalId] = Proposal({ votesProof: _votesProof, resolution: _resolution });
-        emit ProposalCreated(msg.sender, _proposalId, _votesProof);
+        emit ProposalCreated(msg.sender, _proposalId, _votesProof, _resolution);
     }
 
     /**
@@ -63,12 +73,12 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         bytes32 _votesProof,
         ProposalResolution _resolution
     ) external override onlyGovernor {
-        require(_proposalId != 0x0, "!pid");
+        require(_proposalId != 0x0, "!proposalId");
         require(_votesProof != 0x0, "!votesProof");
-        require(_resolution != ProposalResolution.Null);
+        require(_resolution != ProposalResolution.Null, "!resolved");
         require(isProposalCreated(_proposalId), "!proposed");
 
         proposals[_proposalId] = Proposal({ votesProof: _votesProof, resolution: _resolution });
-        emit ProposalUpdated(msg.sender, _proposalId, _votesProof);
+        emit ProposalUpdated(msg.sender, _proposalId, _votesProof, _resolution);
     }
 }
