@@ -7,17 +7,19 @@ interface IGraphGovernance {
 
     // -- Proposals --
 
-    function isProposalCreated(bytes32 _metadata) external view returns (bool);
+    function isProposalCreated(bytes32 _proposalId) external view returns (bool);
 
     function createProposal(
-        bytes32 _pid,
-        bytes32 _votesProof,
+        bytes32 _proposalId,
+        bytes32 _votes,
+        bytes32 _metadata,
         ProposalResolution _resolution
     ) external;
 
     function updateProposal(
-        bytes32 _pid,
-        bytes32 _votesProof,
+        bytes32 _proposalId,
+        bytes32 _votes,
+        bytes32 _metadata,
         ProposalResolution _resolution
     ) external;
 }
