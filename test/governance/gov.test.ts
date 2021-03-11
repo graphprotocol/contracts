@@ -32,43 +32,44 @@ describe.only('GraphGovernance', () => {
 
   describe('proposals', function () {
     const proposalId = randomHexBytes(32)
-    const votesProof = randomHexBytes(32)
+    const votes = randomHexBytes(32)
+    const metadata = randomHexBytes(32)
 
     it('should create a proposal', async function () {
       const tx = gov
         .connect(governor.signer)
-        .createProposal(proposalId, votesProof, ProposalResolution.Accepted)
+        .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       await expect(tx)
         .emit(gov, 'ProposalCreated')
-        .withArgs(governor.address, proposalId, votesProof, ProposalResolution.Accepted)
+        .withArgs(governor.address, proposalId, votes, metadata, ProposalResolution.Accepted)
       expect(await gov.isProposalCreated(proposalId)).eq(true)
     })
 
     it('reject create a proposal if not allowed', async function () {
       const tx = gov
         .connect(someone.signer)
-        .createProposal(proposalId, votesProof, ProposalResolution.Accepted)
+        .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       await expect(tx).revertedWith('Only Governor can call')
     })
 
     it('reject create a proposal with empty proposalId', async function () {
       const tx = gov
         .connect(governor.signer)
-        .createProposal(HashZero, HashZero, ProposalResolution.Null)
+        .createProposal(HashZero, HashZero, metadata, ProposalResolution.Null)
       await expect(tx).revertedWith('!proposalId')
     })
 
     it('reject create a proposal with empty votes proof', async function () {
       const tx = gov
         .connect(governor.signer)
-        .createProposal(proposalId, HashZero, ProposalResolution.Null)
-      await expect(tx).revertedWith('!votesProof')
+        .createProposal(proposalId, HashZero, metadata, ProposalResolution.Null)
+      await expect(tx).revertedWith('!votes')
     })
 
     it('reject create a proposal with empty resolution', async function () {
       const tx = gov
         .connect(governor.signer)
-        .createProposal(proposalId, votesProof, ProposalResolution.Null)
+        .createProposal(proposalId, votes, metadata, ProposalResolution.Null)
       await expect(tx).revertedWith('!resolved')
     })
 
@@ -76,24 +77,24 @@ describe.only('GraphGovernance', () => {
       beforeEach(async function () {
         await gov
           .connect(governor.signer)
-          .createProposal(proposalId, votesProof, ProposalResolution.Accepted)
+          .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       })
 
       it('should update a proposal', async function () {
-        const newVotesProof = randomHexBytes(32)
+        const newvotes = randomHexBytes(32)
         const newResolution = ProposalResolution.Rejected
         const tx = gov
           .connect(governor.signer)
-          .updateProposal(proposalId, newVotesProof, newResolution)
+          .updateProposal(proposalId, newvotes, metadata, newResolution)
         await expect(tx)
           .emit(gov, 'ProposalUpdated')
-          .withArgs(governor.address, proposalId, newVotesProof, newResolution)
+          .withArgs(governor.address, proposalId, newvotes, metadata, newResolution)
       })
 
       it('reject create a duplicated proposal', async function () {
         const tx = gov
           .connect(governor.signer)
-          .createProposal(proposalId, votesProof, ProposalResolution.Accepted)
+          .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
         await expect(tx).revertedWith('proposed')
       })
 
@@ -101,28 +102,28 @@ describe.only('GraphGovernance', () => {
         const nonProposalId = randomHexBytes(32)
         const tx = gov
           .connect(governor.signer)
-          .updateProposal(nonProposalId, votesProof, ProposalResolution.Accepted)
+          .updateProposal(nonProposalId, votes, metadata, ProposalResolution.Accepted)
         await expect(tx).revertedWith('!proposed')
       })
 
       it('reject update with empty proposalId', async function () {
         const tx = gov
           .connect(governor.signer)
-          .updateProposal(HashZero, HashZero, ProposalResolution.Null)
+          .updateProposal(HashZero, HashZero, metadata, ProposalResolution.Null)
         await expect(tx).revertedWith('!proposalId')
       })
 
       it('reject update a proposal with empty votes proof', async function () {
         const tx = gov
           .connect(governor.signer)
-          .updateProposal(proposalId, HashZero, ProposalResolution.Null)
-        await expect(tx).revertedWith('!votesProof')
+          .updateProposal(proposalId, HashZero, metadata, ProposalResolution.Null)
+        await expect(tx).revertedWith('!votes')
       })
 
       it('reject update a proposal with empty resolution', async function () {
         const tx = gov
           .connect(governor.signer)
-          .updateProposal(proposalId, votesProof, ProposalResolution.Null)
+          .updateProposal(proposalId, votes, metadata, ProposalResolution.Null)
         await expect(tx).revertedWith('!resolved')
       })
     })
