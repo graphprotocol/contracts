@@ -40,16 +40,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // -- EIP-712  --
 
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-    );
+    bytes32 private constant DOMAIN_TYPE_HASH =
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+        );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32
-        private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-    bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
-        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
-    );
+    bytes32 private constant DOMAIN_SALT =
+        0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
+    bytes32 private constant RECEIPT_TYPE_HASH =
+        keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
     // -- Constants --
 
@@ -264,7 +264,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Return if dispute with ID `_disputeID` exists
      * @param _disputeID True if dispute already exists
      */
-    function isDisputeCreated(bytes32 _disputeID) public override view returns (bool) {
+    function isDisputeCreated(bytes32 _disputeID) public view override returns (bool) {
         return disputes[_disputeID].fisherman != address(0);
     }
 
@@ -276,7 +276,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(Receipt memory _receipt) public override view returns (bytes32) {
+    function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -304,7 +304,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     function areConflictingAttestations(
         Attestation memory _attestation1,
         Attestation memory _attestation2
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         return (_attestation1.requestCID == _attestation2.requestCID &&
             _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
             _attestation1.responseCID != _attestation2.responseCID);
@@ -317,8 +317,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     function getAttestationIndexer(Attestation memory _attestation)
         public
-        override
         view
+        override
         returns (address)
     {
         // Get attestation signer, allocationID
@@ -339,7 +339,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _indexer Indexer to be slashed
      * @return Reward calculated as percentage of the indexer slashed funds
      */
-    function getTokensToReward(address _indexer) public override view returns (uint256) {
+    function getTokensToReward(address _indexer) public view override returns (uint256) {
         uint256 tokens = getTokensToSlash(_indexer);
         if (tokens == 0) {
             return 0;
@@ -352,7 +352,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _indexer Address of the indexer
      * @return Amount of tokens to slash
      */
-    function getTokensToSlash(address _indexer) public override view returns (uint256) {
+    function getTokensToSlash(address _indexer) public view override returns (uint256) {
         uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
         if (tokens == 0) {
             return 0;
@@ -415,18 +415,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dID1 = _createQueryDisputeWithAttestation(
-            fisherman,
-            0,
-            attestation1,
-            _attestationData1
-        );
-        bytes32 dID2 = _createQueryDisputeWithAttestation(
-            fisherman,
-            0,
-            attestation2,
-            _attestationData2
-        );
+        bytes32 dID1 =
+            _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
+        bytes32 dID2 =
+            _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
 
         // Store the linked disputes to be resolved
         disputes[dID1].relatedDisputeID = dID2;
@@ -462,15 +454,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(staking().hasStake(indexer), "Dispute indexer has no stake");
 
         // Create a disputeID
-        bytes32 disputeID = keccak256(
-            abi.encodePacked(
-                _attestation.requestCID,
-                _attestation.responseCID,
-                _attestation.subgraphDeploymentID,
-                indexer,
-                _fisherman
-            )
-        );
+        bytes32 disputeID =
+            keccak256(
+                abi.encodePacked(
+                    _attestation.requestCID,
+                    _attestation.responseCID,
+                    _attestation.subgraphDeploymentID,
+                    indexer,
+                    _fisherman
+                )
+            );
 
         // Only one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created");
@@ -706,11 +699,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         returns (address)
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Receipt memory receipt = Receipt(
-            _attestation.requestCID,
-            _attestation.responseCID,
-            _attestation.subgraphDeploymentID
-        );
+        Receipt memory receipt =
+            Receipt(
+                _attestation.requestCID,
+                _attestation.responseCID,
+                _attestation.subgraphDeploymentID
+            );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
@@ -743,10 +737,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
-            _data,
-            (bytes32, bytes32, bytes32)
-        );
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) =
+            abi.decode(_data, (bytes32, bytes32, bytes32));
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct

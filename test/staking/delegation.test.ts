@@ -84,6 +84,8 @@ describe('Staking::Delegation', () => {
   }
 
   async function shouldUndelegate(sender: Account, shares: BigNumber) {
+    const currentEpoch = await epochManager.currentEpoch()
+
     // Before state
     const beforePool = await staking.delegationPools(indexer.address)
     const beforeDelegation = await staking.getDelegation(indexer.address, sender.address)
@@ -92,13 +94,16 @@ describe('Staking::Delegation', () => {
       ? beforeShares.mul(beforePool.tokens).div(beforePool.shares)
       : toBN(0)
     const beforeDelegatorBalance = await grt.balanceOf(sender.address)
-    const tokensToWithdraw = await staking.getWithdraweableDelegatedTokens(beforeDelegation)
+    const tokensToWithdraw =
+      beforeDelegation.tokensLockedUntil.gt(0) &&
+      currentEpoch.gte(beforeDelegation.tokensLockedUntil)
+        ? beforeDelegation.tokensLocked
+        : 0
 
     // Calculate tokens to receive
     const tokens = shares.mul(beforePool.shares).div(beforePool.tokens)
 
     // Undelegate
-    const currentEpoch = await epochManager.currentEpoch()
     const delegationUnbondingPeriod = await staking.delegationUnbondingPeriod()
     const tokensLockedUntil = currentEpoch.add(delegationUnbondingPeriod)
 
@@ -345,7 +350,7 @@ describe('Staking::Delegation', () => {
       await staking.connect(indexer.signer).stake(toGRT('1000'))
     })
 
-    describe('delegate', function () {
+    describe.only('delegate', function () {
       it('reject delegate with zero tokens', async function () {
         const tokensToDelegate = toGRT('0')
         const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -400,7 +405,7 @@ describe('Staking::Delegation', () => {
       })
     })
 
-    describe('undelegate', function () {
+    describe.only('undelegate', function () {
       it('reject to undelegate zero shares', async function () {
         const tx = staking.connect(delegator.signer).undelegate(indexer.address, toGRT('0'))
         await expect(tx).revertedWith('!shares')
@@ -444,7 +449,7 @@ describe('Staking::Delegation', () => {
       })
     })
 
-    describe('withdraw', function () {
+    describe.only('withdraw', function () {
       it('reject withdraw if no funds available', async function () {
         const tx = staking.connect(delegator.signer).withdrawDelegated(indexer.address, AddressZero)
         await expect(tx).revertedWith('!tokens')

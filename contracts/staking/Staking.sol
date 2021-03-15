@@ -26,16 +26,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     // -- Events --
 
     /**
-     * @dev Emitted when `indexer` update the delegation parameters for its delegation pool.
-     */
-    event DelegationParametersUpdated(
-        address indexed indexer,
-        uint32 indexingRewardCut,
-        uint32 queryFeeCut,
-        uint32 cooldownBlocks
-    );
-
-    /**
      * @dev Emitted when `indexer` stake `tokens` amount.
      */
     event StakeDeposited(address indexed indexer, uint256 tokens);
@@ -49,17 +39,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @dev Emitted when `indexer` withdrew `tokens` staked.
      */
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
-
-    /**
-     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
-     * Tracks `reward` amount of tokens given to `beneficiary`.
-     */
-    event StakeSlashed(
-        address indexed indexer,
-        uint256 tokens,
-        uint256 reward,
-        address beneficiary
-    );
 
     /**
      * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
@@ -91,6 +70,27 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         address indexed indexer,
         address indexed delegator,
         uint256 tokens
+    );
+
+    /**
+     * @dev Emitted when `indexer` update the delegation parameters for its delegation pool.
+     */
+    event DelegationParametersUpdated(
+        address indexed indexer,
+        uint32 indexingRewardCut,
+        uint32 queryFeeCut,
+        uint32 cooldownBlocks
+    );
+
+    /**
+     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
+     * Tracks `reward` amount of tokens given to `beneficiary`.
+     */
+    event StakeSlashed(
+        address indexed indexer,
+        uint256 tokens,
+        uint256 reward,
+        address beneficiary
     );
 
     /**
@@ -189,6 +189,73 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function _isAuth(address _indexer) private view returns (bool) {
         return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],
+     * but performing a delegate call.
+     *
+     * _Available since v3.4._
+     */
+    function functionDelegateCall(
+        address target,
+        bytes memory data,
+        string memory errorMessage
+    ) internal returns (bytes memory) {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory returndata) = target.delegatecall(data);
+        return _verifyCallResult(success, returndata, errorMessage);
+    }
+
+    function _verifyCallResult(
+        bool success,
+        bytes memory returndata,
+        string memory errorMessage
+    ) private pure returns (bytes memory) {
+        if (success) {
+            return returndata;
+        } else {
+            // Look for revert reason and bubble it up if present
+            if (returndata.length > 0) {
+                // The easiest way to bubble the revert reason is using memory via assembly
+
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            } else {
+                revert(errorMessage);
+            }
+        }
+    }
+
+    function delegate(address _indexer, uint256 _tokens) public returns (uint256) {
+        return callImpl(abi.encodeWithSignature("delegate(address,uint256)", _indexer, _tokens));
+    }
+
+    function undelegate(address _indexer, uint256 _tokens) public returns (uint256) {
+        return callImpl(abi.encodeWithSignature("undelegate(address,uint256)", _indexer, _tokens));
+    }
+
+    function withdrawDelegated(address _indexer, address _delegateToIndexer)
+        public
+        returns (uint256)
+    {
+        return
+            callImpl(
+                abi.encodeWithSignature(
+                    "withdrawDelegated(address,address)",
+                    _indexer,
+                    _delegateToIndexer
+                )
+            );
+    }
+
+    function callImpl(bytes memory _selector) internal returns (uint256) {
+        bytes memory result = functionDelegateCall(delegationImpl, _selector, "call failed");
+        uint256 returnData = abi.decode(result, (uint256));
+        return returnData;
     }
 
     /**
@@ -383,48 +450,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the delegation parameters.
-     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
-     * @param _queryFeeCut Percentage of query fees left for delegators
-     * @param _cooldownBlocks Period that need to pass to update delegation parameters
-     */
-    function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
-    ) public override {
-        address indexer = msg.sender;
-
-        // Incentives must be within bounds
-        require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
-        require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
-
-        // Cooldown period set by indexer cannot be below protocol global setting
-        require(_cooldownBlocks >= delegationParametersCooldown, "<cooldown");
-
-        // Verify the cooldown period passed
-        DelegationPool storage pool = delegationPools[indexer];
-        require(
-            pool.updatedAtBlock == 0 ||
-                pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
-            "!cooldown"
-        );
-
-        // Update delegation params
-        pool.indexingRewardCut = _indexingRewardCut;
-        pool.queryFeeCut = _queryFeeCut;
-        pool.cooldownBlocks = _cooldownBlocks;
-        pool.updatedAtBlock = block.number;
-
-        emit DelegationParametersUpdated(
-            indexer,
-            _indexingRewardCut,
-            _queryFeeCut,
-            _cooldownBlocks
-        );
-    }
-
-    /**
      * @dev Set the time in blocks an indexer needs to wait to change delegation parameters.
      * @param _blocks Number of blocks to set the delegation parameters cooldown period
      */
@@ -504,13 +529,25 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         emit AssetHolderUpdate(msg.sender, _assetHolder, _allowed);
     }
 
+    function setDelegationImpl(address _impl) external {
+        delegationImpl = _impl;
+    }
+
     /**
      * @dev Return if allocationID is used.
      * @param _allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isAllocation(address _allocationID) external override view returns (bool) {
+    function isAllocation(address _allocationID) external view override returns (bool) {
         return _getAllocationState(_allocationID) != AllocationState.Null;
+    }
+
+    function getDelegation(address _indexer, address _delegator)
+        external
+        view
+        returns (DelegationData memory)
+    {
+        return delegationPools[_indexer].delegators[_delegator];
     }
 
     /**
@@ -518,7 +555,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexer) external override view returns (bool) {
+    function hasStake(address _indexer) external view override returns (bool) {
         return stakes[_indexer].hasTokens();
     }
 
@@ -529,8 +566,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getAllocation(address _allocationID)
         external
-        override
         view
+        override
         returns (Allocation memory)
     {
         return allocations[_allocationID];
@@ -543,8 +580,8 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getAllocationState(address _allocationID)
         external
-        override
         view
+        override
         returns (AllocationState)
     {
         return _getAllocationState(_allocationID);
@@ -557,26 +594,11 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      */
     function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
         external
-        override
         view
+        override
         returns (uint256)
     {
         return subgraphAllocations[_subgraphDeploymentID];
-    }
-
-    /**
-     * @dev Return the delegation from a delegator to an indexer.
-     * @param _indexer Address of the indexer where funds have been delegated
-     * @param _delegator Address of the delegator
-     * @return Delegation data
-     */
-    function getDelegation(address _indexer, address _delegator)
-        external
-        override
-        view
-        returns (Delegation memory)
-    {
-        return delegationPools[_indexer].delegators[_delegator];
     }
 
     /**
@@ -585,7 +607,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _delegator Address of the delegator
      * @return True if delegator of indexer
      */
-    function isDelegator(address _indexer, address _delegator) public override view returns (bool) {
+    function isDelegator(address _indexer, address _delegator) public view override returns (bool) {
         return delegationPools[_indexer].delegators[_delegator].shares > 0;
     }
 
@@ -594,7 +616,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakedTokens(address _indexer) external override view returns (uint256) {
+    function getIndexerStakedTokens(address _indexer) external view override returns (uint256) {
         return stakes[_indexer].tokensStaked;
     }
 
@@ -604,34 +626,15 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerCapacity(address _indexer) public override view returns (uint256) {
+    function getIndexerCapacity(address _indexer) public view override returns (uint256) {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity = (tokensDelegated < tokensDelegatedCap)
-            ? tokensDelegated
-            : tokensDelegatedCap;
+        uint256 tokensDelegatedCapacity =
+            (tokensDelegated < tokensDelegatedCap) ? tokensDelegated : tokensDelegatedCap;
 
         return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
-    }
-
-    /**
-     * @dev Returns amount of delegated tokens ready to be withdrawn after unbonding period.
-     * @param _delegation Delegation of tokens from delegator to indexer
-     * @return Amount of tokens to withdraw
-     */
-    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
-        public
-        view
-        returns (uint256)
-    {
-        // There must be locked tokens and period passed
-        uint256 currentEpoch = epochManager().currentEpoch();
-        if (_delegation.tokensLockedUntil > 0 && currentEpoch >= _delegation.tokensLockedUntil) {
-            return _delegation.tokensLocked;
-        }
-        return 0;
     }
 
     /**
@@ -650,7 +653,7 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
      * @param _operator Address of the operator
      * @param _indexer Address of the indexer
      */
-    function isOperator(address _operator, address _indexer) public override view returns (bool) {
+    function isOperator(address _operator, address _indexer) public view override returns (bool) {
         return operatorAuth[_indexer][_operator];
     }
 
@@ -750,9 +753,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Unlock locked tokens to avoid the indexer to withdraw them
         if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
             uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
-            uint256 tokensToUnlock = (tokensOverAllocated > indexerStake.tokensLocked)
-                ? indexerStake.tokensLocked
-                : tokensOverAllocated;
+            uint256 tokensToUnlock =
+                (tokensOverAllocated > indexerStake.tokensLocked)
+                    ? indexerStake.tokensLocked
+                    : tokensOverAllocated;
             indexerStake.unlockTokens(tokensToUnlock);
         }
 
@@ -772,56 +776,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         }
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
-    }
-
-    /**
-     * @dev Delegate tokens to an indexer.
-     * @param _indexer Address of the indexer to delegate tokens to
-     * @param _tokens Amount of tokens to delegate
-     * @return Amount of shares issued of the delegation pool
-     */
-    function delegate(address _indexer, uint256 _tokens)
-        external
-        override
-        notPartialPaused
-        returns (uint256)
-    {
-        address delegator = msg.sender;
-
-        // Transfer tokens to delegate to this contract
-        require(graphToken().transferFrom(delegator, address(this), _tokens), "!transfer");
-
-        // Update state
-        return _delegate(delegator, _indexer, _tokens);
-    }
-
-    /**
-     * @dev Undelegate tokens from an indexer.
-     * @param _indexer Address of the indexer where tokens had been delegated
-     * @param _shares Amount of shares to return and undelegate tokens
-     * @return Amount of tokens returned for the shares of the delegation pool
-     */
-    function undelegate(address _indexer, uint256 _shares)
-        external
-        override
-        notPartialPaused
-        returns (uint256)
-    {
-        return _undelegate(msg.sender, _indexer, _shares);
-    }
-
-    /**
-     * @dev Withdraw delegated tokens once the unbonding period has passed.
-     * @param _indexer Withdraw available tokens delegated to indexer
-     * @param _delegateToIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
-     */
-    function withdrawDelegated(address _indexer, address _delegateToIndexer)
-        external
-        override
-        notPaused
-        returns (uint256)
-    {
-        return _withdrawDelegated(msg.sender, _indexer, _delegateToIndexer);
     }
 
     /**
@@ -948,10 +902,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-                allocState == AllocationState.Closed)
-                ? protocolPercentage
-                : MAX_PPM;
+            uint256 usedProtocolPercentage =
+                (allocState == AllocationState.Active || allocState == AllocationState.Closed)
+                    ? protocolPercentage
+                    : MAX_PPM;
             uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
@@ -1026,9 +980,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         stakes[_indexer].deposit(_tokens);
 
         // Initialize the delegation pool the first time
-        if (delegationPools[_indexer].updatedAtBlock == 0) {
-            setDelegationParameters(MAX_PPM, MAX_PPM, delegationParametersCooldown);
-        }
+        // if (delegationPools[_indexer].updatedAtBlock == 0) {
+        //     setDelegationParameters(MAX_PPM, MAX_PPM, delegationParametersCooldown);
+        // }
 
         emit StakeDeposited(_indexer, _tokens);
     }
@@ -1086,16 +1040,17 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
         // Creates an allocation
         // Allocation identifiers are not reused
         // The assetHolder address can send collected funds to the allocation
-        Allocation memory alloc = Allocation(
-            _indexer,
-            _subgraphDeploymentID,
-            _tokens, // Tokens allocated
-            epochManager().currentEpoch(), // createdAtEpoch
-            0, // closedAtEpoch
-            0, // Initialize collected fees
-            0, // Initialize effective allocation
-            _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
-        );
+        Allocation memory alloc =
+            Allocation(
+                _indexer,
+                _subgraphDeploymentID,
+                _tokens, // Tokens allocated
+                epochManager().currentEpoch(), // createdAtEpoch
+                0, // closedAtEpoch
+                0, // Initialize collected fees
+                0, // Initialize effective allocation
+                _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
+            );
         allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
@@ -1103,8 +1058,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Track total allocations per subgraph
         // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
-            .subgraphDeploymentID]
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+            alloc.subgraphDeploymentID
+        ]
             .add(alloc.tokens);
 
         emit AllocationCreated(
@@ -1132,9 +1088,10 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
-        uint256 epochs = alloc.createdAtEpoch < alloc.closedAtEpoch
-            ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
-            : 0;
+        uint256 epochs =
+            alloc.createdAtEpoch < alloc.closedAtEpoch
+                ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
+                : 0;
         require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
@@ -1175,8 +1132,9 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
 
         // Track total allocations per subgraph
         // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[alloc
-            .subgraphDeploymentID]
+        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+            alloc.subgraphDeploymentID
+        ]
             .sub(alloc.tokens);
 
         emit AllocationClosed(
@@ -1258,138 +1216,6 @@ contract Staking is StakingV1Storage, GraphUpgradeable, IStaking {
             rebatePool.unclaimedAllocationsCount,
             delegationRewards
         );
-    }
-
-    /**
-     * @dev Delegate tokens to an indexer.
-     * @param _delegator Address of the delegator
-     * @param _indexer Address of the indexer to delegate tokens to
-     * @param _tokens Amount of tokens to delegate
-     * @return Amount of shares issued of the delegation pool
-     */
-    function _delegate(
-        address _delegator,
-        address _indexer,
-        uint256 _tokens
-    ) private returns (uint256) {
-        // Only delegate a non-zero amount of tokens
-        require(_tokens > 0, "!tokens");
-        // Only delegate to non-empty address
-        require(_indexer != address(0), "!indexer");
-        // Only delegate to staked indexer
-        require(stakes[_indexer].hasTokens(), "!stake");
-
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegationPools[_indexer];
-        Delegation storage delegation = pool.delegators[_delegator];
-
-        // Collect delegation tax
-        uint256 delegationTax = _collectTax(graphToken(), _tokens, delegationTaxPercentage);
-        uint256 delegatedTokens = _tokens.sub(delegationTax);
-
-        // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0)
-            ? delegatedTokens
-            : delegatedTokens.mul(pool.shares).div(pool.tokens);
-
-        // Update the delegation pool
-        pool.tokens = pool.tokens.add(delegatedTokens);
-        pool.shares = pool.shares.add(shares);
-
-        // Update the delegation
-        delegation.shares = delegation.shares.add(shares);
-
-        emit StakeDelegated(_indexer, _delegator, delegatedTokens, shares);
-
-        return shares;
-    }
-
-    /**
-     * @dev Undelegate tokens from an indexer.
-     * @param _delegator Address of the delegator
-     * @param _indexer Address of the indexer where tokens had been delegated
-     * @param _shares Amount of shares to return and undelegate tokens
-     * @return Amount of tokens returned for the shares of the delegation pool
-     */
-    function _undelegate(
-        address _delegator,
-        address _indexer,
-        uint256 _shares
-    ) private returns (uint256) {
-        // Can only undelegate a non-zero amount of shares
-        require(_shares > 0, "!shares");
-
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegationPools[_indexer];
-        Delegation storage delegation = pool.delegators[_delegator];
-
-        // Delegator need to have enough shares in the pool to undelegate
-        require(delegation.shares >= _shares, "!shares-avail");
-
-        // Withdraw tokens if available
-        if (getWithdraweableDelegatedTokens(delegation) > 0) {
-            _withdrawDelegated(_delegator, _indexer, address(0));
-        }
-
-        // Calculate tokens to get in exchange for the shares
-        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
-
-        // Update the delegation pool
-        pool.tokens = pool.tokens.sub(tokens);
-        pool.shares = pool.shares.sub(_shares);
-
-        // Update the delegation
-        delegation.shares = delegation.shares.sub(_shares);
-        delegation.tokensLocked = delegation.tokensLocked.add(tokens);
-        delegation.tokensLockedUntil = epochManager().currentEpoch().add(delegationUnbondingPeriod);
-
-        emit StakeDelegatedLocked(
-            _indexer,
-            _delegator,
-            tokens,
-            _shares,
-            delegation.tokensLockedUntil
-        );
-
-        return tokens;
-    }
-
-    /**
-     * @dev Withdraw delegated tokens once the unbonding period has passed.
-     * @param _delegator Delegator that is withdrawing tokens
-     * @param _indexer Withdraw available tokens delegated to indexer
-     * @param _delegateToIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
-     */
-    function _withdrawDelegated(
-        address _delegator,
-        address _indexer,
-        address _delegateToIndexer
-    ) private returns (uint256) {
-        // Get the delegation pool of the indexer
-        DelegationPool storage pool = delegationPools[_indexer];
-        Delegation storage delegation = pool.delegators[_delegator];
-
-        // Validation
-        uint256 tokensToWithdraw = getWithdraweableDelegatedTokens(delegation);
-        require(tokensToWithdraw > 0, "!tokens");
-
-        // Reset lock
-        delegation.tokensLocked = 0;
-        delegation.tokensLockedUntil = 0;
-
-        emit StakeDelegatedWithdrawn(_indexer, _delegator, tokensToWithdraw);
-
-        // -- Interactions --
-
-        if (_delegateToIndexer != address(0)) {
-            // Re-delegate tokens to a new indexer
-            _delegate(_delegator, _delegateToIndexer, tokensToWithdraw);
-        } else {
-            // Return tokens to the delegator
-            require(graphToken().transfer(_delegator, tokensToWithdraw), "!transfer");
-        }
-
-        return tokensToWithdraw;
     }
 
     /**

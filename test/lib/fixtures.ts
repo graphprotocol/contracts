@@ -58,7 +58,9 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
 
     // Setup contracts
+    const delegationImpl = await deployment.deployContract('Delegation', deployer)
     await staking.connect(deployer).setSlasher(slasherAddress, true)
+    await staking.setDelegationImpl(delegationImpl.address)
     await grt.connect(deployer).addMinter(rewardsManager.address)
     await gns.connect(deployer).approveAll()
 

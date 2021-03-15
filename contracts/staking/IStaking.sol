@@ -42,30 +42,6 @@ interface IStaking {
         bytes32 poi;
     }
 
-    // -- Delegation Data --
-
-    /**
-     * @dev Delegation pool information. One per indexer.
-     */
-    struct DelegationPool {
-        uint32 cooldownBlocks; // Blocks to wait before updating parameters
-        uint32 indexingRewardCut; // in PPM
-        uint32 queryFeeCut; // in PPM
-        uint256 updatedAtBlock; // Block when the pool was last updated
-        uint256 tokens; // Total tokens as pool reserves
-        uint256 shares; // Total shares minted in the pool
-        mapping(address => Delegation) delegators; // Mapping of delegator => Delegation
-    }
-
-    /**
-     * @dev Individual delegation data of a delegator in a pool.
-     */
-    struct Delegation {
-        uint256 shares; // Shares owned by a delegator in the pool
-        uint256 tokensLocked; // Tokens locked for undelegation
-        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
-    }
-
     // -- Configuration --
 
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external;
@@ -83,12 +59,6 @@ interface IStaking {
     function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external;
 
     function setDelegationRatio(uint32 _delegationRatio) external;
-
-    function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
-    ) external;
 
     function setDelegationParametersCooldown(uint32 _blocks) external;
 
@@ -122,14 +92,6 @@ interface IStaking {
     ) external;
 
     function withdraw() external;
-
-    // -- Delegation --
-
-    function delegate(address _indexer, uint256 _tokens) external returns (uint256);
-
-    function undelegate(address _indexer, uint256 _shares) external returns (uint256);
-
-    function withdrawDelegated(address _indexer, address _newIndexer) external returns (uint256);
 
     // -- Channel management and allocations --
 
@@ -189,11 +151,6 @@ interface IStaking {
         external
         view
         returns (uint256);
-
-    function getDelegation(address _indexer, address _delegator)
-        external
-        view
-        returns (Delegation memory);
 
     function isDelegator(address _indexer, address _delegator) external view returns (bool);
 }

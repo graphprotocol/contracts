@@ -125,9 +125,8 @@ library Stakes {
         uint256 _thawingPeriod
     ) internal view returns (uint256) {
         uint256 blockNum = block.number;
-        uint256 periodA = (stake.tokensLockedUntil > blockNum)
-            ? stake.tokensLockedUntil.sub(blockNum)
-            : 0;
+        uint256 periodA =
+            (stake.tokensLockedUntil > blockNum) ? stake.tokensLockedUntil.sub(blockNum) : 0;
         uint256 periodB = _thawingPeriod;
         uint256 stakeA = stake.tokensLocked;
         uint256 stakeB = _tokens;

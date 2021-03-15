@@ -9,6 +9,30 @@ import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
 contract StakingV1Storage is Managed {
+    // -- Delegation Data --
+
+    /**
+     * @dev Delegation pool information. One per indexer.
+     */
+    struct DelegationPool {
+        uint32 cooldownBlocks; // Blocks to wait before updating parameters
+        uint32 indexingRewardCut; // in PPM
+        uint32 queryFeeCut; // in PPM
+        uint256 updatedAtBlock; // Block when the pool was last updated
+        uint256 tokens; // Total tokens as pool reserves
+        uint256 shares; // Total shares minted in the pool
+        mapping(address => DelegationData) delegators; // Mapping of delegator => Delegation
+    }
+
+    /**
+     * @dev Individual delegation data of a delegator in a pool.
+     */
+    struct DelegationData {
+        uint256 shares; // Shares owned by a delegator in the pool
+        uint256 tokensLocked; // Tokens locked for undelegation
+        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
+    }
+
     // -- Staking --
 
     // Minimum amount of tokens an indexer needs to stake
@@ -70,7 +94,7 @@ contract StakingV1Storage is Managed {
     uint32 public delegationTaxPercentage;
 
     // Delegation pools : indexer => DelegationPool
-    mapping(address => IStaking.DelegationPool) public delegationPools;
+    mapping(address => DelegationPool) public delegationPools;
 
     // -- Operators --
 
@@ -81,4 +105,6 @@ contract StakingV1Storage is Managed {
 
     // Allowed AssetHolders: assetHolder => is allowed
     mapping(address => bool) public assetHolders;
+
+    address internal delegationImpl;
 }
