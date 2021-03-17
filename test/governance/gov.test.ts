@@ -16,7 +16,7 @@ enum ProposalResolution {
   Rejected,
 }
 
-describe.only('GraphGovernance', () => {
+describe('GraphGovernance', () => {
   let deployer: Account
   let governor: Account
   let someone: Account
@@ -43,6 +43,11 @@ describe.only('GraphGovernance', () => {
         .emit(gov, 'ProposalCreated')
         .withArgs(governor.address, proposalId, votes, metadata, ProposalResolution.Accepted)
       expect(await gov.isProposalCreated(proposalId)).eq(true)
+
+      const storedProposal = await gov.proposals(proposalId)
+      expect(storedProposal.metadata).eq(metadata)
+      expect(storedProposal.votes).eq(votes)
+      expect(storedProposal.resolution).eq(ProposalResolution.Accepted)
     })
 
     it('reject create a proposal if not allowed', async function () {
@@ -89,6 +94,11 @@ describe.only('GraphGovernance', () => {
         await expect(tx)
           .emit(gov, 'ProposalUpdated')
           .withArgs(governor.address, proposalId, newvotes, metadata, newResolution)
+
+        const storedProposal = await gov.proposals(proposalId)
+        expect(storedProposal.metadata).eq(metadata)
+        expect(storedProposal.votes).eq(newvotes)
+        expect(storedProposal.resolution).eq(newResolution)
       })
 
       it('reject create a duplicated proposal', async function () {
