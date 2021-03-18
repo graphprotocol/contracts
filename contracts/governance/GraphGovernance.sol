@@ -63,7 +63,7 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         require(!isProposalCreated(_proposalId), "proposed");
 
         proposals[_proposalId] = Proposal({ votes: _votes, metadata: _metadata, resolution: _resolution });
-        emit ProposalCreated(msg.sender, _proposalId, _votes, _metadata, _resolution);
+        emit ProposalCreated(_proposalId, _votes, _metadata, _resolution);
     }
 
     /**
@@ -85,6 +85,6 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         require(isProposalCreated(_proposalId), "!proposed");
 
         proposals[_proposalId] = Proposal({ votes: _votes, metadata: _metadata, resolution: _resolution });
-        emit ProposalUpdated(msg.sender, _proposalId, _votes, _metadata, _resolution);
+        emit ProposalUpdated(_proposalId, _votes, _metadata, _resolution);
     }
 }
