@@ -744,6 +744,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(tokens > 0, "!rewards-tokens");
         require(_beneficiary != address(0), "!rewards-beneficiary");
 
+        rewardsPool[msg.sender] = 0;
+
         require(graphToken().transfer(_beneficiary, tokens), "!transfer");
 
         emit RewardsWithdrawn(msg.sender, _beneficiary, tokens);
