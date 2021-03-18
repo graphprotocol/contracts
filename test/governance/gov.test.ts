@@ -41,7 +41,7 @@ describe('GraphGovernance', () => {
         .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       await expect(tx)
         .emit(gov, 'ProposalCreated')
-        .withArgs(governor.address, proposalId, votes, metadata, ProposalResolution.Accepted)
+        .withArgs(proposalId, votes, metadata, ProposalResolution.Accepted)
       expect(await gov.isProposalCreated(proposalId)).eq(true)
 
       const storedProposal = await gov.proposals(proposalId)
@@ -93,7 +93,7 @@ describe('GraphGovernance', () => {
           .updateProposal(proposalId, newvotes, metadata, newResolution)
         await expect(tx)
           .emit(gov, 'ProposalUpdated')
-          .withArgs(governor.address, proposalId, newvotes, metadata, newResolution)
+          .withArgs(proposalId, newvotes, metadata, newResolution)
 
         const storedProposal = await gov.proposals(proposalId)
         expect(storedProposal.metadata).eq(metadata)
