@@ -193,13 +193,6 @@ export const deployContract = async (
     }
   }
 
-  // Setup overrides
-  if (overrides) {
-    args.push(overrides)
-  } else {
-    args.push(defaultOverrides)
-  }
-
   // Deploy
   const factory = getContractFactory(name, libraries)
   const contract = await factory.connect(sender).deploy(...args)
@@ -223,6 +216,7 @@ export const deployContractWithProxy = async (
   args: Array<any>,
   sender: Signer,
   autolink = true,
+  buildAcceptProxyTx = false,
   overrides?: Overrides,
 ): Promise<Contract> => {
   // Deploy implementation
@@ -235,20 +229,45 @@ export const deployContractWithProxy = async (
     overrides,
   )
   // Implementation accepts upgrade
-  const initTx = await contract.populateTransaction.initialize(...args)
-  await sendTransaction(
-    sender,
-    proxyAdmin,
-    'acceptProxyAndCall',
-    [contract.address, proxy.address, initTx.data],
-    overrides,
-  )
+  if (args) {
+    const initTx = await contract.populateTransaction.initialize(...args)
+    if (buildAcceptProxyTx) {
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+          data:              ${initTx.data}
+          `,
+      )
+    } else {
+      await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
+        contract.address,
+        proxy.address,
+        initTx.data,
+      ])
+    }
+  } else {
+    if (buildAcceptProxyTx) {
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+        `,
+      )
+    } else {
+      await sendTransaction(sender, proxyAdmin, 'acceptProxy', [contract.address, proxy.address])
+    }
+  }
   return contract.attach(proxy.address)
 }
 
 export const deployContractAndSave = async (
   name: string,
-  args: Array<{ name: string; value: string }>,
+  args: Array<any>,
   sender: Signer,
   addressBook: AddressBook,
 ): Promise<Contract> => {
@@ -271,15 +290,17 @@ export const deployContractAndSave = async (
         ? deployResult.libraries
         : undefined,
   })
+  logger.log('> Contract saved to address book')
 
   return deployResult.contract
 }
 
 export const deployContractWithProxyAndSave = async (
   name: string,
-  args: Array<{ name: string; value: string }>,
+  args: Array<any>,
   sender: Signer,
   addressBook: AddressBook,
+  buildAcceptProxyTx?: boolean,
 ): Promise<Contract> => {
   // Get the GraphProxyAdmin to own the GraphProxy for this contract
   const proxyAdminEntry = addressBook.getEntry('GraphProxyAdmin')
@@ -293,12 +314,41 @@ export const deployContractWithProxyAndSave = async (
   // Deploy proxy
   const { contract: proxy } = await deployProxy(contract.address, proxyAdmin.address, sender)
   // Implementation accepts upgrade
-  const initTx = await contract.populateTransaction.initialize(...args.map((a) => a.value))
-  await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
-    contract.address,
-    proxy.address,
-    initTx.data,
-  ])
+  if (args) {
+    const initTx = args[0].name
+      ? await contract.populateTransaction.initialize(...args.map((a) => a.value)) // just get values
+      : await contract.populateTransaction.initialize(...args) // already just a value array
+    if (buildAcceptProxyTx) {
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+          data:              ${initTx.data}
+        `,
+      )
+    } else {
+      await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
+        contract.address,
+        proxy.address,
+        initTx.data,
+      ])
+    }
+  } else {
+    if (buildAcceptProxyTx) {
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+        `,
+      )
+    } else {
+      await sendTransaction(sender, proxyAdmin, 'acceptProxy', [contract.address, proxy.address])
+    }
+  }
 
   // Overwrite address entry with proxy
   const artifact = loadArtifact('GraphProxy')
@@ -312,6 +362,7 @@ export const deployContractWithProxyAndSave = async (
     proxy: true,
     implementation: contractEntry,
   })
+  logger.log('> Contract saved to address book')
 
   // Use interface of contract but with the proxy address
   return contract.attach(proxy.address)

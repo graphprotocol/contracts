@@ -10,6 +10,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   const contractName = cliArgs.contract
   const implAddress = cliArgs.impl
   const initArgs = cliArgs.init
+  const buildAcceptProxyTx = cliArgs.buildTx
 
   logger.log(`Upgrading contract ${contractName}...`)
 
@@ -61,29 +62,71 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
     logger.error(
       `Contract ${implAddress} is already the current implementation for proxy ${proxy.address}`,
     )
-    // TODO: add a confirm message
+    return
   }
 
   // Upgrade to new implementation
-  const pendingImpl = await proxyAdmin.getProxyImplementation(proxy.address)
-  if (pendingImpl != implAddress) {
-    await sendTransaction(cli.wallet, proxyAdmin, 'upgrade', [proxy.address, implAddress])
-  }
+  if (buildAcceptProxyTx) {
+    logger.log(
+      `
+        Copy this data in the gnosis multisig UI, or a similar app and call upgrade()
+        You must call upgrade() BEFORE calling acceptProxy()
 
-  // Accept upgrade from the implementation
-  if (initArgs) {
-    const initTx = await contract.populateTransaction.initialize(...initArgs.split(','))
-    await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxyAndCall', [
-      implAddress,
-      proxy.address,
-      initTx.data,
-    ])
+          contract address:  ${proxyAdmin.address}
+          proxy:             ${proxy.address}
+          implementation:    ${implAddress}
+        `,
+    )
+    if (initArgs) {
+      const initTx = await contract.populateTransaction.initialize(...initArgs.split(','))
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall()
+
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+          data:              ${initTx.data}
+        `,
+      )
+    } else {
+      logger.log(
+        `
+        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy()
+
+          contract address:  ${proxyAdmin.address}
+          implementation:    ${contract.address}
+          proxy:             ${proxy.address}
+        `,
+      )
+    }
   } else {
-    await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxy', [implAddress, proxy.address])
+    const receipt = await sendTransaction(cli.wallet, proxyAdmin, 'upgrade', [
+      proxy.address,
+      implAddress,
+    ])
+    if (receipt.status == 1) {
+      logger.log('> upgrade() tx successful!')
+    } else {
+      logger.log('> upgrade() tx failed!')
+      return
+    }
+
+    // Accept upgrade from the implementation
+    if (initArgs) {
+      const initTx = await contract.populateTransaction.initialize(...initArgs.split(','))
+      await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxyAndCall', [
+        implAddress,
+        proxy.address,
+        initTx.data,
+      ])
+    } else {
+      await sendTransaction(cli.wallet, proxyAdmin, 'acceptProxy', [implAddress, proxy.address])
+    }
   }
 
   // TODO
-  // -- update entry
+  // -- update address book entry
 }
 
 export const upgradeCommand = {
@@ -107,6 +150,10 @@ export const upgradeCommand = {
         type: 'string',
         requiresArg: true,
         demandOption: true,
+      })
+      .option('b', {
+        alias: 'build-tx',
+        description: 'Build the acceptProxy tx and print it. Then use tx data with a multisig',
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
