@@ -5,6 +5,8 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "./MathUtils.sol";
+
 /**
  * @title A collection of data structures and functions to manage the Indexer Stake state.
  *        Used for low-level state changes, require() conditions should be evaluated
@@ -71,7 +73,12 @@ library Stakes {
         // Take into account period averaging for multiple unstake requests
         uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
-            lockingPeriod = stake.getLockingPeriod(_tokens, _period);
+            lockingPeriod = MathUtils.weightedAverage(
+                MathUtils.diff(stake.tokensLockedUntil, block.number),
+                stake.tokensLocked,
+                _period,
+                _tokens
+            );
         }
 
         // Update balances
@@ -109,38 +116,6 @@ library Stakes {
         }
 
         return tokensToWithdraw;
-    }
-
-    /**
-     * @dev Get the locking period of the tokens to unstake.
-     * If already unstaked before calculate the weighted average.
-     * @param stake Stake data
-     * @param _tokens Amount of tokens to unstake
-     * @param _thawingPeriod Period in blocks that need to pass before withdrawal
-     * @return The weighted average locking period
-     */
-    function getLockingPeriod(
-        Stakes.Indexer memory stake,
-        uint256 _tokens,
-        uint256 _thawingPeriod
-    ) internal view returns (uint256) {
-        uint256 blockNum = block.number;
-        uint256 periodA = (stake.tokensLockedUntil > blockNum)
-            ? stake.tokensLockedUntil.sub(blockNum)
-            : 0;
-        uint256 periodB = _thawingPeriod;
-        uint256 stakeA = stake.tokensLocked;
-        uint256 stakeB = _tokens;
-        return periodA.mul(stakeA).add(periodB.mul(stakeB)).div(stakeA.add(stakeB));
-    }
-
-    /**
-     * @dev Return true if there are tokens staked by the Indexer.
-     * @param stake Stake data
-     * @return True if staked
-     */
-    function hasTokens(Stakes.Indexer memory stake) internal pure returns (bool) {
-        return stake.tokensStaked > 0;
     }
 
     /**
