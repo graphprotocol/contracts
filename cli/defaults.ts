@@ -9,8 +9,8 @@ export const local = {
   accountNumber: '0',
 }
 export const defaultOverrides: Overrides = {
-//  gasPrice: utils.parseUnits('25', 'gwei'), // auto
-//  gasLimit: 2000000, // auto
+  // gasPrice: utils.parseUnits('25', 'gwei'), // auto
+  // gasLimit: 2000000, // auto
 }
 
 export const cliOpts = {
