@@ -47,9 +47,9 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
     }
 
     /**
-     * @notice Submit a new proposal.
-     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the proposal
-     * @param _votes An IPFS hash of the collection of signatures for each vote
+     * @notice Submit an on chain proposal that links to a Graph Governance Proposal (GGP)
+     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the Graph Governance Proposal (GGP)
+     * @param _votes An IPFS hash of the collection of signatures for each vote of the (GGP)
      * @param _metadata A bytes32 field to attach metadata to the proposal if needed
      * @param _resolution Resolution choice, either Accepted or Rejected
      */
@@ -69,9 +69,9 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
     }
 
     /**
-     * @notice Updates an existing proposal.
-     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the proposal
-     * @param _votes An IPFS hash of the collection of signatures for each vote
+     * @notice Updates an existing on chain proposal that links to a Graph Governance Proposal (GGP)
+     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the GGP
+     * @param _votes An IPFS hash of the collection of signatures for each vote of the GGP
      * @param _metadata A bytes32 field to attach metadata to the proposal if needed
      * @param _resolution Resolution choice, either Accepted or Rejected
      */
