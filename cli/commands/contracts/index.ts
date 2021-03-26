@@ -1,4 +1,4 @@
-import yargs, { Argv } from 'yargs'
+import yargs, { Argv, command } from 'yargs'
 
 import { curationCommand } from './curation'
 import { serviceRegistryCommand } from './serviceRegistry'
@@ -9,6 +9,7 @@ import { graphTokenCommand } from './graphToken'
 import { gdaiCommand } from './gsr-gdai'
 import { stakingCommand } from './staking'
 import { anyCommand } from './any'
+import { governanceCommand } from './governance'
 
 import { CLIArgs } from '../../env'
 import { disputeManagerCommand } from './disputeManager'
@@ -28,6 +29,7 @@ export const contractsCommand = {
       .command(stakingCommand)
       .command(anyCommand)
       .command(disputeManagerCommand)
+      .command(governanceCommand)
   },
   handler: (argv: CLIArgs): void => {
     yargs.showHelp()
