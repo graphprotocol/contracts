@@ -6,6 +6,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./MathUtils.sol";
 
+/**
+ * @title Rewards Pool library
+ * @notice The rewards pool struct and a number of related operations
+ */
 library Rewards {
     using SafeMath for uint256;
 
