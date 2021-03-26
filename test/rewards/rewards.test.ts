@@ -25,11 +25,6 @@ import {
   advanceToNextEpoch,
 } from '../lib/testHelpers'
 
-enum RewardsDestination {
-  Stake,
-  RewardsPool,
-}
-
 const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants

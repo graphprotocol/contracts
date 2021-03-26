@@ -29,11 +29,6 @@ enum AllocationState {
   Claimed,
 }
 
-enum RewardsDestination {
-  Stake,
-  RewardsPool,
-}
-
 const calculateEffectiveAllocation = (
   tokens: BigNumber,
   numEpochs: BigNumber,

@@ -4,7 +4,7 @@ import hre from 'hardhat'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 import { formatUnits } from 'ethers/lib/utils'
 
-const { hexlify, parseUnits, parseEther, randomBytes } = utils
+const { hexlify, parseUnits, parseEther, randomBytes, getAddress } = utils
 
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string | number): BigNumber => {
@@ -12,11 +12,21 @@ export const toGRT = (value: string | number): BigNumber => {
 }
 export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
+export const randomAddress = (): string => getAddress(randomHexBytes(20))
 export const logStake = (stakes: any): void => {
   Object.entries(stakes).map(([k, v]) => {
     console.log(k, ':', parseEther(v as string))
   })
 }
+
+// Math
+
+export const weightedAverage = (
+  valueA: BigNumber,
+  valueB: BigNumber,
+  periodA: BigNumber,
+  periodB: BigNumber,
+): BigNumber => periodA.mul(valueA).add(periodB.mul(valueB)).div(valueA.add(valueB))
 
 // Network
 
