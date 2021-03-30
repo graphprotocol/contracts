@@ -399,8 +399,21 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint32 _queryFeeCut,
         uint32 _cooldownBlocks
     ) public override {
-        address indexer = msg.sender;
+        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut, _cooldownBlocks);
+    }
 
+    /**
+     * @dev Set the delegation parameters.
+     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
+     * @param _queryFeeCut Percentage of query fees left for delegators
+     * @param _cooldownBlocks Period that need to pass to update delegation parameters
+     */
+    function _setDelegationParameters(
+        address _indexer,
+        uint32 _indexingRewardCut,
+        uint32 _queryFeeCut,
+        uint32 _cooldownBlocks
+    ) private {
         // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
         require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
@@ -409,7 +422,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(_cooldownBlocks >= delegationParametersCooldown, "<cooldown");
 
         // Verify the cooldown period passed
-        DelegationPool storage pool = delegationPools[indexer];
+        DelegationPool storage pool = delegationPools[_indexer];
         require(
             pool.updatedAtBlock == 0 ||
                 pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
@@ -423,7 +436,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pool.updatedAtBlock = block.number;
 
         emit DelegationParametersUpdated(
-            indexer,
+            _indexer,
             _indexingRewardCut,
             _queryFeeCut,
             _cooldownBlocks
@@ -1036,7 +1049,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Initialize the delegation pool the first time
         if (delegationPools[_indexer].updatedAtBlock == 0) {
-            setDelegationParameters(MAX_PPM, MAX_PPM, delegationParametersCooldown);
+            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, delegationParametersCooldown);
         }
 
         emit StakeDeposited(_indexer, _tokens);
