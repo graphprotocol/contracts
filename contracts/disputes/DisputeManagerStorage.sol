@@ -23,7 +23,8 @@ contract DisputeManagerV1Storage is Managed {
 
     // Percentage of indexer stake to slash on disputes
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public slashingPercentage;
+    uint32 public qrySlashingPercentage;
+    uint32 public idxSlashingPercentage;
 
     // Disputes created : disputeID => Dispute
     // disputeID - check creation functions to see how disputeID is built

@@ -111,6 +111,16 @@ describe('DisputeManager:Query', async () => {
     return attestation
   }
 
+  async function calculateSlashConditions(indexerAddress: string) {
+    const qrySlashingPercentage = await disputeManager.qrySlashingPercentage()
+    const fishermanRewardPercentage = await disputeManager.fishermanRewardPercentage()
+    const stakeAmount = await staking.getIndexerStakedTokens(indexerAddress)
+    const slashAmount = stakeAmount.mul(qrySlashingPercentage).div(toBN(MAX_PPM))
+    const rewardsAmount = slashAmount.mul(fishermanRewardPercentage).div(toBN(MAX_PPM))
+
+    return { slashAmount, rewardsAmount }
+  }
+
   async function setupIndexers() {
     // Dispute manager is allowed to slash
     await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
@@ -257,22 +267,6 @@ describe('DisputeManager:Query', async () => {
         await setupIndexers()
       })
 
-      describe('reward calculation', function () {
-        it('should calculate the reward for a stake', async function () {
-          const fishermanRewardPercentage = await disputeManager.fishermanRewardPercentage()
-          const slashingPercentage = await disputeManager.slashingPercentage()
-
-          const stakedAmount = indexerTokens
-          const trueReward = stakedAmount
-            .mul(slashingPercentage)
-            .div(toBN(MAX_PPM))
-            .mul(fishermanRewardPercentage)
-            .div(toBN(MAX_PPM))
-          const funcReward = await disputeManager.getTokensToReward(indexer.address)
-          expect(funcReward).eq(trueReward.toString())
-        })
-      })
-
       describe('create dispute', function () {
         it('reject fisherman deposit below minimum required', async function () {
           // Minimum deposit a fisherman is required to do should be >= reward
@@ -395,7 +389,9 @@ describe('DisputeManager:Query', async () => {
           })
 
           it('reject to accept a dispute if zero tokens to slash', async function () {
-            await disputeManager.connect(governor.signer).setSlashingPercentage(toBN('0'))
+            await disputeManager
+              .connect(governor.signer)
+              .setSlashingPercentage(toBN('0'), toBN('0'))
             const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
             await expect(tx).revertedWith('Dispute has zero tokens to slash')
           })
@@ -407,8 +403,7 @@ describe('DisputeManager:Query', async () => {
             const beforeTotalSupply = await grt.totalSupply()
 
             // Calculations
-            const tokensToSlash = await disputeManager.getTokensToSlash(indexer.address)
-            const reward = await disputeManager.getTokensToReward(indexer.address)
+            const { slashAmount, rewardsAmount } = await calculateSlashConditions(indexer.address)
 
             // Perform transaction (accept)
             const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
@@ -418,7 +413,7 @@ describe('DisputeManager:Query', async () => {
                 dispute.id,
                 dispute.indexerAddress,
                 fisherman.address,
-                fishermanDeposit.add(reward),
+                fishermanDeposit.add(rewardsAmount),
               )
 
             // After state
@@ -428,12 +423,12 @@ describe('DisputeManager:Query', async () => {
 
             // Fisherman reward properly assigned + deposit returned
             expect(afterFishermanBalance).eq(
-              beforeFishermanBalance.add(fishermanDeposit).add(reward),
+              beforeFishermanBalance.add(fishermanDeposit).add(rewardsAmount),
             )
             // Indexer slashed
-            expect(afterIndexerStake).eq(beforeIndexerStake.sub(tokensToSlash))
+            expect(afterIndexerStake).eq(beforeIndexerStake.sub(slashAmount))
             // Slashed funds burned
-            const tokensToBurn = tokensToSlash.sub(reward)
+            const tokensToBurn = slashAmount.sub(rewardsAmount)
             expect(afterTotalSupply).eq(beforeTotalSupply.sub(tokensToBurn))
           })
         })
