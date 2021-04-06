@@ -682,7 +682,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _indexer Address of the indexer
      * @param _challenger Address of the challenger
      * @param _disputeType Type of dispute
-     * @return slashAmount Dispute slash amount and reward tokens
+     * @return slashAmount Dispute slash amount
+     * @return rewardsAmount Dispute rewards amount
      */
     function _slashIndexer(
         address _indexer,
@@ -695,13 +696,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         uint256 slashableAmount = staking.getIndexerStakedTokens(_indexer); // slashable tokens
 
         // Get slash amount
-        uint256 slashingPercentage = 0;
-        if (_disputeType == DisputeType.QueryDispute) {
-            slashingPercentage = qrySlashingPercentage;
-        } else if (_disputeType == DisputeType.IndexingDispute) {
-            slashingPercentage = idxSlashingPercentage;
-        }
-        slashAmount = uint256(slashingPercentage).mul(slashableAmount).div(MAX_PPM);
+        slashAmount = _getSlashingPercentageForDisputeType(_disputeType).mul(slashableAmount).div(
+            MAX_PPM
+        );
         require(slashAmount > 0, "Dispute has zero tokens to slash");
 
         // Get rewards amount
@@ -710,6 +707,21 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
         staking.slash(_indexer, slashAmount, rewardsAmount, _challenger);
+    }
+
+    /**
+     * @dev Recover the signer address of the `_attestation`.
+     * @param _disputeType Dispute type
+     * @return Slashing percentage to use for the dispute type
+     */
+    function _getSlashingPercentageForDisputeType(DisputeType _disputeType)
+        private
+        view
+        returns (uint256)
+    {
+        if (_disputeType == DisputeType.QueryDispute) return uint256(qrySlashingPercentage);
+        if (_disputeType == DisputeType.IndexingDispute) return uint256(idxSlashingPercentage);
+        return 0;
     }
 
     /**
