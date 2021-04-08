@@ -14,15 +14,13 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
     // -- Events --
 
     event ProposalCreated(
-        address submitter,
-        bytes32 proposalId,
+        bytes32 indexed proposalId,
         bytes32 votes,
         bytes32 metadata,
         ProposalResolution resolution
     );
     event ProposalUpdated(
-        address submitter,
-        bytes32 proposalId,
+        bytes32 indexed proposalId,
         bytes32 votes,
         bytes32 metadata,
         ProposalResolution resolution
