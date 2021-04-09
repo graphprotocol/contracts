@@ -1,23 +1,30 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 
 import "./WithdrawHelper.sol";
 
 /**
  * @title WithdrawHelper contract for GRT tokens
- * @notice This contract encodes the logic that connects the withdrawal of funds from a channel
- * back to the protocol for a particular allocation.
+ * @notice This contract encodes the logic that connects the transfer of funds from a
+ * Channel Multisig to the protocol in the context of a withdrawal.
+ * A Channel Multisig will atomically transfer the tokens to the WithdrawHelper and then
+ * these tokens will get pulled from the Staking contract using the `allocationID` passed
+ * in the `callData` of the WithdrawCommitment.
+ * Tokens transferred are associated to a particular allocation in the Staking contract.
+ * This contract is not meant to hold funds, as they can be stolen by presenting a
+ * handcrafted WithdrawalCommitment.
  */
 contract GRTWithdrawHelper is WithdrawHelper {
     struct CollectData {
         address staking;
         address allocationID;
     }
+
+    bytes4 private constant COLLECT_SELECTOR = bytes4(keccak256("collect(uint256,address)"));
 
     // -- State --
 
@@ -58,7 +65,15 @@ contract GRTWithdrawHelper is WithdrawHelper {
             "GRTWithdrawHelper: !approve"
         );
 
-        // Call the staking contract to collect funds from this contract
-        IStaking(collectData.staking).collect(_actualAmount, collectData.allocationID);
+        // Call the Staking contract to collect funds from this contract
+        (bool success, ) =
+            collectData.staking.call(
+                abi.encodeWithSelector(COLLECT_SELECTOR, _actualAmount, collectData.allocationID)
+            );
+
+        // If the call fails return the funds to the channel multisig
+        if (!success) {
+            IGraphToken(_wd.assetId).transfer(_wd.channelAddress, _actualAmount);
+        }
     }
 }

@@ -52,8 +52,11 @@ describe('WithdrawHelper', () => {
     await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
 
     // Give some funds to the CMC multisig fake account
-    const cmcTokens = toGRT('5000')
+    const cmcTokens = toGRT('2000')
     await grt.connect(governor.signer).mint(cmc.address, cmcTokens)
+
+    // Allow WithdrawHelper to call the Staking contract
+    await staking.connect(governor.signer).setAssetHolder(withdrawHelper.address, true)
   })
 
   beforeEach(async function () {
@@ -71,9 +74,6 @@ describe('WithdrawHelper', () => {
       const allocationID = channelKey.address
       const subgraphDeploymentID = randomHexBytes(32)
       const metadata = randomHexBytes(32)
-
-      // Allow WithdrawHelper to call the Staking contract
-      await staking.connect(governor.signer).setAssetHolder(withdrawHelper.address, true)
 
       // Setup staking
       const stakeTokens = toGRT('100000')
@@ -104,15 +104,54 @@ describe('WithdrawHelper', () => {
         assetId: grt.address,
         callData,
         callTo: withdrawHelper.address,
-        channelAddress: randomHexBytes(20),
+        channelAddress: cmc.address,
         nonce: 1,
         recipient: withdrawHelper.address,
       }
-      await withdrawHelper.execute(withdrawData, actualAmount)
+      await withdrawHelper.connect(cmc.signer).execute(withdrawData, actualAmount)
 
       // Allocation must have collected the withdrawn tokens
       const allocation = await staking.allocations(allocationID)
       expect(allocation.collectedFees).eq(actualAmount)
+
+      // CMC should not have more funds
+      expect(await grt.balanceOf(cmc.address)).eq(0)
+    })
+
+    it('withdraw tokens from the CMC to staking contract through WithdrawHelper (invalid allocation)', async function () {
+      // Use an invalid allocation
+      const allocationID = '0xfefefefefefefefefefefefefefefefefefefefe'
+
+      // Initiate a withdrawal
+      // For the purpose of the test we skip the CMC and call WithdrawHelper
+      // directly. Transfer tokens from the CMC -> WithdrawHelper being the recipient
+      const actualAmount = toGRT('2000') // <- withdraw amount
+      await grt.connect(cmc.signer).transfer(withdrawHelper.address, actualAmount)
+
+      // Simulate callTo from the CMC to the WithdrawHelper
+      const callData = await withdrawHelper.getCallData({
+        staking: staking.address,
+        allocationID,
+      })
+      const withdrawData = {
+        amount: 0,
+        assetId: grt.address,
+        callData,
+        callTo: withdrawHelper.address,
+        channelAddress: cmc.address,
+        nonce: 1,
+        recipient: withdrawHelper.address,
+      }
+
+      // This reverts!
+      await withdrawHelper.connect(cmc.signer).execute(withdrawData, actualAmount)
+
+      // There should not be collected fees
+      const allocation = await staking.allocations(allocationID)
+      expect(allocation.collectedFees).eq(0)
+
+      // CMC should have the funds returned
+      expect(await grt.balanceOf(cmc.address)).eq(actualAmount)
     })
 
     it('reject collect data with no staking address', async function () {
