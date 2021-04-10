@@ -17,6 +17,7 @@ contract DisputeManagerV1Storage is Managed {
     // Minimum deposit required to create a Dispute
     uint256 public minimumDeposit;
 
+    // -- Slot 0xf
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public fishermanRewardPercentage;
@@ -26,6 +27,7 @@ contract DisputeManagerV1Storage is Managed {
     uint32 public qrySlashingPercentage;
     uint32 public idxSlashingPercentage;
 
+    // -- Slot 0x10
     // Disputes created : disputeID => Dispute
     // disputeID - check creation functions to see how disputeID is built
     mapping(bytes32 => IDisputeManager.Dispute) public disputes;
