@@ -1190,6 +1190,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Distribute rewards if proof of indexing was presented by the indexer or operator
         if (isIndexer && _poi != 0) {
             _distributeRewards(_allocationID, alloc.indexer);
+        } else {
+            _updateRewards(alloc.subgraphDeploymentID);
         }
 
         // Free allocated tokens from use
