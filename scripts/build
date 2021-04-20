@@ -2,8 +2,5 @@
 
 set -eo pipefail
 
-# Compile AttestationApp along with the rest of the contracts	
-cp node_modules/@graphprotocol/statechannels/contracts/AttestationApp.sol contracts/statechannels
-
 # Build
 npm run compile

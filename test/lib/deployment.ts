@@ -10,14 +10,14 @@ import { GraphProxyAdmin } from '../../build/typechain/contracts/GraphProxyAdmin
 import { Curation } from '../../build/typechain/contracts/Curation'
 import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { Gns } from '../../build/typechain/contracts/Gns'
+import { GNS } from '../../build/typechain/contracts/GNS'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
 import { Staking } from '../../build/typechain/contracts/Staking'
 import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
-import { EthereumDidRegistry } from '../../build/typechain/contracts/EthereumDidRegistry'
-import { Gdai } from '../../build/typechain/contracts/Gdai'
-import { GsrManager } from '../../build/typechain/contracts/GsrManager'
+import { EthereumDIDRegistry } from '../../build/typechain/contracts/EthereumDIDRegistry'
+import { GDAI } from '../../build/typechain/contracts/GDAI'
+import { GSRManager } from '../../build/typechain/contracts/GSRManager'
 
 // Disable logging for tests
 network.logger.pause()
@@ -94,17 +94,17 @@ export async function deployGRT(deployer: Signer): Promise<GraphToken> {
   ) as unknown) as Promise<GraphToken>
 }
 
-export async function deployGDAI(deployer: Signer): Promise<Gdai> {
-  return (deployContract('GDAI', deployer) as unknown) as Promise<Gdai>
+export async function deployGDAI(deployer: Signer): Promise<GDAI> {
+  return (deployContract('GDAI', deployer) as unknown) as Promise<GDAI>
 }
 
-export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GsrManager> {
+export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GSRManager> {
   return (deployContract(
     'GSRManager',
     deployer,
     defaults.gdai.savingsRate.toString(),
     gdaiAddress,
-  ) as unknown) as Promise<GsrManager>
+  ) as unknown) as Promise<GSRManager>
 }
 
 export async function deployCuration(
@@ -174,7 +174,7 @@ export async function deployGNS(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
-): Promise<Gns> {
+): Promise<GNS> {
   // Dependency
   const didRegistry = await deployEthereumDIDRegistry(deployer)
   const bondingCurve = ((await deployContract(
@@ -189,12 +189,12 @@ export async function deployGNS(
     [controller, bondingCurve.address, didRegistry.address],
     deployer,
     false,
-  ) as unknown) as Gns
+  ) as unknown) as GNS
 }
 
-export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDidRegistry> {
+export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDIDRegistry> {
   return (deployContract('EthereumDIDRegistry', deployer) as unknown) as Promise<
-    EthereumDidRegistry
+    EthereumDIDRegistry
   >
 }
 
