@@ -287,6 +287,7 @@ describe('GNS', () => {
     return tx
   }
 
+  /*
   const upgradeNameSignal = async (
     account: Account,
     graphAccount: string,
@@ -360,6 +361,7 @@ describe('GNS', () => {
 
     return tx
   }
+  */
 
   const mintNSignal = async (
     account: Account,
