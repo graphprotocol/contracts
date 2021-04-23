@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
-import { Gns } from '../build/typechain/contracts/Gns'
+import { GNS } from '../build/typechain/contracts/GNS'
 import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/typechain/contracts/GraphToken'
@@ -32,7 +32,7 @@ describe('GNS', () => {
 
   let fixture: NetworkFixture
 
-  let gns: Gns
+  let gns: GNS
   let grt: GraphToken
   let curation: Curation
 
@@ -287,6 +287,7 @@ describe('GNS', () => {
     return tx
   }
 
+  /*
   const upgradeNameSignal = async (
     account: Account,
     graphAccount: string,
@@ -360,6 +361,7 @@ describe('GNS', () => {
 
     return tx
   }
+  */
 
   const mintNSignal = async (
     account: Account,
