@@ -9,7 +9,7 @@
 mkdir -p reports
 
 pip3 install --user slither-analyzer && \
-npm run build && \
+yarn build && \
 
 echo "Analyzing contracts..."
 slither . \

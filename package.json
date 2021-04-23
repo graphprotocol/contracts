@@ -78,20 +78,20 @@
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
     "deploy": "scripts/predeploy && hardhat migrate",
-    "deploy-ganache": "npm run deploy -- --force && ./cli/cli.ts transferTeamTokens --amount 1000000",
-    "deploy-ganache-manual": "npm run deploy -- --network ganache --force && ./cli/cli.ts transferTeamTokens --amount 1000000",
-    "deploy-rinkeby": "npm run deploy -- --force --network rinkeby && ./cli/cli.ts transferTeamTokens --amount 1000000",
+    "deploy-ganache": "yarn deploy -- --force && ./cli/cli.ts transferTeamTokens --amount 1000000",
+    "deploy-ganache-manual": "yarn deploy -- --network ganache --force && ./cli/cli.ts transferTeamTokens --amount 1000000",
+    "deploy-rinkeby": "yarn deploy -- --force --network rinkeby && ./cli/cli.ts transferTeamTokens --amount 1000000",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "test:coverage": "scripts/coverage",
-    "lint": "npm run lint:ts && npm run lint:sol",
-    "lint:fix": "npm run lint:ts:fix && npm run lint:sol:fix",
+    "lint": "yarn lint:ts && yarn lint:sol",
+    "lint:fix": "yarn lint:ts:fix && yarn lint:sol:fix",
     "lint:ts": "eslint '*/**/*.{js,ts}'",
     "lint:ts:fix": "eslint '*/**/*.{js,ts}' --fix",
     "lint:sol": "solium --dir ./contracts",
     "lint:sol:fix": "solium --dir ./contracts --fix",
-    "prettier": "npm run prettier:ts && npm run prettier:sol",
+    "prettier": "yarn prettier:ts && yarn prettier:sol",
     "prettier:ts": "prettier --write 'test/**/*.ts'",
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "analyze": "scripts/analyze",
@@ -111,7 +111,7 @@
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged",
-      "pre-push": "git diff HEAD --quiet && npm run lint && npm test"
+      "pre-push": "git diff HEAD --quiet && yarn lint && yarn test"
     }
   },
   "repository": {
@@ -119,7 +119,7 @@
     "url": "git+https://github.com/graphprotocol/contracts.git"
   },
   "author": "TheGraph Team",
-  "license": "MIT License",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/graphprotocol/contracts/issues"
   },

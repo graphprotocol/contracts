@@ -29,7 +29,7 @@ Testing is done with the following stack:
 - Typescript
 - Ethers
 
-To test all files, use `npm run test`. To test a single file run:
+To test all files, use `yarn test`. To test a single file run:
 `npx hardhat test test/<FILE_NAME>.ts`.
 
 ### Contract addresses

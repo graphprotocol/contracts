@@ -5,8 +5,8 @@ TYPECHAIN_DIR=dist/typechain
 set -eo pipefail
 
 # Build contracts
-npm run clean
-npm run build
+yarn clean
+yarn build
 
 # Refresh distribution folder
 rm -rf dist && mkdir -p dist

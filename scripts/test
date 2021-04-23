@@ -37,8 +37,6 @@ fi
 
 mkdir -p reports
 
-npm run build
-
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
   npx hardhat test --network ganache
