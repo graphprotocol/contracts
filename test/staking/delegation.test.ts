@@ -424,6 +424,9 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate properly when multiple delegations', async function () {
+        // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
+        await epochManager.setEpochLength(toBN((60 * 60) / 15))
+
         await shouldDelegate(delegator, toGRT('1234'))
         await shouldDelegate(delegator, toGRT('100'))
         await shouldDelegate(delegator, toGRT('50'))
