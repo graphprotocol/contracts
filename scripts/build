@@ -3,4 +3,4 @@
 set -eo pipefail
 
 # Build
-npm run compile
+yarn compile

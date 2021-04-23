@@ -18,7 +18,7 @@ PROVIDER_URL="http://localhost:8545"
 Also, run the following to create the proper typescript bindings for each contract:
 
 ```sh
-npm run build
+yarn build
 ```
 
 ## Usage
