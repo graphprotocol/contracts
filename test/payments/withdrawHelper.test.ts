@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { GrtWithdrawHelper } from '../../build/typechain/contracts/GrtWithdrawHelper'
+import { GRTWithdrawHelper } from '../../build/typechain/contracts/GRTWithdrawHelper'
 import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
@@ -21,7 +21,7 @@ describe('WithdrawHelper', () => {
 
   let grt: GraphToken
   let staking: Staking
-  let withdrawHelper: GrtWithdrawHelper
+  let withdrawHelper: GRTWithdrawHelper
 
   function createWithdrawData(callData: string) {
     return {
@@ -44,7 +44,7 @@ describe('WithdrawHelper', () => {
       'GRTWithdrawHelper',
       governor.signer,
       grt.address,
-    )) as unknown) as GrtWithdrawHelper
+    )) as unknown) as GRTWithdrawHelper
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
