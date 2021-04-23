@@ -90,7 +90,7 @@ contract Managed {
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(resolveContract(keccak256("Curation")));
+        return ICuration(_resolveContract(keccak256("Curation")));
     }
 
     /**
@@ -98,7 +98,7 @@ contract Managed {
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(resolveContract(keccak256("EpochManager")));
+        return IEpochManager(_resolveContract(keccak256("EpochManager")));
     }
 
     /**
@@ -106,7 +106,7 @@ contract Managed {
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(resolveContract(keccak256("RewardsManager")));
+        return IRewardsManager(_resolveContract(keccak256("RewardsManager")));
     }
 
     /**
@@ -114,7 +114,7 @@ contract Managed {
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(resolveContract(keccak256("Staking")));
+        return IStaking(_resolveContract(keccak256("Staking")));
     }
 
     /**
@@ -122,14 +122,14 @@ contract Managed {
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(resolveContract(keccak256("GraphToken")));
+        return IGraphToken(_resolveContract(keccak256("GraphToken")));
     }
 
     /**
      * @dev Resolve a contract address from the cache or the Controller if not found
      * @return Address of the contract
      */
-    function resolveContract(bytes32 _nameHash) internal view returns (address) {
+    function _resolveContract(bytes32 _nameHash) internal view returns (address) {
         address contractAddress = addressCache[_nameHash];
         if (contractAddress == address(0)) {
             contractAddress = controller.getContractProxy(_nameHash);
