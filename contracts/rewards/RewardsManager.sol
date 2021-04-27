@@ -187,9 +187,10 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 p = graphToken.totalSupply();
         uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
 
-        // New issuance per signalled token during time steps
+        // New issuance of tokens during time steps
         uint256 x = a.sub(p);
 
+        // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
         return x.mul(TOKEN_DECIMALS).div(signalledTokens);
     }
@@ -214,14 +215,12 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
-        uint256 newAccrued = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
+        uint256 newRewardsPerSignal = getAccRewardsPerSignal().sub(
+            subgraph.accRewardsPerSignalSnapshot
+        );
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
-        if (subgraphSignalledTokens == 0) {
-            return 0;
-        }
-
-        uint256 newValue = newAccrued.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
-        return subgraph.accRewardsForSubgraph.add(newValue);
+        uint256 newRewards = newRewardsPerSignal.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
+        return subgraph.accRewardsForSubgraph.add(newRewards);
     }
 
     /**
@@ -239,7 +238,9 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
-        uint256 newAccrued = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot);
+        uint256 newRewardsForSubgraph = accRewardsForSubgraph.sub(
+            subgraph.accRewardsForSubgraphSnapshot
+        );
 
         uint256 subgraphAllocatedTokens = staking().getSubgraphAllocatedTokens(
             _subgraphDeploymentID
@@ -248,8 +249,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             return (0, accRewardsForSubgraph);
         }
 
-        uint256 newValue = newAccrued.mul(TOKEN_DECIMALS).div(subgraphAllocatedTokens);
-        return (subgraph.accRewardsPerAllocatedToken.add(newValue), accRewardsForSubgraph);
+        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph.mul(TOKEN_DECIMALS).div(
+            subgraphAllocatedTokens
+        );
+        return (
+            subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken),
+            accRewardsForSubgraph
+        );
     }
 
     /**
@@ -356,9 +362,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         IStaking staking = staking();
         require(msg.sender == address(staking), "Caller must be the staking contract");
 
-        IGraphToken graphToken = graphToken();
         IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
-
         uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
             alloc.subgraphDeploymentID
         );
@@ -375,11 +379,12 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             alloc.accRewardsPerAllocatedToken,
             accRewardsPerAllocatedToken
         );
-
-        // Mint directly to staking contract for the reward amount
-        // The staking contract will do bookkeeping of the reward and
-        // assign in proportion to each stakeholder incentive
-        graphToken.mint(address(staking), rewards);
+        if (rewards > 0) {
+            // Mint directly to staking contract for the reward amount
+            // The staking contract will do bookkeeping of the reward and
+            // assign in proportion to each stakeholder incentive
+            graphToken().mint(address(staking), rewards);
+        }
 
         emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
 

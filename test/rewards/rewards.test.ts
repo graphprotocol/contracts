@@ -742,4 +742,35 @@ describe('Rewards', () => {
       }
     })
   })
+
+  describe('edge scenarios', function () {
+    it('close allocation on a subgraph that no longer have signal', async function () {
+      // Update total signalled
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Allocate
+      const tokensToAllocate = toGRT('12500')
+      await staking.connect(indexer1.signer).stake(tokensToAllocate)
+      await staking
+        .connect(indexer1.signer)
+        .allocate(
+          subgraphDeploymentID1,
+          tokensToAllocate,
+          allocationID,
+          metadata,
+          await channelKey.generateProof(indexer1.address),
+        )
+
+      // Jump
+      await advanceBlocks(await epochManager.epochLength())
+
+      // Remove all signal from the subgraph
+      const curatorShares = await curation.getCuratorSignal(curator1.address, subgraphDeploymentID1)
+      await curation.connect(curator1.signer).burn(subgraphDeploymentID1, curatorShares, 0)
+
+      // Close allocation. At this point rewards should be collected for that indexer
+      await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+    })
+  })
 })
