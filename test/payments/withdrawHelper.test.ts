@@ -6,9 +6,15 @@ import { GraphToken } from '../../build/typechain/contracts/GraphToken'
 import { Staking } from '../../build/typechain/contracts/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
-
 import * as deployment from '../lib/deployment'
-import { deriveChannelKey, getAccounts, randomHexBytes, toGRT, Account } from '../lib/testHelpers'
+import {
+  deriveChannelKey,
+  getAccounts,
+  randomAddress,
+  randomHexBytes,
+  toGRT,
+  Account,
+} from '../lib/testHelpers'
 
 const { AddressZero } = constants
 
@@ -29,7 +35,7 @@ describe('WithdrawHelper', () => {
       assetId: grt.address,
       callData,
       callTo: withdrawHelper.address,
-      channelAddress: randomHexBytes(20),
+      channelAddress: randomAddress(),
       nonce: 1,
       recipient: withdrawHelper.address,
     }
@@ -98,6 +104,7 @@ describe('WithdrawHelper', () => {
       const callData = await withdrawHelper.getCallData({
         staking: staking.address,
         allocationID,
+        returnAddress: randomAddress(),
       })
       const withdrawData = {
         amount: 0,
@@ -121,6 +128,7 @@ describe('WithdrawHelper', () => {
     it('withdraw tokens from the CMC to staking contract through WithdrawHelper (invalid allocation)', async function () {
       // Use an invalid allocation
       const allocationID = '0xfefefefefefefefefefefefefefefefefefefefe'
+      const returnAddress = randomAddress()
 
       // Initiate a withdrawal
       // For the purpose of the test we skip the CMC and call WithdrawHelper
@@ -132,6 +140,7 @@ describe('WithdrawHelper', () => {
       const callData = await withdrawHelper.getCallData({
         staking: staking.address,
         allocationID,
+        returnAddress,
       })
       const withdrawData = {
         amount: 0,
@@ -151,14 +160,15 @@ describe('WithdrawHelper', () => {
       expect(allocation.collectedFees).eq(0)
 
       // CMC should have the funds returned
-      expect(await grt.balanceOf(cmc.address)).eq(actualAmount)
+      expect(await grt.balanceOf(returnAddress)).eq(actualAmount)
     })
 
     it('reject collect data with no staking address', async function () {
       // Simulate callTo from the CMC to the WithdrawHelper
       const callData = await withdrawHelper.getCallData({
         staking: AddressZero,
-        allocationID: randomHexBytes(20),
+        allocationID: randomAddress(),
+        returnAddress: randomAddress(),
       })
       const tx = withdrawHelper.execute(createWithdrawData(callData), toGRT('100'))
       await expect(tx).revertedWith('GRTWithdrawHelper: !staking')
@@ -167,8 +177,9 @@ describe('WithdrawHelper', () => {
     it('reject collect data with no allocation', async function () {
       // Simulate callTo from the CMC to the WithdrawHelper
       const callData = await withdrawHelper.getCallData({
-        staking: randomHexBytes(20),
+        staking: randomAddress(),
         allocationID: AddressZero,
+        returnAddress: randomAddress(),
       })
       const tx = withdrawHelper.execute(createWithdrawData(callData), toGRT('100'))
       await expect(tx).revertedWith('GRTWithdrawHelper: !allocationID')

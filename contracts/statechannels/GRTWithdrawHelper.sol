@@ -22,8 +22,10 @@ contract GRTWithdrawHelper is WithdrawHelper {
     struct CollectData {
         address staking;
         address allocationID;
+        address returnAddress;
     }
 
+    bytes4 private constant APPROVE_SELECTOR = bytes4(keccak256("approve(address,uint256)"));
     bytes4 private constant COLLECT_SELECTOR = bytes4(keccak256("collect(uint256,address)"));
 
     // -- State --
@@ -58,22 +60,38 @@ contract GRTWithdrawHelper is WithdrawHelper {
         CollectData memory collectData = abi.decode(_wd.callData, (CollectData));
         require(collectData.staking != address(0), "GRTWithdrawHelper: !staking");
         require(collectData.allocationID != address(0), "GRTWithdrawHelper: !allocationID");
+        require(collectData.returnAddress != address(0), "GRTWithdrawHelper: !returnAddress");
 
         // Approve the staking contract to pull the transfer amount
-        require(
-            IGraphToken(_wd.assetId).approve(collectData.staking, _actualAmount),
-            "GRTWithdrawHelper: !approve"
-        );
+        (bool success1, ) =
+            _wd.assetId.call(
+                abi.encodeWithSelector(APPROVE_SELECTOR, collectData.staking, _actualAmount)
+            );
+
+        // If the call fails return the funds to the return address and bail
+        if (!success1) {
+            _sendTokens(collectData.returnAddress, _actualAmount);
+            return;
+        }
 
         // Call the Staking contract to collect funds from this contract
-        (bool success, ) =
+        (bool success2, ) =
             collectData.staking.call(
                 abi.encodeWithSelector(COLLECT_SELECTOR, _actualAmount, collectData.allocationID)
             );
 
-        // If the call fails return the funds to the channel multisig
-        if (!success) {
-            IGraphToken(_wd.assetId).transfer(_wd.channelAddress, _actualAmount);
+        // If the call fails return the funds to the return address
+        if (!success2) {
+            _sendTokens(collectData.returnAddress, _actualAmount);
         }
+    }
+
+    /**
+     * @notice Send tokens out of the contract.
+     * @param _to Destination address
+     * @param _amount Amount to transfer
+     */
+    function _sendTokens(address _to, uint256 _amount) private {
+        IGraphToken(tokenAddress).transfer(_to, _amount);
     }
 }
