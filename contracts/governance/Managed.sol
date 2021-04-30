@@ -53,6 +53,10 @@ contract Managed {
         require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
     }
 
+    function _onlyController() internal view {
+        require(msg.sender == address(controller), "Caller must be Controller");
+    }
+
     modifier notPartialPaused {
         _notPartialPaused();
         _;
@@ -65,7 +69,7 @@ contract Managed {
 
     // Check if sender is controller.
     modifier onlyController() {
-        require(msg.sender == address(controller), "Caller must be Controller");
+        _onlyController();
         _;
     }
 
