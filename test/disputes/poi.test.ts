@@ -22,7 +22,7 @@ import { MAX_PPM } from './common'
 
 const { keccak256 } = utils
 
-describe.only('DisputeManager:POI', async () => {
+describe('DisputeManager:POI', async () => {
   let other: Account
   let governor: Account
   let arbitrator: Account

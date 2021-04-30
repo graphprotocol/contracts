@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 interface IDisputeManager {
     // -- Dispute --
 
-    enum DisputeType { IndexingDispute, QueryDispute }
+    enum DisputeType { Null, IndexingDispute, QueryDispute }
 
     // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
