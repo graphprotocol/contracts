@@ -548,6 +548,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     /**
      * @dev The arbitrator accepts a dispute as being valid.
+     * This function will revert if the indexer is not slashable, whether because it does not have
+     * any stake available or the slashing percentage is configured to be zero. In those cases
+     * a dispute must be resolved using drawDispute or rejectDispute.
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
      */
