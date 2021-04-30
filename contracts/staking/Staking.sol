@@ -1160,7 +1160,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
-        uint256 epochs = MathUtils.diff(alloc.closedAtEpoch, alloc.createdAtEpoch);
+        uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
         require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation

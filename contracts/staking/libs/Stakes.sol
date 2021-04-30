@@ -74,7 +74,7 @@ library Stakes {
         uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
             lockingPeriod = MathUtils.weightedAverage(
-                MathUtils.diff(stake.tokensLockedUntil, block.number),
+                MathUtils.diffOrZero(stake.tokensLockedUntil, block.number),
                 stake.tokensLocked,
                 _period,
                 _tokens
