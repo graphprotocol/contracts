@@ -12,7 +12,13 @@ library MathUtils {
     using SafeMath for uint256;
 
     /**
-     * @dev Calculates the weighted average.
+     * @dev Calculates the weighted average of two values pondering each of these
+     * values based on configured weights. The contribution of each value N is
+     * weightN/(weightA + weightB).
+     * @param valueA The amount for value A
+     * @param weightA The weight to use for value A
+     * @param valueB The amount for value B
+     * @param weightB The weight to use for value B
      */
     function weightedAverage(
         uint256 valueA,
