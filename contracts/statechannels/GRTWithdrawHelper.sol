@@ -30,7 +30,7 @@ contract GRTWithdrawHelper is WithdrawHelper {
 
     // -- State --
 
-    address public tokenAddress;
+    address public immutable tokenAddress;
 
     /**
      * @notice Contract constructor.
@@ -64,7 +64,7 @@ contract GRTWithdrawHelper is WithdrawHelper {
 
         // Approve the staking contract to pull the transfer amount
         (bool success1, ) =
-            _wd.assetId.call(
+            tokenAddress.call(
                 abi.encodeWithSelector(APPROVE_SELECTOR, collectData.staking, _actualAmount)
             );
 
