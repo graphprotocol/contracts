@@ -389,7 +389,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the delegation parameters.
+     * @dev Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
@@ -403,7 +403,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the delegation parameters.
+     * @dev Set the delegation parameters for a particular indexer.
+     * @param _indexer Indexer to set delegation parameters
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
