@@ -1614,12 +1614,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = rewardsDestination[_beneficiary];
-            require(
-                _graphToken.transfer(
-                    destination == address(0) ? _beneficiary : destination,
-                    _amount
-                ),
-                "!transfer"
+            _pushTokens(
+                _graphToken,
+                destination == address(0) ? _beneficiary : destination,
+                _amount
             );
         }
     }
