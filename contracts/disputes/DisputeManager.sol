@@ -53,14 +53,17 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // -- Constants --
 
-    uint256 private constant ATTESTATION_SIZE_BYTES = 161;
+    // Attestation size is the sum of the receipt (96) + signature (65)
+    uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
     uint256 private constant SIG_R_LENGTH = 32;
     uint256 private constant SIG_S_LENGTH = 32;
+    uint256 private constant SIG_V_LENGTH = 1;
     uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
     uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
     uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
+    uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
