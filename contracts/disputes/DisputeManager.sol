@@ -279,7 +279,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         );
         qrySlashingPercentage = _qryPercentage;
         idxSlashingPercentage = _idxPercentage;
-        emit ParameterUpdated("slashingPercentage");
+        emit ParameterUpdated("qrySlashingPercentage");
+        emit ParameterUpdated("idxSlashingPercentage");
     }
 
     /**
