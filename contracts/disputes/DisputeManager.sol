@@ -136,13 +136,21 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     event DisputeLinked(bytes32 indexed disputeID1, bytes32 indexed disputeID2);
 
+    // -- Modifiers --
+
+    function _onlyArbitrator() internal view {
+        require(msg.sender == arbitrator, "Caller is not the Arbitrator");
+    }
+
     /**
      * @dev Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator {
-        require(msg.sender == arbitrator, "Caller is not the Arbitrator");
+        _onlyArbitrator();
         _;
     }
+
+    // -- Functions --
 
     /**
      * @dev Initialize this contract.
