@@ -33,7 +33,7 @@ library MathUtils {
     /**
      * @dev Returns the difference between two numbers or zero if negative.
      */
-    function diff(uint256 x, uint256 y) internal pure returns (uint256) {
+    function diffOrZero(uint256 x, uint256 y) internal pure returns (uint256) {
         return (x > y) ? x.sub(y) : 0;
     }
 }
