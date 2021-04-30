@@ -2,7 +2,6 @@
 
 pragma solidity ^0.7.3;
 
-import "./IManaged.sol";
 import "./IController.sol";
 
 import "../curation/ICuration.sol";
