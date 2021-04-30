@@ -25,7 +25,7 @@ contract Managed {
 
     // Controller that contract is registered with
     IController public controller;
-    mapping(bytes32 => address) public addressCache;
+    mapping(bytes32 => address) private addressCache;
     uint256[10] private __gap;
 
     // -- Events --
