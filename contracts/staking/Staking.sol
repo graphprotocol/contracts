@@ -9,6 +9,7 @@ import "../upgrades/GraphUpgradeable.sol";
 
 import "./IStaking.sol";
 import "./StakingStorage.sol";
+import "./libs/MathUtils.sol";
 import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
@@ -388,7 +389,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Set the delegation parameters.
+     * @dev Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
@@ -398,8 +399,22 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint32 _queryFeeCut,
         uint32 _cooldownBlocks
     ) public override {
-        address indexer = msg.sender;
+        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut, _cooldownBlocks);
+    }
 
+    /**
+     * @dev Set the delegation parameters for a particular indexer.
+     * @param _indexer Indexer to set delegation parameters
+     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
+     * @param _queryFeeCut Percentage of query fees left for delegators
+     * @param _cooldownBlocks Period that need to pass to update delegation parameters
+     */
+    function _setDelegationParameters(
+        address _indexer,
+        uint32 _indexingRewardCut,
+        uint32 _queryFeeCut,
+        uint32 _cooldownBlocks
+    ) private {
         // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
         require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
@@ -408,7 +423,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(_cooldownBlocks >= delegationParametersCooldown, "<cooldown");
 
         // Verify the cooldown period passed
-        DelegationPool storage pool = delegationPools[indexer];
+        DelegationPool storage pool = delegationPools[_indexer];
         require(
             pool.updatedAtBlock == 0 ||
                 pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
@@ -422,7 +437,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pool.updatedAtBlock = block.number;
 
         emit DelegationParametersUpdated(
-            indexer,
+            _indexer,
             _indexingRewardCut,
             _queryFeeCut,
             _cooldownBlocks
@@ -524,7 +539,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @return True if indexer has staked tokens
      */
     function hasStake(address _indexer) external view override returns (bool) {
-        return stakes[_indexer].hasTokens();
+        return stakes[_indexer].tokensStaked > 0;
     }
 
     /**
@@ -614,8 +629,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity =
-            (tokensDelegated < tokensDelegatedCap) ? tokensDelegated : tokensDelegatedCap;
+        uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
 
         return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
     }
@@ -681,7 +695,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         );
 
         // Transfer tokens to stake from caller to this contract
-        require(graphToken().transferFrom(msg.sender, address(this), _tokens), "!transfer");
+        _pullTokens(graphToken(), msg.sender, _tokens);
 
         // Stake the transferred tokens
         _stake(_indexer, _tokens);
@@ -696,7 +710,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
         require(_tokens > 0, "!tokens");
-        require(indexerStake.hasTokens(), "!stake");
+        require(indexerStake.tokensStaked > 0, "!stake");
         require(indexerStake.tokensAvailable() >= _tokens, "!stake-avail");
 
         // Ensure minimum stake
@@ -753,7 +767,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(_tokens >= _reward, "rewards>slash");
 
         // Cannot slash stake of an indexer without any or enough stake
-        require(indexerStake.hasTokens(), "!stake");
+        require(indexerStake.tokensStaked > 0, "!stake");
         require(_tokens <= indexerStake.tokensStaked, "slash>stake");
 
         // Validate beneficiary of slashed tokens
@@ -763,10 +777,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Unlock locked tokens to avoid the indexer to withdraw them
         if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
             uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
-            uint256 tokensToUnlock =
-                (tokensOverAllocated > indexerStake.tokensLocked)
-                    ? indexerStake.tokensLocked
-                    : tokensOverAllocated;
+            uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.tokensLocked);
             indexerStake.unlockTokens(tokensToUnlock);
         }
 
@@ -781,9 +792,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         _burnTokens(graphToken, _tokens.sub(_reward));
 
         // Give the beneficiary a reward for slashing
-        if (_reward > 0) {
-            require(graphToken.transfer(_beneficiary, _reward), "!transfer");
-        }
+        _pushTokens(graphToken, _beneficiary, _reward);
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
     }
@@ -803,7 +812,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
-        require(graphToken().transferFrom(delegator, address(this), _tokens), "!transfer");
+        _pullTokens(graphToken(), delegator, _tokens);
 
         // Update state
         return _delegate(delegator, _indexer, _tokens);
@@ -932,8 +941,12 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect query fees for an allocation from state channels.
+     * @dev Collect query fees from state channels and assign them to an allocation.
      * Funds received are only accepted from a valid sender.
+     * To avoid reverting on the withdrawal from channel flow this function will:
+     * 1) Accept calls with zero tokens.
+     * 2) Accept calls after an allocation passed the dispute period, in that case, all
+     *    the received tokens are burned.
      * @param _tokens Amount of tokens to collect
      * @param _allocationID Allocation where the tokens will be assigned
      */
@@ -958,7 +971,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         if (queryFees > 0) {
             // Pull tokens to collect from the authorized sender
             IGraphToken graphToken = graphToken();
-            require(graphToken.transferFrom(msg.sender, address(this), _tokens), "!transfer");
+            _pullTokens(graphToken, msg.sender, _tokens);
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
@@ -1041,7 +1054,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Initialize the delegation pool the first time
         if (delegationPools[_indexer].updatedAtBlock == 0) {
-            setDelegationParameters(MAX_PPM, MAX_PPM, delegationParametersCooldown);
+            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, delegationParametersCooldown);
         }
 
         emit StakeDeposited(_indexer, _tokens);
@@ -1057,7 +1070,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(tokensToWithdraw > 0, "!tokens");
 
         // Return tokens to the indexer
-        require(graphToken().transfer(_indexer, tokensToWithdraw), "!transfer");
+        _pushTokens(graphToken(), _indexer, tokensToWithdraw);
 
         emit StakeWithdrawn(_indexer, tokensToWithdraw);
     }
@@ -1148,10 +1161,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
-        uint256 epochs =
-            alloc.createdAtEpoch < alloc.closedAtEpoch
-                ? alloc.closedAtEpoch.sub(alloc.createdAtEpoch)
-                : 0;
+        uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
         require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
@@ -1286,7 +1296,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Only delegate to non-empty address
         require(_indexer != address(0), "!indexer");
         // Only delegate to staked indexer
-        require(stakes[_indexer].hasTokens(), "!stake");
+        require(stakes[_indexer].tokensStaked > 0, "!stake");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = delegationPools[_indexer];
@@ -1396,7 +1406,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             _delegate(_delegator, _delegateToIndexer, tokensToWithdraw);
         } else {
             // Return tokens to the delegator
-            require(graphToken().transfer(_delegator, tokensToWithdraw), "!transfer");
+            _pushTokens(graphToken(), _delegator, tokensToWithdraw);
         }
 
         return tokensToWithdraw;
@@ -1472,7 +1482,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
                 // Then we call collect() to do the transfer bookeeping
-                require(_graphToken.transfer(address(curation), curationFees), "!transfer");
+                _pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);
             }
             return curationFees;
@@ -1604,12 +1614,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = rewardsDestination[_beneficiary];
-            require(
-                _graphToken.transfer(
-                    destination == address(0) ? _beneficiary : destination,
-                    _amount
-                ),
-                "!transfer"
+            _pushTokens(
+                _graphToken,
+                destination == address(0) ? _beneficiary : destination,
+                _amount
             );
         }
     }
@@ -1622,6 +1630,38 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     function _burnTokens(IGraphToken _graphToken, uint256 _amount) private {
         if (_amount > 0) {
             _graphToken.burn(_amount);
+        }
+    }
+
+    /**
+     * @dev Pull tokens from an address to this contract.
+     * @param _graphToken Token to transfer
+     * @param _from Address sending the tokens
+     * @param _amount Amount of tokens to transfer
+     */
+    function _pullTokens(
+        IGraphToken _graphToken,
+        address _from,
+        uint256 _amount
+    ) private {
+        if (_amount > 0) {
+            require(_graphToken.transferFrom(_from, address(this), _amount), "!transfer");
+        }
+    }
+
+    /**
+     * @dev Push tokens from this contract to a receiving address.
+     * @param _graphToken Token to transfer
+     * @param _to Address receiving the tokens
+     * @param _amount Amount of tokens to transfer
+     */
+    function _pushTokens(
+        IGraphToken _graphToken,
+        address _to,
+        uint256 _amount
+    ) private {
+        if (_amount > 0) {
+            require(_graphToken.transfer(_to, _amount), "!transfer");
         }
     }
 }
