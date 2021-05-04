@@ -14,7 +14,7 @@ import "./IDisputeManager.sol";
 
 /*
  * @title DisputeManager
- * @dev Provides a way to align the incentives of participants by having slashing as deterrent
+ * @notice Provides a way to align the incentives of participants by having slashing as deterrent
  * for incorrect behaviour.
  *
  * There are two types of disputes that can be created: Query disputes and Indexing disputes.
@@ -40,27 +40,30 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // -- EIP-712  --
 
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-    );
+    bytes32 private constant DOMAIN_TYPE_HASH =
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+        );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32
-        private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-    bytes32 private constant RECEIPT_TYPE_HASH = keccak256(
-        "Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)"
-    );
+    bytes32 private constant DOMAIN_SALT =
+        0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
+    bytes32 private constant RECEIPT_TYPE_HASH =
+        keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
     // -- Constants --
 
-    uint256 private constant ATTESTATION_SIZE_BYTES = 161;
+    // Attestation size is the sum of the receipt (96) + signature (65)
+    uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
     uint256 private constant SIG_R_LENGTH = 32;
     uint256 private constant SIG_S_LENGTH = 32;
+    uint256 private constant SIG_V_LENGTH = 1;
     uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
     uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
     uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
+    uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
@@ -136,27 +139,37 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     event DisputeLinked(bytes32 indexed disputeID1, bytes32 indexed disputeID2);
 
+    // -- Modifiers --
+
+    function _onlyArbitrator() internal view {
+        require(msg.sender == arbitrator, "Caller is not the Arbitrator");
+    }
+
     /**
      * @dev Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator {
-        require(msg.sender == arbitrator, "Caller is not the Arbitrator");
+        _onlyArbitrator();
         _;
     }
+
+    // -- Functions --
 
     /**
      * @dev Initialize this contract.
      * @param _arbitrator Arbitrator role
      * @param _minimumDeposit Minimum deposit required to create a Dispute
      * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
-     * @param _slashingPercentage Percentage of indexer stake slashed (ppm)
+     * @param _qrySlashingPercentage Percentage of indexer stake slashed for query disputes (ppm)
+     * @param _idxSlashingPercentage Percentage of indexer stake slashed for indexing disputes (ppm)
      */
     function initialize(
         address _controller,
         address _arbitrator,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
-        uint32 _slashingPercentage
+        uint32 _qrySlashingPercentage,
+        uint32 _idxSlashingPercentage
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -164,7 +177,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         _setArbitrator(_arbitrator);
         _setMinimumDeposit(_minimumDeposit);
         _setFishermanRewardPercentage(_fishermanRewardPercentage);
-        _setSlashingPercentage(_slashingPercentage);
+        _setSlashingPercentage(_qrySlashingPercentage, _idxSlashingPercentage);
 
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
@@ -242,21 +255,32 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     /**
      * @dev Set the percentage used for slashing indexers.
-     * @param _percentage Percentage used for slashing
+     * @param _qryPercentage Percentage slashing for query disputes
+     * @param _idxPercentage Percentage slashing for indexing disputes
      */
-    function setSlashingPercentage(uint32 _percentage) external override onlyGovernor {
-        _setSlashingPercentage(_percentage);
+    function setSlashingPercentage(uint32 _qryPercentage, uint32 _idxPercentage)
+        external
+        override
+        onlyGovernor
+    {
+        _setSlashingPercentage(_qryPercentage, _idxPercentage);
     }
 
     /**
      * @dev Internal: Set the percentage used for slashing indexers.
-     * @param _percentage Percentage used for slashing
+     * @param _qryPercentage Percentage slashing for query disputes
+     * @param _idxPercentage Percentage slashing for indexing disputes
      */
-    function _setSlashingPercentage(uint32 _percentage) private {
+    function _setSlashingPercentage(uint32 _qryPercentage, uint32 _idxPercentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, "Slashing percentage must be below or equal to MAX_PPM");
-        slashingPercentage = _percentage;
-        emit ParameterUpdated("slashingPercentage");
+        require(
+            _qryPercentage <= MAX_PPM && _idxPercentage <= MAX_PPM,
+            "Slashing percentage must be below or equal to MAX_PPM"
+        );
+        qrySlashingPercentage = _qryPercentage;
+        idxSlashingPercentage = _idxPercentage;
+        emit ParameterUpdated("qrySlashingPercentage");
+        emit ParameterUpdated("idxSlashingPercentage");
     }
 
     /**
@@ -264,7 +288,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Return if dispute with ID `_disputeID` exists
      * @param _disputeID True if dispute already exists
      */
-    function isDisputeCreated(bytes32 _disputeID) public override view returns (bool) {
+    function isDisputeCreated(bytes32 _disputeID) public view override returns (bool) {
         return disputes[_disputeID].fisherman != address(0);
     }
 
@@ -276,7 +300,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(Receipt memory _receipt) public override view returns (bytes32) {
+    function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -304,7 +328,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     function areConflictingAttestations(
         Attestation memory _attestation1,
         Attestation memory _attestation2
-    ) public override pure returns (bool) {
+    ) public pure override returns (bool) {
         return (_attestation1.requestCID == _attestation2.requestCID &&
             _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
             _attestation1.responseCID != _attestation2.responseCID);
@@ -317,11 +341,11 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     function getAttestationIndexer(Attestation memory _attestation)
         public
-        override
         view
+        override
         returns (address)
     {
-        // Get attestation signer, allocationID
+        // Get attestation signer. Indexers signs with the allocationID
         address allocationID = _recoverAttestationSigner(_attestation);
 
         IStaking.Allocation memory alloc = staking().getAllocation(allocationID);
@@ -331,33 +355,6 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             "Allocation and attestation subgraphDeploymentID must match"
         );
         return alloc.indexer;
-    }
-
-    /**
-     * @dev Get the fisherman reward for a given indexer stake.
-     * @notice Return the fisherman reward based on the `_indexer` stake
-     * @param _indexer Indexer to be slashed
-     * @return Reward calculated as percentage of the indexer slashed funds
-     */
-    function getTokensToReward(address _indexer) public override view returns (uint256) {
-        uint256 tokens = getTokensToSlash(_indexer);
-        if (tokens == 0) {
-            return 0;
-        }
-        return uint256(fishermanRewardPercentage).mul(tokens).div(MAX_PPM);
-    }
-
-    /**
-     * @dev Get the amount of tokens to slash for an indexer based on the current stake.
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens to slash
-     */
-    function getTokensToSlash(address _indexer) public override view returns (uint256) {
-        uint256 tokens = staking().getIndexerStakedTokens(_indexer); // slashable tokens
-        if (tokens == 0) {
-            return 0;
-        }
-        return uint256(slashingPercentage).mul(tokens).div(MAX_PPM);
     }
 
     /**
@@ -415,18 +412,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dID1 = _createQueryDisputeWithAttestation(
-            fisherman,
-            0,
-            attestation1,
-            _attestationData1
-        );
-        bytes32 dID2 = _createQueryDisputeWithAttestation(
-            fisherman,
-            0,
-            attestation2,
-            _attestationData2
-        );
+        bytes32 dID1 =
+            _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
+        bytes32 dID2 =
+            _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
 
         // Store the linked disputes to be resolved
         disputes[dID1].relatedDisputeID = dID2;
@@ -459,18 +448,19 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        require(staking().hasStake(indexer), "Dispute indexer has no stake");
+        require(staking().getIndexerStakedTokens(indexer) > 0, "Dispute indexer has no stake");
 
         // Create a disputeID
-        bytes32 disputeID = keccak256(
-            abi.encodePacked(
-                _attestation.requestCID,
-                _attestation.responseCID,
-                _attestation.subgraphDeploymentID,
-                indexer,
-                _fisherman
-            )
-        );
+        bytes32 disputeID =
+            keccak256(
+                abi.encodePacked(
+                    _attestation.requestCID,
+                    _attestation.responseCID,
+                    _attestation.subgraphDeploymentID,
+                    indexer,
+                    _fisherman
+                )
+            );
 
         // Only one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created");
@@ -480,7 +470,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             indexer,
             _fisherman,
             _deposit,
-            0 // no related dispute
+            0, // no related dispute,
+            DisputeType.QueryDispute
         );
 
         emit QueryDisputeCreated(
@@ -534,14 +525,21 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(!isDisputeCreated(disputeID), "Dispute already created");
 
         // Allocation must exist
-        IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
+        IStaking staking = staking();
+        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
         require(alloc.indexer != address(0), "Dispute allocation must exist");
 
         // The indexer must be disputable
-        require(staking().hasStake(alloc.indexer), "Dispute indexer has no stake");
+        require(staking.getIndexerStakedTokens(alloc.indexer) > 0, "Dispute indexer has no stake");
 
         // Store dispute
-        disputes[disputeID] = Dispute(alloc.indexer, _fisherman, _deposit, 0);
+        disputes[disputeID] = Dispute(
+            alloc.indexer,
+            _fisherman,
+            _deposit,
+            0,
+            DisputeType.IndexingDispute
+        );
 
         emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
 
@@ -550,6 +548,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     /**
      * @dev The arbitrator accepts a dispute as being valid.
+     * This function will revert if the indexer is not slashable, whether because it does not have
+     * any stake available or the slashing percentage is configured to be zero. In those cases
+     * a dispute must be resolved using drawDispute or rejectDispute.
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
      */
@@ -557,15 +558,11 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Slash
-        uint256 tokensToReward = _slashIndexer(dispute.indexer, dispute.fisherman);
+        (, uint256 tokensToReward) =
+            _slashIndexer(dispute.indexer, dispute.fisherman, dispute.disputeType);
 
         // Give the fisherman their deposit back
-        if (dispute.deposit > 0) {
-            require(
-                graphToken().transfer(dispute.fisherman, dispute.deposit),
-                "Error sending dispute deposit"
-            );
-        }
+        _pushTokens(dispute.fisherman, dispute.deposit);
 
         // Resolve the conflicting dispute if any
         _resolveDisputeInConflict(dispute);
@@ -609,12 +606,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Return deposit to the fisherman
-        if (dispute.deposit > 0) {
-            require(
-                graphToken().transfer(dispute.fisherman, dispute.deposit),
-                "Error sending dispute deposit"
-            );
-        }
+        _pushTokens(dispute.fisherman, dispute.deposit);
 
         // Resolve the conflicting dispute if any
         _resolveDisputeInConflict(dispute);
@@ -670,10 +662,33 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
 
         // Transfer tokens to deposit from fisherman to this contract
-        require(
-            graphToken().transferFrom(msg.sender, address(this), _deposit),
-            "Cannot transfer tokens to deposit"
-        );
+        _pullTokens(msg.sender, _deposit);
+    }
+
+    /**
+     * @dev Pull tokens from an address to this contract.
+     * @param _from Address sending the tokens
+     * @param _amount Amount of tokens to transfer
+     */
+    function _pullTokens(address _from, uint256 _amount) private {
+        if (_amount > 0) {
+            // Transfer tokens to deposit from fisherman to this contract
+            require(
+                graphToken().transferFrom(_from, address(this), _amount),
+                "Cannot transfer tokens"
+            );
+        }
+    }
+
+    /**
+     * @dev Push tokens from this contract to a receiving address.
+     * @param _to Address receiving the tokens
+     * @param _amount Amount of tokens to transfer
+     */
+    function _pushTokens(address _to, uint256 _amount) private {
+        if (_amount > 0) {
+            require(graphToken().transfer(_to, _amount), "Cannot transfer tokens");
+        }
     }
 
     /**
@@ -681,18 +696,47 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
      * @param _challenger Address of the challenger
-     * @return Dispute reward tokens
+     * @param _disputeType Type of dispute
+     * @return slashAmount Dispute slash amount
+     * @return rewardsAmount Dispute rewards amount
      */
-    function _slashIndexer(address _indexer, address _challenger) private returns (uint256) {
+    function _slashIndexer(
+        address _indexer,
+        address _challenger,
+        DisputeType _disputeType
+    ) private returns (uint256 slashAmount, uint256 rewardsAmount) {
+        IStaking staking = staking();
+
+        // Get slashable amount for indexer
+        uint256 slashableAmount = staking.getIndexerStakedTokens(_indexer); // slashable tokens
+
+        // Get slash amount
+        slashAmount = _getSlashingPercentageForDisputeType(_disputeType).mul(slashableAmount).div(
+            MAX_PPM
+        );
+        require(slashAmount > 0, "Dispute has zero tokens to slash");
+
+        // Get rewards amount
+        rewardsAmount = uint256(fishermanRewardPercentage).mul(slashAmount).div(MAX_PPM);
+
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
-        uint256 tokensToSlash = getTokensToSlash(_indexer);
-        uint256 tokensToReward = getTokensToReward(_indexer);
+        staking.slash(_indexer, slashAmount, rewardsAmount, _challenger);
+    }
 
-        require(tokensToSlash > 0, "Dispute has zero tokens to slash");
-        staking().slash(_indexer, tokensToSlash, tokensToReward, _challenger);
-
-        return tokensToReward;
+    /**
+     * @dev Recover the signer address of the `_attestation`.
+     * @param _disputeType Dispute type
+     * @return Slashing percentage to use for the dispute type
+     */
+    function _getSlashingPercentageForDisputeType(DisputeType _disputeType)
+        private
+        view
+        returns (uint256)
+    {
+        if (_disputeType == DisputeType.QueryDispute) return uint256(qrySlashingPercentage);
+        if (_disputeType == DisputeType.IndexingDispute) return uint256(idxSlashingPercentage);
+        return 0;
     }
 
     /**
@@ -706,11 +750,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         returns (address)
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Receipt memory receipt = Receipt(
-            _attestation.requestCID,
-            _attestation.responseCID,
-            _attestation.subgraphDeploymentID
-        );
+        Receipt memory receipt =
+            Receipt(
+                _attestation.requestCID,
+                _attestation.responseCID,
+                _attestation.subgraphDeploymentID
+            );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
@@ -743,10 +788,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
-            _data,
-            (bytes32, bytes32, bytes32)
-        );
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) =
+            abi.decode(_data, (bytes32, bytes32, bytes32));
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct

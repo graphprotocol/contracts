@@ -6,12 +6,15 @@ pragma experimental ABIEncoderV2;
 interface IDisputeManager {
     // -- Dispute --
 
+    enum DisputeType { Null, IndexingDispute, QueryDispute }
+
     // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
         address indexer;
         address fisherman;
         uint256 deposit;
         bytes32 relatedDisputeID;
+        DisputeType disputeType;
     }
 
     // -- Attestation --
@@ -41,7 +44,7 @@ interface IDisputeManager {
 
     function setFishermanRewardPercentage(uint32 _percentage) external;
 
-    function setSlashingPercentage(uint32 _percentage) external;
+    function setSlashingPercentage(uint32 _qryPercentage, uint32 _idxPercentage) external;
 
     // -- Getters --
 
@@ -55,10 +58,6 @@ interface IDisputeManager {
     ) external pure returns (bool);
 
     function getAttestationIndexer(Attestation memory _attestation) external view returns (address);
-
-    function getTokensToReward(address _indexer) external view returns (uint256);
-
-    function getTokensToSlash(address _indexer) external view returns (uint256);
 
     // -- Dispute --
 

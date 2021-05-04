@@ -33,7 +33,8 @@ export const defaults = {
   dispute: {
     minimumDeposit: toGRT('100'),
     fishermanRewardPercentage: toBN('1000'), // in basis points
-    slashingPercentage: toBN('1000'), // in basis points
+    qrySlashingPercentage: toBN('1000'), // in basis points
+    idxSlashingPercentage: toBN('100000'), // in basis points
   },
   epochs: {
     lengthInBlocks: toBN((15 * 60) / 15), // 15 minutes in blocks
@@ -149,7 +150,8 @@ export async function deployDisputeManager(
       arbitrator,
       defaults.dispute.minimumDeposit.toString(),
       defaults.dispute.fishermanRewardPercentage.toString(),
-      defaults.dispute.slashingPercentage.toString(),
+      defaults.dispute.qrySlashingPercentage.toString(),
+      defaults.dispute.idxSlashingPercentage.toString(),
     ],
     deployer,
     false,
