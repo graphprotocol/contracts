@@ -336,6 +336,28 @@ describe('Staking::Delegation', () => {
         expect(afterParams.cooldownBlocks).eq(0)
         expect(afterParams.updatedAtBlock).eq(await latestBlock())
       })
+
+      it('should init delegation parameters on first stake using stakeTo()', async function () {
+        // Before
+        const beforeParams = await staking.delegationPools(indexer.address)
+        expect(beforeParams.indexingRewardCut).eq(0)
+        expect(beforeParams.queryFeeCut).eq(0)
+        expect(beforeParams.cooldownBlocks).eq(0)
+        expect(beforeParams.updatedAtBlock).eq(0)
+
+        // Indexer stake tokens
+        const tx = staking.connect(me.signer).stakeTo(indexer.address, toGRT('200'))
+        await expect(tx)
+          .emit(staking, 'DelegationParametersUpdated')
+          .withArgs(indexer.address, MAX_PPM, MAX_PPM, 0)
+
+        // State updated
+        const afterParams = await staking.delegationPools(indexer.address)
+        expect(afterParams.indexingRewardCut).eq(MAX_PPM)
+        expect(afterParams.queryFeeCut).eq(MAX_PPM)
+        expect(afterParams.cooldownBlocks).eq(0)
+        expect(afterParams.updatedAtBlock).eq(await latestBlock())
+      })
     })
   })
 
