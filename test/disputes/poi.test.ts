@@ -18,6 +18,8 @@ import {
   Account,
 } from '../lib/testHelpers'
 
+import { MAX_PPM } from './common'
+
 const { keccak256 } = utils
 
 describe('DisputeManager:POI', async () => {
@@ -47,6 +49,16 @@ describe('DisputeManager:POI', async () => {
   const subgraphDeploymentID = randomHexBytes(32)
   const metadata = randomHexBytes(32)
   const poi = randomHexBytes(32) // proof of indexing
+
+  async function calculateSlashConditions(indexerAddress: string) {
+    const idxSlashingPercentage = await disputeManager.idxSlashingPercentage()
+    const fishermanRewardPercentage = await disputeManager.fishermanRewardPercentage()
+    const stakeAmount = await staking.getIndexerStakedTokens(indexerAddress)
+    const slashAmount = stakeAmount.mul(idxSlashingPercentage).div(toBN(MAX_PPM))
+    const rewardsAmount = slashAmount.mul(fishermanRewardPercentage).div(toBN(MAX_PPM))
+
+    return { slashAmount, rewardsAmount }
+  }
 
   async function setupIndexers() {
     // Dispute manager is allowed to slash
@@ -180,6 +192,8 @@ describe('DisputeManager:POI', async () => {
       })
 
       context('> when dispute is created', function () {
+        // NOTE: other dispute resolution paths are tested in query.test.ts
+
         beforeEach(async function () {
           // Create dispute
           await disputeManager
@@ -192,6 +206,46 @@ describe('DisputeManager:POI', async () => {
             .connect(fisherman.signer)
             .createIndexingDispute(allocationID, fishermanDeposit)
           await expect(tx).revertedWith('Dispute already created')
+        })
+
+        describe('accept a dispute', function () {
+          it('should resolve dispute, slash indexer and reward the fisherman', async function () {
+            const disputeID = keccak256(allocationID)
+
+            // Before state
+            const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+            const beforeFishermanBalance = await grt.balanceOf(fisherman.address)
+            const beforeTotalSupply = await grt.totalSupply()
+
+            // Calculations
+            const { slashAmount, rewardsAmount } = await calculateSlashConditions(indexer.address)
+
+            // Perform transaction (accept)
+            const tx = disputeManager.connect(arbitrator.signer).acceptDispute(disputeID)
+            await expect(tx)
+              .emit(disputeManager, 'DisputeAccepted')
+              .withArgs(
+                disputeID,
+                indexer.address,
+                fisherman.address,
+                fishermanDeposit.add(rewardsAmount),
+              )
+
+            // After state
+            const afterFishermanBalance = await grt.balanceOf(fisherman.address)
+            const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+            const afterTotalSupply = await grt.totalSupply()
+
+            // Fisherman reward properly assigned + deposit returned
+            expect(afterFishermanBalance).eq(
+              beforeFishermanBalance.add(fishermanDeposit).add(rewardsAmount),
+            )
+            // Indexer slashed
+            expect(afterIndexerStake).eq(beforeIndexerStake.sub(slashAmount))
+            // Slashed funds burned
+            const tokensToBurn = slashAmount.sub(rewardsAmount)
+            expect(afterTotalSupply).eq(beforeTotalSupply.sub(tokensToBurn))
+          })
         })
       })
     })

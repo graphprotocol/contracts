@@ -103,23 +103,30 @@ describe('DisputeManager:Config', () => {
 
     describe('slashingPercentage', function () {
       it('should set `slashingPercentage`', async function () {
-        const newValue = defaults.dispute.slashingPercentage
+        const qryNewValue = defaults.dispute.qrySlashingPercentage
+        const idxNewValue = defaults.dispute.idxSlashingPercentage
 
         // Set right in the constructor
-        expect(await disputeManager.slashingPercentage()).eq(newValue)
+        expect(await disputeManager.qrySlashingPercentage()).eq(qryNewValue)
+        expect(await disputeManager.idxSlashingPercentage()).eq(idxNewValue)
 
         // Set new value
-        await disputeManager.connect(governor.signer).setSlashingPercentage(0)
-        await disputeManager.connect(governor.signer).setSlashingPercentage(newValue)
+        await disputeManager.connect(governor.signer).setSlashingPercentage(0, 0)
+        await disputeManager
+          .connect(governor.signer)
+          .setSlashingPercentage(qryNewValue, idxNewValue)
       })
 
       it('reject set `slashingPercentage` if out of bounds', async function () {
-        const tx = disputeManager.connect(governor.signer).setSlashingPercentage(MAX_PPM + 1)
-        await expect(tx).revertedWith('Slashing percentage must be below or equal to MAX_PPM')
+        const tx1 = disputeManager.connect(governor.signer).setSlashingPercentage(0, MAX_PPM + 1)
+        await expect(tx1).revertedWith('Slashing percentage must be below or equal to MAX_PPM')
+
+        const tx2 = disputeManager.connect(governor.signer).setSlashingPercentage(MAX_PPM + 1, 0)
+        await expect(tx2).revertedWith('Slashing percentage must be below or equal to MAX_PPM')
       })
 
       it('reject set `slashingPercentage` if not allowed', async function () {
-        const tx = disputeManager.connect(me.signer).setSlashingPercentage(50)
+        const tx = disputeManager.connect(me.signer).setSlashingPercentage(50, 50)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
