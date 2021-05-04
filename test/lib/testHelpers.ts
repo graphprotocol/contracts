@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
-import { formatUnits } from 'ethers/lib/utils'
+import { formatUnits, getAddress } from 'ethers/lib/utils'
 
 import { EpochManager } from '../../build/typechain/contracts/EpochManager'
 
@@ -17,6 +17,7 @@ export const logStake = (stakes: any): void => {
     console.log(k, ':', parseEther(v as string))
   })
 }
+export const randomAddress = (): string => getAddress(randomHexBytes(20))
 
 // Network
 
