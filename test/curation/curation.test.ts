@@ -311,6 +311,8 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
+        await curation.syncAllContracts()
+
         const tx = curation
           .connect(stakingMock.signer)
           .collect(subgraphDeploymentID, tokensToCollect)
@@ -332,6 +334,8 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
+        await curation.syncAllContracts()
+
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
         await shouldCollect(toGRT('100'))
@@ -343,6 +347,7 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
+        await curation.syncAllContracts()
 
         // Collect increase the pool reserves
         await shouldCollect(toGRT('100'))
