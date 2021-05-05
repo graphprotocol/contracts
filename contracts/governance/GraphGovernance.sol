@@ -82,6 +82,8 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
     /**
      * @notice Updates an existing on chain proposal that links to a Graph Governance Proposal (GGP)
      * IPFS hashes are base58 decoded, and have the first two bytes 'Qm' cut off to fit in bytes32
+     * The council has full power to create and vote on proposals - thus updated proposals can
+     * change past votes, metadata, and even resolutions if necessary.
      * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the GGP
      * @param _votes An IPFS hash of the collection of signatures for each vote of the GGP.
      * @param _metadata A bytes32 field to attach metadata to the proposal if needed
