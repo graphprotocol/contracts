@@ -20,10 +20,10 @@ import "../token/IGraphToken.sol";
  */
 contract AllocationExchange is Governed {
     // An allocation voucher represents a signed message that allows
-    // to redeem an amount of funds from this contract and collect
+    // redeeming an amount of funds from this contract and collect
     // them as part of an allocation
     struct AllocationVoucher {
-        address allocationId;
+        address allocationID;
         uint256 amount;
         bytes signature; // 65 bytes
     }
@@ -64,7 +64,9 @@ contract AllocationExchange is Governed {
         graphToken.approve(address(staking), MAX_UINT256);
     }
 
-    function withdraw(uint256 _amount, address _to) public onlyGovernor {
+    function withdraw(address _to, uint256 _amount) public onlyGovernor {
+        require(_to != address(0), "Exchange: empty destination");
+        require(_amount != 0, "Exchange: empty amount");
         require(graphToken.transfer(_to, _amount), "Exchange: cannot transfer");
         emit TokensWithdrawn(_to, _amount);
     }
@@ -75,29 +77,26 @@ contract AllocationExchange is Governed {
         emit AuthoritySet(authority);
     }
 
-    function redeem(bytes calldata _msg) public {
-        // Parse voucher
-        AllocationVoucher memory voucher = abi.decode(_msg, (AllocationVoucher));
+    function redeem(AllocationVoucher calldata _voucher) public {
+        require(_voucher.amount > 0, "Exchange: zero tokens voucher");
 
-        // Already collected check
+        // Already redeemed check
         require(
-            !allocationsRedeemed[voucher.allocationId],
-            "Collect: allocation already collected"
+            !allocationsRedeemed[_voucher.allocationID],
+            "Exchange: allocation already redeemed"
         );
 
         // Signature check
-        bytes32 collectHash = keccak256(abi.encodePacked(voucher.amount, voucher.allocationId));
-        require(
-            authority == ECDSA.recover(collectHash, voucher.signature),
-            "Collect: invalid signer"
-        );
+        bytes32 messageHash = keccak256(abi.encodePacked(_voucher.allocationID, _voucher.amount));
+        bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
+        require(authority == ECDSA.recover(digest, _voucher.signature), "Exchange: invalid signer");
 
         // Mark allocation as collected
-        allocationsRedeemed[voucher.allocationId] = true;
+        allocationsRedeemed[_voucher.allocationID] = true;
 
         // Make the staking contract collect funds from this contract
-        staking.collect(voucher.amount, voucher.allocationId);
+        staking.collect(_voucher.amount, _voucher.allocationID);
 
-        emit AllocationRedeemed(voucher.allocationId, voucher.amount);
+        emit AllocationRedeemed(_voucher.allocationID, _voucher.amount);
     }
 }
