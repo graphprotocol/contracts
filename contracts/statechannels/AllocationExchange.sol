@@ -60,10 +60,20 @@ contract AllocationExchange is Governed {
         authority = _authority;
     }
 
+    /**
+     * @notice Approve the staking contract to pull any amount of tokens from this contract.
+     * @dev Increased gas efficiency instead of approving on each voucher redeem
+     */
     function approveAll() external {
         graphToken.approve(address(staking), MAX_UINT256);
     }
 
+    /**
+     * @notice Withdraw tokens held in the contract.
+     * @dev Only the governor can withdraw
+     * @param _to Destination to send the tokens
+     * @param _amount Amount of tokens to withdraw
+     */
     function withdraw(address _to, uint256 _amount) public onlyGovernor {
         require(_to != address(0), "Exchange: empty destination");
         require(_amount != 0, "Exchange: empty amount");
@@ -71,12 +81,22 @@ contract AllocationExchange is Governed {
         emit TokensWithdrawn(_to, _amount);
     }
 
+    /**
+     * @notice Set the authority allowed to sign vouchers.
+     * @dev Only the governor can set the authority
+     * @param _authority Address of the signing authority
+     */
     function setAuthority(address _authority) public onlyGovernor {
         require(_authority != address(0), "Exchange: empty authority");
         authority = _authority;
         emit AuthoritySet(authority);
     }
 
+    /**
+     * @notice Redeem a voucher signed by the authority. No voucher double spending is allowed.
+     * @dev The voucher must be signed using an Ethereum signed message
+     * @param _voucher Voucher data
+     */
     function redeem(AllocationVoucher calldata _voucher) public {
         require(_voucher.amount > 0, "Exchange: zero tokens voucher");
 
