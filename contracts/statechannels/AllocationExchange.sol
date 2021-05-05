@@ -74,7 +74,7 @@ contract AllocationExchange is Governed {
      * @param _to Destination to send the tokens
      * @param _amount Amount of tokens to withdraw
      */
-    function withdraw(address _to, uint256 _amount) public onlyGovernor {
+    function withdraw(address _to, uint256 _amount) external onlyGovernor {
         require(_to != address(0), "Exchange: empty destination");
         require(_amount != 0, "Exchange: empty amount");
         require(graphToken.transfer(_to, _amount), "Exchange: cannot transfer");
@@ -86,7 +86,7 @@ contract AllocationExchange is Governed {
      * @dev Only the governor can set the authority
      * @param _authority Address of the signing authority
      */
-    function setAuthority(address _authority) public onlyGovernor {
+    function setAuthority(address _authority) external onlyGovernor {
         require(_authority != address(0), "Exchange: empty authority");
         authority = _authority;
         emit AuthoritySet(authority);
@@ -97,7 +97,27 @@ contract AllocationExchange is Governed {
      * @dev The voucher must be signed using an Ethereum signed message
      * @param _voucher Voucher data
      */
-    function redeem(AllocationVoucher calldata _voucher) public {
+    function redeem(AllocationVoucher memory _voucher) external {
+        _redeem(_voucher);
+    }
+
+    /**
+     * @notice Redeem multiple vouchers.
+     * @dev Each voucher must be signed using an Ethereum signed message
+     * @param _vouchers An array of vouchers
+     */
+    function redeemMany(AllocationVoucher[] memory _vouchers) external {
+        for (uint256 i = 0; i < _vouchers.length; i++) {
+            _redeem(_vouchers[i]);
+        }
+    }
+
+    /**
+     * @notice Redeem a voucher signed by the authority. No voucher double spending is allowed.
+     * @dev The voucher must be signed using an Ethereum signed message
+     * @param _voucher Voucher data
+     */
+    function _redeem(AllocationVoucher memory _voucher) private {
         require(_voucher.amount > 0, "Exchange: zero tokens voucher");
 
         // Already redeemed check
