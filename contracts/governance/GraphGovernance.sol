@@ -30,6 +30,7 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
      * @notice Initialize this contract.
      */
     function initialize(address _governor) public onlyImpl {
+        require(_governor != address(0), "governor !0");
         Governed._initialize(_governor);
     }
 
