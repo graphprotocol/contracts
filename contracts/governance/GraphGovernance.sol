@@ -13,12 +13,18 @@ import "./GraphGovernanceStorage.sol";
 contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGovernance {
     // -- Events --
 
+    /**
+     * @dev Emitted when `governor` calls createProposal()
+     */
     event ProposalCreated(
         bytes32 indexed proposalId,
         bytes32 votes,
         bytes32 metadata,
         ProposalResolution resolution
     );
+    /**
+     * @dev Emitted when `governor` calls updateProposal()
+     */
     event ProposalUpdated(
         bytes32 indexed proposalId,
         bytes32 votes,
@@ -47,9 +53,10 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
     }
 
     /**
-     * @notice Submit an on chain proposal that links to a Graph Governance Proposal (GGP)
-     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the Graph Governance Proposal (GGP)
-     * @param _votes An IPFS hash of the collection of signatures for each vote of the (GGP)
+     * @notice Updates an existing on chain proposal that links to a Graph Governance Proposal (GGP)
+     * IPFS hashes are base58 decoded, and have the first two bytes 'Qm' cut off to fit in bytes32
+     * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the GGP
+     * @param _votes An IPFS hash of the collection of signatures for each vote of the GGP.
      * @param _metadata A bytes32 field to attach metadata to the proposal if needed
      * @param _resolution Resolution choice, either Accepted or Rejected
      */
@@ -64,14 +71,19 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         require(_resolution != ProposalResolution.Null, "!resolved");
         require(!isProposalCreated(_proposalId), "proposed");
 
-        proposals[_proposalId] = Proposal({ votes: _votes, metadata: _metadata, resolution: _resolution });
+        proposals[_proposalId] = Proposal({
+            votes: _votes,
+            metadata: _metadata,
+            resolution: _resolution
+        });
         emit ProposalCreated(_proposalId, _votes, _metadata, _resolution);
     }
 
     /**
      * @notice Updates an existing on chain proposal that links to a Graph Governance Proposal (GGP)
+     * IPFS hashes are base58 decoded, and have the first two bytes 'Qm' cut off to fit in bytes32
      * @param _proposalId Proposal identifier. This is an IPFS hash to the content of the GGP
-     * @param _votes An IPFS hash of the collection of signatures for each vote of the GGP
+     * @param _votes An IPFS hash of the collection of signatures for each vote of the GGP.
      * @param _metadata A bytes32 field to attach metadata to the proposal if needed
      * @param _resolution Resolution choice, either Accepted or Rejected
      */
@@ -86,7 +98,11 @@ contract GraphGovernance is GraphGovernanceV1Storage, GraphUpgradeable, IGraphGo
         require(_resolution != ProposalResolution.Null, "!resolved");
         require(isProposalCreated(_proposalId), "!proposed");
 
-        proposals[_proposalId] = Proposal({ votes: _votes, metadata: _metadata, resolution: _resolution });
+        proposals[_proposalId] = Proposal({
+            votes: _votes,
+            metadata: _metadata,
+            resolution: _resolution
+        });
         emit ProposalUpdated(_proposalId, _votes, _metadata, _resolution);
     }
 }

@@ -6,7 +6,7 @@ import "./Governed.sol";
 import "./IGraphGovernance.sol";
 
 contract GraphGovernanceV1Storage is Governed {
-    // Graph Governance Proposal (GGP)
+    // Graph Governance Proposal storage struct (GGP)
     struct Proposal {
         bytes32 votes;      // IPFS hash of signed votes
         bytes32 metadata;   // Additional info that can be linked
@@ -15,7 +15,7 @@ contract GraphGovernanceV1Storage is Governed {
 
     // -- State --
 
-    // Proposals are identified by a IPFS Hash used as proposalId
+    // Proposals are identified by a base58 decoded IPFS Hash used as proposalId
     // The `proposalId` must link to the content of the proposal
     mapping(bytes32 => Proposal) public proposals;
 }
