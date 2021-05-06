@@ -254,5 +254,13 @@ describe('AllocationExchange', () => {
       const tx = allocationExchange.redeem(voucher)
       await expect(tx).revertedWith('Exchange: zero tokens voucher')
     })
+
+    it('reject redeem voucher with invalid signature', async function () {
+      const actualAmount = toGRT('2000') // <- withdraw amount
+      const voucher = await createVoucher(randomAddress(), actualAmount, authority.privateKey)
+      voucher.signature = '0x1234'
+      const tx = allocationExchange.redeem(voucher)
+      await expect(tx).revertedWith('Exchange: invalid signature')
+    })
   })
 })
