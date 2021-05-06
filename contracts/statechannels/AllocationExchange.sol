@@ -128,8 +128,10 @@ contract AllocationExchange is Governed {
 
         // Signature check
         bytes32 messageHash = keccak256(abi.encodePacked(_voucher.allocationID, _voucher.amount));
-        bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
-        require(authority == ECDSA.recover(digest, _voucher.signature), "Exchange: invalid signer");
+        require(
+            authority == ECDSA.recover(messageHash, _voucher.signature),
+            "Exchange: invalid signer"
+        );
 
         // Mark allocation as collected
         allocationsRedeemed[_voucher.allocationID] = true;
