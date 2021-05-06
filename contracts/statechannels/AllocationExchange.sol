@@ -31,6 +31,7 @@ contract AllocationExchange is Governed {
     // -- Constants --
 
     uint256 private constant MAX_UINT256 = 2**256 - 1;
+    uint256 private constant SIGNATURE_LENGTH = 65;
 
     // -- State --
 
@@ -57,7 +58,7 @@ contract AllocationExchange is Governed {
 
         graphToken = _graphToken;
         staking = _staking;
-        authority = _authority;
+        _setAuthority(_authority);
     }
 
     /**
@@ -87,6 +88,14 @@ contract AllocationExchange is Governed {
      * @param _authority Address of the signing authority
      */
     function setAuthority(address _authority) external onlyGovernor {
+        _setAuthority(_authority);
+    }
+
+    /**
+     * @notice Set the authority allowed to sign vouchers.
+     * @param _authority Address of the signing authority
+     */
+    function _setAuthority(address _authority) private {
         require(_authority != address(0), "Exchange: empty authority");
         authority = _authority;
         emit AuthoritySet(authority);
@@ -119,6 +128,7 @@ contract AllocationExchange is Governed {
      */
     function _redeem(AllocationVoucher memory _voucher) private {
         require(_voucher.amount > 0, "Exchange: zero tokens voucher");
+        require(_voucher.signature.length == SIGNATURE_LENGTH, "Exchange: invalid signature");
 
         // Already redeemed check
         require(
@@ -137,6 +147,7 @@ contract AllocationExchange is Governed {
         allocationsRedeemed[_voucher.allocationID] = true;
 
         // Make the staking contract collect funds from this contract
+        // The Staking contract will validate if the allocation is valid
         staking.collect(_voucher.amount, _voucher.allocationID);
 
         emit AllocationRedeemed(_voucher.allocationID, _voucher.amount);
