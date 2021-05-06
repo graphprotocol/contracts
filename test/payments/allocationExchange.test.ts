@@ -47,7 +47,7 @@ describe('AllocationExchange', () => {
     const signature = key.signDigest(messageHashBytes)
     return {
       allocationID,
-      amount: amount,
+      amount,
       signature: joinSignature(signature),
     }
   }
