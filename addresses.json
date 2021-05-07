@@ -559,6 +559,12 @@
       "creationCodeHash": "0x9c31294194a6e9768a6da9af195b293dbc589e98ef88ebfd81156487e61d87f3",
       "runtimeCodeHash": "0xb0e364454528b8dcf5876bdb1ac15e6efb46d97d10583b4746bcf54cee3783a0",
       "txHash": "0x5f58737c9a39e766142148cae55d49abf9bcd04427e9f450183e841f74136ac4"
+    },
+    "AllocationExchange": {
+      "address": "0x58Ce0A0f41449E349C1A91Dd9F3D9286Bf32c161",
+      "creationCodeHash": "0x8a718c9d53aae7503da4f06e538dc561603a57914fab57341bce0683d83f102e",
+      "runtimeCodeHash": "0xec837eb756268aa8a18c5d3182a5c2bf89bd0369f1de07ffa33b1ec5d3bef41a",
+      "txHash": "0x359cf3945b2584f45633c6f6f37ce5a46129b462232107bb29c456d7fdcb66d0"
     }
   }
 }
