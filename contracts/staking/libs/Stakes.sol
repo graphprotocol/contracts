@@ -75,9 +75,9 @@ library Stakes {
         if (stake.tokensLocked > 0) {
             lockingPeriod = MathUtils.weightedAverage(
                 MathUtils.diffOrZero(stake.tokensLockedUntil, block.number), // Remaining thawing period
-                stake.tokensLocked, // Remaining unstaked tokens
+                stake.tokensLocked, // Weighted by remaining unstaked tokens
                 _period, // Thawing period
-                _tokens // New tokens to unstake
+                _tokens // Weighted by new tokens to unstake
             );
         }
 
