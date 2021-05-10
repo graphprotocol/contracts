@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import "../upgrades/GraphUpgradeable.sol";
+import "../utils/TokenUtils.sol";
 
 import "./IStaking.sol";
 import "./StakingStorage.sol";
@@ -695,7 +696,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         );
 
         // Transfer tokens to stake from caller to this contract
-        _pullTokens(graphToken(), msg.sender, _tokens);
+        TokenUtils.pullTokens(graphToken(), msg.sender, _tokens);
 
         // Stake the transferred tokens
         _stake(_indexer, _tokens);
@@ -789,10 +790,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         IGraphToken graphToken = graphToken();
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        _burnTokens(graphToken, _tokens.sub(_reward));
+        TokenUtils.burnTokens(graphToken, _tokens.sub(_reward));
 
         // Give the beneficiary a reward for slashing
-        _pushTokens(graphToken, _beneficiary, _reward);
+        TokenUtils.pushTokens(graphToken, _beneficiary, _reward);
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
     }
@@ -812,7 +813,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
-        _pullTokens(graphToken(), delegator, _tokens);
+        TokenUtils.pullTokens(graphToken(), delegator, _tokens);
 
         // Update state
         return _delegate(delegator, _indexer, _tokens);
@@ -971,7 +972,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         if (queryFees > 0) {
             // Pull tokens to collect from the authorized sender
             IGraphToken graphToken = graphToken();
-            _pullTokens(graphToken, msg.sender, _tokens);
+            TokenUtils.pullTokens(graphToken, msg.sender, _tokens);
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
@@ -1070,7 +1071,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(tokensToWithdraw > 0, "!tokens");
 
         // Return tokens to the indexer
-        _pushTokens(graphToken(), _indexer, tokensToWithdraw);
+        TokenUtils.pushTokens(graphToken(), _indexer, tokensToWithdraw);
 
         emit StakeWithdrawn(_indexer, tokensToWithdraw);
     }
@@ -1262,7 +1263,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // When all allocations processed then burn unclaimed fees and prune rebate pool
         if (rebatePool.unclaimedAllocationsCount == 0) {
-            _burnTokens(graphToken, rebatePool.unclaimedFees());
+            TokenUtils.burnTokens(graphToken, rebatePool.unclaimedFees());
             delete rebates[alloc.closedAtEpoch];
         }
 
@@ -1408,7 +1409,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             _delegate(_delegator, _delegateToIndexer, tokensToWithdraw);
         } else {
             // Return tokens to the delegator
-            _pushTokens(graphToken(), _delegator, tokensToWithdraw);
+            TokenUtils.pushTokens(graphToken(), _delegator, tokensToWithdraw);
         }
 
         return tokensToWithdraw;
@@ -1484,7 +1485,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
                 // Then we call collect() to do the transfer bookeeping
-                _pushTokens(_graphToken, address(curation), curationFees);
+                TokenUtils.pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);
             }
             return curationFees;
@@ -1505,7 +1506,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 _percentage
     ) private returns (uint256) {
         uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
-        _burnTokens(_graphToken, tax); // Burn tax if any
+        TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;
     }
 
@@ -1616,54 +1617,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = rewardsDestination[_beneficiary];
-            _pushTokens(
+            TokenUtils.pushTokens(
                 _graphToken,
                 destination == address(0) ? _beneficiary : destination,
                 _amount
             );
-        }
-    }
-
-    /**
-     * @dev Burn tokens held by this contract.
-     * @param _graphToken Token to burn
-     * @param _amount Amount of tokens to burn
-     */
-    function _burnTokens(IGraphToken _graphToken, uint256 _amount) private {
-        if (_amount > 0) {
-            _graphToken.burn(_amount);
-        }
-    }
-
-    /**
-     * @dev Pull tokens from an address to this contract.
-     * @param _graphToken Token to transfer
-     * @param _from Address sending the tokens
-     * @param _amount Amount of tokens to transfer
-     */
-    function _pullTokens(
-        IGraphToken _graphToken,
-        address _from,
-        uint256 _amount
-    ) private {
-        if (_amount > 0) {
-            require(_graphToken.transferFrom(_from, address(this), _amount), "!transfer");
-        }
-    }
-
-    /**
-     * @dev Push tokens from this contract to a receiving address.
-     * @param _graphToken Token to transfer
-     * @param _to Address receiving the tokens
-     * @param _amount Amount of tokens to transfer
-     */
-    function _pushTokens(
-        IGraphToken _graphToken,
-        address _to,
-        uint256 _amount
-    ) private {
-        if (_amount > 0) {
-            require(_graphToken.transfer(_to, _amount), "!transfer");
         }
     }
 }

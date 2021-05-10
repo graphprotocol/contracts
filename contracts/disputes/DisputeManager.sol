@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import "../governance/Managed.sol";
 import "../upgrades/GraphUpgradeable.sol";
+import "../utils/TokenUtils.sol";
 
 import "./DisputeManagerStorage.sol";
 import "./IDisputeManager.sol";
@@ -562,7 +563,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             _slashIndexer(dispute.indexer, dispute.fisherman, dispute.disputeType);
 
         // Give the fisherman their deposit back
-        _pushTokens(dispute.fisherman, dispute.deposit);
+        TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
         // Resolve the conflicting dispute if any
         _resolveDisputeInConflict(dispute);
@@ -590,9 +591,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         );
 
         // Burn the fisherman's deposit
-        if (dispute.deposit > 0) {
-            graphToken().burn(dispute.deposit);
-        }
+        TokenUtils.burnTokens(graphToken(), dispute.deposit);
 
         emit DisputeRejected(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
@@ -606,7 +605,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Return deposit to the fisherman
-        _pushTokens(dispute.fisherman, dispute.deposit);
+        TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
         // Resolve the conflicting dispute if any
         _resolveDisputeInConflict(dispute);
@@ -662,33 +661,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
 
         // Transfer tokens to deposit from fisherman to this contract
-        _pullTokens(msg.sender, _deposit);
-    }
-
-    /**
-     * @dev Pull tokens from an address to this contract.
-     * @param _from Address sending the tokens
-     * @param _amount Amount of tokens to transfer
-     */
-    function _pullTokens(address _from, uint256 _amount) private {
-        if (_amount > 0) {
-            // Transfer tokens to deposit from fisherman to this contract
-            require(
-                graphToken().transferFrom(_from, address(this), _amount),
-                "Cannot transfer tokens"
-            );
-        }
-    }
-
-    /**
-     * @dev Push tokens from this contract to a receiving address.
-     * @param _to Address receiving the tokens
-     * @param _amount Amount of tokens to transfer
-     */
-    function _pushTokens(address _to, uint256 _amount) private {
-        if (_amount > 0) {
-            require(graphToken().transfer(_to, _amount), "Cannot transfer tokens");
-        }
+        TokenUtils.pullTokens(graphToken(), msg.sender, _deposit);
     }
 
     /**
