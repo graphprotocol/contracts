@@ -26,7 +26,7 @@ const { AddressZero, HashZero } = constants
 
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
 
-describe.only('DisputeManager:Query', async () => {
+describe('DisputeManager:Query', async () => {
   let me: Account
   let other: Account
   let governor: Account
