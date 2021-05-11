@@ -126,5 +126,5 @@
     "url": "https://github.com/graphprotocol/contracts/issues"
   },
   "homepage": "https://github.com/graphprotocol/contracts#readme",
-  "types": "dist/typechain/contracts/index.d.ts"
+  "types": "dist/types/index.d.ts"
 }
