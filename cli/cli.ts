@@ -7,7 +7,6 @@ import { migrateCommand } from './commands/migrate'
 import { proxyCommand } from './commands/proxy'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts'
-import { transferTeamTokensCommand } from './commands/transferTeamTokens'
 import { simulationCommand } from './commands/simulations'
 import { airdropCommand } from './commands/airdrop'
 
@@ -26,7 +25,6 @@ yargs
   .command(proxyCommand)
   .command(protocolCommand)
   .command(contractsCommand)
-  .command(transferTeamTokensCommand)
   .command(simulationCommand)
   .command(airdropCommand)
   .demandCommand(1, 'Choose a command from the above list')
