@@ -1,11 +1,12 @@
 import fs from 'fs'
 import * as dotenv from 'dotenv'
-import consola from 'consola'
 
 import { utils, providers, Wallet } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 
 import * as bs58 from 'bs58'
+
+import { logger } from './logging'
 
 import {
   SubgraphMetadata,
@@ -15,8 +16,6 @@ import {
 } from './metadata'
 
 dotenv.config()
-
-const logger = consola.create({})
 
 export class IPFS {
   static createIpfsClient(node: string): typeof ipfsHttpClient {

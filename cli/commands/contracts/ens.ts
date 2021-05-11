@@ -1,11 +1,10 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { utils } from 'ethers'
 
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { logger } from '../../logging'
 
-const logger = consola.create({})
 export const registerTestName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const name = cliArgs.name
   const testRegistrar = cli.contracts.ITestRegistrar

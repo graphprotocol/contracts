@@ -1,7 +1,7 @@
-import consola from 'consola'
 import { constants, utils } from 'ethers'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../logging'
 import { loadCallParams, readConfig, getContractConfig } from '../config'
 import { cliOpts } from '../defaults'
 import {
@@ -28,11 +28,7 @@ const allContracts = [
   'Staking',
   'RewardsManager',
   'DisputeManager',
-  // 'GRTAssetHolder',
-  // 'AttestationApp',
 ]
-
-const logger = consola.create({})
 
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphConfigPath = cliArgs.graphConfig

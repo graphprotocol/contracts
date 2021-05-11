@@ -1,10 +1,8 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
 import { deployContract } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-
-const logger = consola.create({})
+import { logger } from '../logging'
 
 export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract

@@ -1,14 +1,13 @@
-import consola from 'consola'
 import { utils, BigNumber, Contract, Wallet } from 'ethers'
 import { Argv } from 'yargs'
 
+import { logger } from './logging'
 import { getAddressBook, AddressBook } from './address-book'
 import { defaultOverrides } from './defaults'
 import { getContractAt } from './network'
 import { getProvider } from './utils'
 
 const { formatEther } = utils
-const logger = consola.create({})
 
 export type CLIArgs = { [key: string]: any } & Argv['argv']
 

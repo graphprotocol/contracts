@@ -1,11 +1,9 @@
-import consola from 'consola'
 import inquirer from 'inquirer'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../../logging'
 import { getContractAt, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const logger = consola.create({})
 
 export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
@@ -20,7 +18,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     message: `Are you sure to set the admin to ${adminAddress}?`,
   })
   if (!res.confirm) {
-    consola.success('Cancelled')
+    logger.success('Cancelled')
     return
   }
 
@@ -52,7 +50,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     addressEntry.address,
     adminAddress,
   ])
-  consola.success('Done')
+  logger.success('Done')
 }
 
 export const setAdminCommand = {

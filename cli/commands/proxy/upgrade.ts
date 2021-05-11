@@ -1,10 +1,8 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../../logging'
 import { getContractAt, isContractDeployed, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const logger = consola.create({})
 
 export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract

@@ -1,11 +1,9 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 
+import { logger } from '../../logging'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const logger = consola.create({})
 
 export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const subgraphID = cliArgs.subgraphID

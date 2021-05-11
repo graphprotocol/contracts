@@ -1,13 +1,11 @@
 import PQueue from 'p-queue'
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 
+import { logger } from '../logging'
 import { sendTransaction } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { teamAddresses } from '../teamAddresses'
-
-const logger = consola.create({})
 
 const BALANCE_THRESHOLD = parseGRT('0')
 

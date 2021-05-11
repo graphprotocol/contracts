@@ -1,14 +1,12 @@
 import * as fs from 'fs'
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 
+import { logger } from '../../logging'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { nameToNode } from './ens'
 import { IPFS, pinMetadataToIPFS } from '../../helpers'
-
-const logger = consola.create({})
 
 export const setDefaultName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphAccount = cliArgs.graphAccount

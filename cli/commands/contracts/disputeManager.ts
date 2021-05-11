@@ -1,8 +1,8 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 import { constants, utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
+import { logger } from '../../logging'
 import { sendTransaction, getChainID, getProvider, toGRT, randomHexBytes } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
@@ -14,8 +14,6 @@ interface ChannelKey {
   pubKey: string
   address: string
 }
-
-const logger = consola.create({})
 
 async function buildAttestation(receipt: Receipt, signer: string, disputeManagerAddress: string) {
   const attestation = await createAttestation(signer, getChainID(), disputeManagerAddress, receipt)
