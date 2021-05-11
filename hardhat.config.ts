@@ -9,7 +9,6 @@ import { cliOpts } from './cli/defaults'
 import { loadContracts, loadEnv } from './cli/env'
 import { getContractAt } from './cli/network'
 import { migrate } from './cli/commands/migrate'
-import { verify } from './cli/commands/verify'
 
 const { formatEther, parseEther } = utils
 
@@ -99,13 +98,6 @@ task('migrate', 'Migrate contracts')
   .setAction(async (taskArgs, hre) => {
     const accounts = await hre.ethers.getSigners()
     await migrate(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet), taskArgs)
-  })
-
-task('verify-all', 'Verify contracts in Etherscan')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .setAction(async (taskArgs, hre) => {
-    const accounts = await hre.ethers.getSigners()
-    await verify(await loadEnv(taskArgs, (accounts[0] as unknown) as Wallet))
   })
 
 task('print-fn-hashes', 'Print function hashes for a contract')
