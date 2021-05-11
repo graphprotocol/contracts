@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import { constants, BigNumber, Event } from 'ethers'
 
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 

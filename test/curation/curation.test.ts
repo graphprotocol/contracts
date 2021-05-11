@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { utils, BigNumber, Event } from 'ethers'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Controller } from '../../build/typechain/contracts/Controller'
+import { Curation } from '../../build/types/Curation'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Controller } from '../../build/types/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, randomHexBytes, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'

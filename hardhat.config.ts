@@ -336,7 +336,7 @@ const config = {
     outputFile: 'reports/gas-report.log',
   },
   typechain: {
-    outDir: 'build/typechain/contracts',
+    outDir: 'build/types',
     target: 'ethers-v5',
   },
   abiExporter: {

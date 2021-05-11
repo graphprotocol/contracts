@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 
-import { ServiceRegistry } from '../build/typechain/contracts/ServiceRegistry'
-import { Staking } from '../build/typechain/contracts/Staking'
+import { ServiceRegistry } from '../build/types/ServiceRegistry'
+import { Staking } from '../build/types/Staking'
 
 import { getAccounts, Account } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'

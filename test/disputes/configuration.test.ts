@@ -1,7 +1,7 @@
 import { constants } from 'ethers'
 import { expect } from 'chai'
 
-import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
+import { DisputeManager } from '../../build/types/DisputeManager'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'

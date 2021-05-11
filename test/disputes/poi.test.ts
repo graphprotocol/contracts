@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { utils } from 'ethers'
 
-import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { DisputeManager } from '../../build/types/DisputeManager'
+import { EpochManager } from '../../build/types/EpochManager'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {

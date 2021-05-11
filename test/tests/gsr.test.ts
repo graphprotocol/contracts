@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 
-import { GSRManager } from '../../build/typechain/contracts/GSRManager'
-import { GDAI } from '../../build/typechain/contracts/GDAI'
+import { GSRManager } from '../../build/types/GSRManager'
+import { GDAI } from '../../build/types/GDAI'
 
 import * as deployment from '../lib/deployment'
 import { defaults } from '../lib/deployment'

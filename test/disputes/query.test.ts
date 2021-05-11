@@ -2,10 +2,10 @@ import { expect } from 'chai'
 import { constants } from 'ethers'
 import { createAttestation, Receipt } from '@graphprotocol/common-ts'
 
-import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { DisputeManager } from '../../build/types/DisputeManager'
+import { EpochManager } from '../../build/types/EpochManager'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -124,17 +124,8 @@ describe('DisputeManager:Query', async () => {
   }
 
   before(async function () {
-    ;[
-      me,
-      other,
-      governor,
-      arbitrator,
-      indexer,
-      indexer2,
-      fisherman,
-      fisherman2,
-      assetHolder,
-    ] = await getAccounts()
+    ;[me, other, governor, arbitrator, indexer, indexer2, fisherman, fisherman2, assetHolder] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(

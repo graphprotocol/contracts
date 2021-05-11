@@ -5,12 +5,12 @@ import { BigNumber as BN } from 'bignumber.js'
 import { deployContract } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
-import { RewardsManagerMock } from '../../build/typechain/contracts/RewardsManagerMock'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { Curation } from '../../build/types/Curation'
+import { EpochManager } from '../../build/types/EpochManager'
+import { GraphToken } from '../../build/types/GraphToken'
+import { RewardsManager } from '../../build/types/RewardsManager'
+import { RewardsManagerMock } from '../../build/types/RewardsManagerMock'
+import { Staking } from '../../build/types/Staking'
 
 import {
   advanceBlocks,
@@ -135,10 +135,10 @@ describe('Rewards', () => {
       governor.signer,
     ))
 
-    rewardsManagerMock = ((await deployContract(
+    rewardsManagerMock = (await deployContract(
       'RewardsManagerMock',
       governor.signer,
-    )) as unknown) as RewardsManagerMock
+    )) as unknown as RewardsManagerMock
 
     // 5% minute rate (4 blocks)
     await rewardsManager.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)

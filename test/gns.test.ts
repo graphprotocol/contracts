@@ -1,11 +1,11 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
-import { GNS } from '../build/typechain/contracts/GNS'
+import { GNS } from '../build/types/GNS'
 import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
-import { GraphToken } from '../build/typechain/contracts/GraphToken'
-import { Curation } from '../build/typechain/contracts/Curation'
+import { GraphToken } from '../build/types/GraphToken'
+import { Curation } from '../build/types/Curation'
 
 import { toBN, formatGRT } from './lib/testHelpers'
 
@@ -374,11 +374,11 @@ describe('GNS', () => {
     const namePoolBefore = await gns.nameSignals(graphAccount, subgraphNumber0)
 
     // Deposit
-    const { 0: vSignalExpected, 1: nSignalExpected, 2: curationTax } = await gns.tokensToNSignal(
-      graphAccount,
-      subgraphNumber0,
-      graphTokens,
-    )
+    const {
+      0: vSignalExpected,
+      1: nSignalExpected,
+      2: curationTax,
+    } = await gns.tokensToNSignal(graphAccount, subgraphNumber0, graphTokens)
     const tx = gns
       .connect(account.signer)
       .mintNSignal(graphAccount, subgraphNumber0, graphTokens, 0)
