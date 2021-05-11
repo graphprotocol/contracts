@@ -5,7 +5,6 @@ import yargs from 'yargs'
 import { deployCommand } from './commands/deploy'
 import { migrateCommand } from './commands/migrate'
 import { proxyCommand } from './commands/proxy'
-import { verifyCommand } from './commands/verify'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts'
 import { transferTeamTokensCommand } from './commands/transferTeamTokens'
@@ -25,7 +24,6 @@ yargs
   .command(deployCommand)
   .command(migrateCommand)
   .command(proxyCommand)
-  .command(verifyCommand)
   .command(protocolCommand)
   .command(contractsCommand)
   .command(transferTeamTokensCommand)
