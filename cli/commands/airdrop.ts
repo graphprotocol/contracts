@@ -8,10 +8,9 @@ import { parseGRT, formatGRT } from '@graphprotocol/common-ts'
 import { utils, BigNumber, Contract } from 'ethers'
 import { NonceManager } from '@ethersproject/experimental'
 
+import { logger } from '../logging'
 import { sendTransaction } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
-
-const logger = consola.create({})
 
 const { getAddress } = utils
 
@@ -76,7 +75,7 @@ const sure = async (message = 'Are you sure?'): Promise<boolean> => {
     message,
   })
   if (!res.confirm) {
-    consola.success('Cancelled')
+    logger.success('Cancelled')
     return false
   }
   return true

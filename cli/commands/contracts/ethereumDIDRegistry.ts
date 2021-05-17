@@ -1,13 +1,11 @@
 import * as fs from 'fs'
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
 import { IPFS } from '../../helpers'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { jsonToAccountMetadata } from '../../metadata'
-
-const logger = consola.create({})
+import { logger } from '../../logging'
 
 const handleAccountMetadata = async (ipfs: string, path: string): Promise<string> => {
   const metadata = jsonToAccountMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))

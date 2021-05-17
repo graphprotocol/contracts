@@ -1,10 +1,8 @@
 import Table from 'cli-table'
-import consola from 'consola'
 
+import { logger } from '../../logging'
 import { getContractAt } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const logger = consola.create({})
 
 export const listProxies = async (cli: CLIEnvironment): Promise<void> => {
   logger.log(`Listing proxies...`)

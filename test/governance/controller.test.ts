@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import { constants, utils } from 'ethers'
 
-import { Controller } from '../../build/typechain/contracts/Controller'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+import { Controller } from '../../build/types/Controller'
+import { EpochManager } from '../../build/types/EpochManager'
 
 import { getAccounts, Account } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'

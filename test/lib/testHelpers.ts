@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
 import { formatUnits, getAddress } from 'ethers/lib/utils'
 
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
+import { EpochManager } from '../../build/types/EpochManager'
 
 const { hexlify, parseUnits, parseEther, randomBytes } = utils
 

@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 
-import { Governed } from '../../build/typechain/contracts/Governed'
+import { Governed } from '../../build/types/Governed'
 
 import { getAccounts, Account } from '../lib/testHelpers'
 
@@ -19,7 +19,7 @@ describe('Governed', () => {
     ;[me, governor] = await getAccounts()
 
     const factory = await ethers.getContractFactory('GovernedMock')
-    governed = ((await factory.connect(governor.signer).deploy()) as unknown) as Governed
+    governed = (await factory.connect(governor.signer).deploy()) as unknown as Governed
   })
 
   it('should reject transfer if not allowed', async function () {

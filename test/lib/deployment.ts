@@ -1,26 +1,27 @@
 import { Contract, Signer } from 'ethers'
 
 import { toBN, toGRT } from './testHelpers'
+import { logger } from '../../cli/logging'
 import { network } from '../../cli'
 
 // Contracts definitions
-import { BancorFormula } from '../../build/typechain/contracts/BancorFormula'
-import { Controller } from '../../build/typechain/contracts/Controller'
-import { GraphProxyAdmin } from '../../build/typechain/contracts/GraphProxyAdmin'
-import { Curation } from '../../build/typechain/contracts/Curation'
-import { DisputeManager } from '../../build/typechain/contracts/DisputeManager'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GNS } from '../../build/typechain/contracts/GNS'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { ServiceRegistry } from '../../build/typechain/contracts/ServiceRegistry'
-import { Staking } from '../../build/typechain/contracts/Staking'
-import { RewardsManager } from '../../build/typechain/contracts/RewardsManager'
-import { EthereumDIDRegistry } from '../../build/typechain/contracts/EthereumDIDRegistry'
-import { GDAI } from '../../build/typechain/contracts/GDAI'
-import { GSRManager } from '../../build/typechain/contracts/GSRManager'
+import { BancorFormula } from '../../build/types/BancorFormula'
+import { Controller } from '../../build/types/Controller'
+import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
+import { Curation } from '../../build/types/Curation'
+import { DisputeManager } from '../../build/types/DisputeManager'
+import { EpochManager } from '../../build/types/EpochManager'
+import { GNS } from '../../build/types/GNS'
+import { GraphToken } from '../../build/types/GraphToken'
+import { ServiceRegistry } from '../../build/types/ServiceRegistry'
+import { Staking } from '../../build/types/Staking'
+import { RewardsManager } from '../../build/types/RewardsManager'
+import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
+import { GDAI } from '../../build/types/GDAI'
+import { GSRManager } from '../../build/types/GSRManager'
 
 // Disable logging for tests
-network.logger.pause()
+logger.pause()
 
 // Default configuration used in tests
 
@@ -84,28 +85,28 @@ export async function deployProxyAdmin(deployer: Signer): Promise<GraphProxyAdmi
 }
 
 export async function deployController(deployer: Signer): Promise<Controller> {
-  return (deployContract('Controller', deployer) as unknown) as Promise<Controller>
+  return deployContract('Controller', deployer) as unknown as Promise<Controller>
 }
 
 export async function deployGRT(deployer: Signer): Promise<GraphToken> {
-  return (deployContract(
+  return deployContract(
     'GraphToken',
     deployer,
     defaults.token.initialSupply.toString(),
-  ) as unknown) as Promise<GraphToken>
+  ) as unknown as Promise<GraphToken>
 }
 
 export async function deployGDAI(deployer: Signer): Promise<GDAI> {
-  return (deployContract('GDAI', deployer) as unknown) as Promise<GDAI>
+  return deployContract('GDAI', deployer) as unknown as Promise<GDAI>
 }
 
 export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GSRManager> {
-  return (deployContract(
+  return deployContract(
     'GSRManager',
     deployer,
     defaults.gdai.savingsRate.toString(),
     gdaiAddress,
-  ) as unknown) as Promise<GSRManager>
+  ) as unknown as Promise<GSRManager>
 }
 
 export async function deployCuration(
@@ -114,13 +115,10 @@ export async function deployCuration(
   proxyAdmin: GraphProxyAdmin,
 ): Promise<Curation> {
   // Dependency
-  const bondingCurve = ((await deployContract(
-    'BancorFormula',
-    deployer,
-  )) as unknown) as BancorFormula
+  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
 
   // Deploy
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'Curation',
     [
@@ -132,7 +130,7 @@ export async function deployCuration(
     ],
     deployer,
     false,
-  ) as unknown) as Curation
+  ) as unknown as Curation
 }
 
 export async function deployDisputeManager(
@@ -163,13 +161,13 @@ export async function deployEpochManager(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<EpochManager> {
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'EpochManager',
     [controller, defaults.epochs.lengthInBlocks],
     deployer,
     false,
-  ) as unknown) as EpochManager
+  ) as unknown as EpochManager
 }
 
 export async function deployGNS(
@@ -179,26 +177,20 @@ export async function deployGNS(
 ): Promise<GNS> {
   // Dependency
   const didRegistry = await deployEthereumDIDRegistry(deployer)
-  const bondingCurve = ((await deployContract(
-    'BancorFormula',
-    deployer,
-  )) as unknown) as BancorFormula
+  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
 
   // Deploy
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'GNS',
     [controller, bondingCurve.address, didRegistry.address],
     deployer,
     false,
-  ) as unknown) as GNS
+  ) as unknown as GNS
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDIDRegistry> {
-  return (deployContract(
-    'EthereumDIDRegistry',
-    deployer,
-  ) as unknown) as Promise<EthereumDIDRegistry>
+  return deployContract('EthereumDIDRegistry', deployer) as unknown as Promise<EthereumDIDRegistry>
 }
 
 export async function deployServiceRegistry(
@@ -207,13 +199,13 @@ export async function deployServiceRegistry(
   proxyAdmin: GraphProxyAdmin,
 ): Promise<ServiceRegistry> {
   // Deploy
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'ServiceRegistry',
     [controller],
     deployer,
     false,
-  ) as unknown) as Promise<ServiceRegistry>
+  ) as unknown as Promise<ServiceRegistry>
 }
 
 export async function deployStaking(
@@ -221,7 +213,7 @@ export async function deployStaking(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<Staking> {
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'Staking',
     [
@@ -239,7 +231,7 @@ export async function deployStaking(
     ],
     deployer,
     true,
-  ) as unknown) as Staking
+  ) as unknown as Staking
 }
 
 export async function deployRewardsManager(
@@ -247,11 +239,11 @@ export async function deployRewardsManager(
   controller: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<RewardsManager> {
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'RewardsManager',
     [controller, defaults.rewards.issuanceRate],
     deployer,
     false,
-  ) as unknown) as RewardsManager
+  ) as unknown as RewardsManager
 }

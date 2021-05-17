@@ -1,14 +1,12 @@
-import consola from 'consola'
 import { parseGRT, formatGRT } from '@graphprotocol/common-ts'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../../logging'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { parseCreateSubgraphsCSV, CurateSimulationTransaction, parseUnsignalCSV } from './parseCSV'
 import { pinMetadataToIPFS, IPFS } from '../../helpers'
 import { BigNumber } from 'ethers'
-
-const logger = consola.create({})
 
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 

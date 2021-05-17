@@ -1,10 +1,9 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../../logging'
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
-const logger = consola.create({})
 export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const url = cliArgs.url
   const geoHash = cliArgs.geoHash

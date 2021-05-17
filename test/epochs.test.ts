@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
-import { EpochManager } from '../build/typechain/contracts/EpochManager'
+import { EpochManager } from '../build/types/EpochManager'
 
 import * as deployment from './lib/deployment'
 import { defaults } from './lib/deployment'

@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
 import { deployContract } from '../lib/deployment'
-import { RebatePoolMock } from '../../build/typechain/contracts/RebatePoolMock'
+import { RebatePoolMock } from '../../build/types/RebatePoolMock'
 
 import { getAccounts, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'
 
@@ -188,10 +188,10 @@ describe('Staking:Rebate', () => {
 
   beforeEach(async function () {
     ;[deployer, other] = await getAccounts()
-    rebatePoolMock = ((await deployContract(
+    rebatePoolMock = (await deployContract(
       'RebatePoolMock',
       deployer.signer,
-    )) as unknown) as RebatePoolMock
+    )) as unknown as RebatePoolMock
   })
 
   describe('should match cobb-douglas Solidity implementation', function () {

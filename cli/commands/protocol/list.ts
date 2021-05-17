@@ -1,12 +1,10 @@
 import Table from 'cli-table'
-import consola from 'consola'
 
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { logger } from '../../logging'
 import { ContractFunction } from 'ethers'
 
 import { gettersList } from './get'
-
-const logger = consola.create({})
 
 const contractNames = [
   'Controller',

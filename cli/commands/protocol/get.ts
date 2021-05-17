@@ -1,13 +1,11 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
+import { logger } from '../../logging'
 import { getContractAt } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { ContractFunction } from 'ethers'
 
 import { ProtocolFunction } from './index'
-
-const logger = consola.create({})
 
 export const gettersList = {
   // Staking
@@ -65,7 +63,7 @@ export const getProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
 
   const fn: ProtocolFunction = gettersList[cliArgs.fn]
   if (!fn) {
-    consola.error(`Command ${cliArgs.fn} does not exist`)
+    logger.error(`Command ${cliArgs.fn} does not exist`)
     return
   }
 

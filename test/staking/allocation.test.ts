@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { constants, BigNumber, ethers } from 'ethers'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
-import { EpochManager } from '../../build/typechain/contracts/EpochManager'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { Curation } from '../../build/types/Curation'
+import { EpochManager } from '../../build/types/EpochManager'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {

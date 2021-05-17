@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { constants, utils, BytesLike, BigNumber, Signature } from 'ethers'
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 
-import { GraphToken } from '../build/typechain/contracts/GraphToken'
+import { GraphToken } from '../build/types/GraphToken'
 
 import * as deployment from './lib/deployment'
 import { getAccounts, getChainID, toBN, toGRT, Account } from './lib/testHelpers'

@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { Staking } from '../../build/types/Staking'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'

@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { GRTWithdrawHelper } from '../../build/typechain/contracts/GRTWithdrawHelper'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { GRTWithdrawHelper } from '../../build/types/GRTWithdrawHelper'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import * as deployment from '../lib/deployment'
@@ -46,11 +46,11 @@ describe('WithdrawHelper', () => {
 
     fixture = new NetworkFixture()
     ;({ grt, staking } = await fixture.load(governor.signer))
-    withdrawHelper = ((await deployment.deployContract(
+    withdrawHelper = (await deployment.deployContract(
       'GRTWithdrawHelper',
       governor.signer,
       grt.address,
-    )) as unknown) as GRTWithdrawHelper
+    )) as unknown as GRTWithdrawHelper
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')

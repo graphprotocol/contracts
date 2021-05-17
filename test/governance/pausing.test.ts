@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { Controller } from '../../build/typechain/contracts/Controller'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { Controller } from '../../build/types/Controller'
+import { Staking } from '../../build/types/Staking'
 
 import { getAccounts, Account, toGRT } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'

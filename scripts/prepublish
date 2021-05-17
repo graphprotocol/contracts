@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TYPECHAIN_DIR=dist/typechain
+TYPECHAIN_DIR=dist/types
 
 set -eo pipefail
 
@@ -9,16 +9,15 @@ yarn clean
 yarn build
 
 # Refresh distribution folder
-rm -rf dist && mkdir -p dist
-cp -R build/abis build/typechain dist
+rm -rf dist && mkdir -p dist/types/_src
+cp -R build/abis/ dist/abis
+cp -R build/types/ dist/types/_src
 
 ### Build Typechain bindings
 
-# Move sources to a different folder
-mv ${TYPECHAIN_DIR}/contracts ${TYPECHAIN_DIR}/_src
 # Build and create TS declarations
-tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR}/contracts
+tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR}
 # Copy back sources
-cp ${TYPECHAIN_DIR}/_src/*.ts ${TYPECHAIN_DIR}/contracts
+cp ${TYPECHAIN_DIR}/_src/*.ts ${TYPECHAIN_DIR}
 # Delete temporary src dir
 rm -rf ${TYPECHAIN_DIR}/_src

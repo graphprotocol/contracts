@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { Curation } from '../../build/typechain/contracts/Curation'
+import { Curation } from '../../build/types/Curation'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'

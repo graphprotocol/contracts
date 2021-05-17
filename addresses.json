@@ -259,18 +259,6 @@
         "runtimeCodeHash": "0x126ff82d91cc4a00987d757db8d244edafb91507197b052441dcc94230e4b6ce",
         "txHash": "0x3df6cec81fa4ebed4c7c4575c3cb645378f89ff38fcd547307d9a26820579617"
       }
-    },
-    "GRTAssetHolder": {
-      "address": "0x0000000000000000000000000000000000000000",
-      "creationCodeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "runtimeCodeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    "AttestationApp": {
-      "address": "0x0000000000000000000000000000000000000000",
-      "creationCodeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "runtimeCodeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
     }
   },
   "4": {
@@ -533,32 +521,6 @@
       "creationCodeHash": "0x26a6f47e71ad242e264768571ce7223bf5a86fd0113ab6cb8200f65820232904",
       "runtimeCodeHash": "0xd5330527cfb09df657adc879d8ad704ce6b8d5917265cabbd3eb073d1399f122",
       "txHash": "0xca463b34d7967c4351d24b2af779817bd1da75e53a48957cfa32abd1ebf3a56c"
-    },
-    "GRTAssetHolder": {
-      "address": "0x94896da4a6608b4C9C9F287873cc607BaC204804",
-      "constructorArgs": [
-        {
-          "name": "adjudicatorAddress",
-          "value": "0x94Fca2E2F57B25b2D9eA5d4FCEd6c5d8d9ad3172"
-        },
-        {
-          "name": "tokenAddress",
-          "value": "0x31958e219073d60FDCeb1d608c293754331dd352"
-        },
-        {
-          "name": "controllerAddress",
-          "value": "0x542919Faf1Ed3716fCF31c47dF98D6208EA50569"
-        }
-      ],
-      "creationCodeHash": "0xd912c1d3be60f8d4d3fb29cd203c926639a6b8546612953a33cf6810989cee59",
-      "runtimeCodeHash": "0xdd3f9efcf92f1cf52471d8f4442649ce8a8315a3a4a554a49221f0dae16fca45",
-      "txHash": "0x76641360856c3097b62773e942d194b0d3880f2cb56e192e141d8b03dbafac6d"
-    },
-    "AttestationApp": {
-      "address": "0x02cbecbEE7Ad3f74d95b50755C26a16534F53C1A",
-      "creationCodeHash": "0x9c31294194a6e9768a6da9af195b293dbc589e98ef88ebfd81156487e61d87f3",
-      "runtimeCodeHash": "0xb0e364454528b8dcf5876bdb1ac15e6efb46d97d10583b4746bcf54cee3783a0",
-      "txHash": "0x5f58737c9a39e766142148cae55d49abf9bcd04427e9f450183e841f74136ac4"
     }
   }
 }

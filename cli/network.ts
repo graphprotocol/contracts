@@ -10,15 +10,13 @@ import {
   Overrides,
   BigNumber,
 } from 'ethers'
-import consola from 'consola'
 
+import { logger } from './logging'
 import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
 import { defaultOverrides } from './defaults'
 
 const { keccak256, randomBytes, parseUnits, hexlify } = utils
-
-export const logger = consola.create({})
 
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const toGRT = (value: string | number): BigNumber => {
