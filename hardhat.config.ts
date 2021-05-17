@@ -21,11 +21,11 @@ import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
-import 'hardhat-typechain'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
+import '@typechain/hardhat'
 
 // TODO: Not supported for now in hardhat
 // usePlugin('solidity-coverage')

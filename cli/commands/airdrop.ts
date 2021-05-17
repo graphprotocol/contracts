@@ -112,7 +112,7 @@ const loadRecipients = (path: string): Array<AirdropRecipient> => {
       logger.fatal(`Error loading address "${address}" please review the input file`)
       process.exit(1)
     }
-    results.push({ address, amount: weiAmount, txHash })
+    results.push({ address, amount: weiAmount as any, txHash })
   }
   return results
 }
