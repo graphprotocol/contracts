@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { BigNumber, constants, Wallet } from 'ethers'
 
-import { AllocationExchange } from '../../build/typechain/contracts/AllocationExchange'
-import { GraphToken } from '../../build/typechain/contracts/GraphToken'
-import { Staking } from '../../build/typechain/contracts/Staking'
+import { AllocationExchange } from '../../build/types/AllocationExchange'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import * as deployment from '../lib/deployment'
@@ -58,14 +58,14 @@ describe('AllocationExchange', () => {
 
     fixture = new NetworkFixture()
     ;({ grt, staking } = await fixture.load(governor.signer))
-    allocationExchange = ((await deployment.deployContract(
+    allocationExchange = (await deployment.deployContract(
       'AllocationExchange',
       governor.signer,
       grt.address,
       staking.address,
       governor.address,
       authority.address,
-    )) as unknown) as AllocationExchange
+    )) as unknown as AllocationExchange
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
