@@ -253,11 +253,11 @@ export async function deployGraphGovernance(
   governor: string,
   proxyAdmin: GraphProxyAdmin,
 ): Promise<GraphGovernance> {
-  return (network.deployContractWithProxy(
+  return network.deployContractWithProxy(
     proxyAdmin,
     'GraphGovernance',
     [governor],
     deployer,
     false,
-  ) as unknown) as GraphGovernance
+  ) as unknown as GraphGovernance
 }

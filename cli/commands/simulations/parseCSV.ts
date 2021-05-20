@@ -19,15 +19,8 @@ export function parseCreateSubgraphsCSV(path: string): Array<CurateSimulationTra
     // skip the csv title line by starting at 1
     const csvSubgraph = subgraphs[i]
 
-    const [
-      displayName,
-      description,
-      subgraphID,
-      signal,
-      codeRepository,
-      image,
-      website,
-    ] = csvSubgraph.split(',').map((e) => e.trim())
+    const [displayName, description, subgraphID, signal, codeRepository, image, website] =
+      csvSubgraph.split(',').map((e) => e.trim())
     const subgraph: SubgraphMetadata = {
       description: description,
       displayName: displayName,
