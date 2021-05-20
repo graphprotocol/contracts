@@ -1,4 +1,3 @@
-import consola from 'consola'
 import inquirer from 'inquirer'
 import fs from 'fs'
 import PQueue from 'p-queue'
