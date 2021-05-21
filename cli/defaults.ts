@@ -1,5 +1,5 @@
 import { Options } from 'yargs'
-import { utils, Overrides } from 'ethers'
+import { Overrides } from 'ethers'
 
 export const local = {
   mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',

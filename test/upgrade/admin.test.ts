@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import hre, { network } from 'hardhat'
+import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 
 import { GraphProxy } from '../../build/types/GraphProxy'

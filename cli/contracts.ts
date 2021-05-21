@@ -1,4 +1,4 @@
-import { Contract, providers, Signer } from 'ethers'
+import { providers, Signer } from 'ethers'
 
 import { AddressBook } from './address-book'
 import { logger } from './logging'

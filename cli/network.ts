@@ -105,6 +105,7 @@ export const sendTransaction = async (
   sender: Signer,
   contract: Contract,
   fn: string,
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   params?: Array<any>,
   overrides?: Overrides,
 ): Promise<providers.TransactionReceipt> => {
@@ -167,8 +168,6 @@ export const deployProxy = async (
     overrides,
   )
 }
-
-export const deployProxyAndAccept = async () => {}
 
 export const deployContract = async (
   name: string,
@@ -349,7 +348,7 @@ export const linkLibraries = (
 
   if (libraries) {
     if (artifact.linkReferences) {
-      for (const [fileName, fileReferences] of Object.entries(artifact.linkReferences)) {
+      for (const fileReferences of Object.values(artifact.linkReferences)) {
         for (const [libName, fixups] of Object.entries(fileReferences)) {
           const addr = libraries[libName]
           if (addr === undefined) {

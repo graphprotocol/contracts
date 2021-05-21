@@ -80,7 +80,7 @@ export const curationCommand = {
         },
       })
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }

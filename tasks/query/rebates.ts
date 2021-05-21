@@ -2,6 +2,7 @@ import Table from 'cli-table'
 import PQueue from 'p-queue'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import '@nomiclabs/hardhat-ethers'
 
 import '../gre'
 

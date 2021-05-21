@@ -9,6 +9,7 @@ import { loadContracts, NetworkContracts } from './contracts'
 
 const { formatEther } = utils
 
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export type CLIArgs = { [key: string]: any } & Argv['argv']
 
 export interface CLIEnvironment {

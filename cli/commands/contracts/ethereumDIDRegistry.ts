@@ -33,7 +33,7 @@ const handleAccountMetadata = async (ipfs: string, path: string): Promise<string
   return IPFS.ipfsHashToBytes32(metaHash)
 }
 
-export const setAttribute = async (cli: CLIEnvironment, cliArgs: CLIArgs) => {
+export const setAttribute = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const metadataPath = cliArgs.metadataPath
   const ipfsEndpoint = cliArgs.ipfs
   const ethereumDIDRegistry = cli.contracts.IEthereumDIDRegistry
@@ -83,7 +83,7 @@ export const ethereumDIDRegistryCommand = {
       },
     })
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }

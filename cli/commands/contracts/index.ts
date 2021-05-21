@@ -11,7 +11,6 @@ import { stakingCommand } from './staking'
 import { anyCommand } from './any'
 import { governanceCommand } from './governance'
 
-import { CLIArgs } from '../../env'
 import { disputeManagerCommand } from './disputeManager'
 
 export const contractsCommand = {
@@ -31,7 +30,7 @@ export const contractsCommand = {
       .command(disputeManagerCommand)
       .command(governanceCommand)
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }

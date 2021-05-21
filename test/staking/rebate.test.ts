@@ -26,7 +26,6 @@ interface RebateTestCase {
 
 describe('Staking:Rebate', () => {
   let deployer: Account
-  let other: Account
 
   let rebatePoolMock: RebatePoolMock
 
@@ -187,7 +186,7 @@ describe('Staking:Rebate', () => {
   }
 
   beforeEach(async function () {
-    ;[deployer, other] = await getAccounts()
+    ;[deployer] = await getAccounts()
     rebatePoolMock = (await deployContract(
       'RebatePoolMock',
       deployer.signer,

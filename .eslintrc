@@ -8,7 +8,7 @@
   "rules": {
     "prefer-const": "warn",
     "no-extra-semi": "off",
-    "@typescript-eslint/no-extra-semi": "warn",
+    "@typescript-eslint/no-extra-semi": "off",
     "@typescript-eslint/no-inferrable-types": "warn",
     "@typescript-eslint/no-empty-function": "warn",
     "no-only-tests/no-only-tests": "error"

@@ -234,7 +234,7 @@ export const disputeManagerCommand = {
         },
       })
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }

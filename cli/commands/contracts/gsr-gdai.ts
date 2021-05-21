@@ -1,3 +1,4 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 

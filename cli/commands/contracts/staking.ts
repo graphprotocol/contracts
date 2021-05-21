@@ -52,7 +52,7 @@ export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pr
   await sendTransaction(cli.wallet, staking, 'close', [allocationID])
 }
 
-export const collect = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+export const collect = async (): Promise<void> => {
   logger.log(
     `COLLECT NOT IMPLEMENTED. NORMALLY CALLED FROM PROXY ACCOUNT. plan is to 
      implement this in the near future when we start adding some more 
@@ -243,8 +243,8 @@ export const stakingCommand = {
               demandOption: true,
             })
         },
-        handler: async (argv: CLIArgs): Promise<void> => {
-          return collect(await loadEnv(argv), argv)
+        handler: async (): Promise<void> => {
+          return collect()
         },
       })
       .command({

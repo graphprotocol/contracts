@@ -1,7 +1,5 @@
 import yargs, { Argv } from 'yargs'
 
-import { CLIArgs } from '../../env'
-
 import { setAdminCommand } from './admin'
 import { listCommand } from './list'
 import { upgradeCommand } from './upgrade'
@@ -12,7 +10,7 @@ export const proxyCommand = {
   builder: (yargs: Argv): yargs.Argv => {
     return yargs.command(listCommand).command(upgradeCommand).command(setAdminCommand)
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }
