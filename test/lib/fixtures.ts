@@ -15,7 +15,7 @@ export class NetworkFixture {
     deployer: Signer,
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
-  ): any {
+  ): Promise<any> {
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
     const slasherAddress = await slasher.getAddress()
