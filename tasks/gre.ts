@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
+import '@nomiclabs/hardhat-ethers'
 
 import { cliOpts } from '../cli/defaults'
 import { getAddressBook } from '../cli/address-book'
