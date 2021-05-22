@@ -1,6 +1,7 @@
 import { Wallet } from 'ethers'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import '@nomiclabs/hardhat-ethers'
 
 import { loadEnv } from '../../cli/env'
 

@@ -35,7 +35,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const force = cliArgs.force
   const contractName = cliArgs.contract
 
-  logger.log(`>>> Migrating contracts <<<\n`)
+  logger.info(`>>> Migrating contracts <<<\n`)
 
   const graphConfig = readConfig(graphConfigPath)
 
@@ -50,13 +50,13 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const deployContracts = contractName ? [contractName] : allContracts
   const pendingContractCalls = []
 
-  logger.log(`>>> Contracts deployment\n`)
+  logger.info(`>>> Contracts deployment\n`)
   for (const name of deployContracts) {
     // Get address book info
     const addressEntry = cli.addressBook.getEntry(name)
     const savedAddress = addressEntry && addressEntry.address
 
-    logger.log(`= Deploy: ${name}`)
+    logger.info(`= Deploy: ${name}`)
 
     // Check if contract already deployed
     const isDeployed = await isContractDeployed(
@@ -66,8 +66,8 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
       cli.wallet.provider,
     )
     if (!force && isDeployed) {
-      logger.log(`${name} is up to date, no action required`)
-      logger.log(`Address: ${savedAddress}\n`)
+      logger.info(`${name} is up to date, no action required`)
+      logger.info(`Address: ${savedAddress}\n`)
       continue
     }
 
@@ -80,27 +80,27 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
       cli.wallet,
       cli.addressBook,
     )
-    logger.log('')
+    logger.info('')
 
     // Defer contract calls after deploying every contract
     if (contractConfig.calls) {
       pendingContractCalls.push({ name, contract, calls: contractConfig.calls })
     }
   }
-  logger.success('Contract deployments done! Contract calls are next')
+  logger.info('Contract deployments done! Contract calls are next')
 
   ////////////////////////////////////////
   // Run contracts calls
 
-  logger.log('')
-  logger.log(`>>> Contracts calls\n`)
+  logger.info('')
+  logger.info(`>>> Contracts calls\n`)
   if (pendingContractCalls.length > 0) {
     for (const entry of pendingContractCalls) {
       if (entry.calls.length == 0) continue
 
-      logger.log(`= Config: ${entry.name}`)
+      logger.info(`= Config: ${entry.name}`)
       for (const call of entry.calls) {
-        logger.log(`\n* Calling ${call.fn}:`)
+        logger.info(`\n* Calling ${call.fn}:`)
         await sendTransaction(
           cli.wallet,
           entry.contract,
@@ -108,7 +108,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
           loadCallParams(call.params, cli.addressBook),
         )
       }
-      logger.log('')
+      logger.info('')
     }
   } else {
     logger.info('Nothing to do')
@@ -116,12 +116,12 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
   ////////////////////////////////////////
   // Print summary
-  logger.log('')
-  logger.log(`>>> Summary\n`)
-  logger.success('All done!')
+  logger.info('')
+  logger.info(`>>> Summary\n`)
+  logger.info('All done!')
   const spent = formatEther(cli.balance.sub(await cli.wallet.getBalance()))
   const nTx = (await cli.wallet.getTransactionCount()) - cli.nonce
-  logger.success(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
+  logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
 }
 
 export const migrateCommand = {

@@ -13,8 +13,8 @@ export const registerTestName = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
   const labelNameFull = `${normalizedName}.${'eth'}`
   const labelHashFull = utils.namehash(labelNameFull)
   const label = utils.keccak256(utils.toUtf8Bytes(normalizedName))
-  logger.log(`Namehash for ${labelNameFull}: ${labelHashFull}`)
-  logger.log(`Registering ${name} with ${cli.walletAddress} on the test registrar`)
+  logger.info(`Namehash for ${labelNameFull}: ${labelHashFull}`)
+  logger.info(`Registering ${name} with ${cli.walletAddress} on the test registrar`)
   await sendTransaction(cli.wallet, testRegistrar, 'register', [label, cli.walletAddress])
 }
 export const checkOwner = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -22,13 +22,13 @@ export const checkOwner = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise
   const ens = cli.contracts.IENS
   const node = nameToNode(name)
   const res = await ens.owner(node)
-  logger.success(`owner = ${res}`)
+  logger.info(`owner = ${res}`)
 }
 
 export const nameToNode = (name: string): string => {
   const node = utils.namehash(`${name}.eth`)
-  logger.log(`Name: ${name}`)
-  logger.log(`Node: ${node}`)
+  logger.info(`Name: ${name}`)
+  logger.info(`Node: ${node}`)
   return node
 }
 

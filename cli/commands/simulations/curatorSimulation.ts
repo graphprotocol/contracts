@@ -29,12 +29,12 @@ const createSubgraphs = async (
       undefined,
       subgraph.subgraph,
     )
-    logger.log(`Publishing new subgraph: ${subgraph.subgraph.displayName}`)
-    logger.log(`  Sender: ${cli.wallet.address}`)
-    logger.log(`  Graph Account: ${graphAccount}`)
-    logger.log(`  Subgraph Deployment ID: ${subgraphDeploymentIDBytes}`)
-    logger.log(`  Version Hash: ${versionHashBytes}`)
-    logger.log(`  Subgraph Hash: ${subgraphHashBytes}`)
+    logger.info(`Publishing new subgraph: ${subgraph.subgraph.displayName}`)
+    logger.info(`  Sender: ${cli.wallet.address}`)
+    logger.info(`  Graph Account: ${graphAccount}`)
+    logger.info(`  Subgraph Deployment ID: ${subgraphDeploymentIDBytes}`)
+    logger.info(`  Version Hash: ${versionHashBytes}`)
+    logger.info(`  Subgraph Hash: ${subgraphHashBytes}`)
 
     await sendTransaction(cli.wallet, gns, 'publishNewSubgraph', [
       graphAccount,
@@ -58,7 +58,7 @@ const curateOnSubgraphs = async (
     const minNSignal = parseGRT(`0`)
     const gns = cli.contracts.GNS
 
-    logger.log(`Minting nSignal for ${graphAccount}-${firstSubgraphNumber}...`)
+    logger.info(`Minting nSignal for ${graphAccount}-${firstSubgraphNumber}...`)
     // TODO - this fails on gas estimate, might need to hardcode it in, but this happens for other funcs too
     await sendTransaction(cli.wallet, gns, 'mintNSignal', [
       graphAccount,
@@ -72,7 +72,7 @@ const curateOnSubgraphs = async (
 
 const create = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
-  logger.log(`Running create for ${txData.length} subgraphs`)
+  logger.info(`Running create for ${txData.length} subgraphs`)
   await createSubgraphs(cli, txData)
 }
 
@@ -82,11 +82,11 @@ const signal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const gnsAddr = cli.contracts.GNS.address
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Approving MAX tokens for user GNS to spend on behalf of ${cli.walletAddress}...`)
+  logger.info(`Approving MAX tokens for user GNS to spend on behalf of ${cli.walletAddress}...`)
   await sendTransaction(cli.wallet, graphToken, 'approve', [gnsAddr, maxUint])
 
   const txData = parseCreateSubgraphsCSV(__dirname + cliArgs.path)
-  logger.log(`Running signal for ${txData.length} subgraphs`)
+  logger.info(`Running signal for ${txData.length} subgraphs`)
   await curateOnSubgraphs(cli, txData, cliArgs.firstSubgraphNumber)
 }
 
@@ -94,9 +94,9 @@ const unsignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> =>
   const txData = parseUnsignalCSV(__dirname + cliArgs.path)
   const gns = cli.contracts.GNS
 
-  logger.log(`Burning nSignal for ${txData.length} accounts...`)
+  logger.info(`Burning nSignal for ${txData.length} accounts...`)
   for (let i = 0; i < txData.length; i++) {
-    logger.log(`Getting nSignal balance...`)
+    logger.info(`Getting nSignal balance...`)
     const nBalance = toBN(
       (await gns.getCuratorNSignal(cli.walletAddress, i, cli.walletAddress)).toString(),
     )
@@ -105,7 +105,7 @@ const unsignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> =>
 
     const account = txData[i].account
     const subgraphNumber = txData[i].subgraphNumber
-    logger.log(`Burning ${formatGRT(burnAmount)} nSignal for ${account}-${subgraphNumber}...`)
+    logger.info(`Burning ${formatGRT(burnAmount)} nSignal for ${account}-${subgraphNumber}...`)
     await sendTransaction(cli.wallet, gns, 'burnNSignal', [account, subgraphNumber, burnAmount, 0])
   }
 }

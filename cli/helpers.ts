@@ -51,23 +51,23 @@ export const pinMetadataToIPFS = async (
   if (metadata == undefined && path != undefined) {
     if (type == 'subgraph') {
       metadata = jsonToSubgraphMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-      logger.log('Meta data:')
-      logger.log('  Subgraph Description:     ', metadata.description)
-      logger.log('  Subgraph Display Name:    ', metadata.displayName)
-      logger.log('  Subgraph Image:           ', metadata.image)
-      logger.log('  Subgraph Code Repository: ', metadata.codeRepository)
-      logger.log('  Subgraph Website:         ', metadata.website)
+      logger.info('Meta data:')
+      logger.info('  Subgraph Description:     ', metadata.description)
+      logger.info('  Subgraph Display Name:    ', metadata.displayName)
+      logger.info('  Subgraph Image:           ', metadata.image)
+      logger.info('  Subgraph Code Repository: ', metadata.codeRepository)
+      logger.info('  Subgraph Website:         ', metadata.website)
     } else if (type == 'version') {
       metadata = jsonToVersionMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-      logger.log('Meta data:')
-      logger.log('  Version Description:      ', metadata.description)
-      logger.log('  Version Label:            ', metadata.label)
+      logger.info('Meta data:')
+      logger.info('  Version Description:      ', metadata.description)
+      logger.info('  Version Label:            ', metadata.label)
     }
   }
 
   const ipfsClient = new ipfsHttpClient(ipfs + 'api/v0')
   let result
-  logger.log(`\nUpload JSON meta data for ${type} to IPFS...`)
+  logger.info(`\nUpload JSON meta data for ${type} to IPFS...`)
   try {
     result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
   } catch (e) {
@@ -86,7 +86,7 @@ export const pinMetadataToIPFS = async (
   // } catch (e) {
   //   throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
   // }
-  logger.log(`Upload metadata successful: ${metaHash}\n`)
+  logger.info(`Upload metadata successful: ${metaHash}\n`)
   return IPFS.ipfsHashToBytes32(metaHash)
 }
 
@@ -139,7 +139,7 @@ const configureWallets = (
   for (let i = 0; i < count; i++) {
     signers.push(configureWallet(mnemonic, providerEndpoint, i.toString()))
   }
-  logger.log(`Created ${count} wallets!`)
+  logger.info(`Created ${count} wallets!`)
   return signers
 }
 

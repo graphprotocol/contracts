@@ -5,7 +5,7 @@ import { getContractAt } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 export const listProxies = async (cli: CLIEnvironment): Promise<void> => {
-  logger.log(`Listing proxies...`)
+  logger.info(`Listing proxies...`)
   const table = new Table({
     head: ['Contract', 'Proxy', 'Implementation', 'Admin'],
     colWidths: [20, 45, 45, 45],
@@ -14,7 +14,7 @@ export const listProxies = async (cli: CLIEnvironment): Promise<void> => {
   // Get the proxy admin
   const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
   if (!proxyAdminEntry || !proxyAdminEntry.address) {
-    logger.fatal('Missing GraphProxyAdmin configuration')
+    logger.crit('Missing GraphProxyAdmin configuration')
     return
   }
   const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address).connect(cli.wallet)
@@ -33,7 +33,7 @@ export const listProxies = async (cli: CLIEnvironment): Promise<void> => {
     }
   }
 
-  logger.log(table.toString())
+  logger.info(table.toString())
 }
 
 export const listCommand = {

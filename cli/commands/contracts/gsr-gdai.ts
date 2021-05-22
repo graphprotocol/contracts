@@ -10,7 +10,7 @@ export const setGSR = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const account = cliArgs.account
   const gdai = (cli.contracts as any).GDAI
 
-  logger.log(`Setting GSR to ${account}...`)
+  logger.info(`Setting GSR to ${account}...`)
   await sendTransaction(cli.wallet, gdai, 'setGSR', [account])
 }
 
@@ -18,7 +18,7 @@ export const setRate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const amount = parseGRT(cliArgs.amount)
   const gsr = (cli.contracts as any).GSRManager
 
-  logger.log(`Setting rate to ${amount}...`)
+  logger.info(`Setting rate to ${amount}...`)
   await sendTransaction(cli.wallet, gsr, 'setRate', [amount])
 }
 
@@ -26,8 +26,8 @@ export const join = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const amount = parseGRT(cliArgs.amount)
   const gsr = (cli.contracts as any).GSRManager
 
-  logger.log(`Reminder - you must call approve on the GSR before`)
-  logger.log(`Joining GSR with ${cliArgs.amount} tokens...`)
+  logger.info(`Reminder - you must call approve on the GSR before`)
+  logger.info(`Joining GSR with ${cliArgs.amount} tokens...`)
   await sendTransaction(cli.wallet, gsr, 'join', [amount])
 }
 
@@ -36,7 +36,7 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const account = cliArgs.account
   const gdai = (cli.contracts as any).GDAI
 
-  logger.log(`Minting ${cliArgs.amount} GDAI for user ${account}...`)
+  logger.info(`Minting ${cliArgs.amount} GDAI for user ${account}...`)
   await sendTransaction(cli.wallet, gdai, 'mint', [account, amount])
 }
 
@@ -44,7 +44,7 @@ export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const amount = parseGRT(cliArgs.amount)
   const gdai = (cli.contracts as any).GDAI
 
-  logger.log(`Burning ${cliArgs.amount} GDAI...`)
+  logger.info(`Burning ${cliArgs.amount} GDAI...`)
   await sendTransaction(cli.wallet, gdai, 'burn', [amount])
 }
 
@@ -53,7 +53,7 @@ export const transfer = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const account = cliArgs.account
   const gdai = (cli.contracts as any).GDAI
 
-  logger.log(`Transferring ${cliArgs.amount} tokens to user ${account}...`)
+  logger.info(`Transferring ${cliArgs.amount} tokens to user ${account}...`)
   await sendTransaction(cli.wallet, gdai, 'transfer', [account, amount])
 }
 
@@ -62,7 +62,7 @@ export const approve = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const account = cliArgs.account
   const gdai = (cli.contracts as any).GDAI
 
-  logger.log(`Approving ${cliArgs.amount} GDAI for user ${account} to spend...`)
+  logger.info(`Approving ${cliArgs.amount} GDAI for user ${account} to spend...`)
   await sendTransaction(cli.wallet, gdai, 'approve', [account, amount])
 }
 

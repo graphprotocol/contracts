@@ -48,7 +48,7 @@ export const isContractDeployed = async (
   provider: providers.Provider,
   checkCreationCode = true,
 ): Promise<boolean> => {
-  logger.log(`Checking for valid ${name} contract...`)
+  logger.info(`Checking for valid ${name} contract...`)
   if (!address || address === '') {
     logger.warn('This contract is not in our address book.')
     return false
@@ -64,7 +64,7 @@ export const isContractDeployed = async (
     const creationCodeHash = hash(artifact.bytecode)
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
-      logger.log(`${savedCreationCodeHash} !== ${creationCodeHash}`)
+      logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)
       return false
     }
   }
@@ -77,7 +77,7 @@ export const isContractDeployed = async (
   }
   if (savedRuntimeCodeHash !== runtimeCodeHash) {
     logger.warn(`runtimeCodeHash for ${address} does not match what's in our address book`)
-    logger.log(`${savedRuntimeCodeHash} !== ${runtimeCodeHash}`)
+    logger.info(`${savedRuntimeCodeHash} !== ${runtimeCodeHash}`)
     return false
   }
   return true
@@ -91,11 +91,11 @@ export const waitTransaction = async (
   const networkName = (await sender.provider.getNetwork()).name
   if (networkName === 'kovan' || networkName === 'rinkeby') {
     receipt.status // 1 = success, 0 = failure
-      ? logger.success(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
+      ? logger.info(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
       : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
   } else {
     receipt.status
-      ? logger.success(`Transaction succeeded: ${tx.hash}`)
+      ? logger.info(`Transaction succeeded: ${tx.hash}`)
       : logger.warn(`Transaction failed: ${tx.hash}`)
   }
   return receipt
@@ -124,7 +124,7 @@ export const sendTransaction = async (
     )
     throw new Error('Transaction error')
   }
-  logger.log(
+  logger.info(
     `> Sent transaction ${fn}: [${params.slice(0, -1)}] \n  contract: ${
       contract.address
     }\n  txHash: ${tx.hash}`,
@@ -195,15 +195,15 @@ export const deployContract = async (
   const factory = getContractFactory(name, libraries)
   const contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
-  logger.log(`> Deploy ${name}, txHash: ${txHash}`)
+  logger.info(`> Deploy ${name}, txHash: ${txHash}`)
   await sender.provider.waitForTransaction(txHash)
 
   // Receipt
   const creationCodeHash = hash(factory.bytecode)
   const runtimeCodeHash = hash(await sender.provider.getCode(contract.address))
-  logger.log('= CreationCodeHash: ', creationCodeHash)
-  logger.log('= RuntimeCodeHash: ', runtimeCodeHash)
-  logger.success(`${name} has been deployed to address: ${contract.address}`)
+  logger.info('= CreationCodeHash: ', creationCodeHash)
+  logger.info('= RuntimeCodeHash: ', runtimeCodeHash)
+  logger.info(`${name} has been deployed to address: ${contract.address}`)
 
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
 }
@@ -256,7 +256,7 @@ export const wrapContractWithProxy = async (
     ? [contract.address, proxy.address, initTx.data]
     : [contract.address, proxy.address]
   if (buildAcceptProxyTx) {
-    logger.log(
+    logger.info(
       ` 
       Copy this data in the Gnosis Multisig UI, or a similar app and call ${acceptFunctionName}
       --------------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ export const deployContractAndSave = async (
         ? deployResult.libraries
         : undefined,
   })
-  logger.log('> Contract saved to address book')
+  logger.info('> Contract saved to address book')
 
   return deployResult.contract
 }
@@ -331,7 +331,7 @@ export const deployContractWithProxyAndSave = async (
     proxy: true,
     implementation: contractEntry,
   })
-  logger.log('> Contract saved to address book')
+  logger.info('> Contract saved to address book')
 
   // Use interface of contract but with the proxy address
   return contract.attach(proxy.address)

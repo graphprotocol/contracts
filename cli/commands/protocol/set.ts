@@ -65,7 +65,7 @@ const buildHelp = () => {
 }
 
 export const setProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  logger.log(`Setting ${cliArgs.fn}...`)
+  logger.info(`Setting ${cliArgs.fn}...`)
 
   const fn: ProtocolFunction = settersList[cliArgs.fn]
   if (!fn) {

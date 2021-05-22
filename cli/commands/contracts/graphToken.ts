@@ -10,7 +10,7 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Minting ${cliArgs.amount} tokens for user ${account}...`)
+  logger.info(`Minting ${cliArgs.amount} tokens for user ${account}...`)
   await sendTransaction(cli.wallet, graphToken, 'mint', [account, amount])
 }
 
@@ -18,7 +18,7 @@ export const burn = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const amount = parseGRT(cliArgs.amount)
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Burning ${cliArgs.amount} tokens...`)
+  logger.info(`Burning ${cliArgs.amount} tokens...`)
   await sendTransaction(cli.wallet, graphToken, 'burn', [amount])
 }
 
@@ -27,7 +27,7 @@ export const transfer = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Transferring ${cliArgs.amount} tokens to user ${account}...`)
+  logger.info(`Transferring ${cliArgs.amount} tokens to user ${account}...`)
   await sendTransaction(cli.wallet, graphToken, 'transfer', [account, amount])
 }
 
@@ -36,7 +36,7 @@ export const approve = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Approving ${cliArgs.amount} tokens for user ${account} to spend...`)
+  logger.info(`Approving ${cliArgs.amount} tokens for user ${account} to spend...`)
   await sendTransaction(cli.wallet, graphToken, 'approve', [account, amount])
 }
 
@@ -45,9 +45,9 @@ export const allowance = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<
   const spender = cliArgs.spender
   const graphToken = cli.contracts.GraphToken
 
-  logger.log(`Checking ${account} allowance set for spender ${spender}...`)
+  logger.info(`Checking ${account} allowance set for spender ${spender}...`)
   const res = await graphToken.allowance(account, spender)
-  logger.success(`allowance = ${res}`)
+  logger.info(`allowance = ${res}`)
 }
 
 export const graphTokenCommand = {

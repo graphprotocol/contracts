@@ -45,11 +45,11 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   const addressBook = getAddressBook(argv.addressBook, chainId.toString())
   const contracts = loadContracts(addressBook, wallet)
 
-  logger.log(`Preparing contracts on chain id: ${chainId}`)
-  logger.log(
+  logger.info(`Preparing contracts on chain id: ${chainId}`)
+  logger.info(
     `Connected Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
   )
-  logger.log('Gas settings:', displayGasOverrides(), '\n')
+  logger.info('Gas settings:', displayGasOverrides(), '\n')
 
   return {
     balance,

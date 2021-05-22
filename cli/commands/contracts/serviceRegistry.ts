@@ -9,13 +9,13 @@ export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const geoHash = cliArgs.geoHash
   const serviceRegistry = cli.contracts.ServiceRegistry
 
-  logger.log(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
+  logger.info(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'register', [url, geoHash])
 }
 export const unregister = async (cli: CLIEnvironment): Promise<void> => {
   const serviceRegistry = cli.contracts.ServiceRegistry
 
-  logger.log(`Unregistering indexer ${cli.walletAddress}`)
+  logger.info(`Unregistering indexer ${cli.walletAddress}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'unregister')
 }
 

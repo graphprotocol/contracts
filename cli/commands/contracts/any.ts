@@ -13,12 +13,12 @@ export const any = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> 
   const attachedContract = getContractAt(contract, addressEntry.address).connect(cli.wallet)
 
   if (cliArgs.type == 'get') {
-    logger.log(`Getting ${func}...`)
+    logger.info(`Getting ${func}...`)
     const contractFn: ContractFunction = attachedContract.functions[func]
     const value = await contractFn(...params)
-    logger.success(`${func} = ${value}`)
+    logger.info(`${func} = ${value}`)
   } else if (cliArgs.type == 'set') {
-    logger.log(`Setting ${func}...`)
+    logger.info(`Setting ${func}...`)
     await sendTransaction(cli.wallet, attachedContract, func, params)
   }
 }

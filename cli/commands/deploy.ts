@@ -16,15 +16,17 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const deployType = cliArgs.type
   const buildAcceptProxyTx = cliArgs.buildTx
 
+  logger.info(`Deploying contract ${contractName}...`)
+
   // Deploy contract
   const contractArgs = initArgs ? initArgs.split(',') : []
   switch (deployType) {
     case 'deploy':
-      logger.log(`Deploying contract ${contractName}...`)
+      logger.info(`Deploying contract ${contractName}...`)
       await deployContract(contractName, contractArgs, cli.wallet)
       break
     case 'deploy-save':
-      logger.log(`Deploying contract ${contractName} and saving to address book...`)
+      logger.info(`Deploying contract ${contractName} and saving to address book...`)
       await deployContractAndSave(contractName, contractArgs, cli.wallet, cli.addressBook)
       break
     case 'deploy-with-proxy':
@@ -35,7 +37,7 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
       }
       const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address)
 
-      logger.log(`Deploying contract ${contractName} with proxy ...`)
+      logger.info(`Deploying contract ${contractName} with proxy ...`)
       await deployContractWithProxy(
         proxyAdmin,
         contractName,
@@ -45,7 +47,7 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
       )
       break
     case 'deploy-with-proxy-save':
-      logger.log(`Deploying contract ${contractName} with proxy and saving to address book...`)
+      logger.info(`Deploying contract ${contractName} with proxy and saving to address book...`)
       await deployContractWithProxyAndSave(
         contractName,
         contractArgs,

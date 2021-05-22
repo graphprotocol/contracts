@@ -9,7 +9,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   const contractName = cliArgs.contract
   const adminAddress = cliArgs.admin
 
-  logger.log(`Set proxy admin for contract ${contractName} to ${adminAddress}`)
+  logger.info(`Set proxy admin for contract ${contractName} to ${adminAddress}`)
 
   // Warn about changing ownership
   const res = await inquirer.prompt({
@@ -18,7 +18,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     message: `Are you sure to set the admin to ${adminAddress}?`,
   })
   if (!res.confirm) {
-    logger.success('Cancelled')
+    logger.info('Cancelled')
     return
   }
 
@@ -40,7 +40,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   // Get the proxy admin
   const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
   if (!proxyAdminEntry || !proxyAdminEntry.address) {
-    logger.fatal('Missing GraphProxyAdmin configuration')
+    logger.crit('Missing GraphProxyAdmin configuration')
     return
   }
   const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address).connect(cli.wallet)
@@ -50,7 +50,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     addressEntry.address,
     adminAddress,
   ])
-  logger.success('Done')
+  logger.info('Done')
 }
 
 export const setAdminCommand = {

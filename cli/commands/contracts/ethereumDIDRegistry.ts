@@ -9,16 +9,16 @@ import { logger } from '../../logging'
 
 const handleAccountMetadata = async (ipfs: string, path: string): Promise<string> => {
   const metadata = jsonToAccountMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
-  logger.log('Meta data:')
-  logger.log('  Code Repository: ', metadata.codeRepository || '')
-  logger.log('  Description:     ', metadata.description || '')
-  logger.log('  Image:           ', metadata.image || '')
-  logger.log('  Name:            ', metadata.name || '')
-  logger.log('  Website:         ', metadata.website || '')
-  logger.log('  Display name:    ', metadata.displayName || '')
+  logger.info('Meta data:')
+  logger.info('  Code Repository: ', metadata.codeRepository || '')
+  logger.info('  Description:     ', metadata.description || '')
+  logger.info('  Image:           ', metadata.image || '')
+  logger.info('  Name:            ', metadata.name || '')
+  logger.info('  Website:         ', metadata.website || '')
+  logger.info('  Display name:    ', metadata.displayName || '')
 
   const ipfsClient = IPFS.createIpfsClient(ipfs)
-  logger.log('\nUpload JSON meta data to IPFS...')
+  logger.info('\nUpload JSON meta data to IPFS...')
   const result = await ipfsClient.add(Buffer.from(JSON.stringify(metadata)))
   const metaHash = result[0].hash
   try {
@@ -29,7 +29,7 @@ const handleAccountMetadata = async (ipfs: string, path: string): Promise<string
   } catch (e) {
     throw new Error(`Failed to retrieve and parse JSON meta data after uploading: ${e.message}`)
   }
-  logger.log(`Upload metadata successful: ${metaHash}\n`)
+  logger.info(`Upload metadata successful: ${metaHash}\n`)
   return IPFS.ipfsHashToBytes32(metaHash)
 }
 
@@ -41,7 +41,7 @@ export const setAttribute = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   const name = '0x72abcb436eed911d1b6046bbe645c235ec3767c842eb1005a6da9326c2347e4c'
   const metaHashBytes = await handleAccountMetadata(ipfsEndpoint, metadataPath)
 
-  logger.log(`Setting attribute on ethereum DID registry ...`)
+  logger.info(`Setting attribute on ethereum DID registry ...`)
   await sendTransaction(cli.wallet, ethereumDIDRegistry, 'setAttribute', [
     cli.walletAddress,
     name,
