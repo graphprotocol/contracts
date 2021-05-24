@@ -194,9 +194,6 @@ describe('Staking::Delegation', () => {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
     }
-
-    // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -592,6 +589,9 @@ describe('Staking::Delegation', () => {
     })
 
     it('should send delegation cut of query fees to delegation pool', async function () {
+      // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
+      await epochManager.setEpochLength(toBN((60 * 60) / 15))
+
       // 1:10 delegation capacity
       await staking.connect(governor.signer).setDelegationRatio(10)
 

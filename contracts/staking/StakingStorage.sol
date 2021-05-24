@@ -80,7 +80,7 @@ contract StakingV1Storage is Managed {
     // -- Asset Holders --
 
     // Allowed AssetHolders: assetHolder => is allowed
-    mapping(address => bool) public assetHolders;
+    mapping(address => bool) private assetHolders; // DEPRECATED
 }
 
 contract StakingV2Storage is StakingV1Storage {

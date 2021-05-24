@@ -88,9 +88,6 @@ describe('Staking:Allocation', () => {
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
     await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
-
-    // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {

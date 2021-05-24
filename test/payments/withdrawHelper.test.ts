@@ -60,9 +60,6 @@ describe('WithdrawHelper', () => {
     // Give some funds to the CMC multisig fake account
     const cmcTokens = toGRT('2000')
     await grt.connect(governor.signer).mint(cmc.address, cmcTokens)
-
-    // Allow WithdrawHelper to call the Staking contract
-    await staking.connect(governor.signer).setAssetHolder(withdrawHelper.address, true)
   })
 
   beforeEach(async function () {
