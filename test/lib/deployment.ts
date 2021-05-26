@@ -19,6 +19,7 @@ import { RewardsManager } from '../../build/types/RewardsManager'
 import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
 import { GDAI } from '../../build/types/GDAI'
 import { GSRManager } from '../../build/types/GSRManager'
+import { GraphGovernance } from '../../build/types/GraphGovernance'
 
 // Disable logging for tests
 logger.pause()

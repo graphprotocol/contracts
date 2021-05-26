@@ -16,13 +16,6 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const deployType = cliArgs.type
   const buildAcceptProxyTx = cliArgs.buildTx
 
-  // Get the GraphProxyAdmin to own the GraphProxy for this contract
-  const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
-  if (!proxyAdminEntry) {
-    throw new Error('GraphProxyAdmin not detected in the config, must be deployed first!')
-  }
-  const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address)
-
   // Deploy contract
   const contractArgs = initArgs ? initArgs.split(',') : []
   switch (deployType) {
@@ -35,6 +28,13 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
       await deployContractAndSave(contractName, contractArgs, cli.wallet, cli.addressBook)
       break
     case 'deploy-proxy':
+      // Get the GraphProxyAdmin to own the GraphProxy for this contract
+      const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
+      if (!proxyAdminEntry) {
+        throw new Error('GraphProxyAdmin not detected in the config, must be deployed first!')
+      }
+      const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address)
+
       logger.log(`Deploying contract ${contractName} with proxy ...`)
       await deployContractWithProxy(
         proxyAdmin,

@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 
-import { GraphGovernance } from '../../build/typechain/contracts/GraphGovernance'
+import { GraphGovernance } from '../../build/types/GraphGovernance'
 
 import { deployProxyAdmin, deployGraphGovernance } from '../lib/deployment'
 import { getAccounts, Account, randomHexBytes } from '../lib/testHelpers'
