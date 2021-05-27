@@ -10,7 +10,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   const initArgs = cliArgs.init
   const buildAcceptProxyTx = cliArgs.buildTx
 
-  logger.log(`Upgrading contract ${contractName}...`)
+  logger.info(`Upgrading contract ${contractName}...`)
 
   // Get address book info
   const addressEntry = cli.addressBook.getEntry(contractName)
@@ -45,7 +45,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   // Get the proxy admin
   const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
   if (!proxyAdminEntry || !proxyAdminEntry.address) {
-    logger.fatal('Missing GraphProxyAdmin configuration')
+    logger.crit('Missing GraphProxyAdmin configuration')
     return
   }
   const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address).connect(cli.wallet)
@@ -65,7 +65,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
 
   // Upgrade to new implementation
   if (buildAcceptProxyTx) {
-    logger.log(
+    logger.info(
       `
         Copy this data in the gnosis multisig UI, or a similar app and call upgrade()
         You must call upgrade() BEFORE calling acceptProxy()
@@ -77,7 +77,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
     )
     if (initArgs) {
       const initTx = await contract.populateTransaction.initialize(...initArgs.split(','))
-      logger.log(
+      logger.info(
         `
         Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall()
 
@@ -88,7 +88,7 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
         `,
       )
     } else {
-      logger.log(
+      logger.info(
         `
         Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy()
 
@@ -104,9 +104,9 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
       implAddress,
     ])
     if (receipt.status == 1) {
-      logger.log('> upgrade() tx successful!')
+      logger.info('> upgrade() tx successful!')
     } else {
-      logger.log('> upgrade() tx failed!')
+      logger.info('> upgrade() tx failed!')
       return
     }
 

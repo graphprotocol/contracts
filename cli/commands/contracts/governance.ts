@@ -13,7 +13,7 @@ export const createProposal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
   const resolution = cliArgs.resolution
   const governance = cli.contracts.Governance
 
-  logger.log(`Creating proposal ${id}...`)
+  logger.info(`Creating proposal ${id}...`)
   await sendTransaction(cli.wallet, governance, 'createProposal', [id, votes, metadata, resolution])
 }
 
@@ -24,7 +24,7 @@ export const upgradeProposal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pr
   const resolution = cliArgs.resolution
   const governance = cli.contracts.Governance
 
-  logger.log(`Upgrade proposal ${id}...`)
+  logger.info(`Upgrade proposal ${id}...`)
   await sendTransaction(cli.wallet, governance, 'upgradeProposal', [
     id,
     votes,

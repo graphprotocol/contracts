@@ -59,7 +59,7 @@ const buildHelp = () => {
 }
 
 export const getProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  logger.log(`Getting ${cliArgs.fn}...`)
+  logger.info(`Getting ${cliArgs.fn}...`)
 
   const fn: ProtocolFunction = gettersList[cliArgs.fn]
   if (!fn) {
@@ -77,7 +77,7 @@ export const getProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
   const contractFn: ContractFunction = contract.functions[fn.name]
 
   const [value] = await contractFn(...params)
-  logger.success(`${fn.name} = ${value}`)
+  logger.info(`${fn.name} = ${value}`)
 }
 
 export const getCommand = {

@@ -18,7 +18,7 @@ const contractNames = [
 ]
 
 export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => {
-  logger.log(`>>> Protocol Configuration <<<\n`)
+  logger.info(`>>> Protocol Configuration <<<\n`)
 
   for (const contractName of contractNames) {
     const table = new Table({
@@ -48,11 +48,11 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
       }
     }
     await Promise.all(req)
-    logger.log(table.toString())
+    logger.info(table.toString())
   }
 
   // Verify controllers
-  logger.log(`\n>>> Contracts Controller <<<\n`)
+  logger.info(`\n>>> Contracts Controller <<<\n`)
 
   const controller = cli.contracts['Controller']
   for (const contractName of contractNames) {
@@ -64,7 +64,7 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
     if (contractFn) {
       const addr = await contractFn().then((values) => values[0])
       if (addr === controller.address) {
-        logger.success(contractName)
+        logger.info(contractName)
       } else {
         logger.error(`${contractName} : ${addr} should be ${controller.address}`)
       }

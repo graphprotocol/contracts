@@ -58,13 +58,13 @@ async function setupIndexer(
   const indexerAllocatedTokens = toGRT('10000')
   const metadata = HashZero
 
-  logger.log('Transferring tokens to the indexer...')
+  logger.info('Transferring tokens to the indexer...')
   await sendTransaction(cli.wallet, grt, 'transfer', [indexer.address, indexerTokens])
-  logger.log('Approving the staking address to pull tokens...')
+  logger.info('Approving the staking address to pull tokens...')
   await sendTransaction(cli.wallet, grt, 'approve', [staking.address, indexerTokens])
-  logger.log('Staking...')
+  logger.info('Staking...')
   await sendTransaction(cli.wallet, staking, 'stake', [indexerTokens])
-  logger.log('Allocating...')
+  logger.info('Allocating...')
   await sendTransaction(cli.wallet, staking, 'allocate', [
     receipt.subgraphDeploymentID,
     indexerAllocatedTokens,
@@ -109,7 +109,7 @@ export const createTestQueryDisputeConflict = async (
     disputeManagerAddr,
   )
 
-  logger.log(`Creating conflicting attestations...`)
+  logger.info(`Creating conflicting attestations...`)
   await sendTransaction(cli.wallet, disputeManager, 'createQueryDisputeConflict', [
     encodeAttestation(attestation1),
     encodeAttestation(attestation2),
@@ -138,10 +138,10 @@ export const createTestIndexingDispute = async (
   const disputeManager = cli.contracts.DisputeManager
   const grt = cli.contracts.GraphToken
 
-  logger.log('Approving the dispute address to pull tokens...')
+  logger.info('Approving the dispute address to pull tokens...')
   await sendTransaction(cli.wallet, grt, 'approve', [disputeManager.address, deposit])
 
-  logger.log(`Creating indexing dispute...`)
+  logger.info(`Creating indexing dispute...`)
   await sendTransaction(cli.wallet, disputeManager, 'createIndexingDispute', [
     indexerChannelKey.address,
     deposit,
@@ -151,21 +151,21 @@ export const createTestIndexingDispute = async (
 export const accept = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const disputeManager = cli.contracts.DisputeManager
   const disputeID = cliArgs.disputeID
-  logger.log(`Accepting...`)
+  logger.info(`Accepting...`)
   await sendTransaction(cli.wallet, disputeManager, 'acceptDispute', ...[disputeID])
 }
 
 export const reject = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const disputeManager = cli.contracts.DisputeManager
   const disputeID = cliArgs.disputeID
-  logger.log(`Rejecting...`)
+  logger.info(`Rejecting...`)
   await sendTransaction(cli.wallet, disputeManager, 'rejectDispute', ...[disputeID])
 }
 
 export const draw = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const disputeManager = cli.contracts.DisputeManager
   const disputeID = cliArgs.disputeID
-  logger.log(`Drawing...`)
+  logger.info(`Drawing...`)
   await sendTransaction(cli.wallet, disputeManager, 'drawDispute', ...[disputeID])
 }
 

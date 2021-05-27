@@ -74,7 +74,7 @@ const sure = async (message = 'Are you sure?'): Promise<boolean> => {
     message,
   })
   if (!res.confirm) {
-    logger.success('Cancelled')
+    logger.info('Cancelled')
     return false
   }
   return true
@@ -98,7 +98,7 @@ const loadRecipients = (path: string): Array<AirdropRecipient> => {
     // Test for zero amount and fail
     const weiAmount = parseGRT(amount)
     if (weiAmount.eq(0)) {
-      logger.fatal(`Error loading address "${address}" - amount is zero`)
+      logger.crit(`Error loading address "${address}" - amount is zero`)
       process.exit(0)
     }
 
@@ -107,7 +107,7 @@ const loadRecipients = (path: string): Array<AirdropRecipient> => {
       getAddress(address)
     } catch (err) {
       // Full stop on error
-      logger.fatal(`Error loading address "${address}" please review the input file`)
+      logger.crit(`Error loading address "${address}" please review the input file`)
       process.exit(1)
     }
     results.push({ address, amount: weiAmount, txHash })
@@ -172,28 +172,28 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const totalAmount = sumTotalAmount(recipients)
 
   // Summary
-  logger.log(`# Batch Size: ${cliArgs.batchSize}`)
-  logger.log(`# Concurrency: ${cliArgs.concurrency}`)
-  logger.log(`> Token: ${graphToken.address}`)
-  logger.log(`> Distributing: ${formatGRT(totalAmount)} tokens (${totalAmount} wei)`)
-  logger.log(`> Resumelist: ${resumeList.length} addresses`)
-  logger.log(`> Recipients: ${recipients.length} addresses\n`)
+  logger.info(`# Batch Size: ${cliArgs.batchSize}`)
+  logger.info(`# Concurrency: ${cliArgs.concurrency}`)
+  logger.info(`> Token: ${graphToken.address}`)
+  logger.info(`> Distributing: ${formatGRT(totalAmount)} tokens (${totalAmount} wei)`)
+  logger.info(`> Resumelist: ${resumeList.length} addresses`)
+  logger.info(`> Recipients: ${recipients.length} addresses\n`)
 
   // Validity check
   if (totalAmount.eq(0)) {
-    logger.fatal('Cannot proceed with a distribution of zero tokens')
+    logger.crit('Cannot proceed with a distribution of zero tokens')
     process.exit(1)
   }
 
   // Load airdrop contract
   const disperseContract = getDisperseContract(cli.chainId, cli.wallet.provider)
   if (!disperseContract.address) {
-    logger.fatal('Disperse contract not found. Please review your network settings.')
+    logger.crit('Disperse contract not found. Please review your network settings.')
     process.exit(1)
   }
 
   // Confirmation
-  logger.log('Are you sure you want to proceed with the distribution?')
+  logger.info('Are you sure you want to proceed with the distribution?')
   if (!(await sure())) {
     process.exit(1)
   }
@@ -204,9 +204,9 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     await graphToken.functions['allowance'](cli.wallet.address, disperseContract.address)
   )[0]
   if (allowance.gte(totalAmount)) {
-    logger.log('Already have enough allowance, no need to approve more...')
+    logger.info('Already have enough allowance, no need to approve more...')
   } else {
-    logger.log(
+    logger.info(
       `Approve disperse:${disperseContract.address} for ${formatGRT(
         totalAmount,
       )} tokens (${totalAmount} wei)`,
@@ -234,7 +234,7 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
       batchNum++
       logger.info(`Sending batch #${batchNum} : ${recipientsCount}/${recipients.length}`)
       for (const recipient of batch) {
-        logger.log(
+        logger.info(
           `  > Transferring ${recipient.address} => ${formatGRT(recipient.amount)} (${
             recipient.amount
           } wei)`,
