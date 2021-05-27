@@ -5,8 +5,8 @@ const { AddressZero } = constants
 
 export type AddressBookEntry = {
   address: string
-  constructorArgs?: Array<{ name: string; value: string }>
-  initArgs?: Array<{ name: string; value: string }>
+  constructorArgs?: Array<string>
+  initArgs?: Array<string>
   creationCodeHash?: string
   runtimeCodeHash?: string
   txHash?: string

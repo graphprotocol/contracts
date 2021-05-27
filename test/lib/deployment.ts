@@ -19,6 +19,7 @@ import { RewardsManager } from '../../build/types/RewardsManager'
 import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
 import { GDAI } from '../../build/types/GDAI'
 import { GSRManager } from '../../build/types/GSRManager'
+import { GraphGovernance } from '../../build/types/GraphGovernance'
 
 // Disable logging for tests
 logger.pause()
@@ -129,7 +130,6 @@ export async function deployCuration(
       defaults.curation.minimumCurationDeposit,
     ],
     deployer,
-    false,
   ) as unknown as Curation
 }
 
@@ -152,7 +152,6 @@ export async function deployDisputeManager(
       defaults.dispute.idxSlashingPercentage.toString(),
     ],
     deployer,
-    false,
   ) as Promise<DisputeManager>
 }
 
@@ -166,7 +165,6 @@ export async function deployEpochManager(
     'EpochManager',
     [controller, defaults.epochs.lengthInBlocks],
     deployer,
-    false,
   ) as unknown as EpochManager
 }
 
@@ -185,7 +183,6 @@ export async function deployGNS(
     'GNS',
     [controller, bondingCurve.address, didRegistry.address],
     deployer,
-    false,
   ) as unknown as GNS
 }
 
@@ -204,7 +201,6 @@ export async function deployServiceRegistry(
     'ServiceRegistry',
     [controller],
     deployer,
-    false,
   ) as unknown as Promise<ServiceRegistry>
 }
 
@@ -230,7 +226,6 @@ export async function deployStaking(
       defaults.staking.alphaDenominator,
     ],
     deployer,
-    true,
   ) as unknown as Staking
 }
 
@@ -244,6 +239,18 @@ export async function deployRewardsManager(
     'RewardsManager',
     [controller, defaults.rewards.issuanceRate],
     deployer,
-    false,
   ) as unknown as RewardsManager
+}
+
+export async function deployGraphGovernance(
+  deployer: Signer,
+  governor: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<GraphGovernance> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'GraphGovernance',
+    [governor],
+    deployer,
+  ) as unknown as GraphGovernance
 }

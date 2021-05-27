@@ -1,18 +1,62 @@
 import yargs, { Argv } from 'yargs'
 
-import { deployContract } from '../network'
+import {
+  getContractAt,
+  deployContract,
+  deployContractAndSave,
+  deployContractWithProxy,
+  deployContractWithProxyAndSave,
+} from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { logger } from '../logging'
 
 export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
   const initArgs = cliArgs.init
-
-  logger.log(`Deploying contract ${contractName}...`)
+  const deployType = cliArgs.type
+  const buildAcceptProxyTx = cliArgs.buildTx
 
   // Deploy contract
   const contractArgs = initArgs ? initArgs.split(',') : []
-  await deployContract(contractName, contractArgs, cli.wallet)
+  switch (deployType) {
+    case 'deploy':
+      logger.log(`Deploying contract ${contractName}...`)
+      await deployContract(contractName, contractArgs, cli.wallet)
+      break
+    case 'deploy-save':
+      logger.log(`Deploying contract ${contractName} and saving to address book...`)
+      await deployContractAndSave(contractName, contractArgs, cli.wallet, cli.addressBook)
+      break
+    case 'deploy-with-proxy':
+      // Get the GraphProxyAdmin to own the GraphProxy for this contract
+      const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
+      if (!proxyAdminEntry) {
+        throw new Error('GraphProxyAdmin not detected in the config, must be deployed first!')
+      }
+      const proxyAdmin = getContractAt('GraphProxyAdmin', proxyAdminEntry.address)
+
+      logger.log(`Deploying contract ${contractName} with proxy ...`)
+      await deployContractWithProxy(
+        proxyAdmin,
+        contractName,
+        contractArgs,
+        cli.wallet,
+        buildAcceptProxyTx,
+      )
+      break
+    case 'deploy-with-proxy-save':
+      logger.log(`Deploying contract ${contractName} with proxy and saving to address book...`)
+      await deployContractWithProxyAndSave(
+        contractName,
+        contractArgs,
+        cli.wallet,
+        cli.addressBook,
+        buildAcceptProxyTx,
+      )
+      break
+    default:
+      logger.error('Please provide the correct option for deploy type')
+  }
 }
 
 export const deployCommand = {
@@ -32,6 +76,19 @@ export const deployCommand = {
         type: 'string',
         requiresArg: true,
         demandOption: true,
+      })
+      .option('t', {
+        alias: 'type',
+        description: 'Choose deploy, deploy-save, deploy-with-proxy, deploy-with-proxy-save',
+        type: 'string',
+        requiresArg: true,
+        demandOption: true,
+      })
+      .option('b', {
+        alias: 'build-tx',
+        description: 'Build the acceptProxy tx and print it. Then use tx data with a multisig',
+        default: false,
+        type: 'boolean',
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {

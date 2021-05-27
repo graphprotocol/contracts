@@ -48,6 +48,7 @@
     "eslint-config-standard": "^16.0.0",
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-mocha-no-only": "^1.1.1",
+    "eslint-plugin-no-only-tests": "^2.4.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-promise": "^5.0.0",
