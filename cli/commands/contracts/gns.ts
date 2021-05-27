@@ -1,4 +1,3 @@
-import * as fs from 'fs'
 import yargs, { Argv } from 'yargs'
 import { parseGRT } from '@graphprotocol/common-ts'
 

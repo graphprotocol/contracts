@@ -12,7 +12,7 @@ export const register = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.log(`Registering indexer ${cli.walletAddress} with url ${url} and geoHash ${geoHash}`)
   await sendTransaction(cli.wallet, serviceRegistry, 'register', [url, geoHash])
 }
-export const unregister = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+export const unregister = async (cli: CLIEnvironment): Promise<void> => {
   const serviceRegistry = cli.contracts.ServiceRegistry
 
   logger.log(`Unregistering indexer ${cli.walletAddress}`)
@@ -52,11 +52,11 @@ export const serviceRegistryCommand = {
         command: 'unregister',
         describe: 'Unregister an indexer in the service registry',
         handler: async (argv: CLIArgs): Promise<void> => {
-          return unregister(await loadEnv(argv), argv)
+          return unregister(await loadEnv(argv))
         },
       })
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }

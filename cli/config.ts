@@ -28,11 +28,13 @@ function isAddressBookRef(value: string): boolean {
 function parseAddressBookRef(addressBook: AddressBook, value: string): string {
   const ref: string = ABRefMatcher.exec(value as string)[1]
   const [contractName, contractAttr] = ref.split('.')
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   const entry = addressBook.getEntry(contractName) as { [key: string]: any }
   return entry[contractAttr]
 }
 
-export function readConfig(path: string) {
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export function readConfig(path: string): any {
   const file = fs.readFileSync(path, 'utf8')
   return YAML.parse(file)
 }

@@ -1,4 +1,3 @@
-import consola from 'consola'
 import inquirer from 'inquirer'
 import fs from 'fs'
 import PQueue from 'p-queue'
@@ -111,7 +110,7 @@ const loadRecipients = (path: string): Array<AirdropRecipient> => {
       logger.fatal(`Error loading address "${address}" please review the input file`)
       process.exit(1)
     }
-    results.push({ address, amount: weiAmount as any, txHash })
+    results.push({ address, amount: weiAmount, txHash })
   }
   return results
 }

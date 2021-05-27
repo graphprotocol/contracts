@@ -1,10 +1,12 @@
 import hre from 'hardhat'
+import '@nomiclabs/hardhat-ethers'
+import '@nomiclabs/hardhat-waffle'
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
 import { formatUnits, getAddress } from 'ethers/lib/utils'
 
 import { EpochManager } from '../../build/types/EpochManager'
 
-const { hexlify, parseUnits, parseEther, randomBytes } = utils
+const { hexlify, parseUnits, randomBytes } = utils
 
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string | number): BigNumber => {
@@ -12,11 +14,6 @@ export const toGRT = (value: string | number): BigNumber => {
 }
 export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
-export const logStake = (stakes: any): void => {
-  Object.entries(stakes).map(([k, v]) => {
-    console.log(k, ':', parseEther(v as string))
-  })
-}
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
 
 // Network
@@ -73,7 +70,7 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
   }
 }
 
-export const advanceBlocks = async (blocks: string | number | BigNumber) => {
+export const advanceBlocks = async (blocks: string | number | BigNumber): Promise<void> => {
   const steps = typeof blocks === 'number' || typeof blocks === 'string' ? toBN(blocks) : blocks
   const currentBlock = await latestBlock()
   const toBlock = currentBlock.add(steps)

@@ -78,7 +78,7 @@
   },
   "scripts": {
     "prepublishOnly": "scripts/prepublish",
-    "build": "scripts/build",
+    "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
     "deploy": "scripts/predeploy && hardhat migrate",

@@ -11,7 +11,6 @@ import { getAccounts, toGRT, Account } from '../lib/testHelpers'
 const { AddressZero, MaxUint256 } = constants
 
 describe('Gdai and Gsr', () => {
-  let me: Account
   let governor: Account
 
   let gsrManager: GSRManager

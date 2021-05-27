@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, BigNumber, ethers } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'

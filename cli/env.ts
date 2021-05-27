@@ -1,14 +1,15 @@
-import { utils, BigNumber, Contract, Wallet } from 'ethers'
+import { utils, BigNumber, Wallet, Overrides } from 'ethers'
 import { Argv } from 'yargs'
 
 import { logger } from './logging'
 import { getAddressBook, AddressBook } from './address-book'
 import { defaultOverrides } from './defaults'
-import { getContractAt } from './network'
 import { getProvider } from './utils'
+import { loadContracts, NetworkContracts } from './contracts'
 
 const { formatEther } = utils
 
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export type CLIArgs = { [key: string]: any } & Argv['argv']
 
 export interface CLIEnvironment {
@@ -18,31 +19,11 @@ export interface CLIEnvironment {
   walletAddress: string
   wallet: Wallet
   addressBook: AddressBook
-  contracts: { [key: string]: Contract }
+  contracts: NetworkContracts
   argv: CLIArgs
 }
 
-export const loadContracts = (
-  addressBook: AddressBook,
-  wallet?: Wallet,
-): { [key: string]: Contract } => {
-  const contracts = {}
-  for (const contractName of addressBook.listEntries()) {
-    const contractEntry = addressBook.getEntry(contractName)
-    try {
-      const contract = getContractAt(contractName, contractEntry.address)
-      contracts[contractName] = contract
-      if (wallet) {
-        contracts[contractName] = contracts[contractName].connect(wallet)
-      }
-    } catch (err) {
-      logger.warn(`Could not load contract ${contractName} - ${err.message}`)
-    }
-  }
-  return contracts
-}
-
-export const displayGasOverrides = () => {
+export const displayGasOverrides = (): Overrides => {
   const r = { gasPrice: 'auto', gasLimit: 'auto', ...defaultOverrides }
   if (r['gasPrice']) {
     r['gasPrice'] = r['gasPrice'].toString()

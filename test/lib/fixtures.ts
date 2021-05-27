@@ -1,3 +1,4 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
@@ -14,7 +15,7 @@ export class NetworkFixture {
     deployer: Signer,
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
-  ) {
+  ): Promise<any> {
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
     const slasherAddress = await slasher.getAddress()

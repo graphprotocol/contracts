@@ -7,7 +7,8 @@ import { logger } from '../../logging'
 
 export const registerTestName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const name = cliArgs.name
-  const testRegistrar = cli.contracts.ITestRegistrar
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+  const testRegistrar = (cli.contracts as any).ITestRegistrar
   const normalizedName = name.toLowerCase()
   const labelNameFull = `${normalizedName}.${'eth'}`
   const labelHashFull = utils.namehash(labelNameFull)
@@ -67,7 +68,7 @@ export const ensCommand = {
         },
       })
   },
-  handler: (argv: CLIArgs): void => {
+  handler: (): void => {
     yargs.showHelp()
   },
 }
