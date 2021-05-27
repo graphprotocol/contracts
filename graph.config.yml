@@ -55,7 +55,8 @@ contracts:
       arbitrator: *arbitrator
       minimumDeposit: "10000000000000000000000" # 10,000 GRT (in wei)
       fishermanRewardPercentage: 500000 # 50% (parts per million)
-      slashingPercentage: 25000 # 2.5% (parts per million)
+      idxSlashingPercentage: 25000 # 2.5% (parts per million)
+      qrySlashingPercentage: 5000 # 0.5% (parts per million)
   GNS:
     proxy: true
     init:
