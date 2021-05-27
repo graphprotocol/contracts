@@ -3,8 +3,8 @@ import yargs, { Argv } from 'yargs'
 import {
   getContractAt,
   deployContract,
-  deployContractWithProxy,
   deployContractAndSave,
+  deployContractWithProxy,
   deployContractWithProxyAndSave,
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
@@ -27,7 +27,7 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
       logger.log(`Deploying contract ${contractName} and saving to address book...`)
       await deployContractAndSave(contractName, contractArgs, cli.wallet, cli.addressBook)
       break
-    case 'deploy-proxy':
+    case 'deploy-with-proxy':
       // Get the GraphProxyAdmin to own the GraphProxy for this contract
       const proxyAdminEntry = cli.addressBook.getEntry('GraphProxyAdmin')
       if (!proxyAdminEntry) {
@@ -41,11 +41,10 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
         contractName,
         contractArgs,
         cli.wallet,
-        true,
         buildAcceptProxyTx,
       )
       break
-    case 'deploy-proxy-save':
+    case 'deploy-with-proxy-save':
       logger.log(`Deploying contract ${contractName} with proxy and saving to address book...`)
       await deployContractWithProxyAndSave(
         contractName,
@@ -80,7 +79,7 @@ export const deployCommand = {
       })
       .option('t', {
         alias: 'type',
-        description: 'Choose deploy, deploy-save, deploy-proxy, deploy-proxy-save',
+        description: 'Choose deploy, deploy-save, deploy-with-proxy, deploy-with-proxy-save',
         type: 'string',
         requiresArg: true,
         demandOption: true,
@@ -88,6 +87,8 @@ export const deployCommand = {
       .option('b', {
         alias: 'build-tx',
         description: 'Build the acceptProxy tx and print it. Then use tx data with a multisig',
+        default: false,
+        type: 'boolean',
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {

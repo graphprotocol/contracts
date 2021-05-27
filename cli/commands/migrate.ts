@@ -74,7 +74,12 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     // Get config and deploy contract
     const contractConfig = getContractConfig(graphConfig, cli.addressBook, name)
     const deployFn = contractConfig.proxy ? deployContractWithProxyAndSave : deployContractAndSave
-    const contract = await deployFn(name, contractConfig.params, cli.wallet, cli.addressBook)
+    const contract = await deployFn(
+      name,
+      contractConfig.params.map((a) => a.value), // keep only the values
+      cli.wallet,
+      cli.addressBook,
+    )
     logger.log('')
 
     // Defer contract calls after deploying every contract

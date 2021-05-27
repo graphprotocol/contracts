@@ -130,7 +130,6 @@ export async function deployCuration(
       defaults.curation.minimumCurationDeposit,
     ],
     deployer,
-    false,
   ) as unknown as Curation
 }
 
@@ -153,7 +152,6 @@ export async function deployDisputeManager(
       defaults.dispute.idxSlashingPercentage.toString(),
     ],
     deployer,
-    false,
   ) as Promise<DisputeManager>
 }
 
@@ -167,7 +165,6 @@ export async function deployEpochManager(
     'EpochManager',
     [controller, defaults.epochs.lengthInBlocks],
     deployer,
-    false,
   ) as unknown as EpochManager
 }
 
@@ -186,7 +183,6 @@ export async function deployGNS(
     'GNS',
     [controller, bondingCurve.address, didRegistry.address],
     deployer,
-    false,
   ) as unknown as GNS
 }
 
@@ -205,7 +201,6 @@ export async function deployServiceRegistry(
     'ServiceRegistry',
     [controller],
     deployer,
-    false,
   ) as unknown as Promise<ServiceRegistry>
 }
 
@@ -231,7 +226,6 @@ export async function deployStaking(
       defaults.staking.alphaDenominator,
     ],
     deployer,
-    true,
   ) as unknown as Staking
 }
 
@@ -245,7 +239,6 @@ export async function deployRewardsManager(
     'RewardsManager',
     [controller, defaults.rewards.issuanceRate],
     deployer,
-    false,
   ) as unknown as RewardsManager
 }
 
@@ -259,6 +252,5 @@ export async function deployGraphGovernance(
     'GraphGovernance',
     [governor],
     deployer,
-    false,
   ) as unknown as GraphGovernance
 }

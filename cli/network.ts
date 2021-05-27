@@ -31,6 +31,7 @@ export const getChainID = (): number => {
 
 const hash = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
+type ContractParam = string | BigNumber | number
 type DeployResult = {
   contract: Contract
   creationCodeHash: string
@@ -171,7 +172,7 @@ export const deployProxyAndAccept = async () => {}
 
 export const deployContract = async (
   name: string,
-  args: Array<any>,
+  args: Array<ContractParam>,
   sender: Signer,
   autolink = true,
   overrides?: Overrides,
@@ -211,14 +212,36 @@ export const deployContract = async (
 export const deployContractWithProxy = async (
   proxyAdmin: Contract,
   name: string,
-  args: Array<any>,
+  args: Array<ContractParam>,
   sender: Signer,
-  autolink = true,
   buildAcceptProxyTx = false,
   overrides?: Overrides,
 ): Promise<Contract> => {
   // Deploy implementation
-  const { contract } = await deployContract(name, [], sender, autolink, overrides)
+  const { contract } = await deployContract(name, [], sender, true, overrides)
+
+  // Wrap implementation with proxy
+  const proxy = await wrapContractWithProxy(
+    proxyAdmin,
+    contract,
+    args,
+    sender,
+    buildAcceptProxyTx,
+    overrides,
+  )
+
+  // Use interface of contract but with the proxy address
+  return contract.attach(proxy.address)
+}
+
+export const wrapContractWithProxy = async (
+  proxyAdmin: Contract,
+  contract: Contract,
+  args: Array<ContractParam>,
+  sender: Signer,
+  buildAcceptProxyTx = false,
+  overrides?: Overrides,
+): Promise<Contract> => {
   // Deploy proxy
   const { contract: proxy } = await deployProxy(
     contract.address,
@@ -226,60 +249,44 @@ export const deployContractWithProxy = async (
     sender,
     overrides,
   )
+
   // Implementation accepts upgrade
-  if (args) {
-    const initTx = await contract.populateTransaction.initialize(...args)
-    if (buildAcceptProxyTx) {
-      logger.log(
-        `
-        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall
-          contract address:  ${proxyAdmin.address}
-          implementation:    ${contract.address}
-          proxy:             ${proxy.address}
-          data:              ${initTx.data}
-          `,
-      )
-    } else {
-      await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
-        contract.address,
-        proxy.address,
-        initTx.data,
-      ])
-    }
+  const initTx = args ? await contract.populateTransaction.initialize(...args) : null
+  const acceptFunctionName = initTx ? 'acceptProxyAndCall' : 'acceptProxy'
+  const acceptFunctionParams = initTx
+    ? [contract.address, proxy.address, initTx.data]
+    : [contract.address, proxy.address]
+  if (buildAcceptProxyTx) {
+    logger.log(
+      ` 
+      Copy this data in the Gnosis Multisig UI, or a similar app and call ${acceptFunctionName}
+      --------------------------------------------------------------------------------------
+        > Contract Address:  ${proxyAdmin.address}
+        > Implementation:    ${contract.address}
+        > Proxy:             ${proxy.address}
+        > Data:              ${initTx && initTx.data}
+      `,
+    )
   } else {
-    if (buildAcceptProxyTx) {
-      logger.log(
-        `
-        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy
-          contract address:  ${proxyAdmin.address}
-          implementation:    ${contract.address}
-          proxy:             ${proxy.address}
-        `,
-      )
-    } else {
-      await sendTransaction(sender, proxyAdmin, 'acceptProxy', [contract.address, proxy.address])
-    }
+    await sendTransaction(sender, proxyAdmin, acceptFunctionName, acceptFunctionParams)
   }
-  return contract.attach(proxy.address)
+
+  return proxy
 }
 
 export const deployContractAndSave = async (
   name: string,
-  args: Array<any>,
+  args: Array<ContractParam>,
   sender: Signer,
   addressBook: AddressBook,
 ): Promise<Contract> => {
   // Deploy the contract
-  const deployResult = await deployContract(
-    name,
-    args.map((a) => a.value),
-    sender,
-  )
+  const deployResult = await deployContract(name, args, sender)
 
   // Save address entry
   addressBook.setEntry(name, {
     address: deployResult.contract.address,
-    constructorArgs: args.length === 0 ? undefined : args,
+    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
     creationCodeHash: deployResult.creationCodeHash,
     runtimeCodeHash: deployResult.runtimeCodeHash,
     txHash: deployResult.txHash,
@@ -295,7 +302,7 @@ export const deployContractAndSave = async (
 
 export const deployContractWithProxyAndSave = async (
   name: string,
-  args: Array<any>,
+  args: Array<ContractParam>,
   sender: Signer,
   addressBook: AddressBook,
   buildAcceptProxyTx?: boolean,
@@ -309,51 +316,16 @@ export const deployContractWithProxyAndSave = async (
 
   // Deploy implementation
   const contract = await deployContractAndSave(name, [], sender, addressBook)
-  // Deploy proxy
-  const { contract: proxy } = await deployProxy(contract.address, proxyAdmin.address, sender)
-  // Implementation accepts upgrade
-  if (args) {
-    const initTx = args[0].name
-      ? await contract.populateTransaction.initialize(...args.map((a) => a.value)) // just get values
-      : await contract.populateTransaction.initialize(...args) // already just a value array
-    if (buildAcceptProxyTx) {
-      logger.log(
-        `
-        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxyAndCall
-          contract address:  ${proxyAdmin.address}
-          implementation:    ${contract.address}
-          proxy:             ${proxy.address}
-          data:              ${initTx.data}
-        `,
-      )
-    } else {
-      await sendTransaction(sender, proxyAdmin, 'acceptProxyAndCall', [
-        contract.address,
-        proxy.address,
-        initTx.data,
-      ])
-    }
-  } else {
-    if (buildAcceptProxyTx) {
-      logger.log(
-        `
-        Copy this data in the gnosis multisig UI, or a similar app and call acceptProxy
-          contract address:  ${proxyAdmin.address}
-          implementation:    ${contract.address}
-          proxy:             ${proxy.address}
-        `,
-      )
-    } else {
-      await sendTransaction(sender, proxyAdmin, 'acceptProxy', [contract.address, proxy.address])
-    }
-  }
+
+  // Wrap implementation with proxy
+  const proxy = await wrapContractWithProxy(proxyAdmin, contract, args, sender, buildAcceptProxyTx)
 
   // Overwrite address entry with proxy
   const artifact = loadArtifact('GraphProxy')
   const contractEntry = addressBook.getEntry(name)
   addressBook.setEntry(name, {
     address: proxy.address,
-    initArgs: args.length === 0 ? undefined : args,
+    initArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
     creationCodeHash: hash(artifact.bytecode),
     runtimeCodeHash: hash(await sender.provider.getCode(proxy.address)),
     txHash: proxy.deployTransaction.hash,
