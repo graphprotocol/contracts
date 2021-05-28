@@ -1,3 +1,4 @@
+import { Contract, providers, Signer } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
@@ -15,12 +16,29 @@ declare module 'hardhat/types/runtime' {
   }
 }
 
+interface ConsoleNetworkContracts extends NetworkContracts {
+  connect: () => void
+}
+
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre['contracts'] = lazyObject(() => {
-    const addressBook = getAddressBook(
-      cliOpts.addressBook.default,
-      hre.network.config.chainId.toString(),
-    )
-    return loadContracts(addressBook, hre.ethers.provider)
+    const chainId = hre.network.config.chainId.toString()
+    const provider = hre.ethers.provider
+    const addressBook = getAddressBook(cliOpts.addressBook.default, chainId)
+    const contracts = loadContracts(addressBook, provider) as ConsoleNetworkContracts
+
+    // Connect contracts to a signing account
+    contracts.connect = async function (n = 0) {
+      const accounts = await hre.ethers.getSigners()
+      const senderAccount = accounts[n]
+      console.log(`> Sender set to ${senderAccount.address}`)
+      for (const [k, contract] of Object.entries(contracts)) {
+        if (contract instanceof Contract) {
+          contracts[k] = contract.connect(senderAccount)
+        }
+      }
+    }
+
+    return contracts
   })
 })
