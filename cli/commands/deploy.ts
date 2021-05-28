@@ -16,8 +16,6 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const deployType = cliArgs.type
   const buildAcceptProxyTx = cliArgs.buildTx
 
-  logger.info(`Deploying contract ${contractName}...`)
-
   // Deploy contract
   const contractArgs = initArgs ? initArgs.split(',') : []
   switch (deployType) {
