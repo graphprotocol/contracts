@@ -1,17 +1,15 @@
-import consola from 'consola'
 import yargs, { Argv } from 'yargs'
 
 import { sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-
-const logger = consola.create({})
+import { logger } from '../../logging'
 
 export const createProposal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const id = cliArgs.id
   const votes = cliArgs.votes
   const metadata = cliArgs.metadata
   const resolution = cliArgs.resolution
-  const governance = cli.contracts.Governance
+  const governance = cli.contracts.GraphGovernance
 
   logger.info(`Creating proposal ${id}...`)
   await sendTransaction(cli.wallet, governance, 'createProposal', [id, votes, metadata, resolution])
@@ -22,7 +20,7 @@ export const upgradeProposal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pr
   const votes = cliArgs.votes
   const metadata = cliArgs.metadata
   const resolution = cliArgs.resolution
-  const governance = cli.contracts.Governance
+  const governance = cli.contracts.GraphGovernance
 
   logger.info(`Upgrade proposal ${id}...`)
   await sendTransaction(cli.wallet, governance, 'upgradeProposal', [
