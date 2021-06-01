@@ -15,11 +15,10 @@ import {
   toBN,
   toGRT,
   Account,
+  MAX_PPM,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-
-const MAX_PPM = toBN('1000000')
 
 enum AllocationState {
   Null,

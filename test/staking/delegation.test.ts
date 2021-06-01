@@ -16,11 +16,11 @@ import {
   toBN,
   Account,
   advanceBlock,
+  percentageOf,
+  MAX_PPM,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-const MAX_PPM = toBN('1000000')
-const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
   let me: Account
@@ -626,7 +626,11 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const delegationFees = percentageOf(queryFeeCut, beforeAlloc.collectedFees)
+      const indexerDelegationRatio = tokensToDelegate.mul(MAX_PPM).div(tokensToStake)
+      const delegatorsRewardsCut = queryFeeCut.sub(
+        queryFeeCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
+      )
+      const delegationFees = percentageOf(delegatorsRewardsCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 
       // Claim from rebate pool

@@ -23,13 +23,13 @@ import {
   formatGRT,
   Account,
   advanceToNextEpoch,
+  percentageOf,
+  MAX_PPM,
 } from '../lib/testHelpers'
-
-const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants
 
-const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
+const toRound = (n: BigNumber) => Math.round(parseFloat(formatGRT(n)) / 1e18).toString()
 
 describe('Rewards', () => {
   let delegator: Account
@@ -696,11 +696,14 @@ describe('Rewards', () => {
         // NOTE: calculated manually on a spreadsheet
         const expectedIndexingRewards = toGRT('1454109066')
         // Calculate delegators cut
-        const indexerRewards = delegationParams.indexingRewardCut
-          .mul(expectedIndexingRewards)
-          .div(toBN(MAX_PPM))
+        const indexerDelegationRatio = tokensToDelegate.mul(MAX_PPM).div(beforeIndexer1Stake)
+        const delegatorsRewardsCut = delegationParams.indexingRewardCut.sub(
+          delegationParams.indexingRewardCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
+        )
+        const delegatorsRewards = percentageOf(delegatorsRewardsCut, expectedIndexingRewards)
+
         // Calculate indexer cut
-        const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
+        const indexerRewards = expectedIndexingRewards.sub(delegatorsRewards)
         // Check
         const expectedIndexerStake = beforeIndexer1Stake.add(indexerRewards)
         const expectedDelegatorsPoolTokens = beforeDelegationPool.tokens.add(delegatorsRewards)

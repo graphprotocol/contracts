@@ -16,6 +16,8 @@ interface IStakingData {
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when closed
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
+        uint32 delegatorsIndexingRewardsCut; // Share of indexing rewards for delegators (PPM)
+        uint32 delegatorsQueryFeeCut; // Share of query fees for delegators (PPM)
     }
 
     /**
