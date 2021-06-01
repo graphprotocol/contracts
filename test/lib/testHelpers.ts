@@ -16,7 +16,7 @@ export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
 export const percentageOf = (ppm: BigNumber, value: BigNumber): BigNumber =>
-  value.sub(ppm.mul(value).div(MAX_PPM))
+  ppm.mul(value).div(MAX_PPM)
 
 export const MAX_PPM = toBN('1000000')
 

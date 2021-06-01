@@ -52,7 +52,7 @@ library MathUtils {
      * Both `a` and `b` must have the same scaling.
      */
     function ratio(uint256 a, uint256 b) internal pure returns (uint32) {
-        return SafeCast.toUint32(a.mul(MAX_PPM).div(b));
+        return a > 0 ? SafeCast.toUint32(a.mul(MAX_PPM).div(b)) : 0;
     }
 
     /**
@@ -61,6 +61,7 @@ library MathUtils {
      * @param value Value to calcuate the percentage of
      */
     function percentOf(uint32 percentage, uint256 value) internal pure returns (uint256) {
+        if (percentage >= MAX_PPM) return value; // bound-check
         return uint256(percentage).mul(value).div(MAX_PPM);
     }
 }

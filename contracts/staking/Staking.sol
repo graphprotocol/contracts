@@ -1171,6 +1171,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pure
         returns (uint32)
     {
+        if (_indexerRewardsCut == 0) return 0;
         return
             SafeCast.toUint32(
                 uint256(_indexerRewardsCut).sub(
@@ -1458,6 +1459,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * This function will assign the collected tokens to the delegation pool.
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount to collect
+     * @param _rewardsCut Percentage of rewards that the delegators will get (PPM)
      * @return Amount of delegation rewards
      */
     function _collectDelegationRewards(
@@ -1467,9 +1469,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     ) private returns (uint256) {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = delegationPools[_indexer];
-        if (pool.tokens > 0 && _rewardsCut < MathUtils.MAX_PPM) {
-            uint256 indexerCut = MathUtils.percentOf(_rewardsCut, _tokens);
-            delegationRewards = _tokens.sub(indexerCut);
+        if (_rewardsCut > 0 && pool.tokens > 0) {
+            delegationRewards = MathUtils.percentOf(_rewardsCut, _tokens);
             pool.tokens = pool.tokens.add(delegationRewards);
         }
         return delegationRewards;
