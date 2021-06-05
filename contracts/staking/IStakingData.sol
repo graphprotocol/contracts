@@ -16,8 +16,8 @@ interface IStakingData {
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when closed
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
-        uint32 delegatorsIndexingRewardsCut; // Share of indexing rewards for delegators (PPM)
-        uint32 delegatorsQueryFeeCut; // Share of query fees for delegators (PPM)
+        uint32 delegatorIndexRewardsCut; // Share of index rewards for delegators (PPM)
+        uint32 delegatorQueryRewardsCut; // Share of query rewards for delegators (PPM)
     }
 
     /**
@@ -37,8 +37,8 @@ interface IStakingData {
      */
     struct DelegationPool {
         uint32 cooldownBlocks; // Blocks to wait before updating parameters
-        uint32 indexingRewardCut; // in PPM
-        uint32 queryFeeCut; // in PPM
+        uint32 indexRewardsCut; // Share of index rewards for delegators (PPM)
+        uint32 queryRewardsCut; // Share of query rewards for delegators (PPM)
         uint256 updatedAtBlock; // Block when the pool was last updated
         uint256 tokens; // Total tokens as pool reserves
         uint256 shares; // Total shares minted in the pool

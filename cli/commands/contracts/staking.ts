@@ -104,19 +104,19 @@ export const setDelegationParameters = async (
   cli: CLIEnvironment,
   cliArgs: CLIArgs,
 ): Promise<void> => {
-  const indexingRewardCut = cliArgs.indexingRewardCut
-  const queryFeeCut = cliArgs.queryFeeCut
+  const indexRewardsCut = cliArgs.indexRewardsCut
+  const queryRewardsCut = cliArgs.queryRewardsCut
   const cooldownBlocks = cliArgs.cooldownBlocks
   const staking = cli.contracts.Staking
 
   logger.info(`Setting the following delegation parameters for indexer ${cli.walletAddress}
-      indexingRewardCut = ${indexingRewardCut}
-      queryFeeCut       = ${queryFeeCut}
+      indexRewardsCut = ${indexRewardsCut}
+      queryRewardsCut       = ${queryRewardsCut}
       cooldownBlocks    = ${cooldownBlocks}
   `)
   await sendTransaction(cli.wallet, staking, 'setDelegationParameters', [
-    indexingRewardCut,
-    queryFeeCut,
+    indexRewardsCut,
+    queryRewardsCut,
     cooldownBlocks,
   ])
 }
@@ -341,14 +341,14 @@ export const stakingCommand = {
         describe: 'Sets the delegation parameters for an indexer',
         builder: (yargs: Argv) => {
           return yargs
-            .option('indexingRewardCut', {
-              description: 'Percentage of indexing rewards left for delegators',
+            .option('indexRewardsCut', {
+              description: 'Share of index rewards that the indexer keeps (in PPM)',
               type: 'number',
               requiresArg: true,
               demandOption: true,
             })
-            .option('queryFeeCut', {
-              description: 'Percentage of query fees left for delegators',
+            .option('queryRewardsCut', {
+              description: 'Share of query rewards that the indexer keeps (in PPM)',
               type: 'number',
               requiresArg: true,
               demandOption: true,

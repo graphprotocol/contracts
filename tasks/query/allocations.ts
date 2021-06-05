@@ -54,7 +54,7 @@ task('query:allos', 'List allocations').setAction(async (_, hre: HardhatRuntimeE
         allo.subgraphDeployment.id,
         formatEther(allo.allocatedTokens),
         formatEther(r),
-        pool.indexingRewardCut / 10000,
+        pool.indexRewardsCut / 10000,
         pool.updatedAtBlock.add(pool.cooldownBlocks).toNumber() - currentBlock,
         allo.createdAtEpoch,
       ])

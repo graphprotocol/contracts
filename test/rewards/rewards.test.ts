@@ -498,8 +498,8 @@ describe('Rewards', () => {
 
     describe('takeRewards', function () {
       interface DelegationParameters {
-        indexingRewardCut: BigNumber
-        queryFeeCut: BigNumber
+        indexRewardsCut: BigNumber
+        queryRewardsCut: BigNumber
         cooldownBlocks: number
       }
 
@@ -543,8 +543,8 @@ describe('Rewards', () => {
         await staking
           .connect(indexer1.signer)
           .setDelegationParameters(
-            delegationParams.indexingRewardCut,
-            delegationParams.queryFeeCut,
+            delegationParams.indexRewardsCut,
+            delegationParams.queryRewardsCut,
             delegationParams.cooldownBlocks,
           )
 
@@ -667,8 +667,8 @@ describe('Rewards', () => {
       it('should distribute rewards on closed allocation w/delegators', async function () {
         // Setup
         const delegationParams = {
-          indexingRewardCut: toBN('823000'), // 82.30%
-          queryFeeCut: toBN('80000'), // 8%
+          indexRewardsCut: toBN('823000'), // 82.30%
+          queryRewardsCut: toBN('80000'), // 8%
           cooldownBlocks: 5,
         }
         const tokensToDelegate = toGRT('2000')
@@ -697,8 +697,8 @@ describe('Rewards', () => {
         const expectedIndexingRewards = toGRT('1454109066')
         // Calculate delegators cut
         const indexerDelegationRatio = tokensToDelegate.mul(MAX_PPM).div(beforeIndexer1Stake)
-        const delegatorsRewardsCut = delegationParams.indexingRewardCut.sub(
-          delegationParams.indexingRewardCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
+        const delegatorsRewardsCut = delegationParams.indexRewardsCut.sub(
+          delegationParams.indexRewardsCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
         )
         const delegatorsRewards = percentageOf(delegatorsRewardsCut, expectedIndexingRewards)
 
