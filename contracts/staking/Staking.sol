@@ -784,12 +784,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // -- Interactions --
 
+        // Give the beneficiary a reward for slashing and burn remaining slashed stake
         IGraphToken graphToken = graphToken();
-
-        // Set apart the reward for the beneficiary and burn remaining slashed stake
         TokenUtils.burnTokens(graphToken, _tokens.sub(_reward));
-
-        // Give the beneficiary a reward for slashing
         TokenUtils.pushTokens(graphToken, _beneficiary, _reward);
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
@@ -1113,10 +1110,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Needs to have free capacity not used for other purposes to allocate
         require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
 
-        // Calculates the delegation ratio
+        // Calculates the delegation ratio, delegation share of the total stake
         DelegationPool storage delegationPool = delegationPools[_indexer];
         uint32 indexerDelegationRatio =
-            MathUtils.ratio(delegationPool.tokens, stakes[_indexer].tokensStaked);
+            MathUtils.totalRatio(delegationPool.tokens, stakes[_indexer].tokensSecureStake());
 
         // Creates an allocation
         // Allocation identifiers are not reused
@@ -1159,10 +1156,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Calculate the delegator rewards cut based on the indexer delegation ratio and the
      * reward cut.
-     * - indexerDelegationRatio = delegatedStake / indexerStake
+     * - indexerDelegationRatio = delegatedStake / totalStake
      * - indexerRewardsCut = Percentage of rewards the indexer keeps
-     * - f() = indexerRewardsCut - indexerRewardsCut/(1 + indexerDelegationRatio)
-     * @param _indexerDelegationRatio Delegation to stake ratio (in PPM)
+     * - f() = (1 - indexerRewardsCut) * indexerDelegationRatio
+     * @param _indexerDelegationRatio Delegation to total-stake ratio (in PPM)
      * @param _indexerRewardsCut Indexer rewards cut (in PPM)
      * @return The delegators rewards cut (in PPM)
      */
@@ -1171,15 +1168,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pure
         returns (uint32)
     {
-        if (_indexerRewardsCut == 0) return 0;
+        if (_indexerDelegationRatio == 0 || _indexerRewardsCut == MathUtils.MAX_PPM) return 0;
         return
-            SafeCast.toUint32(
-                uint256(_indexerRewardsCut).sub(
-                    MathUtils.ratio(
-                        _indexerRewardsCut,
-                        uint256(MathUtils.MAX_PPM).add(_indexerDelegationRatio)
-                    )
-                )
+            MathUtils.percentOfPercent(
+                MathUtils.percentFlip(_indexerRewardsCut),
+                _indexerDelegationRatio
             );
     }
 

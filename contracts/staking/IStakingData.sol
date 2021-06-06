@@ -37,8 +37,8 @@ interface IStakingData {
      */
     struct DelegationPool {
         uint32 cooldownBlocks; // Blocks to wait before updating parameters
-        uint32 indexRewardsCut; // Share of index rewards for delegators (PPM)
-        uint32 queryRewardsCut; // Share of query rewards for delegators (PPM)
+        uint32 indexRewardsCut; // Share of index rewards for indexers (PPM)
+        uint32 queryRewardsCut; // Share of query rewards for indexers (PPM)
         uint256 updatedAtBlock; // Block when the pool was last updated
         uint256 tokens; // Total tokens as pool reserves
         uint256 shares; // Total shares minted in the pool

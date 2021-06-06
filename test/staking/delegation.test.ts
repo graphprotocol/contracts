@@ -18,6 +18,7 @@ import {
   advanceBlock,
   percentageOf,
   MAX_PPM,
+  getDelegatorRewardsCut,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
@@ -626,9 +627,10 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const indexerDelegationRatio = tokensToDelegate.mul(MAX_PPM).div(tokensToStake)
-      const delegatorsRewardsCut = queryRewardsCut.sub(
-        queryRewardsCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
+      const delegatorsRewardsCut = getDelegatorRewardsCut(
+        tokensToDelegate,
+        tokensToStake,
+        queryRewardsCut,
       )
       const delegationFees = percentageOf(delegatorsRewardsCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)

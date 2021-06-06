@@ -3,7 +3,6 @@
 pragma solidity ^0.7.3;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
 
 /**
  * @title MathUtils Library
@@ -48,20 +47,46 @@ library MathUtils {
     }
 
     /**
-     * @dev Returns the ratio a/b using PPM scaling precision.
+     * @dev Returns the ratio a/(a+b) using PPM scaling precision.
      * Both `a` and `b` must have the same scaling.
      */
-    function ratio(uint256 a, uint256 b) internal pure returns (uint32) {
-        return a > 0 ? SafeCast.toUint32(a.mul(MAX_PPM).div(b)) : 0;
+    function totalRatio(uint256 a, uint256 b) internal pure returns (uint32) {
+        return a > 0 ? toPercent(a.mul(MAX_PPM).div(a.add(b))) : 0;
     }
 
     /**
-     * @dev Returns the percentage of value with parts-per-million precision.
-     * @param percentage Percentage in parts-per-million (PPM)
-     * @param value Value to calcuate the percentage of
+     * @dev Cast a number to uint32 and ensures that it is within percent expressed
+     * in parts-per-million max bound.
+     * @param value Value to cast and check is PPM
+     */
+    function toPercent(uint256 value) internal pure returns (uint32) {
+        require(value <= MAX_PPM, "PercentCast: out of bounds");
+        return uint32(value);
+    }
+
+    /**
+     * @dev Returns the value after applying percentage with parts-per-million precision.
+     * @param percentage Percentage (PPM)
+     * @param value Value to calculate the percentage of
      */
     function percentOf(uint32 percentage, uint256 value) internal pure returns (uint256) {
-        if (percentage >= MAX_PPM) return value; // bound-check
-        return uint256(percentage).mul(value).div(MAX_PPM);
+        return percentage >= MAX_PPM ? value : uint256(percentage).mul(value).div(MAX_PPM);
+    }
+
+    /**
+     * @dev Returns the percentage of a percentage expressed in parts-per-million.
+     * @param a First percentage (PPM)
+     * @param b Second percentage (PPM)
+     */
+    function percentOfPercent(uint32 a, uint32 b) internal pure returns (uint32) {
+        return toPercent(percentOf(a, uint256(b)));
+    }
+
+    /**
+     * @dev Returns (1 - percentage) in parts-per-million.
+     * @param percentage Percentage (PPM)
+     */
+    function percentFlip(uint32 percentage) internal pure returns (uint32) {
+        return toPercent(uint256(MathUtils.MAX_PPM).sub(percentage));
     }
 }

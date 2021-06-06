@@ -8,17 +8,37 @@ import { EpochManager } from '../../build/types/EpochManager'
 
 const { hexlify, parseUnits, randomBytes } = utils
 
+// Conversions
+
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string | number): BigNumber => {
   return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
 }
 export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
+
+// Symbols
+
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
+
+// Core Math
+
+export const MAX_PPM = toBN('1000000')
+export const totalRatio = (a: BigNumber, b: BigNumber): BigNumber => a.mul(MAX_PPM).div(a.add(b))
+export const percentageFlip = (ppm: BigNumber): BigNumber => MAX_PPM.sub(ppm)
 export const percentageOf = (ppm: BigNumber, value: BigNumber): BigNumber =>
   ppm.mul(value).div(MAX_PPM)
 
-export const MAX_PPM = toBN('1000000')
+// Protocol Math
+
+export function getDelegatorRewardsCut(
+  delegatedTokens: BigNumber,
+  stakedTokens: BigNumber,
+  rewardsCut: BigNumber,
+): BigNumber {
+  const indexerDelegationRatio = totalRatio(delegatedTokens, stakedTokens)
+  return percentageOf(percentageFlip(rewardsCut), indexerDelegationRatio)
+}
 
 // Network
 
