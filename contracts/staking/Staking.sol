@@ -1570,11 +1570,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID Subgraph deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return 0;
-        }
-        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return rewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
@@ -1588,15 +1584,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         address _indexer,
         uint32 _delegatorRewardsCut
     ) private {
-        IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return;
-        }
-
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
-        uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
+        uint256 totalRewards = rewardsManager().takeRewards(_allocationID);
         if (totalRewards == 0) {
             return;
         }
