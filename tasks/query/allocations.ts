@@ -43,7 +43,6 @@ task('query:allos', 'List allocations').setAction(async (_, hre: HardhatRuntimeE
   const queue = new PQueue({ concurrency: 4 })
   for (const allo of allos) {
     queue.add(async () => {
-      console.log('coso')
       const [pool, r] = await Promise.all([
         contracts.Staking.delegationPools(allo.indexer.id),
         contracts.RewardsManager.getRewards(allo.id),

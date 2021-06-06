@@ -70,6 +70,7 @@ library MathUtils {
      * @param value Value to calculate the percentage of
      */
     function percentOf(uint32 percentage, uint256 value) internal pure returns (uint256) {
+        if (percentage == 0 || value == 0) return 0;
         return percentage >= MAX_PPM ? value : uint256(percentage).mul(value).div(MAX_PPM);
     }
 

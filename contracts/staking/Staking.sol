@@ -1168,7 +1168,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pure
         returns (uint32)
     {
-        if (_indexerDelegationRatio == 0 || _indexerRewardsCut == MathUtils.MAX_PPM) return 0;
         return
             MathUtils.percentOfPercent(
                 MathUtils.percentFlip(_indexerRewardsCut),
