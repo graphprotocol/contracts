@@ -484,12 +484,12 @@
       "txHash": "0x9febc188c44c0d9b1162c100833e59e72c1795d999c2ff906f723bfca118c12d",
       "proxy": true,
       "implementation": {
-        "address": "0xFAd188a4d733cC1f4b225F67b3dAD70D7CA58828",
-        "creationCodeHash": "0x0d78d17a47a528f2ba209ccbf53b40d193780908c975caed7078b9bb56740ea8",
-        "runtimeCodeHash": "0x6efaa488af550d7e049cebef65cce779b5218f2e3a000f12b22f9ca2e1c70d25",
+        "address": "0x87E71E61edcA08cF2E601f6428216C40Ca83FDbC",
+        "creationCodeHash": "0xba1d87a98bc359a5eb14e96faad5ed8310fa56af89a12e3279ca8d8869d8e33b",
+        "runtimeCodeHash": "0xba1d87a98bc359a5eb14e96faad5ed8310fa56af89a12e3279ca8d8869d8e33b",
         "txHash": "0xa9f323e151b92ccbe9729f63c723620cd07c51ff6093397e5c4e6b5861ce77f1",
         "libraries": {
-          "LibCobbDouglas": "0xE3EC70e7e65675777c3fc397516ad45a1859315a"
+          "LibCobbDouglas": "0x6EA2FD86890BAC2e6b34432b5c6d85354aad764F"
         }
       }
     },
@@ -522,10 +522,10 @@
       "txHash": "0xb629195f313e8214e48f5a3fc741072d710f9f9ed6079331908341761f582760",
       "proxy": true,
       "implementation": {
-        "address": "0xf3817BD64508c0e0CBA77Ef1F2bF1DDCB53f1F52",
-        "creationCodeHash": "0xde135df3aa4ce1144b2d623f42af601290c8c9838a7ecffb7e084cfd860d66e5",
-        "runtimeCodeHash": "0x126ff82d91cc4a00987d757db8d244edafb91507197b052441dcc94230e4b6ce",
-        "txHash": "0x1d943f3139c2f88cd6281f5bccc6bfb530473254cfd5cecb5a822957c3e42760"
+        "address": "0x9CD121b6018A78c08Fc72b9948A6a43E6CEfBC07",
+        "creationCodeHash": "0x7508a0ca0cb8f88ef54aa2cd1a464dc93a51b5cf500f763f7192a704985d91f3",
+        "runtimeCodeHash": "0xc8f0b38c011925dbf847c05e73e2b23e8e14553121d58600173ba61731b0a807",
+        "txHash": "0x7679f2bfab93883af93bdf1166a42d1b3a87c1cbb3fb3cff5c7f860644409fd5"
       }
     },
     "BancorFormula": {
