@@ -29,7 +29,7 @@ export const getChainID = (): number => {
   return 4 // Only works for rinkeby right now
 }
 
-const hash = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
+export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
 type ContractParam = string | BigNumber | number
 type DeployResult = {
@@ -61,7 +61,7 @@ export const isContractDeployed = async (
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash
-    const creationCodeHash = hash(artifact.bytecode)
+    const creationCodeHash = hashHexString(artifact.bytecode)
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
       logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)
@@ -70,8 +70,8 @@ export const isContractDeployed = async (
   }
 
   const savedRuntimeCodeHash = addressEntry.runtimeCodeHash
-  const runtimeCodeHash = hash(await provider.getCode(address))
-  if (runtimeCodeHash === hash('0x00') || runtimeCodeHash === hash('0x')) {
+  const runtimeCodeHash = hashHexString(await provider.getCode(address))
+  if (runtimeCodeHash === hashHexString('0x00') || runtimeCodeHash === hashHexString('0x')) {
     logger.warn('No runtimeCode exists at the address in our address book')
     return false
   }
@@ -199,10 +199,10 @@ export const deployContract = async (
   await sender.provider.waitForTransaction(txHash)
 
   // Receipt
-  const creationCodeHash = hash(factory.bytecode)
-  const runtimeCodeHash = hash(await sender.provider.getCode(contract.address))
-  logger.info('= CreationCodeHash: ', creationCodeHash)
-  logger.info('= RuntimeCodeHash: ', runtimeCodeHash)
+  const creationCodeHash = hashHexString(factory.bytecode)
+  const runtimeCodeHash = hashHexString(await sender.provider.getCode(contract.address))
+  logger.info(`= CreationCodeHash: ${creationCodeHash}`)
+  logger.info(`= RuntimeCodeHash: ${runtimeCodeHash}`)
   logger.info(`${name} has been deployed to address: ${contract.address}`)
 
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
@@ -325,8 +325,8 @@ export const deployContractWithProxyAndSave = async (
   addressBook.setEntry(name, {
     address: proxy.address,
     initArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
-    creationCodeHash: hash(artifact.bytecode),
-    runtimeCodeHash: hash(await sender.provider.getCode(proxy.address)),
+    creationCodeHash: hashHexString(artifact.bytecode),
+    runtimeCodeHash: hashHexString(await sender.provider.getCode(proxy.address)),
     txHash: proxy.deployTransaction.hash,
     proxy: true,
     implementation: contractEntry,
