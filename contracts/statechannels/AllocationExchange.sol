@@ -39,6 +39,8 @@ contract AllocationExchange is Governed {
     IStaking private immutable staking;
     IGraphToken private immutable graphToken;
     address public authority;
+
+    // Tracks redeemed allocationIDs. An allocation can only be redeemed once.
     mapping(address => bool) public allocationsRedeemed;
 
     // -- Events
@@ -49,6 +51,13 @@ contract AllocationExchange is Governed {
 
     // -- Functions
 
+    /**
+     * @notice Contract constructor.
+     * @param _graphToken Address of the GRT token
+     * @param _staking Address of the protocol Staking contract
+     * @param _governor Account capable of withdrawing funds and setting the authority
+     * @param _authority Account that can sign the vouchers that this contract will redeem
+     */
     constructor(
         IGraphToken _graphToken,
         IStaking _staking,
