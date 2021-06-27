@@ -78,7 +78,7 @@ describe('AllocationExchange', () => {
 
     // Ensure the exchange is correctly setup
     await staking.connect(governor.signer).setAssetHolder(allocationExchange.address, true)
-    await allocationExchange.connect(governor.signer).setAuthority(authority.address)
+    await allocationExchange.connect(governor.signer).setAuthority(authority.address, true)
     await allocationExchange.approveAll()
   })
 
@@ -114,21 +114,27 @@ describe('AllocationExchange', () => {
 
   describe('config', function () {
     it('should set an authority', async function () {
+      // Set authority
       const newAuthority = randomAddress()
-      const tx = allocationExchange.connect(governor.signer).setAuthority(newAuthority)
-      await expect(tx).emit(allocationExchange, 'AuthoritySet').withArgs(newAuthority)
-      expect(await allocationExchange.authority()).eq(newAuthority)
+      const tx1 = allocationExchange.connect(governor.signer).setAuthority(newAuthority, true)
+      await expect(tx1).emit(allocationExchange, 'AuthoritySet').withArgs(newAuthority, true)
+      expect(await allocationExchange.authority(newAuthority)).eq(true)
+
+      // Unset authority
+      const tx2 = allocationExchange.connect(governor.signer).setAuthority(newAuthority, false)
+      await expect(tx2).emit(allocationExchange, 'AuthoritySet').withArgs(newAuthority, false)
+      expect(await allocationExchange.authority(newAuthority)).eq(false)
     })
 
     it('reject set an authority if not allowed', async function () {
       const newAuthority = randomAddress()
-      const tx = allocationExchange.connect(indexer.signer).setAuthority(newAuthority)
+      const tx = allocationExchange.connect(indexer.signer).setAuthority(newAuthority, true)
       await expect(tx).revertedWith(' Only Governor can call')
     })
 
     it('reject set an empty authority', async function () {
       const newAuthority = AddressZero
-      const tx = allocationExchange.connect(governor.signer).setAuthority(newAuthority)
+      const tx = allocationExchange.connect(governor.signer).setAuthority(newAuthority, true)
       await expect(tx).revertedWith('Exchange: empty authority')
     })
 
@@ -225,7 +231,7 @@ describe('AllocationExchange', () => {
       const allocationID = '0xfefefefefefefefefefefefefefefefefefefefe'
 
       // Ensure the exchange is correctly setup
-      await allocationExchange.connect(governor.signer).setAuthority(authority.address)
+      await allocationExchange.connect(governor.signer).setAuthority(authority.address, true)
       await allocationExchange.approveAll()
 
       // Initiate a withdrawal
