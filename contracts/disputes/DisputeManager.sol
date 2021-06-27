@@ -698,7 +698,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Recover the signer address of the `_attestation`.
+     * @dev Return the slashing percentage for the dispute type.
      * @param _disputeType Dispute type
      * @return Slashing percentage to use for the dispute type
      */
