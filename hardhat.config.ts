@@ -27,7 +27,7 @@ import '@typechain/hardhat'
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 if (!SKIP_LOAD) {
-  ;['contracts', 'misc', 'query', 'deployment'].forEach((folder) => {
+  ;['contracts', 'misc', 'query', 'deployment', 'actions'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
