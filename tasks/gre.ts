@@ -1,4 +1,4 @@
-import { Contract, providers, Signer } from 'ethers'
+import { Contract } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
