@@ -79,7 +79,7 @@ library MathUtils {
      * @param a First percentage (PPM)
      * @param b Second percentage (PPM)
      */
-    function percentOfPercent(uint32 a, uint32 b) internal pure returns (uint32) {
+    function percentMul(uint32 a, uint32 b) internal pure returns (uint32) {
         return toPercent(percentOf(a, uint256(b)));
     }
 

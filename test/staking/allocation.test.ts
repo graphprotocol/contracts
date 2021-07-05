@@ -16,7 +16,7 @@ import {
   toGRT,
   Account,
   MAX_PPM,
-  getDelegatorRewardsCut,
+  getDelegatorTotalRewardsCut,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
@@ -196,15 +196,15 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.closedAtEpoch).eq(toBN('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
-      expect(afterAlloc.delegatorIndexRewardsCut).eq(
-        getDelegatorRewardsCut(
+      expect(afterAlloc.delegatorTotalIndexRewardsCut).eq(
+        getDelegatorTotalRewardsCut(
           beforeDelegationPool.tokens,
           beforeStake.tokensStaked,
           BigNumber.from(beforeDelegationPool.indexRewardsCut),
         ),
       )
-      expect(afterAlloc.delegatorQueryRewardsCut).eq(
-        getDelegatorRewardsCut(
+      expect(afterAlloc.delegatorTotalQueryRewardsCut).eq(
+        getDelegatorTotalRewardsCut(
           beforeDelegationPool.tokens,
           beforeStake.tokensStaked,
           BigNumber.from(beforeDelegationPool.queryRewardsCut),

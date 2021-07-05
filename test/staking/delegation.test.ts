@@ -18,7 +18,7 @@ import {
   advanceBlock,
   percentageOf,
   MAX_PPM,
-  getDelegatorRewardsCut,
+  getDelegatorTotalRewardsCut,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
@@ -597,7 +597,7 @@ describe('Staking::Delegation', () => {
       await staking.connect(governor.signer).setDelegationRatio(10)
 
       // Set delegation rules for the indexer
-      const indexRewardsCut = toBN('800000') // indexer keep 80%
+      const indexRewardsCut = toBN('800000') // indexer keeps 80%
       const queryRewardsCut = toBN('950000') // indexer keeps 95%
       const cooldownBlocks = 5
       await staking
@@ -627,12 +627,12 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const delegatorsRewardsCut = getDelegatorRewardsCut(
+      const delegatorsTotalRewardsCut = getDelegatorTotalRewardsCut(
         tokensToDelegate,
         tokensToStake,
         queryRewardsCut,
       )
-      const delegationFees = percentageOf(delegatorsRewardsCut, beforeAlloc.collectedFees)
+      const delegationFees = percentageOf(delegatorsTotalRewardsCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 
       // Claim from rebate pool

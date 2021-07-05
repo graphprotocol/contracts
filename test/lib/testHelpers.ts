@@ -31,7 +31,7 @@ export const percentageOf = (ppm: BigNumber, value: BigNumber): BigNumber =>
 
 // Protocol Math
 
-export function getDelegatorRewardsCut(
+export function getDelegatorTotalRewardsCut(
   delegatedTokens: BigNumber,
   stakedTokens: BigNumber,
   rewardsCut: BigNumber,
