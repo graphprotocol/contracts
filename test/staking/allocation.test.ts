@@ -15,11 +15,11 @@ import {
   toBN,
   toGRT,
   Account,
+  MAX_PPM,
+  getDelegatorTotalRewardsCut,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-
-const MAX_PPM = toBN('1000000')
 
 enum AllocationState {
   Null,
@@ -166,6 +166,7 @@ describe('Staking:Allocation', () => {
     const shouldAllocate = async (tokensToAllocate: BigNumber) => {
       // Before state
       const beforeStake = await staking.stakes(indexer.address)
+      const beforeDelegationPool = await staking.delegationPools(indexer.address)
 
       // Allocate
       const currentEpoch = await epochManager.currentEpoch()
@@ -195,6 +196,20 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.closedAtEpoch).eq(toBN('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
+      expect(afterAlloc.delegatorTotalIndexRewardsCut).eq(
+        getDelegatorTotalRewardsCut(
+          beforeDelegationPool.tokens,
+          beforeStake.tokensStaked,
+          BigNumber.from(beforeDelegationPool.indexRewardsCut),
+        ),
+      )
+      expect(afterAlloc.delegatorTotalQueryRewardsCut).eq(
+        getDelegatorTotalRewardsCut(
+          beforeDelegationPool.tokens,
+          beforeStake.tokensStaked,
+          BigNumber.from(beforeDelegationPool.queryRewardsCut),
+        ),
+      )
     }
 
     it('reject allocate zero tokens', async function () {

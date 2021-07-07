@@ -23,13 +23,13 @@ import {
   formatGRT,
   Account,
   advanceToNextEpoch,
+  percentageOf,
+  MAX_PPM,
 } from '../lib/testHelpers'
-
-const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants
 
-const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
+const toRound = (n: BigNumber) => Math.round(parseFloat(formatGRT(n)) / 1e18).toString()
 
 describe('Rewards', () => {
   let delegator: Account
@@ -498,8 +498,8 @@ describe('Rewards', () => {
 
     describe('takeRewards', function () {
       interface DelegationParameters {
-        indexingRewardCut: BigNumber
-        queryFeeCut: BigNumber
+        indexRewardsCut: BigNumber
+        queryRewardsCut: BigNumber
         cooldownBlocks: number
       }
 
@@ -543,8 +543,8 @@ describe('Rewards', () => {
         await staking
           .connect(indexer1.signer)
           .setDelegationParameters(
-            delegationParams.indexingRewardCut,
-            delegationParams.queryFeeCut,
+            delegationParams.indexRewardsCut,
+            delegationParams.queryRewardsCut,
             delegationParams.cooldownBlocks,
           )
 
@@ -667,8 +667,8 @@ describe('Rewards', () => {
       it('should distribute rewards on closed allocation w/delegators', async function () {
         // Setup
         const delegationParams = {
-          indexingRewardCut: toBN('823000'), // 82.30%
-          queryFeeCut: toBN('80000'), // 8%
+          indexRewardsCut: toBN('823000'), // 82.30%
+          queryRewardsCut: toBN('80000'), // 8%
           cooldownBlocks: 5,
         }
         const tokensToDelegate = toGRT('2000')
@@ -696,11 +696,14 @@ describe('Rewards', () => {
         // NOTE: calculated manually on a spreadsheet
         const expectedIndexingRewards = toGRT('1454109066')
         // Calculate delegators cut
-        const indexerRewards = delegationParams.indexingRewardCut
-          .mul(expectedIndexingRewards)
-          .div(toBN(MAX_PPM))
+        const indexerDelegationRatio = tokensToDelegate.mul(MAX_PPM).div(beforeIndexer1Stake)
+        const delegatorsRewardsCut = delegationParams.indexRewardsCut.sub(
+          delegationParams.indexRewardsCut.mul(MAX_PPM).div(MAX_PPM.add(indexerDelegationRatio)),
+        )
+        const delegatorsRewards = percentageOf(delegatorsRewardsCut, expectedIndexingRewards)
+
         // Calculate indexer cut
-        const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
+        const indexerRewards = expectedIndexingRewards.sub(delegatorsRewards)
         // Check
         const expectedIndexerStake = beforeIndexer1Stake.add(indexerRewards)
         const expectedDelegatorsPoolTokens = beforeDelegationPool.tokens.add(delegatorsRewards)

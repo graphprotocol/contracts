@@ -22,8 +22,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
 
-    // 100% in parts per million
-    uint32 private constant MAX_PPM = 1000000;
+    // For safety purposes we define an activation epoch for using the new rewards
+    // distribution formula
+    uint256 private constant GIP_ACTIVATION_EPOCH = 0; // TODO: change before deployment of implementation
 
     // -- Events --
 
@@ -284,7 +285,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function _setCurationPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, ">percentage");
+        require(_percentage <= MathUtils.MAX_PPM, ">percentage");
         curationPercentage = _percentage;
         emit ParameterUpdated("curationPercentage");
     }
@@ -303,7 +304,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function _setProtocolPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, ">percentage");
+        require(_percentage <= MathUtils.MAX_PPM, ">percentage");
         protocolPercentage = _percentage;
         emit ParameterUpdated("protocolPercentage");
     }
@@ -391,34 +392,34 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Set the delegation parameters for the caller.
-     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
-     * @param _queryFeeCut Percentage of query fees left for delegators
+     * @param _indexRewardsCut Share of index rewards that the indexer keeps (PPM)
+     * @param _queryRewardsCut Share of query rewards that the indexer keeps (PPM)
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
+        uint32 _indexRewardsCut,
+        uint32 _queryRewardsCut,
         uint32 _cooldownBlocks
     ) public override {
-        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut, _cooldownBlocks);
+        _setDelegationParameters(msg.sender, _indexRewardsCut, _queryRewardsCut, _cooldownBlocks);
     }
 
     /**
      * @dev Set the delegation parameters for a particular indexer.
      * @param _indexer Indexer to set delegation parameters
-     * @param _indexingRewardCut Percentage of indexing rewards left for delegators
-     * @param _queryFeeCut Percentage of query fees left for delegators
+     * @param _indexRewardsCut Share of index rewards that the indexer keeps (PPM)
+     * @param _queryRewardsCut Share of query rewards that the indexer keeps (PPM)
      * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function _setDelegationParameters(
         address _indexer,
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
+        uint32 _indexRewardsCut,
+        uint32 _queryRewardsCut,
         uint32 _cooldownBlocks
     ) private {
         // Incentives must be within bounds
-        require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
-        require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
+        require(_queryRewardsCut <= MathUtils.MAX_PPM, ">queryRewardsCut");
+        require(_indexRewardsCut <= MathUtils.MAX_PPM, ">indexRewardsCut");
 
         // Cooldown period set by indexer cannot be below protocol global setting
         require(_cooldownBlocks >= delegationParametersCooldown, "<cooldown");
@@ -432,15 +433,15 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         );
 
         // Update delegation params
-        pool.indexingRewardCut = _indexingRewardCut;
-        pool.queryFeeCut = _queryFeeCut;
+        pool.indexRewardsCut = _indexRewardsCut;
+        pool.queryRewardsCut = _queryRewardsCut;
         pool.cooldownBlocks = _cooldownBlocks;
         pool.updatedAtBlock = block.number;
 
         emit DelegationParametersUpdated(
             _indexer,
-            _indexingRewardCut,
-            _queryFeeCut,
+            _indexRewardsCut,
+            _queryRewardsCut,
             _cooldownBlocks
         );
     }
@@ -498,7 +499,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function _setDelegationTaxPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, ">percentage");
+        require(_percentage <= MathUtils.MAX_PPM, ">percentage");
         delegationTaxPercentage = _percentage;
         emit ParameterUpdated("delegationTaxPercentage");
     }
@@ -787,12 +788,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // -- Interactions --
 
+        // Give the beneficiary a reward for slashing and burn remaining slashed stake
         IGraphToken graphToken = graphToken();
-
-        // Set apart the reward for the beneficiary and burn remaining slashed stake
         TokenUtils.burnTokens(graphToken, _tokens.sub(_reward));
-
-        // Give the beneficiary a reward for slashing
         TokenUtils.pushTokens(graphToken, _beneficiary, _reward);
 
         emit StakeSlashed(_indexer, _tokens, _reward, _beneficiary);
@@ -976,10 +974,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage =
-                (allocState == AllocationState.Active || allocState == AllocationState.Closed)
-                    ? protocolPercentage
-                    : MAX_PPM;
+            uint32 usedProtocolPercentage = (allocState == AllocationState.Active ||
+                allocState == AllocationState.Closed)
+                ? protocolPercentage
+                : MathUtils.MAX_PPM;
             uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
@@ -1055,7 +1053,12 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Initialize the delegation pool the first time
         if (delegationPools[_indexer].updatedAtBlock == 0) {
-            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, delegationParametersCooldown);
+            _setDelegationParameters(
+                _indexer,
+                MathUtils.MAX_PPM,
+                MathUtils.MAX_PPM,
+                delegationParametersCooldown
+            );
         }
 
         emit StakeDeposited(_indexer, _tokens);
@@ -1111,20 +1114,34 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Needs to have free capacity not used for other purposes to allocate
         require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
 
+        // Calculates the delegation ratio, delegation share of the total stake
+        DelegationPool storage delegationPool = delegationPools[_indexer];
+        uint32 indexerDelegationTotalRatio = MathUtils.totalRatio(
+            delegationPool.tokens,
+            stakes[_indexer].tokensSecureStake()
+        );
+
         // Creates an allocation
         // Allocation identifiers are not reused
         // The assetHolder address can send collected funds to the allocation
-        Allocation memory alloc =
-            Allocation(
-                _indexer,
-                _subgraphDeploymentID,
-                _tokens, // Tokens allocated
-                epochManager().currentEpoch(), // createdAtEpoch
-                0, // closedAtEpoch
-                0, // Initialize collected fees
-                0, // Initialize effective allocation
-                _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
-            );
+        Allocation memory alloc = Allocation(
+            _indexer,
+            _subgraphDeploymentID,
+            _tokens, // Tokens allocated
+            epochManager().currentEpoch(), // createdAtEpoch
+            0, // Init `closedAtEpoch`
+            0, // Init `collectedFees`
+            0, // Init `effectiveAllocation`
+            _updateRewards(_subgraphDeploymentID), // Init `accRewardsPerAllocatedToken`
+            _getDelegatorTotalRewardsCut(
+                indexerDelegationTotalRatio,
+                delegationPool.indexRewardsCut
+            ), // Init `delegatorTotalIndexRewardsCut`
+            _getDelegatorTotalRewardsCut(
+                indexerDelegationTotalRatio,
+                delegationPool.queryRewardsCut
+            ) // Init `delegatorTotalQueryRewardsCut`
+        );
         allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
@@ -1135,7 +1152,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
         ]
-            .add(alloc.tokens);
+        .add(alloc.tokens);
 
         emit AllocationCreated(
             _indexer,
@@ -1145,6 +1162,32 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             _allocationID,
             _metadata
         );
+    }
+
+    /**
+     * @dev Calculate the delegator rewards cut from the total staked amount (indexer + delegations).
+     *
+     * Formula:
+     * 1) indexerDelegationTotalRatio = delegatedStake / totalStake
+     * 2) indexerRewardsCut = Percentage of the rewards earned by the delegators
+     *    stake part that the indexer keeps
+     * 3) delegatorTotalRewardsCut = (1 - indexerRewardsCut) * indexerDelegationTotalRatio
+     *
+     * Deduct the part that the indexer takes from the delegated stake earnings.
+     *
+     * @param _indexerDelegationTotalRatio Delegation to total-stake ratio (in PPM)
+     * @param _indexerRewardsCut Indexer rewards cut (in PPM)
+     * @return The delegators rewards cut (in PPM)
+     */
+    function _getDelegatorTotalRewardsCut(
+        uint32 _indexerDelegationTotalRatio,
+        uint32 _indexerRewardsCut
+    ) private pure returns (uint32) {
+        return
+            MathUtils.percentMul(
+                MathUtils.percentFlip(_indexerRewardsCut),
+                _indexerDelegationTotalRatio
+            );
     }
 
     /**
@@ -1195,7 +1238,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
         // Distribute rewards if proof of indexing was presented by the indexer or operator
         if (isIndexer && _poi != 0) {
-            _distributeRewards(_allocationID, alloc.indexer);
+            uint32 delegatorTotalRewardsCut = (alloc.createdAtEpoch >= GIP_ACTIVATION_EPOCH)
+                ? alloc.delegatorTotalIndexRewardsCut
+                : MathUtils.percentFlip(delegationPools[alloc.indexer].indexRewardsCut);
+            _distributeRewards(_allocationID, alloc.indexer, delegatorTotalRewardsCut);
         } else {
             _updateRewards(alloc.subgraphDeploymentID);
         }
@@ -1208,7 +1254,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
         ]
-            .sub(alloc.tokens);
+        .sub(alloc.tokens);
 
         emit AllocationClosed(
             alloc.indexer,
@@ -1244,7 +1290,14 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
 
         // Add delegation rewards to the delegation pool
-        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
+        uint32 delegatorTotalRewardsCut = (alloc.createdAtEpoch >= GIP_ACTIVATION_EPOCH)
+            ? alloc.delegatorTotalQueryRewardsCut
+            : MathUtils.percentFlip(delegationPools[alloc.indexer].queryRewardsCut);
+        uint256 delegationRewards = _collectDelegationRewards(
+            tokensToClaim,
+            alloc.indexer,
+            delegatorTotalRewardsCut
+        );
         tokensToClaim = tokensToClaim.sub(delegationRewards);
 
         // Purge allocation data except for:
@@ -1256,6 +1309,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         allocations[_allocationID].collectedFees = 0;
         allocations[_allocationID].effectiveAllocation = 0;
         allocations[_allocationID].accRewardsPerAllocatedToken = 0;
+        allocations[_allocationID].delegatorTotalIndexRewardsCut = 0;
+        allocations[_allocationID].delegatorTotalQueryRewardsCut = 0;
 
         // -- Interactions --
 
@@ -1310,10 +1365,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares =
-            (pool.tokens == 0)
-                ? delegatedTokens
-                : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares = (pool.tokens == 0)
+            ? delegatedTokens
+            : delegatedTokens.mul(pool.shares).div(pool.tokens);
 
         // Update the delegation pool
         pool.tokens = pool.tokens.add(delegatedTokens);
@@ -1416,42 +1470,22 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Collect the delegation rewards for query fees.
-     * This function will assign the collected fees to the delegation pool.
+     * @dev Collect delegation rewards.
+     * This function will assign the collected tokens to the delegation pool.
      * @param _indexer Indexer to which the tokens to distribute are related
-     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @param _tokens Total tokens received used to calculate the amount to collect
+     * @param _rewardsCut Percentage of rewards that the delegators will get (PPM)
      * @return Amount of delegation rewards
      */
-    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens)
-        private
-        returns (uint256)
-    {
+    function _collectDelegationRewards(
+        uint256 _tokens,
+        address _indexer,
+        uint32 _rewardsCut
+    ) private returns (uint256) {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = delegationPools[_indexer];
-        if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.queryFeeCut).mul(_tokens).div(MAX_PPM);
-            delegationRewards = _tokens.sub(indexerCut);
-            pool.tokens = pool.tokens.add(delegationRewards);
-        }
-        return delegationRewards;
-    }
-
-    /**
-     * @dev Collect the delegation rewards for indexing.
-     * This function will assign the collected fees to the delegation pool.
-     * @param _indexer Indexer to which the tokens to distribute are related
-     * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @return Amount of delegation rewards
-     */
-    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens)
-        private
-        returns (uint256)
-    {
-        uint256 delegationRewards = 0;
-        DelegationPool storage pool = delegationPools[_indexer];
-        if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.indexingRewardCut).mul(_tokens).div(MAX_PPM);
-            delegationRewards = _tokens.sub(indexerCut);
+        if (_rewardsCut > 0 && pool.tokens > 0) {
+            delegationRewards = MathUtils.percentOf(_rewardsCut, _tokens);
             pool.tokens = pool.tokens.add(delegationRewards);
         }
         return delegationRewards;
@@ -1470,7 +1504,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         IGraphToken _graphToken,
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        uint256 _curationPercentage
+        uint32 _curationPercentage
     ) private returns (uint256) {
         if (_tokens == 0) {
             return 0;
@@ -1480,7 +1514,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            uint256 curationFees = uint256(_curationPercentage).mul(_tokens).div(MAX_PPM);
+            uint256 curationFees = MathUtils.percentOf(_curationPercentage, _tokens);
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
@@ -1503,9 +1537,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     function _collectTax(
         IGraphToken _graphToken,
         uint256 _tokens,
-        uint256 _percentage
+        uint32 _percentage
     ) private returns (uint256) {
-        uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
+        uint256 tax = MathUtils.percentOf(_percentage, _tokens);
         TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;
     }
@@ -1558,36 +1592,37 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @param _subgraphDeploymentID Subgraph deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return 0;
-        }
-        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return rewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
      * @dev Assign rewards for the closed allocation to indexer and delegators.
-     * @param _allocationID Allocation
+     * @param _allocationID Allocation ID
+     * @param _indexer Indexer to distribute rewards
+     * @param _delegatorTotalRewardsCut Rewards cut to assign to delegators
      */
-    function _distributeRewards(address _allocationID, address _indexer) private {
-        IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return;
-        }
-
+    function _distributeRewards(
+        address _allocationID,
+        address _indexer,
+        uint32 _delegatorTotalRewardsCut
+    ) private {
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
-        uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
+        uint256 totalRewards = rewardsManager().takeRewards(_allocationID);
         if (totalRewards == 0) {
             return;
         }
 
         // Calculate delegation rewards and add them to the delegation pool
-        uint256 delegationRewards = _collectDelegationIndexingRewards(_indexer, totalRewards);
-        uint256 indexerRewards = totalRewards.sub(delegationRewards);
+        uint256 delegationRewards = _collectDelegationRewards(
+            totalRewards,
+            _indexer,
+            _delegatorTotalRewardsCut
+        );
 
         // Send the indexer rewards
+        uint256 indexerRewards = totalRewards.sub(delegationRewards);
         _sendRewards(
             graphToken(),
             indexerRewards,

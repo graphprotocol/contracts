@@ -38,8 +38,8 @@ interface IStaking is IStakingData {
     function setDelegationRatio(uint32 _delegationRatio) external;
 
     function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
+        uint32 _indexRewardsCut,
+        uint32 _queryRewardsCut,
         uint32 _cooldownBlocks
     ) external;
 

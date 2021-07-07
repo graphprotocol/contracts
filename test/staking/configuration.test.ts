@@ -5,11 +5,9 @@ import { Staking } from '../../build/types/Staking'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, toBN, toGRT, Account, MAX_PPM } from '../lib/testHelpers'
 
 const { AddressZero } = constants
-
-const MAX_PPM = toBN('1000000')
 
 describe('Staking:Config', () => {
   let me: Account

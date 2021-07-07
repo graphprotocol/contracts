@@ -16,11 +16,12 @@ import {
   toBN,
   Account,
   advanceBlock,
+  percentageOf,
+  MAX_PPM,
+  getDelegatorTotalRewardsCut,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-const MAX_PPM = toBN('1000000')
-const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
   let me: Account
@@ -257,20 +258,20 @@ describe('Staking::Delegation', () => {
     })
 
     describe('delegationParameters', function () {
-      const indexingRewardCut = toBN('50000')
-      const queryFeeCut = toBN('80000')
+      const indexRewardsCut = toBN('50000')
+      const queryRewardsCut = toBN('80000')
       const cooldownBlocks = 5
 
       it('reject to set if under cooldown period', async function () {
         // Set parameters
         await staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks)
 
         // Try to set before cooldown period passed
         const tx = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks)
         await expect(tx).revertedWith('!cooldown')
       })
 
@@ -281,7 +282,7 @@ describe('Staking::Delegation', () => {
         // Try to set delegation cooldown below global cooldown parameter
         const tx = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks - 1)
+          .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks - 1)
         await expect(tx).revertedWith('<cooldown')
       })
 
@@ -289,29 +290,29 @@ describe('Staking::Delegation', () => {
         // Indexing reward out of bounds
         const tx1 = staking
           .connect(indexer.signer)
-          .setDelegationParameters(MAX_PPM.add('1'), queryFeeCut, cooldownBlocks)
-        await expect(tx1).revertedWith('>indexingRewardCut')
+          .setDelegationParameters(MAX_PPM.add('1'), queryRewardsCut, cooldownBlocks)
+        await expect(tx1).revertedWith('>indexRewardsCut')
 
         // Query fee out of bounds
         const tx2 = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, MAX_PPM.add('1'), cooldownBlocks)
-        await expect(tx2).revertedWith('>queryFeeCut')
+          .setDelegationParameters(indexRewardsCut, MAX_PPM.add('1'), cooldownBlocks)
+        await expect(tx2).revertedWith('>queryRewardsCut')
       })
 
       it('should set parameters', async function () {
         // Set parameters
         const tx = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks)
         await expect(tx)
           .emit(staking, 'DelegationParametersUpdated')
-          .withArgs(indexer.address, indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .withArgs(indexer.address, indexRewardsCut, queryRewardsCut, cooldownBlocks)
 
         // State updated
         const params = await staking.delegationPools(indexer.address)
-        expect(params.indexingRewardCut).eq(indexingRewardCut)
-        expect(params.queryFeeCut).eq(queryFeeCut)
+        expect(params.indexRewardsCut).eq(indexRewardsCut)
+        expect(params.queryRewardsCut).eq(queryRewardsCut)
         expect(params.cooldownBlocks).eq(cooldownBlocks)
         expect(params.updatedAtBlock).eq(await latestBlock())
       })
@@ -319,8 +320,8 @@ describe('Staking::Delegation', () => {
       it('should init delegation parameters on first stake', async function () {
         // Before
         const beforeParams = await staking.delegationPools(indexer.address)
-        expect(beforeParams.indexingRewardCut).eq(0)
-        expect(beforeParams.queryFeeCut).eq(0)
+        expect(beforeParams.indexRewardsCut).eq(0)
+        expect(beforeParams.queryRewardsCut).eq(0)
         expect(beforeParams.cooldownBlocks).eq(0)
         expect(beforeParams.updatedAtBlock).eq(0)
 
@@ -332,8 +333,8 @@ describe('Staking::Delegation', () => {
 
         // State updated
         const afterParams = await staking.delegationPools(indexer.address)
-        expect(afterParams.indexingRewardCut).eq(MAX_PPM)
-        expect(afterParams.queryFeeCut).eq(MAX_PPM)
+        expect(afterParams.indexRewardsCut).eq(MAX_PPM)
+        expect(afterParams.queryRewardsCut).eq(MAX_PPM)
         expect(afterParams.cooldownBlocks).eq(0)
         expect(afterParams.updatedAtBlock).eq(await latestBlock())
       })
@@ -341,8 +342,8 @@ describe('Staking::Delegation', () => {
       it('should init delegation parameters on first stake using stakeTo()', async function () {
         // Before
         const beforeParams = await staking.delegationPools(indexer.address)
-        expect(beforeParams.indexingRewardCut).eq(0)
-        expect(beforeParams.queryFeeCut).eq(0)
+        expect(beforeParams.indexRewardsCut).eq(0)
+        expect(beforeParams.queryRewardsCut).eq(0)
         expect(beforeParams.cooldownBlocks).eq(0)
         expect(beforeParams.updatedAtBlock).eq(0)
 
@@ -354,8 +355,8 @@ describe('Staking::Delegation', () => {
 
         // State updated
         const afterParams = await staking.delegationPools(indexer.address)
-        expect(afterParams.indexingRewardCut).eq(MAX_PPM)
-        expect(afterParams.queryFeeCut).eq(MAX_PPM)
+        expect(afterParams.indexRewardsCut).eq(MAX_PPM)
+        expect(afterParams.queryRewardsCut).eq(MAX_PPM)
         expect(afterParams.cooldownBlocks).eq(0)
         expect(afterParams.updatedAtBlock).eq(await latestBlock())
       })
@@ -596,12 +597,12 @@ describe('Staking::Delegation', () => {
       await staking.connect(governor.signer).setDelegationRatio(10)
 
       // Set delegation rules for the indexer
-      const indexingRewardCut = toBN('800000') // indexer keep 80%
-      const queryFeeCut = toBN('950000') // indexer keeps 95%
+      const indexRewardsCut = toBN('800000') // indexer keeps 80%
+      const queryRewardsCut = toBN('950000') // indexer keeps 95%
       const cooldownBlocks = 5
       await staking
         .connect(indexer.signer)
-        .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+        .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks)
 
       // Delegate
       await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -626,7 +627,12 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const delegationFees = percentageOf(queryFeeCut, beforeAlloc.collectedFees)
+      const delegatorsTotalRewardsCut = getDelegatorTotalRewardsCut(
+        tokensToDelegate,
+        tokensToStake,
+        queryRewardsCut,
+      )
+      const delegationFees = percentageOf(delegatorsTotalRewardsCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 
       // Claim from rebate pool
