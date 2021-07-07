@@ -193,12 +193,12 @@
       "txHash": "0x6c92edf1c385983d57be0635cf40e1d1068d778edecf2be1631f51556c731af7",
       "proxy": true,
       "implementation": {
-        "address": "0x99660F23DAed72b92DE9A6431cE3C75c5427C602",
-        "creationCodeHash": "0xf216cc3aabb90fe6fb08dee63495cb39a61210f2c71e5fa1ffe8b041e20c2de4",
-        "runtimeCodeHash": "0xf10108b81764e0bb1bc1352ebb0e4bc252d20356e9c84bba09cd7a5c47c61969",
-        "txHash": "0x039091242d80032988a92636f30d81bc305ccc79d938fc140229c32f80b9b6d6",
+        "address": "0xC3d14a6E96bcbd7915B940504537Ab9A4CA1E55c",
+        "creationCodeHash": "0x6426ecbb4345d5cf6f2b26c0bb96bad672288f0835a1c74471531e32856bbd37",
+        "runtimeCodeHash": "0x1176fe736a28deef7743605ec573a6924f3abc4bddb98090ba512275fe8120a7",
+        "txHash": "0x6ea9aa5526de155840c5cb5f5f1e280be46f6d23e82211ddbc8d792a5aa2e571",
         "libraries": {
-          "LibCobbDouglas": "0x5Fd49E0c441A9Bd0b950E841f6F2d5fB22722568"
+          "LibCobbDouglas": "0xb84828C5978f4539Bbda1965F92EA34DC7a649fB"
         }
       }
     },
@@ -254,10 +254,10 @@
       "txHash": "0x90cd5852f5824f76d93814ffea26040ff503c81a84c4430e3688f219f9b48465",
       "proxy": true,
       "implementation": {
-        "address": "0x9C837aC7818D9d2653061579d479Cf691056517f",
-        "creationCodeHash": "0xde135df3aa4ce1144b2d623f42af601290c8c9838a7ecffb7e084cfd860d66e5",
-        "runtimeCodeHash": "0x126ff82d91cc4a00987d757db8d244edafb91507197b052441dcc94230e4b6ce",
-        "txHash": "0x3df6cec81fa4ebed4c7c4575c3cb645378f89ff38fcd547307d9a26820579617"
+        "address": "0x444c138bf2b151f28a713b0ee320240365a5bfc2",
+        "creationCodeHash": "0xc00c4702d9683f70a90f0b73ce1842e66fa4c26b2cf75fb486a016bb7bac2102",
+        "runtimeCodeHash": "0x2bb6445bf9e12618423efe9ef64d05e14d283979829e751cd24685c1440c403f",
+        "txHash": "0x413cd4f8e9e70ad482500772c1f13b0be48deb42d7f2d0d5a74b56d5a6bd8a4d"
       }
     },
     "AllocationExchange": {
