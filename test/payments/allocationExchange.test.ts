@@ -77,7 +77,6 @@ describe('AllocationExchange', () => {
     await grt.connect(governor.signer).mint(allocationExchange.address, exchangeTokens)
 
     // Ensure the exchange is correctly setup
-    await staking.connect(governor.signer).setAssetHolder(allocationExchange.address, true)
     await allocationExchange.connect(governor.signer).setAuthority(authority.address)
     await allocationExchange.approveAll()
   })

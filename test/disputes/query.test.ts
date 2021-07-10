@@ -140,9 +140,6 @@ describe('DisputeManager:Query', async () => {
       await grt.connect(dst.signer).approve(disputeManager.address, fishermanTokens)
     }
 
-    // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
-
     // Create an attestation
     const attestation = await buildAttestation(receipt, indexer1ChannelKey.privKey)
 
