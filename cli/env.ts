@@ -49,7 +49,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   logger.info(
     `Connected Wallet: address=${walletAddress} nonce=${nonce} balance=${formatEther(balance)}\n`,
   )
-  logger.info('Gas settings:', displayGasOverrides(), '\n')
+  logger.info(`Gas settings: ${JSON.stringify(displayGasOverrides())}`)
 
   return {
     balance,

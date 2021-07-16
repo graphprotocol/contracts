@@ -1,5 +1,5 @@
 import { Options } from 'yargs'
-import { Overrides } from 'ethers'
+import { Overrides, utils } from 'ethers'
 
 export const local = {
   mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
@@ -8,6 +8,7 @@ export const local = {
   graphConfigPath: './graph.config.yml',
   accountNumber: '0',
 }
+
 export const defaultOverrides: Overrides = {
   //  gasPrice: utils.parseUnits('25', 'gwei'), // auto
   //  gasLimit: 2000000, // auto

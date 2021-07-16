@@ -41,4 +41,8 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
     return contracts
   })
+  hre['provider'] = lazyObject(() => hre.ethers.provider)
+  hre['accounts'] = function () {
+    return hre.ethers.getSigners()
+  }
 })
