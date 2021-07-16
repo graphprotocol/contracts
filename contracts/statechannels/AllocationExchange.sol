@@ -4,6 +4,7 @@ pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../governance/Governed.sol";
 import "../staking/IStaking.sol";
@@ -48,12 +49,20 @@ contract AllocationExchange is Governed {
 
     // -- Functions
 
+    /**
+     * @notice Contract constructor.
+     * @param _graphToken Address of the GRT token
+     * @param _staking Address of the protocol Staking contract
+     * @param _governor Account capable of withdrawing funds and setting the authority
+     * @param _authority Account that can sign the vouchers that this contract will redeem
+     */
     constructor(
         IGraphToken _graphToken,
         IStaking _staking,
         address _governor,
         address _authority
     ) {
+        require(_governor != address(0), "Exchange: governor must be set");
         Governed._initialize(_governor);
 
         graphToken = _graphToken;
@@ -99,6 +108,12 @@ contract AllocationExchange is Governed {
      */
     function _setAuthority(address _authority, bool _authorized) private {
         require(_authority != address(0), "Exchange: empty authority");
+        // This will help catch some operational errors but not all.
+        // The validation will fail under the following conditions:
+        // - a contract in construction
+        // - an address where a contract will be created
+        // - an address where a contract lived, but was destroyed
+        require(!Address.isContract(_authority), "Exchange: authority must be EOA");
         authority[_authority] = _authorized;
         emit AuthoritySet(_authority, _authorized);
     }
