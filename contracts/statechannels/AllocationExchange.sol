@@ -38,14 +38,12 @@ contract AllocationExchange is Governed {
 
     IStaking private immutable staking;
     IGraphToken private immutable graphToken;
-    address public authority;
-
-    // Tracks redeemed allocationIDs. An allocation can only be redeemed once.
+    mapping(address => bool) public authority;
     mapping(address => bool) public allocationsRedeemed;
 
     // -- Events
 
-    event AuthoritySet(address indexed account);
+    event AuthoritySet(address indexed account, bool authorized);
     event AllocationRedeemed(address indexed allocationID, uint256 amount);
     event TokensWithdrawn(address indexed to, uint256 amount);
 
@@ -69,7 +67,7 @@ contract AllocationExchange is Governed {
 
         graphToken = _graphToken;
         staking = _staking;
-        _setAuthority(_authority);
+        _setAuthority(_authority, true);
     }
 
     /**
@@ -97,16 +95,18 @@ contract AllocationExchange is Governed {
      * @notice Set the authority allowed to sign vouchers.
      * @dev Only the governor can set the authority
      * @param _authority Address of the signing authority
+     * @param _authorized True if the authority is authorized to sign vouchers, false to unset
      */
-    function setAuthority(address _authority) external onlyGovernor {
-        _setAuthority(_authority);
+    function setAuthority(address _authority, bool _authorized) external onlyGovernor {
+        _setAuthority(_authority, _authorized);
     }
 
     /**
      * @notice Set the authority allowed to sign vouchers.
      * @param _authority Address of the signing authority
+     * @param _authorized True if the authority is authorized to sign vouchers, false to unset
      */
-    function _setAuthority(address _authority) private {
+    function _setAuthority(address _authority, bool _authorized) private {
         require(_authority != address(0), "Exchange: empty authority");
         // This will help catch some operational errors but not all.
         // The validation will fail under the following conditions:
@@ -114,8 +114,8 @@ contract AllocationExchange is Governed {
         // - an address where a contract will be created
         // - an address where a contract lived, but was destroyed
         require(!Address.isContract(_authority), "Exchange: authority must be EOA");
-        authority = _authority;
-        emit AuthoritySet(authority);
+        authority[_authority] = _authorized;
+        emit AuthoritySet(_authority, _authorized);
     }
 
     /**
@@ -155,10 +155,8 @@ contract AllocationExchange is Governed {
 
         // Signature check
         bytes32 messageHash = keccak256(abi.encodePacked(_voucher.allocationID, _voucher.amount));
-        require(
-            authority == ECDSA.recover(messageHash, _voucher.signature),
-            "Exchange: invalid signer"
-        );
+        address voucherSigner = ECDSA.recover(messageHash, _voucher.signature);
+        require(authority[voucherSigner], "Exchange: invalid signer");
 
         // Mark allocation as collected
         allocationsRedeemed[_voucher.allocationID] = true;
