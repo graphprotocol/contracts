@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
+import { constants, BigNumber, PopulatedTransaction } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
@@ -644,17 +644,21 @@ describe('Staking:Allocation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Close multiple allocations in one tx
-      const requests = [
-        {
-          allocationID: allocationID,
-          poi: poi,
-        },
-        {
-          allocationID: allocationID2,
-          poi: poi,
-        },
-      ]
-      await staking.connect(indexer.signer).closeAllocationMany(requests)
+      const requests = await Promise.all(
+        [
+          {
+            allocationID: allocationID,
+            poi: poi,
+          },
+          {
+            allocationID: allocationID2,
+            poi: poi,
+          },
+        ].map(({ allocationID, poi }) =>
+          staking.connect(indexer.signer).populateTransaction.closeAllocation(allocationID, poi),
+        ),
+      ).then((e) => e.map((e: PopulatedTransaction) => e.data))
+      await staking.connect(indexer.signer).multicall(requests)
     })
   })
 
@@ -672,19 +676,21 @@ describe('Staking:Allocation', () => {
       // Close and allocate
       const newChannelKey = deriveChannelKey()
       const newAllocationID = newChannelKey.address
-      const tx = staking
-        .connect(indexer.signer)
-        .closeAndAllocate(
-          allocationID,
-          HashZero,
-          indexer.address,
-          subgraphDeploymentID,
-          tokensToAllocate,
-          newAllocationID,
-          metadata,
-          await newChannelKey.generateProof(indexer.address),
-        )
-      await tx
+
+      // Close multiple allocations in one tx
+      const requests = await Promise.all([
+        staking.connect(indexer.signer).populateTransaction.closeAllocation(allocationID, poi),
+        staking
+          .connect(indexer.signer)
+          .populateTransaction.allocate(
+            subgraphDeploymentID,
+            tokensToAllocate,
+            newAllocationID,
+            metadata,
+            await newChannelKey.generateProof(indexer.address),
+          ),
+      ]).then((e) => e.map((e: PopulatedTransaction) => e.data))
+      await staking.connect(indexer.signer).multicall(requests)
     })
   })
 
@@ -870,7 +876,10 @@ describe('Staking:Allocation', () => {
 
         // Claim with restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
-        await staking.connect(indexer.signer).claimMany([allocationID], true)
+        const tx = await staking
+          .connect(indexer.signer)
+          .populateTransaction.claim(allocationID, true)
+        await staking.connect(indexer.signer).multicall([tx.data])
 
         // Verify that the claimed tokens are restaked
         const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)

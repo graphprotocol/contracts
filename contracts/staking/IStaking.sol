@@ -113,24 +113,9 @@ interface IStaking is IStakingData {
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;
 
-    function closeAllocationMany(CloseAllocationRequest[] calldata _requests) external;
-
-    function closeAndAllocate(
-        address _oldAllocationID,
-        bytes32 _poi,
-        address _indexer,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
-    ) external;
-
     function collect(uint256 _tokens, address _allocationID) external;
 
     function claim(address _allocationID, bool _restake) external;
-
-    function claimMany(address[] calldata _allocationID, bool _restake) external;
 
     // -- Getters and calculations --
 
