@@ -22,6 +22,8 @@ import "./GNSStorage.sol";
 contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     using SafeMath for uint256;
 
+    // -- Constants --
+
     uint256 private constant MAX_UINT256 = 2**256 - 1;
 
     // 100% in parts per million
@@ -137,15 +139,27 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 withdrawnGRT
     );
 
+    // -- Modifiers --
+
     /**
-    @dev Modifier that allows a function to be called by owner of a graph account
-    @param _graphAccount Address of the graph account
-    */
-    modifier onlyGraphAccountOwner(address _graphAccount) {
+     * @dev Check if the owner is the graph account
+     * @param _graphAccount Address of the graph account
+     */
+    function _isGraphAccountOwner(address _graphAccount) private {
         address graphAccountOwner = erc1056Registry.identityOwner(_graphAccount);
         require(graphAccountOwner == msg.sender, "GNS: Only graph account owner can call");
+    }
+
+    /**
+     * @dev Modifier that allows a function to be called by owner of a graph account
+     * @param _graphAccount Address of the graph account
+     */
+    modifier onlyGraphAccountOwner(address _graphAccount) {
+        _isGraphAccountOwner(_graphAccount);
         _;
     }
+
+    // -- Functions --
 
     /**
      * @dev Initialize this contract.
