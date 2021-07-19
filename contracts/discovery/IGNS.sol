@@ -10,7 +10,7 @@ interface IGNS {
         uint256 nSignal; // The token of the name curation bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
-        uint32 reserveRatio;
+        uint32 __DEPRECATED_reserveRatio;
         bool disabled;
         uint256 withdrawableGRT;
     }

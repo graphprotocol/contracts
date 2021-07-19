@@ -9,6 +9,8 @@ import { Curation } from '../build/types/Curation'
 
 import { toBN, formatGRT } from './lib/testHelpers'
 
+const MAX_RESERVE_RATIO = 1000000
+
 interface Subgraph {
   graphAccount: Account
   subgraphDeploymentID: string
@@ -153,10 +155,6 @@ describe('GNS', () => {
         subgraphNumber,
         subgraphToPublish.subgraphMetadata,
       )
-
-    const pool = await gns.nameSignals(graphAccount, subgraphNumber)
-    const reserveRatio = pool[3]
-    expect(reserveRatio).eq(1000000)
     return tx
   }
 
@@ -895,7 +893,7 @@ describe('GNS', () => {
           const expectedNSignal = await calcGNSBondingCurve(
             poolOld.nSignal,
             poolOld.vSignal,
-            poolOld.reserveRatio,
+            MAX_RESERVE_RATIO,
             tokensToDeposit.sub(curationTax),
             poolOld.subgraphDeploymentID,
           )

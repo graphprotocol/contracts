@@ -15,8 +15,8 @@ contract GNSV1Storage is Managed {
     // In parts per hundred
     uint32 public ownerTaxPercentage;
 
-    // Bonding curve formula
-    address public bondingCurve;
+    // [DEPRECATED] Bonding curve formula
+    address private __DEPRECATED_bondingCurve;
 
     // graphAccountID => subgraphNumber => subgraphDeploymentID
     // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
