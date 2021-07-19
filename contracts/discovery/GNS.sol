@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "../base/MultiCall.sol";
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
 import "../utils/TokenUtils.sol";
@@ -18,8 +19,10 @@ import "./GNSStorage.sol";
  * used in the scope of the Graph Network. It translates subgraph names into subgraph versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
+ * The contract implements a multicall behaviour to support batching multiple calls in a single
+ * transaction.
  */
-contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
+contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMath for uint256;
 
     // -- Constants --
@@ -145,7 +148,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @dev Check if the owner is the graph account
      * @param _graphAccount Address of the graph account
      */
-    function _isGraphAccountOwner(address _graphAccount) private {
+    function _isGraphAccountOwner(address _graphAccount) private view {
         address graphAccountOwner = erc1056Registry.identityOwner(_graphAccount);
         require(graphAccountOwner == msg.sender, "GNS: Only graph account owner can call");
     }
