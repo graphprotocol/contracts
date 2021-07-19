@@ -2,11 +2,11 @@ import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
 import { GNS } from '../build/types/GNS'
-import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
-import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 
+import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
+import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 
 interface Subgraph {
@@ -981,6 +981,29 @@ describe('GNS', () => {
         )
       // Curate on the second subgraph should work
       await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'), 0)
+    })
+  })
+
+  describe('batch calls', function () {
+    it('should publish new subgraph and mint signal in single transaction', async function () {
+      // Create a subgraph
+      const tx1 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+      // Curate on the subgraph
+      const subgraphNumber = await gns.graphAccountSubgraphNumbers(me.address)
+      const tx2 = await gns.populateTransaction.mintNSignal(
+        me.address,
+        subgraphNumber,
+        toGRT('90000'),
+        0,
+      )
+
+      // Batch send transaction
+      await gns.connect(me.signer).multicall([tx1.data, tx2.data])
     })
   })
 })
