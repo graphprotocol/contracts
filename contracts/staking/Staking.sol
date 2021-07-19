@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
+import "../base/Multicall.sol";
 import "../upgrades/GraphUpgradeable.sol";
 import "../utils/TokenUtils.sol";
 
@@ -20,7 +21,7 @@ import "./libs/Stakes.sol";
  * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
  * contract also has the slashing functionality.
  */
-contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
+contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
@@ -909,49 +910,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
-     * @dev Close multiple allocations and free the staked tokens.
-     * To be eligible for rewards a proof of indexing must be presented.
-     * Presenting a bad proof is subject to slashable condition.
-     * To opt out for rewards set _poi to 0x0
-     * @param _requests An array of CloseAllocationRequest
-     */
-    function closeAllocationMany(CloseAllocationRequest[] calldata _requests)
-        external
-        override
-        notPaused
-    {
-        for (uint256 i = 0; i < _requests.length; i++) {
-            _closeAllocation(_requests[i].allocationID, _requests[i].poi);
-        }
-    }
-
-    /**
-     * @dev Close and allocate. This will perform a close and then create a new Allocation
-     * atomically on the same transaction.
-     * @param _closingAllocationID The identifier of the allocation to be closed
-     * @param _poi Proof of indexing submitted for the allocated period
-     * @param _indexer Indexer address to allocate funds from.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
-     */
-    function closeAndAllocate(
-        address _closingAllocationID,
-        bytes32 _poi,
-        address _indexer,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
-    ) external override notPaused {
-        _closeAllocation(_closingAllocationID, _poi);
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
-    }
-
-    /**
      * @dev Collect query fees from state channels and assign them to an allocation.
      * Funds received are only accepted from a valid sender.
      * To avoid reverting on the withdrawal from channel flow this function will:
@@ -1034,21 +992,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function claim(address _allocationID, bool _restake) external override notPaused {
         _claim(_allocationID, _restake);
-    }
-
-    /**
-     * @dev Claim tokens from the rebate pool for many allocations.
-     * @param _allocationID Array of allocations from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claimMany(address[] calldata _allocationID, bool _restake)
-        external
-        override
-        notPaused
-    {
-        for (uint256 i = 0; i < _allocationID.length; i++) {
-            _claim(_allocationID[i], _restake);
-        }
     }
 
     /**
