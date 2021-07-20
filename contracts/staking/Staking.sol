@@ -24,7 +24,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
     // For safety purposes we define an activation epoch for using the new rewards
     // distribution formula
-    uint256 private constant GIP_ACTIVATION_EPOCH = 0; // TODO: change before deployment of implementation
+    uint256 private constant GIP_ACTIVATION_EPOCH = 1000; // TODO: change before deployment of implementation
 
     // -- Events --
 
