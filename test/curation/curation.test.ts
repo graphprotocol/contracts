@@ -311,7 +311,7 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts()
+        await curation.syncAllContracts() // call sync because we change the proxy for staking
 
         const tx = curation
           .connect(stakingMock.signer)
@@ -334,7 +334,7 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts()
+        await curation.syncAllContracts() // call sync because we change the proxy for staking
 
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
@@ -347,7 +347,7 @@ describe('Curation', () => {
         await controller
           .connect(governor.signer)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts()
+        await curation.syncAllContracts() // call sync because we change the proxy for staking
 
         // Collect increase the pool reserves
         await shouldCollect(toGRT('100'))
@@ -358,6 +358,42 @@ describe('Curation', () => {
           subgraphDeploymentID,
         )
         await shouldBurn(signalToRedeem, toGRT('1100'))
+      })
+
+      it('should collect tokens and then unsignal multiple times', async function () {
+        await controller
+          .connect(governor.signer)
+          .setContractProxy(utils.id('Staking'), stakingMock.address)
+        await curation.syncAllContracts() // call sync because we change the proxy for staking
+
+        // Collect increase the pool reserves
+        const tokensToCollect = toGRT('100')
+        await shouldCollect(tokensToCollect)
+
+        // Unsignal partially
+        const signalOutRemainder = toGRT(1)
+        const signalOutPartial = (
+          await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+        ).sub(signalOutRemainder)
+        const tx1 = await curation
+          .connect(curator.signer)
+          .burn(subgraphDeploymentID, signalOutPartial, 0)
+        const r1 = await tx1.wait()
+        const event1 = curation.interface.parseLog(r1.events[2]).args
+        const tokensOut1 = event1.tokens
+
+        // Collect increase the pool reserves
+        await shouldCollect(tokensToCollect)
+
+        // Unsignal the rest
+        const tx2 = await curation
+          .connect(curator.signer)
+          .burn(subgraphDeploymentID, signalOutRemainder, 0)
+        const r2 = await tx2.wait()
+        const event2 = curation.interface.parseLog(r2.events[2]).args
+        const tokensOut2 = event2.tokens
+
+        expect(tokensOut1.add(tokensOut2)).eq(toGRT('1000').add(tokensToCollect.mul(2)))
       })
     })
   })
