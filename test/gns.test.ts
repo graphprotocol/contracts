@@ -1003,7 +1003,85 @@ describe('GNS', () => {
       )
 
       // Batch send transaction
-      await gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      const multiTx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      await expect(multiTx)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(me.address, 0, subgraph0.subgraphDeploymentID, subgraph0.versionMetadata)
+        .emit(gns, 'SubgraphMetadataUpdated')
+        .withArgs(me.address, 0, subgraph0.subgraphMetadata)
+        .emit(gns, 'NSignalMinted')
+    })
+
+    it('should publish 2 new subgraph', async function () {
+      // Create a subgraph
+      const tx1 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+      // Create a subgraph
+      const tx2 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph1.subgraphDeploymentID,
+        subgraph1.versionMetadata,
+        subgraph1.subgraphMetadata,
+      )
+
+      // Batch send transaction
+      const multiTx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      await expect(multiTx)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(me.address, 0, subgraph0.subgraphDeploymentID, subgraph0.versionMetadata)
+        .emit(gns, 'SubgraphMetadataUpdated')
+        .withArgs(me.address, 0, subgraph0.subgraphMetadata)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(me.address, 1, subgraph1.subgraphDeploymentID, subgraph1.versionMetadata)
+        .emit(gns, 'SubgraphMetadataUpdated')
+        .withArgs(me.address, 1, subgraph1.subgraphMetadata)
+    })
+
+    it('should publish subgraph, then curate, then create new version, then burn', async function () {
+      // Create a subgraph
+      const tx1 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+
+      // Curate on the subgraph
+      const subgraphNumber = await gns.graphAccountSubgraphNumbers(me.address)
+      const tx2 = await gns.populateTransaction.mintNSignal(
+        me.address,
+        subgraphNumber,
+        toGRT('90000'),
+        0,
+      )
+
+      // Update version
+      const tx3 = await gns.populateTransaction.publishNewVersion(
+        me.address,
+        subgraphNumber,
+        subgraph1.subgraphDeploymentID,
+        subgraph1.versionMetadata,
+      )
+
+      // Burn on the subgraph
+      const tx4 = await gns.populateTransaction.burnNSignal(
+        me.address,
+        subgraphNumber,
+        toGRT('1'),
+        0,
+      )
+
+      // Batch send transaction
+      const multiTx = gns.connect(me.signer).multicall([tx1.data, tx2.data, tx3.data, tx4.data])
+      await expect(multiTx)
+        .emit(gns, 'SubgraphPublished')
+        .emit(gns, 'NameSignalUpgrade')
+        .emit(gns, 'NSignalMinted')
+        .emit(gns, 'NSignalBurned')
     })
 
     it('should revert if batching a call to non-authorized function', async function () {
