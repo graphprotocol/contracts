@@ -2,6 +2,7 @@ import { Wallet } from 'ethers'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
+import 'hardhat-storage-layout'
 
 import { loadEnv } from '../../cli/env'
 import { cliOpts } from '../../cli/defaults'
@@ -20,3 +21,7 @@ task('contracts:functions', 'Print function hashes for contracts')
       }
     }
   })
+
+task('contracts:layout', 'Display storage layout').setAction(async (_, hre) => {
+  await hre.storageLayout.export()
+})
