@@ -87,7 +87,7 @@ library MathUtils {
      * @dev Returns (1 - percentage) in parts-per-million.
      * @param percentage Percentage (PPM)
      */
-    function percentFlip(uint32 percentage) internal pure returns (uint32) {
+    function percentInverse(uint32 percentage) internal pure returns (uint32) {
         return toPercent(uint256(MathUtils.MAX_PPM).sub(percentage));
     }
 }

@@ -187,7 +187,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Check if the caller is the slasher.
      */
-    modifier onlySlasher {
+    modifier onlySlasher() {
         require(slashers[msg.sender] == true, "!slasher");
         _;
     }
@@ -1151,8 +1151,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Used for rewards calculations
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
-        ]
-        .add(alloc.tokens);
+        ].add(alloc.tokens);
 
         emit AllocationCreated(
             _indexer,
@@ -1185,7 +1184,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     ) private pure returns (uint32) {
         return
             MathUtils.percentMul(
-                MathUtils.percentFlip(_indexerRewardsCut),
+                MathUtils.percentInverse(_indexerRewardsCut),
                 _indexerDelegationTotalRatio
             );
     }
@@ -1240,7 +1239,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         if (isIndexer && _poi != 0) {
             uint32 delegatorTotalRewardsCut = (alloc.createdAtEpoch >= GIP_ACTIVATION_EPOCH)
                 ? alloc.delegatorTotalIndexRewardsCut
-                : MathUtils.percentFlip(delegationPools[alloc.indexer].indexRewardsCut);
+                : MathUtils.percentInverse(delegationPools[alloc.indexer].indexRewardsCut);
             _distributeRewards(_allocationID, alloc.indexer, delegatorTotalRewardsCut);
         } else {
             _updateRewards(alloc.subgraphDeploymentID);
@@ -1253,8 +1252,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Used for rewards calculations
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
-        ]
-        .sub(alloc.tokens);
+        ].sub(alloc.tokens);
 
         emit AllocationClosed(
             alloc.indexer,
@@ -1292,7 +1290,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Add delegation rewards to the delegation pool
         uint32 delegatorTotalRewardsCut = (alloc.createdAtEpoch >= GIP_ACTIVATION_EPOCH)
             ? alloc.delegatorTotalQueryRewardsCut
-            : MathUtils.percentFlip(delegationPools[alloc.indexer].queryRewardsCut);
+            : MathUtils.percentInverse(delegationPools[alloc.indexer].queryRewardsCut);
         uint256 delegationRewards = _collectDelegationRewards(
             tokensToClaim,
             alloc.indexer,
