@@ -61,6 +61,7 @@
     "hardhat-abi-exporter": "^2.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
+    "hardhat-storage-layout": "0.1.6",
     "husky": "^4.3.8",
     "inquirer": "^8.0.0",
     "ipfs-http-client": "47.0.1",
