@@ -27,7 +27,7 @@ export const MAX_PPM = toBN('1000000')
 export const totalRatio = (a: BigNumber, b: BigNumber): BigNumber => a.mul(MAX_PPM).div(a.add(b))
 export const percentageFlip = (ppm: BigNumber): BigNumber => MAX_PPM.sub(ppm)
 export const percentageOf = (ppm: BigNumber, value: BigNumber): BigNumber =>
-  ppm.mul(value).div(MAX_PPM)
+  ppm.gt(MAX_PPM) ? value : ppm.mul(value).div(MAX_PPM)
 
 // Protocol Math
 

@@ -86,6 +86,7 @@ describe('MathUtils', () => {
       1e6 * 0.75,
       1e6 * 0.9,
       1e6 * 1.0,
+      1e6 * 1.1,
     ].map((e) => BigNumber.from(e))
     const valueTests: BigNumber[] = [1, 2, 3, toGRT(5000)].map((e) => BigNumber.from(e))
 
