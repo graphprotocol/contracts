@@ -628,8 +628,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      */
     function getIndexerCapacity(address _indexer) public view override returns (uint256) {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
-        uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
+        uint256 tokensDelegated = delegationPools[_indexer].tokens;
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
         uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
 
@@ -1166,13 +1166,14 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Calculate the delegator rewards cut from the total staked amount (indexer + delegations).
      *
-     * Formula:
-     * 1) indexerDelegationTotalRatio = delegatedStake / totalStake
-     * 2) indexerRewardsCut = Percentage of the rewards earned by the delegators
-     *    stake part that the indexer keeps
-     * 3) delegatorTotalRewardsCut = (1 - indexerRewardsCut) * indexerDelegationTotalRatio
+     * Parameters:
+     * indexerDelegationTotalRatio = delegatedStake / totalStake
+     * indexerRewardsCut = Percentage of the rewards earned by the delegators stake part, that the indexer keeps
      *
-     * Deduct the part that the indexer takes from the delegated stake earnings.
+     * Formula:
+     * delegatorTotalRewardsCut = (1 - indexerRewardsCut) * indexerDelegationTotalRatio
+     *
+     * Note: Deduct the part that the indexer takes from the delegated stake earnings.
      *
      * @param _indexerDelegationTotalRatio Delegation to total-stake ratio (in PPM)
      * @param _indexerRewardsCut Indexer rewards cut (in PPM)
