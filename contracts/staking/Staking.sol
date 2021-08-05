@@ -186,7 +186,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     /**
      * @dev Check if the caller is the slasher.
      */
-    modifier onlySlasher {
+    modifier onlySlasher() {
         require(slashers[msg.sender] == true, "!slasher");
         _;
     }
@@ -976,10 +976,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
             // -- Collect protocol tax --
             // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage =
-                (allocState == AllocationState.Active || allocState == AllocationState.Closed)
-                    ? protocolPercentage
-                    : MAX_PPM;
+            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
+                allocState == AllocationState.Closed)
+                ? protocolPercentage
+                : MAX_PPM;
             uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
@@ -1114,17 +1114,16 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Creates an allocation
         // Allocation identifiers are not reused
         // The assetHolder address can send collected funds to the allocation
-        Allocation memory alloc =
-            Allocation(
-                _indexer,
-                _subgraphDeploymentID,
-                _tokens, // Tokens allocated
-                epochManager().currentEpoch(), // createdAtEpoch
-                0, // closedAtEpoch
-                0, // Initialize collected fees
-                0, // Initialize effective allocation
-                _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
-            );
+        Allocation memory alloc = Allocation(
+            _indexer,
+            _subgraphDeploymentID,
+            _tokens, // Tokens allocated
+            epochManager().currentEpoch(), // createdAtEpoch
+            0, // closedAtEpoch
+            0, // Initialize collected fees
+            0, // Initialize effective allocation
+            _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
+        );
         allocations[_allocationID] = alloc;
 
         // Mark allocated tokens as used
@@ -1134,8 +1133,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Used for rewards calculations
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
-        ]
-            .add(alloc.tokens);
+        ].add(alloc.tokens);
 
         emit AllocationCreated(
             _indexer,
@@ -1207,8 +1205,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Used for rewards calculations
         subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
             alloc.subgraphDeploymentID
-        ]
-            .sub(alloc.tokens);
+        ].sub(alloc.tokens);
 
         emit AllocationClosed(
             alloc.indexer,
@@ -1310,16 +1307,16 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares =
-            (pool.tokens == 0)
-                ? delegatedTokens
-                : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares = (pool.tokens == 0)
+            ? delegatedTokens
+            : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        require(shares > 0, "!shares");
 
         // Update the delegation pool
         pool.tokens = pool.tokens.add(delegatedTokens);
         pool.shares = pool.shares.add(shares);
 
-        // Update the delegation
+        // Update the individual delegation
         delegation.shares = delegation.shares.add(shares);
 
         emit StakeDelegated(_indexer, _delegator, delegatedTokens, shares);
