@@ -129,7 +129,7 @@ describe('AllocationExchange', () => {
     it('reject set an authority if not allowed', async function () {
       const newAuthority = randomAddress()
       const tx = allocationExchange.connect(indexer.signer).setAuthority(newAuthority, true)
-      await expect(tx).revertedWith(' Only Governor can call')
+      await expect(tx).revertedWith('Only Governor can call')
     })
 
     it('reject set an empty authority', async function () {
