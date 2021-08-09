@@ -282,7 +282,7 @@ describe('Staking:Stakes', () => {
 
       it('reject unstake zero tokens', async function () {
         const tx = staking.connect(indexer.signer).unstake(toGRT('0'))
-        await expect(tx).revertedWith('!tokens')
+        await expect(tx).revertedWith('!stake-avail')
       })
 
       it('reject unstake under the minimum indexer stake', async function () {
