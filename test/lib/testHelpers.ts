@@ -8,6 +8,8 @@ import { EpochManager } from '../../build/types/EpochManager'
 
 const { hexlify, parseUnits, randomBytes } = utils
 
+// Conversion
+
 export const toBN = (value: string | number): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string | number): BigNumber => {
   return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
@@ -86,6 +88,24 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
 export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
+
+// Math
+
+export const MAX_PPM = toBN('1000000')
+
+export function weightedAverage(
+  valueA: BigNumber,
+  valueB: BigNumber,
+  weightA: BigNumber,
+  weightB: BigNumber,
+): BigNumber {
+  return valueA.mul(weightA).add(valueB.mul(weightB)).div(weightA.add(weightB))
+}
+
+export const percentageOf = (ppm: BigNumber, value: BigNumber): BigNumber =>
+  ppm.mul(value).div(MAX_PPM)
+
+export const diffOrZero = (a: BigNumber, b: BigNumber): BigNumber => (a.gt(b) ? a.sub(b) : toBN(0))
 
 // Allocation keys
 

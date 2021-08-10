@@ -49,6 +49,6 @@ interface IStakingData {
     struct Delegation {
         uint256 shares; // Shares owned by a delegator in the pool
         uint256 tokensLocked; // Tokens locked for undelegation
-        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
+        uint256 tokensLockedUntil; // Epoch when locked tokens can be withdrawn
     }
 }

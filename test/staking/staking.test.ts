@@ -14,19 +14,11 @@ import {
   latestBlock,
   toBN,
   toGRT,
+  weightedAverage,
   Account,
 } from '../lib/testHelpers'
 
 const { AddressZero } = constants
-
-function weightedAverage(
-  valueA: BigNumber,
-  valueB: BigNumber,
-  periodA: BigNumber,
-  periodB: BigNumber,
-) {
-  return periodA.mul(valueA).add(periodB.mul(valueB)).div(valueA.add(valueB))
-}
 
 describe('Staking:Stakes', () => {
   let me: Account

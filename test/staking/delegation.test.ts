@@ -14,13 +14,15 @@ import {
   randomHexBytes,
   toGRT,
   toBN,
+  diffOrZero,
+  percentageOf,
+  weightedAverage,
+  MAX_PPM,
   Account,
   advanceBlock,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
-const MAX_PPM = toBN('1000000')
-const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
   let me: Account
@@ -53,7 +55,7 @@ describe('Staking::Delegation', () => {
 
     // Get current delegation tax percentage for deposits
     const delegationTaxPercentage = BigNumber.from(await staking.delegationTaxPercentage())
-    const delegationTax = delegationTaxPercentage.mul(tokens).div(MAX_PPM)
+    const delegationTax = percentageOf(delegationTaxPercentage, tokens)
     const delegatedTokens = tokens.sub(delegationTax)
 
     // Calculate shares to receive
@@ -101,8 +103,24 @@ describe('Staking::Delegation', () => {
     // Undelegate
     const currentEpoch = await epochManager.currentEpoch()
     const delegationUnbondingPeriod = await staking.delegationUnbondingPeriod()
-    const tokensLockedUntil = currentEpoch.add(delegationUnbondingPeriod)
 
+    let lockingPeriod = toBN(delegationUnbondingPeriod)
+    if (beforeDelegation.tokensLocked.gt(0)) {
+      // Do weighted average of undelegation
+      lockingPeriod = weightedAverage(
+        diffOrZero(beforeDelegation.tokensLockedUntil, currentEpoch).mul(10),
+        BigNumber.from(lockingPeriod).mul(10),
+        beforeDelegation.tokensLocked,
+        tokens,
+      )
+      // Round up
+      lockingPeriod = lockingPeriod.mod(10).gt(0)
+        ? lockingPeriod.div(10).add(1)
+        : lockingPeriod.div(10)
+    }
+    const tokensLockedUntil = currentEpoch.add(lockingPeriod)
+
+    // Undelegate tx
     const tx = staking.connect(sender.signer).undelegate(indexer.address, shares)
     await expect(tx)
       .emit(staking, 'StakeDelegatedLocked')
@@ -446,6 +464,7 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate properly when multiple delegations', async function () {
+        await staking.setDelegationUnbondingPeriod(28)
         // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
         await epochManager.setEpochLength(toBN((60 * 60) / 15))
 
@@ -454,10 +473,13 @@ describe('Staking::Delegation', () => {
         await shouldDelegate(delegator, toGRT('50'))
         await shouldDelegate(delegator2, toGRT('50'))
 
-        await shouldUndelegate(delegator, toGRT('1'))
+        await shouldUndelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator2, toGRT('50'))
-        await advanceToNextEpoch(epochManager)
-        await shouldUndelegate(delegator, toGRT('25'))
+        await advanceToNextEpoch(epochManager) // epoch 1
+        await advanceToNextEpoch(epochManager) // epoch 2
+        await advanceToNextEpoch(epochManager) // epoch 3
+        await advanceToNextEpoch(epochManager) // epoch 4
+        await shouldUndelegate(delegator, toGRT('50'))
       })
 
       it('should undelegate and withdraw freed tokens from unbonding period', async function () {
@@ -626,7 +648,9 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const delegationFees = percentageOf(queryFeeCut, beforeAlloc.collectedFees)
+      const delegationFees = beforeAlloc.collectedFees.sub(
+        percentageOf(queryFeeCut, beforeAlloc.collectedFees),
+      )
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 
       // Claim from rebate pool

@@ -1324,6 +1324,34 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Get the epoch when tokens will be unlocked based on a new undelegation.
+     * @param _del Delegation
+     * @param _tokens Amount of tokens to undelegate
+     * @return Epoch when the undelegated tokens unlock
+     */
+    function _getDelegatedTokensLockedUntil(Delegation memory _del, uint256 _tokens)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 lockingPeriod = delegationUnbondingPeriod;
+        uint256 currentEpoch = epochManager().currentEpoch();
+        if (_del.tokensLocked > 0) {
+            // Calculate weighted average multiplying epochs by 10 to add extra precision
+            // and be able to round the final number up
+            lockingPeriod = MathUtils.weightedAverage(
+                MathUtils.diffOrZero(_del.tokensLockedUntil, currentEpoch).mul(10), // Remaining thawing period
+                _del.tokensLocked, // Weighted by remaining unstaked tokens
+                uint256(lockingPeriod).mul(10), // Thawing period
+                _tokens // Weighted by new tokens to unstake
+            );
+            // Round up the result
+            lockingPeriod = (lockingPeriod % 10 > 0) ? lockingPeriod / 10 + 1 : lockingPeriod / 10;
+        }
+        return currentEpoch.add(lockingPeriod);
+    }
+
+    /**
      * @dev Undelegate tokens from an indexer.
      * @param _delegator Address of the delegator
      * @param _indexer Address of the indexer where tokens had been delegated
@@ -1357,10 +1385,13 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         pool.tokens = pool.tokens.sub(tokens);
         pool.shares = pool.shares.sub(_shares);
 
+        // Take into account period averaging for multiple undelegate requests
+        uint256 tokensLockedUntil = _getDelegatedTokensLockedUntil(delegation, tokens);
+
         // Update the delegation
         delegation.shares = delegation.shares.sub(_shares);
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
-        delegation.tokensLockedUntil = epochManager().currentEpoch().add(delegationUnbondingPeriod);
+        delegation.tokensLockedUntil = tokensLockedUntil;
 
         emit StakeDelegatedLocked(
             _indexer,
