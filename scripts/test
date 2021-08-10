@@ -14,7 +14,6 @@ evm_running() {
 evm_start() {
   echo "Starting our own evm instance at port $TESTRPC_PORT"
   npx ganache-cli -m "$MNEMONIC" -i 1337 --gasLimit 8000000 --port "$TESTRPC_PORT" > /dev/null &
-  evm_pid=$!
 }
 
 evm_kill() {
@@ -44,11 +43,9 @@ mkdir -p reports
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
   npx hardhat test --network ganache
-  result=$?
 else
   # Run using the default evm
   npx hardhat test "$@"
-  result=$?
 fi
 
 ### Cleanup
