@@ -13,6 +13,7 @@ import {
   latestBlock,
   randomHexBytes,
   toGRT,
+  formatGRT,
   toBN,
   Account,
   advanceBlock,
@@ -608,6 +609,7 @@ describe('Staking::Delegation', () => {
       await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
 
       // Prepare allocation
+      const tokensDelegationCap = tokensToStake.mul(10)
       await setupAllocation(tokensToAllocate)
 
       // Collect some funds
@@ -628,10 +630,77 @@ describe('Staking::Delegation', () => {
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
       const delegatorsTotalRewardsCut = getDelegatorTotalRewardsCut(
-        tokensToDelegate,
+        tokensToDelegate.lt(tokensDelegationCap) ? tokensToDelegate : tokensDelegationCap,
         tokensToStake,
         queryRewardsCut,
       )
+      const delegationFees = percentageOf(delegatorsTotalRewardsCut, beforeAlloc.collectedFees)
+      const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
+
+      // Claim from rebate pool
+      const currentEpoch = await epochManager.currentEpoch()
+      const tx = staking.connect(indexer.signer).claim(allocationID, true)
+      await expect(tx)
+        .emit(staking, 'RebateClaimed')
+        .withArgs(
+          indexer.address,
+          subgraphDeploymentID,
+          allocationID,
+          currentEpoch,
+          beforeAlloc.closedAtEpoch,
+          tokensToClaim,
+          toBN('0'),
+          delegationFees,
+        )
+
+      // State updated
+      const afterDelegationPool = await staking.delegationPools(indexer.address)
+      expect(afterDelegationPool.tokens).eq(beforeDelegationPool.tokens.add(delegationFees))
+    })
+
+    it('should send delegation cut of query fees to delegation pool w/max delegation ratio', async function () {
+      // 1:10 delegation capacity
+      await staking.connect(governor.signer).setDelegationRatio(5)
+
+      // Set delegation rules for the indexer
+      const indexRewardsCut = toBN('800000') // indexer keeps 80%
+      const queryRewardsCut = toBN('950000') // indexer keeps 95%
+      const cooldownBlocks = 5
+      await staking
+        .connect(indexer.signer)
+        .setDelegationParameters(indexRewardsCut, queryRewardsCut, cooldownBlocks)
+
+      // Delegate
+      await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+
+      // Prepare allocation
+      const tokensDelegationCap = tokensToStake.mul(5)
+      const tokensToAllocate = tokensToStake.add(tokensDelegationCap) // use our max capacity
+      await setupAllocation(tokensToAllocate)
+
+      // Collect some funds
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+
+      // Advance blocks to get the channel in epoch where it can be closed
+      await advanceToNextEpoch(epochManager)
+
+      // Close allocation
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+
+      // Advance blocks to get the channel in epoch where it can be claimed
+      await advanceToNextEpoch(epochManager)
+
+      // Delegation pool before allocation closed
+      const beforeDelegationPool = await staking.delegationPools(indexer.address)
+
+      // Calculate tokens to claim and expected delegation fees
+      const beforeAlloc = await staking.getAllocation(allocationID)
+      const delegatorsTotalRewardsCut = getDelegatorTotalRewardsCut(
+        tokensToDelegate.lt(tokensDelegationCap) ? tokensToDelegate : tokensDelegationCap,
+        tokensToStake,
+        queryRewardsCut,
+      )
+      console.log(delegatorsTotalRewardsCut)
       const delegationFees = percentageOf(delegatorsTotalRewardsCut, beforeAlloc.collectedFees)
       const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
 

@@ -24,7 +24,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
     // For safety purposes we define an activation epoch for using the new rewards
     // distribution formula
-    uint256 private constant GIP_ACTIVATION_EPOCH = 1000; // TODO: change before deployment of implementation
+    uint256 private constant GIP_ACTIVATION_EPOCH = 0; // TODO: change before deployment of implementation
 
     // -- Events --
 
@@ -627,13 +627,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * @return Amount of tokens staked by the indexer
      */
     function getIndexerCapacity(address _indexer) public view override returns (uint256) {
-        Stakes.Indexer memory indexerStake = stakes[_indexer];
-
-        uint256 tokensDelegated = delegationPools[_indexer].tokens;
-        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
-
-        return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
+        return
+            stakes[_indexer].tokensAvailableWithDelegation(_getIndexerDelegatedCapacity(_indexer));
     }
 
     /**
@@ -1040,6 +1035,20 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     }
 
     /**
+     * @dev Get the total amount of delegated tokens that an indexer can use.
+     * This will cap the tokens to based on the delegation ratio
+     * @param _indexer Address of the indexer
+     * @return Amount of delegated tokens that the indexer can use
+     */
+    function _getIndexerDelegatedCapacity(address _indexer) private view returns (uint256) {
+        uint256 tokensDelegated = delegationPools[_indexer].tokens;
+        uint256 tokensDelegatedCap = stakes[_indexer].tokensSecureStake().mul(
+            uint256(delegationRatio)
+        );
+        return MathUtils.min(tokensDelegated, tokensDelegatedCap);
+    }
+
+    /**
      * @dev Stake tokens on the indexer.
      * This function does not check minimum indexer stake requirement to allow
      * to be called by functions that increase the stake when collecting rewards
@@ -1117,7 +1126,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Calculates the delegation ratio, delegation share of the total stake
         DelegationPool storage delegationPool = delegationPools[_indexer];
         uint32 indexerDelegationTotalRatio = MathUtils.totalRatio(
-            delegationPool.tokens,
+            _getIndexerDelegatedCapacity(_indexer),
             stakes[_indexer].tokensSecureStake()
         );
 
