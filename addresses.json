@@ -100,6 +100,14 @@
         {
           "name": "minimumCurationDeposit",
           "value": "1000000000000000000"
+        },
+        {
+          "name": "initializationDays",
+          "value": 5
+        },
+        {
+          "name": "initializationExitDays",
+          "value": 30
         }
       ],
       "creationCodeHash": "0xa02709eb59b9cca8bee1271845b42db037dc1d042dad93410ba532d378a7c79f",

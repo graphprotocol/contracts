@@ -34,8 +34,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
 
     uint256 private constant BLOCKS_PER_DAY = 6400;
-    uint256 private constant INITIALIZATION_DURATION = BLOCKS_PER_DAY * 5;
-    uint256 private constant INITIALIZATION_EXIT_DURATION = BLOCKS_PER_DAY * 30;
     uint32 private constant RESERVE_RATIO_ONE = 1000000;
 
     // -- Events --
@@ -78,7 +76,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         address _bondingCurve,
         uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
-        uint256 _minimumCurationDeposit
+        uint256 _minimumCurationDeposit,
+        uint256 _initializationDays,
+        uint256 _initializationExitDays
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -89,6 +89,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
+        _setInitializationPeriod(_initializationDays);
+        _setInitializationExitPeriod(_initializationExitDays);
     }
 
     /**
@@ -140,6 +142,32 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");
+    }
+
+    /**
+     * @dev Internal: Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationDays`
+     * @param _initializationDays In days
+     */
+    function _setInitializationPeriod(uint256 _initializationDays) private {
+        // Initialization must be greater than 0
+        require(_initializationDays > 0, "Initialization period must be > 0");
+
+        initializationPeriod = BLOCKS_PER_DAY * _initializationDays;
+        emit ParameterUpdated("initializationPeriod");
+    }
+
+    /**
+     * @dev Internal: Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationExitDays`
+     * @param _initializationExitDays In days
+     */
+    function _setInitializationExitPeriod(uint256 _initializationExitDays) private {
+        // Initialization must be greater than 0
+        require(_initializationExitDays > 0, "Initialization period must be > 0");
+
+        initializationExitPeriod = BLOCKS_PER_DAY * _initializationExitDays;
+        emit ParameterUpdated("initializationExitPeriod");
     }
 
     /**
@@ -493,14 +521,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     {
         uint32 effectiveReserveRatio = reserveRatio;
 
-        if (block.number <= (createdAt.add(INITIALIZATION_DURATION))) {
+        if (block.number <= (createdAt.add(initializationPeriod))) {
             effectiveReserveRatio = RESERVE_RATIO_ONE;
         } else if (
-            block.number <=
-            (createdAt.add(INITIALIZATION_DURATION).add(INITIALIZATION_EXIT_DURATION))
+            block.number <= (createdAt.add(initializationPeriod).add(initializationExitPeriod))
         ) {
-            uint256 percentExited = (block.number.sub(createdAt.add(INITIALIZATION_DURATION))).div(
-                INITIALIZATION_EXIT_DURATION
+            uint256 percentExited = (block.number.sub(createdAt.add(initializationPeriod))).div(
+                initializationExitPeriod
             );
 
             effectiveReserveRatio = uint32(
