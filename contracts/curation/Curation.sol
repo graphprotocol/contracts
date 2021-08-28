@@ -474,6 +474,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Calculate number of tokens to get when burning signal from a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to burn signal
      * @param _signalIn Amount of signal to burn
+     * @param _createdAt When NameCurationPool was created
      * @return Amount of tokens to get for an amount of signal
      */
     function signalToTokens(
