@@ -303,7 +303,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function burn(
         bytes32 _subgraphDeploymentID,
         uint256 _signalIn,
-        uint256 _tokensOutMin
+        uint256 _tokensOutMin,
+        uint256 _createdAt
     ) external override notPartialPaused returns (uint256) {
         address curator = msg.sender;
 
@@ -315,7 +316,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         );
 
         // Get the amount of tokens to refund based on returned signal
-        uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn);
+        uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn, _createdAt);
 
         // Slippage protection
         require(tokensOut >= _tokensOutMin, "Slippage protection");
@@ -477,14 +478,18 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _signalIn Amount of signal to burn
      * @return Amount of tokens to get for an amount of signal
      */
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function signalToTokens(
+        bytes32 _subgraphDeploymentID,
+        uint256 _signalIn,
+        uint256 _createdAt
+    ) public view override returns (uint256) {
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt, defaultReserveRatio);
+
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        curationPool.reserveRatio = _effectiveReserveRatio;
+
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
+
         require(
             curationPool.tokens > 0,
             "Subgraph deployment must be curated to perform calculations"

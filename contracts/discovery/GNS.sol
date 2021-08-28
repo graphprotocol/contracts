@@ -372,7 +372,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         require(namePool.disabled == false, "GNS: Cannot be disabled");
 
         // Burn all version signal in the name pool for tokens
-        uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
+        uint256 tokens = curation.burn(
+            namePool.subgraphDeploymentID,
+            namePool.vSignal,
+            0,
+            namePool.createdAt
+        );
 
         // Take the owner cut of the curation tax, add it to the total
         uint32 curationTaxPercentage = curation.curationTaxPercentage();
@@ -469,7 +474,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Get tokens for name signal amount to burn
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        uint256 tokens = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
+        uint256 tokens = curation().burn(
+            namePool.subgraphDeploymentID,
+            vSignal,
+            _tokensOutMin,
+            namePool.createdAt
+        );
 
         // Update pools
         namePool.vSignal = namePool.vSignal.sub(vSignal);
@@ -500,7 +510,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             namePool.withdrawableGRT = curation().burn(
                 namePool.subgraphDeploymentID,
                 namePool.vSignal,
-                0
+                0,
+                namePool.createdAt
             );
             namePool.vSignal = 0;
         }
@@ -634,7 +645,11 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     ) public view override returns (uint256, uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
-        uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
+        uint256 tokensOut = curation().signalToTokens(
+            namePool.subgraphDeploymentID,
+            vSignal,
+            namePool.createdAt
+        );
         return (vSignal, tokensOut);
     }
 

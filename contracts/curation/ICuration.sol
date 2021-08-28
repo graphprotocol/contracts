@@ -33,7 +33,8 @@ interface ICuration {
     function burn(
         bytes32 _subgraphDeploymentID,
         uint256 _signalIn,
-        uint256 _tokensOutMin
+        uint256 _tokensOutMin,
+        uint256 _createdAt
     ) external returns (uint256);
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
@@ -57,10 +58,11 @@ interface ICuration {
         uint256 _createdAt
     ) external view returns (uint256, uint256);
 
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
-        external
-        view
-        returns (uint256);
+    function signalToTokens(
+        bytes32 _subgraphDeploymentID,
+        uint256 _signalIn,
+        uint256 _createdAt
+    ) external view returns (uint256);
 
     function curationTaxPercentage() external view returns (uint32);
 }
