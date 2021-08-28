@@ -50,6 +50,7 @@ contracts:
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
       initializationDays: 5 # Days
       initializationExitDays: 30 # Days
+      blocksPerDay: 6400
   DisputeManager:
     proxy: true
     init:

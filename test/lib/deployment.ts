@@ -31,8 +31,9 @@ export const defaults = {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
     curationTaxPercentage: 0,
-    initializationDays: 5,
-    initializationExitDays: 30,
+    initializationDays: 1,
+    initializationExitDays: 2,
+    blocksPerDay: 1,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
@@ -132,6 +133,7 @@ export async function deployCuration(
       defaults.curation.minimumCurationDeposit,
       defaults.curation.initializationDays,
       defaults.curation.initializationExitDays,
+      defaults.curation.blocksPerDay,
     ],
     deployer,
   ) as unknown as Curation

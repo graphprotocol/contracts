@@ -78,7 +78,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit,
         uint256 _initializationDays,
-        uint256 _initializationExitDays
+        uint256 _initializationExitDays,
+        uint256 _blocksPerDay
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -89,6 +90,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
+        _setBlocksPerDay(_blocksPerDay);
         _setInitializationPeriod(_initializationDays);
         _setInitializationExitPeriod(_initializationExitDays);
     }
@@ -153,7 +155,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Initialization must be greater than 0
         require(_initializationDays > 0, "Initialization period must be > 0");
 
-        initializationPeriod = BLOCKS_PER_DAY * _initializationDays;
+        initializationPeriod = blocksPerDay * _initializationDays;
         emit ParameterUpdated("initializationPeriod");
     }
 
@@ -166,7 +168,20 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Initialization must be greater than 0
         require(_initializationExitDays > 0, "Initialization period must be > 0");
 
-        initializationExitPeriod = BLOCKS_PER_DAY * _initializationExitDays;
+        initializationExitPeriod = blocksPerDay * _initializationExitDays;
+        emit ParameterUpdated("initializationExitPeriod");
+    }
+
+    /**
+     * @dev Internal: Set blocks per day
+     * @notice Update blocks per day to `_blocksPerDay`
+     * @param _blocksPerDay In days
+     */
+    function _setBlocksPerDay(uint256 _blocksPerDay) private {
+        // Initialization must be greater than 0
+        require(_blocksPerDay > 0, "Blocks per day must be > 0");
+
+        blocksPerDay = _blocksPerDay;
         emit ParameterUpdated("initializationExitPeriod");
     }
 

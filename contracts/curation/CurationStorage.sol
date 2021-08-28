@@ -22,6 +22,9 @@ contract CurationV1Storage is Managed {
     // Block count for initialization exit period of the bonding curve
     uint256 public initializationExitPeriod;
 
+    // Average blocks per day
+    uint256 public blocksPerDay;
+
     // Minimum amount allowed to be deposited by curators to initialize a pool
     // This is the `startPoolBalance` for the bonding curve
     uint256 public minimumCurationDeposit;
