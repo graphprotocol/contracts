@@ -14,7 +14,7 @@ import {
   formatGRT,
   Account,
   advanceBlockTo,
-  latestBlock,
+  calcBondingCurve,
 } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
@@ -56,61 +56,6 @@ describe('Curation', () => {
   const curatorTokens = toGRT('1000000000')
   const tokensToDeposit = toGRT('1000')
   const tokensToCollect = toGRT('2000')
-
-  async function effectiveReserveRatio(blockNumber: number, createdAt: number) {
-    const initializationPeriod = (await curation.initializationPeriod()).toNumber()
-    const initializationExitPeriod = (await curation.initializationExitPeriod()).toNumber()
-    const defaultReserveRatio = await curation.defaultReserveRatio()
-
-    // Steady state reserve ratio
-    let effectiveReserveRatio = defaultReserveRatio
-
-    // Initialization phase reserve ratio
-    if (blockNumber <= createdAt + initializationPeriod) {
-      effectiveReserveRatio = 1
-
-      // Initialization exit phase reserve ratio
-    } else if (blockNumber <= createdAt + initializationPeriod + initializationExitPeriod) {
-      const percentExited =
-        (blockNumber - (createdAt + initializationPeriod)) / initializationExitPeriod
-      effectiveReserveRatio = 1 - (1 - defaultReserveRatio) / percentExited
-    }
-
-    return effectiveReserveRatio
-  }
-
-  async function calcBondingCurve(
-    supply: BigNumber,
-    reserveBalance: BigNumber,
-    depositAmount: BigNumber,
-    curationCreatedAt: number,
-    currentBlockNumber: number,
-  ) {
-    const effectReserveRatio = await effectiveReserveRatio(currentBlockNumber, curationCreatedAt)
-
-    // Handle the initialization of the bonding curve
-    if (supply.eq(0)) {
-      const minDeposit = await curation.minimumCurationDeposit()
-      if (depositAmount.lt(minDeposit)) {
-        throw new Error('deposit must be above minimum')
-      }
-      const minSupply = toGRT('1')
-      return (
-        (await calcBondingCurve(
-          minSupply,
-          minDeposit,
-          depositAmount.sub(minDeposit),
-          curationCreatedAt,
-          currentBlockNumber,
-        )) + toFloat(minSupply)
-      )
-    }
-    // Calculate bonding curve in the test
-    return (
-      toFloat(supply) *
-      ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (effectReserveRatio / 1000000) - 1)
-    )
-  }
 
   const shouldMint = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
     // Before state
@@ -570,6 +515,10 @@ describe('Curation', () => {
             tokensToDeposit,
             0,
             100,
+            await curation.initializationPeriod(),
+            await curation.initializationExitPeriod(),
+            await curation.defaultReserveRatio(),
+            await curation.minimumCurationDeposit(),
           )
 
           const tx = await curation

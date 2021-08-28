@@ -16,6 +16,8 @@ export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
 
+const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+
 // Network
 
 export interface Account {
@@ -82,6 +84,80 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   const epochLength = await epochManager.epochLength()
   const nextEpochBlock = currentBlock.add(epochLength)
   await advanceBlockTo(nextEpochBlock)
+}
+
+export const effectiveReserveRatio = async (
+  blockNumber: number,
+  createdAt: number,
+  initializationPeriod: BigNumber,
+  initializationExitPeriod: BigNumber,
+  defaultReserveRatio: number,
+): Promise<number> => {
+  const _initializationPeriod = initializationPeriod.toNumber()
+  const _initializationExitPeriod = initializationExitPeriod.toNumber()
+
+  // Steady state reserve ratio
+  let effectiveReserveRatio = defaultReserveRatio
+
+  // Initialization phase reserve ratio
+  if (blockNumber <= createdAt + _initializationPeriod) {
+    effectiveReserveRatio = 1
+
+    // Initialization exit phase reserve ratio
+  } else if (blockNumber <= createdAt + _initializationPeriod + _initializationExitPeriod) {
+    const percentExited =
+      (blockNumber - (createdAt + _initializationPeriod)) / _initializationExitPeriod
+    effectiveReserveRatio = 1 - (1 - defaultReserveRatio) / percentExited
+  }
+
+  return effectiveReserveRatio
+}
+
+export const calcBondingCurve = async (
+  supply: BigNumber,
+  reserveBalance: BigNumber,
+  depositAmount: BigNumber,
+  curationCreatedAt: number,
+  currentBlockNumber: number,
+  initializationPeriod: BigNumber,
+  initializationExitPeriod: BigNumber,
+  defaultReserveRatio: number,
+  minimumCurationDeposit: BigNumber,
+): Promise<number> => {
+  const effectReserveRatio = await effectiveReserveRatio(
+    currentBlockNumber,
+    curationCreatedAt,
+    initializationPeriod,
+    initializationExitPeriod,
+    defaultReserveRatio,
+  )
+
+  // Handle the initialization of the bonding curve
+  if (supply.eq(0)) {
+    if (depositAmount.lt(minimumCurationDeposit)) {
+      throw new Error('deposit must be above minimum')
+    }
+
+    const minSupply = toGRT('1')
+    return (
+      (await calcBondingCurve(
+        minSupply,
+        minimumCurationDeposit,
+        depositAmount.sub(minimumCurationDeposit),
+        curationCreatedAt,
+        currentBlockNumber,
+        initializationPeriod,
+        initializationExitPeriod,
+        defaultReserveRatio,
+        minimumCurationDeposit,
+      )) + toFloat(minSupply)
+    )
+  }
+  // Calculate bonding curve in the test
+  return (
+    toFloat(supply) *
+    ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (effectReserveRatio / 1000000) - 1)
+  )
 }
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
