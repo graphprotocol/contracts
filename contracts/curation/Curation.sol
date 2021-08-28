@@ -442,6 +442,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     ) private view returns (uint256) {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        curationPool.reserveRatio = _effectiveReserveRatio;
 
         // Init curation pool
         if (curationPool.tokens == 0) {
@@ -454,7 +455,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
                     .calculatePurchaseReturn(
                         SIGNAL_PER_MINIMUM_DEPOSIT,
                         minimumCurationDeposit,
-                        _effectiveReserveRatio,
+                        curationPool.reserveRatio,
                         _tokensIn.sub(minimumCurationDeposit)
                     )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
