@@ -201,6 +201,7 @@ describe('GNS', () => {
     const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
       subgraphToPublish.subgraphDeploymentID,
       totalAdjustedUp,
+      0,
     )
 
     // Send transaction
@@ -665,7 +666,7 @@ describe('GNS', () => {
       })
 
       it('should fail when upgrade tries to point to a pre-curated', async function () {
-        await curation.connect(me.signer).mint(subgraph1.subgraphDeploymentID, tokens1000, 0)
+        await curation.connect(me.signer).mint(subgraph1.subgraphDeploymentID, tokens1000, 0, 0)
         const tx = gns
           .connect(me.signer)
           .publishNewVersion(

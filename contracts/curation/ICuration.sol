@@ -26,7 +26,8 @@ interface ICuration {
     function mint(
         bytes32 _subgraphDeploymentID,
         uint256 _tokensIn,
-        uint256 _signalOutMin
+        uint256 _signalOutMin,
+        uint256 _createdAt
     ) external returns (uint256, uint256);
 
     function burn(
@@ -50,10 +51,11 @@ interface ICuration {
 
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        view
-        returns (uint256, uint256);
+    function tokensToSignal(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint256 _createdAt
+    ) external view returns (uint256, uint256);
 
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         external

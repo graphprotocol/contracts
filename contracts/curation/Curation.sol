@@ -25,12 +25,18 @@ import "./GraphCurationToken.sol";
  */
 contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     using SafeMath for uint256;
+    using SafeMath for uint32;
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
+
+    uint256 private constant BLOCKS_PER_DAY = 6400;
+    uint256 private constant INITIALIZATION_DURATION = BLOCKS_PER_DAY * 5;
+    uint256 private constant INITIALIZATION_EXIT_DURATION = BLOCKS_PER_DAY * 30;
+    uint32 private constant RESERVE_RATIO_ONE = 1000000;
 
     // -- Events --
 
@@ -192,13 +198,18 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function mint(
         bytes32 _subgraphDeploymentID,
         uint256 _tokensIn,
-        uint256 _signalOutMin
+        uint256 _signalOutMin,
+        uint256 _createdAt
     ) external override notPartialPaused returns (uint256, uint256) {
         // Need to deposit some funds
         require(_tokensIn > 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool
-        (uint256 signalOut, uint256 curationTax) = tokensToSignal(_subgraphDeploymentID, _tokensIn);
+        (uint256 signalOut, uint256 curationTax) = tokensToSignal(
+            _subgraphDeploymentID,
+            _tokensIn,
+            _createdAt
+        );
 
         // Slippage protection
         require(signalOut >= _signalOutMin, "Slippage protection");
@@ -209,7 +220,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
             // Initialize
-            curationPool.reserveRatio = defaultReserveRatio;
+            uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(
+                _createdAt,
+                defaultReserveRatio
+            );
+
+            curationPool.reserveRatio = _effectiveReserveRatio;
 
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
@@ -302,7 +318,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
-    function isCurated(bytes32 _subgraphDeploymentID) public override view returns (bool) {
+    function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return pools[_subgraphDeploymentID].tokens > 0;
     }
 
@@ -314,8 +330,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -331,8 +347,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -348,8 +364,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
         external
-        override
         view
+        override
         returns (uint256)
     {
         return pools[_subgraphDeploymentID].tokens;
@@ -359,7 +375,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Get curation tax percentage
      * @return Amount the curation tax percentage in PPM
      */
-    function curationTaxPercentage() external override view returns (uint32) {
+    function curationTaxPercentage() external view override returns (uint32) {
         return _curationTaxPercentage;
     }
 
@@ -370,14 +386,20 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought and tokens subtracted for the tax
      */
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        public
-        override
-        view
-        returns (uint256, uint256)
-    {
+    function tokensToSignal(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint256 _createdAt
+    ) public view override returns (uint256, uint256) {
         uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
-        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
+
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt, defaultReserveRatio);
+
+        uint256 signalOut = _tokensToSignal(
+            _subgraphDeploymentID,
+            _tokensIn.sub(curationTax),
+            _effectiveReserveRatio
+        );
         return (signalOut, curationTax);
     }
 
@@ -387,11 +409,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought with tokens
      */
-    function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        private
-        view
-        returns (uint256)
-    {
+    function _tokensToSignal(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint32 _effectiveReserveRatio
+    ) private view returns (uint256) {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
@@ -404,11 +426,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             return
                 BancorFormula(bondingCurve)
                     .calculatePurchaseReturn(
-                    SIGNAL_PER_MINIMUM_DEPOSIT,
-                    minimumCurationDeposit,
-                    defaultReserveRatio,
-                    _tokensIn.sub(minimumCurationDeposit)
-                )
+                        SIGNAL_PER_MINIMUM_DEPOSIT,
+                        minimumCurationDeposit,
+                        _effectiveReserveRatio,
+                        _tokensIn.sub(minimumCurationDeposit)
+                    )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
 
@@ -429,8 +451,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         public
-        override
         view
+        override
         returns (uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
@@ -462,5 +484,30 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         if (address(rewardsManager) != address(0)) {
             rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
+    }
+
+    function _getEffectiveReserveRatio(uint256 createdAt, uint32 reserveRatio)
+        private
+        view
+        returns (uint32)
+    {
+        uint32 effectiveReserveRatio = reserveRatio;
+
+        if (block.number <= (createdAt.add(INITIALIZATION_DURATION))) {
+            effectiveReserveRatio = RESERVE_RATIO_ONE;
+        } else if (
+            block.number <=
+            (createdAt.add(INITIALIZATION_DURATION).add(INITIALIZATION_EXIT_DURATION))
+        ) {
+            uint256 percentExited = (block.number.sub(createdAt.add(INITIALIZATION_DURATION))).div(
+                INITIALIZATION_EXIT_DURATION
+            );
+
+            effectiveReserveRatio = uint32(
+                RESERVE_RATIO_ONE.sub(RESERVE_RATIO_ONE.sub(reserveRatio)).div(percentExited)
+            );
+        }
+
+        return effectiveReserveRatio;
     }
 }

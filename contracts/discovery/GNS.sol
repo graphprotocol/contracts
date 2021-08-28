@@ -240,7 +240,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             1
         );
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
-        _enableNameSignal(_graphAccount, subgraphNumber);
+        _enableNameSignal(_graphAccount, subgraphNumber, block.number);
     }
 
     /**
@@ -327,10 +327,15 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      * @param _graphAccount Graph account enabling name signal
      * @param _subgraphNumber Subgraph number being used
      */
-    function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
+    function _enableNameSignal(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        uint256 _blockNumber
+    ) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         namePool.reserveRatio = defaultReserveRatio;
+        namePool.createdAt = _blockNumber;
 
         emit NameSignalEnabled(
             _graphAccount,
@@ -375,7 +380,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Update pool: constant nSignal, vSignal can change
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-        (namePool.vSignal, ) = curation.mint(namePool.subgraphDeploymentID, tokensWithTax, 0);
+        (namePool.vSignal, ) = curation.mint(
+            namePool.subgraphDeploymentID,
+            tokensWithTax,
+            0,
+            namePool.createdAt
+        );
 
         emit NameSignalUpgrade(
             _graphAccount,
@@ -414,7 +424,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         );
 
         // Get name signal to mint for tokens deposited
-        (uint256 vSignal, ) = curation().mint(namePool.subgraphDeploymentID, _tokensIn, 0);
+        (uint256 vSignal, ) = curation().mint(
+            namePool.subgraphDeploymentID,
+            _tokensIn,
+            0,
+            namePool.createdAt
+        );
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
 
         // Slippage protection
@@ -587,8 +602,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _tokensIn
     )
         public
-        override
         view
+        override
         returns (
             uint256,
             uint256,
@@ -598,7 +613,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
             namePool.subgraphDeploymentID,
-            _tokensIn
+            _tokensIn,
+            namePool.createdAt
         );
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         return (vSignal, nSignal, curationTax);
@@ -615,7 +631,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256, uint256) {
+    ) public view override returns (uint256, uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
         uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
@@ -633,7 +649,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _vSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
 
         // Handle initialization by using 1:1 version to name signal
@@ -661,7 +677,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
@@ -683,7 +699,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         address _curator
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         return nameSignals[_graphAccount][_subgraphNumber].curatorNSignal[_curator];
     }
 
@@ -695,8 +711,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function isPublished(address _graphAccount, uint256 _subgraphNumber)
         public
-        override
         view
+        override
         returns (bool)
     {
         return subgraphs[_graphAccount][_subgraphNumber] != 0;
