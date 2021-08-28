@@ -248,10 +248,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
             // Initialize
-            uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(
-                _createdAt,
-                defaultReserveRatio
-            );
+            uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt);
 
             curationPool.reserveRatio = _effectiveReserveRatio;
 
@@ -422,7 +419,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     ) public view override returns (uint256, uint256) {
         uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
 
-        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt, defaultReserveRatio);
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt);
 
         uint256 signalOut = _tokensToSignal(
             _subgraphDeploymentID,
@@ -483,7 +480,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint256 _signalIn,
         uint256 _createdAt
     ) public view override returns (uint256) {
-        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt, defaultReserveRatio);
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(_createdAt);
 
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         curationPool.reserveRatio = _effectiveReserveRatio;
@@ -519,24 +516,25 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         }
     }
 
-    function _getEffectiveReserveRatio(uint256 createdAt, uint32 reserveRatio)
-        private
-        view
-        returns (uint32)
-    {
-        uint32 effectiveReserveRatio = reserveRatio;
+    /**
+     * @dev Calculate reserve ratio based on initialization phase
+     * @param _createdAt When NameCurationPool was created
+     * @return Reserve ratio
+     */
+    function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
+        uint32 effectiveReserveRatio = defaultReserveRatio;
 
-        if (block.number <= (createdAt.add(initializationPeriod))) {
+        if (block.number <= (_createdAt.add(initializationPeriod))) {
             effectiveReserveRatio = RESERVE_RATIO_ONE;
         } else if (
-            block.number <= (createdAt.add(initializationPeriod).add(initializationExitPeriod))
+            block.number <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
         ) {
-            uint256 percentExited = (block.number.sub(createdAt.add(initializationPeriod))).div(
+            uint256 percentExited = (block.number.sub(_createdAt.add(initializationPeriod))).div(
                 initializationExitPeriod
             );
 
             effectiveReserveRatio = uint32(
-                RESERVE_RATIO_ONE.sub(RESERVE_RATIO_ONE.sub(reserveRatio)).div(percentExited)
+                RESERVE_RATIO_ONE.sub(RESERVE_RATIO_ONE.sub(defaultReserveRatio)).div(percentExited)
             );
         }
 
