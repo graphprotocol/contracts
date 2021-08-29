@@ -460,6 +460,8 @@ describe('Curation', () => {
 
   describe('conservation', async function () {
     it('should match multiple deposits and redeems back to initial state', async function () {
+      this.timeout(60000) // increase timeout for test runner
+
       const totalDeposits = toGRT('1000000000')
 
       // Signal multiple times

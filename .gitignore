@@ -1,13 +1,9 @@
-# Ignore zeppelin contracts
 node_modules/
 
 # Ignore build stuff
 cache/
 build/
 dist/
-
-# Coverage tests
-coverage/
 
 # Hardhat cache
 cached/
@@ -20,5 +16,6 @@ bin/
 .DS_Store
 .vscode
 
-# Sliter
+# Coverage and other reports
 /reports
+coverage.json

@@ -20,7 +20,17 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install --non-interactive --frozen-lockfile
+      - name: Install packages
+        run: yarn install --non-interactive --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-      - run: yarn test
+      - name: Run tests
+        run: yarn test:coverage
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.json
+          flags: unittests
+          name: graphprotocol-contracts
+          fail_ci_if_error: true

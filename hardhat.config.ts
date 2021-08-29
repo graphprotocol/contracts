@@ -18,9 +18,7 @@ import 'hardhat-contract-sizer'
 import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
-
-// TODO: Not supported for now in hardhat
-// usePlugin('solidity-coverage')
+import 'solidity-coverage'
 
 // Tasks
 
