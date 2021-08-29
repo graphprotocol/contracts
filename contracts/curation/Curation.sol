@@ -33,9 +33,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
 
-    uint256 private constant BLOCKS_PER_DAY = 6400;
-    uint32 private constant RESERVE_RATIO_ONE = 1000000;
-
     // -- Events --
 
     /**
@@ -542,7 +539,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         uint32 effectiveReserveRatio = defaultReserveRatio;
 
         if (block.number <= (_createdAt.add(initializationPeriod))) {
-            effectiveReserveRatio = RESERVE_RATIO_ONE;
+            effectiveReserveRatio = MAX_PPM;
         } else if (
             block.number <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
         ) {
@@ -551,7 +548,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             );
 
             effectiveReserveRatio = uint32(
-                RESERVE_RATIO_ONE.sub(RESERVE_RATIO_ONE.sub(defaultReserveRatio)).div(percentExited)
+                MAX_PPM.sub(MAX_PPM.sub(defaultReserveRatio)).div(percentExited)
             );
         }
 
