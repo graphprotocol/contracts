@@ -1,6 +1,8 @@
 # Graph Protocol Solidity Smart Contracts
 
-![Version Badge](https://img.shields.io/badge/version-1.0.0-lightgrey.svg)
+![Version Badge](https://img.shields.io/badge/version-1.6.0-lightgrey.svg)
+![CI Status](https://github.com/graphprotocol/contracts/actions/workflows/npmtest.yml/badge.svg)
+[![codecov](https://codecov.io/gh/graphprotocol/contracts/branch/dev/graph/badge.svg?token=S8JWGR9SBN)](https://codecov.io/gh/graphprotocol/contracts)
 
 ## Contracts
 
