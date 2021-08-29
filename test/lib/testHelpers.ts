@@ -86,13 +86,15 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   await advanceBlockTo(nextEpochBlock)
 }
 
-export const effectiveReserveRatio = async (
-  blockNumber: number,
-  createdAt: number,
+export const getEffectiveReserveRatio = async (
+  blockNumber: BigNumber,
+  createdAt: BigNumber,
   initializationPeriod: BigNumber,
   initializationExitPeriod: BigNumber,
   defaultReserveRatio: number,
 ): Promise<number> => {
+  const _blockNumber = blockNumber.toNumber()
+  const _createdAt = createdAt.toNumber()
   const _initializationPeriod = initializationPeriod.toNumber()
   const _initializationExitPeriod = initializationExitPeriod.toNumber()
 
@@ -100,13 +102,13 @@ export const effectiveReserveRatio = async (
   let effectiveReserveRatio = defaultReserveRatio
 
   // Initialization phase reserve ratio
-  if (blockNumber <= createdAt + _initializationPeriod) {
-    effectiveReserveRatio = 1
+  if (_blockNumber <= _createdAt + _initializationPeriod) {
+    effectiveReserveRatio = 1000000
 
     // Initialization exit phase reserve ratio
-  } else if (blockNumber <= createdAt + _initializationPeriod + _initializationExitPeriod) {
+  } else if (_blockNumber <= _createdAt + _initializationPeriod + _initializationExitPeriod) {
     const percentExited =
-      (blockNumber - (createdAt + _initializationPeriod)) / _initializationExitPeriod
+      (_blockNumber - (_createdAt + _initializationPeriod)) / _initializationExitPeriod
     effectiveReserveRatio = 1 - (1 - defaultReserveRatio) / percentExited
   }
 
@@ -117,14 +119,14 @@ export const calcBondingCurve = async (
   supply: BigNumber,
   reserveBalance: BigNumber,
   depositAmount: BigNumber,
-  curationCreatedAt: number,
-  currentBlockNumber: number,
+  curationCreatedAt: BigNumber,
+  currentBlockNumber: BigNumber,
   initializationPeriod: BigNumber,
   initializationExitPeriod: BigNumber,
   defaultReserveRatio: number,
   minimumCurationDeposit: BigNumber,
 ): Promise<number> => {
-  const effectReserveRatio = await effectiveReserveRatio(
+  const effectiveReserveRatio = await getEffectiveReserveRatio(
     currentBlockNumber,
     curationCreatedAt,
     initializationPeriod,
@@ -156,7 +158,8 @@ export const calcBondingCurve = async (
   // Calculate bonding curve in the test
   return (
     toFloat(supply) *
-    ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (effectReserveRatio / 1000000) - 1)
+    ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (effectiveReserveRatio / 1000000) -
+      1)
   )
 }
 
