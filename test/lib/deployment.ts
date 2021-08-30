@@ -174,14 +174,13 @@ export async function deployGNS(
   proxyAdmin: GraphProxyAdmin,
 ): Promise<GNS> {
   // Dependency
-  const didRegistry = await deployEthereumDIDRegistry(deployer)
   const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
 
   // Deploy
   return network.deployContractWithProxy(
     proxyAdmin,
     'GNS',
-    [controller, bondingCurve.address, didRegistry.address],
+    [controller, bondingCurve.address],
     deployer,
   ) as unknown as GNS
 }

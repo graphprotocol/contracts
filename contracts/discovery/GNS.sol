@@ -16,13 +16,13 @@ import "./GNSStorage.sol";
 /**
  * @title GNS
  * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
- * used in the scope of the Graph Network. It translates subgraph names into subgraph versions.
+ * used in the scope of the Graph Network. It translates Subgraphs into Subgraph Versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
+contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMath for uint256;
 
     // -- Constants --
@@ -48,96 +48,73 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when graph account sets a subgraphs metadata on IPFS
+     * @dev Emitted when the subgraph metadata is updated.
      */
-    event SubgraphMetadataUpdated(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        bytes32 subgraphMetadata
-    );
+    event SubgraphMetadataUpdated(uint256 indexed subgraphID, bytes32 subgraphMetadata);
 
     /**
-     * @dev Emitted when a `graph account` publishes a `subgraph` with a `version`.
-     * Every time this event is emitted, indicates a new version has been created.
-     * The event also emits a `metadataHash` with subgraph details and version details.
+     * @dev Emitted when a subgraph version is updated.
      */
-    event SubgraphPublished(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
+    event SubgraphVersionUpdated(
+        uint256 indexed subgraphID,
         bytes32 indexed subgraphDeploymentID,
         bytes32 versionMetadata
     );
 
     /**
-     * @dev Emitted when a graph account deprecated one of its subgraphs
+     * @dev Emitted when a curator mints signal.
      */
-    event SubgraphDeprecated(address indexed graphAccount, uint256 indexed subgraphNumber);
-
-    /**
-     * @dev Emitted when a graphAccount creates an nSignal bonding curve that
-     * points to a subgraph deployment
-     */
-    event NameSignalEnabled(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        bytes32 indexed subgraphDeploymentID,
-        uint32 reserveRatio
-    );
-
-    /**
-     * @dev Emitted when a name curator deposits its vSignal into an nSignal curve to mint nSignal
-     */
-    event NSignalMinted(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        address indexed nameCurator,
+    event SignalMinted(
+        uint256 indexed subgraphID,
+        address indexed curator,
         uint256 nSignalCreated,
         uint256 vSignalCreated,
         uint256 tokensDeposited
     );
 
     /**
-     * @dev Emitted when a name curator burns its nSignal, which in turn burns
-     * the vSignal, and receives GRT
+     * @dev Emitted when a curator burns signal.
      */
-    event NSignalBurned(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        address indexed nameCurator,
+    event SignalBurned(
+        uint256 indexed subgraphID,
+        address indexed curator,
         uint256 nSignalBurnt,
         uint256 vSignalBurnt,
         uint256 tokensReceived
     );
 
     /**
-     * @dev Emitted when a graph account upgrades its nSignal curve to point to a new
-     * subgraph deployment, burning all the old vSignal and depositing the GRT into the
-     * new vSignal curve, creating new nSignal
+     * @dev Emitted when a subgraph is created.
      */
-    event NameSignalUpgrade(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        uint256 newVSignalCreated,
+    event SubgraphCreated(
+        uint256 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
+        uint32 reserveRatio
+    );
+
+    /**
+     * @dev Emitted when a subgraph is upgraded to point to a new
+     * subgraph deployment, burning all the old vSignal and depositing the GRT into the
+     * new vSignal curve.
+     */
+    event SubgraphUpgraded(
+        uint256 indexed subgraphID,
+        uint256 vSignalCreated,
         uint256 tokensSignalled,
         bytes32 indexed subgraphDeploymentID
     );
 
     /**
-     * @dev Emitted when an nSignal curve has been permanently disabled
+     * @dev Emitted when a subgraph is deprecated.
      */
-    event NameSignalDisabled(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        uint256 withdrawableGRT
-    );
+    event SubgraphDeprecated(uint256 indexed subgraphID, uint256 withdrawableGRT);
 
     /**
-     * @dev Emitted when a nameCurator withdraws its GRT from a deprecated name signal pool
+     * @dev Emitted when a curator withdraws GRT from a deprecated subgraph
      */
     event GRTWithdrawn(
-        address indexed graphAccount,
-        uint256 indexed subgraphNumber,
-        address indexed nameCurator,
+        uint256 indexed subgraphID,
+        address indexed curator,
         uint256 nSignalBurnt,
         uint256 withdrawnGRT
     );
@@ -145,20 +122,15 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Modifiers --
 
     /**
-     * @dev Check if the owner is the graph account
-     * @param _graphAccount Address of the graph account
+     * @dev Emitted when a legacy subgraph is claimed
      */
-    function _isGraphAccountOwner(address _graphAccount) private view {
-        address graphAccountOwner = erc1056Registry.identityOwner(_graphAccount);
-        require(graphAccountOwner == msg.sender, "GNS: Only graph account owner can call");
-    }
+    event LegacySubgraphClaimed(address indexed graphAccount, uint256 subgraphNumber);
 
     /**
-     * @dev Modifier that allows a function to be called by owner of a graph account
-     * @param _graphAccount Address of the graph account
+     * @dev Modifier that allows only a subgraph operator to be the caller
      */
-    modifier onlyGraphAccountOwner(address _graphAccount) {
-        _isGraphAccountOwner(_graphAccount);
+    modifier onlySubgraphAuth(uint256 _subgraphID) {
+        require(_isApprovedOrOwner(msg.sender, _subgraphID), "GNS: Must be authorized");
         _;
     }
 
@@ -167,15 +139,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(
-        address _controller,
-        address _bondingCurve,
-        address _didRegistry
-    ) external onlyImpl {
+    function initialize(address _controller, address _bondingCurve) external onlyImpl {
         Managed._initialize(_controller);
 
         bondingCurve = _bondingCurve;
-        erc1056Registry = IEthereumDIDRegistry(_didRegistry);
+        // TODO: review token symbol
+        __ERC721_init("Subgraph", "SUB");
 
         // Settings
         _setOwnerTaxPercentage(500000);
@@ -220,325 +189,263 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
         uint8 _nameSystem,
         bytes32 _nameIdentifier,
         string calldata _name
-    ) external override onlyGraphAccountOwner(_graphAccount) {
+    ) external override {
+        require(_graphAccount == msg.sender, "GNS: Only can set your own name");
         emit SetDefaultName(_graphAccount, _nameSystem, _nameIdentifier, _name);
     }
 
     /**
-     * @dev Allows a graph account update the metadata of a subgraph they have published
-     * @param _graphAccount Account that owns the subgraph
-     * @param _subgraphNumber Subgraph number
+     * @dev Allows a subgraph owner to update the metadata of a subgraph they have published
+     * @param _subgraphID Subgraph ID
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
-    function updateSubgraphMetadata(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        bytes32 _subgraphMetadata
-    ) public override onlyGraphAccountOwner(_graphAccount) {
-        emit SubgraphMetadataUpdated(_graphAccount, _subgraphNumber, _subgraphMetadata);
+    function updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata)
+        public
+        override
+        onlySubgraphAuth(_subgraphID)
+    {
+        emit SubgraphMetadataUpdated(_subgraphID, _subgraphMetadata);
     }
 
     /**
-     * @dev Allows a graph account to publish a new subgraph, which means a new subgraph number
-     * will be used.
-     * @param _graphAccount Account that is publishing the subgraph
-     * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
+     * @dev Publish a new subgraph.
+     * @param _subgraphDeploymentID Subgraph deployment for the subgraph
      * @param _versionMetadata IPFS hash for the subgraph version metadata
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
     function publishNewSubgraph(
-        address _graphAccount,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata,
         bytes32 _subgraphMetadata
-    ) external override notPaused onlyGraphAccountOwner(_graphAccount) {
-        uint256 subgraphNumber = graphAccountSubgraphNumbers[_graphAccount];
-        _publishVersion(_graphAccount, subgraphNumber, _subgraphDeploymentID, _versionMetadata);
-        graphAccountSubgraphNumbers[_graphAccount] = graphAccountSubgraphNumbers[_graphAccount].add(
-            1
-        );
-        updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
-        _enableNameSignal(_graphAccount, subgraphNumber);
+    ) external override notPaused {
+        // Subgraph deployment must be non-empty
+        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0 in publish");
+
+        // Init the subgraph
+        address subgraphOwner = msg.sender;
+        uint256 subgraphID = _nextSubgraphID(subgraphOwner);
+        SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
+        subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
+        subgraphData.reserveRatio = defaultReserveRatio;
+
+        // Mint the NFT. Use the subgraphID as tokenId.
+        // This function will check the if tokenId already exists.
+        _mint(subgraphOwner, subgraphID);
+
+        emit SubgraphCreated(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
+        emit SubgraphMetadataUpdated(subgraphID, _subgraphMetadata);
+        emit SubgraphVersionUpdated(subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
     /**
-     * @dev Allows a graph account to publish a new version of its subgraph.
-     * Version is derived from the occurrence of SubgraphPublished being emitted.
-     * The first time SubgraphPublished is called would be Version 0
-     * @param _graphAccount Account that is publishing the subgraph
-     * @param _subgraphNumber Subgraph number for the account
-     * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
+     * @dev Publish a new version of an existing subgraph.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphDeploymentID Subgraph deployment ID of the new version
      * @param _versionMetadata IPFS hash for the subgraph version metadata
      */
     function publishNewVersion(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+        uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
-    ) external override notPaused onlyGraphAccountOwner(_graphAccount) {
+    ) external override notPaused onlySubgraphAuth(_subgraphID) {
+        // Perform the upgrade from the current subgraph deployment to the new one.
+        // This involves burning all signal from the old deployment and using the funds to buy
+        // from the new deployment.
+        // This will also make the change to target to the new deployment.
+
+        // Subgraph check
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
+
+        // New subgraph deployment must be non-empty
+        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0 in publish");
+
+        // New subgraph deployment must be different than current
         require(
-            isPublished(_graphAccount, _subgraphNumber),
-            "GNS: Cannot update version if not published, or has been deprecated"
-        );
-        bytes32 oldSubgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
-        require(
-            _subgraphDeploymentID != oldSubgraphDeploymentID,
+            _subgraphDeploymentID != subgraphData.subgraphDeploymentID,
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
 
-        _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
-        _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
-    }
-
-    /**
-     * @dev Private function used by both external publishing functions
-     * @param _graphAccount Account that is publishing the subgraph
-     * @param _subgraphNumber Subgraph number for the account
-     * @param _subgraphDeploymentID Subgraph deployment ID of the version, linked to the name
-     * @param _versionMetadata IPFS hash for the subgraph version metadata
-     */
-    function _publishVersion(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        bytes32 _subgraphDeploymentID,
-        bytes32 _versionMetadata
-    ) private {
-        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0 in publish");
-
-        // Stores a subgraph deployment ID, which indicates a version has been created
-        subgraphs[_graphAccount][_subgraphNumber] = _subgraphDeploymentID;
-
-        // Emit version and name data
-        emit SubgraphPublished(
-            _graphAccount,
-            _subgraphNumber,
-            _subgraphDeploymentID,
-            _versionMetadata
-        );
-    }
-
-    /**
-     * @dev Deprecate a subgraph. Can only be done by the graph account owner.
-     * @param _graphAccount Account that is deprecating the subgraph
-     * @param _subgraphNumber Subgraph number for the account
-     */
-    function deprecateSubgraph(address _graphAccount, uint256 _subgraphNumber)
-        external
-        override
-        notPaused
-        onlyGraphAccountOwner(_graphAccount)
-    {
-        require(
-            isPublished(_graphAccount, _subgraphNumber),
-            "GNS: Cannot deprecate a subgraph which does not exist"
-        );
-
-        delete subgraphs[_graphAccount][_subgraphNumber];
-        emit SubgraphDeprecated(_graphAccount, _subgraphNumber);
-
-        _disableNameSignal(_graphAccount, _subgraphNumber);
-    }
-
-    /**
-     * @dev Enable name signal on a graph accounts numbered subgraph, which points to a subgraph
-     * deployment
-     * @param _graphAccount Graph account enabling name signal
-     * @param _subgraphNumber Subgraph number being used
-     */
-    function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
-        namePool.reserveRatio = defaultReserveRatio;
-
-        emit NameSignalEnabled(
-            _graphAccount,
-            _subgraphNumber,
-            namePool.subgraphDeploymentID,
-            namePool.reserveRatio
-        );
-    }
-
-    /**
-     * @dev Update a name signal on a graph accounts numbered subgraph
-     * @param _graphAccount Graph account updating name signal
-     * @param _subgraphNumber Subgraph number being used
-     * @param _newSubgraphDeploymentID Deployment ID being upgraded to
-     */
-    function _upgradeNameSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        bytes32 _newSubgraphDeploymentID
-    ) private {
         // This is to prevent the owner from front running its name curators signal by posting
         // its own signal ahead, bringing the name curators in, and dumping on them
         ICuration curation = curation();
         require(
-            !curation.isCurated(_newSubgraphDeploymentID),
+            !curation.isCurated(_subgraphDeploymentID),
             "GNS: Owner cannot point to a subgraphID that has been pre-curated"
         );
 
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(
-            namePool.nSignal > 0,
-            "GNS: There must be nSignal on this subgraph for curve math to work"
-        );
-        require(namePool.disabled == false, "GNS: Cannot be disabled");
+        // Move all signal from previous version to new version
+        // NOTE: We will only do this as long as there is signal on the subgraph
+        if (subgraphData.nSignal > 0) {
+            // Burn all version signal in the name pool for tokens (w/no slippage protection)
+            uint256 tokens = curation.burn(
+                subgraphData.subgraphDeploymentID,
+                subgraphData.vSignal,
+                0
+            );
 
-        // Burn all version signal in the name pool for tokens
-        uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
+            // Take the owner cut of the curation tax, add it to the total
+            // Upgrade is only callable by the owner, we asume then that msg.sender = owner
+            address subgraphOwner = msg.sender;
+            uint256 tokensWithTax = _chargeOwnerTax(
+                tokens,
+                subgraphOwner,
+                curation.curationTaxPercentage()
+            );
 
-        // Take the owner cut of the curation tax, add it to the total
-        uint32 curationTaxPercentage = curation.curationTaxPercentage();
-        uint256 tokensWithTax = _chargeOwnerTax(tokens, _graphAccount, curationTaxPercentage);
+            // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
+            subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
+            (subgraphData.vSignal, ) = curation.mint(
+                subgraphData.subgraphDeploymentID,
+                tokensWithTax,
+                0
+            );
+            emit SubgraphUpgraded(
+                _subgraphID,
+                subgraphData.vSignal,
+                tokensWithTax,
+                _subgraphDeploymentID
+            );
+        }
 
-        // Update pool: constant nSignal, vSignal can change
-        namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-        (namePool.vSignal, ) = curation.mint(namePool.subgraphDeploymentID, tokensWithTax, 0);
-
-        emit NameSignalUpgrade(
-            _graphAccount,
-            _subgraphNumber,
-            namePool.vSignal,
-            tokensWithTax,
-            _newSubgraphDeploymentID
-        );
+        emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
     /**
-     * @dev Allow a name curator to mint some nSignal by depositing GRT
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number
+     * @dev Deprecate a subgraph. The bonding curve is destroyed, the vSignal is burned, and the GNS
+     * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
+     * Can only be done by the subgraph owner.
+     * @param _subgraphID Subgraph ID
+     */
+    function deprecateSubgraph(uint256 _subgraphID)
+        external
+        override
+        notPaused
+        onlySubgraphAuth(_subgraphID)
+    {
+        // Subgraph check
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
+
+        // Burn signal only if it has any available
+        if (subgraphData.nSignal > 0) {
+            subgraphData.withdrawableGRT = curation().burn(
+                subgraphData.subgraphDeploymentID,
+                subgraphData.vSignal,
+                0
+            );
+        }
+
+        // Deprecate the subgraph and do cleanup
+        subgraphData.disabled = true;
+        subgraphData.vSignal = 0;
+        subgraphData.reserveRatio = 0;
+        // NOTE: We don't reset the following variable as we use it to test if the Subgraph was ever created
+        // subgraphData.subgraphDeploymentID = 0;
+
+        // Burn the NFT
+        _burn(_subgraphID);
+
+        emit SubgraphDeprecated(_subgraphID, subgraphData.withdrawableGRT);
+    }
+
+    /**
+     * @dev Deposit GRT into a subgraph and mint signal.
+     * @param _subgraphID Subgraph ID
      * @param _tokensIn The amount of tokens the nameCurator wants to deposit
      * @param _nSignalOutMin Expected minimum amount of name signal to receive
      */
-    function mintNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+    function mintSignal(
+        uint256 _subgraphID,
         uint256 _tokensIn,
         uint256 _nSignalOutMin
     ) external override notPartialPaused {
-        // Pool checks
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(namePool.disabled == false, "GNS: Cannot be disabled");
-        require(
-            namePool.subgraphDeploymentID != 0,
-            "GNS: Must deposit on a name signal that exists"
-        );
+        // Subgraph checks
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Pull tokens from sender
+        address curator = msg.sender;
         TokenUtils.pullTokens(graphToken(), msg.sender, _tokensIn);
 
         // Get name signal to mint for tokens deposited
-        (uint256 vSignal, ) = curation().mint(namePool.subgraphDeploymentID, _tokensIn, 0);
-        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
+        (uint256 vSignal, ) = curation().mint(subgraphData.subgraphDeploymentID, _tokensIn, 0);
+        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
 
         // Slippage protection
         require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
 
         // Update pools
-        namePool.vSignal = namePool.vSignal.add(vSignal);
-        namePool.nSignal = namePool.nSignal.add(nSignal);
-        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].add(nSignal);
+        subgraphData.vSignal = subgraphData.vSignal.add(vSignal);
+        subgraphData.nSignal = subgraphData.nSignal.add(nSignal);
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].add(nSignal);
 
-        emit NSignalMinted(_graphAccount, _subgraphNumber, msg.sender, nSignal, vSignal, _tokensIn);
+        emit SignalMinted(_subgraphID, curator, nSignal, vSignal, _tokensIn);
     }
 
     /**
-     * @dev Allow a nameCurator to burn some of its nSignal and get GRT in return
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
+     * @dev Burn signal for a subgraph and return the GRT.
+     * @param _subgraphID Subgraph ID
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
      * @param _tokensOutMin Expected minimum amount of tokens to receive
      */
-    function burnNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+    function burnSignal(
+        uint256 _subgraphID,
         uint256 _nSignal,
         uint256 _tokensOutMin
     ) external override notPartialPaused {
-        // Pool checks
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(namePool.disabled == false, "GNS: Cannot be disabled");
+        // Subgraph checks
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Curator balance checks
-        uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
+        address curator = msg.sender;
+        uint256 curatorNSignal = subgraphData.curatorNSignal[curator];
         require(
             _nSignal <= curatorNSignal,
             "GNS: Curator cannot withdraw more nSignal than they have"
         );
 
         // Get tokens for name signal amount to burn
-        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        uint256 tokens = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
+        uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignal);
+        uint256 tokens = curation().burn(subgraphData.subgraphDeploymentID, vSignal, _tokensOutMin);
 
         // Update pools
-        namePool.vSignal = namePool.vSignal.sub(vSignal);
-        namePool.nSignal = namePool.nSignal.sub(_nSignal);
-        namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
+        subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
+        subgraphData.nSignal = subgraphData.nSignal.sub(_nSignal);
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_nSignal);
 
-        // Return the tokens to the curator
-        TokenUtils.pushTokens(graphToken(), msg.sender, tokens);
+        // Return the tokens to the nameCurator
+        require(graphToken().transfer(curator, tokens), "GNS: Error sending tokens");
 
-        emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
+        emit SignalBurned(_subgraphID, curator, _nSignal, vSignal, tokens);
     }
 
     /**
-     * @dev Owner disables the subgraph. This means the subgraph-number combination can no longer
-     * be used for name signal. The nSignal curve is destroyed, the vSignal is burned, and the GNS
-     * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
-     * @param _graphAccount Account that is deprecating its name curation
-     * @param _subgraphNumber Subgraph number
+     * @dev Withdraw tokens from a deprecated subgraph.
+     * When the subgraph is deprecated, any curator can call this function and
+     * withdraw the GRT they are entitled for its original deposit
+     * @param _subgraphID Subgraph ID
      */
-    function _disableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+    function withdraw(uint256 _subgraphID) external override notPartialPaused {
+        // Subgraph validations
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        require(subgraphData.disabled == true, "GNS: Must be disabled first");
+        require(subgraphData.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
 
-        // If no nSignal, then no need to burn vSignal
-        if (namePool.nSignal != 0) {
-            // Note: No slippage, burn at any cost
-            namePool.withdrawableGRT = curation().burn(
-                namePool.subgraphDeploymentID,
-                namePool.vSignal,
-                0
-            );
-            namePool.vSignal = 0;
-        }
-
-        // Set the NameCurationPool fields to make it disabled
-        namePool.disabled = true;
-
-        emit NameSignalDisabled(_graphAccount, _subgraphNumber, namePool.withdrawableGRT);
-    }
-
-    /**
-     * @dev When the subgraph curve is disabled, all nameCurators can call this function and
-     * withdraw the GRT they are entitled for its original deposit of vSignal
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     */
-    function withdraw(address _graphAccount, uint256 _subgraphNumber)
-        external
-        override
-        notPartialPaused
-    {
-        // Pool checks
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        require(namePool.disabled == true, "GNS: Name bonding curve must be disabled first");
-        require(namePool.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
-
-        // Curator balance checks
-        uint256 curatorNSignal = namePool.curatorNSignal[msg.sender];
-        require(curatorNSignal > 0, "GNS: Curator must have some nSignal to withdraw GRT");
+        // Curator validations
+        address curator = msg.sender;
+        uint256 curatorNSignal = subgraphData.curatorNSignal[curator];
+        require(curatorNSignal > 0, "GNS: No signal to withdraw GRT");
 
         // Get curator share of tokens to be withdrawn
-        uint256 tokensOut = curatorNSignal.mul(namePool.withdrawableGRT).div(namePool.nSignal);
-        namePool.curatorNSignal[msg.sender] = 0;
-        namePool.nSignal = namePool.nSignal.sub(curatorNSignal);
-        namePool.withdrawableGRT = namePool.withdrawableGRT.sub(tokensOut);
+        uint256 tokensOut = curatorNSignal.mul(subgraphData.withdrawableGRT).div(
+            subgraphData.nSignal
+        );
+        subgraphData.curatorNSignal[curator] = 0;
+        subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
+        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT.sub(tokensOut);
 
         // Return tokens to the curator
-        TokenUtils.pushTokens(graphToken(), msg.sender, tokensOut);
+        TokenUtils.pushTokens(graphToken(), curator, tokensOut);
 
-        emit GRTWithdrawn(_graphAccount, _subgraphNumber, msg.sender, curatorNSignal, tokensOut);
+        emit GRTWithdrawn(_subgraphID, curator, curatorNSignal, tokensOut);
     }
 
     /**
@@ -584,17 +491,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Calculate name signal to be returned for an amount of tokens.
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _tokensIn Tokens being exchanged for name signal
-     * @return Amount of name signal and curation tax
+     * @dev Calculate subgraph signal to be returned for an amount of tokens.
+     * @param _subgraphID Subgraph ID
+     * @param _tokensIn Tokens being exchanged for subgraph signal
+     * @return Amount of subgraph signal and curation tax
      */
-    function tokensToNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _tokensIn
-    )
+    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
         public
         view
         override
@@ -604,110 +506,207 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
             uint256
         )
     {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
-            namePool.subgraphDeploymentID,
+            subgraphData.subgraphDeploymentID,
             _tokensIn
         );
-        uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
+        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
         return (vSignal, nSignal, curationTax);
     }
 
     /**
-     * @dev Calculate tokens returned for an amount of name signal.
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignalIn Name signal being exchanged for tokens
-     * @return Amount of tokens returned for an amount of nSignal
+     * @dev Calculate tokens returned for an amount of subgraph signal.
+     * @param _subgraphID Subgraph ID
+     * @param _nSignalIn Subgraph signal being exchanged for tokens
+     * @return Amount of tokens returned for an amount of subgraph signal
      */
-    function nSignalToTokens(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignalIn
-    ) public view override returns (uint256, uint256) {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
-        uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
-        uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
+    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
+        uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal);
         return (vSignal, tokensOut);
     }
 
     /**
-     * @dev Calculate nSignal to be returned for an amount of vSignal.
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _vSignalIn Amount of vSignal to exchange for name signal
-     * @return Amount of nSignal that can be bought
+     * @dev Calculate subgraph signal to be returned for an amount of subgraph deployment signal.
+     * @param _subgraphID Subgraph ID
+     * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
+     * @return Amount of subgraph signal that can be bought
      */
-    function vSignalToNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _vSignalIn
-    ) public view override returns (uint256) {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
         // Handle initialization by using 1:1 version to name signal
-        if (namePool.vSignal == 0) {
+        if (subgraphData.vSignal == 0) {
             return _vSignalIn;
         }
 
         return
             BancorFormula(bondingCurve).calculatePurchaseReturn(
-                namePool.nSignal,
-                namePool.vSignal,
-                namePool.reserveRatio,
+                subgraphData.nSignal,
+                subgraphData.vSignal,
+                subgraphData.reserveRatio,
                 _vSignalIn
             );
     }
 
     /**
-     * @dev Calculate vSignal to be returned for an amount of name signal.
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _nSignalIn Name signal being exchanged for vSignal
-     * @return Amount of vSignal that can be returned
+     * @dev Calculate subgraph deployment signal to be returned for an amount of subgraph signal.
+     * @param _subgraphID Subgraph ID
+     * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
+     * @return Amount of subgraph deployment signal that can be returned
      */
-    function nSignalToVSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignalIn
-    ) public view override returns (uint256) {
-        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
-                namePool.nSignal,
-                namePool.vSignal,
-                namePool.reserveRatio,
+                subgraphData.nSignal,
+                subgraphData.vSignal,
+                subgraphData.reserveRatio,
                 _nSignalIn
             );
     }
 
     /**
-     * @dev Get the amount of name signal a curator has on a name pool.
-     * @param _graphAccount Subgraph owner
-     * @param _subgraphNumber Subgraph owners subgraph number which was curated on by nameCurators
-     * @param _curator Curator to look up to see n signal balance
-     * @return Amount of name signal owned by a curator for the name pool
+     * @dev Get the amount of subgraph signal a curator has.
+     * @param _subgraphID Subgraph ID
+     * @param _curator Curator address
+     * @return Amount of subgraph signal owned by a curator
      */
-    function getCuratorNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        address _curator
-    ) public view override returns (uint256) {
-        return nameSignals[_graphAccount][_subgraphNumber].curatorNSignal[_curator];
-    }
-
-    /**
-     * @dev Return whether a subgraph name is published.
-     * @param _graphAccount Account being checked
-     * @param _subgraphNumber Subgraph number being checked for publishing
-     * @return Return true if subgraph is currently published
-     */
-    function isPublished(address _graphAccount, uint256 _subgraphNumber)
+    function getCuratorSignal(uint256 _subgraphID, address _curator)
         public
         view
         override
-        returns (bool)
+        returns (uint256)
     {
-        return subgraphs[_graphAccount][_subgraphNumber] != 0;
+        return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
+    }
+
+    /**
+     * @dev Create subgraphID for legacy subgraph and mint ownership NFT.
+     * @param _graphAccount Account that created the subgraph
+     * @param _subgraphNumber The sequence number of the created subgraph
+     */
+    function migrateLegacySubgraph(address _graphAccount, uint256 _subgraphNumber) external {
+        // Must be an existing legacy subgraph
+        bool legacySubgraphExists = legacySubgraphData[_graphAccount][_subgraphNumber]
+            .subgraphDeploymentID != 0;
+        require(legacySubgraphExists == true, "GNS: Subgraph does not exist");
+
+        // Must not be a claimed subgraph
+        uint256 subgraphID = _buildSubgraphID(_graphAccount, _subgraphNumber);
+        require(
+            legacySubgraphKeys[subgraphID].account == address(0),
+            "GNS: Subgraph was already claimed"
+        );
+
+        // Store a reference for a legacy subgraph
+        legacySubgraphKeys[subgraphID] = IGNS.LegacySubgraphKey({
+            account: _graphAccount,
+            accountSeqID: _subgraphNumber
+        });
+
+        // Delete state for legacy subgraph
+        legacySubgraphs[_graphAccount][_subgraphNumber] = 0;
+
+        // Mint the NFT and send to owner
+        // The subgraph owner is the graph account that created it
+        _mint(_graphAccount, subgraphID);
+
+        emit LegacySubgraphClaimed(_graphAccount, _subgraphNumber);
+    }
+
+    /**
+     * @dev Return whether a subgraph is published.
+     * @param _subgraphID Subgraph ID
+     * @return Return true if subgraph is currently published
+     */
+    function isPublished(uint256 _subgraphID) public view override returns (bool) {
+        return _isPublished(_getSubgraphData(_subgraphID));
+    }
+
+    /**
+     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * Subgraph ID is the keccak hash of account+seqID
+     * @return Subgraph ID
+     */
+    function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(_account, _seqID)));
+    }
+
+    /**
+     * @dev Return the next subgraphID given the account that is creating the subgraph.
+     * NOTE: This function updates the sequence ID for the account
+     * @return Sequence ID for the account
+     */
+    function _nextSubgraphID(address _account) internal returns (uint256) {
+        return _buildSubgraphID(_account, _nextAccountSeqID(_account));
+    }
+
+    /**
+     * @dev Return a new consecutive sequence ID for an account and update to the next value.
+     * NOTE: This function updates the sequence ID for the account
+     * @return Sequence ID for the account
+     */
+    function _nextAccountSeqID(address _account) internal returns (uint256) {
+        uint256 seqID = nextAccountSeqID[_account];
+        nextAccountSeqID[_account] = nextAccountSeqID[_account].add(1);
+        return seqID;
+    }
+
+    /**
+     * @dev Get subgraph data.
+     * This function will first look for a v1 subgraph and return it if found.
+     * @param _subgraphID Subgraph ID
+     * @return Subgraph Data
+     */
+    function _getSubgraphData(uint256 _subgraphID) private view returns (SubgraphData storage) {
+        // If there is a legacy subgraph created return it
+        LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
+        if (legacySubgraphKey.account != address(0)) {
+            return legacySubgraphData[legacySubgraphKey.account][legacySubgraphKey.accountSeqID];
+        }
+        // Return new subgraph type
+        return subgraphs[_subgraphID];
+    }
+
+    /**
+     * @dev Return whether a subgraph is published.
+     * @param _subgraphData Subgraph Data
+     * @return Return true if subgraph is currently published
+     */
+    function _isPublished(SubgraphData storage _subgraphData) internal view returns (bool) {
+        return _subgraphData.subgraphDeploymentID != 0 && _subgraphData.disabled == false;
+    }
+
+    /**
+     * @dev Return the subgraph data or revert if not published or deprecated.
+     * @param _subgraphID Subgraph ID
+     * @return Subgraph Data
+     */
+    function _getSubgraphOrRevert(uint256 _subgraphID)
+        internal
+        view
+        returns (SubgraphData storage)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        require(_isPublished(subgraphData) == true, "GNS: Must be active");
+        return subgraphData;
     }
 }

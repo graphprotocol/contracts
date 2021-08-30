@@ -5,14 +5,19 @@ pragma solidity ^0.7.6;
 interface IGNS {
     // -- Pool --
 
-    struct NameCurationPool {
-        uint256 vSignal; // The token of the subgraph deployment bonding curve
-        uint256 nSignal; // The token of the name curation bonding curve
+    struct SubgraphData {
+        uint256 vSignal; // The token of the subgraph-deployment bonding curve
+        uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
         uint32 reserveRatio;
         bool disabled;
         uint256 withdrawableGRT;
+    }
+
+    struct LegacySubgraphKey {
+        address account;
+        uint256 accountSeqID;
     }
 
     // -- Configuration --
@@ -30,53 +35,41 @@ interface IGNS {
         string calldata _name
     ) external;
 
-    function updateSubgraphMetadata(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        bytes32 _subgraphMetadata
-    ) external;
+    function updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata) external;
 
     function publishNewSubgraph(
-        address _graphAccount,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata,
         bytes32 _subgraphMetadata
     ) external;
 
     function publishNewVersion(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+        uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
     ) external;
 
-    function deprecateSubgraph(address _graphAccount, uint256 _subgraphNumber) external;
+    function deprecateSubgraph(uint256 _subgraphID) external;
 
     // -- Curation --
 
-    function mintNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+    function mintSignal(
+        uint256 _subgraphID,
         uint256 _tokensIn,
         uint256 _nSignalOutMin
     ) external;
 
-    function burnNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
+    function burnSignal(
+        uint256 _subgraphID,
         uint256 _nSignal,
         uint256 _tokensOutMin
     ) external;
 
-    function withdraw(address _graphAccount, uint256 _subgraphNumber) external;
+    function withdraw(uint256 _subgraphID) external;
 
     // -- Getters --
 
-    function tokensToNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _tokensIn
-    )
+    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
         external
         view
         returns (
@@ -85,32 +78,25 @@ interface IGNS {
             uint256
         );
 
-    function nSignalToTokens(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignalIn
-    ) external view returns (uint256, uint256);
-
-    function vSignalToNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _vSignalIn
-    ) external view returns (uint256);
-
-    function nSignalToVSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        uint256 _nSignalIn
-    ) external view returns (uint256);
-
-    function getCuratorNSignal(
-        address _graphAccount,
-        uint256 _subgraphNumber,
-        address _curator
-    ) external view returns (uint256);
-
-    function isPublished(address _graphAccount, uint256 _subgraphNumber)
+    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
         external
         view
-        returns (bool);
+        returns (uint256, uint256);
+
+    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
+        external
+        view
+        returns (uint256);
+
+    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
+        external
+        view
+        returns (uint256);
+
+    function getCuratorSignal(uint256 _subgraphID, address _curator)
+        external
+        view
+        returns (uint256);
+
+    function isPublished(uint256 _subgraphID) external view returns (bool);
 }
