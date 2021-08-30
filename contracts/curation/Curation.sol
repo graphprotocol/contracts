@@ -30,6 +30,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
+    // Precision for effective reserve ratio
+    uint256 private constant PRECISION = 10**9;
+
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
 
@@ -543,13 +546,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         } else if (
             block.number <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
         ) {
-            uint256 percentExited = (block.number.sub(_createdAt.add(initializationPeriod))).div(
-                initializationExitPeriod
-            );
+            uint256 blockDiff = block.number.sub(_createdAt.add(initializationPeriod));
+            uint256 exitRatio = blockDiff.mul(PRECISION).div(initializationExitPeriod);
+            uint256 reserve = MAX_PPM.sub(defaultReserveRatio).mul(PRECISION);
+            uint256 reserveRatio = reserve.div(exitRatio);
 
-            effectiveReserveRatio = uint32(
-                MAX_PPM.sub(MAX_PPM.sub(defaultReserveRatio)).div(percentExited)
-            );
+            effectiveReserveRatio = uint32(MAX_PPM.mul(PRECISION).sub(reserveRatio).div(PRECISION));
         }
 
         return effectiveReserveRatio;
