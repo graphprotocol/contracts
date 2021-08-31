@@ -896,7 +896,7 @@ describe('Curation', () => {
     })
 
     describe('multiple minting', async function () {
-      it('should mint less signal every time due to the bonding curve', async function () {
+      it('should mint equal signal', async function () {
         const tokensToDepositMany = [
           toGRT('1000'), // should mint if we start with number above minimum deposit
           toGRT('1000'), // every time it should mint less GCS due to bonding curve...
