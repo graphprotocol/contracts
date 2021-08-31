@@ -2,6 +2,7 @@
 
 pragma solidity ^0.7.3;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../bancor/BancorFormula.sol";
@@ -31,7 +32,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     uint32 private constant MAX_PPM = 1000000;
 
     // Precision for effective reserve ratio
-    uint256 private constant PRECISION = 10**9;
+    uint256 private constant PRECISION = 10**6;
 
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
