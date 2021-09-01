@@ -239,6 +239,9 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         graphAccountSubgraphNumbers[_graphAccount] = graphAccountSubgraphNumbers[_graphAccount].add(
             1
         );
+
+        curation().setCreatedAt(_subgraphDeploymentID, block.number);
+
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
         _enableNameSignal(_graphAccount, subgraphNumber, block.number);
     }
@@ -267,6 +270,10 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             _subgraphDeploymentID != oldSubgraphDeploymentID,
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
+
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+
+        curation().setCreatedAt(_subgraphDeploymentID, namePool.createdAt);
 
         _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
@@ -372,12 +379,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         require(namePool.disabled == false, "GNS: Cannot be disabled");
 
         // Burn all version signal in the name pool for tokens
-        uint256 tokens = curation.burn(
-            namePool.subgraphDeploymentID,
-            namePool.vSignal,
-            0,
-            namePool.createdAt
-        );
+        uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
 
         // Take the owner cut of the curation tax, add it to the total
         uint32 curationTaxPercentage = curation.curationTaxPercentage();
@@ -385,12 +387,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Update pool: constant nSignal, vSignal can change
         namePool.subgraphDeploymentID = _newSubgraphDeploymentID;
-        (namePool.vSignal, ) = curation.mint(
-            namePool.subgraphDeploymentID,
-            tokensWithTax,
-            0,
-            namePool.createdAt
-        );
+        (namePool.vSignal, ) = curation.mint(namePool.subgraphDeploymentID, tokensWithTax, 0);
 
         emit NameSignalUpgrade(
             _graphAccount,
@@ -429,12 +426,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         );
 
         // Get name signal to mint for tokens deposited
-        (uint256 vSignal, ) = curation().mint(
-            namePool.subgraphDeploymentID,
-            _tokensIn,
-            0,
-            namePool.createdAt
-        );
+        (uint256 vSignal, ) = curation().mint(namePool.subgraphDeploymentID, _tokensIn, 0);
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
 
         // Slippage protection
@@ -474,12 +466,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // Get tokens for name signal amount to burn
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignal);
-        uint256 tokens = curation().burn(
-            namePool.subgraphDeploymentID,
-            vSignal,
-            _tokensOutMin,
-            namePool.createdAt
-        );
+        uint256 tokens = curation().burn(namePool.subgraphDeploymentID, vSignal, _tokensOutMin);
 
         // Update pools
         namePool.vSignal = namePool.vSignal.sub(vSignal);
@@ -510,8 +497,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
             namePool.withdrawableGRT = curation().burn(
                 namePool.subgraphDeploymentID,
                 namePool.vSignal,
-                0,
-                namePool.createdAt
+                0
             );
             namePool.vSignal = 0;
         }
@@ -624,8 +610,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
             namePool.subgraphDeploymentID,
-            _tokensIn,
-            namePool.createdAt
+            _tokensIn
         );
         uint256 nSignal = vSignalToNSignal(_graphAccount, _subgraphNumber, vSignal);
         return (vSignal, nSignal, curationTax);
@@ -645,11 +630,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     ) public view override returns (uint256, uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
-        uint256 tokensOut = curation().signalToTokens(
-            namePool.subgraphDeploymentID,
-            vSignal,
-            namePool.createdAt
-        );
+        uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
         return (vSignal, tokensOut);
     }
 

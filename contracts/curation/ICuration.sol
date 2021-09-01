@@ -9,6 +9,7 @@ interface ICuration {
 
     struct CurationPool {
         uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
+        uint256 createdAt;
         uint32 reserveRatio; // Ratio for the bonding curve
         IGraphCurationToken gcs; // Curation token contract for this curation pool
     }
@@ -29,18 +30,18 @@ interface ICuration {
 
     // -- Curation --
 
+    function setCreatedAt(bytes32 _subgraphDeploymentID, uint256 _createdAt) external;
+
     function mint(
         bytes32 _subgraphDeploymentID,
         uint256 _tokensIn,
-        uint256 _signalOutMin,
-        uint256 _createdAt
+        uint256 _signalOutMin
     ) external returns (uint256, uint256);
 
     function burn(
         bytes32 _subgraphDeploymentID,
         uint256 _signalIn,
-        uint256 _tokensOutMin,
-        uint256 _createdAt
+        uint256 _tokensOutMin
     ) external returns (uint256);
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
@@ -58,17 +59,15 @@ interface ICuration {
 
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
-    function tokensToSignal(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokensIn,
-        uint256 _createdAt
-    ) external view returns (uint256, uint256);
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        view
+        returns (uint256, uint256);
 
-    function signalToTokens(
-        bytes32 _subgraphDeploymentID,
-        uint256 _signalIn,
-        uint256 _createdAt
-    ) external view returns (uint256);
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
+        external
+        view
+        returns (uint256);
 
     function curationTaxPercentage() external view returns (uint32);
 }
