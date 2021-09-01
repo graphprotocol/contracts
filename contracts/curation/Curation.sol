@@ -213,7 +213,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
         require(_blocksPerDay > 0, "Blocks per day must be > 0");
 
         blocksPerDay = _blocksPerDay;
-        emit ParameterUpdated("initializationExitPeriod");
+        emit ParameterUpdated("blocksPerDay");
     }
 
     /**
