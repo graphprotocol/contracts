@@ -23,7 +23,7 @@ import "./GraphCurationToken.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
+contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
     using SafeMath for uint256;
     using SafeMath for uint32;
 
