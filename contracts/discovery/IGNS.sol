@@ -110,6 +110,8 @@ interface IGNS {
         address _curator
     ) external view returns (uint256);
 
+    function getAddress() external view returns (address);
+
     function isPublished(address _graphAccount, uint256 _subgraphNumber)
         external
         view

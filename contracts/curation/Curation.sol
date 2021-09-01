@@ -239,8 +239,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     function setCreatedAt(bytes32 _subgraphDeploymentID, uint256 _createdAt) external override {
-        // TODO: Only curation contract can call this
-        // require(msg.sender == address(contract), "Only curation contract can call this function")
+        require(msg.sender == gns().getAddress(), "Only GNS contract can call this function");
 
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
         curationPool.createdAt = _createdAt;

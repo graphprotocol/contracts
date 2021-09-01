@@ -164,6 +164,14 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
     }
 
     /**
+     * @dev Returns GNS contract address
+     * @return Contract address
+     */
+    function getAddress() external view override returns (address) {
+        return address(this);
+    }
+
+    /**
      * @dev Approve curation contract to pull funds.
      */
     function approveAll() external override {

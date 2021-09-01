@@ -63,6 +63,7 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
     await controller.setContractProxy(utils.id('GraphToken'), grt.address)
     await controller.setContractProxy(utils.id('Curation'), curation.address)
+    await controller.setContractProxy(utils.id('GNS'), gns.address)
     await controller.setContractProxy(utils.id('Staking'), staking.address)
     await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
     await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)

@@ -15,6 +15,7 @@ export const toGRT = (value: string | number): BigNumber => {
 export const formatGRT = (value: BigNumber): string => formatUnits(value, '18')
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
+export const BIG_NUMBER_ZERO = BigNumber.from(0)
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 

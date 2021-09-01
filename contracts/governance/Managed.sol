@@ -5,6 +5,7 @@ pragma solidity ^0.7.3;
 import "./IController.sol";
 
 import "../curation/ICuration.sol";
+import "../discovery/IGNS.sol";
 import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
@@ -56,12 +57,12 @@ contract Managed {
         require(msg.sender == address(controller), "Caller must be Controller");
     }
 
-    modifier notPartialPaused {
+    modifier notPartialPaused() {
         _notPartialPaused();
         _;
     }
 
-    modifier notPaused {
+    modifier notPaused() {
         _notPaused();
         _;
     }
@@ -111,6 +112,14 @@ contract Managed {
      */
     function curation() internal view returns (ICuration) {
         return ICuration(_resolveContract(keccak256("Curation")));
+    }
+
+    /**
+     * @dev Return GNS interface.
+     * @return GNS contract registered with Controller
+     */
+    function gns() internal view returns (IGNS) {
+        return IGNS(_resolveContract(keccak256("GNS")));
     }
 
     /**
@@ -178,6 +187,7 @@ contract Managed {
      */
     function syncAllContracts() external {
         _syncContract("Curation");
+        _syncContract("GNS");
         _syncContract("EpochManager");
         _syncContract("RewardsManager");
         _syncContract("Staking");
