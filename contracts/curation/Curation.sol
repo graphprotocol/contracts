@@ -148,6 +148,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
+     * @dev Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationDays`
+     * @param _initializationDays In days
+     */
+    function setInitializationPeriod(uint256 _initializationDays) external override onlyGovernor {
+        _setInitializationPeriod(_initializationDays);
+    }
+
+    /**
      * @dev Internal: Set the initialization period for a curation pool.
      * @notice Update the initialization period to `_initializationDays`
      * @param _initializationDays In days
@@ -161,6 +170,19 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
+     * @dev Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationExitDays`
+     * @param _initializationExitDays In days
+     */
+    function setInitializationExitPeriod(uint256 _initializationExitDays)
+        external
+        override
+        onlyGovernor
+    {
+        _setInitializationExitPeriod(_initializationExitDays);
+    }
+
+    /**
      * @dev Internal: Set the initialization period for a curation pool.
      * @notice Update the initialization period to `_initializationExitDays`
      * @param _initializationExitDays In days
@@ -171,6 +193,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         initializationExitPeriod = blocksPerDay * _initializationExitDays;
         emit ParameterUpdated("initializationExitPeriod");
+    }
+
+    /**
+     * @dev Set blocks per day
+     * @notice Update blocks per day to `_blocksPerDay`
+     * @param _blocksPerDay In days
+     */
+    function setBlocksPerDay(uint256 _blocksPerDay) external override onlyGovernor {
+        _setBlocksPerDay(_blocksPerDay);
     }
 
     /**

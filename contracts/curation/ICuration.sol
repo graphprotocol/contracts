@@ -21,6 +21,12 @@ interface ICuration {
 
     function setCurationTaxPercentage(uint32 _percentage) external;
 
+    function setInitializationPeriod(uint256 _initializationDays) external;
+
+    function setInitializationExitPeriod(uint256 _initializationExitDays) external;
+
+    function setBlocksPerDay(uint256 _blocksPerDay) external;
+
     // -- Curation --
 
     function mint(
