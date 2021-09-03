@@ -1,12 +1,10 @@
 ## Deploying the Solidity Smart Contracts
-
 ### Running
 
-A CLI in `cli/cli.ts` deploys the contracts to the specified network when used with the `migrate` command.
+Deploy functionality exists in `cli/cli.ts`. You can deploy the contracts to the specified network 
+when used with the `migrate` command. This script accepts multiple commands that you can print using:
 
-This script accepts multiple commands that you can print using:
-
-```
+```bash
 cli/cli.ts --help
 ```
 
