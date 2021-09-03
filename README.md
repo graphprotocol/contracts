@@ -1,11 +1,9 @@
-# Graph Protocol Solidity Smart Contracts
-
 ![License: GPL](https://img.shields.io/badge/license-GPL-blue)
 ![Version Badge](https://img.shields.io/badge/version-1.6.0-lightgrey.svg)
 ![CI Status](https://github.com/graphprotocol/contracts/actions/workflows/npmtest.yml/badge.svg)
 [![codecov](https://codecov.io/gh/graphprotocol/contracts/branch/dev/graph/badge.svg?token=S8JWGR9SBN)](https://codecov.io/gh/graphprotocol/contracts)
 
-# The Graph Protocol Contracts
+# Graph Protocol Contracts
 
 [The Graph](https://thegraph.com/) is an indexing protocol for querying networks like Ethereum, IPFS, Polygon, and other blockchains. Anyone can build and Publish open APIs, called subgraphs, making data easily accessible.
 
