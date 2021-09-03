@@ -133,4 +133,4 @@ If you have found a bug / security issue, please go through the official channel
 
 Copyright &copy; 2021 The Graph Foundation
 
-Licensed under [MIT license](LICENSE).
+Licensed under [GPL license](LICENSE).
