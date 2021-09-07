@@ -5,8 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "../base/Multicall.sol";
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
+import "../utils/TokenUtils.sol";
 
 import "./IGNS.sol";
 import "./GNSStorage.sol";
@@ -17,9 +19,13 @@ import "./GNSStorage.sol";
  * used in the scope of the Graph Network. It translates subgraph names into subgraph versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
+ * The contract implements a multicall behaviour to support batching multiple calls in a single
+ * transaction.
  */
-contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
+contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMath for uint256;
+
+    // -- Constants --
 
     uint256 private constant MAX_UINT256 = 2**256 - 1;
 
@@ -136,15 +142,27 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 withdrawnGRT
     );
 
+    // -- Modifiers --
+
     /**
-    @dev Modifier that allows a function to be called by owner of a graph account
-    @param _graphAccount Address of the graph account
-    */
-    modifier onlyGraphAccountOwner(address _graphAccount) {
+     * @dev Check if the owner is the graph account
+     * @param _graphAccount Address of the graph account
+     */
+    function _isGraphAccountOwner(address _graphAccount) private view {
         address graphAccountOwner = erc1056Registry.identityOwner(_graphAccount);
         require(graphAccountOwner == msg.sender, "GNS: Only graph account owner can call");
+    }
+
+    /**
+     * @dev Modifier that allows a function to be called by owner of a graph account
+     * @param _graphAccount Address of the graph account
+     */
+    modifier onlyGraphAccountOwner(address _graphAccount) {
+        _isGraphAccountOwner(_graphAccount);
         _;
     }
+
+    // -- Functions --
 
     /**
      * @dev Initialize this contract.
@@ -408,10 +426,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         );
 
         // Pull tokens from sender
-        require(
-            graphToken().transferFrom(msg.sender, address(this), _tokensIn),
-            "GNS: Cannot transfer tokens to mint n signal"
-        );
+        TokenUtils.pullTokens(graphToken(), msg.sender, _tokensIn);
 
         // Get name signal to mint for tokens deposited
         (uint256 vSignal, ) = curation().mint(namePool.subgraphDeploymentID, _tokensIn, 0);
@@ -461,11 +476,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         namePool.nSignal = namePool.nSignal.sub(_nSignal);
         namePool.curatorNSignal[msg.sender] = namePool.curatorNSignal[msg.sender].sub(_nSignal);
 
-        // Return the tokens to the nameCurator
-        require(
-            graphToken().transfer(msg.sender, tokens),
-            "GNS: Error sending nameCurators tokens"
-        );
+        // Return the tokens to the curator
+        TokenUtils.pushTokens(graphToken(), msg.sender, tokens);
 
         emit NSignalBurned(_graphAccount, _subgraphNumber, msg.sender, _nSignal, vSignal, tokens);
     }
@@ -482,6 +494,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
 
         // If no nSignal, then no need to burn vSignal
         if (namePool.nSignal != 0) {
+            // Note: No slippage, burn at any cost
             namePool.withdrawableGRT = curation().burn(
                 namePool.subgraphDeploymentID,
                 namePool.vSignal,
@@ -522,10 +535,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         namePool.nSignal = namePool.nSignal.sub(curatorNSignal);
         namePool.withdrawableGRT = namePool.withdrawableGRT.sub(tokensOut);
 
-        require(
-            graphToken().transfer(msg.sender, tokensOut),
-            "GNS: Error withdrawing tokens for nameCurator"
-        );
+        // Return tokens to the curator
+        TokenUtils.pushTokens(graphToken(), msg.sender, tokensOut);
 
         emit GRTWithdrawn(_graphAccount, _subgraphNumber, msg.sender, curatorNSignal, tokensOut);
     }
@@ -567,10 +578,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
 
         // Get the owner of the subgraph to reimburse the curation tax
-        require(
-            graphToken().transferFrom(_owner, address(this), ownerTaxAdjustedUp),
-            "GNS: Error reimbursing curation tax"
-        );
+        TokenUtils.pullTokens(graphToken(), _owner, ownerTaxAdjustedUp);
+
         return totalAdjustedUp;
     }
 
@@ -587,8 +596,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         uint256 _tokensIn
     )
         public
-        override
         view
+        override
         returns (
             uint256,
             uint256,
@@ -615,7 +624,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256, uint256) {
+    ) public view override returns (uint256, uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         uint256 vSignal = nSignalToVSignal(_graphAccount, _subgraphNumber, _nSignalIn);
         uint256 tokensOut = curation().signalToTokens(namePool.subgraphDeploymentID, vSignal);
@@ -633,7 +642,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _vSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
 
         // Handle initialization by using 1:1 version to name signal
@@ -661,7 +670,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         uint256 _nSignalIn
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         return
             BancorFormula(bondingCurve).calculateSaleReturn(
@@ -683,7 +692,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
         address _graphAccount,
         uint256 _subgraphNumber,
         address _curator
-    ) public override view returns (uint256) {
+    ) public view override returns (uint256) {
         return nameSignals[_graphAccount][_subgraphNumber].curatorNSignal[_curator];
     }
 
@@ -695,8 +704,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS {
      */
     function isPublished(address _graphAccount, uint256 _subgraphNumber)
         public
-        override
         view
+        override
         returns (bool)
     {
         return subgraphs[_graphAccount][_subgraphNumber] != 0;

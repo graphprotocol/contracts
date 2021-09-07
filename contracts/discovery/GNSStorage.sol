@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import "../governance/Managed.sol";
 
 import "./erc1056/IEthereumDIDRegistry.sol";
-
 import "./IGNS.sol";
 
 contract GNSV1Storage is Managed {
