@@ -1042,9 +1042,7 @@ describe('GNS', () => {
 
       // Batch send transaction
       const tx = gns.connect(me.signer).multicall([bogusPayload, tx2.data])
-      await expect(tx).revertedWith(
-        "function selector was not recognized and there's no fallback function",
-      )
+      await expect(tx).revertedWith('')
     })
   })
 })
