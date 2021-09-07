@@ -3,7 +3,7 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "./IMultiCall.sol";
+import "./IMulticall.sol";
 
 // Inspired by https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/base/Multicall.sol
 // Note: Removed payable from the multicall
