@@ -19,39 +19,39 @@ The contracts are upgradable, following the [Open Zeppelin Proxy Upgrade Pattern
 
 **_Curation_**
 
-Allows Curators to Signal GRT towards a Subgraph Deployment they want indexed on The Graph. Curators are often Subgraph Developers, but anyone can participate. Curators also receive a portion of the query fees that are earned on the Subgraph. Signaled GRT goes into a bonding curve, which returns a Graph Curation Share (GCS) to the Curator.
+> Allows Curators to Signal GRT towards a Subgraph Deployment they want indexed on The Graph. Curators are often Subgraph Developers, but anyone can participate. Curators also receive a portion of the query fees that are earned on the Subgraph. Signaled GRT goes into a bonding curve, which returns a Graph Curation Share (GCS) to the Curator.
 
 **_Graph Name Service (GNS)_**
 
-Wraps around the Curation contract to provide pooling of Curator Signaled tokens towards a single Subgraph. This allows an owner to deploy a Subgraph, and upgrade their Subgraph to a new version. The upgrade will move all Curator tokens to a new Subgraph Deployment with a new bonding curve.
+> Wraps around the Curation contract to provide pooling of Curator Signaled tokens towards a single Subgraph. This allows an owner to deploy a Subgraph, and upgrade their Subgraph to a new version. The upgrade will move all Curator tokens to a new Subgraph Deployment with a new bonding curve.
 
 **_Service Registry_**
 
-Allows Indexers to tell the network the location of their node. This allows end users to choose a node close to themselves, lowering the latency for queries.
+> Allows Indexers to tell the network the location of their node. This allows end users to choose a node close to themselves, lowering the latency for queries.
 
 **_Dispute Manager_**
 
-Provides a way for Indexers to be slashed or incorrect or malicious behaviour. There are two types of disputes: _Query Disputes_ and _Indexing Disputes_.
+> Provides a way for Indexers to be slashed or incorrect or malicious behaviour. There are two types of disputes: _Query Disputes_ and _Indexing Disputes_.
 
 **_Epoch Manager_**
 
-Keeps track of protocol Epochs. Epochs are configured to be a certain block length, which is configurable by The Governor.
+> Keeps track of protocol Epochs. Epochs are configured to be a certain block length, which is configurable by The Governor.
 
 **_Controller_**
 
-The Controller is a contract that has a registry of all protocol contract addresses. It also is the owner of all the contracts. The owner of the Controller is The Governor, which makes The Governor the address that can configure the whole protocol. The Governor is [The Graph Council](https://thegraph.com/blog/introducing-the-graph-council).
+> The Controller is a contract that has a registry of all protocol contract addresses. It also is the owner of all the contracts. The owner of the Controller is The Governor, which makes The Governor the address that can configure the whole protocol. The Governor is [The Graph Council](https://thegraph.com/blog/introducing-the-graph-council).
 
 **_Rewards Manager_**
 
-Tracks how inflationary GRT rewards should be handed out. It relies on the Curation contract and the Staking contract. Signaled GRT in Curation determine what percentage of inflationary tokens go towards each subgraph. Each Subgraph can have multiple Indexers Staked on it. Thus, the total rewards for the Subgraph are split up for each Indexer based on much they have Staked on that Subgraph.
+> Tracks how inflationary GRT rewards should be handed out. It relies on the Curation contract and the Staking contract. Signaled GRT in Curation determine what percentage of inflationary tokens go towards each subgraph. Each Subgraph can have multiple Indexers Staked on it. Thus, the total rewards for the Subgraph are split up for each Indexer based on much they have Staked on that Subgraph.
 
 **_Staking_**
 
-The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The contract also contains the slashing functionality.
+> The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The contract also contains the slashing functionality.
 
 **_Graph Token_**
 
-An ERC-20 token (GRT) that is used as a work token to power the network incentives. The token is inflationary.
+> An ERC-20 token (GRT) that is used as a work token to power the network incentives. The token is inflationary.
 
 # NPM package
 
