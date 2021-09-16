@@ -13,8 +13,14 @@ yarn build && \
 
 echo "Analyzing contracts..."
 slither . \
-    --filter-paths "bancor/*" \
-    &> reports/analyzer-report.log && \
+    --hardhat-ignore-compile \
+    --hardhat-artifacts-directory ./build/contracts \
+    --sarif - \
+    --filter-paths "contracts/bancor/.*|contracts/tests/.*|contracts/staking/libs/Cobbs.*|contracts/staking/libs/LibFixedMath.*|contracts/staking/libs/MathUtils.*" \
+    --exclude-dependencies \
+    --exclude similar-names,naming-convention \
+    --disable-color \
+    &> reports/analyzer-report.sarif && \
 slither-check-erc build/flatten/GraphToken.sol GraphToken &> reports/analyzer-report-erc.log
 
 echo "Done!"
