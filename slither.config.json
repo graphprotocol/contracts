@@ -1,0 +1,6 @@
+{
+    "hardhat_artifacts_directory": "./build/contracts",
+    "filter_paths": "contracts/bancor/.*|contracts/tests/.*|contracts/staking/libs/Cobbs.*|contracts/staking/libs/LibFixedMath.*|contracts/staking/libs/MathUtils.*",
+    "detectors_to_exclude": "similar-names,naming-convention",
+    "exclude_dependencies": true
+}

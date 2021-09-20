@@ -104,7 +104,7 @@
     "prettier:ts": "prettier --write 'test/**/*.ts'",
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "analyze": "scripts/analyze",
-    "flatten": "scripts/flatten",
+    "flatten": "scripts/flatten && scripts/clean",
     "typechain": "hardhat typechain",
     "verify": "hardhat verify",
     "size": "hardhat size-contracts"
