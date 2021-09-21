@@ -1023,6 +1023,23 @@ describe('GNS', () => {
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
 
+    it('should revert if batching a call to initialize', async function () {
+      // Call a forbidden function
+      const tx1 = await gns.populateTransaction.initialize(me.address, me.address, me.address)
+
+      // Create a subgraph
+      const tx2 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+
+      // Batch send transaction
+      const tx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      await expect(tx).revertedWith('Caller must be the implementation')
+    })
+
     it('should revert if trying to call a private function', async function () {
       // Craft call a private function
       const hash = ethers.utils.id('_setOwnerTaxPercentage(uint32)')
