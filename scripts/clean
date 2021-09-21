@@ -1,0 +1,32 @@
+#!/bin/bash
+
+OUT_DIR="build/flatten"
+
+mkdir -p ${OUT_DIR}
+
+echo "Cleaning flattened contracts..."
+
+FLATTENED_FILES=(
+    "$OUT_DIR/Controller.sol"
+    "$OUT_DIR/GraphGovernance.sol"
+    "$OUT_DIR/GNS.sol"
+    "$OUT_DIR/ServiceRegistry.sol"
+    "$OUT_DIR/Curation.sol"
+    "$OUT_DIR/GraphCurationToken.sol"
+    "$OUT_DIR/Staking.sol"
+    "$OUT_DIR/RewardsManager.sol"
+    "$OUT_DIR/GraphToken.sol"
+    "$OUT_DIR/EpochManager.sol"
+    "$OUT_DIR/GraphProxy.sol"
+    "$OUT_DIR/GDAI.sol"
+    "$OUT_DIR/GSRManager.sol"
+)
+
+for path in ${FLATTENED_FILES[@]}; do
+    echo "Clean > ${path}"
+    sed -i \
+        -e "s|pragma solidity.*||g" \
+        -e "s|// SPDX-License-Identifier:.*||g" \
+        -e 's|pragma experimental ABIEncoderV2;|//pragma experimental ABIEncoderV2;|g' \
+        -e '1s|^|pragma experimental ABIEncoderV2;\n|' $path
+done
