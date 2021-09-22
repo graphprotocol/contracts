@@ -14,10 +14,11 @@ import {
   latestBlock,
   toBN,
   toGRT,
+  provider,
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero } = constants
+const { AddressZero, MaxUint256 } = constants
 
 function weightedAverage(
   valueA: BigNumber,
@@ -269,14 +270,18 @@ describe('Staking:Stakes', () => {
         expect(afterIndexerBalance).eq(beforeIndexerBalance.add(tokensToUnstake))
       })
 
-      it('reject unstake zero tokens', async function () {
-        const tx = staking.connect(indexer.signer).unstake(toGRT('0'))
-        await expect(tx).revertedWith('!tokens')
+      it('should unstake available tokens even if passed a higher amount', async function () {
+        // Try to unstake a bit more than currently staked
+        const tokensOverCapacity = tokensToStake.add(toGRT('1'))
+        await staking.connect(indexer.signer).unstake(tokensOverCapacity)
+
+        // Check state
+        const tokensLocked = (await staking.stakes(indexer.address)).tokensLocked
+        expect(tokensLocked).eq(tokensToStake)
       })
 
-      it('reject unstake more than available tokens', async function () {
-        const tokensOverCapacity = tokensToStake.add(toGRT('1'))
-        const tx = staking.connect(indexer.signer).unstake(tokensOverCapacity)
+      it('reject unstake zero tokens', async function () {
+        const tx = staking.connect(indexer.signer).unstake(toGRT('0'))
         await expect(tx).revertedWith('!stake-avail')
       })
 
@@ -304,6 +309,28 @@ describe('Staking:Stakes', () => {
       it('should allow unstake of full amount', async function () {
         await staking.connect(indexer.signer).unstake(tokensToStake)
         expect(await staking.getIndexerCapacity(indexer.address)).eq(0)
+      })
+
+      it('should allow unstake of full amount with no upper limits', async function () {
+        // Use manual mining
+        await provider().send('evm_setAutomine', [false])
+
+        // Setup
+        const newTokens = toGRT('2')
+        const stakedTokens = await staking.getIndexerStakedTokens(indexer.address)
+        const tokensToUnstake = stakedTokens.add(newTokens)
+
+        // StakeTo & Unstake
+        await staking.connect(indexer.signer).stakeTo(indexer.address, newTokens)
+        await staking.connect(indexer.signer).unstake(MaxUint256)
+        await provider().send('evm_mine', [])
+
+        // Check state
+        const tokensLocked = (await staking.stakes(indexer.address)).tokensLocked
+        expect(tokensLocked).eq(tokensToUnstake)
+
+        // Restore automine
+        await provider().send('evm_setAutomine', [true])
       })
     })
 

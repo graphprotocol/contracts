@@ -707,27 +707,34 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
 
     /**
      * @dev Unstake tokens from the indexer stake, lock them until thawing period expires.
+     * NOTE: The function accepts an amount greater than the currently staked tokens.
+     * If that happens, it will try to unstake the max amount of tokens it can.
+     * The reason for this behaviour is to avoid time conditions while the transaction
+     * is in flight.
      * @param _tokens Amount of tokens to unstake
      */
     function unstake(uint256 _tokens) external override notPartialPaused {
         address indexer = msg.sender;
         Stakes.Indexer storage indexerStake = stakes[indexer];
 
-        require(_tokens > 0, "!tokens");
         require(indexerStake.tokensStaked > 0, "!stake");
-        require(indexerStake.tokensAvailable() >= _tokens, "!stake-avail");
+
+        // Tokens to lock is capped to the available tokens
+        uint256 tokensToLock = MathUtils.min(indexerStake.tokensAvailable(), _tokens);
+        require(tokensToLock > 0, "!stake-avail");
 
         // Ensure minimum stake
-        uint256 newStake = indexerStake.tokensSecureStake().sub(_tokens);
+        uint256 newStake = indexerStake.tokensSecureStake().sub(tokensToLock);
         require(newStake == 0 || newStake >= minimumIndexerStake, "!minimumIndexerStake");
 
-        // Before locking more tokens, withdraw any unlocked ones
+        // Before locking more tokens, withdraw any unlocked ones if possible
         uint256 tokensToWithdraw = indexerStake.tokensWithdrawable();
         if (tokensToWithdraw > 0) {
             _withdraw(indexer);
         }
 
-        indexerStake.lockTokens(_tokens, thawingPeriod);
+        // Update the indexer stake locking tokens
+        indexerStake.lockTokens(tokensToLock, thawingPeriod);
 
         emit StakeLocked(indexer, indexerStake.tokensLocked, indexerStake.tokensLockedUntil);
     }
