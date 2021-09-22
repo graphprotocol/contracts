@@ -1313,12 +1313,13 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 shares = (pool.tokens == 0)
             ? delegatedTokens
             : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        require(shares > 0, "!shares");
 
         // Update the delegation pool
         pool.tokens = pool.tokens.add(delegatedTokens);
         pool.shares = pool.shares.add(shares);
 
-        // Update the delegation
+        // Update the individual delegation
         delegation.shares = delegation.shares.add(shares);
 
         emit StakeDelegated(_indexer, _delegator, delegatedTokens, shares);
