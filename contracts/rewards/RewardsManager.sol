@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
@@ -10,6 +10,14 @@ import "../upgrades/GraphUpgradeable.sol";
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
 
+/**
+ * @title Rewards Manager Contract
+ * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
+ * and the Staking contract. Signaled GRT in Curation determine what percentage of the tokens go
+ * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
+ * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
+ * that Subgraph.
+ */
 contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 

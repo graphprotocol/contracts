@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
@@ -16,6 +16,9 @@ import "./libs/Stakes.sol";
 
 /**
  * @title Staking contract
+ * @dev The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating
+ * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
+ * contract also has the slashing functionality.
  */
 contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     using SafeMath for uint256;

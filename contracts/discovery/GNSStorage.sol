@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import "../governance/Managed.sol";
 
 import "./erc1056/IEthereumDIDRegistry.sol";
-
 import "./IGNS.sol";
 
 contract GNSV1Storage is Managed {

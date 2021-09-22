@@ -15,19 +15,19 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
+import 'hardhat-tracer'
 import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
-
-// TODO: Not supported for now in hardhat
-// usePlugin('solidity-coverage')
+import 'solidity-coverage'
 
 // Tasks
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 if (!SKIP_LOAD) {
-  ;['contracts', 'misc', 'query', 'deployment', 'actions'].forEach((folder) => {
+  require('./tasks/gre.ts')
+  ;['contracts', 'misc', 'deployment', 'actions'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
