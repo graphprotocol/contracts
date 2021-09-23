@@ -5,14 +5,6 @@ pragma solidity ^0.7.6;
 import "./IGraphCurationToken.sol";
 
 interface ICuration {
-    // -- Pool --
-
-    struct CurationPool {
-        uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
-        uint32 reserveRatio; // Ratio for the bonding curve
-        IGraphCurationToken gcs; // Curation token contract for this curation pool
-    }
-
     // -- Configuration --
 
     function setDefaultReserveRatio(uint32 _defaultReserveRatio) external;
