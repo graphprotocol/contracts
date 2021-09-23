@@ -465,7 +465,6 @@ describe('Staking::Delegation', () => {
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator, toGRT('50'))
-        await advanceBlock()
         await advanceToNextEpoch(epochManager) // epoch 1
         await advanceToNextEpoch(epochManager) // epoch 2
         await shouldUndelegate(delegator, toGRT('10'))
