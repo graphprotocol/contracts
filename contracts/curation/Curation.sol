@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
+import "../utils/TokenUtils.sol";
 
 import "./CurationStorage.sol";
 import "./ICuration.sol";
@@ -242,18 +243,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         _updateRewards(_subgraphDeploymentID);
 
         // Transfer tokens from the curator to this contract
-        // This needs to happen after _updateRewards snapshot as that function
+        // Burn the curation tax
+        // NOTE: This needs to happen after _updateRewards snapshot as that function
         // is using balanceOf(curation)
-        IGraphToken graphToken = graphToken();
-        require(
-            graphToken.transferFrom(curator, address(this), _tokensIn),
-            "Cannot transfer tokens to deposit"
-        );
-
-        // Burn withdrawal fees
-        if (curationTax > 0) {
-            graphToken.burn(curationTax);
-        }
+        IGraphToken _graphToken = graphToken();
+        TokenUtils.pullTokens(_graphToken, curator, _tokensIn);
+        TokenUtils.burnTokens(_graphToken, curationTax);
 
         // Update curation pool
         curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
@@ -306,7 +301,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         }
 
         // Return the tokens to the curator
-        require(graphToken().transfer(curator, tokensOut), "Error sending curator tokens");
+        TokenUtils.pushTokens(graphToken(), curator, tokensOut);
 
         emit Burned(curator, _subgraphDeploymentID, tokensOut, _signalIn);
 
