@@ -861,24 +861,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
     /**
      * @dev Allocate available tokens to a subgraph deployment.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
-     */
-    function allocate(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
-    ) external override notPaused {
-        _allocate(msg.sender, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
-    }
-
-    /**
-     * @dev Allocate available tokens to a subgraph deployment.
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
@@ -906,7 +888,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _poi Proof of indexing submitted for the allocated period
      */
     function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
-        _closeAllocation(_allocationID, _poi);
+        _closeAllocation(_allocationID, _poi, 0);
     }
 
     /**
@@ -1098,18 +1080,35 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         );
     }
 
+    function _checkValidBlockHash(bytes32 _blockHash) private view returns (bool) {
+        uint256 currentBlockNum = block.number;
+        for (uint256 i = 0; i < 256; i++) {
+            if (_blockHash == blockhash(currentBlockNum - i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @dev Close an allocation and free the staked tokens.
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
-    function _closeAllocation(address _allocationID, bytes32 _poi) private {
+    function _closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bytes32 _poiBlockHash
+    ) private {
         // Allocation must exist and be active
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState == AllocationState.Active, "!active");
 
         // Get allocation
         Allocation memory alloc = allocations[_allocationID];
+
+        // Block validation for the POI
+        require(_checkValidBlockHash(_poiBlockHash), "!poi-block");
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
