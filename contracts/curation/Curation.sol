@@ -163,7 +163,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         emit ParameterUpdated("curationTaxPercentage");
     }
 
-    // TODO: add public version of this
+    /**
+     * @dev Set the master copy to use as clones for the curation token.
+     * @param _curationTokenMaster Address of implementation contract to use for curation tokens
+     */
+    function setCurationTokenMaster(address _curationTokenMaster) external override onlyGovernor {
+        _setCurationTokenMaster(_curationTokenMaster);
+    }
+
     /**
      * @dev Internal: Set the master copy to use as clones for the curation token.
      * @param _curationTokenMaster Address of implementation contract to use for curation tokens
@@ -226,11 +233,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
-            // Initialize
             curationPool.reserveRatio = defaultReserveRatio;
 
             // If no signal token for the pool - create one
-            // TODO: review if we can avoid re-deploying if was previously created
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
                 IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
@@ -295,9 +300,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         curationPool.tokens = curationPool.tokens.sub(tokensOut);
         curationPool.gcs.burnFrom(curator, _signalIn);
 
-        // If all signal burnt delete the curation pool
+        // If all signal burnt delete the curation pool except for the
+        // curation token contract to avoid recreating it on a new mint
         if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
-            delete pools[_subgraphDeploymentID];
+            curationPool.tokens = 0;
+            curationPool.reserveRatio = 0;
         }
 
         // Return the tokens to the curator

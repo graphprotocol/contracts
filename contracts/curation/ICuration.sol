@@ -13,6 +13,8 @@ interface ICuration {
 
     function setCurationTaxPercentage(uint32 _percentage) external;
 
+    function setCurationTokenMaster(address _curationTokenMaster) external;
+
     // -- Curation --
 
     function mint(

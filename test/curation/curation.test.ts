@@ -456,6 +456,22 @@ describe('Curation', () => {
         .burn(subgraphDeploymentID, signalToRedeem, expectedTokens.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
+
+    it('should not re-deploy the curation token when signal is reset', async function () {
+      const beforeSubgraphPool = await curation.pools(subgraphDeploymentID)
+
+      // Burn all the signal
+      const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+      const expectedTokens = tokensToDeposit
+      await shouldBurn(signalToRedeem, expectedTokens)
+
+      // Mint again on the same subgraph
+      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+
+      // Check state
+      const afterSubgraphPool = await curation.pools(subgraphDeploymentID)
+      expect(afterSubgraphPool.gcs).eq(beforeSubgraphPool.gcs)
+    })
   })
 
   describe('conservation', async function () {
