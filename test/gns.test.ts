@@ -604,7 +604,7 @@ describe('GNS', () => {
       describe('publishNewVersion', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await mintNSignal(me, me.address, 0, tokens10000)
         })
 
@@ -702,7 +702,7 @@ describe('GNS', () => {
       describe('deprecateSubgraph', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await mintNSignal(me, me.address, 0, tokens10000)
         })
 
@@ -748,13 +748,13 @@ describe('GNS', () => {
       describe('mintNSignal()', async function () {
         it('should deposit into the name signal curve', async function () {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
         it('should fail when name signal is disabled', async function () {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await deprecateSubgraph(me, me.address, 0)
           const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
           await expect(tx).revertedWith('GNS: Cannot be disabled')
@@ -768,7 +768,7 @@ describe('GNS', () => {
         it('reject minting if under slippage', async function () {
           // First publish the subgraph
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
 
           // Set slippage to be 1 less than expected result to force reverting
           const { 1: expectedNSignal } = await gns.tokensToNSignal(
@@ -786,7 +786,7 @@ describe('GNS', () => {
       describe('burnNSignal()', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
@@ -838,7 +838,7 @@ describe('GNS', () => {
       describe('withdraw()', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
@@ -879,7 +879,7 @@ describe('GNS', () => {
             toGRT('123'),
           ]
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
 
           // State updated
           const curationTaxPercentage = await curation.curationTaxPercentage()
@@ -921,7 +921,7 @@ describe('GNS', () => {
           ]
 
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(100)
+          await advanceBlockTo(500)
 
           // State updated
           for (const tokensToDeposit of tokensToDepositMany) {
@@ -964,7 +964,7 @@ describe('GNS', () => {
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
           )
-        await advanceBlockTo(100)
+        await advanceBlockTo(500)
         // Curate on the first subgraph
         await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('90000'), 0)
 
@@ -977,7 +977,7 @@ describe('GNS', () => {
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
           )
-        await advanceBlockTo(150)
+        await advanceBlockTo(550)
         // Curate on the second subgraph should work
         await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'), 0)
       })
