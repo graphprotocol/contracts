@@ -462,6 +462,9 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate and withdraw freed tokens from unbonding period', async function () {
+        // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
+        await epochManager.setEpochLength(toBN((60 * 60) / 15))
+
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator, toGRT('50'))
