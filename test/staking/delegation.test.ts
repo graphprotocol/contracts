@@ -400,7 +400,7 @@ describe('Staking::Delegation', () => {
         await shouldDelegate(delegator2, toGRT('5000'))
       })
 
-      it('should delegate a high number of tokens', async function () {
+      it('should delegate a high amount of tokens', async function () {
         await shouldDelegate(delegator, toGRT('100'))
         await shouldDelegate(delegator, toGRT('1000000000000000000'))
       })
@@ -416,9 +416,10 @@ describe('Staking::Delegation', () => {
           await shouldDelegate(delegator, toGRT('10000000'))
         })
 
-        it('should delegate and burn delegation deposit tax (100%)', async function () {
+        it('reject delegate with delegation deposit tax (100%)', async function () {
           await staking.setDelegationTaxPercentage(1000000)
-          await shouldDelegate(delegator, toGRT('10000000'))
+          const tx = staking.connect(delegator.signer).delegate(indexer.address, toGRT('10000000'))
+          await expect(tx).revertedWith('!shares')
         })
       })
     })
@@ -648,6 +649,26 @@ describe('Staking::Delegation', () => {
       // State updated
       const afterDelegationPool = await staking.delegationPools(indexer.address)
       expect(afterDelegationPool.tokens).eq(beforeDelegationPool.tokens.add(delegationFees))
+    })
+
+    it('revert if it cannot assign the smallest amount of shares', async function () {
+      // Init the delegation pool
+      await shouldDelegate(delegator, tokensToDelegate)
+
+      // Collect funds thru full allocation cycle
+      await staking.connect(governor.signer).setDelegationRatio(10)
+      await staking.connect(indexer.signer).setDelegationParameters(0, 0, 0)
+      await setupAllocation(tokensToAllocate)
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+      await advanceToNextEpoch(epochManager)
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await advanceToNextEpoch(epochManager)
+      await staking.connect(indexer.signer).claim(allocationID, true)
+
+      // Delegate with such small amount of tokens (1 wei) that we do not have enough precision
+      // to even assign 1 wei of shares
+      const tx = staking.connect(delegator.signer).delegate(indexer.address, toBN(1))
+      await expect(tx).revertedWith('!shares')
     })
   })
 })

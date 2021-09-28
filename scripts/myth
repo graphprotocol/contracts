@@ -1,0 +1,35 @@
+#!/bin/bash
+
+## Before running:
+# This tool requires to have solc installed.
+# Ensure that you have the binaries installed by pip3 in your path.
+# Install: 
+# - https://github.com/ConsenSys/mythril#installation-and-setup
+# Usage:
+# - https://github.com/ConsenSys/mythril#usage
+
+pip3 install --user mythril && \
+yarn build && \
+mkdir -p reports/myth
+
+echo "Myth Analysis..."
+
+start_time="$(date -u +%s)"
+
+for filename in build/flatten/*.sol; do
+    step_start_time="$(date -u +%s)"
+    echo "Scanning $filename ..."
+    myth analyze \
+        --parallel-solving \
+        --execution-timeout 30 \
+        --solver-timeout 6000 \
+        -o markdown "$filename" \
+        &> "reports/myth/$(basename "$filename" .sol)-report.md" && \
+
+    end_time="$(date -u +%s)"
+    total_elapsed="$(($end_time-$start_time))"
+    step_elapsed="$(($end_time-$step_start_time))"
+    echo "> Took $step_elapsed seconds. Total elapsed: $total_elapsed seconds."
+done
+
+echo "Done!"

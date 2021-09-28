@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -62,6 +62,7 @@
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
     "hardhat-storage-layout": "0.1.6",
+    "hardhat-tracer": "^1.0.0-alpha.6",
     "husky": "^4.3.8",
     "inquirer": "^8.0.0",
     "ipfs-http-client": "47.0.1",
@@ -104,7 +105,8 @@
     "prettier:ts": "prettier --write 'test/**/*.ts'",
     "prettier:sol": "prettier --write 'contracts/*.sol'",
     "analyze": "scripts/analyze",
-    "flatten": "scripts/flatten",
+    "myth": "scripts/myth",
+    "flatten": "scripts/flatten && scripts/clean",
     "typechain": "hardhat typechain",
     "verify": "hardhat verify",
     "size": "hardhat size-contracts"

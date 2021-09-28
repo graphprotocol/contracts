@@ -983,4 +983,83 @@ describe('GNS', () => {
       })
     })
   })
+
+  describe('batch calls', function () {
+    it('should publish new subgraph and mint signal in single transaction', async function () {
+      // Create a subgraph
+      const tx1 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+      // Curate on the subgraph
+      const subgraphNumber = await gns.graphAccountSubgraphNumbers(me.address)
+      const tx2 = await gns.populateTransaction.mintNSignal(
+        me.address,
+        subgraphNumber,
+        toGRT('90000'),
+        0,
+      )
+
+      // Batch send transaction
+      await gns.connect(me.signer).multicall([tx1.data, tx2.data])
+    })
+
+    it('should revert if batching a call to non-authorized function', async function () {
+      // Call a forbidden function
+      const tx1 = await gns.populateTransaction.setOwnerTaxPercentage(100)
+
+      // Create a subgraph
+      const tx2 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+
+      // Batch send transaction
+      const tx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+
+    it('should revert if batching a call to initialize', async function () {
+      // Call a forbidden function
+      const tx1 = await gns.populateTransaction.initialize(me.address, me.address, me.address)
+
+      // Create a subgraph
+      const tx2 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+
+      // Batch send transaction
+      const tx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
+      await expect(tx).revertedWith('Caller must be the implementation')
+    })
+
+    it('should revert if trying to call a private function', async function () {
+      // Craft call a private function
+      const hash = ethers.utils.id('_setOwnerTaxPercentage(uint32)')
+      const functionHash = hash.slice(0, 10)
+      const calldata = ethers.utils.arrayify(
+        ethers.utils.defaultAbiCoder.encode(['uint32'], ['100']),
+      )
+      const bogusPayload = ethers.utils.concat([functionHash, calldata])
+
+      // Create a subgraph
+      const tx2 = await gns.populateTransaction.publishNewSubgraph(
+        me.address,
+        subgraph0.subgraphDeploymentID,
+        subgraph0.versionMetadata,
+        subgraph0.subgraphMetadata,
+      )
+
+      // Batch send transaction
+      const tx = gns.connect(me.signer).multicall([bogusPayload, tx2.data])
+      await expect(tx).revertedWith('')
+    })
+  })
 })
