@@ -13,6 +13,7 @@ interface IGNS {
         uint32 reserveRatio;
         bool disabled;
         uint256 withdrawableGRT;
+        uint256 createdAt;
     }
 
     // -- Configuration --

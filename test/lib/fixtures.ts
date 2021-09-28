@@ -4,6 +4,10 @@ import { utils, Wallet, Signer } from 'ethers'
 import * as deployment from './deployment'
 import { evmSnapshot, evmRevert } from './testHelpers'
 
+interface loadOptions {
+  curationOptions?: deployment.CurationLoadOptions
+}
+
 export class NetworkFixture {
   lastSnapshotId: number
 
@@ -13,6 +17,7 @@ export class NetworkFixture {
 
   async load(
     deployer: Signer,
+    options: loadOptions = {},
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
   ): Promise<any> {
@@ -29,7 +34,12 @@ export class NetworkFixture {
       proxyAdmin,
     )
     const grt = await deployment.deployGRT(deployer)
-    const curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
+    const curation = await deployment.deployCuration(
+      deployer,
+      controller.address,
+      proxyAdmin,
+      options?.curationOptions,
+    )
     const gns = await deployment.deployGNS(deployer, controller.address, proxyAdmin)
     const staking = await deployment.deployStaking(deployer, controller.address, proxyAdmin)
     const disputeManager = await deployment.deployDisputeManager(
@@ -53,6 +63,7 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
     await controller.setContractProxy(utils.id('GraphToken'), grt.address)
     await controller.setContractProxy(utils.id('Curation'), curation.address)
+    await controller.setContractProxy(utils.id('GNS'), gns.address)
     await controller.setContractProxy(utils.id('Staking'), staking.address)
     await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
     await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)

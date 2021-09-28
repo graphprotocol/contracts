@@ -23,11 +23,15 @@ import "./GraphCurationToken.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
+contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
     using SafeMath for uint256;
+    using SafeMath for uint32;
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
+
+    // Precision for effective reserve ratio
+    uint256 private constant PRECISION = 10**6;
 
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
@@ -72,7 +76,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         address _bondingCurve,
         uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
-        uint256 _minimumCurationDeposit
+        uint256 _minimumCurationDeposit,
+        uint256 _initializationDays,
+        uint256 _initializationExitDays,
+        uint256 _blocksPerDay
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -83,6 +90,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
+        _setBlocksPerDay(_blocksPerDay);
+        _setInitializationPeriod(_initializationDays);
+        _setInitializationExitPeriod(_initializationExitDays);
     }
 
     /**
@@ -137,6 +147,76 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
+     * @dev Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationDays`
+     * @param _initializationDays In days
+     */
+    function setInitializationPeriod(uint256 _initializationDays) external override onlyGovernor {
+        _setInitializationPeriod(_initializationDays);
+    }
+
+    /**
+     * @dev Internal: Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationDays`
+     * @param _initializationDays In days
+     */
+    function _setInitializationPeriod(uint256 _initializationDays) private {
+        // Initialization must be greater than 0
+        require(_initializationDays > 0, "Initialization period must be > 0");
+
+        initializationPeriod = blocksPerDay * _initializationDays;
+        emit ParameterUpdated("initializationPeriod");
+    }
+
+    /**
+     * @dev Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationExitDays`
+     * @param _initializationExitDays In days
+     */
+    function setInitializationExitPeriod(uint256 _initializationExitDays)
+        external
+        override
+        onlyGovernor
+    {
+        _setInitializationExitPeriod(_initializationExitDays);
+    }
+
+    /**
+     * @dev Internal: Set the initialization period for a curation pool.
+     * @notice Update the initialization period to `_initializationExitDays`
+     * @param _initializationExitDays In days
+     */
+    function _setInitializationExitPeriod(uint256 _initializationExitDays) private {
+        // Initialization must be greater than 0
+        require(_initializationExitDays > 0, "Initialization period must be > 0");
+
+        initializationExitPeriod = blocksPerDay * _initializationExitDays;
+        emit ParameterUpdated("initializationExitPeriod");
+    }
+
+    /**
+     * @dev Set blocks per day
+     * @notice Update blocks per day to `_blocksPerDay`
+     * @param _blocksPerDay In days
+     */
+    function setBlocksPerDay(uint256 _blocksPerDay) external override onlyGovernor {
+        _setBlocksPerDay(_blocksPerDay);
+    }
+
+    /**
+     * @dev Internal: Set blocks per day
+     * @notice Update blocks per day to `_blocksPerDay`
+     * @param _blocksPerDay In days
+     */
+    function _setBlocksPerDay(uint256 _blocksPerDay) private {
+        // Initialization must be greater than 0
+        require(_blocksPerDay > 0, "Blocks per day must be > 0");
+
+        blocksPerDay = _blocksPerDay;
+        emit ParameterUpdated("blocksPerDay");
+    }
+
+    /**
      * @dev Set the curation tax percentage to charge when a curator deposits GRT tokens.
      * @param _percentage Curation tax percentage charged when depositing GRT tokens
      */
@@ -156,6 +236,13 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         _curationTaxPercentage = _percentage;
         emit ParameterUpdated("curationTaxPercentage");
+    }
+
+    function setCreatedAt(bytes32 _subgraphDeploymentID, uint256 _createdAt) external override {
+        require(msg.sender == address(gns()), "Only GNS contract can call this function");
+
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        curationPool.createdAt = _createdAt;
     }
 
     /**
@@ -208,9 +295,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
-            // Initialize
-            curationPool.reserveRatio = defaultReserveRatio;
-
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // TODO: Use a minimal proxy to reduce gas cost
@@ -302,7 +386,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
-    function isCurated(bytes32 _subgraphDeploymentID) public override view returns (bool) {
+    function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return pools[_subgraphDeploymentID].tokens > 0;
     }
 
@@ -314,8 +398,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -331,8 +415,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -348,8 +432,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
         external
-        override
         view
+        override
         returns (uint256)
     {
         return pools[_subgraphDeploymentID].tokens;
@@ -359,7 +443,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Get curation tax percentage
      * @return Amount the curation tax percentage in PPM
      */
-    function curationTaxPercentage() external override view returns (uint32) {
+    function curationTaxPercentage() external view override returns (uint32) {
         return _curationTaxPercentage;
     }
 
@@ -372,11 +456,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         public
-        override
         view
+        override
         returns (uint256, uint256)
     {
         uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
+
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);
     }
@@ -395,6 +480,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(curationPool.createdAt);
+
         // Init curation pool
         if (curationPool.tokens == 0) {
             require(
@@ -404,11 +491,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             return
                 BancorFormula(bondingCurve)
                     .calculatePurchaseReturn(
-                    SIGNAL_PER_MINIMUM_DEPOSIT,
-                    minimumCurationDeposit,
-                    defaultReserveRatio,
-                    _tokensIn.sub(minimumCurationDeposit)
-                )
+                        SIGNAL_PER_MINIMUM_DEPOSIT,
+                        minimumCurationDeposit,
+                        _effectiveReserveRatio,
+                        _tokensIn.sub(minimumCurationDeposit)
+                    )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
 
@@ -416,7 +503,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             BancorFormula(bondingCurve).calculatePurchaseReturn(
                 getCurationPoolSignal(_subgraphDeploymentID),
                 curationPool.tokens,
-                curationPool.reserveRatio,
+                _effectiveReserveRatio,
                 _tokensIn
             );
     }
@@ -429,12 +516,16 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         public
-        override
         view
+        override
         returns (uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
+
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(curationPool.createdAt);
+
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
+
         require(
             curationPool.tokens > 0,
             "Subgraph deployment must be curated to perform calculations"
@@ -448,7 +539,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             BancorFormula(bondingCurve).calculateSaleReturn(
                 curationPoolSignal,
                 curationPool.tokens,
-                curationPool.reserveRatio,
+                _effectiveReserveRatio,
                 _signalIn
             );
     }
@@ -462,5 +553,29 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         if (address(rewardsManager) != address(0)) {
             rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
+    }
+
+    /**
+     * @dev Calculate reserve ratio based on initialization phase
+     * @param _createdAt When NameCurationPool was created
+     * @return Reserve ratio
+     */
+    function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
+        uint32 effectiveReserveRatio = defaultReserveRatio;
+
+        if (block.number <= (_createdAt.add(initializationPeriod))) {
+            effectiveReserveRatio = MAX_PPM;
+        } else if (
+            block.number <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
+        ) {
+            uint256 blockDiff = block.number.sub(_createdAt.add(initializationPeriod));
+            uint256 exitRatio = blockDiff.mul(PRECISION).div(initializationExitPeriod);
+            uint256 reserve = MAX_PPM.sub(defaultReserveRatio).mul(PRECISION);
+            uint256 reserveRatio = reserve.div(exitRatio);
+
+            effectiveReserveRatio = uint32(MAX_PPM.mul(PRECISION).sub(reserveRatio).div(PRECISION));
+        }
+
+        return effectiveReserveRatio;
     }
 }

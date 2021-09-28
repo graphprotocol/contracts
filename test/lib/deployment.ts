@@ -26,11 +26,20 @@ logger.pause()
 
 // Default configuration used in tests
 
+export interface CurationLoadOptions {
+  initializationDays?: number
+  initializationExitDays?: number
+  blocksPerDay?: number
+}
+
 export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
     curationTaxPercentage: 0,
+    initializationDays: 1,
+    initializationExitDays: 2,
+    blocksPerDay: 1,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
@@ -114,6 +123,7 @@ export async function deployCuration(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
+  options?: CurationLoadOptions,
 ): Promise<Curation> {
   // Dependency
   const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
@@ -128,6 +138,9 @@ export async function deployCuration(
       defaults.curation.reserveRatio,
       defaults.curation.curationTaxPercentage,
       defaults.curation.minimumCurationDeposit,
+      options?.initializationDays || defaults.curation.initializationDays,
+      options?.initializationExitDays || defaults.curation.initializationExitDays,
+      options?.blocksPerDay || defaults.curation.blocksPerDay,
     ],
     deployer,
   ) as unknown as Curation

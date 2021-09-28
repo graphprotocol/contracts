@@ -257,8 +257,11 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
         graphAccountSubgraphNumbers[_graphAccount] = graphAccountSubgraphNumbers[_graphAccount].add(
             1
         );
+
+        curation().setCreatedAt(_subgraphDeploymentID, block.number);
+
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
-        _enableNameSignal(_graphAccount, subgraphNumber);
+        _enableNameSignal(_graphAccount, subgraphNumber, block.number);
     }
 
     /**
@@ -285,6 +288,10 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
             _subgraphDeploymentID != oldSubgraphDeploymentID,
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
+
+        NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
+
+        curation().setCreatedAt(_subgraphDeploymentID, namePool.createdAt);
 
         _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
@@ -345,10 +352,15 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _graphAccount Graph account enabling name signal
      * @param _subgraphNumber Subgraph number being used
      */
-    function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
+    function _enableNameSignal(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        uint256 _blockNumber
+    ) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         namePool.reserveRatio = defaultReserveRatio;
+        namePool.createdAt = _blockNumber;
 
         emit NameSignalEnabled(
             _graphAccount,
