@@ -85,7 +85,7 @@ describe('Staking:Stakes', () => {
     ;[me, governor, indexer, slasher, fisherman] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ grt, staking } = await fixture.load(governor.signer, slasher.signer))
+    ;({ grt, staking } = await fixture.load(governor.signer, { slasher: slasher.signer }))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)

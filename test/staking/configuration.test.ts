@@ -25,7 +25,7 @@ describe('Staking:Config', () => {
     ;[me, other, governor, slasher] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ staking } = await fixture.load(governor.signer, slasher.signer))
+    ;({ staking } = await fixture.load(governor.signer, { slasher: slasher.signer }))
   })
 
   beforeEach(async function () {

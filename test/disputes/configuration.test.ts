@@ -25,7 +25,10 @@ describe('DisputeManager:Config', () => {
     ;[me, governor, slasher, arbitrator] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ disputeManager } = await fixture.load(governor.signer, slasher.signer, arbitrator.signer))
+    ;({ disputeManager } = await fixture.load(governor.signer, {
+      slasher: slasher.signer,
+      arbitrator: arbitrator.signer,
+    }))
   })
 
   beforeEach(async function () {

@@ -128,11 +128,10 @@ describe('DisputeManager:Query', async () => {
       await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
-      governor.signer,
-      other.signer,
-      arbitrator.signer,
-    ))
+    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(governor.signer, {
+      slasher: other.signer,
+      arbitrator: arbitrator.signer,
+    }))
 
     // Give some funds to the fisherman
     for (const dst of [fisherman, fisherman2]) {

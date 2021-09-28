@@ -93,11 +93,10 @@ describe('DisputeManager:POI', async () => {
     ;[other, governor, arbitrator, indexer, fisherman, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
-      governor.signer,
-      other.signer,
-      arbitrator.signer,
-    ))
+    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(governor.signer, {
+      slasher: other.signer,
+      arbitrator: arbitrator.signer,
+    }))
 
     // Give some funds to the fisherman
     await grt.connect(governor.signer).mint(fisherman.address, fishermanTokens)

@@ -33,7 +33,9 @@ describe('ServiceRegistry', () => {
     ;[governor, indexer, operator] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ serviceRegistry, staking } = await fixture.load(governor.signer, governor.signer))
+    ;({ serviceRegistry, staking } = await fixture.load(governor.signer, {
+      slasher: governor.signer,
+    }))
   })
 
   beforeEach(async function () {

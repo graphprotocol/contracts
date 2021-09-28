@@ -80,10 +80,9 @@ describe('Staking:Allocation', () => {
     ;[me, governor, indexer, slasher, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation, epochManager, grt, staking } = await fixture.load(
-      governor.signer,
-      slasher.signer,
-    ))
+    ;({ curation, epochManager, grt, staking } = await fixture.load(governor.signer, {
+      slasher: slasher.signer,
+    }))
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)

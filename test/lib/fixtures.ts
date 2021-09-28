@@ -6,6 +6,8 @@ import { evmSnapshot, evmRevert } from './testHelpers'
 
 interface loadOptions {
   curationOptions?: deployment.CurationLoadOptions
+  slasher?: Signer
+  arbitrator?: Signer
 }
 
 export class NetworkFixture {
@@ -15,12 +17,10 @@ export class NetworkFixture {
     this.lastSnapshotId = 0
   }
 
-  async load(
-    deployer: Signer,
-    options: loadOptions = {},
-    slasher: Signer = Wallet.createRandom() as Signer,
-    arbitrator: Signer = Wallet.createRandom() as Signer,
-  ): Promise<any> {
+  async load(deployer: Signer, options: loadOptions = {}): Promise<any> {
+    const slasher = options.slasher || Wallet.createRandom()
+    const arbitrator = options.arbitrator || Wallet.createRandom()
+
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
     const slasherAddress = await slasher.getAddress()
