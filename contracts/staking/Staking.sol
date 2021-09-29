@@ -146,6 +146,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 effectiveAllocation,
         address sender,
         bytes32 poi,
+        bytes32 poiBlockHash,
         bool isDelegator
     );
 
@@ -886,9 +887,14 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * To opt out for rewards set _poi to 0x0
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
+     * @param _poiBlockHash Blockhash for which the POI was calculated
      */
-    function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
-        _closeAllocation(_allocationID, _poi, 0);
+    function closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bytes32 _poiBlockHash
+    ) external override notPaused {
+        _closeAllocation(_allocationID, _poi, _poiBlockHash);
     }
 
     /**
@@ -1080,6 +1086,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         );
     }
 
+    /**
+     * @dev Check if the passed blockhash is part of the canonical chain.
+     * @param _blockHash An Ethereum block hash
+     * TODO: We can optimize looking on a shorter range
+     */
     function _checkValidBlockHash(bytes32 _blockHash) private view returns (bool) {
         uint256 currentBlockNum = block.number;
         for (uint256 i = 0; i < 256; i++) {
@@ -1094,6 +1105,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * @dev Close an allocation and free the staked tokens.
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
+     * @param _poiBlockHash Blockhash for which the POI was calculated
      */
     function _closeAllocation(
         address _allocationID,
@@ -1108,7 +1120,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         Allocation memory alloc = allocations[_allocationID];
 
         // Block validation for the POI
-        require(_checkValidBlockHash(_poiBlockHash), "!poi-block");
+        if (_poi != 0) {
+            require(_poiBlockHash > 0 && _checkValidBlockHash(_poiBlockHash), "!poi-block");
+        }
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
@@ -1168,6 +1182,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.effectiveAllocation,
             msg.sender,
             _poi,
+            _poiBlockHash,
             !isIndexer
         );
     }

@@ -103,7 +103,11 @@ interface IStaking is IStakingData {
         bytes calldata _proof
     ) external;
 
-    function closeAllocation(address _allocationID, bytes32 _poi) external;
+    function closeAllocation(
+        address _allocationID,
+        bytes32 _poi,
+        bytes32 _poiBlockHash
+    ) external;
 
     function collect(uint256 _tokens, address _allocationID) external;
 

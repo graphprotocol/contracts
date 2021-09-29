@@ -16,6 +16,7 @@ import {
   toBN,
   Account,
   advanceBlock,
+  latestBlockHash,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
@@ -534,7 +535,8 @@ describe('Staking::Delegation', () => {
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(
+        .allocateFrom(
+          indexer.address,
           subgraphDeploymentID,
           tokens,
           allocationID,
@@ -617,7 +619,9 @@ describe('Staking::Delegation', () => {
       await advanceToNextEpoch(epochManager)
 
       // Close allocation
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await staking
+        .connect(indexer.signer)
+        .closeAllocation(allocationID, poi, await latestBlockHash())
 
       // Advance blocks to get the channel in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)
@@ -661,7 +665,9 @@ describe('Staking::Delegation', () => {
       await setupAllocation(tokensToAllocate)
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await advanceToNextEpoch(epochManager)
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await staking
+        .connect(indexer.signer)
+        .closeAllocation(allocationID, poi, await latestBlockHash())
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).claim(allocationID, true)
 

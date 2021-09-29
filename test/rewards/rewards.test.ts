@@ -23,6 +23,7 @@ import {
   formatGRT,
   Account,
   advanceToNextEpoch,
+  latestBlockHash,
 } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
@@ -391,7 +392,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -428,7 +430,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -471,7 +474,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -516,7 +520,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -558,7 +563,8 @@ describe('Rewards', () => {
         // Allocate
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -585,7 +591,7 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
           .connect(indexer1.signer)
-          .closeAllocation(allocationID, randomHexBytes())
+          .closeAllocation(allocationID, randomHexBytes(), await latestBlockHash())
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
@@ -635,7 +641,7 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
           .connect(indexer1.signer)
-          .closeAllocation(allocationID, randomHexBytes())
+          .closeAllocation(allocationID, randomHexBytes(), await latestBlockHash())
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
@@ -684,7 +690,9 @@ describe('Rewards', () => {
         const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
         // Close allocation. At this point rewards should be collected for that indexer
-        await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+        await staking
+          .connect(indexer1.signer)
+          .closeAllocation(allocationID, randomHexBytes(), await latestBlockHash())
 
         // After state
         const afterTokenSupply = await grt.totalSupply()
@@ -723,7 +731,9 @@ describe('Rewards', () => {
         await advanceBlocks(await epochManager.epochLength())
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+        const tx = staking
+          .connect(indexer1.signer)
+          .closeAllocation(allocationID, randomHexBytes(), await latestBlockHash())
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID, await epochManager.currentEpoch())
@@ -754,7 +764,8 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
+        .allocateFrom(
+          indexer1.address,
           subgraphDeploymentID1,
           tokensToAllocate,
           allocationID,
@@ -770,7 +781,9 @@ describe('Rewards', () => {
       await curation.connect(curator1.signer).burn(subgraphDeploymentID1, curatorShares, 0)
 
       // Close allocation. At this point rewards should be collected for that indexer
-      await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+      await staking
+        .connect(indexer1.signer)
+        .closeAllocation(allocationID, randomHexBytes(), await latestBlockHash())
     })
   })
 })

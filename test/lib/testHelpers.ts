@@ -47,6 +47,11 @@ export const getChainID = (): Promise<number> => {
 export const latestBlock = (): Promise<BigNumber> =>
   provider().send('eth_blockNumber', []).then(toBN)
 
+export const latestBlockHash = (): Promise<string> =>
+  provider()
+    .getBlock('latest')
+    .then((b) => b.hash)
+
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
 }
