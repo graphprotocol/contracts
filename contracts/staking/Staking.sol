@@ -28,6 +28,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
+    // Range to use for valid POI blocks from latest block number
+    uint256 private constant POI_VALID_BLOCK_RANGE = 256;
 
     // -- Events --
 
@@ -1089,11 +1091,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     /**
      * @dev Check if the passed blockhash is part of the canonical chain.
      * @param _blockHash An Ethereum block hash
-     * TODO: We can optimize looking on a shorter range
      */
     function _checkValidBlockHash(bytes32 _blockHash) private view returns (bool) {
         uint256 currentBlockNum = block.number;
-        for (uint256 i = 0; i < 256; i++) {
+        for (uint256 i = 0; i < POI_VALID_BLOCK_RANGE; i++) {
             if (_blockHash == blockhash(currentBlockNum - i)) {
                 return true;
             }
