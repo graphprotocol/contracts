@@ -258,7 +258,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
             1
         );
 
-        curation().setCreatedAt(_subgraphDeploymentID, block.number);
+        curation().setCreatedAt(_subgraphDeploymentID, block.timestamp);
 
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
         _enableNameSignal(_graphAccount, subgraphNumber, block.number);

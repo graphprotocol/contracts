@@ -48,9 +48,8 @@ contracts:
       reserveRatio: 500000 # 50% (parts per million)
       curationTaxPercentage: 25000 # 2.5% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
-      initializationDays: 5 # Days
-      initializationExitDays: 30 # Days
-      blocksPerDay: 6400
+      initializationPeriod: 432000 # Seconds = 5 Days
+      initializationExitPeriod: 2592000 # Seconds = 30 Days
   DisputeManager:
     proxy: true
     init:

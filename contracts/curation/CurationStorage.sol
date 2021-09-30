@@ -34,7 +34,4 @@ contract CurationV2Storage is CurationV1Storage {
 
     // Block count for initialization exit period of the bonding curve
     uint256 public initializationExitPeriod;
-
-    // Average blocks per day
-    uint256 public blocksPerDay;
 }

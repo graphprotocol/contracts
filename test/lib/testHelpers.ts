@@ -54,6 +54,10 @@ export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
 }
 
+export const advanceTime = async (time: number): Promise<any> => {
+  return provider().send('evm_increaseTime', [time])
+}
+
 export const advanceBlockTo = async (blockNumber: string | number | BigNumber): Promise<void> => {
   const target =
     typeof blockNumber === 'number' || typeof blockNumber === 'string'
@@ -85,83 +89,6 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   const epochLength = await epochManager.epochLength()
   const nextEpochBlock = currentBlock.add(epochLength)
   await advanceBlockTo(nextEpochBlock)
-}
-
-export const getEffectiveReserveRatio = async (
-  blockNumber: BigNumber,
-  createdAt: BigNumber,
-  initializationPeriod: BigNumber,
-  initializationExitPeriod: BigNumber,
-  defaultReserveRatio: number,
-): Promise<number> => {
-  const _blockNumber = blockNumber.toNumber()
-  const _createdAt = createdAt.toNumber()
-  const _initializationPeriod = initializationPeriod.toNumber()
-  const _initializationExitPeriod = initializationExitPeriod.toNumber()
-
-  // Steady state reserve ratio
-  let effectiveReserveRatio = defaultReserveRatio
-
-  // Initialization phase reserve ratio
-  if (_blockNumber <= _createdAt + _initializationPeriod) {
-    effectiveReserveRatio = 1000000
-
-    // Initialization exit phase reserve ratio
-  } else if (_blockNumber <= _createdAt + _initializationPeriod + _initializationExitPeriod) {
-    const percentExited =
-      (_blockNumber - (_createdAt + _initializationPeriod)) / _initializationExitPeriod
-    effectiveReserveRatio = 1 - (1 - defaultReserveRatio) / percentExited
-  }
-
-  return effectiveReserveRatio
-}
-
-export const calcBondingCurve = async (
-  supply: BigNumber,
-  reserveBalance: BigNumber,
-  depositAmount: BigNumber,
-  curationCreatedAt: BigNumber,
-  currentBlockNumber: BigNumber,
-  initializationPeriod: BigNumber,
-  initializationExitPeriod: BigNumber,
-  defaultReserveRatio: number,
-  minimumCurationDeposit: BigNumber,
-): Promise<number> => {
-  const effectiveReserveRatio = await getEffectiveReserveRatio(
-    currentBlockNumber,
-    curationCreatedAt,
-    initializationPeriod,
-    initializationExitPeriod,
-    defaultReserveRatio,
-  )
-
-  // Handle the initialization of the bonding curve
-  if (supply.eq(0)) {
-    if (depositAmount.lt(minimumCurationDeposit)) {
-      throw new Error('deposit must be above minimum')
-    }
-
-    const minSupply = toGRT('1')
-    return (
-      (await calcBondingCurve(
-        minSupply,
-        minimumCurationDeposit,
-        depositAmount.sub(minimumCurationDeposit),
-        curationCreatedAt,
-        currentBlockNumber,
-        initializationPeriod,
-        initializationExitPeriod,
-        defaultReserveRatio,
-        minimumCurationDeposit,
-      )) + toFloat(minSupply)
-    )
-  }
-  // Calculate bonding curve in the test
-  return (
-    toFloat(supply) *
-    ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (effectiveReserveRatio / 1000000) -
-      1)
-  )
 }
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])

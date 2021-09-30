@@ -1,20 +1,16 @@
-import { expect } from 'chai'
+import { expect, use } from 'chai'
+import { solidity } from 'ethereum-waffle'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
 import { GNS } from '../build/types/GNS'
-import {
-  getAccounts,
-  randomHexBytes,
-  Account,
-  toGRT,
-  calcBondingCurve,
-  advanceBlockTo,
-} from './lib/testHelpers'
+import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 
 import { toBN, formatGRT, BIG_NUMBER_ZERO } from './lib/testHelpers'
+
+use(solidity)
 
 interface Subgraph {
   graphAccount: Account
@@ -28,9 +24,6 @@ interface AccountDefaultName {
   name: string
   nameIdentifier: string
 }
-
-const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
-const toRound = (n: number) => n.toFixed(12)
 
 describe('GNS', () => {
   let me: Account
@@ -73,35 +66,6 @@ describe('GNS', () => {
     const curationPool = await curation.pools(subgraphID)
     const vSignal = await curation.getCurationPoolSignal(subgraphID)
     return [curationPool.tokens, vSignal]
-  }
-
-  async function calcGNSBondingCurve(
-    gnsSupply: BigNumber, // nSignal
-    gnsReserveBalance: BigNumber, // vSignal
-    depositAmount: BigNumber, // GRT deposited
-    subgraphID: string,
-  ): Promise<number> {
-    const signal = await curation.getCurationPoolSignal(subgraphID)
-    const curationTokens = await curation.getCurationPoolTokens(subgraphID)
-    const expectedSignal = await calcBondingCurve(
-      signal,
-      curationTokens,
-      depositAmount,
-      BIG_NUMBER_ZERO,
-      BigNumber.from(100),
-      await curation.initializationPeriod(),
-      await curation.initializationExitPeriod(),
-      await curation.defaultReserveRatio(),
-      await curation.minimumCurationDeposit(),
-    )
-    const expectedSignalBN = toGRT(String(expectedSignal.toFixed(18)))
-
-    // Handle the initialization of the bonding curve
-    if (gnsSupply.eq(0)) {
-      return expectedSignal
-    }
-    // Since we known CW = 1, we can do the simplified formula of:
-    return (toFloat(gnsSupply) * toFloat(expectedSignalBN)) / toFloat(gnsReserveBalance)
   }
 
   const publishNewSubgraph = async (
@@ -604,7 +568,7 @@ describe('GNS', () => {
       describe('publishNewVersion', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(500)
+
           await mintNSignal(me, me.address, 0, tokens10000)
         })
 
@@ -702,7 +666,7 @@ describe('GNS', () => {
       describe('deprecateSubgraph', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(500)
+
           await mintNSignal(me, me.address, 0, tokens10000)
         })
 
@@ -748,13 +712,13 @@ describe('GNS', () => {
       describe('mintNSignal()', async function () {
         it('should deposit into the name signal curve', async function () {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(500)
+
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
         it('should fail when name signal is disabled', async function () {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(500)
+
           await deprecateSubgraph(me, me.address, 0)
           const tx = gns.connect(me.signer).mintNSignal(me.address, subgraphNumber0, tokens1000, 0)
           await expect(tx).revertedWith('GNS: Cannot be disabled')
@@ -768,7 +732,6 @@ describe('GNS', () => {
         it('reject minting if under slippage', async function () {
           // First publish the subgraph
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(500)
 
           // Set slippage to be 1 less than expected result to force reverting
           const { 1: expectedNSignal } = await gns.tokensToNSignal(
@@ -786,7 +749,7 @@ describe('GNS', () => {
       describe('burnNSignal()', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(500)
+
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
@@ -838,7 +801,7 @@ describe('GNS', () => {
       describe('withdraw()', async function () {
         beforeEach(async () => {
           await publishNewSubgraph(me, me.address, subgraphNumber0)
-          await advanceBlockTo(500)
+
           await mintNSignal(other, me.address, subgraphNumber0, tokens10000)
         })
 
@@ -867,45 +830,38 @@ describe('GNS', () => {
       })
 
       describe('multiple minting', async function () {
-        it('should mint less signal every time due to the bonding curve', async function () {
+        it('should mint 1:1', async function () {
           const tokensToDepositMany = [
-            toGRT('1000'), // should mint if we start with number above minimum deposit
-            toGRT('1000'), // every time it should mint less GCS due to bonding curve...
-            toGRT('1.06'), // should mint minimum deposit including tax
+            toGRT('1000'),
+            toGRT('1000'),
             toGRT('1000'),
             toGRT('1000'),
             toGRT('2000'),
             toGRT('2000'),
             toGRT('123'),
+            toGRT('1'),
           ]
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(500)
 
-          // State updated
           const curationTaxPercentage = await curation.curationTaxPercentage()
 
           for (const tokensToDeposit of tokensToDepositMany) {
+            const curationTax = toBN(curationTaxPercentage).mul(tokensToDeposit).div(toBN(1000000))
+
             const poolOld = await gns.nameSignals(me.address, 0)
             expect(subgraph0.subgraphDeploymentID).eq(poolOld.subgraphDeploymentID)
 
-            const curationTax = toBN(curationTaxPercentage).mul(tokensToDeposit).div(toBN(1000000))
-            const expectedNSignal = await calcGNSBondingCurve(
-              poolOld.nSignal,
-              poolOld.vSignal,
-              tokensToDeposit.sub(curationTax),
-              poolOld.subgraphDeploymentID,
-            )
             const tx = await mintNSignal(me, me.address, 0, tokensToDeposit)
             const receipt = await tx.wait()
             const event: Event = receipt.events.pop()
             const nSignalCreated = event.args['nSignalCreated']
-            expect(toRound(expectedNSignal)).eq(toRound(toFloat(nSignalCreated)))
+
+            expect(nSignalCreated).eq(tokensToDeposit.sub(curationTax))
           }
         })
 
         it('should mint when using the edge case of linear function', async function () {
           // Setup edge case like linear function: 1 vSignal = 1 nSignal = 1 token
-          await curation.setMinimumCurationDeposit(toGRT('1'))
           await curation.setDefaultReserveRatio(1000000)
           // note - reserve ratio is already set to 1000000 in GNS
 
@@ -921,7 +877,6 @@ describe('GNS', () => {
           ]
 
           await publishNewSubgraph(me, me.address, 0)
-          await advanceBlockTo(500)
 
           // State updated
           for (const tokensToDeposit of tokensToDepositMany) {
@@ -953,8 +908,6 @@ describe('GNS', () => {
 
     describe('Two named subgraphs point to the same subgraph deployment ID', function () {
       it('handle initialization under minimum signal values', async function () {
-        await curation.setMinimumCurationDeposit(toGRT('1'))
-
         // Publish a named subgraph-0 -> subgraphDeployment0
         await gns
           .connect(me.signer)
@@ -964,7 +917,7 @@ describe('GNS', () => {
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
           )
-        await advanceBlockTo(500)
+
         // Curate on the first subgraph
         await gns.connect(me.signer).mintNSignal(me.address, 0, toGRT('90000'), 0)
 
@@ -977,7 +930,6 @@ describe('GNS', () => {
             subgraph0.versionMetadata,
             subgraph0.subgraphMetadata,
           )
-        await advanceBlockTo(550)
         // Curate on the second subgraph should work
         await gns.connect(me.signer).mintNSignal(me.address, 1, toGRT('10'), 0)
       })

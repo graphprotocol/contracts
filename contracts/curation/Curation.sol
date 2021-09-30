@@ -77,9 +77,8 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
         uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit,
-        uint256 _initializationDays,
-        uint256 _initializationExitDays,
-        uint256 _blocksPerDay
+        uint256 _initializationPeriod,
+        uint256 _initializationExitPeriod
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -90,9 +89,8 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
-        _setBlocksPerDay(_blocksPerDay);
-        _setInitializationPeriod(_initializationDays);
-        _setInitializationExitPeriod(_initializationExitDays);
+        _setInitializationPeriod(_initializationPeriod);
+        _setInitializationExitPeriod(_initializationExitPeriod);
     }
 
     /**
@@ -148,72 +146,50 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
 
     /**
      * @dev Set the initialization period for a curation pool.
-     * @notice Update the initialization period to `_initializationDays`
-     * @param _initializationDays In days
+     * @notice Update the initialization period to `_initializationPeriod`
+     * @param _initializationPeriod in seconds
      */
-    function setInitializationPeriod(uint256 _initializationDays) external override onlyGovernor {
-        _setInitializationPeriod(_initializationDays);
+    function setInitializationPeriod(uint256 _initializationPeriod) external override onlyGovernor {
+        _setInitializationPeriod(_initializationPeriod);
     }
 
     /**
-     * @dev Internal: Set the initialization period for a curation pool.
-     * @notice Update the initialization period to `_initializationDays`
-     * @param _initializationDays In days
+     * @dev Internal: Set the initialization period for a curation pool in seconds.
+     * @notice Update the initialization period to `_initializationPeriod`
+     * @param _initializationPeriod in seconds
      */
-    function _setInitializationPeriod(uint256 _initializationDays) private {
+    function _setInitializationPeriod(uint256 _initializationPeriod) private {
         // Initialization must be greater than 0
-        require(_initializationDays > 0, "Initialization period must be > 0");
+        require(_initializationPeriod > 0, "Initialization period must be > 0");
 
-        initializationPeriod = blocksPerDay * _initializationDays;
+        initializationPeriod = _initializationPeriod;
         emit ParameterUpdated("initializationPeriod");
     }
 
     /**
-     * @dev Set the initialization period for a curation pool.
-     * @notice Update the initialization period to `_initializationExitDays`
-     * @param _initializationExitDays In days
+     * @dev Set the initialization period for a curation pool in seconds.
+     * @notice Update the initialization period to `_initializationExitPeriod`
+     * @param _initializationExitPeriod in seconds
      */
-    function setInitializationExitPeriod(uint256 _initializationExitDays)
+    function setInitializationExitPeriod(uint256 _initializationExitPeriod)
         external
         override
         onlyGovernor
     {
-        _setInitializationExitPeriod(_initializationExitDays);
+        _setInitializationExitPeriod(_initializationExitPeriod);
     }
 
     /**
-     * @dev Internal: Set the initialization period for a curation pool.
-     * @notice Update the initialization period to `_initializationExitDays`
-     * @param _initializationExitDays In days
+     * @dev Internal: Set the initialization period for a curation pool in seconds.
+     * @notice Update the initialization period to `_initializationExitPeriod`
+     * @param _initializationExitPeriod in seconds
      */
-    function _setInitializationExitPeriod(uint256 _initializationExitDays) private {
+    function _setInitializationExitPeriod(uint256 _initializationExitPeriod) private {
         // Initialization must be greater than 0
-        require(_initializationExitDays > 0, "Initialization period must be > 0");
+        require(_initializationExitPeriod > 0, "Initialization period must be > 0");
 
-        initializationExitPeriod = blocksPerDay * _initializationExitDays;
+        initializationExitPeriod = _initializationExitPeriod;
         emit ParameterUpdated("initializationExitPeriod");
-    }
-
-    /**
-     * @dev Set blocks per day
-     * @notice Update blocks per day to `_blocksPerDay`
-     * @param _blocksPerDay In days
-     */
-    function setBlocksPerDay(uint256 _blocksPerDay) external override onlyGovernor {
-        _setBlocksPerDay(_blocksPerDay);
-    }
-
-    /**
-     * @dev Internal: Set blocks per day
-     * @notice Update blocks per day to `_blocksPerDay`
-     * @param _blocksPerDay In days
-     */
-    function _setBlocksPerDay(uint256 _blocksPerDay) private {
-        // Initialization must be greater than 0
-        require(_blocksPerDay > 0, "Blocks per day must be > 0");
-
-        blocksPerDay = _blocksPerDay;
-        emit ParameterUpdated("blocksPerDay");
     }
 
     /**
@@ -563,12 +539,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
     function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
         uint32 effectiveReserveRatio = defaultReserveRatio;
 
-        if (block.number <= _createdAt.add(initializationPeriod)) {
+        if (block.timestamp <= _createdAt.add(initializationPeriod)) {
             effectiveReserveRatio = MAX_PPM;
         } else if (
-            block.number <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
+            block.timestamp <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
         ) {
-            uint256 blockDiff = block.number.sub(_createdAt.add(initializationPeriod));
+            uint256 blockDiff = block.timestamp.sub(_createdAt.add(initializationPeriod));
             uint256 exitRatio = blockDiff.mul(PRECISION).div(initializationExitPeriod);
 
             effectiveReserveRatio = uint32(

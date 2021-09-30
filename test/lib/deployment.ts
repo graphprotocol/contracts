@@ -27,19 +27,17 @@ logger.pause()
 // Default configuration used in tests
 
 export interface CurationLoadOptions {
-  initializationDays?: number
-  initializationExitDays?: number
-  blocksPerDay?: number
+  initializationPeriod?: number
+  initializationExitPeriod?: number
 }
 
 export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
-    minimumCurationDeposit: toGRT('100'),
+    minimumCurationDeposit: toGRT('1'),
     curationTaxPercentage: 0,
-    initializationDays: 1,
-    initializationExitDays: 2,
-    blocksPerDay: 1,
+    initializationPeriod: 86400,
+    initializationExitPeriod: 172800,
   },
   dispute: {
     minimumDeposit: toGRT('100'),
@@ -138,9 +136,8 @@ export async function deployCuration(
       defaults.curation.reserveRatio,
       defaults.curation.curationTaxPercentage,
       defaults.curation.minimumCurationDeposit,
-      options?.initializationDays || defaults.curation.initializationDays,
-      options?.initializationExitDays || defaults.curation.initializationExitDays,
-      options?.blocksPerDay || defaults.curation.blocksPerDay,
+      options?.initializationPeriod || defaults.curation.initializationPeriod,
+      options?.initializationExitPeriod || defaults.curation.initializationExitPeriod,
     ],
     deployer,
   ) as unknown as Curation

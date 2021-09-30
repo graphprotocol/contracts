@@ -31,7 +31,7 @@ describe('Curation:Config', () => {
     await fixture.tearDown()
   })
 
-  describe('defaultReserveRatio', function () {
+  describe('setDefaultReserveRatio', function () {
     it('should set `defaultReserveRatio`', async function () {
       // Set right in the constructor
       expect(await curation.defaultReserveRatio()).eq(defaults.curation.reserveRatio)
@@ -56,7 +56,7 @@ describe('Curation:Config', () => {
     })
   })
 
-  describe('minimumCurationDeposit', function () {
+  describe('setMinimumCurationDeposit', function () {
     it('should set `minimumCurationDeposit`', async function () {
       // Set right in the constructor
       expect(await curation.minimumCurationDeposit()).eq(defaults.curation.minimumCurationDeposit)
@@ -80,7 +80,7 @@ describe('Curation:Config', () => {
     })
   })
 
-  describe('curationTaxPercentage', function () {
+  describe('setCurationTaxPercentage', function () {
     it('should set `curationTaxPercentage`', async function () {
       const curationTaxPercentage = defaults.curation.curationTaxPercentage
 
@@ -96,6 +96,34 @@ describe('Curation:Config', () => {
 
     it('reject set `curationTaxPercentage` if not allowed', async function () {
       const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+  })
+
+  describe('setInitializationPeriod', function () {
+    it('should set property', async function () {
+      const period = 5000
+
+      await curation.connect(governor.signer).setInitializationPeriod(period)
+      expect(await curation.initializationPeriod()).eq(period)
+    })
+
+    it('should revert', async function () {
+      const tx = curation.connect(me.signer).setInitializationPeriod(0)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+  })
+
+  describe('setInitializationExitPeriod', function () {
+    it('should set property', async function () {
+      const period = 5000
+
+      await curation.connect(governor.signer).setInitializationExitPeriod(period)
+      expect(await curation.initializationExitPeriod()).eq(period)
+    })
+
+    it('should revert', async function () {
+      const tx = curation.connect(me.signer).setInitializationExitPeriod(0)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })
