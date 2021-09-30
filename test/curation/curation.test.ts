@@ -20,7 +20,6 @@ import {
 use(solidity)
 
 const MAX_PPM = 1000000
-const DEFAULT_PPM = 500000
 
 const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
   const chunks = []
@@ -39,7 +38,6 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
 }
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
-const toRound = (n: number) => n.toFixed(12)
 
 describe('Curation', () => {
   let me: Account

@@ -8,7 +8,7 @@ import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 
-import { toBN, formatGRT, BIG_NUMBER_ZERO } from './lib/testHelpers'
+import { toBN } from './lib/testHelpers'
 
 use(solidity)
 

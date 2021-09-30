@@ -17,8 +17,6 @@ export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
 export const BIG_NUMBER_ZERO = BigNumber.from(0)
 
-const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
-
 // Network
 
 export interface Account {
@@ -54,7 +52,7 @@ export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
 }
 
-export const advanceTime = async (time: number): Promise<any> => {
+export const advanceTime = async (time: number): Promise<void> => {
   return provider().send('evm_increaseTime', [time])
 }
 
