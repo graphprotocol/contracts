@@ -63,7 +63,6 @@
     "hardhat-gas-reporter": "^1.0.4",
     "hardhat-storage-layout": "0.1.6",
     "hardhat-tracer": "^1.0.0-alpha.6",
-    "husky": "^4.3.8",
     "inquirer": "^8.0.0",
     "ipfs-http-client": "47.0.1",
     "isomorphic-fetch": "^3.0.0",
@@ -119,12 +118,6 @@
     "test/**/*.ts": [
       "prettier --write"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "git diff HEAD --quiet && yarn lint && yarn test"
-    }
   },
   "repository": {
     "type": "git",
