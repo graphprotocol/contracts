@@ -3,7 +3,7 @@ import { solidity } from 'ethereum-waffle'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 
 import { GNS } from '../build/types/GNS'
-import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
+import { getAccounts, randomHexBytes, Account, toGRT, advanceTime } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
@@ -141,6 +141,9 @@ describe('GNS', () => {
     const totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax)
 
     const totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(MAX_PPM - curationTaxPercentage)
+
+    // Advance past the initialization exit phase
+    advanceTime(372800)
 
     // Re-estimate amount of signal to get considering the owner tax paid by the owner
     const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
