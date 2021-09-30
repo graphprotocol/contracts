@@ -261,7 +261,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
         curation().setCreatedAt(_subgraphDeploymentID, block.timestamp);
 
         updateSubgraphMetadata(_graphAccount, subgraphNumber, _subgraphMetadata);
-        _enableNameSignal(_graphAccount, subgraphNumber, block.number);
+        _enableNameSignal(_graphAccount, subgraphNumber, block.timestamp);
     }
 
     /**
@@ -355,12 +355,12 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     function _enableNameSignal(
         address _graphAccount,
         uint256 _subgraphNumber,
-        uint256 _blockNumber
+        uint256 _blockTimestamp
     ) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
         namePool.reserveRatio = defaultReserveRatio;
-        namePool.createdAt = _blockNumber;
+        namePool.createdAt = _blockTimestamp;
 
         emit NameSignalEnabled(
             _graphAccount,
