@@ -31,7 +31,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
     uint32 private constant MAX_PPM = 1000000;
 
     // Precision for effective reserve ratio
-    uint256 private constant PRECISION = 10**6;
+    uint256 private constant PRECISION = 10**18;
 
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
