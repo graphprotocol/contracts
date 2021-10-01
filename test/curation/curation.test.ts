@@ -12,156 +12,162 @@ import {
   randomHexBytes,
   toBN,
   toGRT,
-  formatGRT,
   Account,
   advanceTime,
+  latestBlockTime,
+  toFloat,
+  chunkify,
 } from '../lib/testHelpers'
 
 use(solidity)
 
 const MAX_PPM = 1000000
 
-const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
-  const chunks = []
-  while (total.gt(0) && maxChunks > 0) {
-    const m = 1000000
-    const p = Math.floor(Math.random() * m)
-    const n = total.mul(p).div(m)
-    chunks.push(n)
-    total = total.sub(n)
-    maxChunks--
-  }
-  if (total.gt(0)) {
-    chunks.push(total)
-  }
-  return chunks
+let me: Account
+let governor: Account
+let curator: Account
+let stakingMock: Account
+
+let fixture: NetworkFixture
+
+let curation: Curation
+let grt: GraphToken
+let controller: Controller
+
+// Test values
+const subgraphDeploymentID = randomHexBytes()
+const curatorTokens = toGRT('1000000000')
+const tokensToDeposit = toGRT('1000')
+const tokensToCollect = toGRT('2000')
+
+const shouldMint = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
+  // Before state
+  const beforeTokenTotalSupply = await grt.totalSupply()
+  const beforeCuratorTokens = await grt.balanceOf(curator.address)
+  const beforeCuratorSignal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+  const beforePool = await curation.pools(subgraphDeploymentID)
+  const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+  const beforeTotalTokens = await grt.balanceOf(curation.address)
+
+  // Calculations
+  const curationTaxPercentage = await curation.curationTaxPercentage()
+  const curationTax = tokensToDeposit.mul(toBN(curationTaxPercentage)).div(toBN(MAX_PPM))
+
+  // NOTE: tokens and signals are converted to Float and then rounded to a whole number
+  // because the bonding curve ratio scales based on block.timestamp
+
+  // Curate
+  const tx = await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+  const receipt = await tx.wait()
+  const event: Event = receipt.events.pop()
+  expect(event.args['curator']).eq(curator.address)
+  expect(event.args['subgraphDeploymentID']).eq(subgraphDeploymentID)
+  expect(toFloat(event.args['tokens']).toFixed(0)).eq(toFloat(tokensToDeposit).toFixed(0))
+  expect(toFloat(event.args['signal']).toFixed(0)).eq(toFloat(expectedSignal).toFixed(0))
+  expect(event.args['curationTax']).eq(curationTax)
+
+  // After state
+  const afterTokenTotalSupply = await grt.totalSupply()
+  const afterCuratorTokens = await grt.balanceOf(curator.address)
+  const afterCuratorSignal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+  const afterPool = await curation.pools(subgraphDeploymentID)
+  const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+  const afterTotalTokens = await grt.balanceOf(curation.address)
+
+  // Curator balance updated
+  expect(toFloat(afterCuratorTokens).toFixed(0)).eq(
+    toFloat(beforeCuratorTokens.sub(tokensToDeposit)).toFixed(0),
+  )
+  expect(toFloat(afterCuratorSignal).toFixed(0)).eq(
+    toFloat(beforeCuratorSignal.add(expectedSignal)).toFixed(0),
+  )
+  // Allocated and balance updated
+  expect(toFloat(afterPool.tokens).toFixed(0)).eq(
+    toFloat(beforePool.tokens.add(tokensToDeposit.sub(curationTax))).toFixed(0),
+  )
+  expect(toFloat(afterPoolSignal).toFixed(0)).eq(
+    toFloat(beforePoolSignal.add(expectedSignal)).toFixed(0),
+  )
+  // Contract balance updated
+  expect(toFloat(afterTotalTokens).toFixed(0)).eq(
+    toFloat(beforeTotalTokens.add(tokensToDeposit.sub(curationTax))).toFixed(0),
+  )
+  // Total supply is reduced to curation tax burning
+  expect(toFloat(afterTokenTotalSupply).toFixed(0)).eq(
+    toFloat(beforeTokenTotalSupply.sub(curationTax)).toFixed(0),
+  )
 }
 
-const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+const shouldBurn = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
+  // Before balances
+  const beforeTokenTotalSupply = await grt.totalSupply()
+  const beforeCuratorTokens = await grt.balanceOf(curator.address)
+  const beforeCuratorSignal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+  const beforePool = await curation.pools(subgraphDeploymentID)
+  const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+  const beforeTotalTokens = await grt.balanceOf(curation.address)
+
+  // NOTE: tokens and signals are converted to Float and then rounded to a whole number
+  // because the bonding curve ratio scales based on block.timestamp
+
+  // Redeem
+  const tx = await curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem, 0)
+  const receipt = await tx.wait()
+  const event: Event = receipt.events.pop()
+  expect(event.args['curator']).eq(curator.address)
+  expect(event.args['subgraphDeploymentID']).eq(subgraphDeploymentID)
+  expect(toFloat(event.args['tokens']).toFixed(0)).eq(toFloat(expectedTokens).toFixed(0))
+  expect(toFloat(event.args['signal']).toFixed(0)).eq(toFloat(signalToRedeem).toFixed(0))
+
+  // After balances
+  const afterTokenTotalSupply = await grt.totalSupply()
+  const afterCuratorTokens = await grt.balanceOf(curator.address)
+  const afterCuratorSignal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
+  const afterPool = await curation.pools(subgraphDeploymentID)
+  const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+  const afterTotalTokens = await grt.balanceOf(curation.address)
+
+  // Curator balance updated
+  expect(toFloat(afterCuratorTokens).toFixed(0)).eq(
+    toFloat(beforeCuratorTokens.add(expectedTokens)).toFixed(0),
+  )
+  expect(toFloat(afterCuratorSignal).toFixed(0)).eq(
+    toFloat(beforeCuratorSignal.sub(signalToRedeem)).toFixed(0),
+  )
+  // Curation balance updated
+  expect(toFloat(afterPool.tokens).toFixed(0)).eq(
+    toFloat(beforePool.tokens.sub(expectedTokens)).toFixed(0),
+  )
+  expect(afterPoolSignal).eq(beforePoolSignal.sub(signalToRedeem))
+  // Contract balance updated
+  expect(toFloat(afterTotalTokens).toFixed(0)).eq(
+    toFloat(beforeTotalTokens.sub(expectedTokens)).toFixed(0),
+  )
+
+  // Total supply is conserved
+  expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply)
+}
+
+const shouldCollect = async (tokensToCollect: BigNumber) => {
+  // Before state
+  const beforePool = await curation.pools(subgraphDeploymentID)
+  const beforeTotalBalance = await grt.balanceOf(curation.address)
+
+  // Source of tokens must be the staking for this to work
+  await grt.connect(stakingMock.signer).transfer(curation.address, tokensToCollect)
+  const tx = curation.connect(stakingMock.signer).collect(subgraphDeploymentID, tokensToCollect)
+  await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
+
+  // After state
+  const afterPool = await curation.pools(subgraphDeploymentID)
+  const afterTotalBalance = await grt.balanceOf(curation.address)
+
+  // State updated
+  expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToCollect))
+  expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToCollect))
+}
 
 describe('Curation', () => {
-  let me: Account
-  let governor: Account
-  let curator: Account
-  let stakingMock: Account
-
-  let fixture: NetworkFixture
-
-  let curation: Curation
-  let grt: GraphToken
-  let controller: Controller
-
-  // Test values
-  const subgraphDeploymentID = randomHexBytes()
-  const curatorTokens = toGRT('1000000000')
-  const tokensToDeposit = toGRT('1000')
-  const tokensToCollect = toGRT('2000')
-
-  const shouldMint = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
-    // Before state
-    const beforeTokenTotalSupply = await grt.totalSupply()
-    const beforeCuratorTokens = await grt.balanceOf(curator.address)
-    const beforeCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const beforePool = await curation.pools(subgraphDeploymentID)
-    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const beforeTotalTokens = await grt.balanceOf(curation.address)
-
-    // Calculations
-    const curationTaxPercentage = await curation.curationTaxPercentage()
-    const curationTax = tokensToDeposit.mul(toBN(curationTaxPercentage)).div(toBN(MAX_PPM))
-
-    // Curate
-    const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
-    await expect(tx)
-      .emit(curation, 'Signalled')
-      .withArgs(curator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, curationTax)
-
-    // After state
-    const afterTokenTotalSupply = await grt.totalSupply()
-    const afterCuratorTokens = await grt.balanceOf(curator.address)
-    const afterCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const afterPool = await curation.pools(subgraphDeploymentID)
-    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const afterTotalTokens = await grt.balanceOf(curation.address)
-
-    // Curator balance updated
-    expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToDeposit))
-    expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
-    // Allocated and balance updated
-    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit.sub(curationTax)))
-    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
-    // Contract balance updated
-    expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit.sub(curationTax)))
-    // Total supply is reduced to curation tax burning
-    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(curationTax))
-  }
-
-  const shouldBurn = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
-    // Before balances
-    const beforeTokenTotalSupply = await grt.totalSupply()
-    const beforeCuratorTokens = await grt.balanceOf(curator.address)
-    const beforeCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const beforePool = await curation.pools(subgraphDeploymentID)
-    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const beforeTotalTokens = await grt.balanceOf(curation.address)
-
-    // Redeem
-    const tx = curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem, 0)
-    await expect(tx)
-      .emit(curation, 'Burned')
-      .withArgs(curator.address, subgraphDeploymentID, expectedTokens, signalToRedeem)
-
-    // After balances
-    const afterTokenTotalSupply = await grt.totalSupply()
-    const afterCuratorTokens = await grt.balanceOf(curator.address)
-    const afterCuratorSignal = await curation.getCuratorSignal(
-      curator.address,
-      subgraphDeploymentID,
-    )
-    const afterPool = await curation.pools(subgraphDeploymentID)
-    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
-    const afterTotalTokens = await grt.balanceOf(curation.address)
-
-    // Curator balance updated
-    expect(afterCuratorTokens).eq(beforeCuratorTokens.add(expectedTokens))
-    expect(afterCuratorSignal).eq(beforeCuratorSignal.sub(signalToRedeem))
-    // Curation balance updated
-    expect(afterPool.tokens).eq(beforePool.tokens.sub(expectedTokens))
-    expect(afterPoolSignal).eq(beforePoolSignal.sub(signalToRedeem))
-    // Contract balance updated
-    expect(afterTotalTokens).eq(beforeTotalTokens.sub(expectedTokens))
-    // Total supply is conserved
-    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply)
-  }
-
-  const shouldCollect = async (tokensToCollect: BigNumber) => {
-    // Before state
-    const beforePool = await curation.pools(subgraphDeploymentID)
-    const beforeTotalBalance = await grt.balanceOf(curation.address)
-
-    // Source of tokens must be the staking for this to work
-    await grt.connect(stakingMock.signer).transfer(curation.address, tokensToCollect)
-    const tx = curation.connect(stakingMock.signer).collect(subgraphDeploymentID, tokensToCollect)
-    await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
-
-    // After state
-    const afterPool = await curation.pools(subgraphDeploymentID)
-    const afterTotalBalance = await grt.balanceOf(curation.address)
-
-    // State updated
-    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToCollect))
-    expect(afterTotalBalance).eq(beforeTotalBalance.add(tokensToCollect))
-  }
-
   beforeEach(async function () {
     await fixture.setUp()
   })
@@ -175,8 +181,9 @@ describe('Curation', () => {
   // initializationExitPeriod: 172800 - 2 Days
   // They are set in test/lib/deployments.ts
 
-  // CurationPool.createdAt is 0
-
+  // CurationPool.createdAt = 50000000000
+  // initializationPeriod = 86400 * 30
+  // So all tests happen during initialization phase
   describe('during initialization phase', function () {
     before(async function () {
       // Use stakingMock so we can call collect
@@ -184,7 +191,7 @@ describe('Curation', () => {
 
       fixture = new NetworkFixture()
       ;({ controller, curation, grt } = await fixture.load(governor.signer, {
-        curationOptions: { initializationPeriod: 100000000000000 },
+        curationOptions: { initializationPeriod: 86400 * 30 },
       }))
 
       // Give some funds to the curator and approve the curation contract
@@ -194,6 +201,11 @@ describe('Curation', () => {
       // Give some funds to the staking contract and approve the curation contract
       await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
       await grt.connect(stakingMock.signer).approve(curation.address, tokensToCollect)
+
+      const diff = 5000000000 - (await latestBlockTime())
+      await advanceTime(diff)
+
+      await curation.setCreatedAt(subgraphDeploymentID, 5000000000)
     })
 
     describe('bonding curve', function () {
@@ -522,6 +534,10 @@ describe('Curation', () => {
     })
   })
 
+  // CurationPool.createdAt = 5000000000
+  // initializationPeriod = 1
+  // initializationExitPeriod = 10000
+  // So all tests happen during initialization exit phase
   describe('during initialization exit phase', function () {
     before(async function () {
       // Use stakingMock so we can call collect
@@ -529,7 +545,7 @@ describe('Curation', () => {
 
       fixture = new NetworkFixture()
       ;({ controller, curation, grt } = await fixture.load(governor.signer, {
-        curationOptions: { initializationExitPeriod: 100000000000000 },
+        curationOptions: { initializationPeriod: 1, initializationExitPeriod: 10000 },
       }))
 
       // Give some funds to the curator and approve the curation contract
@@ -540,7 +556,27 @@ describe('Curation', () => {
       await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
       await grt.connect(stakingMock.signer).approve(curation.address, tokensToCollect)
 
-      advanceTime(172800)
+      const diff = 5000000000 - (await latestBlockTime())
+      await advanceTime(diff)
+
+      await curation.setCreatedAt(subgraphDeploymentID, 5000000000)
+    })
+
+    beforeEach(async function () {
+      await advanceTime(5000)
+    })
+
+    describe('effective reserve ratio', function () {
+      it('should move reserve ratio from 100% to 50%', async function () {
+        //await curation.setCreatedAt(subgraphDeploymentID, await latestBlockTime())
+        //await curation.connect(curator.signer).mint(subgraphDeploymentID, toGRT(1), 0)
+        // Curate
+        // while (i < 1000000000000) {
+        //   await curation.connect(curator.signer).mint(subgraphDeploymentID, toGRT(1), 0)
+        //   i += 100000000
+        //   advanceTime(i)
+        // }
+      })
     })
 
     describe('bonding curve', function () {
@@ -613,7 +649,7 @@ describe('Curation', () => {
       it('should get signal according to bonding curve', async function () {
         const tokensToDeposit = toGRT('1000')
 
-        await shouldMint(tokensToDeposit, BigNumber.from(999944739484686671713n))
+        await shouldMint(tokensToDeposit, BigNumber.from(177827941003892280122n))
       })
 
       it('should get signal according to bonding curve (and account for curation tax)', async function () {
@@ -622,7 +658,7 @@ describe('Curation', () => {
 
         // Mint
         const tokensToDeposit = toGRT('1000')
-        await shouldMint(tokensToDeposit, BigNumber.from(949947892318027508077n))
+        await shouldMint(tokensToDeposit, BigNumber.from(171058168503583145666n))
       })
 
       it('should revert curate if over slippage', async function () {
@@ -748,7 +784,7 @@ describe('Curation', () => {
       it('should allow to redeem *partially*', async function () {
         // Redeem just one signal
         const signalToRedeem = toGRT('10')
-        await shouldBurn(signalToRedeem, BigNumber.from(10000632239362306056n))
+        await shouldBurn(signalToRedeem, BigNumber.from(74332242126186795151n))
       })
 
       it('should allow to redeem *fully*', async function () {
@@ -764,7 +800,7 @@ describe('Curation', () => {
         // Redeem "almost" all signal
         const signal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
         const signalToRedeem = signal.sub(toGRT('0.000001'))
-        await shouldBurn(signalToRedeem, BigNumber.from(999999998995533415478n))
+        await shouldBurn(signalToRedeem, BigNumber.from(999999999989447807703n))
 
         // The pool should have less tokens that required by minimumCurationDeposit
         const afterPool = await curation.pools(subgraphDeploymentID)
@@ -772,7 +808,7 @@ describe('Curation', () => {
 
         // Should be able to deposit more after being under minimumCurationDeposit
         const tokensToDeposit = toGRT('1')
-        await shouldMint(tokensToDeposit, BigNumber.from(995443285979573882n))
+        await shouldMint(tokensToDeposit, BigNumber.from(956089089357578899n))
       })
 
       it('should revert redeem if over slippage', async function () {
@@ -833,14 +869,14 @@ describe('Curation', () => {
     describe('multiple minting', async function () {
       it('should mint progressively lower shares', async function () {
         const expectedValues = [
-          999944739484686671713n,
-          999933649773403675612n,
-          999929464073939139947n,
-          999926745884573707923n,
-          1999847838606004540355n,
-          1999842402257419277444n,
-          122990165461549434074n,
-          999919983038534568n,
+          177521108046466027457n,
+          120970542682026335350n,
+          106027419257619998524n,
+          97353057683459831869n,
+          178242757900972553771n,
+          163654693355725481460n,
+          9703975126029326069n,
+          78737315766986093n,
         ]
 
         // should mint if we start with number above minimum deposit
@@ -863,19 +899,27 @@ describe('Curation', () => {
           const event: Event = receipt.events.pop()
           const signal: BigNumber = event.args['signal']
 
-          expect(signal).eq(BigNumber.from(expectedValues[i]))
+          expect(toFloat(signal).toFixed(0)).eq(
+            toFloat(BigNumber.from(expectedValues[i])).toFixed(0),
+          )
         }
       })
     })
   })
 
+  // CurationPool.createdAt = 0
+  // initializationPeriod = 1
+  // initializationExitPeriod = 1
+  // So all tests happen after initialization and exit phase
   describe('after initialization phase', function () {
     before(async function () {
       // Use stakingMock so we can call collect
       ;[me, governor, curator, stakingMock] = await getAccounts()
 
       fixture = new NetworkFixture()
-      ;({ controller, curation, grt } = await fixture.load(governor.signer))
+      ;({ controller, curation, grt } = await fixture.load(governor.signer, {
+        curationOptions: { initializationPeriod: 1, initializationExitPeriod: 1 },
+      }))
 
       // Give some funds to the curator and approve the curation contract
       await grt.connect(governor.signer).mint(curator.address, curatorTokens)

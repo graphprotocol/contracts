@@ -17,6 +17,24 @@ export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
 export const randomAddress = (): string => getAddress(randomHexBytes(20))
 export const BIG_NUMBER_ZERO = BigNumber.from(0)
 
+export const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
+
+export const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
+  const chunks = []
+  while (total.gt(0) && maxChunks > 0) {
+    const m = 1000000
+    const p = Math.floor(Math.random() * m)
+    const n = total.mul(p).div(m)
+    chunks.push(n)
+    total = total.sub(n)
+    maxChunks--
+  }
+  if (total.gt(0)) {
+    chunks.push(total)
+  }
+  return chunks
+}
+
 // Network
 
 export interface Account {
@@ -48,11 +66,16 @@ export const getChainID = (): Promise<number> => {
 export const latestBlock = (): Promise<BigNumber> =>
   provider().send('eth_blockNumber', []).then(toBN)
 
+export const latestBlockTime = async (): Promise<number> =>
+  provider()
+    .getBlock(await provider().getBlockNumber())
+    .then((block) => block.timestamp)
+
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', [])
 }
 
-export const advanceTime = async (time: number): Promise<void> => {
+export const advanceTime = async (time: number): Promise<any> => {
   return provider().send('evm_increaseTime', [time])
 }
 
