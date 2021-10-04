@@ -8,6 +8,7 @@ interface loadOptions {
   curationOptions?: deployment.CurationLoadOptions
   slasher?: Signer
   arbitrator?: Signer
+  gnsAddress?: string
 }
 
 export class NetworkFixture {
@@ -20,6 +21,7 @@ export class NetworkFixture {
   async load(deployer: Signer, options: loadOptions = {}): Promise<any> {
     const slasher = options.slasher || Wallet.createRandom()
     const arbitrator = options.arbitrator || Wallet.createRandom()
+    let gnsAddress = options.gnsAddress || null
 
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
@@ -59,11 +61,13 @@ export class NetworkFixture {
       proxyAdmin,
     )
 
+    gnsAddress = gnsAddress || gns.address
+
     // Setup controller
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
     await controller.setContractProxy(utils.id('GraphToken'), grt.address)
     await controller.setContractProxy(utils.id('Curation'), curation.address)
-    await controller.setContractProxy(utils.id('GNS'), gns.address)
+    await controller.setContractProxy(utils.id('GNS'), gnsAddress)
     await controller.setContractProxy(utils.id('Staking'), staking.address)
     await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
     await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)

@@ -2,6 +2,7 @@ import { expect, use } from 'chai'
 import { solidity } from 'ethereum-waffle'
 import { utils, BigNumber, Event } from 'ethers'
 
+import { GNS } from '../../build/types/GNS'
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
@@ -27,6 +28,7 @@ let me: Account
 let governor: Account
 let curator: Account
 let stakingMock: Account
+let gns: GNS
 
 let fixture: NetworkFixture
 
@@ -190,8 +192,9 @@ describe('Curation', () => {
       ;[me, governor, curator, stakingMock] = await getAccounts()
 
       fixture = new NetworkFixture()
-      ;({ controller, curation, grt } = await fixture.load(governor.signer, {
+      ;({ controller, curation, grt, gns } = await fixture.load(governor.signer, {
         curationOptions: { initializationPeriod: 86400 * 30 },
+        gnsAddress: me.address,
       }))
 
       // Give some funds to the curator and approve the curation contract
@@ -205,7 +208,7 @@ describe('Curation', () => {
       const diff = 5000000000 - (await latestBlockTime())
       await advanceTime(diff)
 
-      await curation.setCreatedAt(subgraphDeploymentID, 5000000000)
+      await curation.connect(me.signer).setCreatedAt(subgraphDeploymentID, 5000000000)
     })
 
     describe('bonding curve', function () {
@@ -247,6 +250,9 @@ describe('Curation', () => {
       })
 
       it('convert tokens to signal', async function () {
+        // Curate
+        await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+
         // Conversion
         const tokens = toGRT('1000')
         const { 0: signal } = await curation.tokensToSignal(subgraphDeploymentID, tokens)
@@ -546,6 +552,7 @@ describe('Curation', () => {
       fixture = new NetworkFixture()
       ;({ controller, curation, grt } = await fixture.load(governor.signer, {
         curationOptions: { initializationPeriod: 1, initializationExitPeriod: 10000 },
+        gnsAddress: me.address,
       }))
 
       // Give some funds to the curator and approve the curation contract
@@ -559,7 +566,7 @@ describe('Curation', () => {
       const diff = 5000000000 - (await latestBlockTime())
       await advanceTime(diff)
 
-      await curation.setCreatedAt(subgraphDeploymentID, 5000000000)
+      await curation.connect(me.signer).setCreatedAt(subgraphDeploymentID, 5000000000)
     })
 
     beforeEach(async function () {
@@ -618,10 +625,13 @@ describe('Curation', () => {
       })
 
       it('convert tokens to signal', async function () {
+        // Curate
+        await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+
         // Conversion
         const tokens = toGRT('1000')
         const { 0: signal } = await curation.tokensToSignal(subgraphDeploymentID, tokens)
-        expect(signal.toBigInt()).eq(BigNumber.from(999944739484686671713n))
+        expect(signal.toBigInt()).eq(BigNumber.from(4217559411732845401n))
       })
 
       it('convert tokens to signal if non-curated subgraph', async function () {
@@ -969,10 +979,13 @@ describe('Curation', () => {
       })
 
       it('convert tokens to signal', async function () {
+        // Curate
+        await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+
         // Conversion
         const tokens = toGRT('1000')
         const { 0: signal } = await curation.tokensToSignal(subgraphDeploymentID, tokens)
-        expect(signal).eq(BigNumber.from(31622776601683793319n))
+        expect(signal).eq(BigNumber.from(15811384347996797n))
       })
 
       it('convert tokens to signal if non-curated subgraph', async function () {
