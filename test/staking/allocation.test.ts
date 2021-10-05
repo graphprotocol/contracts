@@ -532,6 +532,30 @@ describe('Staking:Allocation', () => {
       await expect(tx).revertedWith('!active')
     })
 
+    it('reject close with an invalid block hash for the POI', async function () {
+      // Move at least one epoch to be able to close
+      await advanceToNextEpoch(epochManager)
+      await advanceToNextEpoch(epochManager)
+
+      // Close allocation
+      const poiBlockHash = await randomHexBytes(32) // Use a random block hash to force it to fai
+      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi, poiBlockHash)
+      await expect(tx).revertedWith('!poi-block')
+    })
+
+    it('should close allocation with invalid block hash if POI is empty', async function () {
+      // Move at least one epoch to be able to close
+      await advanceToNextEpoch(epochManager)
+      await advanceToNextEpoch(epochManager)
+
+      // Close allocation
+      const poiBlockHash = await randomHexBytes(32) // Use a random block hash to force it to fai
+      const tx = staking
+        .connect(indexer.signer)
+        .closeAllocation(allocationID, HashZero, poiBlockHash)
+      await tx
+    })
+
     it('should close an allocation', async function () {
       // Before state
       const beforeStake = await staking.stakes(indexer.address)
