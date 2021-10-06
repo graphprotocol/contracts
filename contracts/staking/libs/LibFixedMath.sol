@@ -24,29 +24,24 @@ pragma solidity ^0.7.3;
 /// @dev Signed, fixed-point, 127-bit precision math library.
 library LibFixedMath {
     // 1
-    int256 private constant FIXED_1 = int256(
-        0x0000000000000000000000000000000080000000000000000000000000000000
-    );
+    int256 private constant FIXED_1 =
+        int256(0x0000000000000000000000000000000080000000000000000000000000000000);
     // 2**255
-    int256 private constant MIN_FIXED_VAL = int256(
-        0x8000000000000000000000000000000000000000000000000000000000000000
-    );
+    int256 private constant MIN_FIXED_VAL =
+        int256(0x8000000000000000000000000000000000000000000000000000000000000000);
     // 1^2 (in fixed-point)
-    int256 private constant FIXED_1_SQUARED = int256(
-        0x4000000000000000000000000000000000000000000000000000000000000000
-    );
+    int256 private constant FIXED_1_SQUARED =
+        int256(0x4000000000000000000000000000000000000000000000000000000000000000);
     // 1
     int256 private constant LN_MAX_VAL = FIXED_1;
     // e ^ -63.875
-    int256 private constant LN_MIN_VAL = int256(
-        0x0000000000000000000000000000000000000000000000000000000733048c5a
-    );
+    int256 private constant LN_MIN_VAL =
+        int256(0x0000000000000000000000000000000000000000000000000000000733048c5a);
     // 0
     int256 private constant EXP_MAX_VAL = 0;
     // -63.875
-    int256 private constant EXP_MIN_VAL = -int256(
-        0x0000000000000000000000000000001ff0000000000000000000000000000000
-    );
+    int256 private constant EXP_MIN_VAL =
+        -int256(0x0000000000000000000000000000001ff0000000000000000000000000000000);
 
     /// @dev Get one as a fixed-point number.
     function one() internal pure returns (int256 f) {

@@ -149,7 +149,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     /**
      * @dev Check if the caller is the arbitrator.
      */
-    modifier onlyArbitrator {
+    modifier onlyArbitrator() {
         _onlyArbitrator();
         _;
     }
@@ -413,10 +413,18 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dID1 =
-            _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
-        bytes32 dID2 =
-            _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
+        bytes32 dID1 = _createQueryDisputeWithAttestation(
+            fisherman,
+            0,
+            attestation1,
+            _attestationData1
+        );
+        bytes32 dID2 = _createQueryDisputeWithAttestation(
+            fisherman,
+            0,
+            attestation2,
+            _attestationData2
+        );
 
         // Store the linked disputes to be resolved
         disputes[dID1].relatedDisputeID = dID2;
@@ -452,16 +460,15 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(staking().getIndexerStakedTokens(indexer) > 0, "Dispute indexer has no stake");
 
         // Create a disputeID
-        bytes32 disputeID =
-            keccak256(
-                abi.encodePacked(
-                    _attestation.requestCID,
-                    _attestation.responseCID,
-                    _attestation.subgraphDeploymentID,
-                    indexer,
-                    _fisherman
-                )
-            );
+        bytes32 disputeID = keccak256(
+            abi.encodePacked(
+                _attestation.requestCID,
+                _attestation.responseCID,
+                _attestation.subgraphDeploymentID,
+                indexer,
+                _fisherman
+            )
+        );
 
         // Only one dispute for a (indexer, subgraphDeploymentID) at a time
         require(!isDisputeCreated(disputeID), "Dispute already created");
@@ -559,8 +566,11 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         Dispute memory dispute = _resolveDispute(_disputeID);
 
         // Slash
-        (, uint256 tokensToReward) =
-            _slashIndexer(dispute.indexer, dispute.fisherman, dispute.disputeType);
+        (, uint256 tokensToReward) = _slashIndexer(
+            dispute.indexer,
+            dispute.fisherman,
+            dispute.disputeType
+        );
 
         // Give the fisherman their deposit back
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
@@ -723,12 +733,11 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         returns (address)
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Receipt memory receipt =
-            Receipt(
-                _attestation.requestCID,
-                _attestation.responseCID,
-                _attestation.subgraphDeploymentID
-            );
+        Receipt memory receipt = Receipt(
+            _attestation.requestCID,
+            _attestation.responseCID,
+            _attestation.subgraphDeploymentID
+        );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
@@ -761,8 +770,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) =
-            abi.decode(_data, (bytes32, bytes32, bytes32));
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
+            _data,
+            (bytes32, bytes32, bytes32)
+        );
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct

@@ -302,7 +302,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
      * @return True if curated
      */
-    function isCurated(bytes32 _subgraphDeploymentID) public override view returns (bool) {
+    function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return pools[_subgraphDeploymentID].tokens > 0;
     }
 
@@ -314,8 +314,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -331,8 +331,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
@@ -348,8 +348,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
         external
-        override
         view
+        override
         returns (uint256)
     {
         return pools[_subgraphDeploymentID].tokens;
@@ -359,7 +359,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      * @dev Get curation tax percentage
      * @return Amount the curation tax percentage in PPM
      */
-    function curationTaxPercentage() external override view returns (uint32) {
+    function curationTaxPercentage() external view override returns (uint32) {
         return _curationTaxPercentage;
     }
 
@@ -372,8 +372,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         public
-        override
         view
+        override
         returns (uint256, uint256)
     {
         uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
@@ -404,11 +404,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             return
                 BancorFormula(bondingCurve)
                     .calculatePurchaseReturn(
-                    SIGNAL_PER_MINIMUM_DEPOSIT,
-                    minimumCurationDeposit,
-                    defaultReserveRatio,
-                    _tokensIn.sub(minimumCurationDeposit)
-                )
+                        SIGNAL_PER_MINIMUM_DEPOSIT,
+                        minimumCurationDeposit,
+                        defaultReserveRatio,
+                        _tokensIn.sub(minimumCurationDeposit)
+                    )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
 
@@ -429,8 +429,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         public
-        override
         view
+        override
         returns (uint256)
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];

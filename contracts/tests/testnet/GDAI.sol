@@ -27,7 +27,7 @@ contract GDAI is Governed, ERC20, ERC20Burnable {
     /**
      * @dev Check if the caller is the governor.
      */
-    modifier onlyGovernorOrGSR {
+    modifier onlyGovernorOrGSR() {
         require(msg.sender == governor || msg.sender == GSR, "Only Governor or GSR can call");
         _;
     }

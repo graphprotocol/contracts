@@ -107,7 +107,7 @@ contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IService
      * @dev Return the registration status of an indexer service
      * @return True if the indexer service is registered
      */
-    function isRegistered(address _indexer) public override view returns (bool) {
+    function isRegistered(address _indexer) public view override returns (bool) {
         return bytes(services[_indexer].url).length > 0;
     }
 }

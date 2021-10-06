@@ -56,12 +56,12 @@ contract Managed {
         require(msg.sender == address(controller), "Caller must be Controller");
     }
 
-    modifier notPartialPaused {
+    modifier notPartialPaused() {
         _notPartialPaused();
         _;
     }
 
-    modifier notPaused {
+    modifier notPaused() {
         _notPaused();
         _;
     }

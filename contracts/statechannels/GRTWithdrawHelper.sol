@@ -63,10 +63,9 @@ contract GRTWithdrawHelper is WithdrawHelper {
         require(collectData.returnAddress != address(0), "GRTWithdrawHelper: !returnAddress");
 
         // Approve the staking contract to pull the transfer amount
-        (bool success1, ) =
-            tokenAddress.call(
-                abi.encodeWithSelector(APPROVE_SELECTOR, collectData.staking, _actualAmount)
-            );
+        (bool success1, ) = tokenAddress.call(
+            abi.encodeWithSelector(APPROVE_SELECTOR, collectData.staking, _actualAmount)
+        );
 
         // If the call fails return the funds to the return address and bail
         if (!success1) {
@@ -75,10 +74,9 @@ contract GRTWithdrawHelper is WithdrawHelper {
         }
 
         // Call the Staking contract to collect funds from this contract
-        (bool success2, ) =
-            collectData.staking.call(
-                abi.encodeWithSelector(COLLECT_SELECTOR, _actualAmount, collectData.allocationID)
-            );
+        (bool success2, ) = collectData.staking.call(
+            abi.encodeWithSelector(COLLECT_SELECTOR, _actualAmount, collectData.allocationID)
+        );
 
         // If the call fails return the funds to the return address
         if (!success2) {

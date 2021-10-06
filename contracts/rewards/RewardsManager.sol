@@ -151,7 +151,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @dev Tells if subgraph is in deny list
      * @param _subgraphDeploymentID Subgraph deployment ID to check
      */
-    function isDenied(bytes32 _subgraphDeploymentID) public override view returns (bool) {
+    function isDenied(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return denylist[_subgraphDeploymentID] > 0;
     }
 
@@ -171,7 +171,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      *
      * @return newly accrued rewards per signal since last update
      */
-    function getNewRewardsPerSignal() public override view returns (uint256) {
+    function getNewRewardsPerSignal() public view override returns (uint256) {
         // Calculate time steps
         uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
         // Optimization to skip calculations if zero time steps elapsed
@@ -206,7 +206,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Gets the currently accumulated rewards per signal.
      */
-    function getAccRewardsPerSignal() public override view returns (uint256) {
+    function getAccRewardsPerSignal() public view override returns (uint256) {
         return accRewardsPerSignal.add(getNewRewardsPerSignal());
     }
 
@@ -217,8 +217,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      */
     function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256)
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
@@ -239,8 +239,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      */
     function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID)
         public
-        override
         view
+        override
         returns (uint256, uint256)
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
@@ -328,7 +328,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
-    function getRewards(address _allocationID) external override view returns (uint256) {
+    function getRewards(address _allocationID) external view override returns (uint256) {
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(
@@ -414,51 +414,51 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     ) private pure returns (uint256 z) {
         assembly {
             switch x
+            case 0 {
+                switch n
                 case 0 {
-                    switch n
-                        case 0 {
-                            z := base
-                        }
-                        default {
-                            z := 0
-                        }
+                    z := base
                 }
                 default {
-                    switch mod(n, 2)
-                        case 0 {
-                            z := base
-                        }
-                        default {
-                            z := x
-                        }
-                    let half := div(base, 2) // for rounding.
-                    for {
-                        n := div(n, 2)
-                    } n {
-                        n := div(n, 2)
-                    } {
-                        let xx := mul(x, x)
-                        if iszero(eq(div(xx, x), x)) {
+                    z := 0
+                }
+            }
+            default {
+                switch mod(n, 2)
+                case 0 {
+                    z := base
+                }
+                default {
+                    z := x
+                }
+                let half := div(base, 2) // for rounding.
+                for {
+                    n := div(n, 2)
+                } n {
+                    n := div(n, 2)
+                } {
+                    let xx := mul(x, x)
+                    if iszero(eq(div(xx, x), x)) {
+                        revert(0, 0)
+                    }
+                    let xxRound := add(xx, half)
+                    if lt(xxRound, xx) {
+                        revert(0, 0)
+                    }
+                    x := div(xxRound, base)
+                    if mod(n, 2) {
+                        let zx := mul(z, x)
+                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
                             revert(0, 0)
                         }
-                        let xxRound := add(xx, half)
-                        if lt(xxRound, xx) {
+                        let zxRound := add(zx, half)
+                        if lt(zxRound, zx) {
                             revert(0, 0)
                         }
-                        x := div(xxRound, base)
-                        if mod(n, 2) {
-                            let zx := mul(z, x)
-                            if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
-                                revert(0, 0)
-                            }
-                            let zxRound := add(zx, half)
-                            if lt(zxRound, zx) {
-                                revert(0, 0)
-                            }
-                            z := div(zxRound, base)
-                        }
+                        z := div(zxRound, base)
                     }
                 }
+            }
         }
     }
 }

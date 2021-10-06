@@ -7,7 +7,7 @@ import "../governance/Governed.sol";
 import "./IGraphProxy.sol";
 import "./GraphUpgradeable.sol";
 
-/** 
+/**
  * @title GraphProxyAdmin
  * @dev This is the owner of upgradeable proxy contracts.
  * Proxy contracts use a TransparentProxy pattern, any admin related call
@@ -15,8 +15,7 @@ import "./GraphUpgradeable.sol";
  * this contract.
  */
 contract GraphProxyAdmin is Governed {
-
-    /** 
+    /**
      * @dev Contract constructor.
      */
     constructor() {

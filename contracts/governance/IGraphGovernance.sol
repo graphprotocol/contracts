@@ -6,7 +6,11 @@ interface IGraphGovernance {
     /**
      * @dev The three states of a Proposal. Null can never be set.
      */
-    enum ProposalResolution { Null, Accepted, Rejected }
+    enum ProposalResolution {
+        Null,
+        Accepted,
+        Rejected
+    }
 
     // -- Proposals --
 

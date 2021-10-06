@@ -18,7 +18,7 @@ contract Controller is Governed, Pausable, IController {
 
     event SetContractProxy(bytes32 indexed id, address contractAddress);
 
-    /** 
+    /**
      * @dev Contract constructor.
      */
     constructor() {
@@ -30,7 +30,7 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @dev Check if the caller is the governor or pause guardian.
      */
-    modifier onlyGovernorOrGuardian {
+    modifier onlyGovernorOrGuardian() {
         require(
             msg.sender == governor || msg.sender == pauseGuardian,
             "Only Governor or Guardian can call"
@@ -41,7 +41,7 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Getter to access governor
      */
-    function getGovernor() external override view returns (address) {
+    function getGovernor() external view override returns (address) {
         return governor;
     }
 
@@ -66,11 +66,7 @@ contract Controller is Governed, Pausable, IController {
      * @notice Unregister a contract address
      * @param _id Contract id (keccak256 hash of contract name)
      */
-    function unsetContractProxy(bytes32 _id)
-        external
-        override
-        onlyGovernor
-    {
+    function unsetContractProxy(bytes32 _id) external override onlyGovernor {
         registry[_id] = address(0);
         emit SetContractProxy(_id, address(0));
     }
@@ -79,7 +75,7 @@ contract Controller is Governed, Pausable, IController {
      * @notice Get contract proxy address by its id
      * @param _id Contract id
      */
-    function getContractProxy(bytes32 _id) public override view returns (address) {
+    function getContractProxy(bytes32 _id) public view override returns (address) {
         return registry[_id];
     }
 
@@ -123,14 +119,14 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Getter to access paused
      */
-    function paused() external override view returns (bool) {
+    function paused() external view override returns (bool) {
         return _paused;
     }
 
     /**
      * @notice Getter to access partial pause status
      */
-    function partialPaused() external override view returns (bool) {
+    function partialPaused() external view override returns (bool) {
         return _partialPaused;
     }
 }
