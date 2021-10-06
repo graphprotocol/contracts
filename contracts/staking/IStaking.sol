@@ -17,7 +17,13 @@ interface IStaking is IStakingData {
      * - Finalized = Closed && closedAtEpoch + channelDisputeEpochs > now()
      * - Claimed = not Null && tokens == 0
      */
-    enum AllocationState { Null, Active, Closed, Finalized, Claimed }
+    enum AllocationState {
+        Null,
+        Active,
+        Closed,
+        Finalized,
+        Claimed
+    }
 
     // -- Configuration --
 

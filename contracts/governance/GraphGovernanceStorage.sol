@@ -8,8 +8,8 @@ import "./IGraphGovernance.sol";
 contract GraphGovernanceV1Storage is Governed {
     // Graph Governance Proposal storage struct (GGP)
     struct Proposal {
-        bytes32 votes;      // IPFS hash of signed votes
-        bytes32 metadata;   // Additional info that can be linked
+        bytes32 votes; // IPFS hash of signed votes
+        bytes32 metadata; // Additional info that can be linked
         IGraphGovernance.ProposalResolution resolution;
     }
 

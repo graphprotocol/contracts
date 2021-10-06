@@ -28,16 +28,18 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
-    bytes32 private constant DOMAIN_TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-    );
+    bytes32 private constant DOMAIN_TYPE_HASH =
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+        );
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Token");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32
-        private constant DOMAIN_SALT = 0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026afa; // Randomly generated salt
-    bytes32 private constant PERMIT_TYPEHASH = keccak256(
-        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
+    bytes32 private constant DOMAIN_SALT =
+        0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026afa; // Randomly generated salt
+    bytes32 private constant PERMIT_TYPEHASH =
+        keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
 
     // -- State --
 
@@ -105,14 +107,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
                 keccak256(
-                    abi.encode(
-                        PERMIT_TYPEHASH,
-                        _owner,
-                        _spender,
-                        _value,
-                        nonces[_owner],
-                        _deadline
-                    )
+                    abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces[_owner], _deadline)
                 )
             )
         );

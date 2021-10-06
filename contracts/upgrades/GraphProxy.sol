@@ -175,12 +175,12 @@ contract GraphProxy is GraphProxyStorage {
 
             // (4) forward return data back to caller
             switch result
-                case 0 {
-                    revert(ptr, size)
-                }
-                default {
-                    return(ptr, size)
-                }
+            case 0 {
+                revert(ptr, size)
+            }
+            default {
+                return(ptr, size)
+            }
         }
     }
 

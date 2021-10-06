@@ -71,7 +71,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return true if the current epoch has already run.
      * @return Return true if current epoch is the last epoch that has run
      */
-    function isCurrentEpochRun() public override view returns (bool) {
+    function isCurrentEpochRun() public view override returns (bool) {
         return lastRunEpoch == currentEpoch();
     }
 
@@ -79,7 +79,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return current block number.
      * @return Block number
      */
-    function blockNum() public override view returns (uint256) {
+    function blockNum() public view override returns (uint256) {
         return block.number;
     }
 
@@ -87,7 +87,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return blockhash for a block.
      * @return BlockHash for `_block` number
      */
-    function blockHash(uint256 _block) external override view returns (bytes32) {
+    function blockHash(uint256 _block) external view override returns (bytes32) {
         uint256 currentBlock = blockNum();
 
         require(_block < currentBlock, "Can only retrieve past block hashes");
@@ -103,7 +103,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return the current epoch, it may have not been run yet.
      * @return The current epoch based on epoch length
      */
-    function currentEpoch() public override view returns (uint256) {
+    function currentEpoch() public view override returns (uint256) {
         return lastLengthUpdateEpoch.add(epochsSinceUpdate());
     }
 
@@ -111,7 +111,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return block where the current epoch started.
      * @return The block number when the current epoch started
      */
-    function currentEpochBlock() public override view returns (uint256) {
+    function currentEpochBlock() public view override returns (uint256) {
         return lastLengthUpdateBlock.add(epochsSinceUpdate().mul(epochLength));
     }
 
@@ -119,7 +119,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return the number of blocks that passed since current epoch started.
      * @return Blocks that passed since start of epoch
      */
-    function currentEpochBlockSinceStart() external override view returns (uint256) {
+    function currentEpochBlockSinceStart() external view override returns (uint256) {
         return blockNum() - currentEpochBlock();
     }
 
@@ -128,7 +128,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @param _epoch Epoch to use as since epoch value
      * @return Number of epochs and current epoch
      */
-    function epochsSince(uint256 _epoch) external override view returns (uint256) {
+    function epochsSince(uint256 _epoch) external view override returns (uint256) {
         uint256 epoch = currentEpoch();
         return _epoch < epoch ? epoch.sub(_epoch) : 0;
     }
@@ -137,7 +137,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @dev Return number of epochs passed since last epoch length update.
      * @return The number of epoch that passed since last epoch length update
      */
-    function epochsSinceUpdate() public override view returns (uint256) {
+    function epochsSinceUpdate() public view override returns (uint256) {
         return blockNum().sub(lastLengthUpdateBlock).div(epochLength);
     }
 }
