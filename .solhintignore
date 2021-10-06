@@ -1,0 +1,9 @@
+node_modules
+
+./contracts/bancor
+./contracts/discovery/erc1056
+./contracts/rewards/RewardsManager.sol
+./contracts/staking/libs/LibFixedMath.sol
+./contracts/tests/RewardsManagerMock.sol
+./contracts/tests/ens
+./contracts/tests/testnet/GSRManager.sol
