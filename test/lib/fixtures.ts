@@ -4,7 +4,7 @@ import { utils, Wallet, Signer } from 'ethers'
 import * as deployment from './deployment'
 import { evmSnapshot, evmRevert } from './testHelpers'
 
-interface loadOptions {
+interface LoadOptions {
   curationOptions?: deployment.CurationLoadOptions
   slasher?: Signer
   arbitrator?: Signer
@@ -18,7 +18,7 @@ export class NetworkFixture {
     this.lastSnapshotId = 0
   }
 
-  async load(deployer: Signer, options: loadOptions = {}): Promise<any> {
+  async load(deployer: Signer, options: LoadOptions = {}): Promise<any> {
     const slasher = options.slasher || Wallet.createRandom()
     const arbitrator = options.arbitrator || Wallet.createRandom()
     let gnsAddress = options.gnsAddress || null
