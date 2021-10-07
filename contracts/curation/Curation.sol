@@ -274,6 +274,9 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
+            // Initialize
+            curationPool.reserveRatio = defaultReserveRatio;
+
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // TODO: Use a minimal proxy to reduce gas cost
@@ -459,7 +462,16 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
-        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(curationPool.createdAt);
+        uint32 _reserveRatio = defaultReserveRatio;
+
+        if (curationPool.reserveRatio != 0) {
+            _reserveRatio = curationPool.reserveRatio;
+        }
+
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(
+            curationPool.createdAt,
+            _reserveRatio
+        );
 
         // Init curation pool
         if (curationPool.tokens == 0) {
@@ -501,7 +513,10 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
     {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
-        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(curationPool.createdAt);
+        uint32 _effectiveReserveRatio = _getEffectiveReserveRatio(
+            curationPool.createdAt,
+            curationPool.reserveRatio
+        );
 
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
 
@@ -539,10 +554,16 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
      * @param _createdAt When NameCurationPool was created
      * @return Reserve ratio
      */
-    function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
-        if (_createdAt == 0) return defaultReserveRatio;
+    function _getEffectiveReserveRatio(uint256 _createdAt, uint32 _reserveRatio)
+        private
+        view
+        returns (uint32)
+    {
+        if (_createdAt == 0) {
+            return _reserveRatio;
+        }
 
-        uint32 effectiveReserveRatio = defaultReserveRatio;
+        uint32 effectiveReserveRatio = _reserveRatio;
         uint256 _initialization = _createdAt.add(initializationPeriod);
 
         if (block.timestamp <= _initialization) {
