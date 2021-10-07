@@ -917,7 +917,7 @@ describe('Curation', () => {
     })
   })
 
-  // CurationPool.createdAt = 0
+  // CurationPool.createdAt = 1
   // initializationPeriod = 1
   // initializationExitPeriod = 1
   // So all tests happen after initialization and exit phase
@@ -929,6 +929,7 @@ describe('Curation', () => {
       fixture = new NetworkFixture()
       ;({ controller, curation, grt } = await fixture.load(governor.signer, {
         curationOptions: { initializationPeriod: 1, initializationExitPeriod: 1 },
+        gnsAddress: me.address,
       }))
 
       // Give some funds to the curator and approve the curation contract
@@ -938,6 +939,11 @@ describe('Curation', () => {
       // Give some funds to the staking contract and approve the curation contract
       await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
       await grt.connect(stakingMock.signer).approve(curation.address, tokensToCollect)
+
+      const diff = 5000000000 - (await latestBlockTime())
+      await advanceTime(diff)
+
+      await curation.connect(me.signer).setCreatedAt(subgraphDeploymentID, 1)
     })
 
     describe('bonding curve', function () {

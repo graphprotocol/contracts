@@ -537,6 +537,8 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
      * @return Reserve ratio
      */
     function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
+        if (_createdAt == 0) return defaultReserveRatio;
+
         uint32 effectiveReserveRatio = defaultReserveRatio;
         uint256 _initialization = _createdAt.add(initializationPeriod);
 
