@@ -29,9 +29,9 @@ contract CurationV1Storage is Managed {
 }
 
 contract CurationV2Storage is CurationV1Storage {
-    // Block count for initialization period of the bonding curve
+    // Initialization period of the bonding curve in seconds
     uint256 public initializationPeriod;
 
-    // Block count for initialization exit period of the bonding curve
+    // Initialization exit period of the bonding curve in seconds
     uint256 public initializationExitPeriod;
 }
