@@ -277,6 +277,10 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
             // Initialize
             curationPool.reserveRatio = defaultReserveRatio;
 
+            if (curationPool.createdAt == 0) {
+                curationPool.createdAt = block.timestamp;
+            }
+
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // TODO: Use a minimal proxy to reduce gas cost
