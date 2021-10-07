@@ -218,6 +218,9 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
         require(msg.sender == address(gns()), "Only GNS contract can call this function");
 
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
+
+        if (curationPool.createdAt != 0) return;
+
         curationPool.createdAt = _createdAt;
     }
 
