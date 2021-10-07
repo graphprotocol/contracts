@@ -538,14 +538,13 @@ contract Curation is CurationV2Storage, GraphUpgradeable, ICuration {
      */
     function _getEffectiveReserveRatio(uint256 _createdAt) private view returns (uint32) {
         uint32 effectiveReserveRatio = defaultReserveRatio;
+        uint256 _initialization = _createdAt.add(initializationPeriod);
 
-        if (block.timestamp <= _createdAt.add(initializationPeriod)) {
+        if (block.timestamp <= _initialization) {
             effectiveReserveRatio = MAX_PPM;
-        } else if (
-            block.timestamp <= (_createdAt.add(initializationPeriod).add(initializationExitPeriod))
-        ) {
-            uint256 blockDiff = block.timestamp.sub(_createdAt.add(initializationPeriod));
-            uint256 exitRatio = blockDiff.mul(PRECISION).div(initializationExitPeriod);
+        } else if (block.timestamp <= (_initialization.add(initializationExitPeriod))) {
+            uint256 timeDiff = block.timestamp.sub(_initialization);
+            uint256 exitRatio = timeDiff.mul(PRECISION).div(initializationExitPeriod);
 
             effectiveReserveRatio = uint32(
                 MAX_PPM.sub(defaultReserveRatio.mul(exitRatio).div(PRECISION))
