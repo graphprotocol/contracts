@@ -10,7 +10,7 @@ As well as all testnets
 
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.7.3;
+pragma solidity ^0.7.6;
 
 contract EthereumDIDRegistry {
     mapping(address => address) public owners;
