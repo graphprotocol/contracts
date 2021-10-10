@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.7.3;
+pragma solidity ^0.7.6;
 
 interface IEthereumDIDRegistry {
     function identityOwner(address identity) external view returns (address);
