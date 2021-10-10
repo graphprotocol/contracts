@@ -10,6 +10,8 @@ import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 
+const { AddressZero } = ethers.constants
+
 // Entities
 interface PublishSubgraph {
   subgraphDeploymentID: string
@@ -490,6 +492,47 @@ describe('GNS', () => {
     await fixture.tearDown()
   })
 
+  describe('Configuration', async function () {
+    describe('setOwnerTaxPercentage', function () {
+      const newValue = 10
+
+      it('should set `ownerTaxPercentage`', async function () {
+        // Can set if allowed
+        await gns.connect(governor.signer).setOwnerTaxPercentage(newValue)
+        expect(await gns.ownerTaxPercentage()).eq(newValue)
+      })
+
+      it('reject set `ownerTaxPercentage` if out of bounds', async function () {
+        const tx = gns.connect(governor.signer).setOwnerTaxPercentage(1000001)
+        await expect(tx).revertedWith('Owner tax must be MAX_PPM or less')
+      })
+
+      it('reject set `ownerTaxPercentage` if not allowed', async function () {
+        const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+    })
+
+    describe('setTokenDescriptor', function () {
+      it('should set `tokenDescriptor`', async function () {
+        const newTokenDescriptor = gns.address // I just use any contract address
+        const tx = gns.connect(governor.signer).setTokenDescriptor(newTokenDescriptor)
+        await expect(tx).emit(gns, 'TokenDescriptorUpdated').withArgs(newTokenDescriptor)
+        expect(await gns.tokenDescriptor()).eq(newTokenDescriptor)
+      })
+
+      it('revert set to empty address', async function () {
+        const tx = gns.connect(governor.signer).setTokenDescriptor(AddressZero)
+        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+      })
+
+      it('revert set to non-contract', async function () {
+        const tx = gns.connect(governor.signer).setTokenDescriptor(randomHexBytes(20))
+        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+      })
+    })
+  })
+
   describe('Publishing names and versions', function () {
     describe('setDefaultName', function () {
       it('setDefaultName emits the event', async function () {
@@ -865,26 +908,6 @@ describe('GNS', () => {
           await mintSignal(me, subgraph.id, tokensToDeposit)
         }
       })
-
-      describe('setOwnerTaxPercentage', function () {
-        const newValue = 10
-
-        it('should set `ownerTaxPercentage`', async function () {
-          // Can set if allowed
-          await gns.connect(governor.signer).setOwnerTaxPercentage(newValue)
-          expect(await gns.ownerTaxPercentage()).eq(newValue)
-        })
-
-        it('reject set `ownerTaxPercentage` if out of bounds', async function () {
-          const tx = gns.connect(governor.signer).setOwnerTaxPercentage(1000001)
-          await expect(tx).revertedWith('Owner tax must be MAX_PPM or less')
-        })
-
-        it('reject set `ownerTaxPercentage` if not allowed', async function () {
-          const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
-          await expect(tx).revertedWith('Caller must be Controller governor')
-        })
-      })
     })
   })
 
@@ -938,7 +961,7 @@ describe('GNS', () => {
 
     it('should revert if batching a call to initialize', async function () {
       // Call a forbidden function
-      const tx1 = await gns.populateTransaction.initialize(me.address, me.address)
+      const tx1 = await gns.populateTransaction.initialize(me.address, me.address, me.address)
 
       // Create a subgraph
       const tx2 = await gns.populateTransaction.publishNewSubgraph(

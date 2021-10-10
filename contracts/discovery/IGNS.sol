@@ -26,6 +26,8 @@ interface IGNS {
 
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external;
 
+    function setTokenDescriptor(address _tokenDescriptor) external;
+
     // -- Publishing --
 
     function setDefaultName(
@@ -68,6 +70,10 @@ interface IGNS {
     function withdraw(uint256 _subgraphID) external;
 
     // -- Getters --
+
+    function subgraphSignal(uint256 _subgraphID) external view returns (uint256);
+
+    function subgraphTokens(uint256 _subgraphID) external view returns (uint256);
 
     function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
         external

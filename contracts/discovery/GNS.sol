@@ -6,6 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../base/Multicall.sol";
+import "../base/SubgraphNFT.sol";
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
 import "../utils/TokenUtils.sol";
@@ -139,12 +140,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _controller, address _bondingCurve) external onlyImpl {
+    function initialize(
+        address _controller,
+        address _bondingCurve,
+        address _tokenDescriptor
+    ) external onlyImpl {
         Managed._initialize(_controller);
 
+        // Dependencies
         bondingCurve = _bondingCurve;
-        // TODO: review token symbol
-        __ERC721_init("Subgraph", "SUB");
+        __SubgraphNFT_init(_tokenDescriptor);
 
         // Settings
         _setOwnerTaxPercentage(500000);
@@ -164,6 +169,14 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external override onlyGovernor {
         _setOwnerTaxPercentage(_ownerTaxPercentage);
+    }
+
+    /**
+     * @dev Set the token descriptor contract.
+     * @param _tokenDescriptor Address of the contract that creates the NFT token URI
+     */
+    function setTokenDescriptor(address _tokenDescriptor) external override onlyGovernor {
+        _setTokenDescriptor(_tokenDescriptor);
     }
 
     /**
@@ -596,6 +609,38 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         returns (uint256)
     {
         return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
+    }
+
+    /**
+     * @dev Return the total signal on the subgraph.
+     * @param _subgraphID Subgraph ID
+     * @return Total signal on the subgraph
+     */
+    function subgraphSignal(uint256 _subgraphID) external view override returns (uint256) {
+        return _getSubgraphData(_subgraphID).nSignal;
+    }
+
+    /**
+     * @dev Return the total tokens on the subgraph at current value.
+     * @param _subgraphID Subgraph ID
+     * @return Total tokens on the subgraph
+     */
+    function subgraphTokens(uint256 _subgraphID) external view override returns (uint256) {
+        uint256 signal = _getSubgraphData(_subgraphID).nSignal;
+        if (signal > 0) {
+            (, uint256 tokens) = nSignalToTokens(_subgraphID, signal);
+            return tokens;
+        }
+        return 0;
+    }
+
+    /**
+     * @dev Return the URI describing a particular token ID for a Subgraph.
+     * @param _subgraphID Subgraph ID
+     * @return The URI of the ERC721-compliant metadata
+     */
+    function tokenURI(uint256 _subgraphID) public view override returns (string memory) {
+        return tokenDescriptor.tokenURI(this, _subgraphID);
     }
 
     /**

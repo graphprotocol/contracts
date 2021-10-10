@@ -38,8 +38,6 @@ abstract contract GNSV1Storage is Managed {
 }
 
 abstract contract GNSV2Storage is GNSV1Storage, SubgraphNFT {
-    // TODO: review order of storage
-
     // Use it whenever a legacy (v1) subgraph NFT was claimed to maintain compatibility
     // Keep a reference from subgraphID => (graphAccount, subgraphNumber)
     mapping(uint256 => IGNS.LegacySubgraphKey) public legacySubgraphKeys;
