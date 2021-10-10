@@ -15,6 +15,8 @@
     "ethers": "^5.4.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^13.2.1",
+    "@commitlint/config-conventional": "^13.2.0",
     "@ethersproject/contracts": "^5.4.1",
     "@ethersproject/experimental": "^5.4.0",
     "@ethersproject/transactions": "^5.4.0",
@@ -62,7 +64,7 @@
     "hardhat-gas-reporter": "^1.0.4",
     "hardhat-storage-layout": "0.1.6",
     "hardhat-tracer": "^1.0.0-alpha.6",
-    "husky": "^4.3.8",
+    "husky": "^7.0.2",
     "inquirer": "^8.0.0",
     "ipfs-http-client": "47.0.1",
     "isomorphic-fetch": "^3.0.0",
