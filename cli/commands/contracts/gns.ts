@@ -93,7 +93,7 @@ export const mintNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promis
   const gns = cli.contracts.GNS
 
   logger.info(`Minting nSignal for ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'mintNSignal', [graphAccount, subgraphNumber, tokens])
+  await sendTransaction(cli.wallet, gns, 'mintNSignal', [graphAccount, subgraphNumber, tokens, 0])
 }
 
 export const burnNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {

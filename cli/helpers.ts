@@ -52,16 +52,16 @@ export const pinMetadataToIPFS = async (
     if (type == 'subgraph') {
       metadata = jsonToSubgraphMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
       logger.info('Meta data:')
-      logger.info('  Subgraph Description:     ', metadata.description)
-      logger.info('  Subgraph Display Name:    ', metadata.displayName)
-      logger.info('  Subgraph Image:           ', metadata.image)
-      logger.info('  Subgraph Code Repository: ', metadata.codeRepository)
-      logger.info('  Subgraph Website:         ', metadata.website)
+      logger.info(`  Subgraph Description:     ${metadata.description}`)
+      logger.info(`Subgraph Display Name:    ${metadata.displayName}`)
+      logger.info(`  Subgraph Image:           ${metadata.image}`)
+      logger.info(`  Subgraph Code Repository: ${metadata.codeRepository}`)
+      logger.info(`  Subgraph Website:         ${metadata.website}`)
     } else if (type == 'version') {
       metadata = jsonToVersionMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
       logger.info('Meta data:')
-      logger.info('  Version Description:      ', metadata.description)
-      logger.info('  Version Label:            ', metadata.label)
+      logger.info(`  Version Description:      ${metadata.description}`)
+      logger.info(`  Version Label:            ${metadata.label}`)
     }
   }
 
