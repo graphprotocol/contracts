@@ -31,3 +31,9 @@ contract GNSV1Storage is Managed {
     // ERC-1056 contract reference
     IEthereumDIDRegistry public erc1056Registry;
 }
+
+contract GNSV2Storage is GNSV1Storage {
+    // Default reserve ratio to configure curator shares bonding curve
+    // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
+    uint32 public reserveRatio;
+}

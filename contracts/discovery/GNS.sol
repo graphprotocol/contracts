@@ -22,7 +22,7 @@ import "./GNSStorage.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
+contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMath for uint256;
 
     // -- Constants --
@@ -32,7 +32,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // Equates to Connector weight on bancor formula to be CW = 1
+    // This is no longer used and is replaced by reserveRatio found in GNSV2Storage
     uint32 private constant defaultReserveRatio = 1000000;
 
     // -- Events --
@@ -179,6 +179,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Settings
         _setOwnerTaxPercentage(500000);
+        _setReserveRatio(1_000_000);
     }
 
     /**
@@ -186,6 +187,29 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function approveAll() external override {
         graphToken().approve(address(curation()), MAX_UINT256);
+    }
+
+    /**
+     * @dev Set the default reserve ratio percentage for a curation pool.
+     * @notice Update the default reserver ratio to `_reserveRatio`
+     * @param _reserveRatio Reserve ratio (in PPM)
+     */
+    function setReserveRatio(uint32 _reserveRatio) external override onlyGovernor {
+        _setReserveRatio(_reserveRatio);
+    }
+
+    /**
+     * @dev Internal: Set the default reserve ratio percentage for a curation pool.
+     * @notice Update the default reserver ratio to `_reserveRatio`
+     * @param _reserveRatio Reserve ratio (in PPM)
+     */
+    function _setReserveRatio(uint32 _reserveRatio) private {
+        // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
+        require(_reserveRatio > 0, "Default reserve ratio must be > 0");
+        require(_reserveRatio <= MAX_PPM, "Default reserve ratio cannot be higher than MAX_PPM");
+
+        reserveRatio = _reserveRatio;
+        emit ParameterUpdated("reserveRatio");
     }
 
     /**
@@ -286,6 +310,8 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
 
+        nameSignals[_graphAccount][_subgraphNumber].reserveRatio = reserveRatio;
+
         _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
     }
@@ -348,7 +374,7 @@ contract GNS is GNSV1Storage, GraphUpgradeable, IGNS, Multicall {
     function _enableNameSignal(address _graphAccount, uint256 _subgraphNumber) private {
         NameCurationPool storage namePool = nameSignals[_graphAccount][_subgraphNumber];
         namePool.subgraphDeploymentID = subgraphs[_graphAccount][_subgraphNumber];
-        namePool.reserveRatio = defaultReserveRatio;
+        namePool.reserveRatio = reserveRatio;
 
         emit NameSignalEnabled(
             _graphAccount,

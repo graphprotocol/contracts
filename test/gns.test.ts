@@ -249,6 +249,10 @@ describe('GNS', () => {
     expect(namePoolAfter.nSignal).eq(namePoolBefore.nSignal) // should not change
     expect(namePoolAfter.subgraphDeploymentID).eq(subgraphToPublish.subgraphDeploymentID)
 
+    const pool = await gns.nameSignals(graphAccount, subgraphNumber)
+    const reserveRatio = pool[3]
+    expect(reserveRatio).eq(1000000)
+
     return tx
   }
 
@@ -708,6 +712,26 @@ describe('GNS', () => {
           'GNS: Cannot update version if not published, or has been deprecated',
         )
       })
+
+      it('should update reserveRatio', async function () {
+        const value = 10
+
+        await gns.setReserveRatio(value)
+
+        const tx = await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            me.address,
+            0,
+            subgraph1.subgraphDeploymentID,
+            subgraph1.versionMetadata,
+          )
+
+        const pool = await gns.nameSignals(me.address, 0)
+        const reserveRatio = pool[3]
+
+        expect(reserveRatio).eq(value)
+      })
     })
 
     describe('deprecateSubgraph', async function () {
@@ -751,6 +775,7 @@ describe('GNS', () => {
       })
     })
   })
+
   describe('Curating on names', async function () {
     const subgraphNumber0 = 0
 
@@ -948,6 +973,31 @@ describe('GNS', () => {
 
         it('reject set `ownerTaxPercentage` if not allowed', async function () {
           const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
+          await expect(tx).revertedWith('Caller must be Controller governor')
+        })
+      })
+
+      describe('setReserveRatio', function () {
+        const newValue = 10
+
+        it('should set `reserveRatio`', async function () {
+          // Can set if allowed
+          await gns.connect(governor.signer).setReserveRatio(newValue)
+          expect(await gns.reserveRatio()).eq(newValue)
+        })
+
+        it('should reject set `reserveRatio` if greater than MAX_PPM', async function () {
+          const tx = gns.connect(governor.signer).setReserveRatio(1000001)
+          await expect(tx).revertedWith('Default reserve ratio cannot be higher than MAX_PPM')
+        })
+
+        it('should reject set `reserveRatio` if less than 0', async function () {
+          const tx = gns.connect(governor.signer).setReserveRatio(0)
+          await expect(tx).revertedWith('Default reserve ratio must be > 0')
+        })
+
+        it('should reject set `reserveRatio` if not allowed', async function () {
+          const tx = gns.connect(me.signer).setReserveRatio(newValue)
           await expect(tx).revertedWith('Caller must be Controller governor')
         })
       })
