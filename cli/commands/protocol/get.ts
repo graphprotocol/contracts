@@ -39,6 +39,7 @@ export const gettersList = {
   // GNS
   'gns-bonding-curve': { contract: 'GNS', name: 'bondingCurve' },
   'gns-owner-tax-percentage': { contract: 'GNS', name: 'ownerTaxPercentage' },
+  'gns-reserve-ratio': { contract: 'GNS', name: 'reserve-ratio' },
   // Token
   'token-governor': { contract: 'GraphToken', name: 'governor' },
   'token-supply': { contract: 'GraphToken', name: 'totalSupply' },

@@ -41,6 +41,7 @@ export const settersList = {
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
   // GNS
   'gns-owner-tax-percentage': { contract: 'GNS', name: 'setOwnerTaxPercentage' },
+  'gns-reserve-ratio': { contract: 'GNS', name: 'setReserveRatio' },
   // Token
   'token-transfer-governor': { contract: 'GraphToken', name: 'transferOwnership' },
   'token-accept-governor': { contract: 'GraphToken', name: 'acceptOwnership' },
