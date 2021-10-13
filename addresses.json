@@ -127,6 +127,10 @@
         {
           "name": "didRegistry",
           "value": "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+        },
+        {
+          "name": "reserveRatio",
+          "value": 1000000
         }
       ],
       "creationCodeHash": "0xa02709eb59b9cca8bee1271845b42db037dc1d042dad93410ba532d378a7c79f",
