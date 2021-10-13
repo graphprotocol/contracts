@@ -1075,7 +1075,12 @@ describe('GNS', () => {
 
     it('should revert if batching a call to initialize', async function () {
       // Call a forbidden function
-      const tx1 = await gns.populateTransaction.initialize(me.address, me.address, me.address)
+      const tx1 = await gns.populateTransaction.initialize(
+        me.address,
+        me.address,
+        me.address,
+        BigNumber.from(1000000),
+      )
 
       // Create a subgraph
       const tx2 = await gns.populateTransaction.publishNewSubgraph(

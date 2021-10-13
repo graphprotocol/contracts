@@ -170,7 +170,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     function initialize(
         address _controller,
         address _bondingCurve,
-        address _didRegistry
+        address _didRegistry,
+        uint32 _reserveRatio
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -179,7 +180,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Settings
         _setOwnerTaxPercentage(500000);
-        _setReserveRatio(1_000_000);
+        _setReserveRatio(_reserveRatio);
     }
 
     /**

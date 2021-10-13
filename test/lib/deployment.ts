@@ -27,6 +27,9 @@ logger.pause()
 // Default configuration used in tests
 
 export const defaults = {
+  gns: {
+    reserveRatio: toBN('1000000'),
+  },
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
@@ -181,7 +184,7 @@ export async function deployGNS(
   return network.deployContractWithProxy(
     proxyAdmin,
     'GNS',
-    [controller, bondingCurve.address, didRegistry.address],
+    [controller, bondingCurve.address, didRegistry.address, defaults.gns.reserveRatio],
     deployer,
   ) as unknown as GNS
 }
