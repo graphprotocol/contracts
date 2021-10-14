@@ -308,8 +308,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             "GNS: Cannot publish a new version with the same subgraph deployment ID"
         );
 
-        nameSignals[_graphAccount][_subgraphNumber].reserveRatio = reserveRatio;
-
         _publishVersion(_graphAccount, _subgraphNumber, _subgraphDeploymentID, _versionMetadata);
         _upgradeNameSignal(_graphAccount, _subgraphNumber, _subgraphDeploymentID);
     }
@@ -407,6 +405,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             "GNS: There must be nSignal on this subgraph for curve math to work"
         );
         require(namePool.disabled == false, "GNS: Cannot be disabled");
+
+        // Set namePool reserveRatio to current reserveRatio set by governance
+        namePool.reserveRatio = reserveRatio;
 
         // Burn all version signal in the name pool for tokens
         uint256 tokens = curation.burn(namePool.subgraphDeploymentID, namePool.vSignal, 0);
