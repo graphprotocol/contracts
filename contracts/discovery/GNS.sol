@@ -189,7 +189,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserver ratio to `_reserveRatio`
+     * @notice Update the default reserve ratio to `_reserveRatio`
      * @param _reserveRatio Reserve ratio (in PPM)
      */
     function setReserveRatio(uint32 _reserveRatio) external override onlyGovernor {
@@ -198,7 +198,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Internal: Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserver ratio to `_reserveRatio`
+     * @notice Update the default reserve ratio to `_reserveRatio`
      * @param _reserveRatio Reserve ratio (in PPM)
      */
     function _setReserveRatio(uint32 _reserveRatio) private {
