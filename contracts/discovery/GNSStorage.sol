@@ -33,7 +33,7 @@ contract GNSV1Storage is Managed {
 }
 
 contract GNSV2Storage is GNSV1Storage {
-    // Default reserve ratio to configure curator shares bonding curve
+    // Default reserve ratio to configure subgraph bonding curve
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public reserveRatio;
 }
