@@ -21,7 +21,7 @@ interface IGNS {
 
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external;
 
-    function setReserveRatio(uint32 _defaultReserveRatio) external;
+    function setReserveRatio(uint32 _reserveRatio) external;
 
     // -- Publishing --
 
