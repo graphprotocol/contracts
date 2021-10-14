@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import * as dotenv from 'dotenv'
+import { execSync } from 'child_process'
 
 import 'hardhat/types/runtime'
 import { HardhatUserConfig } from 'hardhat/types'
@@ -25,7 +26,7 @@ import 'solidity-coverage'
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
-if (!SKIP_LOAD) {
+function loadTasks() {
   require('./tasks/gre.ts')
   ;['contracts', 'misc', 'deployment', 'actions'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
@@ -35,6 +36,13 @@ if (!SKIP_LOAD) {
         require(`${tasksPath}/${task}`)
       })
   })
+}
+
+if (fs.existsSync(path.join(__dirname, 'build', 'types'))) {
+  loadTasks()
+} else if (!SKIP_LOAD) {
+  execSync('yarn build', { stdio: 'inherit' })
+  loadTasks()
 }
 
 // Networks
