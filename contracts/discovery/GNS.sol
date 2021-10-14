@@ -32,9 +32,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // This is no longer used and is replaced by reserveRatio found in GNSV2Storage
-    uint32 private constant defaultReserveRatio = 1000000;
-
     // -- Events --
 
     /**
