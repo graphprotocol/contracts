@@ -63,6 +63,7 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
+      didRegistry: "${{EthereumDIDRegistry.address}}"
     calls:
       - fn: "approveAll"
   Staking:

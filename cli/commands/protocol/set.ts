@@ -5,6 +5,7 @@ import { getContractAt, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 
 import { ProtocolFunction } from './index'
+import { BigNumber } from 'ethers'
 
 export const settersList = {
   // Staking
@@ -39,6 +40,10 @@ export const settersList = {
   'epochs-length': { contract: 'EpochManager', name: 'setEpochLength' },
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
+  'subgraph-availability-oracle': {
+    contract: 'RewardsManager',
+    name: 'setSubgraphAvailabilityOracle',
+  },
   // GNS
   'gns-owner-tax-percentage': { contract: 'GNS', name: 'setOwnerTaxPercentage' },
   // Token
@@ -77,10 +82,20 @@ export const setProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
 
   // Parse params
   const params = cliArgs.params.toString().split(',')
+  let parsedParams = []
+  for (const param of params) {
+    try {
+      const parsedParam = BigNumber.from(param)
+      parsedParams.push(parsedParam.toNumber())
+    } catch {
+      parsedParams.push(param)
+    }
+  }
+  logger.info(`params: ${parsedParams}`)
 
   // Send tx
   const contract = getContractAt(fn.contract, addressEntry.address).connect(cli.wallet)
-  await sendTransaction(cli.wallet, contract, fn.name, params)
+  await sendTransaction(cli.wallet, contract, fn.name, parsedParams)
 }
 
 export const setCommand = {

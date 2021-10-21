@@ -15,6 +15,14 @@ import { cliOpts } from './defaults'
 dotenv.config()
 
 yargs
+  .parserConfiguration({
+    'short-option-groups': true,
+    'camel-case-expansion': true,
+    'dot-notation': true,
+    'parse-numbers': false,
+    'parse-positional-numbers': false,
+    'boolean-negation': true,
+  })
   .env(true)
   .option('a', cliOpts.addressBook)
   .option('m', cliOpts.mnemonic)

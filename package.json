@@ -94,6 +94,7 @@
     "deploy": "scripts/predeploy && hardhat migrate",
     "deploy-ganache": "yarn deploy -- --force",
     "deploy-ganache-manual": "yarn deploy -- --network ganache --force",
+    "deploy-hardhat": "yarn deploy -- --network hardhat --force",
     "deploy-rinkeby": "yarn deploy -- --force --network rinkeby",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
