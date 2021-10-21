@@ -447,6 +447,8 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate properly when multiple delegations', async function () {
+        this.timeout(60000) // increase timeout for test runner
+
         // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
         await epochManager.setEpochLength(toBN((60 * 60) / 15))
 
