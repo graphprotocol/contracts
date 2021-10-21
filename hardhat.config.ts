@@ -119,10 +119,16 @@ const config: HardhatUserConfig = {
       loggingEnabled: false,
       gas: 12000000,
       gasPrice: 'auto',
+      initialBaseFeePerGas: 0,
       blockGasLimit: 12000000,
       accounts: {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
+      mining: {
+        auto: true,
+        interval: 30000,
+      },
+      hardfork: 'london',
     },
     ganache: {
       chainId: 1337,
