@@ -173,7 +173,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
-     * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
+     * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
      * @param _ownerTaxPercentage Owner tax percentage
      */
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external override onlyGovernor {
@@ -190,7 +190,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
-     * the name curators tokens while upgrading or deprecating and is configurable in parts per hundred.
+     * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
      * @param _ownerTaxPercentage Owner tax percentage
      */
     function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
