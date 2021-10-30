@@ -513,7 +513,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 _tokens = _tokensIn;
 
         // Pull tokens from sender
-        TokenUtils.pullTokens(graphToken(), msg.sender, _tokensIn);
+        TokenUtils.pullTokens(graphToken(), curator, _tokensIn);
 
         uint256 vSignalTotal;
 
