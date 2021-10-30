@@ -540,7 +540,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         override
         returns (uint256, uint256)
     {
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        // Get subgraph or revert if not published
+        // It does not make sense to convert signal from a disabled or non-existing one
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
         uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal);
         return (vSignal, tokensOut);
