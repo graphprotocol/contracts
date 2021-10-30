@@ -140,7 +140,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @dev Modifier that allows only a subgraph operator to be the caller
      */
     modifier onlySubgraphAuth(uint256 _subgraphID) {
-        require(_isApprovedOrOwner(msg.sender, _subgraphID), "GNS: Must be authorized");
+        require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         _;
     }
 

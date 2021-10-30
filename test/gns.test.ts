@@ -722,6 +722,17 @@ describe('GNS', () => {
           await publishNewVersion(me, subgraph.id, newSubgraph1)
         })
 
+        it('should reject publishing a version to a subgraph that does not exist', async function () {
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              randomHexBytes(32),
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        })
+
         context('when new version already exists', async function () {
           it('should publish a new version on an existing subgraph', async function () {
             await publishNewVersion(me, subgraph.id, newSubgraph1)
@@ -903,9 +914,7 @@ describe('GNS', () => {
         it('should revert', async function () {
           const tx = gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
 
-          await expect(tx).revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'New version does not exist'",
-          )
+          await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
         })
       })
     })
@@ -965,6 +974,25 @@ describe('GNS', () => {
         it('reject deprecate if not the owner', async function () {
           const tx = gns.connect(other.signer).deprecateSubgraph(subgraph.id)
           await expect(tx).revertedWith('GNS: Must be authorized')
+        })
+
+        it('should prevent a deprecated subgraph from being republished', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
+          await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        })
+
+        it('reject if the subgraph does not exist', async function () {
+          const subgraphID = randomHexBytes(32)
+          const tx = gns.connect(me.signer).deprecateSubgraph(subgraphID)
+          await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
         })
       })
     })
