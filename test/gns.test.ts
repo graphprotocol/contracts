@@ -829,6 +829,24 @@ describe('GNS', () => {
           // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
           await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
         })
+
+        it('should publish a new version on an existing subgraph with no current signal', async function () {
+          const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph())
+          await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1)
+        })
+
+        it('should reject a new version with the same subgraph deployment ID', async function () {
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph0.subgraphDeploymentID,
+              newSubgraph0.versionMetadata,
+            )
+          await expect(tx).revertedWith(
+            'GNS: Cannot publish a new version with the same subgraph deployment ID',
+          )
+        })
       })
     })
 
