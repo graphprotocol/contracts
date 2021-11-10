@@ -171,7 +171,7 @@ describe('GNS', () => {
 
     // Check events
     await expect(tx)
-      .emit(gns, 'SubgraphCreated')
+      .emit(gns, 'SubgraphPublished')
       .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, DEFAULT_RESERVE_RATIO)
       .emit(gns, 'SubgraphMetadataUpdated')
       .withArgs(subgraphID, newSubgraph.subgraphMetadata)

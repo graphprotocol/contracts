@@ -87,7 +87,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     /**
      * @dev Emitted when a subgraph is created.
      */
-    event SubgraphCreated(
+    event SubgraphPublished(
         uint256 indexed subgraphID,
         bytes32 indexed subgraphDeploymentID,
         uint32 reserveRatio
@@ -257,7 +257,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // This function will check the if tokenId already exists.
         _mint(subgraphOwner, subgraphID);
 
-        emit SubgraphCreated(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
+        emit SubgraphPublished(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
         emit SubgraphMetadataUpdated(subgraphID, _subgraphMetadata);
         emit SubgraphVersionUpdated(subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
