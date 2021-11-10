@@ -376,7 +376,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Pull tokens from sender
         address curator = msg.sender;
-        TokenUtils.pullTokens(graphToken(), msg.sender, _tokensIn);
+        TokenUtils.pullTokens(graphToken(), curator, _tokensIn);
 
         // Get name signal to mint for tokens deposited
         (uint256 vSignal, ) = curation().mint(subgraphData.subgraphDeploymentID, _tokensIn, 0);
