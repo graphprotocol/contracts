@@ -203,7 +203,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         bytes32 _nameIdentifier,
         string calldata _name
     ) external override {
-        require(_graphAccount == msg.sender, "GNS: Only can set your own name");
+        require(_graphAccount == msg.sender, "GNS: Only you can set your name");
         emit SetDefaultName(_graphAccount, _nameSystem, _nameIdentifier, _name);
     }
 
@@ -297,7 +297,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             );
 
             // Take the owner cut of the curation tax, add it to the total
-            // Upgrade is only callable by the owner, we asume then that msg.sender = owner
+            // Upgrade is only callable by the owner, we assume then that msg.sender = owner
             address subgraphOwner = msg.sender;
             uint256 tokensWithTax = _chargeOwnerTax(
                 tokens,
