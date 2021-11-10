@@ -190,10 +190,9 @@ describe('GNS', () => {
 
     // Check what selling all nSignal, which == selling all vSignal, should return for tokens
     // NOTE - no tax on burning on nSignal
-    const { 1: tokensReceivedEstimate } = await gns.nSignalToTokens(
-      subgraphID,
-      beforeSubgraph.nSignal,
-    )
+    const tokensReceivedEstimate = beforeSubgraph.nSignal.gt(0)
+      ? (await gns.nSignalToTokens(subgraphID, beforeSubgraph.nSignal))[1]
+      : toBN(0)
     // Example:
     // Deposit 100, 5 is taxed, 95 GRT in curve
     // Upgrade - calculate 5% tax on 95 --> 4.75 GRT
@@ -211,10 +210,10 @@ describe('GNS', () => {
     const totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(MAX_PPM - curationTaxPercentage)
 
     // Re-estimate amount of signal to get considering the owner tax paid by the owner
-    const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
-      newSubgraph.subgraphDeploymentID,
-      totalAdjustedUp,
-    )
+
+    const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = beforeSubgraph.nSignal.gt(0)
+      ? await curation.tokensToSignal(newSubgraph.subgraphDeploymentID, totalAdjustedUp)
+      : [toBN(0), toBN(0)]
 
     // Send tx
     const tx = gns
@@ -618,6 +617,11 @@ describe('GNS', () => {
 
       it('should publish a new version on an existing subgraph', async function () {
         await publishNewVersion(me, subgraph.id, newSubgraph1)
+      })
+
+      it('should publish a new version on an existing subgraph with no current signal', async function () {
+        const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph())
+        await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1)
       })
 
       it('should reject a new version with the same subgraph deployment ID', async function () {
