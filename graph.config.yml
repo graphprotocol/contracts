@@ -62,7 +62,7 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
-      didRegistry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+      tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
     calls:
       - fn: "approveAll"
   Staking:
