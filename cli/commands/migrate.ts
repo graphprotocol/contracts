@@ -24,6 +24,7 @@ const allContracts = [
   'GraphToken',
   'ServiceRegistry',
   'Curation',
+  'SubgraphNFTDescriptor',
   'GNS',
   'Staking',
   'RewardsManager',
