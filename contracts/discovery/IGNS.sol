@@ -15,6 +15,7 @@ interface IGNS {
         uint32 reserveRatio;
         bool disabled;
         uint256 withdrawableGRT;
+        mapping(uint256 => Version) versions;
     }
 
     struct LegacySubgraphKey {
