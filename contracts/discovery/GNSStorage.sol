@@ -45,4 +45,6 @@ abstract contract GNSV2Storage is GNSV1Storage, SubgraphNFT {
     // Store data for all NFT-based (v2) subgraphs
     // subgraphID => SubgraphData
     mapping(uint256 => IGNS.SubgraphData) public subgraphs;
+
+    mapping(uint256 => mapping(uint256 => IGNS.Version)) public versions;
 }

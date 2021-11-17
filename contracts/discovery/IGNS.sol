@@ -6,7 +6,9 @@ interface IGNS {
     // -- Pool --
 
     struct SubgraphData {
-        uint256 vSignal; // The token of the subgraph-deployment bonding curve
+        // The token of the subgraph-deployment bonding curve
+        // TODO: This is now total vSignal
+        uint256 vSignal;
         uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
@@ -18,6 +20,11 @@ interface IGNS {
     struct LegacySubgraphKey {
         address account;
         uint256 accountSeqID;
+    }
+
+    struct Version {
+        bytes32 subgraphDeploymentID;
+        uint256 vSignal;
     }
 
     // -- Configuration --
@@ -73,7 +80,7 @@ interface IGNS {
 
     function subgraphSignal(uint256 _subgraphID) external view returns (uint256);
 
-    function subgraphTokens(uint256 _subgraphID) external view returns (uint256);
+    function subgraphTokens(uint256 _subgraphID) external returns (uint256);
 
     function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
         external
@@ -86,7 +93,6 @@ interface IGNS {
 
     function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
         external
-        view
         returns (uint256, uint256);
 
     function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
