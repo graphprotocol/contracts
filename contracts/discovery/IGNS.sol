@@ -81,7 +81,7 @@ interface IGNS {
 
     function subgraphSignal(uint256 _subgraphID) external view returns (uint256);
 
-    function subgraphTokens(uint256 _subgraphID) external returns (uint256);
+    function subgraphTokens(uint256 _subgraphID) external view returns (uint256);
 
     function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
         external
@@ -94,6 +94,7 @@ interface IGNS {
 
     function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
         external
+        view
         returns (uint256, uint256);
 
     function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)

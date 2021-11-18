@@ -627,12 +627,30 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     {
         // TODO: This calculates signal based on latest version.
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
-            subgraphData.subgraphDeploymentID,
+
+        uint256 vSignalTotal;
+
+        // If new version exists
+        if (_versionExists(subgraphData.versions[1])) {
+            (uint256 vSignalNew, ) = curation().tokensToSignal(
+                subgraphData.versions[1].subgraphDeploymentID,
+                _tokensIn
+            );
+
+            vSignalTotal += vSignalNew;
+        }
+
+        (uint256 vSignalOld, uint256 curationTax) = curation().tokensToSignal(
+            subgraphData.versions[0].subgraphDeploymentID,
             _tokensIn
         );
-        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
-        return (vSignal, nSignal, curationTax);
+
+        vSignalTotal += vSignalOld;
+
+        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignalTotal);
+
+        // TODO: maybe pass both curationTaxes
+        return (vSignalTotal, nSignal, curationTax);
     }
 
     /**
@@ -643,13 +661,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
         public
+        view
         override
         returns (uint256, uint256)
     {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-
-        // Init old version
-        _initOldVersion(subgraphData);
 
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
         uint256 tokensOut;
@@ -664,10 +680,15 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             );
         }
 
-        tokensOut += curation().signalToTokens(
-            subgraphData.versions[0].subgraphDeploymentID,
-            vSignal
-        );
+        bytes32 subgraphDeploymentID;
+
+        if (_versionExists(subgraphData.versions[0])) {
+            subgraphDeploymentID = subgraphData.versions[0].subgraphDeploymentID;
+        } else {
+            subgraphDeploymentID = subgraphData.subgraphDeploymentID;
+        }
+
+        tokensOut += curation().signalToTokens(subgraphDeploymentID, vSignal);
 
         return (vSignal, tokensOut);
     }
@@ -751,7 +772,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @return Total tokens on the subgraph
      */
-    function subgraphTokens(uint256 _subgraphID) external override returns (uint256) {
+    function subgraphTokens(uint256 _subgraphID) external view override returns (uint256) {
         uint256 signal = _getSubgraphData(_subgraphID).nSignal;
         if (signal > 0) {
             (, uint256 tokens) = nSignalToTokens(_subgraphID, signal);
