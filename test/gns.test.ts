@@ -34,6 +34,13 @@ interface AccountDefaultName {
   nameIdentifier: string
 }
 
+interface ExpectedMintSignalValues {
+  skip?: boolean
+  splitTokens?: number
+  vSignalOld?: number
+  vSignalNew?: number
+}
+
 // Utils
 
 const DEFAULT_RESERVE_RATIO = 1000000
@@ -60,6 +67,7 @@ describe('GNS', () => {
 
   let newSubgraph0: PublishSubgraph
   let newSubgraph1: PublishSubgraph
+  let newSubgraph2: PublishSubgraph
   let defaultName: AccountDefaultName
 
   const buildSubgraph = (): PublishSubgraph => {
@@ -77,7 +85,9 @@ describe('GNS', () => {
     }
   }
 
-  const getTokensAndVSignal = async (subgraphDeploymentID: string): Promise<Array<BigNumber>> => {
+  const curationPoolTokensAndSignal = async (
+    subgraphDeploymentID: string,
+  ): Promise<Array<BigNumber>> => {
     const curationPool = await curation.pools(subgraphDeploymentID)
     const vSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     return [curationPool.tokens, vSignal]
@@ -182,72 +192,56 @@ describe('GNS', () => {
     account: Account,
     subgraphID: string,
     newSubgraph: PublishSubgraph,
+    splitTokens: number = 4631.25,
+    splitVSignal: number = 6.8053287944081,
+    totalVSignal: number = 13.6106575888162,
   ) => {
-    // Before state
-    const ownerTaxPercentage = await gns.ownerTaxPercentage()
-    const curationTaxPercentage = await curation.curationTaxPercentage()
+    // Subgraph before transaction
     const beforeSubgraph = await gns.subgraphs(subgraphID)
 
-    // Check what selling all nSignal, which == selling all vSignal, should return for tokens
-    // NOTE - no tax on burning on nSignal
-    const { 1: tokensReceivedEstimate } = await gns.nSignalToTokens(
-      subgraphID,
-      beforeSubgraph.nSignal,
-    )
-    // Example:
-    // Deposit 100, 5 is taxed, 95 GRT in curve
-    // Upgrade - calculate 5% tax on 95 --> 4.75 GRT
-    // Multiple by ownerPercentage --> 50% * 4.75 = 2.375 GRT
-    // Owner adds 2.375 to 90.25, we deposit 92.625 GRT into the curve
-    // Divide this by 0.95 to get exactly 97.5 total tokens to be deposited
-
-    // nSignalToTokens returns the amount of tokens with tax removed
-    // already. So we must add in the tokens removed
-    const MAX_PPM = 1000000
-    const taxOnOriginal = tokensReceivedEstimate.mul(curationTaxPercentage).div(MAX_PPM)
-    const totalWithoutOwnerTax = tokensReceivedEstimate.sub(taxOnOriginal)
-    const ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM)
-    const totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax)
-    const totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(MAX_PPM - curationTaxPercentage)
-
-    // Re-estimate amount of signal to get considering the owner tax paid by the owner
-    const { 0: newVSignalEstimate, 1: newCurationTaxEstimate } = await curation.tokensToSignal(
-      newSubgraph.subgraphDeploymentID,
-      totalAdjustedUp,
-    )
-
     // Send tx
-    const tx = gns
+    const tx = await gns
       .connect(account.signer)
       .publishNewVersion(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
-    await expect(tx)
-      .emit(gns, 'SubgraphUpgraded')
-      .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
-      .emit(gns, 'SubgraphVersionUpdated')
-      .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
 
-    // Check curation vSignal old are set to zero
-    const [afterTokensOldCuration, afterVSignalOldCuration] = await getTokensAndVSignal(
+    // Subgraph after transaction
+    const afterSubgraph = await gns.subgraphs(subgraphID)
+
+    // Versions
+    const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
+    const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
+
+    // Owner of subgraph
+    const owner = await gns.ownerOf(subgraphID)
+
+    // Get curation pool data from previous deployment
+    const [tokensBefore, vSignalBefore] = await curationPoolTokensAndSignal(
       beforeSubgraph.subgraphDeploymentID,
     )
-    expect(afterTokensOldCuration).eq(0)
-    expect(afterVSignalOldCuration).eq(0)
 
-    // Check the vSignal of the new curation curve, and tokens
-    const [afterTokensNewCurve, afterVSignalNewCurve] = await getTokensAndVSignal(
+    // Get curation pool data from current deployment
+    const [tokensAfter, vSignalAfter] = await curationPoolTokensAndSignal(
       newSubgraph.subgraphDeploymentID,
     )
-    expect(afterTokensNewCurve).eq(totalAdjustedUp.sub(newCurationTaxEstimate))
-    expect(afterVSignalNewCurve).eq(newVSignalEstimate)
 
-    // Check the nSignal pool
-    const afterSubgraph = await gns.subgraphs(subgraphID)
-    expect(afterSubgraph.vSignal).eq(afterVSignalNewCurve).eq(newVSignalEstimate)
+    // Check tokens and vSignal for previous deployment
+    expect(toFloat(tokensBefore)).eq(splitTokens)
+    expect(toFloat(vSignalBefore)).eq(splitVSignal)
+
+    // Check tokens and vSignal for current deployment
+    expect(toFloat(tokensAfter)).eq(splitTokens)
+    expect(toFloat(vSignalAfter)).eq(splitVSignal)
+
+    // Check subgraph
+    expect(toFloat(afterSubgraph.vSignal)).eq(totalVSignal)
     expect(afterSubgraph.nSignal).eq(beforeSubgraph.nSignal) // should not change
     expect(afterSubgraph.subgraphDeploymentID).eq(newSubgraph.subgraphDeploymentID)
 
+    // Check versions
+    expect(toFloat(vSignalOld)).eq(splitVSignal)
+    expect(toFloat(vSignalNew)).eq(splitVSignal)
+
     // Check NFT should not change owner
-    const owner = await gns.ownerOf(subgraphID)
     expect(owner).eq(account.address)
 
     return tx
@@ -256,7 +250,7 @@ describe('GNS', () => {
   const deprecateSubgraph = async (account: Account, subgraphID: string) => {
     // Before state
     const beforeSubgraph = await gns.subgraphs(subgraphID)
-    const [beforeTokens] = await getTokensAndVSignal(beforeSubgraph.subgraphDeploymentID)
+    const [beforeTokens] = await curationPoolTokensAndSignal(beforeSubgraph.subgraphDeploymentID)
 
     // We can use the whole amount, since in this test suite all vSignal is used to be staked on nSignal
     const ownerBalanceBefore = await grt.balanceOf(account.address)
@@ -297,7 +291,7 @@ describe('GNS', () => {
     newSubgraphDeplyomentID: string,
   ): Promise<ContractTransaction> => {
     // Before stats for the old vSignal curve
-    const beforeTokensVSigOldCuration = await getTokensAndVSignal(subgraph0.subgraphDeploymentID)
+    const beforeTokensVSigOldCuration = await curationPoolTokensAndSignal(subgraph0.subgraphDeploymentID)
     const beforeTokensOldCuration = beforeTokensVSigOldCuration[0]
     const beforeVSignalOldCuration = beforeTokensVSigOldCuration[1]
 
@@ -339,14 +333,14 @@ describe('GNS', () => {
       )
 
     // Check curation vSignal old was lowered and tokens too
-    const [afterTokensOldCuration, vSigAfterOldCuration] = await getTokensAndVSignal(
+    const [afterTokensOldCuration, vSigAfterOldCuration] = await curationPoolTokensAndSignal(
       subgraph0.subgraphDeploymentID,
     )
     expect(afterTokensOldCuration).eq(beforeTokensOldCuration.sub(upgradeTokenReturn))
     expect(vSigAfterOldCuration).eq(beforeVSignalOldCuration.sub(vSignalBurnEstimate))
 
     // Check the vSignal of the new curation curve, amd tokens
-    const [afterTokensNewCurve, vSigAfterNewCurve] = await getTokensAndVSignal(
+    const [afterTokensNewCurve, vSigAfterNewCurve] = await curationPoolTokensAndSignal(
       newSubgraphDeplyomentID,
     )
     expect(afterTokensNewCurve).eq(upgradeTokenReturn)
@@ -369,10 +363,15 @@ describe('GNS', () => {
     account: Account,
     subgraphID: string,
     tokensIn: BigNumber,
+    expected: ExpectedMintSignalValues = {},
   ): Promise<ContractTransaction> => {
+    const vSignalExpectedOld = expected.vSignalOld || 9.746794344808963
+    const vSignalExpectedNew = expected.vSignalNew || 0
+    const skip = expected.skip || false
+
     // Before state
     const beforeSubgraph = await gns.subgraphs(subgraphID)
-    const [beforeTokens, beforeVSignal] = await getTokensAndVSignal(
+    const [beforeTokens, beforeVSignal] = await curationPoolTokensAndSignal(
       beforeSubgraph.subgraphDeploymentID,
     )
 
@@ -382,14 +381,22 @@ describe('GNS', () => {
       1: nSignalExpected,
       2: curationTax,
     } = await gns.tokensToNSignal(subgraphID, tokensIn)
+
+    // Mint
     const tx = gns.connect(account.signer).mintSignal(subgraphID, tokensIn, 0)
+
+    // Send tx
     await expect(tx)
       .emit(gns, 'SignalMinted')
       .withArgs(subgraphID, account.address, nSignalExpected, vSignalExpected, tokensIn)
 
+    // Versions
+    const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
+    const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
+
     // After state
     const afterSubgraph = await gns.subgraphs(subgraphID)
-    const [afterTokens, afterVSignal] = await getTokensAndVSignal(
+    const [afterTokens, afterVSignal] = await curationPoolTokensAndSignal(
       afterSubgraph.subgraphDeploymentID,
     )
 
@@ -399,13 +406,19 @@ describe('GNS', () => {
     expect(afterSubgraph.nSignal).eq(beforeSubgraph.nSignal.add(nSignalExpected))
     expect(afterSubgraph.vSignal).eq(beforeVSignal.add(vSignalExpected))
 
+    // Check versions
+    if (!skip) {
+      expect(toFloat(vSignalOld)).eq(vSignalExpectedOld)
+      expect(toFloat(vSignalNew)).eq(vSignalExpectedNew)
+    }
+
     return tx
   }
 
   const burnSignal = async (account: Account, subgraphID: string): Promise<ContractTransaction> => {
     // Before state
     const beforeSubgraph = await gns.subgraphs(subgraphID)
-    const [beforeTokens, beforeVSignal] = await getTokensAndVSignal(
+    const [beforeTokens, beforeVSignal] = await curationPoolTokensAndSignal(
       beforeSubgraph.subgraphDeploymentID,
     )
     const beforeUsersNSignal = await gns.getCuratorSignal(subgraphID, account.address)
@@ -424,7 +437,7 @@ describe('GNS', () => {
 
     // After state
     const afterSubgraph = await gns.subgraphs(subgraphID)
-    const [afterTokens, afterVSignalCuration] = await getTokensAndVSignal(
+    const [afterTokens, afterVSignalCuration] = await curationPoolTokensAndSignal(
       afterSubgraph.subgraphDeploymentID,
     )
 
@@ -472,6 +485,7 @@ describe('GNS', () => {
     ;({ grt, curation, gns } = await fixture.load(governor.signer))
     newSubgraph0 = buildSubgraph()
     newSubgraph1 = buildSubgraph()
+    newSubgraph2 = buildSubgraph()
     defaultName = createDefaultName('graph')
     // Give some funds to the signers and approve gns contract to use funds on signers behalf
     await grt.connect(governor.signer).mint(me.address, tokens100000)
@@ -613,11 +627,25 @@ describe('GNS', () => {
 
       beforeEach(async () => {
         subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await mintSignal(me, subgraph.id, tokens10000)
+        await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
       })
 
       it('should publish a new version on an existing subgraph', async function () {
         await publishNewVersion(me, subgraph.id, newSubgraph1)
+      })
+
+      context('when new version already exists', async function () {
+        it('should publish a new version on an existing subgraph', async function () {
+          await publishNewVersion(me, subgraph.id, newSubgraph1)
+          await publishNewVersion(
+            me,
+            subgraph.id,
+            newSubgraph2,
+            4515.46875,
+            6.719723766643983,
+            13.439447533287966,
+          )
+        })
       })
 
       it('should reject a new version with the same subgraph deployment ID', async function () {
@@ -703,43 +731,81 @@ describe('GNS', () => {
     describe('deprecateSubgraph', async function () {
       let subgraph: Subgraph
 
-      beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await mintSignal(me, subgraph.id, tokens10000)
+      context('when new version exists', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+
+          await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
+
+        it('should deprecate a subgraph', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+        })
       })
 
-      it('should deprecate a subgraph', async function () {
-        await deprecateSubgraph(me, subgraph.id)
-      })
+      context('when new version does not exist', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
 
-      it('should prevent a deprecated subgraph from being republished', async function () {
-        await deprecateSubgraph(me, subgraph.id)
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
-        await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
-      })
+        it('should deprecate a subgraph', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+        })
 
-      it('reject if the subgraph does not exist', async function () {
-        const subgraphID = randomHexBytes(32)
-        const tx = gns.connect(me.signer).deprecateSubgraph(subgraphID)
-        await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
-      })
+        it('should prevent a deprecated subgraph from being republished', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
+          await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
+        })
 
-      it('reject deprecate if not the owner', async function () {
-        const tx = gns.connect(other.signer).deprecateSubgraph(subgraph.id)
-        await expect(tx).revertedWith('GNS: Must be authorized')
+        it('reject if the subgraph does not exist', async function () {
+          const subgraphID = randomHexBytes(32)
+          const tx = gns.connect(me.signer).deprecateSubgraph(subgraphID)
+          await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
+        })
+
+        it('reject deprecate if not the owner', async function () {
+          const tx = gns.connect(other.signer).deprecateSubgraph(subgraph.id)
+          await expect(tx).revertedWith('GNS: Must be authorized')
+        })
       })
     })
   })
 
   describe('Curating on names', async function () {
     describe('mintSignal()', async function () {
+      context('when new version exists', async function () {
+        it('should deposit into the name signal curve', async function () {
+          const subgraph = await publishNewSubgraph(me, newSubgraph0)
+
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+
+          await mintSignal(other, subgraph.id, tokens10000)
+        })
+      })
+
       it('should deposit into the name signal curve', async function () {
         const subgraph = await publishNewSubgraph(me, newSubgraph0)
         await mintSignal(other, subgraph.id, tokens10000)
@@ -774,44 +840,65 @@ describe('GNS', () => {
     describe('burnSignal()', async function () {
       let subgraph: Subgraph
 
-      beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await mintSignal(other, subgraph.id, tokens10000)
+      context('when new version exists', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+
+          await gns.connect(other.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
+        it('should withdraw from the name signal curve', async function () {
+          await burnSignal(other, subgraph.id)
+        })
       })
 
-      it('should withdraw from the name signal curve', async function () {
-        await burnSignal(other, subgraph.id)
-      })
+      context('when new version does not exist', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await gns.connect(other.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
 
-      it('should fail when name signal is disabled', async function () {
-        await deprecateSubgraph(me, subgraph.id)
-        // just test 1 since it will fail
-        const tx = gns.connect(me.signer).burnSignal(subgraph.id, 1, 0)
-        await expect(tx).revertedWith('GNS: Must be active')
-      })
+        it('should withdraw from the name signal curve', async function () {
+          await burnSignal(other, subgraph.id)
+        })
 
-      it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
-        const tx = gns.connect(me.signer).burnSignal(
-          subgraph.id,
-          // 1000000 * 10^18 nSignal is a lot, and will cause fail
-          toBN('1000000000000000000000000'),
-          0,
-        )
-        await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
-      })
+        it('should fail when name signal is disabled', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+          // just test 1 since it will fail
+          const tx = gns.connect(me.signer).burnSignal(subgraph.id, 1, 0)
+          await expect(tx).revertedWith('GNS: Must be active')
+        })
 
-      it('reject burning if under slippage', async function () {
-        // Get current curator name signal
-        const curatorNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
+        it('should fail when the curator tries to withdraw more nSignal than they have', async function () {
+          const tx = gns.connect(me.signer).burnSignal(
+            subgraph.id,
+            // 1000000 * 10^18 nSignal is a lot, and will cause fail
+            toBN('1000000000000000000000000'),
+            0,
+          )
+          await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
+        })
 
-        // Withdraw
-        const { 1: expectedTokens } = await gns.nSignalToTokens(subgraph.id, curatorNSignal)
+        it('reject burning if under slippage', async function () {
+          // Get current curator name signal
+          const curatorNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
 
-        // Force a revert by asking 1 more token than the function will return
-        const tx = gns
-          .connect(other.signer)
-          .burnSignal(subgraph.id, curatorNSignal, expectedTokens.add(1))
-        await expect(tx).revertedWith('Slippage protection')
+          // Withdraw
+          const { 1: expectedTokens } = await gns.nSignalToTokens(subgraph.id, curatorNSignal)
+
+          // Force a revert by asking 1 more token than the function will return
+          const tx = gns
+            .connect(other.signer)
+            .burnSignal(subgraph.id, curatorNSignal, expectedTokens.add(1))
+          await expect(tx).revertedWith('Slippage protection')
+        })
       })
     })
 
@@ -820,7 +907,7 @@ describe('GNS', () => {
 
       beforeEach(async () => {
         subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await mintSignal(other, subgraph.id, tokens10000)
+        await gns.connect(other.signer).mintSignal(subgraph.id, tokens10000, 0)
       })
 
       it('should withdraw GRT from a disabled name signal', async function () {
@@ -850,14 +937,14 @@ describe('GNS', () => {
     describe('multiple minting', async function () {
       it('should mint less signal every time due to the bonding curve', async function () {
         const tokensToDepositMany = [
-          toGRT('1000'), // should mint if we start with number above minimum deposit
-          toGRT('1000'), // every time it should mint less GCS due to bonding curve...
-          toGRT('1.06'), // should mint minimum deposit including tax
-          toGRT('1000'),
-          toGRT('1000'),
-          toGRT('2000'),
-          toGRT('2000'),
+          toGRT('10000'), // should mint if we start with number above minimum deposit
+          toGRT('10000'), // every time it should mint less GCS due to bonding curve...
+          toGRT('10000'),
+          toGRT('10000'),
+          toGRT('20000'),
+          toGRT('20000'),
           toGRT('123'),
+          toGRT('1'), // should mint minimum deposit including tax
         ]
         const subgraph = await publishNewSubgraph(me, newSubgraph0)
 
@@ -876,10 +963,13 @@ describe('GNS', () => {
             tokensToDeposit.sub(curationTax),
             beforeSubgraph.subgraphDeploymentID,
           )
-          const tx = await mintSignal(me, subgraph.id, tokensToDeposit)
+
+          const tx = await gns.connect(me.signer).mintSignal(subgraph.id, tokensToDeposit, 0)
+
           const receipt = await tx.wait()
           const event: Event = receipt.events.pop()
           const nSignalCreated = event.args['nSignalCreated']
+
           expect(toRound(expectedNSignal)).eq(toRound(toFloat(nSignalCreated)))
         }
       })
@@ -891,12 +981,12 @@ describe('GNS', () => {
         // note - reserve ratio is already set to 1000000 in GNS
 
         const tokensToDepositMany = [
-          toGRT('1000'), // should mint if we start with number above minimum deposit
-          toGRT('1000'), // every time it should mint less GCS due to bonding curve...
-          toGRT('1000'),
-          toGRT('1000'),
-          toGRT('2000'),
-          toGRT('2000'),
+          toGRT('10000'), // should mint if we start with number above minimum deposit
+          toGRT('10000'), // every time it should mint less GCS due to bonding curve...
+          toGRT('10000'),
+          toGRT('10000'),
+          toGRT('20000'),
+          toGRT('20000'),
           toGRT('123'),
           toGRT('1'), // should mint below minimum deposit
         ]
@@ -905,7 +995,9 @@ describe('GNS', () => {
 
         // State updated
         for (const tokensToDeposit of tokensToDepositMany) {
-          await mintSignal(me, subgraph.id, tokensToDeposit)
+          const expected: ExpectedMintSignalValues = { skip: true }
+
+          await mintSignal(me, subgraph.id, tokensToDeposit, expected)
         }
       })
     })
