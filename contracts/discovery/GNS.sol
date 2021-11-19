@@ -759,6 +759,23 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
+     * @dev Get the version subgraphDeploymentID and vSignal.
+     * @param _subgraphID Subgraph ID
+     * @param _version Version uint256
+     * @return Version struct properties
+     */
+    function getSubgraphVersion(uint256 _subgraphID, uint256 _version)
+        public
+        view
+        override
+        returns (bytes32, uint256)
+    {
+        Version memory v = _getSubgraphData(_subgraphID).versions[_version];
+
+        return (v.subgraphDeploymentID, v.vSignal);
+    }
+
+    /**
      * @dev Return the total signal on the subgraph.
      * @param _subgraphID Subgraph ID
      * @return Total signal on the subgraph

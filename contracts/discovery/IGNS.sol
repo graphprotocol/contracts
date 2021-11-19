@@ -112,5 +112,10 @@ interface IGNS {
         view
         returns (uint256);
 
+    function getSubgraphVersion(uint256 _subgraphID, uint256 _version)
+        external
+        view
+        returns (bytes32, uint256);
+
     function isPublished(uint256 _subgraphID) external view returns (bool);
 }
