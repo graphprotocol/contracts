@@ -197,9 +197,9 @@ describe('GNS', () => {
     account: Account,
     subgraphID: string,
     newSubgraph: PublishSubgraph,
-    splitTokens: number = 4631.25,
-    splitVSignal: number = 6.8053287944081,
-    totalVSignal: number = 13.6106575888162,
+    splitTokens: BigInt = 4631250000000000000000n,
+    splitVSignal: BigInt = 6805328794408099720n,
+    totalVSignal: BigInt = 13610657588816199440n,
   ) => {
     // Subgraph before transaction
     const beforeSubgraph = await gns.subgraphs(subgraphID)
@@ -230,21 +230,21 @@ describe('GNS', () => {
     )
 
     // Check tokens and vSignal for previous deployment
-    expect(toFloat(tokensBefore)).eq(splitTokens)
-    expect(toFloat(vSignalBefore)).eq(splitVSignal)
+    expect(tokensBefore).eq(BigNumber.from(splitTokens))
+    expect(vSignalBefore).eq(BigNumber.from(splitVSignal))
 
     // Check tokens and vSignal for current deployment
-    expect(toFloat(tokensAfter)).eq(splitTokens)
-    expect(toFloat(vSignalAfter)).eq(splitVSignal)
+    expect(tokensAfter).eq(BigNumber.from(splitTokens))
+    expect(vSignalAfter).eq(BigNumber.from(splitVSignal))
 
     // Check subgraph
-    expect(toFloat(afterSubgraph.vSignal)).eq(totalVSignal)
+    expect(afterSubgraph.vSignal).eq(BigNumber.from(totalVSignal))
     expect(afterSubgraph.nSignal).eq(beforeSubgraph.nSignal) // should not change
     expect(afterSubgraph.subgraphDeploymentID).eq(newSubgraph.subgraphDeploymentID)
 
     // Check versions
-    expect(toFloat(vSignalOld)).eq(splitVSignal)
-    expect(toFloat(vSignalNew)).eq(splitVSignal)
+    expect(vSignalOld).eq(BigNumber.from(splitVSignal))
+    expect(vSignalNew).eq(BigNumber.from(splitVSignal))
 
     // Check NFT should not change owner
     expect(owner).eq(account.address)
@@ -370,22 +370,27 @@ describe('GNS', () => {
     tokensIn: BigNumber,
     expected: ExpectedMintSignalValues = {},
   ): Promise<ContractTransaction> => {
-    const tokensExpectedOld = expected.tokensOld || 9500
-    const vSignalExpectedOld = expected.vSignalOld || 9.746794344808963
+    const tokensExpectedOld = expected.tokensOld || 9500000000000000000000n
+    const vSignalExpectedOld = expected.vSignalOld || 9746794344808963906n
     const vSignalExpectedNew = expected.vSignalNew || 0
     const tokensExpectedNew = expected.tokensNew || 0
-    const nSignalExpected = expected.nSignal || 9.746794344808963
-    const vSignalExpected = expected.vSignal || 9.746794344808963
+    const nSignalExpected = expected.nSignal || 9746794344808963906n
+    const vSignalExpected = expected.vSignal || 9746794344808963906n
     const skip = expected.skip || false
 
     // Mint
-    const tx = await gns.connect(account.signer).mintSignal(subgraphID, tokensIn, 0)
+    const tx = gns.connect(account.signer).mintSignal(subgraphID, tokensIn, 0)
 
-    // TODO: fix this check
     // Send tx
-    // await expect(tx)
-    //   .emit(gns, 'SignalMinted')
-    //   .withArgs(subgraphID, account.address, nSignalExpected, vSignalExpected, tokensIn)
+    await expect(tx)
+      .emit(gns, 'SignalMinted')
+      .withArgs(
+        subgraphID,
+        account.address,
+        BigNumber.from(nSignalExpected),
+        BigNumber.from(vSignalExpected),
+        tokensIn,
+      )
 
     // Versions after transaction
     const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
@@ -397,20 +402,20 @@ describe('GNS', () => {
     const [afterTokensNew, afterVSignalNew] = await curationPoolTokensAndSignal(idNew)
 
     // Check curation pool tokens and signal
-    expect(toFloat(afterTokensOld)).eq(tokensExpectedOld)
-    expect(toFloat(afterVSignalOld)).eq(vSignalExpectedOld)
+    expect(afterTokensOld).eq(BigNumber.from(tokensExpectedOld))
+    expect(afterVSignalOld).eq(BigNumber.from(vSignalExpectedOld))
 
-    expect(toFloat(afterTokensNew)).eq(tokensExpectedNew)
-    expect(toFloat(afterVSignalNew)).eq(vSignalExpectedNew)
+    expect(afterTokensNew).eq(BigNumber.from(tokensExpectedNew))
+    expect(afterVSignalNew).eq(BigNumber.from(vSignalExpectedNew))
 
     // Check GNS signal
-    expect(toFloat(afterSubgraph.nSignal)).eq(nSignalExpected)
-    expect(toFloat(afterSubgraph.vSignal)).eq(vSignalExpected)
+    expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
+    expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
 
     // Check versions
     if (!skip) {
-      expect(toFloat(vSignalOld)).eq(vSignalExpectedOld)
-      expect(toFloat(vSignalNew)).eq(vSignalExpectedNew)
+      expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
+      expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
     }
 
     return tx
@@ -642,9 +647,9 @@ describe('GNS', () => {
             me,
             subgraph.id,
             newSubgraph2,
-            4515.46875,
-            6.719723766643983,
-            13.439447533287966,
+            4515468750000000000000n,
+            6719723766643983111n,
+            13439447533287966222n,
           )
         })
       })
