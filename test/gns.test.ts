@@ -200,6 +200,7 @@ describe('GNS', () => {
     splitTokens: BigInt = 4631250000000000000000n,
     splitVSignal: BigInt = 6805328794408099720n,
     totalVSignal: BigInt = 13610657588816199440n,
+    totalNSignal: BigInt = 13610657588816199440n,
   ) => {
     // Subgraph before transaction
     const beforeSubgraph = await gns.subgraphs(subgraphID)
@@ -239,7 +240,7 @@ describe('GNS', () => {
 
     // Check subgraph
     expect(afterSubgraph.vSignal).eq(BigNumber.from(totalVSignal))
-    expect(afterSubgraph.nSignal).eq(beforeSubgraph.nSignal) // should not change
+    expect(afterSubgraph.nSignal).eq(BigNumber.from(totalNSignal))
     expect(afterSubgraph.subgraphDeploymentID).eq(newSubgraph.subgraphDeploymentID)
 
     // Check versions
@@ -650,6 +651,7 @@ describe('GNS', () => {
             4515468750000000000000n,
             6719723766643983111n,
             13439447533287966222n,
+            13439447533287966222n,
           )
         })
       })
@@ -751,14 +753,14 @@ describe('GNS', () => {
       })
 
       it('should finalize version', async function () {
-        const tokensExpectedOld = 9030.9375
-        const vSignalExpectedOld = 9.50312448618874
+        const tokensExpectedOld = 8799375000000000000000n
+        const vSignalExpectedOld = 9380498387612462033n
 
-        const tokensExpectedNew = 0
-        const vSignalExpectedNew = 0
+        const tokensExpectedNew = 0n
+        const vSignalExpectedNew = 0n
 
-        const nSignalExpected = 11.678725966812582
-        const vSignalExpected = 9.50312448618874
+        const nSignalExpected = 9380498387612462033n
+        const vSignalExpected = 9380498387612462033n
 
         // Finalized version
         const [idFinalized] = await gns.getSubgraphVersion(subgraph.id, 0)
@@ -783,23 +785,25 @@ describe('GNS', () => {
         const [afterTokensOld, afterVSignalOld] = await curationPoolTokensAndSignal(idOld)
         const [afterTokensNew, afterVSignalNew] = await curationPoolTokensAndSignal(idNew)
 
-        // Check curation pool tokens and signal
-        expect(toFloat(afterTokensOld)).eq(tokensExpectedOld)
-        expect(toFloat(afterVSignalOld)).eq(vSignalExpectedOld)
+        // Check old curation pool tokens and signal
+        expect(afterTokensOld).eq(BigNumber.from(tokensExpectedOld))
+        expect(afterVSignalOld).eq(BigNumber.from(vSignalExpectedOld))
 
-        expect(toFloat(afterTokensNew)).eq(tokensExpectedNew)
-        expect(toFloat(afterVSignalNew)).eq(vSignalExpectedNew)
+        // Check new curation pool tokens and signal
+        expect(afterTokensNew).eq(BigNumber.from(tokensExpectedNew))
+        expect(afterVSignalNew).eq(BigNumber.from(vSignalExpectedNew))
 
         // Check GNS signal
-        expect(toFloat(afterSubgraph.nSignal)).eq(nSignalExpected)
-        expect(toFloat(afterSubgraph.vSignal)).eq(vSignalExpected)
+        expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
+        expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
 
+        // Check subgraph deployment IDs
         expect(idOld).eq(idLatest)
         expect(idNew).eq('0x0000000000000000000000000000000000000000000000000000000000000000')
 
         // Check versions
-        expect(toFloat(vSignalOld)).eq(vSignalExpectedOld)
-        expect(toFloat(vSignalNew)).eq(vSignalExpectedNew)
+        expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
+        expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
       })
     })
 

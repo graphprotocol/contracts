@@ -356,8 +356,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             subgraphData.versions[0].vSignal = _vSignalOld;
             subgraphData.versions[1].vSignal = _vSignalNew;
 
-            // Update total vSignal
+            uint256 nSignalTotal = vSignalToNSignal(_subgraphID, vSignalTotal);
+
+            // Update subgraphData Signal
             subgraphData.vSignal = vSignalTotal;
+            subgraphData.nSignal = nSignalTotal;
 
             emit SubgraphUpgraded(
                 _subgraphID,
@@ -388,30 +391,35 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         ICuration curation = curation();
 
-        // Burn signal from previous version
-        uint256 tokens = curation.burn(
+        uint256 tokens;
+
+        // Burn signal
+        tokens = curation.burn(
             subgraphData.versions[0].subgraphDeploymentID,
             subgraphData.versions[0].vSignal,
             0
         );
+        tokens += curation.burn(
+            subgraphData.versions[1].subgraphDeploymentID,
+            subgraphData.versions[1].vSignal,
+            0
+        );
 
-        // Mint tokens into latest deployment
-        (uint256 _vSignalNew, ) = curation.mint(
+        // Mint tokens
+        (uint256 _vSignalTotal, ) = curation.mint(
             subgraphData.versions[1].subgraphDeploymentID,
             tokens,
             0
         );
 
         // Get total nSignal
-        uint256 nSignalTotal = vSignalToNSignal(_subgraphID, _vSignalNew);
+        uint256 nSignalTotal = vSignalToNSignal(_subgraphID, _vSignalTotal);
 
-        // Update version subgraphDeploymentID to latest
+        // Update version 0
         subgraphData.versions[0].subgraphDeploymentID = subgraphData
             .versions[1]
             .subgraphDeploymentID;
-
-        // Update version 0 vSignal
-        subgraphData.versions[0].vSignal = subgraphData.versions[1].vSignal.add(_vSignalNew);
+        subgraphData.versions[0].vSignal = _vSignalTotal;
 
         // Remove version 1 data
         subgraphData.versions[1].subgraphDeploymentID = "";
@@ -419,8 +427,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Update subgraphData
         subgraphData.subgraphDeploymentID = subgraphData.versions[1].subgraphDeploymentID;
-        subgraphData.nSignal = subgraphData.nSignal.add(nSignalTotal);
-        subgraphData.vSignal = subgraphData.versions[0].vSignal;
+        subgraphData.nSignal = nSignalTotal;
+        subgraphData.vSignal = _vSignalTotal;
 
         // TODO: These events might need to be updated
         emit SubgraphUpgradeFinalized(
