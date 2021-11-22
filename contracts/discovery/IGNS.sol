@@ -59,6 +59,8 @@ interface IGNS {
         bytes32 _versionMetadata
     ) external;
 
+    function finalizeSubgraphUpgrade(uint256 _subgraphID) external;
+
     function deprecateSubgraph(uint256 _subgraphID) external;
 
     // -- Curation --
