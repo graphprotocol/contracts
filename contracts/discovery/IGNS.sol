@@ -6,9 +6,7 @@ interface IGNS {
     // -- Pool --
 
     struct SubgraphData {
-        // The token of the subgraph-deployment bonding curve
-        // TODO: This is now total vSignal
-        uint256 vSignal;
+        uint256 vSignal; // The sum of all deployment vSignal
         uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
