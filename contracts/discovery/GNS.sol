@@ -589,7 +589,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         if (_versionExists(subgraphData.versions[1])) {
             vSignal = vSignal.div(2);
 
-            tokens += curation().burn(
+            tokens = curation().burn(
                 subgraphData.versions[1].subgraphDeploymentID,
                 vSignal,
                 _tokensOutMin
@@ -598,7 +598,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             subgraphData.versions[1].vSignal = subgraphData.versions[1].vSignal.sub(vSignal);
         }
 
-        tokens = curation().burn(
+        tokens += curation().burn(
             subgraphData.versions[0].subgraphDeploymentID,
             vSignal,
             _tokensOutMin
