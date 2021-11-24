@@ -580,11 +580,12 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             "GNS: Curator cannot withdraw more nSignal than they have"
         );
 
+        bool newVersionExists = _versionExists(subgraphData.versions[1]);
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignal);
         uint256 tokens;
 
         // If new version exists
-        if (_versionExists(subgraphData.versions[1])) {
+        if (newVersionExists) {
             vSignal = vSignal.div(2);
 
             tokens = curation().burn(
@@ -604,6 +605,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Update version vSignal
         subgraphData.versions[0].vSignal = subgraphData.versions[0].vSignal.sub(vSignal);
+
+        if (newVersionExists) {
+            vSignal = vSignal.mul(2);
+        }
 
         // Update pools
         subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
