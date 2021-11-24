@@ -356,11 +356,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             subgraphData.versions[0].vSignal = _vSignalOld;
             subgraphData.versions[1].vSignal = _vSignalNew;
 
-            uint256 nSignalTotal = vSignalToNSignal(_subgraphID, vSignalTotal);
 
             // Update subgraphData Signal
             subgraphData.vSignal = vSignalTotal;
-            subgraphData.nSignal = nSignalTotal;
 
             emit SubgraphUpgraded(
                 _subgraphID,
