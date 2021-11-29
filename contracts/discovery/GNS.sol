@@ -320,10 +320,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 );
             }
 
-            // Update versions
-            subgraphData.versions[0].subgraphDeploymentID = subgraphData.subgraphDeploymentID;
-            subgraphData.versions[1].subgraphDeploymentID = _subgraphDeploymentID;
-
             address subgraphOwner = msg.sender;
 
             // Divide tokens in half
@@ -335,20 +331,13 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
             // Mint half to old version
             (uint256 _vSignalOld, ) = curation.mint(
-                subgraphData.versions[0].subgraphDeploymentID,
+                subgraphData.subgraphDeploymentID,
                 tokensWithTax,
                 0
             );
 
             // Mint half to new version
-            (uint256 _vSignalNew, ) = curation.mint(
-                subgraphData.versions[1].subgraphDeploymentID,
-                tokensWithTax,
-                0
-            );
-
-            // Update deployment ID
-            subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
+            (uint256 _vSignalNew, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
 
             uint256 vSignalTotal = _vSignalOld + _vSignalNew;
 
@@ -366,6 +355,13 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 _subgraphDeploymentID
             );
         }
+
+        // Update versions
+        subgraphData.versions[0].subgraphDeploymentID = subgraphData.subgraphDeploymentID;
+        subgraphData.versions[1].subgraphDeploymentID = _subgraphDeploymentID;
+
+        // Update deployment ID
+        subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
 
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
@@ -1003,7 +999,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     function _versionExists(Version storage _version) internal view returns (bool) {
-        return _version.vSignal > 0;
+        return _version.subgraphDeploymentID != "";
     }
 
     function _initOldVersion(SubgraphData storage _subgraphData) internal {

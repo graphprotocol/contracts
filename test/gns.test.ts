@@ -679,110 +679,141 @@ describe('GNS', () => {
     describe('publishNewVersion', async function () {
       let subgraph: Subgraph
 
-      beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
-      })
-
-      it('should publish a new version on an existing subgraph', async function () {
-        await publishNewVersion(me, subgraph.id, newSubgraph1)
-      })
-
-      context('when new version already exists', async function () {
+      context('when minting happens after new version', async function () {
         it('should publish a new version on an existing subgraph', async function () {
-          await publishNewVersion(me, subgraph.id, newSubgraph1)
-          await publishNewVersion(
-            me,
-            subgraph.id,
-            newSubgraph2,
-            4515468750000000000000n,
-            6719723766643983111n,
-            13439447533287966222n,
-            9746794344808963906n,
-          )
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+
+          await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
+
+          // Versions after transaction
+          const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraph.id, 0)
+          const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraph.id, 1)
+
+          // After state
+          const afterSubgraph = await gns.subgraphs(subgraph.id)
+
+          // Check subgraph deployment IDs
+          expect(idOld).eq(newSubgraph0.subgraphDeploymentID)
+          expect(idNew).eq(newSubgraph1.subgraphDeploymentID)
+
+          expect(afterSubgraph.subgraphDeploymentID).eq(newSubgraph1.subgraphDeploymentID)
         })
       })
 
-      it('should reject a new version with the same subgraph deployment ID', async function () {
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph0.subgraphDeploymentID,
-            newSubgraph0.versionMetadata,
+      context('when minting happens first', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
+
+        it('should publish a new version on an existing subgraph', async function () {
+          await publishNewVersion(me, subgraph.id, newSubgraph1)
+        })
+
+        context('when new version already exists', async function () {
+          it('should publish a new version on an existing subgraph', async function () {
+            await publishNewVersion(me, subgraph.id, newSubgraph1)
+            await publishNewVersion(
+              me,
+              subgraph.id,
+              newSubgraph2,
+              4515468750000000000000n,
+              6719723766643983111n,
+              13439447533287966222n,
+              9746794344808963906n,
+            )
+          })
+        })
+
+        it('should reject a new version with the same subgraph deployment ID', async function () {
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph0.subgraphDeploymentID,
+              newSubgraph0.versionMetadata,
+            )
+          await expect(tx).revertedWith(
+            'GNS: Cannot publish a new version with the same subgraph deployment ID',
           )
-        await expect(tx).revertedWith(
-          'GNS: Cannot publish a new version with the same subgraph deployment ID',
-        )
-      })
+        })
 
-      it('should reject publishing a version to a subgraph that does not exist', async function () {
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            randomHexBytes(32),
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
+        it('should reject publishing a version to a subgraph that does not exist', async function () {
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              randomHexBytes(32),
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
+        })
+
+        it('reject if not the owner', async function () {
+          const tx = gns
+            .connect(other.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          await expect(tx).revertedWith('GNS: Must be authorized')
+        })
+
+        it('should fail when upgrade tries to point to a pre-curated', async function () {
+          // Curate directly to the deployment
+          await curation.connect(me.signer).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+
+          // Target a pre-curated subgraph deployment
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          await expect(tx).revertedWith(
+            'GNS: Owner cannot point to a subgraphID that has been pre-curated',
           )
-        await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
-      })
+        })
 
-      it('reject if not the owner', async function () {
-        const tx = gns
-          .connect(other.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        await expect(tx).revertedWith('GNS: Must be authorized')
-      })
+        it('should upgrade version when there is no signal with no signal migration', async function () {
+          const beforeUsersNSignal = await gns.getCuratorSignal(subgraph.id, me.address)
 
-      it('should fail when upgrade tries to point to a pre-curated', async function () {
-        // Curate directly to the deployment
-        await curation.connect(me.signer).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+          gns.connect(me.signer).burnSignal(subgraph.id, beforeUsersNSignal, 0)
 
-        // Target a pre-curated subgraph deployment
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        await expect(tx).revertedWith(
-          'GNS: Owner cannot point to a subgraphID that has been pre-curated',
-        )
-      })
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          await expect(tx)
+            .emit(gns, 'SubgraphVersionUpdated')
+            .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        })
 
-      it('should upgrade version when there is no signal with no signal migration', async function () {
-        const beforeUsersNSignal = await gns.getCuratorSignal(subgraph.id, me.address)
-
-        gns.connect(me.signer).burnSignal(subgraph.id, beforeUsersNSignal, 0)
-
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        await expect(tx)
-          .emit(gns, 'SubgraphVersionUpdated')
-          .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
-      })
-
-      it('should fail when subgraph is deprecated', async function () {
-        await deprecateSubgraph(me, subgraph.id)
-        const tx = gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
-        await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
+        it('should fail when subgraph is deprecated', async function () {
+          await deprecateSubgraph(me, subgraph.id)
+          const tx = gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+          // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
+          await expect(tx).revertedWith('ERC721: operator query for nonexistent token')
+        })
       })
     })
 
