@@ -1051,7 +1051,7 @@ describe('GNS', () => {
           await gns.connect(other.signer).mintSignal(subgraph.id, tokens10000, 0)
         })
 
-        it.only('should withdraw from the name signal curve', async function () {
+        it('should withdraw from the name signal curve', async function () {
           await burnSignal(other, subgraph.id, {
             vSignalEmit: 13784048752090221766n,
           })
