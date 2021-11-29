@@ -1,10 +1,13 @@
 import { expect } from 'chai'
+import { constants } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, Account } from '../lib/testHelpers'
+import { getAccounts, toBN, Account, randomAddress } from '../lib/testHelpers'
+
+const { AddressZero } = constants
 
 const MAX_PPM = 1000000
 
@@ -96,6 +99,31 @@ describe('Curation:Config', () => {
 
     it('reject set `curationTaxPercentage` if not allowed', async function () {
       const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+  })
+
+  describe('curationTokenMaster', function () {
+    it('should set `curationTokenMaster`', async function () {
+      const newCurationTokenMaster = curation.address
+      await curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+    })
+
+    it('reject set `curationTokenMaster` to empty value', async function () {
+      const newCurationTokenMaster = AddressZero
+      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await expect(tx).revertedWith('Token master must be non-empty')
+    })
+
+    it('reject set `curationTokenMaster` to non-contract', async function () {
+      const newCurationTokenMaster = randomAddress()
+      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await expect(tx).revertedWith('Token master must be a contract')
+    })
+
+    it('reject set `curationTokenMaster` if not allowed', async function () {
+      const newCurationTokenMaster = curation.address
+      const tx = curation.connect(me.signer).setCurationTokenMaster(newCurationTokenMaster)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
   })

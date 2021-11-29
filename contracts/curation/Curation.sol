@@ -2,10 +2,13 @@
 
 pragma solidity ^0.7.6;
 
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
 
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
+import "../utils/TokenUtils.sol";
 
 import "./CurationStorage.sol";
 import "./ICuration.sol";
@@ -23,7 +26,7 @@ import "./GraphCurationToken.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
+contract Curation is CurationV1Storage, GraphUpgradeable {
     using SafeMath for uint256;
 
     // 100% in parts per million
@@ -70,6 +73,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     function initialize(
         address _controller,
         address _bondingCurve,
+        address _curationTokenMaster,
         uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit
@@ -83,6 +87,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         _setDefaultReserveRatio(_defaultReserveRatio);
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
+        _setCurationTokenMaster(_curationTokenMaster);
     }
 
     /**
@@ -154,8 +159,28 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
             "Curation tax percentage must be below or equal to MAX_PPM"
         );
 
-        _curationTaxPercentage = _percentage;
+        curationTaxPercentage = _percentage;
         emit ParameterUpdated("curationTaxPercentage");
+    }
+
+    /**
+     * @dev Set the master copy to use as clones for the curation token.
+     * @param _curationTokenMaster Address of implementation contract to use for curation tokens
+     */
+    function setCurationTokenMaster(address _curationTokenMaster) external override onlyGovernor {
+        _setCurationTokenMaster(_curationTokenMaster);
+    }
+
+    /**
+     * @dev Internal: Set the master copy to use as clones for the curation token.
+     * @param _curationTokenMaster Address of implementation contract to use for curation tokens
+     */
+    function _setCurationTokenMaster(address _curationTokenMaster) private {
+        require(_curationTokenMaster != address(0), "Token master must be non-empty");
+        require(Address.isContract(_curationTokenMaster), "Token master must be a contract");
+
+        curationTokenMaster = _curationTokenMaster;
+        emit ParameterUpdated("curationTokenMaster");
     }
 
     /**
@@ -208,17 +233,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
-            // Initialize
             curationPool.reserveRatio = defaultReserveRatio;
 
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
-                // TODO: Use a minimal proxy to reduce gas cost
-                // https://github.com/graphprotocol/contracts/issues/405
-                // --abarmat-- 20201113
-                curationPool.gcs = IGraphCurationToken(
-                    address(new GraphCurationToken(address(this)))
-                );
+                // Use a minimal proxy to reduce gas cost
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
+                gcs.initialize(address(this));
+                curationPool.gcs = gcs;
             }
         }
 
@@ -226,18 +248,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         _updateRewards(_subgraphDeploymentID);
 
         // Transfer tokens from the curator to this contract
-        // This needs to happen after _updateRewards snapshot as that function
+        // Burn the curation tax
+        // NOTE: This needs to happen after _updateRewards snapshot as that function
         // is using balanceOf(curation)
-        IGraphToken graphToken = graphToken();
-        require(
-            graphToken.transferFrom(curator, address(this), _tokensIn),
-            "Cannot transfer tokens to deposit"
-        );
-
-        // Burn withdrawal fees
-        if (curationTax > 0) {
-            graphToken.burn(curationTax);
-        }
+        IGraphToken _graphToken = graphToken();
+        TokenUtils.pullTokens(_graphToken, curator, _tokensIn);
+        TokenUtils.burnTokens(_graphToken, curationTax);
 
         // Update curation pool
         curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
@@ -284,13 +300,15 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         curationPool.tokens = curationPool.tokens.sub(tokensOut);
         curationPool.gcs.burnFrom(curator, _signalIn);
 
-        // If all signal burnt delete the curation pool
+        // If all signal burnt delete the curation pool except for the
+        // curation token contract to avoid recreating it on a new mint
         if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
-            delete pools[_subgraphDeploymentID];
+            curationPool.tokens = 0;
+            curationPool.reserveRatio = 0;
         }
 
         // Return the tokens to the curator
-        require(graphToken().transfer(curator, tokensOut), "Error sending curator tokens");
+        TokenUtils.pushTokens(graphToken(), curator, tokensOut);
 
         emit Burned(curator, _subgraphDeploymentID, tokensOut, _signalIn);
 
@@ -318,10 +336,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         override
         returns (uint256)
     {
-        if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
-            return 0;
-        }
-        return pools[_subgraphDeploymentID].gcs.balanceOf(_curator);
+        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
+        return (address(gcs) == address(0)) ? 0 : gcs.balanceOf(_curator);
     }
 
     /**
@@ -335,10 +351,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         override
         returns (uint256)
     {
-        if (address(pools[_subgraphDeploymentID].gcs) == address(0)) {
-            return 0;
-        }
-        return pools[_subgraphDeploymentID].gcs.totalSupply();
+        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
+        return (address(gcs) == address(0)) ? 0 : gcs.totalSupply();
     }
 
     /**
@@ -356,14 +370,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
     }
 
     /**
-     * @dev Get curation tax percentage
-     * @return Amount the curation tax percentage in PPM
-     */
-    function curationTaxPercentage() external view override returns (uint32) {
-        return _curationTaxPercentage;
-    }
-
-    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
@@ -376,7 +382,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable, ICuration {
         override
         returns (uint256, uint256)
     {
-        uint256 curationTax = _tokensIn.mul(uint256(_curationTaxPercentage)).div(MAX_PPM);
+        uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);
     }

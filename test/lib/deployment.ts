@@ -117,6 +117,7 @@ export async function deployCuration(
 ): Promise<Curation> {
   // Dependency
   const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
+  const curationTokenMaster = await deployContract('GraphCurationToken', deployer)
 
   // Deploy
   return network.deployContractWithProxy(
@@ -125,6 +126,7 @@ export async function deployCuration(
     [
       controller,
       bondingCurve.address,
+      curationTokenMaster.address,
       defaults.curation.reserveRatio,
       defaults.curation.curationTaxPercentage,
       defaults.curation.minimumCurationDeposit,
