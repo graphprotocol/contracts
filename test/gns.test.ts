@@ -248,6 +248,10 @@ describe('GNS', () => {
     expect(vSignalOld).eq(BigNumber.from(splitVSignal))
     expect(vSignalNew).eq(BigNumber.from(splitVSignal))
 
+    // Check subgraph deployment IDs
+    expect(idOld).eq(beforeSubgraph.subgraphDeploymentID)
+    expect(idNew).eq(afterSubgraph.subgraphDeploymentID)
+
     // Check NFT should not change owner
     expect(owner).eq(account.address)
 
