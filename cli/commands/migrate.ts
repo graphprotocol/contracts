@@ -22,6 +22,7 @@ const allContracts = [
   'Controller',
   'EpochManager',
   'GraphToken',
+  'GraphCurationToken',
   'ServiceRegistry',
   'Curation',
   'GNS',
