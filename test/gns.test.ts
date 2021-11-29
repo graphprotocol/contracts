@@ -954,11 +954,9 @@ describe('GNS', () => {
 
   describe('Curating on names', async function () {
     describe('mintSignal()', async function () {
-      context('when new version exists', async function () {
+      context('when new version already exists', async function () {
         it('should deposit into the name signal curve', async function () {
           const subgraph = await publishNewSubgraph(me, newSubgraph0)
-
-          await mintSignal(other, subgraph.id, tokens10000)
 
           await gns
             .connect(me.signer)
@@ -967,44 +965,55 @@ describe('GNS', () => {
               newSubgraph1.subgraphDeploymentID,
               newSubgraph1.versionMetadata,
             )
+
+          await mintSignal(other, subgraph.id, tokens10000, {
+            tokensOld: 4750000000000000000000n,
+            vSignalOld: 6892024376045110883n,
+            tokensNew: 4750000000000000000000n,
+            vSignalNew: 6892024376045110883n,
+            nSignal: 13784048752090221766n,
+            vSignal: 13784048752090221766n,
+          })
         })
       })
 
-      it('should deposit into the name signal curve', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await mintSignal(other, subgraph.id, tokens10000)
-      })
+      context('when new version does not exist', async function () {
+        it('should deposit into the name signal curve', async function () {
+          const subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await mintSignal(other, subgraph.id, tokens10000)
+        })
 
-      it('should fail when name signal is disabled', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await deprecateSubgraph(me, subgraph.id)
-        const tx = gns.connect(me.signer).mintSignal(subgraph.id, tokens1000, 0)
-        await expect(tx).revertedWith('GNS: Must be active')
-      })
+        it('should fail when name signal is disabled', async function () {
+          const subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await deprecateSubgraph(me, subgraph.id)
+          const tx = gns.connect(me.signer).mintSignal(subgraph.id, tokens1000, 0)
+          await expect(tx).revertedWith('GNS: Must be active')
+        })
 
-      it('should fail if you try to deposit on a non existing name', async function () {
-        const subgraphID = randomHexBytes(32)
-        const tx = gns.connect(me.signer).mintSignal(subgraphID, tokens1000, 0)
-        await expect(tx).revertedWith('GNS: Must be active')
-      })
+        it('should fail if you try to deposit on a non existing name', async function () {
+          const subgraphID = randomHexBytes(32)
+          const tx = gns.connect(me.signer).mintSignal(subgraphID, tokens1000, 0)
+          await expect(tx).revertedWith('GNS: Must be active')
+        })
 
-      it('reject minting if under slippage', async function () {
-        // First publish the subgraph
-        const subgraph = await publishNewSubgraph(me, newSubgraph0)
+        it('reject minting if under slippage', async function () {
+          // First publish the subgraph
+          const subgraph = await publishNewSubgraph(me, newSubgraph0)
 
-        // Set slippage to be 1 less than expected result to force reverting
-        const { 1: expectedNSignal } = await gns.tokensToNSignal(subgraph.id, tokens1000)
-        const tx = gns
-          .connect(me.signer)
-          .mintSignal(subgraph.id, tokens1000, expectedNSignal.add(1))
-        await expect(tx).revertedWith('Slippage protection')
+          // Set slippage to be 1 less than expected result to force reverting
+          const { 1: expectedNSignal } = await gns.tokensToNSignal(subgraph.id, tokens1000)
+          const tx = gns
+            .connect(me.signer)
+            .mintSignal(subgraph.id, tokens1000, expectedNSignal.add(1))
+          await expect(tx).revertedWith('Slippage protection')
+        })
       })
     })
 
     describe('burnSignal()', async function () {
       let subgraph: Subgraph
 
-      context('when new version exists', async function () {
+      context('when new version already exists', async function () {
         beforeEach(async () => {
           subgraph = await publishNewSubgraph(me, newSubgraph0)
 
@@ -1018,10 +1027,33 @@ describe('GNS', () => {
               newSubgraph1.versionMetadata,
             )
         })
+
         it('should withdraw from the name signal curve', async function () {
           await burnSignal(other, subgraph.id, {
             vSignalEmit: 13610657588816199440n,
             tokensEmit: 9262500000000000000000n,
+          })
+        })
+      })
+
+      context('when mint happens after new version already exists', async function () {
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+
+          await gns.connect(other.signer).mintSignal(subgraph.id, tokens10000, 0)
+        })
+
+        it.only('should withdraw from the name signal curve', async function () {
+          await burnSignal(other, subgraph.id, {
+            vSignalEmit: 13784048752090221766n,
           })
         })
       })
