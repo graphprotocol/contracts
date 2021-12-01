@@ -219,11 +219,17 @@ describe('GNS', () => {
     const tx = gns
       .connect(account.signer)
       .publishNewVersion(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
-    await expect(tx)
-      .emit(gns, 'SubgraphUpgraded')
-      .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
+    const txResult = expect(tx)
       .emit(gns, 'SubgraphVersionUpdated')
       .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
+
+    // Only emits this event if there was actual signal to upgrade
+    if (beforeSubgraph.nSignal.gt(0)) {
+      txResult
+        .emit(gns, 'SubgraphUpgraded')
+        .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
+    }
+    await txResult
 
     // Check curation vSignal old are set to zero
     const [afterTokensOldCuration, afterVSignalOldCuration] = await getTokensAndVSignal(
