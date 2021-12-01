@@ -548,7 +548,7 @@ describe('GNS', () => {
         const tx = gns
           .connect(other.signer)
           .setDefaultName(me.address, 0, defaultName.nameIdentifier, defaultName.name)
-        await expect(tx).revertedWith('GNS: Only can set your own name')
+        await expect(tx).revertedWith('GNS: Only you can set your name')
       })
     })
 
