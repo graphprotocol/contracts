@@ -3,12 +3,13 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import "../base/SubgraphNFT.sol";
 import "../governance/Managed.sol";
 
 import "./erc1056/IEthereumDIDRegistry.sol";
 import "./IGNS.sol";
 
-contract GNSV1Storage is Managed {
+abstract contract GNSV1Storage is Managed {
     // -- State --
 
     // In parts per hundred
@@ -17,17 +18,31 @@ contract GNSV1Storage is Managed {
     // Bonding curve formula
     address public bondingCurve;
 
-    // graphAccountID => subgraphNumber => subgraphDeploymentID
-    // subgraphNumber = A number associated to a graph accounts deployed subgraph. This
-    //                  is used to point to a subgraphID (graphAccountID + subgraphNumber)
-    mapping(address => mapping(uint256 => bytes32)) public subgraphs;
+    // Stores what subgraph deployment a particular legacy subgraph targets
+    // A subgraph is defined by (graphAccountID, subgraphNumber)
+    // A subgraph can target one subgraph deployment (bytes32 hash)
+    // (graphAccountID, subgraphNumber) => subgraphDeploymentID
+    mapping(address => mapping(uint256 => bytes32)) internal legacySubgraphs;
 
-    // graphAccountID => subgraph deployment counter
-    mapping(address => uint256) public graphAccountSubgraphNumbers;
+    // Every time an account creates a subgraph it increases a per-account sequence ID
+    // account => seqID
+    mapping(address => uint256) public nextAccountSeqID;
 
-    // graphAccountID => subgraphNumber => NameCurationPool
-    mapping(address => mapping(uint256 => IGNS.NameCurationPool)) public nameSignals;
+    // Stores all the signal deposited on a legacy subgraph
+    // (graphAccountID, subgraphNumber) => SubgraphData
+    mapping(address => mapping(uint256 => IGNS.SubgraphData)) public legacySubgraphData;
 
-    // ERC-1056 contract reference
-    IEthereumDIDRegistry public erc1056Registry;
+    // [DEPRECATED] ERC-1056 contract reference
+    // This contract is used for managing identities
+    IEthereumDIDRegistry private __DEPRECATED_erc1056Registry;
+}
+
+abstract contract GNSV2Storage is GNSV1Storage, SubgraphNFT {
+    // Use it whenever a legacy (v1) subgraph NFT was claimed to maintain compatibility
+    // Keep a reference from subgraphID => (graphAccount, subgraphNumber)
+    mapping(uint256 => IGNS.LegacySubgraphKey) public legacySubgraphKeys;
+
+    // Store data for all NFT-based (v2) subgraphs
+    // subgraphID => SubgraphData
+    mapping(uint256 => IGNS.SubgraphData) public subgraphs;
 }

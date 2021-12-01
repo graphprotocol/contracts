@@ -25,6 +25,7 @@ let allContracts = [
   'GraphCurationToken',
   'ServiceRegistry',
   'Curation',
+  'SubgraphNFTDescriptor',
   'GNS',
   'Staking',
   'RewardsManager',
