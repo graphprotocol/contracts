@@ -290,6 +290,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // NOTE: We will only do this as long as there is signal on the subgraph
         if (subgraphData.nSignal > 0) {
             // Burn all version signal in the name pool for tokens (w/no slippage protection)
+            // Sell all signal from the old deployment
             uint256 tokens = curation.burn(
                 subgraphData.subgraphDeploymentID,
                 subgraphData.vSignal,
@@ -306,12 +307,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             );
 
             // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
-            subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
-            (subgraphData.vSignal, ) = curation.mint(
-                subgraphData.subgraphDeploymentID,
-                tokensWithTax,
-                0
-            );
+            // Buy all signal from the new deployment
+            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
+
             emit SubgraphUpgraded(
                 _subgraphID,
                 subgraphData.vSignal,
@@ -319,6 +317,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 _subgraphDeploymentID
             );
         }
+
+        // Update target deployment
+        subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
 
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
