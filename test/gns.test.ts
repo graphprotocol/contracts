@@ -231,6 +231,20 @@ describe('GNS', () => {
       newSubgraph.subgraphDeploymentID,
     )
 
+    // TODO: fix test
+    // const txResult = expect(tx)
+    //   .emit(gns, 'SubgraphVersionUpdated')
+    //   .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
+
+    // Only emits this event if there was actual signal to upgrade
+    // if (beforeSubgraph.nSignal.gt(0)) {
+    //   txResult
+    //     .emit(gns, 'SubgraphUpgraded')
+    //     .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
+    // }
+    // await txResult
+    // TODO: end fix test
+
     // Check tokens and vSignal for previous deployment
     expect(tokensBefore).eq(BigNumber.from(splitTokens))
     expect(vSignalBefore).eq(BigNumber.from(splitVSignal))
