@@ -30,12 +30,15 @@ export const gettersList = {
   'disputes-arbitrator': { contract: 'DisputeManager', name: 'arbitrator' },
   'disputes-minimum-deposit': { contract: 'DisputeManager', name: 'minimumDeposit' },
   'disputes-reward-percentage': { contract: 'DisputeManager', name: 'fishermanRewardPercentage' },
-  'disputes-slashing-percentage': { contract: 'DisputeManager', name: 'slashingPercentage' },
   // Epochs
   'epochs-length': { contract: 'EpochManager', name: 'epochLength' },
   'epochs-current': { contract: 'EpochManager', name: 'currentEpoch' },
   // Rewards
   'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
+  'subgraph-availability-oracle': {
+    contract: 'RewardsManager',
+    name: 'subgraphAvailabilityOracle',
+  },
   // GNS
   'gns-bonding-curve': { contract: 'GNS', name: 'bondingCurve' },
   'gns-owner-tax-percentage': { contract: 'GNS', name: 'ownerTaxPercentage' },

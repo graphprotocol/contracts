@@ -1,4 +1,4 @@
-import yargs, { Argv, command } from 'yargs'
+import yargs, { Argv } from 'yargs'
 
 import { curationCommand } from './curation'
 import { serviceRegistryCommand } from './serviceRegistry'

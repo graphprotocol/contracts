@@ -447,6 +447,8 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate properly when multiple delegations', async function () {
+        this.timeout(60000) // increase timeout for test runner
+
         // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
         await epochManager.setEpochLength(toBN((60 * 60) / 15))
 
@@ -465,7 +467,6 @@ describe('Staking::Delegation', () => {
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator, toGRT('50'))
-        await advanceBlock()
         await advanceToNextEpoch(epochManager) // epoch 1
         await advanceToNextEpoch(epochManager) // epoch 2
         await shouldUndelegate(delegator, toGRT('10'))

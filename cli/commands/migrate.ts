@@ -16,12 +16,13 @@ const { EtherSymbol } = constants
 const { formatEther } = utils
 
 // Contracts are deployed in the order defined in this list
-const allContracts = [
+let allContracts = [
   'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
   'EpochManager',
   'GraphToken',
+  'GraphCurationToken',
   'ServiceRegistry',
   'Curation',
   'SubgraphNFTDescriptor',
@@ -35,6 +36,11 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const graphConfigPath = cliArgs.graphConfig
   const force = cliArgs.force
   const contractName = cliArgs.contract
+  const chainId = cli.chainId
+
+  if (chainId == 1337) {
+    allContracts = ['EthereumDIDRegistry', ...allContracts]
+  }
 
   logger.info(`>>> Migrating contracts <<<\n`)
 
