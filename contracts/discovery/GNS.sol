@@ -251,7 +251,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         subgraphData.reserveRatio = defaultReserveRatio;
 
         // Init version
-        subgraphData.versions[0].subgraphDeploymentID = _subgraphDeploymentID;
+        subgraphData.versions[VersionType.Current].subgraphDeploymentID = _subgraphDeploymentID;
 
         // Mint the NFT. Use the subgraphID as tokenId.
         // This function will check the if tokenId already exists.
@@ -307,15 +307,15 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             _initOldVersion(subgraphData);
 
             tokens = curation.burn(
-                subgraphData.versions[0].subgraphDeploymentID,
-                subgraphData.versions[0].vSignal,
+                subgraphData.versions[VersionType.Current].subgraphDeploymentID,
+                subgraphData.versions[VersionType.Current].vSignal,
                 0
             );
 
-            if (_versionExists(subgraphData.versions[1])) {
+            if (_versionExists(subgraphData.versions[VersionType.New])) {
                 tokens += curation.burn(
-                    subgraphData.versions[1].subgraphDeploymentID,
-                    subgraphData.versions[1].vSignal,
+                    subgraphData.versions[VersionType.New].subgraphDeploymentID,
+                    subgraphData.versions[VersionType.New].vSignal,
                     0
                 );
             }
@@ -342,8 +342,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             uint256 vSignalTotal = _vSignalOld + _vSignalNew;
 
             // Update vSignal for versions
-            subgraphData.versions[0].vSignal = _vSignalOld;
-            subgraphData.versions[1].vSignal = _vSignalNew;
+            subgraphData.versions[VersionType.Current].vSignal = _vSignalOld;
+            subgraphData.versions[VersionType.New].vSignal = _vSignalNew;
 
             // Update subgraphData Signal
             subgraphData.vSignal = vSignalTotal;
@@ -357,8 +357,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
 
         // Update versions
-        subgraphData.versions[0].subgraphDeploymentID = subgraphData.subgraphDeploymentID;
-        subgraphData.versions[1].subgraphDeploymentID = _subgraphDeploymentID;
+        subgraphData.versions[VersionType.Current].subgraphDeploymentID = subgraphData
+            .subgraphDeploymentID;
+        subgraphData.versions[VersionType.New].subgraphDeploymentID = _subgraphDeploymentID;
 
         // Update deployment ID
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
@@ -380,7 +381,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Check new version exists
-        require(subgraphData.versions[1].vSignal != 0, "No versions to finish upgrade");
+        require(
+            subgraphData.versions[VersionType.New].vSignal != 0,
+            "No versions to finish upgrade"
+        );
 
         ICuration curation = curation();
 
@@ -388,19 +392,19 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Burn signal
         tokens = curation.burn(
-            subgraphData.versions[0].subgraphDeploymentID,
-            subgraphData.versions[0].vSignal,
+            subgraphData.versions[VersionType.Current].subgraphDeploymentID,
+            subgraphData.versions[VersionType.Current].vSignal,
             0
         );
         tokens += curation.burn(
-            subgraphData.versions[1].subgraphDeploymentID,
-            subgraphData.versions[1].vSignal,
+            subgraphData.versions[VersionType.New].subgraphDeploymentID,
+            subgraphData.versions[VersionType.New].vSignal,
             0
         );
 
         // Mint tokens
         (uint256 _vSignalTotal, ) = curation.mint(
-            subgraphData.versions[1].subgraphDeploymentID,
+            subgraphData.versions[VersionType.New].subgraphDeploymentID,
             tokens,
             0
         );
@@ -409,17 +413,19 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 nSignalTotal = vSignalToNSignal(_subgraphID, _vSignalTotal);
 
         // Update version 0
-        subgraphData.versions[0].subgraphDeploymentID = subgraphData
-            .versions[1]
+        subgraphData.versions[VersionType.Current].subgraphDeploymentID = subgraphData
+            .versions[VersionType.New]
             .subgraphDeploymentID;
-        subgraphData.versions[0].vSignal = _vSignalTotal;
+        subgraphData.versions[VersionType.Current].vSignal = _vSignalTotal;
 
         // Remove version 1 data
-        subgraphData.versions[1].subgraphDeploymentID = "";
-        subgraphData.versions[1].vSignal = 0;
+        subgraphData.versions[VersionType.New].subgraphDeploymentID = "";
+        subgraphData.versions[VersionType.New].vSignal = 0;
 
         // Update subgraphData
-        subgraphData.subgraphDeploymentID = subgraphData.versions[1].subgraphDeploymentID;
+        subgraphData.subgraphDeploymentID = subgraphData
+            .versions[VersionType.New]
+            .subgraphDeploymentID;
         subgraphData.nSignal = nSignalTotal;
         subgraphData.vSignal = _vSignalTotal;
 
@@ -427,7 +433,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         emit SubgraphUpgradeFinalized(
             _subgraphID,
             subgraphData.subgraphDeploymentID,
-            subgraphData.versions[0].vSignal
+            subgraphData.versions[VersionType.Current].vSignal
         );
     }
 
@@ -453,22 +459,22 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         if (subgraphData.nSignal > 0) {
             _withdrawableGRT = curation().burn(
-                subgraphData.versions[0].subgraphDeploymentID,
-                subgraphData.versions[0].vSignal,
+                subgraphData.versions[VersionType.Current].subgraphDeploymentID,
+                subgraphData.versions[VersionType.Current].vSignal,
                 0
             );
 
-            subgraphData.versions[0].vSignal = 0;
+            subgraphData.versions[VersionType.Current].vSignal = 0;
 
             // If new version exists
-            if (_versionExists(subgraphData.versions[1])) {
+            if (_versionExists(subgraphData.versions[VersionType.New])) {
                 _withdrawableGRT += curation().burn(
-                    subgraphData.versions[1].subgraphDeploymentID,
-                    subgraphData.versions[1].vSignal,
+                    subgraphData.versions[VersionType.New].subgraphDeploymentID,
+                    subgraphData.versions[VersionType.New].vSignal,
                     0
                 );
 
-                subgraphData.versions[1].vSignal = 0;
+                subgraphData.versions[VersionType.New].vSignal = 0;
             }
 
             subgraphData.withdrawableGRT = _withdrawableGRT;
@@ -513,20 +519,23 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 vSignalTotal;
 
         // If new version exists
-        if (_versionExists(subgraphData.versions[1])) {
+        if (_versionExists(subgraphData.versions[VersionType.New])) {
             _tokens = _tokens.div(2);
 
             (vSignalTotal, ) = curation().mint(
-                subgraphData.versions[1].subgraphDeploymentID,
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 _tokens,
                 0
             );
-            subgraphData.versions[1].vSignal = subgraphData.versions[1].vSignal.add(vSignalTotal);
+            subgraphData.versions[VersionType.New].vSignal = subgraphData
+                .versions[VersionType.New]
+                .vSignal
+                .add(vSignalTotal);
         }
 
         // Get name signal to mint for tokens deposited
         (uint256 vSignalOld, ) = curation().mint(
-            subgraphData.versions[0].subgraphDeploymentID,
+            subgraphData.versions[VersionType.Current].subgraphDeploymentID,
             _tokens,
             0
         );
@@ -538,7 +547,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         require(nSignalTotal >= _nSignalOutMin, "GNS: Slippage protection");
 
         // Update version vSignal
-        subgraphData.versions[0].vSignal = subgraphData.versions[0].vSignal.add(vSignalOld);
+        subgraphData.versions[VersionType.Current].vSignal = subgraphData
+            .versions[VersionType.Current]
+            .vSignal
+            .add(vSignalOld);
 
         // Update pools
         subgraphData.vSignal = subgraphData.vSignal.add(vSignalTotal);
@@ -575,7 +587,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             "GNS: Curator cannot withdraw more nSignal than they have"
         );
 
-        bool newVersionExists = _versionExists(subgraphData.versions[1]);
+        bool newVersionExists = _versionExists(subgraphData.versions[VersionType.New]);
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignal);
         uint256 tokens;
 
@@ -584,22 +596,28 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             vSignal = vSignal.div(2);
 
             tokens = curation().burn(
-                subgraphData.versions[1].subgraphDeploymentID,
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 vSignal,
                 _tokensOutMin
             );
 
-            subgraphData.versions[1].vSignal = subgraphData.versions[1].vSignal.sub(vSignal);
+            subgraphData.versions[VersionType.New].vSignal = subgraphData
+                .versions[VersionType.New]
+                .vSignal
+                .sub(vSignal);
         }
 
         tokens += curation().burn(
-            subgraphData.versions[0].subgraphDeploymentID,
+            subgraphData.versions[VersionType.Current].subgraphDeploymentID,
             vSignal,
             _tokensOutMin
         );
 
         // Update version vSignal
-        subgraphData.versions[0].vSignal = subgraphData.versions[0].vSignal.sub(vSignal);
+        subgraphData.versions[VersionType.Current].vSignal = subgraphData
+            .versions[VersionType.Current]
+            .vSignal
+            .sub(vSignal);
 
         if (newVersionExists) {
             vSignal = vSignal.mul(2);
@@ -710,9 +728,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 vSignalTotal;
 
         // If new version exists
-        if (_versionExists(subgraphData.versions[1])) {
+        if (_versionExists(subgraphData.versions[VersionType.New])) {
             (uint256 vSignalNew, ) = curation().tokensToSignal(
-                subgraphData.versions[1].subgraphDeploymentID,
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 _tokensIn
             );
 
@@ -720,7 +738,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
 
         (uint256 vSignalOld, uint256 curationTax) = curation().tokensToSignal(
-            subgraphData.versions[0].subgraphDeploymentID,
+            subgraphData.versions[VersionType.Current].subgraphDeploymentID,
             _tokensIn
         );
 
@@ -749,20 +767,20 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
         uint256 tokensOut;
 
-        if (_versionExists(subgraphData.versions[1])) {
+        if (_versionExists(subgraphData.versions[VersionType.New])) {
             // Divide signal in half
             vSignal = vSignal.div(2);
 
             tokensOut += curation().signalToTokens(
-                subgraphData.versions[1].subgraphDeploymentID,
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 vSignal
             );
         }
 
         bytes32 subgraphDeploymentID;
 
-        if (_versionExists(subgraphData.versions[0])) {
-            subgraphDeploymentID = subgraphData.versions[0].subgraphDeploymentID;
+        if (_versionExists(subgraphData.versions[VersionType.Current])) {
+            subgraphDeploymentID = subgraphData.versions[VersionType.Current].subgraphDeploymentID;
         } else {
             subgraphDeploymentID = subgraphData.subgraphDeploymentID;
         }
@@ -843,7 +861,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _version Version uint256
      * @return Version struct properties
      */
-    function getSubgraphVersion(uint256 _subgraphID, uint256 _version)
+    function getSubgraphVersion(uint256 _subgraphID, VersionType _version)
         public
         view
         override
@@ -1003,9 +1021,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     function _initOldVersion(SubgraphData storage _subgraphData) internal {
-        if (!_versionExists(_subgraphData.versions[0])) {
-            _subgraphData.versions[0].subgraphDeploymentID = _subgraphData.subgraphDeploymentID;
-            _subgraphData.versions[0].vSignal = _subgraphData.vSignal;
+        if (!_versionExists(_subgraphData.versions[VersionType.Current])) {
+            _subgraphData.versions[VersionType.Current].subgraphDeploymentID = _subgraphData
+                .subgraphDeploymentID;
+            _subgraphData.versions[VersionType.Current].vSignal = _subgraphData.vSignal;
         }
     }
 }

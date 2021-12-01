@@ -13,7 +13,7 @@ interface IGNS {
         uint32 reserveRatio;
         bool disabled;
         uint256 withdrawableGRT;
-        mapping(uint256 => Version) versions;
+        mapping(VersionType => Version) versions;
     }
 
     struct LegacySubgraphKey {
@@ -24,6 +24,11 @@ interface IGNS {
     struct Version {
         bytes32 subgraphDeploymentID;
         uint256 vSignal;
+    }
+
+    enum VersionType {
+        Current,
+        New
     }
 
     // -- Configuration --
@@ -112,7 +117,7 @@ interface IGNS {
         view
         returns (uint256);
 
-    function getSubgraphVersion(uint256 _subgraphID, uint256 _version)
+    function getSubgraphVersion(uint256 _subgraphID, VersionType _version)
         external
         view
         returns (bytes32, uint256);
