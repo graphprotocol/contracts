@@ -822,73 +822,91 @@ describe('GNS', () => {
     })
 
     describe('finalizeSubgraphUpgrade', async function () {
-      let subgraph: Subgraph
+      context('when new version exists', async function () {
+        let subgraph: Subgraph
 
-      beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0)
-        await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+          await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
 
-        await gns
-          .connect(me.signer)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          await gns
+            .connect(me.signer)
+            .publishNewVersion(
+              subgraph.id,
+              newSubgraph1.subgraphDeploymentID,
+              newSubgraph1.versionMetadata,
+            )
+        })
+
+        it('should finalize version', async function () {
+          const tokensExpectedOld = 8799375000000000000000n
+          const vSignalExpectedOld = 9380498387612462033n
+
+          const tokensExpectedNew = 0n
+          const vSignalExpectedNew = 0n
+
+          const nSignalExpected = 6717514421272201481n
+          const vSignalExpected = 9380498387612462033n
+
+          // Finalized version
+          const [idFinalized] = await gns.getSubgraphVersion(subgraph.id, 0)
+          const [idLatest] = await gns.getSubgraphVersion(subgraph.id, 1)
+
+          // Finalize
+          await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
+
+          // Finalized veresion tokens and vSignal
+          const [tokensFinalized, vSignalFinalized] = await curationPoolTokensAndSignal(idFinalized)
+
+          // Check finalized veresion
+          expect(toFloat(tokensFinalized)).eq(0)
+          expect(toFloat(vSignalFinalized)).eq(0)
+
+          // Versions after transaction
+          const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraph.id, 0)
+          const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraph.id, 1)
+
+          // After state
+          const afterSubgraph = await gns.subgraphs(subgraph.id)
+          const [afterTokensOld, afterVSignalOld] = await curationPoolTokensAndSignal(idOld)
+          const [afterTokensNew, afterVSignalNew] = await curationPoolTokensAndSignal(idNew)
+
+          // Check old curation pool tokens and signal
+          expect(afterTokensOld).eq(BigNumber.from(tokensExpectedOld))
+          expect(afterVSignalOld).eq(BigNumber.from(vSignalExpectedOld))
+
+          // Check new curation pool tokens and signal
+          expect(afterTokensNew).eq(BigNumber.from(tokensExpectedNew))
+          expect(afterVSignalNew).eq(BigNumber.from(vSignalExpectedNew))
+
+          // Check GNS signal
+          expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
+          expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
+
+          // Check subgraph deployment IDs
+          expect(idOld).eq(idLatest)
+          expect(idNew).eq('0x0000000000000000000000000000000000000000000000000000000000000000')
+
+          // Check versions
+          expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
+          expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
+        })
       })
 
-      it('should finalize version', async function () {
-        const tokensExpectedOld = 8799375000000000000000n
-        const vSignalExpectedOld = 9380498387612462033n
+      context('when new version does not exist', async function () {
+        let subgraph: Subgraph
 
-        const tokensExpectedNew = 0n
-        const vSignalExpectedNew = 0n
+        beforeEach(async () => {
+          subgraph = await publishNewSubgraph(me, newSubgraph0)
+        })
 
-        const nSignalExpected = 6717514421272201481n
-        const vSignalExpected = 9380498387612462033n
+        it('should revert', async function () {
+          const tx = gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
 
-        // Finalized version
-        const [idFinalized] = await gns.getSubgraphVersion(subgraph.id, 0)
-        const [idLatest] = await gns.getSubgraphVersion(subgraph.id, 1)
-
-        // Finalize
-        await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
-
-        // Finalized veresion tokens and vSignal
-        const [tokensFinalized, vSignalFinalized] = await curationPoolTokensAndSignal(idFinalized)
-
-        // Check finalized veresion
-        expect(toFloat(tokensFinalized)).eq(0)
-        expect(toFloat(vSignalFinalized)).eq(0)
-
-        // Versions after transaction
-        const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraph.id, 0)
-        const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraph.id, 1)
-
-        // After state
-        const afterSubgraph = await gns.subgraphs(subgraph.id)
-        const [afterTokensOld, afterVSignalOld] = await curationPoolTokensAndSignal(idOld)
-        const [afterTokensNew, afterVSignalNew] = await curationPoolTokensAndSignal(idNew)
-
-        // Check old curation pool tokens and signal
-        expect(afterTokensOld).eq(BigNumber.from(tokensExpectedOld))
-        expect(afterVSignalOld).eq(BigNumber.from(vSignalExpectedOld))
-
-        // Check new curation pool tokens and signal
-        expect(afterTokensNew).eq(BigNumber.from(tokensExpectedNew))
-        expect(afterVSignalNew).eq(BigNumber.from(vSignalExpectedNew))
-
-        // Check GNS signal
-        expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
-        expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
-
-        // Check subgraph deployment IDs
-        expect(idOld).eq(idLatest)
-        expect(idNew).eq('0x0000000000000000000000000000000000000000000000000000000000000000')
-
-        // Check versions
-        expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
-        expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
+          await expect(tx).revertedWith(
+            "VM Exception while processing transaction: reverted with reason string 'New version does not exist'",
+          )
+        })
       })
     })
 
