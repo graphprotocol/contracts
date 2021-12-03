@@ -518,22 +518,22 @@ describe('GNS', () => {
       })
     })
 
-    describe('setTokenDescriptor', function () {
-      it('should set `tokenDescriptor`', async function () {
-        const newTokenDescriptor = gns.address // I just use any contract address
-        const tx = gns.connect(governor.signer).setTokenDescriptor(newTokenDescriptor)
-        await expect(tx).emit(gns, 'TokenDescriptorUpdated').withArgs(newTokenDescriptor)
-        expect(await gns.tokenDescriptor()).eq(newTokenDescriptor)
+    describe('setSubgraphNFT', function () {
+      it('should set `setSubgraphNFT`', async function () {
+        const newValue = gns.address // I just use any contract address
+        const tx = gns.connect(governor.signer).setSubgraphNFT(newValue)
+        await expect(tx).emit(gns, 'SubgraphNFTUpdated').withArgs(newValue)
+        expect(await gns.subgraphNFT()).eq(newValue)
       })
 
       it('revert set to empty address', async function () {
-        const tx = gns.connect(governor.signer).setTokenDescriptor(AddressZero)
-        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+        const tx = gns.connect(governor.signer).setSubgraphNFT(AddressZero)
+        await expect(tx).revertedWith('NFT must be valid')
       })
 
       it('revert set to non-contract', async function () {
-        const tx = gns.connect(governor.signer).setTokenDescriptor(randomHexBytes(20))
-        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+        const tx = gns.connect(governor.signer).setSubgraphNFT(randomHexBytes(20))
+        await expect(tx).revertedWith('NFT must be valid')
       })
     })
   })

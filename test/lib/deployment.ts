@@ -177,15 +177,21 @@ export async function deployGNS(
 ): Promise<GNS> {
   // Dependency
   const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
-  const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
+  // const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
+  const subgraphNFT = await deployContract('SubgraphNFT', deployer, await deployer.getAddress())
 
   // Deploy
-  return network.deployContractWithProxy(
+  const proxy = (await network.deployContractWithProxy(
     proxyAdmin,
     'GNS',
-    [controller, bondingCurve.address, subgraphDescriptor.address],
+    [controller, bondingCurve.address, subgraphNFT.address],
     deployer,
-  ) as unknown as GNS
+  )) as unknown as GNS
+
+  // Post-config
+  await subgraphNFT.connect(deployer).setMinter(proxy.address)
+
+  return proxy
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDIDRegistry> {

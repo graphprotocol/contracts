@@ -4,9 +4,9 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../base/Multicall.sol";
-import "../base/SubgraphNFT.sol";
 import "../bancor/BancorFormula.sol";
 import "../upgrades/GraphUpgradeable.sol";
 import "../utils/TokenUtils.sol";
@@ -37,6 +37,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     uint32 private constant defaultReserveRatio = 1000000;
 
     // -- Events --
+
+    event SubgraphNFTUpdated(address subgraphNFT);
 
     /**
      * @dev Emitted when graph account sets its default name
@@ -143,16 +145,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     function initialize(
         address _controller,
         address _bondingCurve,
-        address _tokenDescriptor
+        address _subgraphNFT
     ) external onlyImpl {
         Managed._initialize(_controller);
 
         // Dependencies
         bondingCurve = _bondingCurve;
-        __SubgraphNFT_init(_tokenDescriptor);
 
         // Settings
         _setOwnerTaxPercentage(500000);
+        _setSubgraphNFT(_subgraphNFT);
     }
 
     /**
@@ -162,6 +164,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         graphToken().approve(address(curation()), MAX_UINT256);
     }
 
+    // -- Config --
+
     /**
      * @dev Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
@@ -169,14 +173,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external override onlyGovernor {
         _setOwnerTaxPercentage(_ownerTaxPercentage);
-    }
-
-    /**
-     * @dev Set the token descriptor contract.
-     * @param _tokenDescriptor Address of the contract that creates the NFT token URI
-     */
-    function setTokenDescriptor(address _tokenDescriptor) external override onlyGovernor {
-        _setTokenDescriptor(_tokenDescriptor);
     }
 
     /**
@@ -189,6 +185,29 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         ownerTaxPercentage = _ownerTaxPercentage;
         emit ParameterUpdated("ownerTaxPercentage");
     }
+
+    /**
+     * @dev Set the NFT registry contract
+     * @param _subgraphNFT Address of the ERC721 contract
+     */
+    function setSubgraphNFT(address _subgraphNFT) public onlyGovernor {
+        _setSubgraphNFT(_subgraphNFT);
+    }
+
+    /**
+     * @dev Internal: Set the NFT registry contract
+     * @param _subgraphNFT Address of the ERC721 contract
+     */
+    function _setSubgraphNFT(address _subgraphNFT) private {
+        require(
+            _subgraphNFT != address(0) && Address.isContract(_subgraphNFT),
+            "NFT must be valid"
+        );
+        subgraphNFT = ISubgraphNFT(_subgraphNFT);
+        emit SubgraphNFTUpdated(_subgraphNFT);
+    }
+
+    // -- Actions --
 
     /**
      * @dev Allows a graph account to set a default name
@@ -217,6 +236,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         override
         onlySubgraphAuth(_subgraphID)
     {
+        _updateSubgraphMetadata(_subgraphID, _subgraphMetadata);
+    }
+
+    /**
+     * @dev Internal: Allows a subgraph owner to update the metadata of a subgraph they have published
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphMetadata IPFS hash for the subgraph metadata
+     */
+    function _updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata) internal {
+        _setSubgraphURI(_subgraphID, string(abi.encodePacked(_subgraphMetadata)));
         emit SubgraphMetadataUpdated(_subgraphID, _subgraphMetadata);
     }
 
@@ -241,12 +270,14 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         subgraphData.reserveRatio = defaultReserveRatio;
 
-        // Mint the NFT. Use the subgraphID as tokenId.
-        // This function will check the if tokenId already exists.
-        _mint(subgraphOwner, subgraphID);
-
+        // Mint the NFT. Use the subgraphID as tokenID.
+        // This function will check the if tokenID already exists.
+        _mintNFT(subgraphOwner, subgraphID);
         emit SubgraphPublished(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
-        emit SubgraphMetadataUpdated(subgraphID, _subgraphMetadata);
+
+        // Set the token metadata
+        _updateSubgraphMetadata(subgraphID, _subgraphMetadata);
+
         emit SubgraphVersionUpdated(subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
@@ -356,7 +387,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // subgraphData.subgraphDeploymentID = 0;
 
         // Burn the NFT
-        _burn(_subgraphID);
+        _burnNFT(_subgraphID);
 
         emit SubgraphDeprecated(_subgraphID, subgraphData.withdrawableGRT);
     }
@@ -638,20 +669,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return the URI describing a particular token ID for a Subgraph.
-     * @param _subgraphID Subgraph ID
-     * @return The URI of the ERC721-compliant metadata
-     */
-    function tokenURI(uint256 _subgraphID) public view override returns (string memory) {
-        return tokenDescriptor.tokenURI(this, _subgraphID);
-    }
-
-    /**
      * @dev Create subgraphID for legacy subgraph and mint ownership NFT.
      * @param _graphAccount Account that created the subgraph
      * @param _subgraphNumber The sequence number of the created subgraph
+     * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
-    function migrateLegacySubgraph(address _graphAccount, uint256 _subgraphNumber) external {
+    function migrateLegacySubgraph(
+        address _graphAccount,
+        uint256 _subgraphNumber,
+        bytes32 _subgraphMetadata
+    ) external {
         // Must be an existing legacy subgraph
         bool legacySubgraphExists = legacySubgraphData[_graphAccount][_subgraphNumber]
             .subgraphDeploymentID != 0;
@@ -675,9 +702,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Mint the NFT and send to owner
         // The subgraph owner is the graph account that created it
-        _mint(_graphAccount, subgraphID);
-
+        _mintNFT(_graphAccount, subgraphID);
         emit LegacySubgraphClaimed(_graphAccount, _subgraphNumber);
+
+        // Set the token metadata
+        _updateSubgraphMetadata(subgraphID, _subgraphMetadata);
     }
 
     /**
@@ -756,5 +785,23 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         require(_isPublished(subgraphData) == true, "GNS: Must be active");
         return subgraphData;
+    }
+
+    // -- NFT --
+
+    function ownerOf(uint256 _tokenID) public view override returns (address) {
+        return subgraphNFT.ownerOf(_tokenID);
+    }
+
+    function _mintNFT(address _owner, uint256 _tokenID) internal {
+        subgraphNFT.mint(_owner, _tokenID);
+    }
+
+    function _burnNFT(uint256 _tokenID) internal {
+        subgraphNFT.burn(_tokenID);
+    }
+
+    function _setSubgraphURI(uint256 _tokenID, string memory _subgraphURI) internal {
+        subgraphNFT.setSubgraphURI(_tokenID, _subgraphURI);
     }
 }
