@@ -202,6 +202,7 @@ describe('GNS', () => {
     splitVSignal: BigInt = 6805328794408099720n,
     totalVSignal: BigInt = 13610657588816199440n,
     totalNSignal: BigInt = 9746794344808963906n,
+    totalTokensIncludingTax: BigInt = 9750000000000000000000n,
   ) => {
     // Subgraph before transaction
     const beforeSubgraph = await gns.subgraphs(subgraphID)
@@ -231,19 +232,22 @@ describe('GNS', () => {
       newSubgraph.subgraphDeploymentID,
     )
 
-    // TODO: fix test
-    // const txResult = expect(tx)
-    //   .emit(gns, 'SubgraphVersionUpdated')
-    //   .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
+    const txResult = expect(tx)
+      .emit(gns, 'SubgraphVersionUpdated')
+      .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
 
-    // Only emits this event if there was actual signal to upgrade
-    // if (beforeSubgraph.nSignal.gt(0)) {
-    //   txResult
-    //     .emit(gns, 'SubgraphUpgraded')
-    //     .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
-    // }
-    // await txResult
-    // TODO: end fix test
+    //Only emits this event if there was actual signal to upgrade
+    if (beforeSubgraph.nSignal.gt(0)) {
+      txResult
+        .emit(gns, 'SubgraphUpgraded')
+        .withArgs(
+          subgraphID,
+          totalVSignal,
+          totalTokensIncludingTax,
+          newSubgraph.subgraphDeploymentID,
+        )
+    }
+    await txResult
 
     // Check tokens and vSignal for previous deployment
     expect(tokensBefore).eq(BigNumber.from(splitTokens))
@@ -758,6 +762,7 @@ describe('GNS', () => {
               6719723766643983111n,
               13439447533287966222n,
               9746794344808963906n,
+              9506250000000000000000n,
             )
           })
         })
