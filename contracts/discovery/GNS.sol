@@ -381,10 +381,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Check new version exists
-        require(
-            subgraphData.versions[VersionType.New].vSignal != 0,
-            "No versions to finish upgrade"
-        );
+        require(subgraphData.versions[VersionType.New].vSignal != 0, "New version does not exist");
 
         ICuration curation = curation();
 
