@@ -383,7 +383,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Check new version exists
-        require(subgraphData.versions[VersionType.New].vSignal != 0, "New version does not exist");
+        require(
+            subgraphData.versions[VersionType.New].vSignal != 0,
+            "GNS: New version does not exist"
+        );
 
         ICuration curation = curation();
 
@@ -1017,10 +1020,19 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         return subgraphData;
     }
 
+    /**
+     * @dev Check to see if verrsion exists
+     * @param _version Version data
+     * @return Bool Whether the version exists or not
+     */
     function _versionExists(Version storage _version) internal view returns (bool) {
-        return _version.subgraphDeploymentID != "";
+        return _version.subgraphDeploymentID != 0;
     }
 
+    /**
+     * @dev Initialize current version
+     * @param _subgraphData Subgraph data
+     */
     function _initOldVersion(SubgraphData storage _subgraphData) internal {
         if (!_versionExists(_subgraphData.versions[VersionType.Current])) {
             _subgraphData.versions[VersionType.Current].subgraphDeploymentID = _subgraphData
