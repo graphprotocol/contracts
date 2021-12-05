@@ -953,7 +953,7 @@ describe('GNS', () => {
         it('should revert', async function () {
           const tx = gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
 
-          await expect(tx).revertedWith('New version does not exist')
+          await expect(tx).revertedWith('GNS: New version does not exist')
         })
       })
     })
