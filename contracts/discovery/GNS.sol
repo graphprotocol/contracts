@@ -3,7 +3,6 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../base/Multicall.sol";
