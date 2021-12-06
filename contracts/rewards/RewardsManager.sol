@@ -23,6 +23,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
     uint256 private constant MIN_ISSUANCE_RATE = 1e18;
+    uint256 private constant REWARDS_ACCRUAL_SIGNALLED_THRESHOLD = 100e18;
 
     // -- Events --
 
@@ -223,11 +224,16 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
-        uint256 newRewardsPerSignal = getAccRewardsPerSignal().sub(
-            subgraph.accRewardsPerSignalSnapshot
-        );
+        // Get tokens signalled on the subgraph
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
-        uint256 newRewards = newRewardsPerSignal.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
+
+        // Only accrue rewards if over a threshold
+        uint256 newRewards = (subgraphSignalledTokens > REWARDS_ACCRUAL_SIGNALLED_THRESHOLD) // Accrue new rewards since last snapshot
+            ? getAccRewardsPerSignal()
+                .sub(subgraph.accRewardsPerSignalSnapshot)
+                .mul(subgraphSignalledTokens)
+                .div(TOKEN_DECIMALS)
+            : 0;
         return subgraph.accRewardsForSubgraph.add(newRewards);
     }
 
