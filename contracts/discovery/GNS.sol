@@ -3,7 +3,6 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../base/Multicall.sol";
@@ -387,7 +386,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Check new version exists
         require(
-            subgraphData.versions[VersionType.New].vSignal != 0,
+            subgraphData.versions[VersionType.New].subgraphDeploymentID != 0,
             "GNS: New version does not exist"
         );
 
@@ -395,46 +394,50 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         uint256 tokens;
 
-        // Burn signal
-        tokens = curation.burn(
-            subgraphData.versions[VersionType.Current].subgraphDeploymentID,
-            subgraphData.versions[VersionType.Current].vSignal,
-            0
-        );
-        tokens = tokens.add(
-            curation.burn(
-                subgraphData.versions[VersionType.New].subgraphDeploymentID,
-                subgraphData.versions[VersionType.New].vSignal,
+        if (subgraphData.nSignal > 0) {
+            // Burn signal
+            tokens = curation.burn(
+                subgraphData.versions[VersionType.Current].subgraphDeploymentID,
+                subgraphData.versions[VersionType.Current].vSignal,
                 0
-            )
-        );
+            );
+            tokens = tokens.add(
+                curation.burn(
+                    subgraphData.versions[VersionType.New].subgraphDeploymentID,
+                    subgraphData.versions[VersionType.New].vSignal,
+                    0
+                )
+            );
 
-        // Mint tokens
-        (uint256 _vSignalTotal, ) = curation.mint(
-            subgraphData.versions[VersionType.New].subgraphDeploymentID,
-            tokens,
-            0
-        );
+            // Mint tokens
+            (uint256 _vSignalTotal, ) = curation.mint(
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
+                tokens,
+                0
+            );
 
-        // Get total nSignal
-        uint256 nSignalTotal = vSignalToNSignal(_subgraphID, _vSignalTotal);
+            // Update version signal
+            subgraphData.versions[VersionType.Current].vSignal = _vSignalTotal;
 
-        // Update Current version
+            // Update subgraph signal
+            subgraphData.vSignal = _vSignalTotal;
+
+            // Remove New version signal
+            subgraphData.versions[VersionType.New].vSignal = 0;
+        }
+
+        // Update Current version subgraphDeploymentID
         subgraphData.versions[VersionType.Current].subgraphDeploymentID = subgraphData
             .versions[VersionType.New]
             .subgraphDeploymentID;
-        subgraphData.versions[VersionType.Current].vSignal = _vSignalTotal;
 
-        // Update subgraphData
+        // Update subgraph subgraphDeploymentID
         subgraphData.subgraphDeploymentID = subgraphData
             .versions[VersionType.New]
             .subgraphDeploymentID;
-        subgraphData.nSignal = nSignalTotal;
-        subgraphData.vSignal = _vSignalTotal;
 
-        // Remove New version data
-        subgraphData.versions[VersionType.New].subgraphDeploymentID = "";
-        subgraphData.versions[VersionType.New].vSignal = 0;
+        // Update New version subgraphDeploymentID
+        subgraphData.versions[VersionType.New].subgraphDeploymentID = 0;
 
         // TODO: These events might need to be updated
         emit SubgraphUpgradeFinalized(
@@ -471,6 +474,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 0
             );
 
+            subgraphData.versions[VersionType.Current].subgraphDeploymentID = 0;
             subgraphData.versions[VersionType.Current].vSignal = 0;
 
             // If new version exists
@@ -483,6 +487,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                     )
                 );
 
+                subgraphData.versions[VersionType.New].subgraphDeploymentID = 0;
                 subgraphData.versions[VersionType.New].vSignal = 0;
             }
 
@@ -493,8 +498,13 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
         subgraphData.reserveRatio = 0;
-        // NOTE: We don't reset the following variable as we use it to test if the Subgraph was ever created
+
+        // NOTE: We don't reset subgraphDeploymentID
+        // in order to test if the Subgraph was ever created
         // subgraphData.subgraphDeploymentID = 0;
+
+        // NOTE: We don't reset nSignal to allow withdrawals after deprecation
+        // subgraphData.nSignal = 0;
 
         // Burn the NFT
         _burn(_subgraphID);
