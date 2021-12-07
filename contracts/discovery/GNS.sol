@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../base/Multicall.sol";
@@ -424,16 +425,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             .subgraphDeploymentID;
         subgraphData.versions[VersionType.Current].vSignal = _vSignalTotal;
 
-        // Remove New version data
-        subgraphData.versions[VersionType.New].subgraphDeploymentID = "";
-        subgraphData.versions[VersionType.New].vSignal = 0;
-
         // Update subgraphData
         subgraphData.subgraphDeploymentID = subgraphData
             .versions[VersionType.New]
             .subgraphDeploymentID;
         subgraphData.nSignal = nSignalTotal;
         subgraphData.vSignal = _vSignalTotal;
+
+        // Remove New version data
+        subgraphData.versions[VersionType.New].subgraphDeploymentID = "";
+        subgraphData.versions[VersionType.New].vSignal = 0;
 
         // TODO: These events might need to be updated
         emit SubgraphUpgradeFinalized(
