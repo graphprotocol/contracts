@@ -433,11 +433,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             .versions[VersionType.New]
             .subgraphDeploymentID;
 
-        // Update subgraph subgraphDeploymentID
-        subgraphData.subgraphDeploymentID = subgraphData
-            .versions[VersionType.New]
-            .subgraphDeploymentID;
-
         // Update New version subgraphDeploymentID
         subgraphData.versions[VersionType.New].subgraphDeploymentID = 0;
 
