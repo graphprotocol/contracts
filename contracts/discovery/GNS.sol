@@ -547,6 +547,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 .vSignal
                 .add(vSignalTotal);
 
+            // Subtract from total to get an accurate remainder
             _tokens = _tokensIn.sub(_tokens);
         }
 
@@ -624,6 +625,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 .vSignal
                 .sub(vSignal);
 
+            // Subtract from total to get an accurate remainder
             vSignal = vSignalTotal.sub(vSignal);
         }
 
@@ -748,20 +750,27 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
         uint256 vSignalTotal;
+        uint256 tokens = _tokensIn;
 
         // If new version exists
         if (_versionExists(subgraphData.versions[VersionType.New])) {
+            // Divide signal in half
+            tokens = _tokensIn.div(2);
+
             (uint256 vSignalNew, ) = curation().tokensToSignal(
                 subgraphData.versions[VersionType.New].subgraphDeploymentID,
-                _tokensIn
+                tokens
             );
 
             vSignalTotal = vSignalTotal.add(vSignalNew);
+
+            // Subtract from total to get an accurate remainder
+            tokens = _tokensIn.sub(tokens);
         }
 
         (uint256 vSignalOld, uint256 curationTax) = curation().tokensToSignal(
             subgraphData.versions[VersionType.Current].subgraphDeploymentID,
-            _tokensIn
+            tokens
         );
 
         vSignalTotal = vSignalTotal.add(vSignalOld);
@@ -803,6 +812,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 )
             );
 
+            // Subtract from total to get an accurate remainder
             vSignal = vSignalTotal.sub(vSignal);
         }
 
