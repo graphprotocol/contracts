@@ -15,7 +15,6 @@ import {
   toGRT,
   toBN,
   Account,
-  advanceBlock,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants

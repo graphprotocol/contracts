@@ -82,7 +82,7 @@ export const setProtocolParam = async (cli: CLIEnvironment, cliArgs: CLIArgs): P
 
   // Parse params
   const params = cliArgs.params.toString().split(',')
-  let parsedParams = []
+  const parsedParams = []
   for (const param of params) {
     try {
       const parsedParam = BigNumber.from(param)

@@ -2,13 +2,12 @@ import { createClient } from '@urql/core'
 import gql from 'graphql-tag'
 import fetch from 'isomorphic-fetch'
 import { task } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const range = (min, max) => [...Array(max - min + 1).keys()].map((i) => i + min)
 
 task('action:claim-rebates', 'Claim rebates')
   .addParam('poolRange', 'Pool range to claim in "a,b" format')
-  .setAction(async ({ poolRange }, hre: HardhatRuntimeEnvironment) => {
+  .setAction(async ({ poolRange }) => {
     // const { contracts } = hre
 
     // Parse input

@@ -65,7 +65,7 @@
     "hardhat-gas-reporter": "^1.0.4",
     "hardhat-storage-layout": "0.1.6",
     "hardhat-tracer": "^1.0.0-alpha.6",
-    "husky": "^7.0.2",
+    "husky": "^7.0.4",
     "inquirer": "^8.0.0",
     "ipfs-http-client": "47.0.1",
     "isomorphic-fetch": "^3.0.0",
