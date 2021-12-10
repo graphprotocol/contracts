@@ -655,7 +655,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // Return the tokens to the nameCurator
         require(graphToken().transfer(curator, tokens), "GNS: Error sending tokens");
 
-        emit SignalBurned(_subgraphID, curator, _nSignal, vSignal, tokens);
+        emit SignalBurned(_subgraphID, curator, _nSignal, vSignalTotal, tokens);
     }
 
     /**
