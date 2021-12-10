@@ -1076,4 +1076,23 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             _subgraphData.versions[VersionType.Current].vSignal = _subgraphData.vSignal;
         }
     }
+
+    function _checkBancorThreshold(Version storage _version, uint256 _vSignal)
+        internal
+        view
+        returns (uint256)
+    {
+        try
+            BancorFormula(bondingCurve).calculateSaleReturn(
+                _version.vSignal,
+                curation().getCurationPoolTokens(_version.subgraphDeploymentID),
+                curation().getCurationPoolReserveRatio(_version.subgraphDeploymentID),
+                _vSignal
+            )
+        returns (uint256) {
+            return _vSignal;
+        } catch {
+            return _version.vSignal;
+        }
+    }
 }
