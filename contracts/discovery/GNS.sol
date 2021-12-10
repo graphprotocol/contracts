@@ -614,6 +614,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         if (newVersionExists) {
             vSignal = vSignalTotal.div(2);
 
+            vSignal = _checkBancorThreshold(subgraphData.versions[VersionType.New], vSignal);
             tokens = curation().burn(
                 subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 vSignal,
@@ -628,6 +629,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Subtract from total to get an accurate remainder
             vSignal = vSignalTotal.sub(vSignal);
         }
+
+        vSignal = _checkBancorThreshold(subgraphData.versions[VersionType.Current], vSignal);
 
         tokens = tokens.add(
             curation().burn(
