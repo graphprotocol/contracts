@@ -370,6 +370,20 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
     }
 
     /**
+     * @dev Get the reserve ratio for curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @return Reserve ratio for curation pool
+     */
+    function getCurationPoolReserveRatio(bytes32 _subgraphDeploymentID)
+        external
+        view
+        override
+        returns (uint32)
+    {
+        return pools[_subgraphDeploymentID].reserveRatio;
+    }
+
+    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal

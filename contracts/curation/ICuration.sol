@@ -44,6 +44,11 @@ interface ICuration {
 
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
+    function getCurationPoolReserveRatio(bytes32 _subgraphDeploymentID)
+        external
+        view
+        returns (uint32);
+
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         external
         view
