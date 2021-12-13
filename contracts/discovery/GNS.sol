@@ -614,10 +614,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         if (newVersionExists) {
             vSignal = vSignalTotal.div(2);
 
-            vSignal = _checkBancorThreshold(subgraphData.versions[VersionType.New], vSignal);
-
-            tokens = curation().burn(
-                subgraphData.versions[VersionType.New].subgraphDeploymentID,
+            (tokens, vSignal) = _tryBurn(
+                subgraphData.versions[VersionType.New],
                 vSignal,
                 _tokensOutMin
             );
@@ -631,15 +629,13 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             vSignal = vSignalTotal.sub(vSignal);
         }
 
-        vSignal = _checkBancorThreshold(subgraphData.versions[VersionType.Current], vSignal);
-
-        tokens = tokens.add(
-            curation().burn(
-                subgraphData.versions[VersionType.Current].subgraphDeploymentID,
-                vSignal,
-                _tokensOutMin
-            )
+        (uint256 currentTokens, ) = _tryBurn(
+            subgraphData.versions[VersionType.Current],
+            vSignal,
+            _tokensOutMin
         );
+
+        tokens = tokens.add(currentTokens);
 
         // Update version vSignal
         subgraphData.versions[VersionType.Current].vSignal = subgraphData
@@ -1079,26 +1075,25 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Check if signal is below threshold for calculateSaleReturn function
+     * @dev Try curation.burn, if it fails burn all vSignal
      * @param _version Version data
      * @param _vSignal Version signal
+     * @param _tokensOutMin Expected minimum amount of tokens to receive
      */
-    function _checkBancorThreshold(Version storage _version, uint256 _vSignal)
-        internal
-        view
-        returns (uint256)
-    {
-        try
-            BancorFormula(bondingCurve).calculateSaleReturn(
-                _version.vSignal,
-                curation().getCurationPoolTokens(_version.subgraphDeploymentID),
-                curation().getCurationPoolReserveRatio(_version.subgraphDeploymentID),
-                _vSignal
-            )
-        returns (uint256) {
-            return _vSignal;
+    function _tryBurn(
+        Version storage _version,
+        uint256 _vSignal,
+        uint256 _tokensOutMin
+    ) internal returns (uint256, uint256) {
+        try curation().burn(_version.subgraphDeploymentID, _vSignal, _tokensOutMin) returns (
+            uint256 tokens
+        ) {
+            return (tokens, _vSignal);
         } catch {
-            return _version.vSignal;
+            return (
+                curation().burn(_version.subgraphDeploymentID, _version.vSignal, _tokensOutMin),
+                _version.vSignal
+            );
         }
     }
 }

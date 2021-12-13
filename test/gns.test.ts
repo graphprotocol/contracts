@@ -1392,7 +1392,7 @@ describe('GNS', () => {
     })
   })
 
-  describe('Subgraph lifecycles scenarios', function () {
+  describe.only('Subgraph lifecycles scenarios', function () {
     let subgraphID: any
 
     beforeEach(async () => {
