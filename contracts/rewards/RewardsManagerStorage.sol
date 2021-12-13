@@ -21,3 +21,8 @@ contract RewardsManagerV1Storage is Managed {
     // Subgraph denylist : subgraph deployment ID => block when added or zero (if not denied)
     mapping(bytes32 => uint256) public denylist;
 }
+
+contract RewardsManagerV2Storage is RewardsManagerV1Storage {
+    // Minimum amount of signaled tokens on a subgraph required to accrue rewards
+    uint256 public minimumSubgraphSignal;
+}

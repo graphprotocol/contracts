@@ -18,12 +18,11 @@ import "./IRewardsManager.sol";
  * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
  * that Subgraph.
  */
-contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
     uint256 private constant MIN_ISSUANCE_RATE = 1e18;
-    uint256 private constant REWARDS_ACCRUAL_SIGNALLED_THRESHOLD = 100e18;
 
     // -- Events --
 
@@ -67,6 +66,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         _setIssuanceRate(_issuanceRate);
     }
 
+    // -- Config --
+
     /**
      * @dev Sets the issuance rate.
      * The issuance rate is defined as a percentage increase of the total supply per block.
@@ -105,6 +106,24 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
         emit ParameterUpdated("subgraphAvailabilityOracle");
     }
+
+    /**
+     * @dev Sets the minimum signaled tokens on a subgraph to start accruing rewards.
+     * @dev Can be set to zero which means that this feature is not being used.
+     * @param _minimumSubgraphSignal Minimum signaled tokens
+     */
+    function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
+        // Caller can be the SAO or the governor
+        require(
+            msg.sender == address(subgraphAvailabilityOracle) ||
+                msg.sender == controller.getGovernor(),
+            "Not authorized"
+        );
+        minimumSubgraphSignal = _minimumSubgraphSignal;
+        emit ParameterUpdated("minimumSubgraphSignal");
+    }
+
+    // -- Denylist --
 
     /**
      * @dev Denies to claim rewards for a subgraph.
@@ -155,6 +174,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     function isDenied(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return denylist[_subgraphDeploymentID] > 0;
     }
+
+    // -- Getters --
 
     /**
      * @dev Gets the issuance of rewards per signal since last updated.
@@ -228,7 +249,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
 
         // Only accrue rewards if over a threshold
-        uint256 newRewards = (subgraphSignalledTokens > REWARDS_ACCRUAL_SIGNALLED_THRESHOLD) // Accrue new rewards since last snapshot
+        uint256 newRewards = (subgraphSignalledTokens > minimumSubgraphSignal) // Accrue new rewards since last snapshot
             ? getAccRewardsPerSignal()
                 .sub(subgraph.accRewardsPerSignalSnapshot)
                 .mul(subgraphSignalledTokens)
@@ -271,6 +292,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             accRewardsForSubgraph
         );
     }
+
+    // -- Updates --
 
     /**
      * @dev Updates the accumulated rewards per signal and save checkpoint block number.
