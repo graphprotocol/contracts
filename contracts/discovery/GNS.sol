@@ -646,12 +646,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             .vSignal
             .sub(vSignal);
 
-        if (newVersionExists) {
-            vSignal = vSignal.mul(2);
-        }
 
         // Update pools
-        subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
+        subgraphData.vSignal = subgraphData.vSignal.sub(vSignalTotal);
         subgraphData.nSignal = subgraphData.nSignal.sub(_nSignal);
         subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_nSignal);
 
