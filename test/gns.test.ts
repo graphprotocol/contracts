@@ -59,6 +59,8 @@ describe('GNS', () => {
   let me: Account
   let other: Account
   let governor: Account
+  let curator: Account
+  let otherCurator: Account
 
   let fixture: NetworkFixture
 
@@ -556,7 +558,7 @@ describe('GNS', () => {
   }
 
   before(async function () {
-    ;[me, other, governor] = await getAccounts()
+    ;[me, other, governor, curator, otherCurator] = await getAccounts()
     fixture = new NetworkFixture()
     ;({ grt, curation, gns } = await fixture.load(governor.signer))
     newSubgraph0 = buildSubgraph()
@@ -566,10 +568,16 @@ describe('GNS', () => {
     // Give some funds to the signers and approve gns contract to use funds on signers behalf
     await grt.connect(governor.signer).mint(me.address, tokens100000)
     await grt.connect(governor.signer).mint(other.address, tokens100000)
+    await grt.connect(governor.signer).mint(curator.address, tokens100000)
+    await grt.connect(governor.signer).mint(otherCurator.address, tokens100000)
     await grt.connect(me.signer).approve(gns.address, tokens100000)
     await grt.connect(me.signer).approve(curation.address, tokens100000)
     await grt.connect(other.signer).approve(gns.address, tokens100000)
     await grt.connect(other.signer).approve(curation.address, tokens100000)
+    await grt.connect(curator.signer).approve(gns.address, tokens100000)
+    await grt.connect(curator.signer).approve(curation.address, tokens100000)
+    await grt.connect(otherCurator.signer).approve(gns.address, tokens100000)
+    await grt.connect(otherCurator.signer).approve(curation.address, tokens100000)
     // Update curation tax to test the functionality of it in disableNameSignal()
     await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
   })
@@ -1787,6 +1795,87 @@ describe('GNS', () => {
 
         const beforeOtherNSignal = await gns.getCuratorSignal(subgraphID, other.address)
         await gns.connect(other.signer).burnSignal(subgraphID, beforeOtherNSignal, 0)
+
+        await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
+
+        await gns.connect(me.signer).deprecateSubgraph(subgraphID)
+      })
+    })
+
+    context('#13a', async function () {
+      // publish new subgraph
+      // curator 1 - mint
+      // curator 2 - mint
+      // publish new version
+      // curator 1 - burn partially
+      // curator 2 - burn partially
+      // finalize subgraph upgrade
+      // deprecate subgraph
+
+      let subgraph: Subgraph
+
+      it('should not revert', async function () {
+        await gns.connect(me.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        await gns.connect(other.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            subgraphID,
+            newSubgraph1.subgraphDeploymentID,
+            newSubgraph1.versionMetadata,
+          )
+
+        const beforeUsersNSignal = await gns.getCuratorSignal(subgraphID, me.address)
+        await gns.connect(me.signer).burnSignal(subgraphID, beforeUsersNSignal.div(2), 0)
+
+        const beforeOtherNSignal = await gns.getCuratorSignal(subgraphID, other.address)
+        await gns.connect(other.signer).burnSignal(subgraphID, beforeOtherNSignal.div(2), 0)
+
+        await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
+
+        await gns.connect(me.signer).deprecateSubgraph(subgraphID)
+      })
+    })
+
+    context('#13b', async function () {
+      // publish new subgraph
+      // curator 1 - mint
+      // curator 2 - mint
+      // publish new version
+      // curator 1 - burn
+      // curator 2 - burn
+      // finalize subgraph upgrade
+      // deprecate subgraph
+
+      let subgraph: Subgraph
+
+      it('should not revert', async function () {
+        const tokens = toGRT('1000')
+
+        await gns.connect(me.signer).mintSignal(subgraphID, tokens, 0)
+
+        await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            subgraphID,
+            newSubgraph1.subgraphDeploymentID,
+            newSubgraph1.versionMetadata,
+          )
+
+        let signal = await gns.getCuratorSignal(subgraphID, me.address)
+        await gns.connect(me.signer).burnSignal(subgraphID, signal.div(2), 0)
+
+        let i = 0
+        while (i < 5) {
+          const signal = await gns.getCuratorSignal(subgraphID, me.address)
+          await gns.connect(me.signer).burnSignal(subgraphID, signal.div(2), 0)
+          i++
+        }
+
+        signal = await gns.getCuratorSignal(subgraphID, me.address)
+        await gns.connect(me.signer).burnSignal(subgraphID, signal, 0)
 
         await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
 
