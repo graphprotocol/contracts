@@ -1077,6 +1077,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
     }
 
+    /**
+     * @dev Check if signal is below threshold for calculateSaleReturn function
+     * @param _version Version data
+     * @param _vSignal Version signal
+     */
     function _checkBancorThreshold(Version storage _version, uint256 _vSignal)
         internal
         view
