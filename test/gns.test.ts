@@ -218,8 +218,8 @@ describe('GNS', () => {
     const afterSubgraph = await gns.subgraphs(subgraphID)
 
     // Versions
-    const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
-    const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
+    const idOld = await gns.getSubgraphVersion(subgraphID, 0)
+    const idNew = await gns.getSubgraphVersion(subgraphID, 1)
 
     // Owner of subgraph
     const owner = await gns.ownerOf(subgraphID)
@@ -264,10 +264,6 @@ describe('GNS', () => {
     expect(afterSubgraph.nSignal).eq(BigNumber.from(totalNSignal))
     expect(afterSubgraph.subgraphDeploymentID).eq(newSubgraph.subgraphDeploymentID)
 
-    // Check versions
-    expect(vSignalOld).eq(BigNumber.from(splitVSignal))
-    expect(vSignalNew).eq(BigNumber.from(splitVSignal))
-
     // Check subgraph deployment IDs
     expect(idOld).eq(beforeSubgraph.subgraphDeploymentID)
     expect(idNew).eq(afterSubgraph.subgraphDeploymentID)
@@ -279,8 +275,8 @@ describe('GNS', () => {
   }
 
   const deprecateSubgraph = async (account: Account, subgraphID: string) => {
-    const [idOld] = await gns.getSubgraphVersion(subgraphID, 0)
-    const [idNew] = await gns.getSubgraphVersion(subgraphID, 1)
+    const idOld = await gns.getSubgraphVersion(subgraphID, 0)
+    const idNew = await gns.getSubgraphVersion(subgraphID, 1)
 
     // Before state
     let tokens
@@ -301,16 +297,10 @@ describe('GNS', () => {
     // Subgraph after transaction
     const afterSubgraph = await gns.subgraphs(subgraphID)
 
-    // Versions
-    const [, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
-    const [, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
-
     const [afterTokensOld, afterVSignalOld] = await curationPoolTokensAndSignal(idOld)
     const [afterTokensNew, afterVSignalNew] = await curationPoolTokensAndSignal(idNew)
 
     // Check versions
-    expect(vSignalOld).eq(BigNumber.from(0))
-    expect(vSignalNew).eq(BigNumber.from(0))
     expect(afterTokensOld).eq(BigNumber.from(0))
     expect(afterVSignalOld).eq(BigNumber.from(0))
     expect(afterTokensNew).eq(BigNumber.from(0))
@@ -442,8 +432,8 @@ describe('GNS', () => {
       )
 
     // Versions after transaction
-    const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
-    const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
+    const idOld = await gns.getSubgraphVersion(subgraphID, 0)
+    const idNew = await gns.getSubgraphVersion(subgraphID, 1)
 
     // SubgraphData after transaction
     const afterSubgraph = await gns.subgraphs(subgraphID)
@@ -460,10 +450,6 @@ describe('GNS', () => {
     // Check GNS signal
     expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
     expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
-
-    // Check versions
-    expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
-    expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
 
     return tx
   }
@@ -499,8 +485,8 @@ describe('GNS', () => {
       )
 
     // Versions after transaction
-    const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraphID, 0)
-    const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraphID, 1)
+    const idOld = await gns.getSubgraphVersion(subgraphID, 0)
+    const idNew = await gns.getSubgraphVersion(subgraphID, 1)
 
     // SubgraphData after transaction
     const afterSubgraph = await gns.subgraphs(subgraphID)
@@ -519,10 +505,6 @@ describe('GNS', () => {
     // Check GNS signal
     expect(afterSubgraph.nSignal).eq(BigNumber.from(nSignalExpected))
     expect(afterSubgraph.vSignal).eq(BigNumber.from(vSignalExpected))
-
-    // Check versions
-    expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
-    expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
 
     return tx
   }
@@ -724,8 +706,8 @@ describe('GNS', () => {
           await gns.connect(me.signer).mintSignal(subgraph.id, tokens10000, 0)
 
           // Versions after transaction
-          const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraph.id, 0)
-          const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraph.id, 1)
+          const idOld = await gns.getSubgraphVersion(subgraph.id, 0)
+          const idNew = await gns.getSubgraphVersion(subgraph.id, 1)
 
           // After state
           const afterSubgraph = await gns.subgraphs(subgraph.id)
@@ -907,8 +889,8 @@ describe('GNS', () => {
           const vSignalExpected = 9380498387612462033n
 
           // Finalized version
-          const [idFinalized] = await gns.getSubgraphVersion(subgraph.id, 0)
-          const [idLatest] = await gns.getSubgraphVersion(subgraph.id, 1)
+          const idFinalized = await gns.getSubgraphVersion(subgraph.id, 0)
+          const idLatest = await gns.getSubgraphVersion(subgraph.id, 1)
 
           // Finalize
           await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraph.id)
@@ -921,8 +903,8 @@ describe('GNS', () => {
           expect(toFloat(vSignalFinalized)).eq(0)
 
           // Versions after transaction
-          const [idOld, vSignalOld] = await gns.getSubgraphVersion(subgraph.id, 0)
-          const [idNew, vSignalNew] = await gns.getSubgraphVersion(subgraph.id, 1)
+          const idOld = await gns.getSubgraphVersion(subgraph.id, 0)
+          const idNew = await gns.getSubgraphVersion(subgraph.id, 1)
 
           // After state
           const afterSubgraph = await gns.subgraphs(subgraph.id)
@@ -944,10 +926,6 @@ describe('GNS', () => {
           // Check subgraph deployment IDs
           expect(idOld).eq(idLatest)
           expect(idNew).eq('0x0000000000000000000000000000000000000000000000000000000000000000')
-
-          // Check versions
-          expect(vSignalOld).eq(BigNumber.from(vSignalExpectedOld))
-          expect(vSignalNew).eq(BigNumber.from(vSignalExpectedNew))
         })
       })
 

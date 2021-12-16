@@ -24,7 +24,6 @@ interface IGNS {
 
     struct Version {
         bytes32 subgraphDeploymentID;
-        uint256 vSignal;
     }
 
     enum VersionType {
@@ -121,7 +120,7 @@ interface IGNS {
     function getSubgraphVersion(uint256 _subgraphID, VersionType _version)
         external
         view
-        returns (bytes32, uint256);
+        returns (bytes32);
 
     function isPublished(uint256 _subgraphID) external view returns (bool);
 }
