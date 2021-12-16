@@ -1392,7 +1392,7 @@ describe('GNS', () => {
     })
   })
 
-  describe.only('Subgraph lifecycles scenarios', function () {
+  describe('Subgraph lifecycles scenarios', function () {
     let subgraphID: any
 
     beforeEach(async () => {
@@ -1660,6 +1660,76 @@ describe('GNS', () => {
             newSubgraph1.versionMetadata,
           )
         await gns.connect(me.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        const beforeUsersNSignal = await gns.getCuratorSignal(subgraphID, me.address)
+        await gns.connect(me.signer).burnSignal(subgraphID, beforeUsersNSignal, 0)
+
+        await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
+
+        await gns.connect(me.signer).deprecateSubgraph(subgraphID)
+      })
+    })
+
+    context('#9a', async function () {
+      // publish new subgraph
+      // publish new version
+      // curator 2 - mint through Curation contract
+      // curator 1 - mint
+      // curator 1 - burn
+      // finalize subgraph upgrade
+      // deprecate subgraph
+
+      let subgraph: Subgraph
+
+      it('should not revert', async function () {
+        await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            subgraphID,
+            newSubgraph1.subgraphDeploymentID,
+            newSubgraph1.versionMetadata,
+          )
+
+        await curation
+          .connect(curator.signer)
+          .mint(newSubgraph1.subgraphDeploymentID, toGRT('10000'), 0)
+
+        await gns.connect(me.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        const beforeUsersNSignal = await gns.getCuratorSignal(subgraphID, me.address)
+        await gns.connect(me.signer).burnSignal(subgraphID, beforeUsersNSignal, 0)
+
+        await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
+
+        await gns.connect(me.signer).deprecateSubgraph(subgraphID)
+      })
+    })
+
+    context('#9a', async function () {
+      // publish new subgraph
+      // publish new version
+      // curator 1 - mint
+      // curator 2 - mint through Curation contract
+      // curator 1 - burn
+      // finalize subgraph upgrade
+      // deprecate subgraph
+
+      let subgraph: Subgraph
+
+      it('should not revert', async function () {
+        await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            subgraphID,
+            newSubgraph1.subgraphDeploymentID,
+            newSubgraph1.versionMetadata,
+          )
+
+        await gns.connect(me.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        await curation
+          .connect(curator.signer)
+          .mint(newSubgraph1.subgraphDeploymentID, toGRT('10000'), 0)
 
         const beforeUsersNSignal = await gns.getCuratorSignal(subgraphID, me.address)
         await gns.connect(me.signer).burnSignal(subgraphID, beforeUsersNSignal, 0)

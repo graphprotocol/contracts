@@ -14,6 +14,7 @@ interface IGNS {
         bool disabled;
         uint256 withdrawableGRT;
         mapping(VersionType => Version) versions;
+        mapping(address => mapping(VersionType => uint256)) curatorVersionSignal;
     }
 
     struct LegacySubgraphKey {
