@@ -306,6 +306,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Init old version
             _initCurrentVersion(subgraphData);
 
+            // Burn tokens from Current
             tokens = curation.burn(
                 subgraphData.versions[VersionType.Current].subgraphDeploymentID,
                 curation.getCurationPoolSignal(
@@ -314,6 +315,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 0
             );
 
+            // If New version exists, burn tokens
             if (_versionExists(subgraphData.versions[VersionType.New])) {
                 tokens = tokens.add(
                     curation.burn(
@@ -354,6 +356,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 0
             );
 
+            // Total of New and Current tokens
             uint256 vSignalTotal = _vSignalCurrent.add(_vSignalNew);
 
             // Update subgraphData Signal
@@ -396,8 +399,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         uint256 tokens;
 
+        // Check if subgraph has nSignal
         if (subgraphData.nSignal > 0) {
-            // Burn signal
+            // Burn Current vSignal
             tokens = curation.burn(
                 subgraphData.versions[VersionType.Current].subgraphDeploymentID,
                 curation.getCurationPoolSignal(
@@ -406,10 +410,12 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 0
             );
 
+            // Retrieve vSignal from CurationPool struct
             uint256 curationPoolVSignal = curation.getCurationPoolSignal(
                 subgraphData.versions[VersionType.New].subgraphDeploymentID
             );
 
+            // If vSignal exists, burn vSignal
             if (curationPoolVSignal != 0) {
                 tokens = tokens.add(
                     curation.burn(
@@ -546,10 +552,12 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // Curation interface
         ICuration curation = curation();
 
-        // If new version exists
+        // Check if new version exists
         if (_versionExists(subgraphData.versions[VersionType.New])) {
+            // Divide tokens in half
             _tokens = _tokens.div(2);
 
+            // Mint tokens to New version
             (vSignalTotal, ) = curation.mint(
                 subgraphData.versions[VersionType.New].subgraphDeploymentID,
                 _tokens,
@@ -559,8 +567,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Subtract from total to get an accurate remainder
             _tokens = _tokensIn.sub(_tokens);
 
-            subgraphData.curatorVersionSignal[curator][VersionType.New] = subgraphData
-            .curatorVersionSignal[curator][VersionType.New].add(
+            // Add nSignal to curator for New version
+            subgraphData.curatorNSignalPerVersion[curator][VersionType.New] = subgraphData
+            .curatorNSignalPerVersion[curator][VersionType.New].add(
                     vSignalToNSignal(_subgraphID, vSignalTotal)
                 );
         } else {
@@ -575,13 +584,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             0
         );
 
-        subgraphData.curatorVersionSignal[curator][VersionType.Current] = subgraphData
-        .curatorVersionSignal[curator][VersionType.Current].add(
+        // Add nSignal to curator for Current version
+        subgraphData.curatorNSignalPerVersion[curator][VersionType.Current] = subgraphData
+        .curatorNSignalPerVersion[curator][VersionType.Current].add(
                 vSignalToNSignal(_subgraphID, vSignalCurrent)
             );
 
+        // Total vSignal
         vSignalTotal = vSignalTotal.add(vSignalCurrent);
 
+        // Concert total vSignal to nSignal
         uint256 nSignalTotal = vSignalToNSignal(_subgraphID, vSignalTotal);
 
         // Slippage protection
@@ -628,35 +640,50 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         );
 
         bool newVersionExists = _versionExists(subgraphData.versions[VersionType.New]);
+        // Convert nSignal requested to be burned into vSignal
         uint256 vSignalTotal = nSignalToVSignal(_subgraphID, _nSignal);
+        // Default nSignalLeft should equal requested nSignal
         uint256 nSignalLeft = _nSignal;
         uint256 tokens;
 
-        // If new version exists
+        // Check if new version exists
         if (newVersionExists) {
+            // Retrieve vSignal from CurationPool
             uint256 curationPoolVSignal = curation().getCurationPoolSignal(
                 subgraphData.versions[VersionType.New].subgraphDeploymentID
             );
 
+            // Check if vSignal present
             if (curationPoolVSignal != 0) {
                 uint256 nSignalToBurn;
 
-                if (_nSignal <= subgraphData.curatorVersionSignal[curator][VersionType.New]) {
-                    nSignalLeft = subgraphData.curatorVersionSignal[curator][VersionType.New].sub(
-                        _nSignal
-                    );
+                // Check if nSignal requested is less than or equal nSignal in New version
+                if (_nSignal <= subgraphData.curatorNSignalPerVersion[curator][VersionType.New]) {
+                    // Subtract from New version since it's the larger number to avoid overflow
+                    nSignalLeft = subgraphData
+                    .curatorNSignalPerVersion[curator][VersionType.New].sub(_nSignal);
 
+                    // nSignal to be burned should equal requested nSignal when
+                    // there is enough in New version signal
                     nSignalToBurn = _nSignal;
-                } else if (_nSignal > subgraphData.curatorVersionSignal[curator][VersionType.New]) {
+                } else if (
+                    // Check if nSignal requested is greater than nSignal in New version
+                    _nSignal > subgraphData.curatorNSignalPerVersion[curator][VersionType.New]
+                ) {
+                    // Subtract from nSignal requested since it's the larger number to avoid overflow
                     nSignalLeft = _nSignal.sub(
-                        subgraphData.curatorVersionSignal[curator][VersionType.New]
+                        subgraphData.curatorNSignalPerVersion[curator][VersionType.New]
                     );
 
-                    nSignalToBurn = subgraphData.curatorVersionSignal[curator][VersionType.New];
+                    // nSignal to be burned should equal total New version signal
+                    // when requested nSignal exceeds amount in New version signal
+                    nSignalToBurn = subgraphData.curatorNSignalPerVersion[curator][VersionType.New];
                 }
 
+                // Concert nSignal to be burned into vSignal
                 uint256 vSignalToBurn = nSignalToVSignal(_subgraphID, nSignalToBurn);
 
+                // Try burning vSignal
                 (tokens, vSignalToBurn) = _tryBurn(
                     subgraphData.versions[VersionType.New],
                     vSignalToBurn,
@@ -664,8 +691,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 );
 
                 // Subtract from Current curator version signal
-                subgraphData.curatorVersionSignal[curator][VersionType.New] = subgraphData
-                .curatorVersionSignal[curator][VersionType.New].sub(nSignalToBurn);
+                subgraphData.curatorNSignalPerVersion[curator][VersionType.New] = subgraphData
+                .curatorNSignalPerVersion[curator][VersionType.New].sub(nSignalToBurn);
             }
         } else {
             // Sync curator nSignal
@@ -673,9 +700,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
 
         if (nSignalLeft != 0) {
+            // Concert nSignal to be burned into vSignal
             uint256 vSignalLeft = nSignalToVSignal(_subgraphID, nSignalLeft);
-
             uint256 currentTokens;
+
+            // Try burning vSignal
             (currentTokens, vSignalLeft) = _tryBurn(
                 subgraphData.versions[VersionType.Current],
                 vSignalLeft,
@@ -683,8 +712,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             );
 
             // Subtract from New curator version signal
-            subgraphData.curatorVersionSignal[curator][VersionType.Current] = subgraphData
-            .curatorVersionSignal[curator][VersionType.Current].sub(nSignalLeft);
+            subgraphData.curatorNSignalPerVersion[curator][VersionType.Current] = subgraphData
+            .curatorNSignalPerVersion[curator][VersionType.Current].sub(nSignalLeft);
 
             tokens = tokens.add(currentTokens);
         }
@@ -1124,6 +1153,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
     }
 
+    /**
+     * @dev Initialize curatorNSignalPerVersion mapping
+     * @param _subgraphData Subgraph data
+     * @param _curator Address of curator
+     */
     function _initCuratorNSignal(SubgraphData storage _subgraphData, address _curator) internal {
         if (_subgraphData.curatorNSignal[_curator] == 0) return;
 
@@ -1131,29 +1165,34 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         if (
             _versionExists(_subgraphData.versions[VersionType.New]) &&
-            _subgraphData.curatorVersionSignal[_curator][VersionType.New] == 0
+            _subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] == 0
         ) {
             splitNSignal = _subgraphData.curatorNSignal[_curator].div(2);
 
-            _subgraphData.curatorVersionSignal[_curator][VersionType.New] = splitNSignal;
+            _subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] = splitNSignal;
         }
 
-        if (_subgraphData.curatorVersionSignal[_curator][VersionType.Current] != 0) return;
+        if (_subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] != 0) return;
 
-        _subgraphData.curatorVersionSignal[_curator][VersionType.Current] = _subgraphData
+        _subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] = _subgraphData
             .curatorNSignal[_curator]
             .sub(splitNSignal);
     }
 
+    /**
+     * @dev Sync curatorNSignalPerVersion in case there has been a change in state since curator last took an action
+     * @param _subgraphData Subgraph data
+     * @param _curator Address of curator
+     */
     function _syncCuratorNSignal(SubgraphData storage _subgraphData, address _curator) internal {
         // Move all curator signal to Current
-        _subgraphData.curatorVersionSignal[_curator][VersionType.Current] = _subgraphData
-        .curatorVersionSignal[_curator][VersionType.New].add(
-                _subgraphData.curatorVersionSignal[_curator][VersionType.Current]
+        _subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] = _subgraphData
+        .curatorNSignalPerVersion[_curator][VersionType.New].add(
+                _subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current]
             );
 
         // Remove curator signal from New
-        _subgraphData.curatorVersionSignal[_curator][VersionType.New] = 0;
+        _subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] = 0;
     }
 
     /**
