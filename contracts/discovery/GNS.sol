@@ -699,6 +699,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             _syncCuratorNSignal(subgraphData, curator);
         }
 
+        // Check if there is any nSignal left after burn from New Version
         if (nSignalLeft != 0) {
             // Concert nSignal to be burned into vSignal
             uint256 vSignalLeft = nSignalToVSignal(_subgraphID, nSignalLeft);
@@ -1163,17 +1164,22 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         uint256 splitNSignal;
 
+        // Check if New version exits and if it hasn't been initialized
         if (
             _versionExists(_subgraphData.versions[VersionType.New]) &&
             _subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] == 0
         ) {
+            // Divide CurationPool nSignal in half
             splitNSignal = _subgraphData.curatorNSignal[_curator].div(2);
 
+            // Set New version to split nSignal
             _subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] = splitNSignal;
         }
 
+        // Check if Current version has been initialized
         if (_subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] != 0) return;
 
+        // Set Current version to CurationPool nSignal mins split nSignal for precision
         _subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] = _subgraphData
             .curatorNSignal[_curator]
             .sub(splitNSignal);
