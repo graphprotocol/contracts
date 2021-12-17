@@ -572,10 +572,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             .curatorNSignalPerVersion[curator][VersionType.New].add(
                     vSignalToNSignal(_subgraphID, vSignalTotal)
                 );
-        } else {
-            // Sync curator nSignal
-            _syncCuratorNSignal(subgraphData, curator);
         }
+
+        // Shift curator nSignal
+        _shiftCuratorNSignal(subgraphData, curator);
 
         // Get name signal to mint for tokens deposited
         (uint256 vSignalCurrent, ) = curation.mint(
@@ -694,10 +694,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 subgraphData.curatorNSignalPerVersion[curator][VersionType.New] = subgraphData
                 .curatorNSignalPerVersion[curator][VersionType.New].sub(nSignalToBurn);
             }
-        } else {
-            // Sync curator nSignal
-            _syncCuratorNSignal(subgraphData, curator);
         }
+
+        // Shift curator nSignal
+        _shiftCuratorNSignal(subgraphData, curator);
 
         // Check if there is any nSignal left after burn from New Version
         if (nSignalLeft != 0) {
@@ -1190,7 +1190,12 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphData Subgraph data
      * @param _curator Address of curator
      */
-    function _syncCuratorNSignal(SubgraphData storage _subgraphData, address _curator) internal {
+    function _shiftCuratorNSignal(SubgraphData storage _subgraphData, address _curator) internal {
+        if (_versionExists(_subgraphData.versions[VersionType.New])) return;
+
+        // Check if curator nSignal is already 0
+        if (_subgraphData.curatorNSignalPerVersion[_curator][VersionType.New] == 0) return;
+
         // Move all curator signal to Current
         _subgraphData.curatorNSignalPerVersion[_curator][VersionType.Current] = _subgraphData
         .curatorNSignalPerVersion[_curator][VersionType.New].add(
