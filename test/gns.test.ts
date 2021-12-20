@@ -1683,7 +1683,7 @@ describe('GNS', () => {
       })
     })
 
-    context('#9a', async function () {
+    context('#9b', async function () {
       // publish new subgraph
       // publish new version
       // curator 1 - mint
@@ -1715,6 +1715,43 @@ describe('GNS', () => {
         await gns.connect(me.signer).finalizeSubgraphUpgrade(subgraphID)
 
         await gns.connect(me.signer).deprecateSubgraph(subgraphID)
+      })
+    })
+
+    context('#9c', async function () {
+      // publish new subgraph
+      // curator 2 - mint through Curation contract
+      // curator 1 - mint
+      // publish new version
+      // curator 2 - burn through Curation contract
+      // finalize subgraph upgrade
+      // deprecate subgraph
+
+      let subgraph: Subgraph
+
+      it('should not revert', async function () {
+        await curation
+          .connect(curator.signer)
+          .mint(newSubgraph0.subgraphDeploymentID, toGRT('10000'), 0)
+
+        await gns.connect(me.signer).mintSignal(subgraphID, tokens10000, 0)
+
+        await gns
+          .connect(me.signer)
+          .publishNewVersion(
+            subgraphID,
+            newSubgraph1.subgraphDeploymentID,
+            newSubgraph1.versionMetadata,
+          )
+
+        const signalToRedeem = await curation.getCuratorSignal(
+          curator.address,
+          newSubgraph0.subgraphDeploymentID,
+        )
+
+        await curation
+          .connect(curator.signer)
+          .burn(newSubgraph0.subgraphDeploymentID, signalToRedeem, 0)
       })
     })
 
