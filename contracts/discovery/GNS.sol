@@ -309,7 +309,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Burn tokens from Current
             tokens = curation.burn(
                 subgraphData.versions[VersionType.Current].subgraphDeploymentID,
-                curation.getCurationPoolSignal(
+                curation.getCuratorSignal(
+                    address(this),
                     subgraphData.versions[VersionType.Current].subgraphDeploymentID
                 ),
                 0
@@ -320,7 +321,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 tokens = tokens.add(
                     curation.burn(
                         subgraphData.versions[VersionType.New].subgraphDeploymentID,
-                        curation.getCurationPoolSignal(
+                        curation.getCuratorSignal(
+                            address(this),
                             subgraphData.versions[VersionType.New].subgraphDeploymentID
                         ),
                         0
@@ -404,14 +406,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Burn Current vSignal
             tokens = curation.burn(
                 subgraphData.versions[VersionType.Current].subgraphDeploymentID,
-                curation.getCurationPoolSignal(
+                curation.getCuratorSignal(
+                    address(this),
                     subgraphData.versions[VersionType.Current].subgraphDeploymentID
                 ),
                 0
             );
 
             // Retrieve vSignal from CurationPool struct
-            uint256 curationPoolVSignal = curation.getCurationPoolSignal(
+            uint256 curationPoolVSignal = curation.getCuratorSignal(
+                address(this),
                 subgraphData.versions[VersionType.New].subgraphDeploymentID
             );
 
@@ -449,7 +453,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         emit SubgraphUpgradeFinalized(
             _subgraphID,
             subgraphData.subgraphDeploymentID,
-            curation.getCurationPoolSignal(
+            curation.getCuratorSignal(
+                address(this),
                 subgraphData.versions[VersionType.Current].subgraphDeploymentID
             )
         );
@@ -649,7 +654,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // Check if new version exists
         if (newVersionExists) {
             // Retrieve vSignal from CurationPool
-            uint256 curationPoolVSignal = curation().getCurationPoolSignal(
+            uint256 curationPoolVSignal = curation().getCuratorSignal(
+                address(this),
                 subgraphData.versions[VersionType.New].subgraphDeploymentID
             );
 
@@ -1191,6 +1197,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _curator Address of curator
      */
     function _shiftCuratorNSignal(SubgraphData storage _subgraphData, address _curator) internal {
+        // Check if New version exists
         if (_versionExists(_subgraphData.versions[VersionType.New])) return;
 
         // Check if curator nSignal is already 0
@@ -1224,7 +1231,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         ) {
             return (tokens, _vSignal);
         } catch {
-            uint256 curationPoolVSignal = curation.getCurationPoolSignal(
+            uint256 curationPoolVSignal = curation.getCuratorSignal(
+                address(this),
                 _version.subgraphDeploymentID
             );
 
