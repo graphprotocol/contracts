@@ -393,7 +393,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Check new version exists
         require(
-            subgraphData.versions[VersionType.New].subgraphDeploymentID != 0,
+            _versionExists(subgraphData.versions[VersionType.New]),
             "GNS: New version does not exist"
         );
 
@@ -1139,7 +1139,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Check to see if verrsion exists
+     * @dev Check to see if version exists
      * @param _version Version data
      * @return Bool Whether the version exists or not
      */
