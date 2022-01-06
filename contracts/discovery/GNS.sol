@@ -843,7 +843,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
                 tokens
             );
 
-            vSignalTotal = vSignalTotal.add(vSignalNew);
+            vSignalTotal = vSignalNew;
 
             // Subtract from total to get an accurate remainder
             tokens = _tokensIn.sub(tokens);
@@ -889,11 +889,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
             // Divide signal in half
             vSignal = vSignalTotal.div(2);
 
-            tokensOut = tokensOut.add(
-                curation.signalToTokens(
-                    subgraphData.versions[VersionType.New].subgraphDeploymentID,
-                    vSignal
-                )
+            tokensOut = curation.signalToTokens(
+                subgraphData.versions[VersionType.New].subgraphDeploymentID,
+                vSignal
             );
 
             // Subtract from total to get an accurate remainder
