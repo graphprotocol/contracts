@@ -236,17 +236,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         override
         onlySubgraphAuth(_subgraphID)
     {
-        _updateSubgraphMetadata(_subgraphID, _subgraphMetadata);
-    }
-
-    /**
-     * @dev Internal: Allows a subgraph owner to update the metadata of a subgraph they have published
-     * @param _subgraphID Subgraph ID
-     * @param _subgraphMetadata IPFS hash for the subgraph metadata
-     */
-    function _updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata) internal {
-        _setSubgraphURI(_subgraphID, string(abi.encodePacked(_subgraphMetadata)));
-        emit SubgraphMetadataUpdated(_subgraphID, _subgraphMetadata);
+        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
     }
 
     /**
@@ -276,7 +266,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         emit SubgraphPublished(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
 
         // Set the token metadata
-        _updateSubgraphMetadata(subgraphID, _subgraphMetadata);
+        _setSubgraphMetadata(subgraphID, _subgraphMetadata);
 
         emit SubgraphVersionUpdated(subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
@@ -706,7 +696,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         emit LegacySubgraphClaimed(_graphAccount, _subgraphNumber);
 
         // Set the token metadata
-        _updateSubgraphMetadata(subgraphID, _subgraphMetadata);
+        _setSubgraphMetadata(subgraphID, _subgraphMetadata);
     }
 
     /**
@@ -789,19 +779,42 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     // -- NFT --
 
+    /**
+     * @dev Return the owner of a subgraph.
+     * @param _tokenID Subgraph ID
+     * @return Owner address
+     */
     function ownerOf(uint256 _tokenID) public view override returns (address) {
         return subgraphNFT.ownerOf(_tokenID);
     }
 
+    /**
+     * @dev Mint the NFT for the subgraph.
+     * @param _owner Owner address
+     * @param _tokenID Subgraph ID
+     */
     function _mintNFT(address _owner, uint256 _tokenID) internal {
         subgraphNFT.mint(_owner, _tokenID);
     }
 
+    /**
+     * @dev Burn the NFT for the subgraph.
+     * @param _tokenID Subgraph ID
+     */
     function _burnNFT(uint256 _tokenID) internal {
         subgraphNFT.burn(_tokenID);
     }
 
-    function _setSubgraphURI(uint256 _tokenID, string memory _subgraphURI) internal {
-        subgraphNFT.setSubgraphURI(_tokenID, _subgraphURI);
+    /**
+     * @dev Set the subgraph metadata.
+     * @param _tokenID Subgraph ID
+     * @param _subgraphMetadata IPFS hash of the subgraph metadata
+     */
+    function _setSubgraphMetadata(uint256 _tokenID, bytes32 _subgraphMetadata) internal {
+        subgraphNFT.setSubgraphMetadata(_tokenID, _subgraphMetadata);
+
+        // Even if the following event is emitted in the NFT we emit it here to facilitate
+        // subgraph indexing
+        emit SubgraphMetadataUpdated(_tokenID, _subgraphMetadata);
     }
 }

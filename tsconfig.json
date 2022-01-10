@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "lib": ["ES2018", "dom"],
+    "lib": ["ES2020", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
-    "target": "ES2018",
+    "target": "ES2020",
     "outDir": "dist",
     "resolveJsonModule": true,
     "esModuleInterop": true

@@ -4,27 +4,25 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "../governance/Governed.sol";
+import "../libraries/HexStrings.sol";
 import "./ISubgraphNFT.sol";
 import "./ISubgraphNFTDescriptor.sol";
 
 /// @title NFT that represents ownership of a Subgraph
 contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
-    using Strings for uint256;
-
     // -- State --
 
     address public minter;
     ISubgraphNFTDescriptor public tokenDescriptor;
-    mapping(uint256 => string) private _subgraphURIs;
+    mapping(uint256 => bytes32) private _subgraphMetadataHashes;
 
     // -- Events --
 
     event MinterUpdated(address minter);
     event TokenDescriptorUpdated(address tokenDescriptor);
-    event SubgraphURIUpdated(uint256 indexed tokenID, string subgraphURI);
+    event SubgraphMetadataUpdated(uint256 indexed tokenID, bytes32 subgraphURI);
 
     // -- Modifiers --
 
@@ -111,18 +109,19 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     }
 
     /**
-     * @notice Set the URI for a subgraph represented by `_tokenId`.
+     * @notice Set the metadata for a subgraph represented by `_tokenId`.
      * @dev `_tokenId` must exist.
      * @param _tokenId ID of the NFT
+     * @param _subgraphMetadata IPFS hash for the metadata
      */
-    function setSubgraphURI(uint256 _tokenId, string memory _subgraphURI)
+    function setSubgraphMetadata(uint256 _tokenId, bytes32 _subgraphMetadata)
         external
         override
         onlyMinter
     {
         require(_exists(_tokenId), "ERC721Metadata: URI set of nonexistent token");
-        _subgraphURIs[_tokenId] = _subgraphURI;
-        emit SubgraphURIUpdated(_tokenId, _subgraphURI);
+        _subgraphMetadataHashes[_tokenId] = _subgraphMetadata;
+        emit SubgraphMetadataUpdated(_tokenId, _subgraphMetadata);
     }
 
     // -- NFT display --
@@ -137,13 +136,21 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
         require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         // Delegates rendering of the metadata to the token descriptor if existing
-        // This allows for some flexibility in adapting the metadata
+        // This allows for some flexibility in adapting the token URI
         if (address(tokenDescriptor) != address(0)) {
-            return tokenDescriptor.tokenURI(minter, _tokenId, baseURI(), _subgraphURIs[_tokenId]);
+            return
+                tokenDescriptor.tokenURI(
+                    minter,
+                    _tokenId,
+                    baseURI(),
+                    _subgraphMetadataHashes[_tokenId]
+                );
         }
 
-        // Default metadata
-        string memory _subgraphURI = _subgraphURIs[_tokenId];
+        // Default token URI
+        uint256 metadata = uint256(_subgraphMetadataHashes[_tokenId]);
+
+        string memory _subgraphURI = metadata > 0 ? HexStrings.toString(metadata) : "";
         string memory base = baseURI();
 
         // If there is no base URI, return the token URI.
@@ -155,6 +162,6 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
             return string(abi.encodePacked(base, _subgraphURI));
         }
         // If there is a baseURI but no tokenURI, concatenate the tokenID to the baseURI.
-        return string(abi.encodePacked(base, _tokenId.toString()));
+        return string(abi.encodePacked(base, HexStrings.toString(_tokenId)));
     }
 }

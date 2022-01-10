@@ -19,7 +19,7 @@ interface ISubgraphNFT is IERC721 {
 
     function burn(uint256 _tokenId) external;
 
-    function setSubgraphURI(uint256 _tokenId, string memory _subgraphURI) external;
+    function setSubgraphMetadata(uint256 _tokenId, bytes32 _subgraphMetadata) external;
 
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
