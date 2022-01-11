@@ -188,6 +188,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Set the NFT registry contract
+     * NOTE: Calling this function will break the ownership model unless
+     * it is replaced with a fully migrated version of the NFT contract state
+     * Use with care.
      * @param _subgraphNFT Address of the ERC721 contract
      */
     function setSubgraphNFT(address _subgraphNFT) public onlyGovernor {
