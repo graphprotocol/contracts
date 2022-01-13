@@ -1,5 +1,7 @@
 general:
   arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3"
+  governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
+  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
 
 contracts:
   Controller:
@@ -91,3 +93,9 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       issuanceRate: "1000000012184945188" # 3% annual rate (per block increase of total supply, blocks in a year = 365*60*60*24/13)
+  AllocationExchange:
+    init:
+      graphToken: "${{GraphToken.address}}"
+      staking: "${{Staking.address}}"
+      governor: *governor
+      authority: *authority

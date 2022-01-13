@@ -30,6 +30,7 @@ let allContracts = [
   'Staking',
   'RewardsManager',
   'DisputeManager',
+  'AllocationExchange',
 ]
 
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
