@@ -49,7 +49,7 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
-  { network: 'rinkeby', chainId: 4 },
+  { network: 'rinkeby', chainId: 4, gasPrice: 5e9, gas: 5000000 },
   { network: 'kovan', chainId: 42 },
 ]
 
