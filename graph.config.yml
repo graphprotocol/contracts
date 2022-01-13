@@ -47,7 +47,7 @@ contracts:
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
       reserveRatio: 500000 # 50% (parts per million)
-      curationTaxPercentage: 25000 # 2.5% (parts per million)
+      curationTaxPercentage: 10000 # 1% (parts per million)
       minimumCurationDeposit: "1000000000000000000" # 1 GRT
   DisputeManager:
     proxy: true
