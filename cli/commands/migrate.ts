@@ -26,6 +26,7 @@ let allContracts = [
   'ServiceRegistry',
   'Curation',
   'SubgraphNFTDescriptor',
+  'SubgraphNFT',
   'GNS',
   'Staking',
   'RewardsManager',
@@ -58,6 +59,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const deployContracts = contractName ? [contractName] : allContracts
   const pendingContractCalls = []
 
+  // Deploy contracts
   logger.info(`>>> Contracts deployment\n`)
   for (const name of deployContracts) {
     // Get address book info
@@ -80,7 +82,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
     }
 
     // Get config and deploy contract
-    const contractConfig = getContractConfig(graphConfig, cli.addressBook, name)
+    const contractConfig = getContractConfig(graphConfig, cli.addressBook, name, cli)
     const deployFn = contractConfig.proxy ? deployContractWithProxyAndSave : deployContractAndSave
     const contract = await deployFn(
       name,
@@ -113,7 +115,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
           cli.wallet,
           entry.contract,
           call.fn,
-          loadCallParams(call.params, cli.addressBook),
+          loadCallParams(call.params, cli.addressBook, cli),
         )
       }
       logger.info('')

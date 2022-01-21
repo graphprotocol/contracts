@@ -2,6 +2,7 @@ import fs from 'fs'
 import YAML from 'yaml'
 
 import { AddressBook } from './address-book'
+import { CLIEnvironment } from './env'
 
 const ABRefMatcher = /\${{([A-Z]\w.+)}}/
 
@@ -14,9 +15,9 @@ interface ContractConfig {
   proxy: boolean
 }
 
-function parseConfigValue(value: string, addressBook: AddressBook) {
+function parseConfigValue(value: string, addressBook: AddressBook, cli: CLIEnvironment) {
   if (isAddressBookRef(value)) {
-    return parseAddressBookRef(addressBook, value)
+    return parseAddressBookRef(addressBook, value, cli)
   }
   return value
 }
@@ -25,9 +26,16 @@ function isAddressBookRef(value: string): boolean {
   return ABRefMatcher.test(value)
 }
 
-function parseAddressBookRef(addressBook: AddressBook, value: string): string {
+function parseAddressBookRef(addressBook: AddressBook, value: string, cli: CLIEnvironment): string {
   const ref: string = ABRefMatcher.exec(value as string)[1]
   const [contractName, contractAttr] = ref.split('.')
+  // This is a convention to use the inject CLI-env variables into the config
+  if (contractName === 'Env') {
+    if (contractAttr == 'deployer') {
+      return cli.walletAddress
+    }
+    throw new Error('Attribute not found in the CLI env')
+  }
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   const entry = addressBook.getEntry(contractName) as { [key: string]: any }
   return entry[contractAttr]
@@ -42,14 +50,16 @@ export function readConfig(path: string): any {
 export function loadCallParams(
   values: Array<ContractCallParam>,
   addressBook: AddressBook,
+  cli: CLIEnvironment,
 ): Array<ContractCallParam> {
-  return values.map((value) => parseConfigValue(value as string, addressBook))
+  return values.map((value) => parseConfigValue(value as string, addressBook, cli))
 }
 
 export function getContractConfig(
   config: any,
   addressBook: AddressBook,
   name: string,
+  cli: CLIEnvironment,
 ): ContractConfig {
   const contractConfig = config.contracts[name] || {}
   const contractParams: Array<ContractParam> = []
@@ -62,7 +72,10 @@ export function getContractConfig(
     if (name.startsWith('init')) {
       const initList = Object.entries(contractConfig.init) as Array<Array<string>>
       for (const [initName, initValue] of initList) {
-        contractParams.push({ name: initName, value: parseConfigValue(initValue, addressBook) } as {
+        contractParams.push({
+          name: initName,
+          value: parseConfigValue(initValue, addressBook, cli),
+        } as {
           name: string
           value: string
         })
