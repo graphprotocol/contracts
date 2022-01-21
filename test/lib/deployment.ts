@@ -20,6 +20,7 @@ import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
 import { GDAI } from '../../build/types/GDAI'
 import { GSRManager } from '../../build/types/GSRManager'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
+import { SubgraphNFT } from '../../build/types/SubgraphNFT'
 
 // Disable logging for tests
 logger.pause()
@@ -178,14 +179,25 @@ export async function deployGNS(
   // Dependency
   const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
   const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
+  const subgraphNFT = (await deployContract(
+    'SubgraphNFT',
+    deployer,
+    await deployer.getAddress(),
+  )) as SubgraphNFT
 
   // Deploy
-  return network.deployContractWithProxy(
+  const proxy = (await network.deployContractWithProxy(
     proxyAdmin,
     'GNS',
-    [controller, bondingCurve.address, subgraphDescriptor.address],
+    [controller, bondingCurve.address, subgraphNFT.address],
     deployer,
-  ) as unknown as GNS
+  )) as unknown as GNS
+
+  // Post-config
+  await subgraphNFT.connect(deployer).setMinter(proxy.address)
+  await subgraphNFT.connect(deployer).setTokenDescriptor(subgraphDescriptor.address)
+
+  return proxy
 }
 
 export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDIDRegistry> {

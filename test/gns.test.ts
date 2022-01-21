@@ -1,16 +1,19 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
+import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
 
 import { GNS } from '../build/types/GNS'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
+import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
 import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
+import { getContractAt } from '../cli/network'
 
-const { AddressZero } = ethers.constants
+const { AddressZero, HashZero } = ethers.constants
 
 // Entities
 interface PublishSubgraph {
@@ -518,22 +521,22 @@ describe('GNS', () => {
       })
     })
 
-    describe('setTokenDescriptor', function () {
-      it('should set `tokenDescriptor`', async function () {
-        const newTokenDescriptor = gns.address // I just use any contract address
-        const tx = gns.connect(governor.signer).setTokenDescriptor(newTokenDescriptor)
-        await expect(tx).emit(gns, 'TokenDescriptorUpdated').withArgs(newTokenDescriptor)
-        expect(await gns.tokenDescriptor()).eq(newTokenDescriptor)
+    describe('setSubgraphNFT', function () {
+      it('should set `setSubgraphNFT`', async function () {
+        const newValue = gns.address // I just use any contract address
+        const tx = gns.connect(governor.signer).setSubgraphNFT(newValue)
+        await expect(tx).emit(gns, 'SubgraphNFTUpdated').withArgs(newValue)
+        expect(await gns.subgraphNFT()).eq(newValue)
       })
 
       it('revert set to empty address', async function () {
-        const tx = gns.connect(governor.signer).setTokenDescriptor(AddressZero)
-        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+        const tx = gns.connect(governor.signer).setSubgraphNFT(AddressZero)
+        await expect(tx).revertedWith('NFT must be valid')
       })
 
       it('revert set to non-contract', async function () {
-        const tx = gns.connect(governor.signer).setTokenDescriptor(randomHexBytes(20))
-        await expect(tx).revertedWith('NFT: Invalid token descriptor')
+        const tx = gns.connect(governor.signer).setSubgraphNFT(randomHexBytes(20))
+        await expect(tx).revertedWith('NFT must be valid')
       })
     })
   })
@@ -604,11 +607,7 @@ describe('GNS', () => {
       it('should prevent subgraphDeploymentID of 0 to be used', async function () {
         const tx = gns
           .connect(me.signer)
-          .publishNewSubgraph(
-            ethers.constants.HashZero,
-            newSubgraph0.versionMetadata,
-            newSubgraph0.subgraphMetadata,
-          )
+          .publishNewSubgraph(HashZero, newSubgraph0.versionMetadata, newSubgraph0.subgraphMetadata)
         await expect(tx).revertedWith('GNS: Cannot set deploymentID to 0 in publish')
       })
     })
@@ -1004,6 +1003,69 @@ describe('GNS', () => {
       // Batch send transaction
       const tx = gns.connect(me.signer).multicall([bogusPayload, tx2.data])
       await expect(tx).revertedWith('')
+    })
+  })
+
+  describe('NFT descriptor', function () {
+    it('with token descriptor', async function () {
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+
+      const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
+      expect(sub.ipfsHash).eq(tokenURI)
+    })
+
+    it('with token descriptor and baseURI', async function () {
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      await subgraphNFT.connect(governor.signer).setBaseURI('ipfs://')
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+
+      const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
+      expect('ipfs://' + sub.ipfsHash).eq(tokenURI)
+    })
+
+    it('without token descriptor', async function () {
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      await subgraphNFT.connect(governor.signer).setTokenDescriptor(AddressZero)
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+
+      const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
+      expect(sub.bytes32).eq(tokenURI)
+    })
+
+    it('without token descriptor and baseURI', async function () {
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      await subgraphNFT.connect(governor.signer).setTokenDescriptor(AddressZero)
+      await subgraphNFT.connect(governor.signer).setBaseURI('ipfs://')
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+
+      const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
+      expect('ipfs://' + sub.bytes32).eq(tokenURI)
+    })
+
+    it('without token descriptor and 0x0 metadata', async function () {
+      const newSubgraphNoMetadata = buildSubgraph()
+      newSubgraphNoMetadata.subgraphMetadata = HashZero
+      const subgraph0 = await publishNewSubgraph(me, newSubgraphNoMetadata)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      await subgraphNFT.connect(governor.signer).setTokenDescriptor(AddressZero)
+      await subgraphNFT.connect(governor.signer).setBaseURI('ipfs://')
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+      expect('ipfs://' + subgraph0.id).eq(tokenURI)
     })
   })
 })
