@@ -546,6 +546,8 @@ describe('Curation', () => {
     })
 
     it('should mint when using the edge case of linear function', async function () {
+      this.timeout(60000) // increase timeout for test runner
+
       // Setup edge case like linear function: 1 GRT = 1 GCS
       await curation.setMinimumCurationDeposit(toGRT('1'))
       await curation.setDefaultReserveRatio(1000000)
