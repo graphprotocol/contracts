@@ -74,6 +74,8 @@ contracts:
     calls:
       - fn: "setTokenDescriptor"
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
+      - fn: "setMinter"
+        minter: "${{GNS.address}}"
   Staking:
     proxy: true
     init:

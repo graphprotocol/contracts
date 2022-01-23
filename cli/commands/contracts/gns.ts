@@ -20,7 +20,6 @@ export const setDefaultName = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
 
 export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const ipfs = cliArgs.ipfs
-  const graphAccount = cliArgs.graphAccount
   const subgraphDeploymentID = cliArgs.subgraphDeploymentID
   const versionPath = cliArgs.versionPath
   const subgraphPath = cliArgs.subgraphPath
@@ -30,9 +29,8 @@ export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs):
   const subgraphHashBytes = await pinMetadataToIPFS(ipfs, 'subgraph', subgraphPath)
   const gns = cli.contracts.GNS
 
-  logger.info(`Publishing new subgraph for ${graphAccount}`)
+  logger.info(`Publishing new subgraph for ${cli.walletAddress}...`)
   await sendTransaction(cli.wallet, gns, 'publishNewSubgraph', [
-    graphAccount,
     subgraphDeploymentIDBytes,
     versionHashBytes,
     subgraphHashBytes,
@@ -40,31 +38,28 @@ export const publishNewSubgraph = async (cli: CLIEnvironment, cliArgs: CLIArgs):
 }
 
 export const publishNewVersion = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const subgraphID = cliArgs.subgraphID
   const ipfs = cliArgs.ipfs
-  const graphAccount = cliArgs.graphAccount
   const subgraphDeploymentID = cliArgs.subgraphDeploymentID
   const versionPath = cliArgs.versionPath
-  const subgraphNumber = cliArgs.subgraphNumber
 
   const subgraphDeploymentIDBytes = IPFS.ipfsHashToBytes32(subgraphDeploymentID)
   const versionHashBytes = await pinMetadataToIPFS(ipfs, 'version', versionPath)
   const gns = cli.contracts.GNS
 
-  logger.info(`Publishing new subgraph version for ${graphAccount}`)
+  logger.info(`Publishing new subgraph version for ${subgraphID}...`)
   await sendTransaction(cli.wallet, gns, 'publishNewVersion', [
-    graphAccount,
-    subgraphNumber,
+    subgraphID,
     subgraphDeploymentIDBytes,
     versionHashBytes,
   ])
 }
 
 export const deprecate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const graphAccount = cliArgs.graphAccount
-  const subgraphNumber = cliArgs.subgraphNumber
+  const subgraphID = cliArgs.subgraphID
   const gns = cli.contracts.GNS
-  logger.info(`Deprecating subgraph ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'deprecate', [graphAccount, subgraphNumber])
+  logger.info(`Deprecating subgraph ${subgraphID}...`)
+  await sendTransaction(cli.wallet, gns, 'deprecateSubgraph', [subgraphID])
 }
 
 export const updateSubgraphMetadata = async (
@@ -72,47 +67,39 @@ export const updateSubgraphMetadata = async (
   cliArgs: CLIArgs,
 ): Promise<void> => {
   const ipfs = cliArgs.ipfs
-  const graphAccount = cliArgs.graphAccount
-  const subgraphNumber = cliArgs.subgraphNumber
+  const subgraphID = cliArgs.subgraphID
   const subgraphPath = cliArgs.subgraphPath
   const subgraphHashBytes = await pinMetadataToIPFS(ipfs, 'subgraph', subgraphPath)
   const gns = cli.contracts.GNS
 
-  logger.info(`Updating subgraph metadata for ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'updateSubgraphMetadata', [
-    graphAccount,
-    subgraphNumber,
-    subgraphHashBytes,
-  ])
+  logger.info(`Updating subgraph metadata for ${subgraphID}...`)
+  await sendTransaction(cli.wallet, gns, 'updateSubgraphMetadata', [subgraphID, subgraphHashBytes])
 }
 
-export const mintNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const graphAccount = cliArgs.graphAccount
-  const subgraphNumber = cliArgs.subgraphNumber
+export const mintSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const subgraphID = cliArgs.subgraphID
   const tokens = parseGRT(cliArgs.tokens)
   const gns = cli.contracts.GNS
 
-  logger.info(`Minting nSignal for ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'mintNSignal', [graphAccount, subgraphNumber, tokens, 0])
+  logger.info(`Minting signal for ${subgraphID}...`)
+  await sendTransaction(cli.wallet, gns, 'mintSignal', [subgraphID, tokens, 0])
 }
 
-export const burnNSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const graphAccount = cliArgs.graphAccount
-  const subgraphNumber = cliArgs.subgraphNumber
-  const nSignal = cliArgs.nSignal
+export const burnSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const subgraphID = cliArgs.subgraphID
+  const signal = cliArgs.signal
   const gns = cli.contracts.GNS
 
-  logger.info(`Burning nSignal from ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'burnNSignal', [graphAccount, subgraphNumber, nSignal])
+  logger.info(`Burning signal from ${subgraphID}...`)
+  await sendTransaction(cli.wallet, gns, 'burnSignal', [subgraphID, signal, 0])
 }
 
-export const withdrawGRT = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const graphAccount = cliArgs.graphAccount
-  const subgraphNumber = cliArgs.subgraphNumber
+export const withdraw = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+  const subgraphID = cliArgs.subgraphID
   const gns = cli.contracts.GNS
 
-  logger.info(`Withdrawing locked GRT from subgraph ${graphAccount}-${subgraphNumber}...`)
-  await sendTransaction(cli.wallet, gns, 'withdrawGRT', [graphAccount, subgraphNumber])
+  logger.info(`Withdrawing locked GRT from subgraph ${subgraphID}...`)
+  await sendTransaction(cli.wallet, gns, 'withdraw', [subgraphID])
 }
 
 export const gnsCommand = {
@@ -153,12 +140,6 @@ export const gnsCommand = {
               requiresArg: true,
               demandOption: true,
             })
-            .option('graphAccount', {
-              description: 'graph account address',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
             .option('subgraphDeploymentID', {
               description: 'subgraph deployment ID in base58',
               type: 'string',
@@ -194,14 +175,14 @@ export const gnsCommand = {
         describe: 'Withdraw unlocked GRT',
         builder: (yargs: Argv) => {
           return yargs
-            .option('ipfs', {
-              description: 'ipfs endpoint. ex. https://api.thegraph.com/ipfs/',
+            .option('subgraphID', {
+              description: 'Subgraph identifier',
               type: 'string',
               requiresArg: true,
               demandOption: true,
             })
-            .option('graphAccount', {
-              description: 'graph account address',
+            .option('ipfs', {
+              description: 'ipfs endpoint. ex. https://api.thegraph.com/ipfs/',
               type: 'string',
               requiresArg: true,
               demandOption: true,
@@ -220,12 +201,6 @@ export const gnsCommand = {
               requiresArg: true,
               demandOption: true,
             })
-            .option('subgraphNumber', {
-              description: 'subgraph number the account is updating',
-              type: 'number',
-              requiresArg: true,
-              demandOption: true,
-            })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return publishNewVersion(await loadEnv(argv), argv)
@@ -235,19 +210,12 @@ export const gnsCommand = {
         command: 'deprecate',
         describe: 'Deprecate a subgraph',
         builder: (yargs: Argv) => {
-          return yargs
-            .option('graphAccount', {
-              description: 'graph account address',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('subgraphNumber', {
-              description: 'subgraph number the account is deprecating',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
+          return yargs.option('subgraphID', {
+            description: 'Subgraph identifier',
+            type: 'string',
+            requiresArg: true,
+            demandOption: true,
+          })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return deprecate(await loadEnv(argv), argv)
@@ -258,14 +226,8 @@ export const gnsCommand = {
         describe: 'Update a subgraphs metadata',
         builder: (yargs: Argv) => {
           return yargs
-            .option('graphAccount', {
-              description: 'graph account address',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('subgraphNumber', {
-              description: 'subgraph number to update',
+            .option('subgraphID', {
+              description: 'Subgraph identifier',
               type: 'string',
               requiresArg: true,
               demandOption: true,
@@ -287,18 +249,12 @@ export const gnsCommand = {
         },
       })
       .command({
-        command: 'mintNSignal',
+        command: 'mintSignal',
         describe: 'Mint Name Signal by depositing tokens',
         builder: (yargs: Argv) => {
           return yargs
-            .option('graphAccount', {
-              description: 'graph account address',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('subgraphNumber', {
-              description: 'subgraph number of the name signal',
+            .option('subgraphID', {
+              description: 'Subgraph identifier',
               type: 'string',
               requiresArg: true,
               demandOption: true,
@@ -311,57 +267,44 @@ export const gnsCommand = {
             })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return mintNSignal(await loadEnv(argv), argv)
+          return mintSignal(await loadEnv(argv), argv)
         },
       })
       .command({
-        command: 'burnNSignal',
+        command: 'burnSignal',
         describe: 'Burn Name Signal and receive tokens',
         builder: (yargs: Argv) => {
           return yargs
-            .option('graphAccount', {
-              description: 'graph account address',
+            .option('subgraphID', {
+              description: 'Subgraph identifier',
               type: 'string',
               requiresArg: true,
               demandOption: true,
             })
-            .option('subgraphNumber', {
-              description: 'subgraph number of the name signal',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('nSignal', {
-              description: 'Amount of nSignal to burn',
+            .option('signal', {
+              description: 'Amount of signal to burn',
               type: 'string',
               requiresArg: true,
               demandOption: true,
             })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return burnNSignal(await loadEnv(argv), argv)
+          return burnSignal(await loadEnv(argv), argv)
         },
       })
       .command({
-        command: 'withdrawGRT',
+        command: 'withdraw',
         describe: 'Withdraw GRT from a deprecated subgraph',
         builder: (yargs: Argv) => {
-          return yargs
-            .option('graphAccount', {
-              description: 'graph account address',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('subgraphNumber', {
-              description: 'subgraph number to withdraw from',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
+          return yargs.option('subgraphID', {
+            description: 'Subgraph identifier',
+            type: 'string',
+            requiresArg: true,
+            demandOption: true,
+          })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
-          return withdrawGRT(await loadEnv(argv), argv)
+          return withdraw(await loadEnv(argv), argv)
         },
       })
   },
