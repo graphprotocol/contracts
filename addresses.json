@@ -283,6 +283,18 @@
       "creationCodeHash": "0x1c7b0d7e81fc15f8ccc5b159e2cedb1f152653ebbce895b59eb74a1b26826fda",
       "runtimeCodeHash": "0xa63c77e0724a5f679660358452e388f60379f1331e74542afb1436ffb213b960",
       "txHash": "0x2ecd036c562f2503af9eaa1a9bca3729bd31ec8a91677530eefbecb398b793ba"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0x8F0B7e136891e8Bad6aa4Abcb64EeeFE29dC2Af0",
+      "creationCodeHash": "0x7ac0757e66857e512df199569ee11c47a61b00a8d812469b79afa5dafa98c0ed",
+      "runtimeCodeHash": "0x9a34ad6b202bdfa95ea85654ea2e0dd40a4b8b10847f1c3d3d805fa95a078a3d",
+      "txHash": "0x77d98358726575ae044ac988b98b63f537951ccae2010e7177c4a7833dce9158"
+    },
+    "SubgraphNFT": {
+      "address": "0x24e36639b3A3aaA9c928a8A6f12d34F942f1ab67",
+      "creationCodeHash": "0x8c9929ec6293458209f9cbadd96821604765e3656fe3c7b289b99194ede15336",
+      "runtimeCodeHash": "0x6309a51754b6bec245685c7a81059dc28e3756f1045f18d059abc9294f454a6a",
+      "txHash": "0x106c31f2c24a5285c47a766422823766f1c939034513e85613d70d99ef697173"
     }
   },
   "4": {
@@ -548,9 +560,7 @@
     },
     "GraphGovernance": {
       "address": "0x47241861A3918eaa9097c0345bb5A91660D7AEE1",
-      "initArgs": [
-        "0x1679a1d1caf1252ba43fb8fc17ebf914a0c725ae"
-      ],
+      "initArgs": ["0x1679a1d1caf1252ba43fb8fc17ebf914a0c725ae"],
       "creationCodeHash": "0xa02709eb59b9cca8bee1271845b42db037dc1d042dad93410ba532d378a7c79f",
       "runtimeCodeHash": "0xdb307489fd9a4a438b5b48909e12020b209280ad777561c0a7451655db097e75",
       "txHash": "0x5101e33eb13504780b225a2557a7062bef93cada0838937e02e879fb3d5c2c01",
@@ -608,10 +618,7 @@
     },
     "EpochManager": {
       "address": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
-      "initArgs": [
-        "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
-        "2"
-      ],
+      "initArgs": ["0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B", "2"],
       "creationCodeHash": "0x12bbdb6d1b1e703fbc45b202bb9aee69866520f80fab9361a4616b647a63ba1c",
       "runtimeCodeHash": "0x5901b97cd4a87bf10d7f0090368c12bc8c5e812260a74d733661c36f9fb407cd",
       "txHash": "0xfdec3dd6f716ec8de4afbe1b7e9417887cd313153b26fa3a26c35fbb347da938",
@@ -625,18 +632,14 @@
     },
     "GraphToken": {
       "address": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
-      "constructorArgs": [
-        "10000000000000000000000000000"
-      ],
+      "constructorArgs": ["10000000000000000000000000000"],
       "creationCodeHash": "0x1606aba0ece48fd1e75bbf040871a409426157d8a16596e9b1dac5b59f3c0262",
       "runtimeCodeHash": "0x89710d3723e04f40d3f143407d707b2af9dd5e5b39186aa1c915bbd62bc9fb3c",
       "txHash": "0x0c12fd6d0aed0841149a968241f27202b597fb6ca00c943322e42099796520ba"
     },
     "ServiceRegistry": {
       "address": "0x0290FB167208Af455bB137780163b7B7a9a10C16",
-      "initArgs": [
-        "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
-      ],
+      "initArgs": ["0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"],
       "creationCodeHash": "0x12bbdb6d1b1e703fbc45b202bb9aee69866520f80fab9361a4616b647a63ba1c",
       "runtimeCodeHash": "0x5901b97cd4a87bf10d7f0090368c12bc8c5e812260a74d733661c36f9fb407cd",
       "txHash": "0x455ae5fd6e0817d33b184441f814a3fa0ba02bf2e3ef0809c75367165b5c5194",
@@ -717,10 +720,7 @@
     },
     "RewardsManager": {
       "address": "0x5f8e26fAcC23FA4cbd87b8d9Dbbd33D5047abDE1",
-      "initArgs": [
-        "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
-        "1000000012184945188"
-      ],
+      "initArgs": ["0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B", "1000000012184945188"],
       "creationCodeHash": "0x12bbdb6d1b1e703fbc45b202bb9aee69866520f80fab9361a4616b647a63ba1c",
       "runtimeCodeHash": "0x5901b97cd4a87bf10d7f0090368c12bc8c5e812260a74d733661c36f9fb407cd",
       "txHash": "0x09a50136af6c055edf601537b0ad8ac23b226ead3e36ebfa3fa383ecd75c5642",
