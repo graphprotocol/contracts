@@ -4,6 +4,7 @@ node_modules/
 cache/
 build/
 dist/
+out/
 
 # Hardhat cache
 cached/
@@ -14,7 +15,6 @@ bin/
 # Others
 .env
 .DS_Store
-.vscode
 
 # Coverage and other reports
 /reports
