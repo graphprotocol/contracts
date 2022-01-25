@@ -595,6 +595,18 @@
       "creationCodeHash": "0x2f052eda2faa00c8dd54ec9bffab95be79075e528f24c3fa9f722c77dcc26d20",
       "runtimeCodeHash": "0xec837eb756268aa8a18c5d3182a5c2bf89bd0369f1de07ffa33b1ec5d3bef41a",
       "txHash": "0x359cf3945b2584f45633c6f6f37ce5a46129b462232107bb29c456d7fdcb66d0"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0xCD48b23d3a711A026658b83F0a3b5c787AfA84da",
+      "creationCodeHash": "0x7ac0757e66857e512df199569ee11c47a61b00a8d812469b79afa5dafa98c0ed",
+      "runtimeCodeHash": "0x9a34ad6b202bdfa95ea85654ea2e0dd40a4b8b10847f1c3d3d805fa95a078a3d",
+      "txHash": "0x77d98358726575ae044ac988b98b63f537951ccae2010e7177c4a7833dce9158"
+    },
+    "SubgraphNFT": {
+      "address": "0x44d9D2e16eF55E55D7cc99F42425f9b750659dAB",
+      "creationCodeHash": "0x8c9929ec6293458209f9cbadd96821604765e3656fe3c7b289b99194ede15336",
+      "runtimeCodeHash": "0x6309a51754b6bec245685c7a81059dc28e3756f1045f18d059abc9294f454a6a",
+      "txHash": "0x54d2b82081683bcb5577afbfa73896af418dadddc429be5bbf6c73d378e05730"
     }
   },
   "1337": {
