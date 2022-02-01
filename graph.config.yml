@@ -110,3 +110,5 @@ contracts:
       staking: "${{Staking.address}}"
       governor: *governor
       authority: *authority
+    calls:
+      - fn: "approveAll"
