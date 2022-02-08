@@ -15,6 +15,7 @@ import {
   toBN,
   toGRT,
   Account,
+  advanceEpochs,
 } from '../lib/testHelpers'
 
 const { AddressZero, HashZero } = constants
@@ -581,16 +582,14 @@ describe('Staking:Allocation', () => {
       await staking.connect(me.signer).closeAllocation(allocationID, poi)
     })
 
-    it('should close an allocation (by delegator)', async function () {
+    it('should close an allocation (by public)', async function () {
+      // Reject to close if public address and under max allocation epochs
+      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+      await expect(tx1).revertedWith('<epochs')
+
       // Move max allocation epochs to close by delegator
       const maxAllocationEpochs = await staking.maxAllocationEpochs()
-      for (let i = 0; i < maxAllocationEpochs + 1; i++) {
-        await advanceToNextEpoch(epochManager)
-      }
-
-      // Reject to close if the address is not delegator
-      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx1).revertedWith('!auth')
+      await advanceEpochs(epochManager, maxAllocationEpochs)
 
       // Calculations
       const beforeAlloc = await staking.getAllocation(allocationID)
@@ -605,9 +604,8 @@ describe('Staking:Allocation', () => {
       // Setup
       await grt.connect(governor.signer).mint(me.address, toGRT('1'))
       await grt.connect(me.signer).approve(staking.address, toGRT('1'))
-      await staking.connect(me.signer).delegate(indexer.address, toGRT('1'))
 
-      // Should close by delegator
+      // Should close by public
       const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
       await expect(tx)
         .emit(staking, 'AllocationClosed')

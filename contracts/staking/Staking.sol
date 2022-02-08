@@ -134,7 +134,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * The `effectiveAllocation` are the tokens allocated from creation to closing.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
-     * `isDelegator` is true if the sender was one of the indexer's delegators.
+     * `isPublic` is true if the sender was someone other than the indexer.
      */
     event AllocationClosed(
         address indexed indexer,
@@ -145,7 +145,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         uint256 effectiveAllocation,
         address sender,
         bytes32 poi,
-        bool isDelegator
+        bool isPublic
     );
 
     /**
@@ -1176,9 +1176,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Indexer or operator can close an allocation
         // Delegators are also allowed but only after maxAllocationEpochs passed
         bool isIndexer = _isAuth(alloc.indexer);
-        if (epochs > maxAllocationEpochs) {
-            require(isIndexer || isDelegator(alloc.indexer, msg.sender), "!auth-or-del");
-        } else {
+        if (epochs <= maxAllocationEpochs) {
             require(isIndexer, "!auth");
         }
 
