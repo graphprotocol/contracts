@@ -93,6 +93,7 @@ describe('WithdrawHelper', () => {
           allocationID,
           metadata,
           await channelKey.generateProof(indexer.address),
+          randomHexBytes(32),
         )
 
       // Initiate a withdrawal

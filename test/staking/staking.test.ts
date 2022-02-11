@@ -60,6 +60,7 @@ describe('Staking:Stakes', () => {
         allocationID,
         metadata,
         await channelKey.generateProof(indexer.address),
+        randomHexBytes(32),
       )
   }
 

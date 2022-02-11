@@ -100,7 +100,8 @@ interface IStaking is IStakingData {
         uint256 _tokens,
         address _allocationID,
         bytes32 _metadata,
-        bytes calldata _proof
+        bytes calldata _proof,
+        bytes32 _poi
     ) external;
 
     function closeAllocation(address _allocationID, bytes32 _poi) external;

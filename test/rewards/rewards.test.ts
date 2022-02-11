@@ -398,6 +398,7 @@ describe('Rewards', () => {
             allocationID,
             metadata,
             await channelKey.generateProof(indexer1.address),
+            randomHexBytes(32),
           )
 
         // Jump
@@ -436,6 +437,7 @@ describe('Rewards', () => {
             allocationID,
             metadata,
             await channelKey.generateProof(indexer1.address),
+            randomHexBytes(32),
           )
 
         // Jump
@@ -480,6 +482,7 @@ describe('Rewards', () => {
             allocationID,
             metadata,
             await channelKey.generateProof(indexer1.address),
+            randomHexBytes(32),
           )
 
         // Jump
@@ -526,6 +529,7 @@ describe('Rewards', () => {
             allocationID,
             metadata,
             await channelKey.generateProof(indexer1.address),
+            randomHexBytes(32),
           )
       }
 
@@ -569,6 +573,7 @@ describe('Rewards', () => {
             allocationID,
             metadata,
             await channelKey.generateProof(indexer1.address),
+            randomHexBytes(32),
           )
       }
 
@@ -795,6 +800,7 @@ describe('Rewards', () => {
           allocationID,
           metadata,
           await channelKey.generateProof(indexer1.address),
+          randomHexBytes(32),
         )
 
       // Jump

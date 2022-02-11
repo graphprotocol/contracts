@@ -120,6 +120,7 @@ describe('DisputeManager:Query', async () => {
           allocationID,
           metadata,
           await channelKey.generateProof(indexerAccount.address),
+          randomHexBytes(32),
         )
     }
   }
@@ -202,6 +203,7 @@ describe('DisputeManager:Query', async () => {
           indexer1ChannelKey.address,
           metadata,
           await indexer1ChannelKey.generateProof(indexer.address),
+          randomHexBytes(32),
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args

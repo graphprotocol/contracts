@@ -541,6 +541,7 @@ describe('Staking::Delegation', () => {
           allocationID,
           metadata,
           await channelKey.generateProof(indexer.address),
+          randomHexBytes(32),
         )
     }
 
