@@ -104,6 +104,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * during `epoch`.
      * `allocationID` indexer derived address used to identify the allocation.
      * `metadata` additional information related to the allocation.
+     * `poi` is the proof of indexing calculated by the indexer for the subgraph
      */
     event AllocationCreated(
         address indexed indexer,
@@ -111,7 +112,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 epoch,
         uint256 tokens,
         address indexed allocationID,
-        bytes32 metadata
+        bytes32 metadata,
+        bytes32 poi
     );
 
     /**
@@ -867,6 +869,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _allocationID The allocation identifier
      * @param _metadata IPFS hash for additional information about the allocation
      * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @param _poi Proof of indexing
      */
     function allocateFrom(
         address _indexer,
@@ -874,9 +877,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 _tokens,
         address _allocationID,
         bytes32 _metadata,
-        bytes calldata _proof
+        bytes calldata _proof,
+        bytes32 _poi
     ) external override notPaused {
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof, _poi);
     }
 
     /**
@@ -1019,6 +1023,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _allocationID The allocationID will work to identify collected funds related to this allocation
      * @param _metadata Metadata related to the allocation
      * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @param _poi Proof of indexing
      */
     function _allocate(
         address _indexer,
@@ -1026,7 +1031,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 _tokens,
         address _allocationID,
         bytes32 _metadata,
-        bytes calldata _proof
+        bytes calldata _proof,
+        bytes32 _poi
     ) private {
         require(_isAuth(_indexer), "!auth");
 
@@ -1076,7 +1082,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.createdAtEpoch,
             alloc.tokens,
             _allocationID,
-            _metadata
+            _metadata,
+            _poi
         );
     }
 

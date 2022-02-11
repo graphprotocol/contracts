@@ -74,6 +74,7 @@ describe('Staking:Allocation', () => {
         allocationID,
         metadata,
         await channelKey.generateProof(indexer.address),
+        poi,
       )
   }
 
@@ -180,6 +181,7 @@ describe('Staking:Allocation', () => {
           tokensToAllocate,
           allocationID,
           metadata,
+          poi,
         )
 
       // After state
@@ -214,6 +216,7 @@ describe('Staking:Allocation', () => {
           AddressZero,
           metadata,
           randomHexBytes(20),
+          randomHexBytes(32),
         )
       await expect(tx).revertedWith('!alloc')
     })
@@ -252,6 +255,7 @@ describe('Staking:Allocation', () => {
             allocationID,
             metadata,
             proof,
+            randomHexBytes(32),
           )
         await expect(tx1).revertedWith('!auth')
 
@@ -266,6 +270,7 @@ describe('Staking:Allocation', () => {
             allocationID,
             metadata,
             proof,
+            randomHexBytes(32),
           )
       })
 
@@ -288,6 +293,7 @@ describe('Staking:Allocation', () => {
               indexer.address,
               metadata,
               invalidProof,
+              randomHexBytes(32),
             )
           await expect(tx).revertedWith('!proof')
         })
@@ -301,6 +307,7 @@ describe('Staking:Allocation', () => {
               tokensToAllocate,
               indexer.address,
               metadata,
+              randomHexBytes(32),
               randomHexBytes(32),
             )
           await expect(tx).revertedWith('ECDSA: invalid signature length')
@@ -648,6 +655,7 @@ describe('Staking:Allocation', () => {
           allocationID2,
           metadata,
           await channelKey2.generateProof(indexer.address),
+          randomHexBytes(32),
         )
 
       // Move at least one epoch to be able to close
@@ -700,6 +708,7 @@ describe('Staking:Allocation', () => {
             newAllocationID,
             metadata,
             await newChannelKey.generateProof(indexer.address),
+            randomHexBytes(32),
           ),
       ]).then((e) => e.map((e: PopulatedTransaction) => e.data))
       await staking.connect(indexer.signer).multicall(requests)
