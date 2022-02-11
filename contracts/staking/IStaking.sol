@@ -94,14 +94,6 @@ interface IStaking is IStakingData {
 
     // -- Channel management and allocations --
 
-    function allocate(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
-    ) external;
-
     function allocateFrom(
         address _indexer,
         bytes32 _subgraphDeploymentID,
