@@ -391,7 +391,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -428,7 +429,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -471,7 +473,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -516,7 +519,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -558,7 +562,8 @@ describe('Rewards', () => {
         // Allocate
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -754,7 +759,8 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
+        .allocateFrom(
+          indexer1.address,
           subgraphDeploymentID1,
           tokensToAllocate,
           allocationID,

@@ -534,7 +534,8 @@ describe('Staking::Delegation', () => {
     const setupAllocation = async (tokens: BigNumber) => {
       return staking
         .connect(indexer.signer)
-        .allocate(
+        .allocateFrom(
+          indexer.address,
           subgraphDeploymentID,
           tokens,
           allocationID,

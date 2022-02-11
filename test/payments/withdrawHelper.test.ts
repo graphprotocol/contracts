@@ -86,7 +86,8 @@ describe('WithdrawHelper', () => {
       await staking.connect(indexer.signer).stake(stakeTokens)
       await staking
         .connect(indexer.signer)
-        .allocate(
+        .allocateFrom(
+          indexer.address,
           subgraphDeploymentID,
           stakeTokens,
           allocationID,
