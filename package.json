@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "1.8.0",
+  "version": "1.8.5-testnet-nft",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
