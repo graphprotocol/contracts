@@ -20,6 +20,14 @@ task('contracts:functions', 'Print function hashes for contracts')
         console.log(fnSig, '->', hre.ethers.utils.id(fnSig).slice(0, 10))
       }
     }
+
+    console.log('## GNS ##')
+    for (const fn of Object.entries(env.contracts.GNS.functions)) {
+      const [fnSig] = fn
+      if (fnSig.indexOf('(') != -1) {
+        console.log(fnSig, '->', hre.ethers.utils.id(fnSig).slice(0, 10))
+      }
+    }
   })
 
 task('contracts:layout', 'Display storage layout').setAction(async (_, hre) => {

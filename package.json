@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "1.10.3",
+  "version": "1.10.4",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -103,7 +103,7 @@
     "lint": "yarn lint:ts && yarn lint:sol",
     "lint:fix": "yarn lint:ts:fix && yarn lint:sol:fix",
     "lint:ts": "eslint '*/**/*.{js,ts}'",
-    "lint:ts:fix": "prettier:ts && eslint '*/**/*.{js,ts}' --fix",
+    "lint:ts:fix": "yarn prettier:ts && eslint '*/**/*.{js,ts}' --fix",
     "lint:sol": "solhint './contracts/**/*.sol'",
     "lint:sol:fix": "yarn prettier:sol && solhint --fix './contracts/**/*.sol'",
     "prettier": "yarn prettier:ts && yarn prettier:sol",
@@ -134,8 +134,8 @@
     "type": "git",
     "url": "git+https://github.com/graphprotocol/contracts.git"
   },
-  "author": "TheGraph Team",
-  "license": "MIT",
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
   "bugs": {
     "url": "https://github.com/graphprotocol/contracts/issues"
   },
