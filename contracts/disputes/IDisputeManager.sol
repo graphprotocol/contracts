@@ -38,6 +38,7 @@ interface IDisputeManager {
         bytes32 r;
         bytes32 s;
         uint8 v;
+        bytes32 domainSeparator;
     }
 
     // -- Configuration --
@@ -54,7 +55,10 @@ interface IDisputeManager {
 
     function isDisputeCreated(bytes32 _disputeID) external view returns (bool);
 
-    function encodeHashReceipt(Receipt memory _receipt) external view returns (bytes32);
+    function encodeHashReceipt(Receipt memory _receipt, bytes32 _domainSeparator)
+        external
+        pure
+        returns (bytes32);
 
     function areConflictingAttestations(
         Attestation memory _attestation1,

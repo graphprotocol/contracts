@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
-import { createAttestation, Receipt } from '@graphprotocol/common-ts'
+import { createAttestation, getDomainSeparator, Receipt } from '@graphprotocol/common-ts'
 
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
@@ -21,10 +21,15 @@ import {
 } from '../lib/testHelpers'
 
 import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
+import { Attestation } from '@graphprotocol/common-ts'
 
 const { AddressZero, HashZero } = constants
 
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
+const DEFAULT_QUERY_VERSION = '0.1.0'
+
+const encodeQueryAttestation = (attestation: Attestation, domainSep: string) =>
+  encodeAttestation(attestation, domainSep)
 
 describe('DisputeManager:Query', async () => {
   let me: Account
@@ -65,14 +70,21 @@ describe('DisputeManager:Query', async () => {
   }
   let dispute: Dispute
 
-  async function buildAttestation(receipt: Receipt, signer: string) {
+  async function buildAttestation(
+    receipt: Receipt,
+    signer: string,
+    version = DEFAULT_QUERY_VERSION,
+  ): Promise<[Attestation, string]> {
+    const chainId = await getChainID()
+    const domainSep = getDomainSeparator(chainId, disputeManager.address, version)
     const attestation = await createAttestation(
       signer,
-      await getChainID(),
+      chainId,
       disputeManager.address,
       receipt,
+      version,
     )
-    return attestation
+    return [attestation, domainSep]
   }
 
   async function calculateSlashConditions(indexerAddress: string) {
@@ -144,13 +156,13 @@ describe('DisputeManager:Query', async () => {
     await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
 
     // Create an attestation
-    const attestation = await buildAttestation(receipt, indexer1ChannelKey.privKey)
+    const [attestation, domainSep] = await buildAttestation(receipt, indexer1ChannelKey.privKey)
 
     // Create dispute data
     dispute = {
       id: createQueryDisputeID(attestation, indexer.address, fisherman.address),
       attestation,
-      encodedAttestation: encodeAttestation(attestation),
+      encodedAttestation: encodeQueryAttestation(attestation, domainSep),
       indexerAddress: indexer.address,
       receipt,
     }
@@ -289,11 +301,14 @@ describe('DisputeManager:Query', async () => {
         describe('create a dispute', function () {
           it('should create dispute if receipt is equal but for other indexer', async function () {
             // Create dispute (same receipt but different indexer)
-            const attestation = await buildAttestation(receipt, indexer2ChannelKey.privKey)
+            const [attestation, domainSep] = await buildAttestation(
+              receipt,
+              indexer2ChannelKey.privKey,
+            )
             const newDispute: Dispute = {
               id: createQueryDisputeID(attestation, indexer2.address, fisherman.address),
               attestation,
-              encodedAttestation: encodeAttestation(attestation),
+              encodedAttestation: encodeQueryAttestation(attestation, domainSep),
               indexerAddress: indexer2.address,
               receipt,
             }
@@ -444,18 +459,20 @@ describe('DisputeManager:Query', async () => {
 
   describe('disputes for conflicting attestations', function () {
     async function getIndependentAttestations() {
-      const attestation1 = await buildAttestation(receipt, indexer1ChannelKey.privKey)
-      const attestation2 = await buildAttestation(receipt, indexer2ChannelKey.privKey)
-      return [attestation1, attestation2]
+      return [
+        await buildAttestation(receipt, indexer1ChannelKey.privKey),
+        await buildAttestation(receipt, indexer2ChannelKey.privKey),
+      ]
     }
 
     async function getConflictingAttestations() {
       const receipt1 = receipt
       const receipt2 = { ...receipt1, responseCID: randomHexBytes() }
 
-      const attestation1 = await buildAttestation(receipt1, indexer1ChannelKey.privKey)
-      const attestation2 = await buildAttestation(receipt2, indexer2ChannelKey.privKey)
-      return [attestation1, attestation2]
+      return [
+        await buildAttestation(receipt1, indexer1ChannelKey.privKey),
+        await buildAttestation(receipt2, indexer2ChannelKey.privKey),
+      ]
     }
 
     beforeEach(async function () {
@@ -463,25 +480,27 @@ describe('DisputeManager:Query', async () => {
     })
 
     it('reject if attestations are not in conflict', async function () {
-      const [attestation1, attestation2] = await getIndependentAttestations()
+      const [[attestation1, domainSep1], [attestation2, domainSep2]] =
+        await getIndependentAttestations()
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDisputeConflict(
-          encodeAttestation(attestation1),
-          encodeAttestation(attestation2),
+          encodeQueryAttestation(attestation1, domainSep1),
+          encodeQueryAttestation(attestation2, domainSep2),
         )
       await expect(tx).revertedWith('Attestations must be in conflict')
     })
 
     it('should create dispute', async function () {
-      const [attestation1, attestation2] = await getConflictingAttestations()
+      const [[attestation1, domainSep1], [attestation2, domainSep2]] =
+        await getConflictingAttestations()
       const dID1 = createQueryDisputeID(attestation1, indexer.address, fisherman.address)
       const dID2 = createQueryDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDisputeConflict(
-          encodeAttestation(attestation1),
-          encodeAttestation(attestation2),
+          encodeQueryAttestation(attestation1, domainSep1),
+          encodeQueryAttestation(attestation2, domainSep2),
         )
       await expect(tx).emit(disputeManager, 'DisputeLinked').withArgs(dID1, dID2)
 
@@ -493,14 +512,15 @@ describe('DisputeManager:Query', async () => {
     })
 
     async function setupConflictingDisputes() {
-      const [attestation1, attestation2] = await getConflictingAttestations()
+      const [[attestation1, domainSep1], [attestation2, domainSep2]] =
+        await getConflictingAttestations()
       const dID1 = createQueryDisputeID(attestation1, indexer.address, fisherman.address)
       const dID2 = createQueryDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
         .connect(fisherman.signer)
         .createQueryDisputeConflict(
-          encodeAttestation(attestation1),
-          encodeAttestation(attestation2),
+          encodeQueryAttestation(attestation1, domainSep1),
+          encodeQueryAttestation(attestation2, domainSep2),
         )
       await tx
       return [dID1, dID2]

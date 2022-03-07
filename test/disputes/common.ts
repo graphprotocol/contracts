@@ -30,7 +30,7 @@ export function createQueryDisputeID(
   )
 }
 
-export function encodeAttestation(attestation: Attestation): string {
+export function encodeAttestation(attestation: Attestation, domainSeparator: string): string {
   const data = arrayify(
     abi.encode(
       ['bytes32', 'bytes32', 'bytes32'],
@@ -38,5 +38,5 @@ export function encodeAttestation(attestation: Attestation): string {
     ),
   )
   const sig = joinSignature(attestation)
-  return hexlify(concat([data, sig]))
+  return hexlify(concat([data, sig, domainSeparator]))
 }

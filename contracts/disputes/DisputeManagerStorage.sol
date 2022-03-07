@@ -9,7 +9,7 @@ import "./IDisputeManager.sol";
 contract DisputeManagerV1Storage is Managed {
     // -- State --
 
-    bytes32 internal DOMAIN_SEPARATOR;
+    bytes32 internal __DEPRECATED_DOMAIN_SEPARATOR;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;

@@ -41,23 +41,15 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // -- EIP-712  --
 
-    bytes32 private constant DOMAIN_TYPE_HASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-        );
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT =
-        0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant RECEIPT_TYPE_HASH =
         keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
     // -- Constants --
 
-    // Attestation size is the sum of the receipt (96) + signature (65)
-    uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
+    // Attestation size is the sum of the receipt (96) + signature (65) + eip712-domain-separator (32)
+    // 1) Receipt
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
-
+    // 2) Signature
     uint256 private constant SIG_R_LENGTH = 32;
     uint256 private constant SIG_S_LENGTH = 32;
     uint256 private constant SIG_V_LENGTH = 1;
@@ -65,6 +57,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
     uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
     uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
+    // 3) Domain Separator
+    uint256 private constant DOMAIN_SEPARATOR_OFFSET = SIG_V_OFFSET + SIG_V_LENGTH;
+    uint256 private constant DOMAIN_SEPARATOR_BYTES = 32;
+    // Attestation
+    uint256 private constant ATTESTATION_SIZE_BYTES =
+        RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES + DOMAIN_SEPARATOR_BYTES;
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
@@ -179,18 +177,6 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         _setMinimumDeposit(_minimumDeposit);
         _setFishermanRewardPercentage(_fishermanRewardPercentage);
         _setSlashingPercentage(_qrySlashingPercentage, _idxSlashingPercentage);
-
-        // EIP-712 domain separator
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                DOMAIN_TYPE_HASH,
-                DOMAIN_NAME_HASH,
-                DOMAIN_VERSION_HASH,
-                _getChainID(),
-                address(this),
-                DOMAIN_SALT
-            )
-        );
     }
 
     /**
@@ -299,14 +285,20 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
      * @notice Return the message hash used to sign the receipt
      * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @param _domainSeparator EIP-712 domain separator
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
+    function encodeHashReceipt(Receipt memory _receipt, bytes32 _domainSeparator)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
         return
             keccak256(
                 abi.encodePacked(
                     "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    DOMAIN_SEPARATOR,
+                    _domainSeparator,
                     keccak256(
                         abi.encode(
                             RECEIPT_TYPE_HASH,
@@ -346,9 +338,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         override
         returns (address)
     {
-        // Get attestation signer. Indexers signs with the allocationID
+        // Get attestation signer. Indexers signs with the allocationID private key
         address allocationID = _recoverAttestationSigner(_attestation);
 
+        // Get the indexer that create this allocation
         IStaking.Allocation memory alloc = staking().getAllocation(allocationID);
         require(alloc.indexer != address(0), "Indexer cannot be found for the attestation");
         require(
@@ -729,7 +722,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     function _recoverAttestationSigner(Attestation memory _attestation)
         private
-        view
+        pure
         returns (address)
     {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
@@ -738,7 +731,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             _attestation.responseCID,
             _attestation.subgraphDeploymentID
         );
-        bytes32 messageHash = encodeHashReceipt(receipt);
+        bytes32 messageHash = encodeHashReceipt(receipt, _attestation.domainSeparator);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
         // NOTE: The signer of the attestation is the indexer that served the request
@@ -747,18 +740,6 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
                 messageHash,
                 abi.encodePacked(_attestation.r, _attestation.s, _attestation.v)
             );
-    }
-
-    /**
-     * @dev Get the running network chain ID
-     * @return The chain ID
-     */
-    function _getChainID() private pure returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 
     /**
@@ -781,7 +762,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
         uint8 v = _toUint8(_data, SIG_V_OFFSET);
 
-        return Attestation(requestCID, responseCID, subgraphDeploymentID, r, s, v);
+        // Decode domain separator
+        bytes32 domainSeparator = _toBytes32(_data, DOMAIN_SEPARATOR_OFFSET);
+
+        return Attestation(requestCID, responseCID, subgraphDeploymentID, r, s, v, domainSeparator);
     }
 
     /**
