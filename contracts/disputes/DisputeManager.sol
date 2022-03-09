@@ -48,24 +48,24 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // Attestation size is the sum of the receipt (96) + signature (65) + eip712-domain-separator (32)
     // 1) Receipt
-    uint256 private constant RECEIPT_SIZE_BYTES = 96;
+    uint256 private constant RECEIPT_SIZE_LENGTH = 96;
     // 2) Signature
     uint256 private constant SIG_R_LENGTH = 32;
     uint256 private constant SIG_S_LENGTH = 32;
     uint256 private constant SIG_V_LENGTH = 1;
-    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
-    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
-    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
-    uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
+    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_LENGTH;
+    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_LENGTH + SIG_R_LENGTH;
+    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_LENGTH + SIG_R_LENGTH + SIG_S_LENGTH;
+    uint256 private constant SIG_SIZE_LENGTH = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
     // 3) Domain Separator
     uint256 private constant DOMAIN_SEPARATOR_OFFSET = SIG_V_OFFSET + SIG_V_LENGTH;
-    uint256 private constant DOMAIN_SEPARATOR_BYTES = 32;
+    uint256 private constant DOMAIN_SEPARATOR_LENGTH = 32;
     // Attestation
-    uint256 private constant ATTESTATION_SIZE_BYTES =
-        RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES + DOMAIN_SEPARATOR_BYTES;
+    uint256 private constant ATTESTATION_SIZE_LENGTH =
+        RECEIPT_SIZE_LENGTH + SIG_SIZE_LENGTH + DOMAIN_SEPARATOR_LENGTH;
 
-    uint256 private constant UINT8_BYTE_LENGTH = 1;
-    uint256 private constant BYTES32_BYTE_LENGTH = 32;
+    uint256 private constant UINT8_LENGTH = 1;
+    uint256 private constant BYTES32_LENGTH = 32;
 
     uint256 private constant MAX_PPM = 1000000; // 100% in parts per million
 
@@ -748,7 +748,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
         // Check attestation data length
-        require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
+        require(_data.length == ATTESTATION_SIZE_LENGTH, "Attestation must be 161 bytes long");
 
         // Decode receipt
         (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
@@ -773,7 +773,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
-        require(_bytes.length >= (_start + UINT8_BYTE_LENGTH), "Bytes: out of bounds");
+        require(_bytes.length >= (_start + UINT8_LENGTH), "Bytes: out of bounds");
         uint8 tempUint;
 
         assembly {
@@ -788,7 +788,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
-        require(_bytes.length >= (_start + BYTES32_BYTE_LENGTH), "Bytes: out of bounds");
+        require(_bytes.length >= (_start + BYTES32_LENGTH), "Bytes: out of bounds");
         bytes32 tempBytes32;
 
         assembly {
