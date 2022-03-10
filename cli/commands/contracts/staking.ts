@@ -36,7 +36,8 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const staking = cli.contracts.Staking
 
   logger.info(`Allocating ${cliArgs.amount} tokens on ${subgraphDeploymentID}...`)
-  await sendTransaction(cli.wallet, staking, 'allocate', [
+  await sendTransaction(cli.wallet, staking, 'allocateFrom', [
+    cli.walletAddress,
     subgraphDeploymentID,
     amount,
     allocationID,

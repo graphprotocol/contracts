@@ -53,7 +53,8 @@ describe('Staking:Stakes', () => {
   const allocate = async (tokens: BigNumber) => {
     return staking
       .connect(indexer.signer)
-      .allocate(
+      .allocateFrom(
+        indexer.address,
         subgraphDeploymentID,
         tokens,
         allocationID,
