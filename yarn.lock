@@ -1081,12 +1081,12 @@
     "@ethersproject/properties" "^5.5.0"
     "@ethersproject/strings" "^5.5.0"
 
-"@graphprotocol/common-ts@^1.6.0":
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/@graphprotocol/common-ts/-/common-ts-1.8.2.tgz#f6d8dd2b27ea2f99804d5805e4eab022e41b0bb9"
-  integrity sha512-nqtOHNi5vHPiiBv0Dxq7/ZGa/Nch2UVu5hbbwo6BqVh4KaEq6Z9MeofyU5Ew538txNdTliXFZ135i0dsBhVRIA==
+"@graphprotocol/common-ts@^2.0.0-beta":
+  version "2.0.0-beta"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/common-ts/-/common-ts-2.0.0-beta.tgz#0dfa73a1c423e6466b0d263fc69a961412766de6"
+  integrity sha512-eXjOzeb40qkoYmHQQVnsYJdXztY3G0JPWAZGpd44IfDN/o4zSO6A2viAeiqau2ht4FF/q3NruJ3kr16grWaUgg==
   dependencies:
-    "@graphprotocol/contracts" "1.9.0"
+    "@graphprotocol/contracts" "1.10.1"
     "@graphprotocol/pino-sentry-simple" "0.7.1"
     "@urql/core" "2.3.6"
     "@urql/exchange-execute" "1.2.2"
@@ -1108,10 +1108,10 @@
     prom-client "14.0.1"
     sequelize "6.12.0"
 
-"@graphprotocol/contracts@1.9.0":
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/@graphprotocol/contracts/-/contracts-1.9.0.tgz#1ebf3336e07263036092826e1297c31d4d266ba9"
-  integrity sha512-BonWS6P76RN4HPuq8T9qyJqp4ec8dJBI60MIEi10BD28Hq0WNfG6UYW+OfyIxw8g7LM9DRw8KK0e4f2IDg673A==
+"@graphprotocol/contracts@1.10.1":
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/contracts/-/contracts-1.10.1.tgz#28936a4d534aa15c9a298553ff4e04d90ddcf524"
+  integrity sha512-anLOflY1FRIpSI5BulsYRm/ecU3Q/x1IompeGOXC6nSY4gZtvbPhwqfWo6dFGU+3ZveNyS/O0SEJVicjzXPDUQ==
   dependencies:
     ethers "^5.4.4"
 
