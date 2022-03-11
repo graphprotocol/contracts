@@ -1105,9 +1105,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
     ) private {
         require(_isAuth(_indexer), "!auth");
 
-        // Only allocations with a non-zero token amount are allowed
-        require(_tokens > 0, "!tokens");
-
         // Check allocation
         require(_allocationID != address(0), "!alloc");
         require(_getAllocationState(_allocationID) == AllocationState.Null, "!null");
@@ -1119,7 +1116,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(ECDSA.recover(digest, _proof) == _allocationID, "!proof");
 
         // Needs to have free capacity not used for other purposes to allocate
-        require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
+        if (_tokens > 0) {
+            require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
+        }
 
         // Creates an allocation
         // Allocation identifiers are not reused
@@ -1136,14 +1135,16 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         );
         allocations[_allocationID] = alloc;
 
-        // Mark allocated tokens as used
-        stakes[_indexer].allocate(alloc.tokens);
+        if (_tokens > 0) {
+            // Mark allocated tokens as used
+            stakes[_indexer].allocate(alloc.tokens);
 
-        // Track total allocations per subgraph
-        // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
-            alloc.subgraphDeploymentID
-        ].add(alloc.tokens);
+            // Track total allocations per subgraph
+            // Used for rewards calculations
+            subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+                alloc.subgraphDeploymentID
+            ].add(alloc.tokens);
+        }
 
         emit AllocationCreated(
             _indexer,
@@ -1206,14 +1207,16 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             _updateRewards(alloc.subgraphDeploymentID);
         }
 
-        // Free allocated tokens from use
-        stakes[alloc.indexer].unallocate(alloc.tokens);
+        if (alloc.tokens > 0) {
+            // Free allocated tokens from use
+            stakes[alloc.indexer].unallocate(alloc.tokens);
 
-        // Track total allocations per subgraph
-        // Used for rewards calculations
-        subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
-            alloc.subgraphDeploymentID
-        ].sub(alloc.tokens);
+            // Track total allocations per subgraph
+            // Used for rewards calculations
+            subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
+                alloc.subgraphDeploymentID
+            ].sub(alloc.tokens);
+        }
 
         emit AllocationClosed(
             alloc.indexer,
@@ -1255,8 +1258,8 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         // Purge allocation data except for:
         // - indexer: used in disputes and to avoid reusing an allocationID
         // - subgraphDeploymentID: used in disputes
-        allocations[_allocationID].tokens = 0; // This avoid collect(), close() and claim() to be called
-        allocations[_allocationID].createdAtEpoch = 0;
+        allocations[_allocationID].tokens = 0;
+        allocations[_allocationID].createdAtEpoch = 0; // This avoid collect(), close() and claim() to be called
         allocations[_allocationID].closedAtEpoch = 0;
         allocations[_allocationID].collectedFees = 0;
         allocations[_allocationID].effectiveAllocation = 0;
@@ -1526,7 +1529,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         if (alloc.indexer == address(0)) {
             return AllocationState.Null;
         }
-        if (alloc.tokens == 0) {
+        if (alloc.createdAtEpoch == 0) {
             return AllocationState.Claimed;
         }
 
