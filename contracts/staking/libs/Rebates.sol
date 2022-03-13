@@ -14,6 +14,7 @@ import "./Cobbs.sol";
  */
 library Rebates {
     using SafeMath for uint256;
+    using Rebates for Rebates.Pool;
 
     // Tracks stats for allocations closed on a particular epoch for claiming
     // The pool also keeps tracks of total query fees collected and stake used
@@ -86,7 +87,7 @@ library Rebates {
         uint256 rebateReward = 0;
 
         // Calculate the rebate rewards for the indexer
-        if (pool.fees > 0) {
+        if (pool.fees > 0 && _indexerEffectiveAllocatedStake > 0) {
             rebateReward = LibCobbDouglas.cobbDouglas(
                 pool.fees, // totalRewards
                 _indexerFees,
@@ -98,7 +99,7 @@ library Rebates {
             );
 
             // Under NO circumstance we will reward more than total fees in the pool
-            uint256 _unclaimedFees = pool.fees.sub(pool.claimedRewards);
+            uint256 _unclaimedFees = pool.unclaimedFees();
             if (rebateReward > _unclaimedFees) {
                 rebateReward = _unclaimedFees;
             }
