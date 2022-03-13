@@ -104,7 +104,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @return The current epoch based on epoch length
      */
     function currentEpoch() public view override returns (uint256) {
-        return lastLengthUpdateEpoch.add(epochsSinceUpdate());
+        return lastLengthUpdateEpoch.add(epochsSinceUpdate()).add(1);
     }
 
     /**
