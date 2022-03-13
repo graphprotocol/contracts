@@ -1115,9 +1115,13 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
         require(ECDSA.recover(digest, _proof) == _allocationID, "!proof");
 
-        // Needs to have free capacity not used for other purposes to allocate
         if (_tokens > 0) {
+            // Needs to have free capacity not used for other purposes to allocate
             require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
+        } else {
+            // Allocating zero-tokens still needs to have stake
+            // Minimum indexer stake is managed by stake/unstake
+            require(stakes[_indexer].tokensSecureStake() > 0, "!stake");
         }
 
         // Creates an allocation
@@ -1131,10 +1135,13 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             0, // closedAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
-            _updateRewards(_subgraphDeploymentID) // Initialize accumulated rewards per stake allocated
+            (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0 // Initialize accumulated rewards per stake allocated
         );
         allocations[_allocationID] = alloc;
 
+        // -- Rewards Distribution --
+
+        // Process non-zero-allocation rewards tracking
         if (_tokens > 0) {
             // Mark allocated tokens as used
             stakes[_indexer].allocate(alloc.tokens);
@@ -1175,11 +1182,19 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
-        // Delegators are also allowed but only after maxAllocationEpochs passed
+        // Anyone is allowed to close ONLY under two concurrent conditions
+        // - After maxAllocationEpochs passed
+        // - When the allocation is for non-zero amount of tokens
         bool isIndexer = _isAuth(alloc.indexer);
-        if (epochs <= maxAllocationEpochs) {
+        if (epochs <= maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexer, "!auth");
         }
+
+        // Close the allocation and start counting a period to settle remaining payments from
+        // state channels.
+        allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
+
+        // -- Rebate Pool --
 
         // Calculate effective allocation for the amount of epochs it remained allocated
         alloc.effectiveAllocation = _getEffectiveAllocation(
@@ -1187,10 +1202,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
             alloc.tokens,
             epochs
         );
-
-        // Close the allocation and start counting a period to settle remaining payments from
-        // state channels.
-        allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
         allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
 
         // Account collected fees and effective allocation in rebate pool for the epoch
@@ -1200,14 +1211,17 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
         }
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Distribute rewards if proof of indexing was presented by the indexer or operator
-        if (isIndexer && _poi != 0) {
-            _distributeRewards(_allocationID, alloc.indexer);
-        } else {
-            _updateRewards(alloc.subgraphDeploymentID);
-        }
+        // -- Rewards Distribution --
 
+        // Process non-zero-allocation rewards tracking
         if (alloc.tokens > 0) {
+            // Distribute rewards if proof of indexing was presented by the indexer or operator
+            if (isIndexer && _poi != 0) {
+                _distributeRewards(_allocationID, alloc.indexer);
+            } else {
+                _updateRewards(alloc.subgraphDeploymentID);
+            }
+
             // Free allocated tokens from use
             stakes[alloc.indexer].unallocate(alloc.tokens);
 
