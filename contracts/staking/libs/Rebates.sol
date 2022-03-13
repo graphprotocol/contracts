@@ -87,7 +87,7 @@ library Rebates {
         uint256 rebateReward = 0;
 
         // Calculate the rebate rewards for the indexer
-        if (pool.fees > 0 && _indexerEffectiveAllocatedStake > 0) {
+        if (pool.fees > 0 && pool.effectiveAllocatedStake > 0) {
             rebateReward = LibCobbDouglas.cobbDouglas(
                 pool.fees, // totalRewards
                 _indexerFees,
