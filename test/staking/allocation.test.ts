@@ -345,9 +345,13 @@ describe('Staking:Allocation', () => {
     })
 
     it('reject allocate if no tokens staked', async function () {
-      const tokensOverCapacity = tokensToStake.add(toBN('1'))
-      const tx = allocate(tokensOverCapacity)
+      const tx = allocate(toBN('1'))
       await expect(tx).revertedWith('!capacity')
+    })
+
+    it('reject allocate zero tokens if no tokens staked', async function () {
+      const tx = allocate(toBN('0'))
+      await expect(tx).revertedWith('!stake')
     })
 
     context('> when staked', function () {
@@ -563,185 +567,200 @@ describe('Staking:Allocation', () => {
     beforeEach(async function () {
       // Stake and allocate
       await staking.connect(indexer.signer).stake(tokensToStake)
-      await allocate(tokensToAllocate)
     })
 
-    it('reject close a non-existing allocation', async function () {
-      const invalidAllocationID = randomHexBytes(20)
-      const tx = staking.connect(indexer.signer).closeAllocation(invalidAllocationID, poi)
-      await expect(tx).revertedWith('!active')
-    })
+    for (const tokensToAllocate of [toBN(100), toBN(0)]) {
+      context(`> with ${tokensToAllocate} allocated tokens`, async function () {
+        beforeEach(async function () {
+          await allocate(tokensToAllocate)
+        })
 
-    it('reject close before at least one epoch has passed', async function () {
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-      await expect(tx).revertedWith('<epochs')
-    })
+        it('reject close a non-existing allocation', async function () {
+          const invalidAllocationID = randomHexBytes(20)
+          const tx = staking.connect(indexer.signer).closeAllocation(invalidAllocationID, poi)
+          await expect(tx).revertedWith('!active')
+        })
 
-    it('reject close if not the owner of allocation', async function () {
-      // Move at least one epoch to be able to close
-      await advanceToNextEpoch(epochManager)
+        it('reject close before at least one epoch has passed', async function () {
+          const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+          await expect(tx).revertedWith('<epochs')
+        })
 
-      // Close allocation
-      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx).revertedWith('!auth')
-    })
+        it('reject close if not the owner of allocation', async function () {
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
 
-    it('reject close if allocation is already closed', async function () {
-      // Move at least one epoch to be able to close
-      await advanceToNextEpoch(epochManager)
+          // Close allocation
+          const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+          await expect(tx).revertedWith('!auth')
+        })
 
-      // First closing
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+        it('reject close if allocation is already closed', async function () {
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
 
-      // Second closing
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-      await expect(tx).revertedWith('!active')
-    })
+          // First closing
+          await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
 
-    it('should close an allocation', async function () {
-      // Before state
-      const beforeStake = await staking.stakes(indexer.address)
-      const beforeAlloc = await staking.getAllocation(allocationID)
-      const beforeRebatePool = await staking.rebates(
-        (await epochManager.currentEpoch()).add(toBN('2')),
-      )
+          // Second closing
+          const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+          await expect(tx).revertedWith('!active')
+        })
 
-      // Move at least one epoch to be able to close
-      await advanceToNextEpoch(epochManager)
-      await advanceToNextEpoch(epochManager)
+        it('should close an allocation', async function () {
+          // Before state
+          const beforeStake = await staking.stakes(indexer.address)
+          const beforeAlloc = await staking.getAllocation(allocationID)
+          const beforeRebatePool = await staking.rebates(
+            (await epochManager.currentEpoch()).add(toBN('2')),
+          )
 
-      // Calculations
-      const currentEpoch = await epochManager.currentEpoch()
-      const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
-      const maxAllocationEpochs = toBN(await staking.maxAllocationEpochs())
-      const effectiveAllocation = calculateEffectiveAllocation(
-        beforeAlloc.tokens,
-        epochs,
-        maxAllocationEpochs,
-      )
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
+          await advanceToNextEpoch(epochManager)
 
-      // Close allocation
-      const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-      await expect(tx)
-        .emit(staking, 'AllocationClosed')
-        .withArgs(
-          indexer.address,
-          subgraphDeploymentID,
-          currentEpoch,
-          beforeAlloc.tokens,
-          allocationID,
-          effectiveAllocation,
-          indexer.address,
-          poi,
-          false,
-        )
+          // Calculations
+          const currentEpoch = await epochManager.currentEpoch()
+          const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
+          const maxAllocationEpochs = toBN(await staking.maxAllocationEpochs())
+          const effectiveAllocation = calculateEffectiveAllocation(
+            beforeAlloc.tokens,
+            epochs,
+            maxAllocationEpochs,
+          )
 
-      // After state
-      const afterStake = await staking.stakes(indexer.address)
-      const afterAlloc = await staking.getAllocation(allocationID)
-      const afterRebatePool = await staking.rebates(currentEpoch)
+          // Close allocation
+          const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+          await expect(tx)
+            .emit(staking, 'AllocationClosed')
+            .withArgs(
+              indexer.address,
+              subgraphDeploymentID,
+              currentEpoch,
+              beforeAlloc.tokens,
+              allocationID,
+              effectiveAllocation,
+              indexer.address,
+              poi,
+              false,
+            )
 
-      // Stake updated
-      expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.sub(beforeAlloc.tokens))
-      // Allocation updated
-      expect(afterAlloc.closedAtEpoch).eq(currentEpoch)
-      expect(afterAlloc.effectiveAllocation).eq(effectiveAllocation)
-      // Rebate updated
-      expect(afterRebatePool.fees).eq(beforeRebatePool.fees.add(beforeAlloc.collectedFees))
-      expect(afterRebatePool.effectiveAllocatedStake).eq(
-        beforeRebatePool.effectiveAllocatedStake.add(effectiveAllocation),
-      )
-      expect(afterRebatePool.unclaimedAllocationsCount).eq(
-        beforeRebatePool.unclaimedAllocationsCount + 1,
-      )
-    })
+          // After state
+          const afterStake = await staking.stakes(indexer.address)
+          const afterAlloc = await staking.getAllocation(allocationID)
+          const afterRebatePool = await staking.rebates(currentEpoch)
 
-    it('should close an allocation (by operator)', async function () {
-      // Move at least one epoch to be able to close
-      await advanceToNextEpoch(epochManager)
-      await advanceToNextEpoch(epochManager)
+          // Stake updated
+          expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.sub(beforeAlloc.tokens))
+          // Allocation updated
+          expect(afterAlloc.closedAtEpoch).eq(currentEpoch)
+          expect(afterAlloc.effectiveAllocation).eq(effectiveAllocation)
+          // Rebate updated
+          expect(afterRebatePool.fees).eq(beforeRebatePool.fees.add(beforeAlloc.collectedFees))
+          expect(afterRebatePool.effectiveAllocatedStake).eq(
+            beforeRebatePool.effectiveAllocatedStake.add(effectiveAllocation),
+          )
+          expect(afterRebatePool.unclaimedAllocationsCount).eq(
+            beforeRebatePool.unclaimedAllocationsCount + 1,
+          )
+        })
 
-      // Reject to close if the address is not operator
-      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx1).revertedWith('!auth')
+        it('should close an allocation (by operator)', async function () {
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
+          await advanceToNextEpoch(epochManager)
 
-      // Should close if given operator auth
-      await staking.connect(indexer.signer).setOperator(me.address, true)
-      await staking.connect(me.signer).closeAllocation(allocationID, poi)
-    })
+          // Reject to close if the address is not operator
+          const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+          await expect(tx1).revertedWith('!auth')
 
-    it('should close an allocation (by public)', async function () {
-      // Reject to close if public address and under max allocation epochs
-      const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx1).revertedWith('<epochs')
+          // Should close if given operator auth
+          await staking.connect(indexer.signer).setOperator(me.address, true)
+          await staking.connect(me.signer).closeAllocation(allocationID, poi)
+        })
 
-      // Move max allocation epochs to close by delegator
-      const maxAllocationEpochs = await staking.maxAllocationEpochs()
-      await advanceEpochs(epochManager, maxAllocationEpochs)
+        it('should close an allocation (by public) only if allocation is non-zero', async function () {
+          // Reject to close if public address and under max allocation epochs
+          const tx1 = staking.connect(me.signer).closeAllocation(allocationID, poi)
+          await expect(tx1).revertedWith('<epochs')
 
-      // Calculations
-      const beforeAlloc = await staking.getAllocation(allocationID)
-      const currentEpoch = await epochManager.currentEpoch()
-      const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
-      const effectiveAllocation = calculateEffectiveAllocation(
-        beforeAlloc.tokens,
-        epochs,
-        toBN(maxAllocationEpochs),
-      )
+          // Move max allocation epochs to close by delegator
+          const maxAllocationEpochs = await staking.maxAllocationEpochs()
+          await advanceEpochs(epochManager, maxAllocationEpochs)
 
-      // Setup
-      await grt.connect(governor.signer).mint(me.address, toGRT('1'))
-      await grt.connect(me.signer).approve(staking.address, toGRT('1'))
+          // Closing should only be possible if allocated tokens > 0
+          const alloc = await staking.getAllocation(allocationID)
+          if (alloc.tokens.gt(0)) {
+            // Calculations
+            const beforeAlloc = await staking.getAllocation(allocationID)
+            const currentEpoch = await epochManager.currentEpoch()
+            const epochs = currentEpoch.sub(beforeAlloc.createdAtEpoch)
+            const effectiveAllocation = calculateEffectiveAllocation(
+              beforeAlloc.tokens,
+              epochs,
+              toBN(maxAllocationEpochs),
+            )
 
-      // Should close by public
-      const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
-      await expect(tx)
-        .emit(staking, 'AllocationClosed')
-        .withArgs(
-          indexer.address,
-          subgraphDeploymentID,
-          currentEpoch,
-          beforeAlloc.tokens,
-          allocationID,
-          effectiveAllocation,
-          me.address,
-          poi,
-          true,
-        )
-    })
+            // Setup
+            await grt.connect(governor.signer).mint(me.address, toGRT('1'))
+            await grt.connect(me.signer).approve(staking.address, toGRT('1'))
 
-    it('should close many allocations in batch', async function () {
-      // Setup a second allocation
-      await staking.connect(indexer.signer).stake(tokensToAllocate)
-      const channelKey2 = deriveChannelKey()
-      const allocationID2 = channelKey2.address
-      await staking
-        .connect(indexer.signer)
-        .allocate(
-          subgraphDeploymentID,
-          tokensToAllocate,
-          allocationID2,
-          metadata,
-          await channelKey2.generateProof(indexer.address),
-        )
+            // Should close by public
+            const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+            await expect(tx)
+              .emit(staking, 'AllocationClosed')
+              .withArgs(
+                indexer.address,
+                subgraphDeploymentID,
+                currentEpoch,
+                beforeAlloc.tokens,
+                allocationID,
+                effectiveAllocation,
+                me.address,
+                poi,
+                true,
+              )
+          } else {
+            // closing by the public on a zero allocation is not authorized
+            const tx = staking.connect(me.signer).closeAllocation(allocationID, poi)
+            await expect(tx).revertedWith('!auth')
+          }
+        })
 
-      // Move at least one epoch to be able to close
-      await advanceToNextEpoch(epochManager)
-      await advanceToNextEpoch(epochManager)
+        it('should close many allocations in batch', async function () {
+          // Setup a second allocation
+          await staking.connect(indexer.signer).stake(tokensToStake)
+          const channelKey2 = deriveChannelKey()
+          const allocationID2 = channelKey2.address
+          await staking
+            .connect(indexer.signer)
+            .allocate(
+              subgraphDeploymentID,
+              tokensToAllocate,
+              allocationID2,
+              metadata,
+              await channelKey2.generateProof(indexer.address),
+            )
 
-      // Close multiple allocations in one tx
-      const requests = [
-        {
-          allocationID: allocationID,
-          poi: poi,
-        },
-        {
-          allocationID: allocationID2,
-          poi: poi,
-        },
-      ]
-      await staking.connect(indexer.signer).closeAllocationMany(requests)
-    })
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
+          await advanceToNextEpoch(epochManager)
+
+          // Close multiple allocations in one tx
+          const requests = [
+            {
+              allocationID: allocationID,
+              poi: poi,
+            },
+            {
+              allocationID: allocationID2,
+              poi: poi,
+            },
+          ]
+          await staking.connect(indexer.signer).closeAllocationMany(requests)
+        })
+      })
+    }
   })
 
   describe('closeAndAllocate', function () {
