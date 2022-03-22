@@ -11,6 +11,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 library MathUtils {
     using SafeMath for uint256;
 
+    // 100% in parts per million
+    uint32 public constant MAX_PPM = 1000000;
+
     /**
      * @dev Calculates the weighted average of two values pondering each of these
      * values based on configured weights. The contribution of each value N is
@@ -41,5 +44,28 @@ library MathUtils {
      */
     function diffOrZero(uint256 x, uint256 y) internal pure returns (uint256) {
         return (x > y) ? x.sub(y) : 0;
+    }
+
+    /**
+     * @dev Cast a number to uint32 and ensures that it is within percent expressed
+     * in parts-per-million max bound.
+     * @param value Value to cast and check is PPM
+     * @return Number within a percentage bounds (PPM)
+     */
+    function toPercent(uint256 value) internal pure returns (uint32) {
+        require(value <= MAX_PPM, "PercentCast: out of bounds");
+        return uint32(value);
+    }
+
+    /**
+     * @dev Returns the value after applying percentage with parts-per-million precision.
+     * This function will not allow percentages over 100%
+     * @param percentage Percentage (PPM)
+     * @param value Value to calculate the percentage of
+     * @return Percentage of a number
+     */
+    function percentOf(uint32 percentage, uint256 value) internal pure returns (uint256) {
+        if (percentage == 0 || value == 0) return 0;
+        return percentage >= MAX_PPM ? value : uint256(percentage).mul(value).div(MAX_PPM);
     }
 }

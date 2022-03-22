@@ -128,7 +128,7 @@ interface IStaking is IStakingData {
 
     function collect(uint256 _tokens, address _allocationID) external;
 
-    function claim(address _allocationID, bool _restake) external;
+    function claim(address _allocationID) external;
 
     function claimMany(address[] calldata _allocationID, bool _restake) external;
 
