@@ -51,6 +51,18 @@ export const gettersList = {
   'controller-get-paused': { contract: 'Controller', name: 'paused' },
   'controller-get-partial-paused': { contract: 'Controller', name: 'partialPaused' },
   'controller-get-pause-guardian': { contract: 'Controller', name: 'pauseGuardian' },
+  'l1-gateway-l2-grt': { contract: 'L1GraphTokenGateway', name: 'l2GRT' },
+  'l1-gateway-inbox': { contract: 'L1GraphTokenGateway', name: 'inbox' },
+  'l1-gateway-escrow': { contract: 'L1GraphTokenGateway', name: 'escrow' },
+  'l1-gateway-l1-router': { contract: 'L1GraphTokenGateway', name: 'l1Router' },
+  'l1-gateway-l2-counterpart': { contract: 'L1GraphTokenGateway', name: 'l2Counterpart' },
+  'l1-gateway-paused': { contract: 'L1GraphTokenGateway', name: 'paused' },
+  'l2-gateway-l1-grt': { contract: 'L2GraphTokenGateway', name: 'l1GRT' },
+  'l2-gateway-l2-router': { contract: 'L2GraphTokenGateway', name: 'l2Router' },
+  'l2-gateway-l1-counterpart': { contract: 'L2GraphTokenGateway', name: 'l1Counterpart' },
+  'l2-gateway-paused': { contract: 'L2GraphTokenGateway', name: 'paused' },
+  'l2-token-gateway': { contract: 'L2GraphToken', name: 'gateway' },
+  'l2-token-l1-address': { contract: 'L2GraphToken', name: 'l1Address' },
 }
 
 const buildHelp = () => {

@@ -59,6 +59,31 @@ export const settersList = {
   'controller-set-paused': { contract: 'Controller', name: 'setPaused' },
   'controller-set-partial-paused': { contract: 'Controller', name: 'setPartialPaused' },
   'controller-set-pause-guardian': { contract: 'Controller', name: 'setPauseGuardian' },
+  'l1-gateway-set-l2-grt': { contract: 'L1GraphTokenGateway', name: 'setL2TokenAddress' },
+  'l1-gateway-set-arbitrum-addresses': {
+    contract: 'L1GraphTokenGateway',
+    name: 'setArbitrumAddresses',
+  },
+  'l1-gateway-set-l2-counterpart': {
+    contract: 'L1GraphTokenGateway',
+    name: 'setL2CounterpartAddress',
+  },
+  'l1-gateway-set-escrow-address': {
+    contract: 'L1GraphTokenGateway',
+    name: 'setEscrowAddress',
+  },
+  'l1-gateway-set-paused': { contract: 'L1GraphTokenGateway', name: 'setPaused' },
+  'bridge-escrow-approve-all': { contract: 'BridgeEscrow', name: 'approveAll' },
+  'bridge-escrow-revoke-all': { contract: 'BridgeEscrow', name: 'revokeAll' },
+  'l2-gateway-set-l1-grt': { contract: 'L2GraphTokenGateway', name: 'setL1TokenAddress' },
+  'l2-gateway-set-l2-router': { contract: 'L2GraphTokenGateway', name: 'setL2Router' },
+  'l2-gateway-set-l1-counterpart': {
+    contract: 'L2GraphTokenGateway',
+    name: 'setL1CounterpartAddress',
+  },
+  'l2-gateway-set-paused': { contract: 'L2GraphTokenGateway', name: 'setPaused' },
+  'l2-token-set-gateway': { contract: 'L2GraphToken', name: 'setGateway' },
+  'l2-token-set-l1-address': { contract: 'L2GraphToken', name: 'setL1Address' },
 }
 
 const buildHelp = () => {

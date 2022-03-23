@@ -62,6 +62,13 @@ const networkConfigs: NetworkConfig[] = [
   { network: 'rinkeby', chainId: 4 },
   { network: 'goerli', chainId: 5 },
   { network: 'kovan', chainId: 42 },
+  { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
+  { network: 'arbitrum-one', chainId: 42161, url: 'https://arb1.arbitrum.io/rpc' },
+  {
+    network: 'arbitrum-goerli',
+    chainId: 421613,
+    url: 'https://goerli-rollup.arbitrum.io/rpc',
+  },
 ]
 
 function getAccountsKeys() {
