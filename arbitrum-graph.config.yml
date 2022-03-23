@@ -1,0 +1,23 @@
+general:
+  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council
+  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council
+  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+
+contracts:
+  Controller:
+    calls:
+      - fn: "setContractProxy"
+        id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
+        contractAddress: "${{L2GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L2GraphTokenGateway.address}}"
+  L2GraphToken:
+    proxy: true
+    init:
+      owner: *governor
+      initialSupply: "0"
+  L2GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"

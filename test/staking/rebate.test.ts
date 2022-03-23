@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers'
 import { deployContract } from '../lib/deployment'
 import { RebatePoolMock } from '../../build/types/RebatePoolMock'
 
-import { getAccounts, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'
+import { getAccounts, toBN, toGRT, formatGRT, Account, initNetwork } from '../lib/testHelpers'
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toFixed = (n: number | BigNumber, precision = 12) => {
@@ -186,6 +186,7 @@ describe('Staking:Rebate', () => {
   }
 
   beforeEach(async function () {
+    await initNetwork()
     ;[deployer] = await getAccounts()
     rebatePoolMock = (await deployContract(
       'RebatePoolMock',

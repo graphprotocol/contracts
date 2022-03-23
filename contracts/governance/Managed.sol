@@ -44,7 +44,7 @@ contract Managed {
         require(!controller.partialPaused(), "Partial-paused");
     }
 
-    function _notPaused() internal view {
+    function _notPaused() internal view virtual {
         require(!controller.paused(), "Paused");
     }
 
@@ -182,5 +182,6 @@ contract Managed {
         _syncContract("RewardsManager");
         _syncContract("Staking");
         _syncContract("GraphToken");
+        _syncContract("GraphTokenGateway");
     }
 }

@@ -6,7 +6,7 @@ import { GDAI } from '../../build/types/GDAI'
 
 import * as deployment from '../lib/deployment'
 import { defaults } from '../lib/deployment'
-import { getAccounts, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, toGRT, Account, initNetwork } from '../lib/testHelpers'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -78,6 +78,7 @@ describe('Gdai and Gsr', () => {
   }
 
   before(async function () {
+    await initNetwork()
     ;[governor] = await getAccounts()
   })
 
