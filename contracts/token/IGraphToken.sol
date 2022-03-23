@@ -32,4 +32,10 @@ interface IGraphToken is IERC20 {
         bytes32 _r,
         bytes32 _s
     ) external;
+
+    // -- Allowance --
+
+    function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
 }

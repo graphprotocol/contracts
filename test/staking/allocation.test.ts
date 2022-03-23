@@ -17,7 +17,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero, HashZero } = constants
+const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
 

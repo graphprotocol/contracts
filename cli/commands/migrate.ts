@@ -32,7 +32,34 @@ let allContracts = [
   'RewardsManager',
   'DisputeManager',
   'AllocationExchange',
+  'L1GraphTokenGateway',
+  'BridgeEscrow',
 ]
+
+// This is all we'll want to deploy to L2 eventually:
+// const l2Contracts = [
+//   'GraphProxyAdmin',
+//   'BancorFormula',
+//   'Controller',
+//   'EpochManager',
+//   'L2GraphToken',
+//   'GraphCurationToken',
+//   'ServiceRegistry',
+//   'Curation',
+//   'SubgraphNFTDescriptor',
+//   'SubgraphNFT',
+//   'GNS',
+//   'Staking',
+//   'RewardsManager',
+//   'DisputeManager',
+//   'AllocationExchange',
+//   'L2GraphTokenGateway',
+// ]
+//
+// But for now we'll only include a subset:
+const l2Contracts = ['GraphProxyAdmin', 'Controller', 'L2GraphToken', 'L2GraphTokenGateway']
+
+const l2ChainIds = [42161, 421611]
 
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphConfigPath = cliArgs.graphConfig
@@ -42,6 +69,8 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
   if (chainId == 1337) {
     allContracts = ['EthereumDIDRegistry', ...allContracts]
+  } else if (l2ChainIds.includes(chainId)) {
+    allContracts = l2Contracts
   }
 
   logger.info(`>>> Migrating contracts <<<\n`)
