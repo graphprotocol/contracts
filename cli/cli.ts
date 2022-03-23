@@ -8,6 +8,7 @@ import { proxyCommand } from './commands/proxy'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts'
 import { airdropCommand } from './commands/airdrop'
+import { bridgeCommand } from './commands/bridge'
 
 import { cliOpts } from './defaults'
 
@@ -28,11 +29,13 @@ yargs
   .option('p', cliOpts.providerUrl)
   .option('n', cliOpts.accountNumber)
   .option('s', cliOpts.skipConfirmation)
+  .option('r', cliOpts.arbitrumAddressBook)
   .command(deployCommand)
   .command(migrateCommand)
   .command(proxyCommand)
   .command(protocolCommand)
   .command(contractsCommand)
   .command(airdropCommand)
+  .command(bridgeCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv

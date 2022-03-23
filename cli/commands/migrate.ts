@@ -12,12 +12,13 @@ import {
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { confirm } from '../helpers'
+import { chainIdIsL2 } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
 
 // Contracts are deployed in the order defined in this list
-const allContracts = [
+let allContracts = [
   'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
@@ -33,6 +34,27 @@ const allContracts = [
   'RewardsManager',
   'DisputeManager',
   'AllocationExchange',
+  'L1GraphTokenGateway',
+  'BridgeEscrow',
+]
+
+const l2Contracts = [
+  'GraphProxyAdmin',
+  'BancorFormula',
+  'Controller',
+  'EpochManager',
+  'L2GraphToken',
+  'GraphCurationToken',
+  'ServiceRegistry',
+  'Curation',
+  'SubgraphNFTDescriptor',
+  'SubgraphNFT',
+  'GNS',
+  'Staking',
+  'RewardsManager',
+  'DisputeManager',
+  'AllocationExchange',
+  'L2GraphTokenGateway',
 ]
 
 export const migrate = async (
@@ -52,6 +74,9 @@ export const migrate = async (
 
   if (chainId == 1337) {
     await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
+    allContracts = ['EthereumDIDRegistry', ...allContracts]
+  } else if (chainIdIsL2(chainId)) {
+    allContracts = l2Contracts
   }
 
   logger.info(`>>> Migrating contracts <<<\n`)
