@@ -9,6 +9,7 @@ import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
+import "../arbitrum/ITokenGateway.sol";
 
 /**
  * @title Graph Managed contract
@@ -44,7 +45,7 @@ contract Managed {
         require(!controller.partialPaused(), "Partial-paused");
     }
 
-    function _notPaused() internal view {
+    function _notPaused() internal view virtual {
         require(!controller.paused(), "Paused");
     }
 
@@ -146,6 +147,14 @@ contract Managed {
     }
 
     /**
+     * @dev Return GraphTokenGateway (L1 or L2) interface.
+     * @return Graph token gateway contract registered with Controller
+     */
+    function graphTokenGateway() internal view returns (ITokenGateway) {
+        return ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
+    }
+
+    /**
      * @dev Resolve a contract address from the cache or the Controller if not found.
      * @return Address of the contract
      */
@@ -182,5 +191,6 @@ contract Managed {
         _syncContract("RewardsManager");
         _syncContract("Staking");
         _syncContract("GraphToken");
+        _syncContract("GraphTokenGateway");
     }
 }

@@ -18,6 +18,10 @@ import { Staking } from '../../build/types/Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 import { SubgraphNFT } from '../../build/types/SubgraphNFT'
+import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
+import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
+import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 // Disable logging for tests
 logger.pause()
@@ -53,6 +57,7 @@ export const defaults = {
   },
   rewards: {
     issuanceRate: toGRT('1.000000023206889619'), // 5% annual rate
+    dripInterval: toBN('50400'), // 1 week in blocks (post-Merge)
   },
 }
 
@@ -242,4 +247,55 @@ export async function deployGraphGovernance(
     [governor],
     deployer,
   ) as unknown as GraphGovernance
+}
+
+export async function deployL1GraphTokenGateway(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L1GraphTokenGateway> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L1GraphTokenGateway',
+    [controller],
+    deployer,
+  ) as unknown as L1GraphTokenGateway
+}
+
+export async function deployBridgeEscrow(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<BridgeEscrow> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'BridgeEscrow',
+    [controller],
+    deployer,
+  ) as unknown as BridgeEscrow
+}
+
+export async function deployL2GraphTokenGateway(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2GraphTokenGateway> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L2GraphTokenGateway',
+    [controller],
+    deployer,
+  ) as unknown as L2GraphTokenGateway
+}
+
+export async function deployL2GRT(
+  deployer: Signer,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2GraphToken> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L2GraphToken',
+    [await deployer.getAddress()],
+    deployer,
+  ) as unknown as L2GraphToken
 }

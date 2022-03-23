@@ -1,0 +1,121 @@
+general:
+  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council
+  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council
+  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+
+contracts:
+  Controller:
+    calls:
+      - fn: "setContractProxy"
+        id: "0xe6876326c1291dfcbbd3864a6816d698cd591defc7aa2153d7f9c4c04016c89f" # keccak256('Curation')
+        contractAddress: "${{Curation.address}}"
+      - fn: "setContractProxy"
+        id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
+        contractAddress: "${{GNS.address}}"
+      - fn: "setContractProxy"
+        id: "0xf942813d07d17b56de9a9afc8de0ced6e8c053bbfdcc87b7badea4ddcf27c307" # keccak256('DisputeManager')
+        contractAddress: "${{DisputeManager.address}}"
+      - fn: "setContractProxy"
+        id: "0xc713c3df6d14cdf946460395d09af88993ee2b948b1a808161494e32c5f67063" # keccak256('EpochManager')
+        contractAddress: "${{EpochManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x966f1e8d8d8014e05f6ec4a57138da9be1f7c5a7f802928a18072f7c53180761" # keccak256('RewardsManager')
+        contractAddress: "${{RewardsManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034" # keccak256('Staking')
+        contractAddress: "${{Staking.address}}"
+      - fn: "setContractProxy"
+        id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
+        contractAddress: "${{L2GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L2GraphTokenGateway.address}}"
+  ServiceRegistry:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+  EpochManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      lengthInBlocks: 1108 # 4 hours (in 13 second blocks)
+  L2GraphToken:
+    proxy: true
+    init:
+      owner: *governor
+    calls:
+      - fn: "addMinter"
+        minter: "${{RewardsManager.address}}"
+  Curation:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      bondingCurve: "${{BancorFormula.address}}"
+      curationTokenMaster: "${{GraphCurationToken.address}}"
+      reserveRatio: 500000 # 50% (parts per million)
+      curationTaxPercentage: 10000 # 1% (parts per million)
+      minimumCurationDeposit: "1000000000000000000" # 1 GRT
+  DisputeManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      arbitrator: *arbitrator
+      minimumDeposit: "10000000000000000000000" # 10,000 GRT (in wei)
+      fishermanRewardPercentage: 500000 # 50% (parts per million)
+      idxSlashingPercentage: 25000 # 2.5% (parts per million)
+      qrySlashingPercentage: 5000 # 0.5% (parts per million)
+  GNS:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      bondingCurve: "${{BancorFormula.address}}"
+      subgraphNFT: "${{SubgraphNFT.address}}"
+    calls:
+      - fn: "approveAll"
+  SubgraphNFT:
+    init:
+      governor: "${{Env.deployer}}"
+    calls:
+      - fn: "setTokenDescriptor"
+        tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
+      - fn: "setMinter"
+        minter: "${{GNS.address}}"
+  Staking:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
+      thawingPeriod: 6646 # 10 days (in blocks)
+      protocolPercentage: 10000 # 1% (parts per million)
+      curationPercentage: 100000 # 10% (parts per million)
+      channelDisputeEpochs: 2 # (in epochs)
+      maxAllocationEpochs: 6 # Based on epoch length this is 28 days (in epochs)
+      delegationUnbondingPeriod: 6 # Based on epoch length this is 28 days (in epochs)
+      delegationRatio: 16 # 16x (delegated stake to indexer stake multiplier)
+      rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
+      rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+    calls:
+      - fn: "setDelegationTaxPercentage"
+        delegationTaxPercentage: 5000 # 0.5% (parts per million)
+      - fn: "setSlasher"
+        slasher: "${{DisputeManager.address}}"
+        allowed: true
+      - fn: "setAssetHolder"
+        assetHolder: "${{AllocationExchange.address}}"
+        allowed: true
+  RewardsManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+  AllocationExchange:
+    init:
+      graphToken: "${{GraphToken.address}}"
+      staking: "${{Staking.address}}"
+      governor: *governor
+      authority: *authority
+    calls:
+      - fn: "approveAll"
+  L2GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
