@@ -79,7 +79,8 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(indexerAccount.signer).stake(indexerTokens)
       await staking
         .connect(indexerAccount.signer)
-        .allocate(
+        .allocateFrom(
+          indexerAccount.address,
           subgraphDeploymentID,
           indexerAllocatedTokens,
           allocationID,
@@ -147,7 +148,8 @@ describe('DisputeManager:POI', async () => {
       await staking.connect(indexer.signer).stake(indexerTokens)
       const tx1 = await staking
         .connect(indexer.signer)
-        .allocate(
+        .allocateFrom(
+          indexer.address,
           subgraphDeploymentID,
           indexerAllocatedTokens,
           allocationID,

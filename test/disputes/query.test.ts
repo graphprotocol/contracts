@@ -113,7 +113,8 @@ describe('DisputeManager:Query', async () => {
       await staking.connect(indexerAccount.signer).stake(indexerTokens)
       await staking
         .connect(indexerAccount.signer)
-        .allocate(
+        .allocateFrom(
+          indexerAccount.address,
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           allocationID,
@@ -194,7 +195,8 @@ describe('DisputeManager:Query', async () => {
       await staking.connect(indexer.signer).stake(indexerTokens)
       const tx1 = await staking
         .connect(indexer.signer)
-        .allocate(
+        .allocateFrom(
+          indexer.address,
           dispute.receipt.subgraphDeploymentID,
           indexerAllocatedTokens,
           indexer1ChannelKey.address,
