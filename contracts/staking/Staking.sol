@@ -1249,6 +1249,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
         uint256 queryRewards = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
+        uint256 indexingRewards = (alloc.collectedFees > 0) ? alloc.indexingRewards : 0;
 
         // -- Distribute delegation rewards --
 
@@ -1256,11 +1257,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 totalDelegationRewards = _collectDelegationRewards(
             alloc.indexer,
             queryRewards,
-            alloc.indexingRewards
+            indexingRewards
         );
-        uint256 totalIndexerRewards = queryRewards.add(alloc.indexingRewards).sub(
-            totalDelegationRewards
-        );
+        uint256 totalIndexerRewards = queryRewards.add(indexingRewards).sub(totalDelegationRewards);
 
         // Purge allocation data except for:
         // - indexer: used in disputes and to avoid reusing an allocationID
@@ -1290,6 +1289,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.indexer,
             rewardsDestination[alloc.indexer] == address(0) // restake if no rewards destination is set
         );
+
+        // Burn any indexing rewards accrued if no query rewards were claimed
+        if (indexingRewards == 0 && alloc.indexingRewards > 0) {
+            TokenUtils.burnTokens(graphToken, alloc.indexingRewards);
+        }
 
         emit RebateClaimed(
             alloc.indexer,
@@ -1583,20 +1587,22 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     /**
      * @dev Take rewards for the closed allocation.
      * @param _allocationID Allocation ID
+     * @return Amount of tokens to distribute
      */
     function _takeRewards(address _allocationID) private returns (uint256) {
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
-        return rewardsManager.takeRewards(_allocationID);
+        return rewardsManager().takeRewards(_allocationID);
     }
 
     /**
      * @dev Triggers an update of rewards due to a change in allocations.
      * @param _subgraphDeploymentID Subgraph deployment updated
+     * @return Accumulated rewards per allocated token for a subgraph
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return rewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
