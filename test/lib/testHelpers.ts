@@ -74,14 +74,13 @@ export const advanceBlocks = async (blocks: string | number | BigNumber): Promis
   const steps = typeof blocks === 'number' || typeof blocks === 'string' ? toBN(blocks) : blocks
   const currentBlock = await latestBlock()
   const toBlock = currentBlock.add(steps)
-  await advanceBlockTo(toBlock)
+  return advanceBlockTo(toBlock)
 }
 
 export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
-  const currentBlock = await latestBlock()
-  const epochLength = await epochManager.epochLength()
-  const nextEpochBlock = currentBlock.add(epochLength)
-  await advanceBlockTo(nextEpochBlock)
+  const blocksSinceEpoch = await epochManager.currentEpochBlockSinceStart()
+  const epochLen = await epochManager.epochLength()
+  return advanceBlocks(epochLen.sub(blocksSinceEpoch))
 }
 
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
