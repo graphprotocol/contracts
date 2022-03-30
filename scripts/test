@@ -41,7 +41,7 @@ fi
 mkdir -p reports
 
 # Run using the standalone evm instance
-npx hardhat test --network hardhat
+npx hardhat test --network hardhat $@
 
 ### Cleanup
 
