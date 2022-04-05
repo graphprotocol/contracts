@@ -11,6 +11,7 @@ import {
   sendTransaction,
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { chainIdIsL2 } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
@@ -59,8 +60,6 @@ let allContracts = [
 // But for now we'll only include a subset:
 const l2Contracts = ['GraphProxyAdmin', 'Controller', 'L2GraphToken', 'L2GraphTokenGateway']
 
-const l2ChainIds = [42161, 421611]
-
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphConfigPath = cliArgs.graphConfig
   const force = cliArgs.force
@@ -69,7 +68,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
   if (chainId == 1337) {
     allContracts = ['EthereumDIDRegistry', ...allContracts]
-  } else if (l2ChainIds.includes(chainId)) {
+  } else if (chainIdIsL2(chainId)) {
     allContracts = l2Contracts
   }
 

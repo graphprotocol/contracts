@@ -15,6 +15,9 @@ const contractNames = [
   'DisputeManager',
   'RewardsManager',
   'GNS',
+  'L1GraphTokenGateway',
+  'L2GraphToken',
+  'L2GraphTokenGateway',
 ]
 
 export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => {
@@ -26,13 +29,15 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
       colWidths: [30, 50],
     })
 
+    if (!(contractName in cli.contracts)) {
+      continue
+    }
     const contract = cli.contracts[contractName]
     table.push(['* address', contract.address])
 
     const req = []
     for (const fn of Object.values(gettersList)) {
       if (fn.contract != contractName) continue
-
       const contract = cli.contracts[fn.contract]
       if (contract.interface.getFunction(fn.name).inputs.length == 0) {
         const contractFn: ContractFunction = contract.functions[fn.name]
@@ -56,7 +61,7 @@ export const listProtocolParams = async (cli: CLIEnvironment): Promise<void> => 
 
   const controller = cli.contracts['Controller']
   for (const contractName of contractNames) {
-    if (contractName === 'Controller') continue
+    if (contractName === 'Controller' || !(contractName in cli.contracts)) continue
 
     const contract = cli.contracts[contractName]
     const contractFn = contract.functions['controller']

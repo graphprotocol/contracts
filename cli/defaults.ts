@@ -7,6 +7,8 @@ export const local = {
   addressBookPath: './addresses.json',
   graphConfigPath: './config/graph.mainnet.yml',
   accountNumber: '0',
+  arbitrumAddressBookPath: './arbitrum-addresses.json',
+  arbProviderUrl: 'https://rinkeby.arbitrum.io/rpc',
 }
 
 export const defaultOverrides: Overrides = {
@@ -55,5 +57,19 @@ export const cliOpts = {
     description: "Deploy contract even if it's already deployed",
     type: 'boolean',
     default: false,
+  },
+  arbitrumAddressBook: {
+    alias: 'arb-address-book',
+    description: 'The path to the address book file for Arbitrum deployments',
+    type: 'string',
+    group: 'Config',
+    default: local.arbitrumAddressBookPath,
+  },
+  l2ProviderUrl: {
+    alias: 'l2-provider-url',
+    description: 'The URL of an Arbitrum provider (only for bridge commands)',
+    type: 'string',
+    group: 'Arbitrum',
+    default: local.arbProviderUrl,
   },
 } as { [key: string]: Options }
