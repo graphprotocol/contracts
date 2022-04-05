@@ -9,7 +9,11 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import { FakeContract, smock } from '@defi-wonderland/smock'
 
-import rewardsManagerMockAbi from '../../build/abis/RewardsManagerMock.json'
+import path from 'path'
+import { Artifacts } from 'hardhat/internal/artifacts'
+const ARTIFACTS_PATH = path.resolve('build/contracts')
+const artifacts = new Artifacts(ARTIFACTS_PATH)
+const rewardsManagerMockAbi = artifacts.readArtifactSync('RewardsManagerMock').abi
 
 use(smock.matchers)
 
@@ -467,8 +471,7 @@ describe('L2GraphTokenGateway', () => {
             toGRT('10'),
             defaultDataWithNotEmptyCallHookData,
           )
-        await expect(tx)
-          .revertedWith('CALLHOOK_FAILED')
+        await expect(tx).revertedWith('CALLHOOK_FAILED')
       })
     })
   })

@@ -9,6 +9,7 @@ import {
   Signer,
   Overrides,
   BigNumber,
+  PayableOverrides,
 } from 'ethers'
 
 import { logger } from './logging'
@@ -107,7 +108,7 @@ export const sendTransaction = async (
   fn: string,
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   params?: Array<any>,
-  overrides?: Overrides,
+  overrides?: PayableOverrides,
 ): Promise<providers.TransactionReceipt> => {
   // Setup overrides
   if (overrides) {

@@ -25,8 +25,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     const chainId = hre.network.config.chainId.toString()
     const provider = hre.ethers.provider
     const addressBook = getAddressBook(cliOpts.addressBook.default, chainId)
-    const contracts = loadContracts(addressBook, provider) as ConsoleNetworkContracts
-
+    const contracts = loadContracts(addressBook, chainId, provider) as ConsoleNetworkContracts
     // Connect contracts to a signing account
     contracts.connect = async function (n = 0) {
       const accounts = await hre.ethers.getSigners()

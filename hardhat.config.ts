@@ -58,9 +58,11 @@ interface NetworkConfig {
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
   { network: 'rinkeby', chainId: 4 },
+  { network: 'goerli', chainId: 5 },
   { network: 'kovan', chainId: 42 },
   { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
   { network: 'arbitrum-one', chainId: 42161, url: 'https://arb1.arbitrum.io/rpc' },
+  { network: 'arbitrum-nitro-devnet', chainId: 421612, url: 'https://nitro-devnet.arbitrum.io/rpc' },
 ]
 
 function getAccountMnemonic() {
