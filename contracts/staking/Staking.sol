@@ -1036,15 +1036,10 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     /**
      * @dev Claim tokens from the rebate pool for many allocations.
      * @param _allocationID Array of allocations from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claimMany(address[] calldata _allocationID, bool _restake)
-        external
-        override
-        notPaused
-    {
+    function claimMany(address[] calldata _allocationID) external override notPaused {
         for (uint256 i = 0; i < _allocationID.length; i++) {
-            _claim(_allocationID[i], _restake);
+            _claim(_allocationID[i]);
         }
     }
 

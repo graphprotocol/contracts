@@ -130,7 +130,7 @@ interface IStaking is IStakingData {
 
     function claim(address _allocationID) external;
 
-    function claimMany(address[] calldata _allocationID, bool _restake) external;
+    function claimMany(address[] calldata _allocationID) external;
 
     // -- Getters and calculations --
 
