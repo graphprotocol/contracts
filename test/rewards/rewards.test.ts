@@ -31,7 +31,7 @@ const { HashZero, WeiPerEther } = constants
 
 const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
 
-describe('Rewards', () => {
+describe.only('Rewards', () => {
   let delegator: Account
   let governor: Account
   let curator1: Account
@@ -59,7 +59,7 @@ describe('Rewards', () => {
   const metadata = HashZero
 
   const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
-  const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
+  const ISSUANCE_RATE_PER_BLOCK = toBN('1012270000000000000') // % increase every block
 
   // Core formula that gets accumulated rewards per signal for a period of time
   const getRewardsPerSignal = (p: BN, r: BN, t: BN, s: BN): string => {
@@ -105,6 +105,60 @@ describe('Rewards', () => {
       )
       return toGRT(n)
     }
+  }
+  interface DelegationParameters {
+    indexingRewardCut: BigNumber
+    queryFeeCut: BigNumber
+    cooldownBlocks: number
+  }
+
+  interface DelegationScenario {
+    tokensToDelegate: BigNumber
+    delegationParams: DelegationParameters
+  }
+
+  async function setupIndexingScenario(delegationScenario?: DelegationScenario) {
+    // Setup
+    await epochManager.setEpochLength(10)
+
+    // Stake
+    const tokensToAllocate = toGRT('12500')
+    await staking.connect(indexer1.signer).stake(tokensToAllocate)
+
+    // Setup delegation scenario
+    if (delegationScenario) {
+      const { delegationParams, tokensToDelegate } = delegationScenario
+      await staking
+        .connect(indexer1.signer)
+        .setDelegationParameters(
+          delegationParams.indexingRewardCut,
+          delegationParams.queryFeeCut,
+          delegationParams.cooldownBlocks,
+        )
+
+      // Transfer some funds from the curator, we don't want to mint new tokens
+      await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
+      await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
+
+      // Delegate
+      await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
+    }
+
+    // Update total signalled
+    const signalled1 = toGRT('1500')
+    await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+
+    // Allocate
+    return staking
+      .connect(indexer1.signer)
+      .allocateFrom(
+        indexer1.address,
+        subgraphDeploymentID1,
+        tokensToAllocate,
+        allocationID,
+        metadata,
+        await channelKey.generateProof(indexer1.address),
+      )
   }
 
   // Test accumulated rewards per signal
@@ -441,12 +495,6 @@ describe('Rewards', () => {
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
 
-        // Prepare expected results
-        // NOTE: calculated the expected result manually as the above code has 1 off block difference
-        // replace with a RewardsManagerMock
-        const expectedSubgraphRewards = toGRT('891695470')
-        const expectedRewardsAT = toGRT('51571')
-
         // Update
         await rewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentID1)
 
@@ -457,6 +505,12 @@ describe('Rewards', () => {
         )
         const contractRewardsAT = subgraph.accRewardsPerAllocatedToken
 
+        // Rewards accrued per block at the issuance rate is calculated by:
+        // (totalSupply * issuanceRate^nBlocks - totalSupply)
+        // 7 blocks accrued after signaling
+        // rewards = (10004000000 * 1.01227 ** 7 - 10004000000) = 891527118.49
+        const expectedSubgraphRewards = toGRT('891527118')
+        const expectedRewardsAT = toGRT('51561')
         expect(toRound(expectedSubgraphRewards)).eq(toRound(contractSubgraphRewards))
         expect(toRound(expectedRewardsAT)).eq(toRound(contractRewardsAT))
       })
@@ -500,107 +554,36 @@ describe('Rewards', () => {
     })
 
     describe('takeRewards', function () {
-      interface DelegationParameters {
-        indexingRewardCut: BigNumber
-        queryFeeCut: BigNumber
-        cooldownBlocks: number
-      }
-
-      async function setupIndexerAllocation() {
-        // Setup
-        await epochManager.setEpochLength(10)
-
-        // Update total signalled
-        const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
-
-        // Allocate
-        const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
-        await staking
-          .connect(indexer1.signer)
-          .allocateFrom(
-            indexer1.address,
-            subgraphDeploymentID1,
-            tokensToAllocate,
-            allocationID,
-            metadata,
-            await channelKey.generateProof(indexer1.address),
-          )
-      }
-
-      async function setupIndexerAllocationWithDelegation(
-        tokensToDelegate: BigNumber,
-        delegationParams: DelegationParameters,
-      ) {
-        const tokensToAllocate = toGRT('12500')
-
-        // Setup
-        await epochManager.setEpochLength(10)
-
-        // Transfer some funds from the curator, I don't want to mint new tokens
-        await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
-        await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
-
-        // Stake and set delegation parameters
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
-        await staking
-          .connect(indexer1.signer)
-          .setDelegationParameters(
-            delegationParams.indexingRewardCut,
-            delegationParams.queryFeeCut,
-            delegationParams.cooldownBlocks,
-          )
-
-        // Delegate
-        await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
-
-        // Update total signalled
-        const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
-
-        // Allocate
-        await staking
-          .connect(indexer1.signer)
-          .allocateFrom(
-            indexer1.address,
-            subgraphDeploymentID1,
-            tokensToAllocate,
-            allocationID,
-            metadata,
-            await channelKey.generateProof(indexer1.address),
-          )
-      }
-
-      it('should distribute rewards on closed allocation and stake', async function () {
-
+      it('should mint and store indexing rewards on closed allocation', async function () {
         // Align with the epoch boundary
         await advanceToNextEpoch(epochManager)
+
         // Setup
-        await setupIndexerAllocation()
+        await setupIndexingScenario()
 
         // Jump
         await advanceToNextEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
-        const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
         const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
         // All the rewards in this subgraph go to this allocation.
         // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
+        // The first snapshot is after allocating, that is 1 blocks after the signal is minted:
+        // startRewardsPerToken = (10004000000 * 1.01227 ^ 1 - 10004000000) / 12500 = 9819.92
         // The final snapshot is when we close the allocation, that happens 9 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('913715958')
+        // endRewardsPerToken = (10004000000 * 1.01227 ^ 8 - 10004000000) / 12500 = 82017.21
+        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500
+        const expectedIndexingRewards = toGRT('902466156')
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
           .connect(indexer1.signer)
           .closeAllocation(allocationID, randomHexBytes())
+
+        // Check event
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
@@ -610,15 +593,15 @@ describe('Rewards', () => {
 
         // After state
         const afterTokenSupply = await grt.totalSupply()
-        const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
         const afterIndexer1Balance = await grt.balanceOf(indexer1.address)
         const afterStakingBalance = await grt.balanceOf(staking.address)
+        const afterAlloc = await staking.allocations(allocationID)
+        const afterIndexer1Rewards = afterAlloc.indexingRewards
 
         // Check that rewards are put into indexer stake
-        const expectedIndexerStake = beforeIndexer1Stake.add(expectedIndexingRewards)
         const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
-        // Check stake should have increased with the rewards staked
-        expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+        // Check rewards accrued are stored in the allocation
+        expect(toRound(afterIndexer1Rewards)).eq(toRound(expectedIndexingRewards))
         // Check indexer balance remains the same
         expect(afterIndexer1Balance).eq(beforeIndexer1Balance)
         // Check indexing rewards are kept in the staking contract
@@ -629,129 +612,13 @@ describe('Rewards', () => {
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })
 
-      it('should distribute rewards on closed allocation and send to destination', async function () {
-        const destinationAddress = randomHexBytes(20)
-        await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
-
-        // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
-        // Setup
-        await setupIndexerAllocation()
-
-        // Jump
-        await advanceToNextEpoch(epochManager)
-
-        // Before state
-        const beforeTokenSupply = await grt.totalSupply()
-        const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-        const beforeDestinationBalance = await grt.balanceOf(destinationAddress)
-        const beforeStakingBalance = await grt.balanceOf(staking.address)
-
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
-        // The final snapshot is when we close the allocation, that happens 9 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('913715958')
-
-        // Close allocation. At this point rewards should be collected for that indexer
-        const tx = await staking
-          .connect(indexer1.signer)
-          .closeAllocation(allocationID, randomHexBytes())
-        const receipt = await tx.wait()
-        const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
-        expect(event.indexer).eq(indexer1.address)
-        expect(event.allocationID).eq(allocationID)
-        expect(event.epoch).eq(await epochManager.currentEpoch())
-        expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
-
-        // After state
-        const afterTokenSupply = await grt.totalSupply()
-        const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-        const afterDestinationBalance = await grt.balanceOf(destinationAddress)
-        const afterStakingBalance = await grt.balanceOf(staking.address)
-
-        // Check that rewards are properly assigned
-        const expectedIndexerStake = beforeIndexer1Stake
-        const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
-        // Check stake should not have changed
-        expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
-        // Check indexing rewards are received by the rewards destination
-        expect(toRound(afterDestinationBalance)).eq(
-          toRound(beforeDestinationBalance.add(expectedIndexingRewards)),
-        )
-        // Check indexing rewards were not sent to the staking contract
-        expect(afterStakingBalance).eq(beforeStakingBalance)
-        // Check that tokens have been minted
-        expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
-      })
-
-      it('should distribute rewards on closed allocation w/delegators', async function () {
-        // Setup
-        const delegationParams = {
-          indexingRewardCut: toBN('823000'), // 82.30%
-          queryFeeCut: toBN('80000'), // 8%
-          cooldownBlocks: 5,
-        }
-        const tokensToDelegate = toGRT('2000')
-
-        // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
-        // Setup the allocation and delegators
-        await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
-
-        // Jump
-        await advanceToNextEpoch(epochManager)
-
-        // Before state
-        const beforeTokenSupply = await grt.totalSupply()
-        const beforeDelegationPool = await staking.delegationPools(indexer1.address)
-        const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-
-        // Close allocation. At this point rewards should be collected for that indexer
-        await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
-
-        // After state
-        const afterTokenSupply = await grt.totalSupply()
-        const afterDelegationPool = await staking.delegationPools(indexer1.address)
-        const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
-
-        // Check that rewards are put into indexer stake (only indexer cut)
-        // Check that rewards are put into delegators pool accordingly
-
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 14500 = 8466.995
-        // The final snapshot is when we close the allocation, that happens 4 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 4 - 10004000000) / 14500 = 34496.55
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 14500.
-        const expectedIndexingRewards = toGRT('377428566.77')
-        // Calculate delegators cut
-        const indexerRewards = delegationParams.indexingRewardCut
-          .mul(expectedIndexingRewards)
-          .div(toBN(MAX_PPM))
-        // Calculate indexer cut
-        const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
-        // Check
-        const expectedIndexerStake = beforeIndexer1Stake.add(indexerRewards)
-        const expectedDelegatorsPoolTokens = beforeDelegationPool.tokens.add(delegatorsRewards)
-        const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
-        expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
-        expect(toRound(afterDelegationPool.tokens)).eq(toRound(expectedDelegatorsPoolTokens))
-        // Check that tokens have been minted
-        expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
-      })
-
       it('should deny rewards if subgraph on denylist', async function () {
         // Setup
         await rewardsManager
           .connect(governor.signer)
           .setSubgraphAvailabilityOracle(governor.address)
         await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
-        await setupIndexerAllocation()
+        await setupIndexingScenario()
 
         // Jump
         await advanceToNextEpoch(epochManager)
@@ -761,6 +628,107 @@ describe('Rewards', () => {
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID, await epochManager.currentEpoch())
+
+        // After state
+        const alloc = await staking.allocations(allocationID)
+
+        // Check
+        await expect(alloc.indexingRewards).eq(0) // should not have accrued any reward
+      })
+
+      describe('should distribute rewards when claiming rebate', async function () {
+        it('with no delegators', async function () {
+          // TODO: we need to change this to test the rewards are sent to the destination only after rebate claim
+
+          const destinationAddress = randomHexBytes(20)
+          await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
+
+          // Align with the epoch boundary
+          await advanceToNextEpoch(epochManager)
+
+          // Setup
+          await setupIndexingScenario()
+
+          // Jump
+          await advanceToNextEpoch(epochManager)
+
+          // Close allocation, at this point rewards should be assigned to indexer
+          await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+
+          // Jump
+          await advanceToNextEpoch(epochManager)
+
+          // Before state
+          const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer1.address)
+          const beforeDestinationBalance = await grt.balanceOf(destinationAddress)
+          const beforeStakingBalance = await grt.balanceOf(staking.address)
+          const beforeIndexingRewards = (await staking.allocations(allocationID)).indexingRewards
+
+          const tx = await staking.claim(allocationID)
+          // TODO: read event data and ensure it is ok
+
+          // After state
+          const afterIndexerStake = await staking.getIndexerStakedTokens(indexer1.address)
+          const afterDestinationBalance = await grt.balanceOf(destinationAddress)
+          const afterStakingBalance = await grt.balanceOf(staking.address)
+        })
+
+        it('should distribute rewards when claiming rebate (with delegators)', async function () {
+          // Setup
+          const delegationParams = {
+            indexingRewardCut: toBN('823000'), // 82.30%
+            queryFeeCut: toBN('80000'), // 8%
+            cooldownBlocks: 5,
+          }
+          const tokensToDelegate = toGRT('2000')
+
+          // Align with the epoch boundary
+          await advanceToNextEpoch(epochManager)
+          // Setup the allocation and delegators
+          await setupIndexingScenario({ tokensToDelegate, delegationParams })
+
+          // Jump
+          await advanceToNextEpoch(epochManager)
+
+          // Before state
+          const beforeTokenSupply = await grt.totalSupply()
+          const beforeDelegationPool = await staking.delegationPools(indexer1.address)
+          const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+
+          // Close allocation. At this point rewards should be collected for that indexer
+          await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
+
+          // After state
+          const afterTokenSupply = await grt.totalSupply()
+          const afterDelegationPool = await staking.delegationPools(indexer1.address)
+          const afterIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
+
+          // Check that rewards are put into indexer stake (only indexer cut)
+          // Check that rewards are put into delegators pool accordingly
+
+          // All the rewards in this subgraph go to this allocation.
+          // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
+          // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
+          // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 14500 = 8466.995
+          // The final snapshot is when we close the allocation, that happens 4 blocks later:
+          // endRewardsPerToken = (10004000000 * 1.01227 ^ 4 - 10004000000) / 14500 = 34496.55
+          // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 14500.
+          const expectedIndexingRewards = toGRT('377428566.77')
+          // Calculate delegators cut
+          const indexerRewards = delegationParams.indexingRewardCut
+            .mul(expectedIndexingRewards)
+            .div(toBN(MAX_PPM))
+          // Calculate indexer cut
+          const delegatorsRewards = expectedIndexingRewards.sub(indexerRewards)
+          // Check
+          const expectedIndexerStake = beforeIndexer1Stake.add(indexerRewards)
+          const expectedDelegatorsPoolTokens = beforeDelegationPool.tokens.add(delegatorsRewards)
+          const expectedTokenSupply = beforeTokenSupply.add(expectedIndexingRewards)
+          expect(toRound(afterIndexer1Stake)).eq(toRound(expectedIndexerStake))
+          expect(toRound(afterDelegationPool.tokens)).eq(toRound(expectedDelegatorsPoolTokens))
+          // Check that tokens have been minted
+          expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
+        })
       })
     })
   })

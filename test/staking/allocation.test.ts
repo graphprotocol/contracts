@@ -17,7 +17,7 @@ import {
   Account,
 } from '../lib/testHelpers'
 
-const { AddressZero, HashZero } = constants
+const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
 
@@ -196,6 +196,7 @@ describe('Staking:Allocation', () => {
       expect(afterAlloc.collectedFees).eq(toGRT('0'))
       expect(afterAlloc.closedAtEpoch).eq(toBN('0'))
       expect(afterAlloc.effectiveAllocation).eq(toGRT('0'))
+      expect(afterAlloc.indexingRewards).eq(toBN('0'))
     }
 
     it('reject allocate zero tokens', async function () {
@@ -711,7 +712,7 @@ describe('Staking:Allocation', () => {
    */
   describe('claim', function () {
     // Claim and perform checks
-    const shouldClaim = async function (allocationID: string, restake: boolean) {
+    const shouldClaim = async function (allocationID: string) {
       // Advance blocks to get the allocation in epoch where it can be claimed
       await advanceToNextEpoch(epochManager)
 
@@ -720,11 +721,12 @@ describe('Staking:Allocation', () => {
       const beforeStake = await staking.stakes(indexer.address)
       const beforeAlloc = await staking.allocations(allocationID)
       const beforeRebatePool = await staking.rebates(beforeAlloc.closedAtEpoch)
+      const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
 
       // Claim rebates
       const tokensToClaim = beforeAlloc.collectedFees
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer.signer).claim(allocationID, restake)
+      const tx = staking.connect(indexer.signer).claim(allocationID)
       await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
@@ -794,13 +796,13 @@ describe('Staking:Allocation', () => {
     it('reject claim for non-existing allocation', async function () {
       expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Active)
       const invalidAllocationID = randomHexBytes(20)
-      const tx = staking.connect(indexer.signer).claim(invalidAllocationID, false)
+      const tx = staking.connect(indexer.signer).claim(invalidAllocationID)
       await expect(tx).revertedWith('!finalized')
     })
 
     it('reject claim if allocation is not closed', async function () {
       expect(await staking.getAllocationState(allocationID)).not.eq(AllocationState.Closed)
-      const tx = staking.connect(indexer.signer).claim(allocationID, false)
+      const tx = staking.connect(indexer.signer).claim(allocationID)
       await expect(tx).revertedWith('!finalized')
     })
 
@@ -818,7 +820,7 @@ describe('Staking:Allocation', () => {
 
       it('reject claim if closed but channel dispute epochs has not passed', async function () {
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Closed)
-        const tx = staking.connect(indexer.signer).claim(allocationID, false)
+        const tx = staking.connect(indexer.signer).claim(allocationID)
         await expect(tx).revertedWith('!finalized')
       })
 
@@ -831,7 +833,7 @@ describe('Staking:Allocation', () => {
 
         // Claim with no restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
-        await shouldClaim(allocationID, false)
+        await shouldClaim(allocationID)
 
         // Verify that the claimed tokens are transferred to the indexer
         const afterIndexerTokens = await grt.balanceOf(indexer.address)
@@ -847,7 +849,7 @@ describe('Staking:Allocation', () => {
 
         // Claim with restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
-        await shouldClaim(allocationID, true)
+        await shouldClaim(allocationID)
 
         // Verify that the claimed tokens are restaked
         const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
@@ -860,7 +862,7 @@ describe('Staking:Allocation', () => {
 
         // Should claim by public, but cannot restake
         const beforeIndexerStake = await staking.stakes(indexer.address)
-        await staking.connect(me.signer).claim(allocationID, true)
+        await staking.connect(me.signer).claim(allocationID)
         const afterIndexerStake = await staking.stakes(indexer.address)
         expect(afterIndexerStake.tokensStaked).eq(beforeIndexerStake.tokensStaked)
       })
@@ -874,7 +876,7 @@ describe('Staking:Allocation', () => {
 
         // Should claim if given operator auth and can do restake
         const beforeIndexerStake = await staking.stakes(indexer.address)
-        await staking.connect(me.signer).claim(allocationID, true)
+        await staking.connect(me.signer).claim(allocationID)
         const afterIndexerStake = await staking.stakes(indexer.address)
         expect(afterIndexerStake.tokensStaked).not.eq(beforeIndexerStake.tokensStaked)
       })
@@ -888,9 +890,7 @@ describe('Staking:Allocation', () => {
 
         // Claim with restake
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
-        const tx = await staking
-          .connect(indexer.signer)
-          .populateTransaction.claim(allocationID, true)
+        const tx = await staking.connect(indexer.signer).populateTransaction.claim(allocationID)
         await staking.connect(indexer.signer).multicall([tx.data])
 
         // Verify that the claimed tokens are restaked
@@ -903,11 +903,11 @@ describe('Staking:Allocation', () => {
         await advanceToNextEpoch(epochManager)
 
         // First claim
-        await shouldClaim(allocationID, false)
+        await shouldClaim(allocationID)
 
         // Try to claim again
         expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Claimed)
-        const tx = staking.connect(indexer.signer).claim(allocationID, false)
+        const tx = staking.connect(indexer.signer).claim(allocationID)
         await expect(tx).revertedWith('!finalized')
       })
     })

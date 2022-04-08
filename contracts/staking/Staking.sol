@@ -1296,9 +1296,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             _allocationID,
             epochManager().currentEpoch(),
             alloc.closedAtEpoch,
-            totalIndexerRewards.add(totalDelegationRewards), // TODO: feedback about subgraph
+            totalIndexerRewards.add(totalDelegationRewards),
             rebatePool.unclaimedAllocationsCount,
-            totalDelegationRewards // TODO: feedback about subgraph
+            totalDelegationRewards
         );
     }
 

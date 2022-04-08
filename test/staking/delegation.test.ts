@@ -636,7 +636,7 @@ describe('Staking::Delegation', () => {
 
       // Claim from rebate pool
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer.signer).claim(allocationID, true)
+      const tx = staking.connect(indexer.signer).claim(allocationID)
       await expect(tx)
         .emit(staking, 'RebateClaimed')
         .withArgs(
@@ -667,7 +667,7 @@ describe('Staking::Delegation', () => {
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
       await advanceToNextEpoch(epochManager)
-      await staking.connect(indexer.signer).claim(allocationID, true)
+      await staking.connect(indexer.signer).claim(allocationID)
 
       // Delegate with such small amount of tokens (1 wei) that we do not have enough precision
       // to even assign 1 wei of shares
