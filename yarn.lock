@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@arbitrum/sdk@^1.1.2":
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/@arbitrum/sdk/-/sdk-1.1.2.tgz#3c29a4d333791781dbd61410fe635a57b595aa71"
-  integrity sha512-ILgdiOqezBs2loa703YtG4W10arxgrfWbaL17e7dnjp8q2yhjdWF0iTSx+Ep/mTVPhVE/9cOT/S/XuUmxdqiMQ==
+"@arbitrum/sdk@^3.0.0-beta.5":
+  version "3.0.0-beta.5"
+  resolved "https://registry.yarnpkg.com/@arbitrum/sdk/-/sdk-3.0.0-beta.5.tgz#ef1c81de58db9e76defb4a1971274316a375133b"
+  integrity sha512-qeNdK7es4uKRFciz4zznPEnGRZaAHkrwNqUN1F4U6d4i8olhK0KMdSodx2ZjajBvVVwOo5kFsw5ocAaTvkf28g==
   dependencies:
     "@ethersproject/address" "^5.0.8"
     "@ethersproject/bignumber" "^5.1.1"
@@ -13,9 +13,6 @@
     "@typechain/ethers-v5" "9.0.0"
     "@types/prompts" "^2.0.14"
     "@types/yargs" "^17.0.9"
-    arb-bridge-eth "0.7.5"
-    arb-bridge-peripherals "1.0.6"
-    arbos-precompiles "1.0.2"
     dotenv "^10.0.0"
     ethers "^5.1.0"
     ts-node "^10.2.1"
@@ -1316,17 +1313,12 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
-"@openzeppelin/contracts-0.8@npm:@openzeppelin/contracts@^4.3.2":
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.5.0.tgz#3fd75d57de172b3743cdfc1206883f56430409cc"
-  integrity sha512-fdkzKPYMjrRiPK6K4y64e6GzULR7R7RwxSigHS8DDp7aWDeoReqsQI+cxHV1UuhAqX69L1lAaWDxenfP+xiqzA==
-
 "@openzeppelin/contracts-upgradeable@3.4.2":
   version "3.4.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-3.4.2.tgz#2c2a1b0fa748235a1f495b6489349776365c51b3"
   integrity sha512-mDlBS17ymb2wpaLcrqRYdnBAmP1EwqhOXMvqWk2c5Q1N1pm5TkiCtXM9Xzznh4bYsQBq0aIWEkFFE2+iLSN1Tw==
 
-"@openzeppelin/contracts@3.4.2", "@openzeppelin/contracts@^3.4.1":
+"@openzeppelin/contracts@^3.4.1":
   version "3.4.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.2.tgz#d81f786fda2871d1eb8a8c5a73e455753ba53527"
   integrity sha512-z0zMCjyhhp4y7XKAcDAi3Vgms4T2PstwBdahiO0+9NaGICQKjynK3wduSRplTgk4LXmoO1yfDGO5RbjKYxtuxA==
@@ -1344,20 +1336,6 @@
   version "1.16.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.16.1.tgz#a4c383fc628cc9d37d5a276def99a093c951644b"
   integrity sha512-+hejbeAfsZWIQL5Ih13gkdm2KO6kbERc1ektzcyb25/OtUwaRjIIHxW++LdC/3Hg5uzThVOzJBfiLdAbgwD+OA==
-  dependencies:
-    bn.js "^5.1.2"
-    cbor "^8.0.0"
-    chalk "^4.1.0"
-    compare-versions "^4.0.0"
-    debug "^4.1.1"
-    ethereumjs-util "^7.0.3"
-    proper-lockfile "^4.1.1"
-    solidity-ast "^0.4.15"
-
-"@openzeppelin/upgrades-core@^1.7.6":
-  version "1.14.1"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.14.1.tgz#a0e1c83f9811186ac49d286e6b43ae129097422b"
-  integrity sha512-iKlh1mbUxyfdjdEiUFyhMkqirfas+DMUu7ED53nZbHEyhcYsm+5Fl/g0Bv6bZA+a7k8kO8+22DNEKsqaDUBc2Q==
   dependencies:
     bn.js "^5.1.2"
     cbor "^8.0.0"
@@ -2246,30 +2224,7 @@ anymatch@~3.1.1, anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
-arb-bridge-eth@0.7.5:
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/arb-bridge-eth/-/arb-bridge-eth-0.7.5.tgz#465a304b145eaad0af168e63192f714ee02cb025"
-  integrity sha512-OzsOqKBdU7AwmMJS1Pt27yqt/tYIteSXUIYNJYahiM7lUZk2ZsnPRnYKUc64ONDpTo/VGhO0cVXGjkrseBeJrA==
-  dependencies:
-    "@openzeppelin/contracts" "3.4.2"
-    "@openzeppelin/contracts-0.8" "npm:@openzeppelin/contracts@^4.3.2"
-    "@openzeppelin/contracts-upgradeable" "3.4.2"
-    hardhat "^2.6.1"
-
-arb-bridge-peripherals@1.0.6:
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/arb-bridge-peripherals/-/arb-bridge-peripherals-1.0.6.tgz#91024740b96bf10fc43bf6582ee0debf93cf3d81"
-  integrity sha512-nrarOZ72VEo/DprRO+CPaD4dwM9EuhHqZ/pyPjTjgprLtvQ9gVewIi0O8dtM2E83JC7O3zUxHOPBtTLuJaZ/oQ==
-  dependencies:
-    "@openzeppelin/contracts" "3.4.2"
-    "@openzeppelin/contracts-upgradeable" "3.4.2"
-    arb-bridge-eth "0.7.5"
-    arbos-precompiles "^1.0.2"
-    hardhat "^2.6.1"
-  optionalDependencies:
-    "@openzeppelin/upgrades-core" "^1.7.6"
-
-arbos-precompiles@1.0.2, arbos-precompiles@^1.0.2:
+arbos-precompiles@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/arbos-precompiles/-/arbos-precompiles-1.0.2.tgz#7bebd5963aef972cd259eb41f3116ea065013ea6"
   integrity sha512-1dOFYFJUN0kKoofh6buZJ8qCqTs+oLGSsGzHI0trA/Pka/TCERflCRsNVxez2lihOvK7MT/a2RA8AepKtBXdPQ==
@@ -6602,7 +6557,7 @@ hardhat-tracer@^1.0.0-alpha.6:
   dependencies:
     ethers "^5.0.24"
 
-hardhat@^2.6.1, hardhat@^2.6.4:
+hardhat@^2.6.4:
   version "2.9.3"
   resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.9.3.tgz#4759dc3c468c7d15f34334ca1be7d59b04e47b1e"
   integrity sha512-7Vw99RbYbMZ15UzegOR/nqIYIqddZXvLwJGaX5sX4G5bydILnbjmDU6g3jMKJSiArEixS3vHAEaOs5CW1JQ3hg==

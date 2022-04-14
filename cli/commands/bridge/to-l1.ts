@@ -2,7 +2,7 @@ import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getAddressBook } from '../../address-book'
 import { getProvider, sendTransaction, toGRT } from '../../network'
-import { chainIdIsL2 } from '../../utils'
+import { chainIdIsL2, createNitroNetwork } from '../../utils'
 import { loadAddressBookContract } from '../../contracts'
 import {
   L2TransactionReceipt,
@@ -13,6 +13,7 @@ import {
 import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
+import { providers } from 'ethers'
 
 const FOURTEEN_DAYS_IN_SECONDS = 24 * 3600 * 14
 
@@ -46,13 +47,14 @@ const wait = (ms: number): Promise<void> => {
 
 const waitUntilOutboxEntryCreatedWithCb = async (
   msg: L2ToL1MessageWriter,
+  provider: providers.Provider,
   retryDelay: number,
   callback: () => void,
 ) => {
   let done = false
   while (!done) {
-    const status = await msg.status(null)
-    if (status == L2ToL1MessageStatus.CONFIRMED) {
+    const status = await msg.status(provider)
+    if (status == L2ToL1MessageStatus.CONFIRMED || status == L2ToL1MessageStatus.EXECUTED) {
       done = true
     } else {
       callback()
@@ -65,6 +67,7 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   logger.info(`>>> Sending tokens to L1 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+  createNitroNetwork(cliArgs.providerUrl)
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -100,10 +103,8 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     await l2Receipt.getL2ToL1Messages(cli.wallet, await getL2Network(l2Provider))
   )[0]
 
-  logger.info(
-    `The transaction generated an outbox message with batch number ${l2ToL1Message.batchNumber}`,
-  )
-  logger.info(`and index in batch ${l2ToL1Message.indexInBatch}.`)
+  logger.info(`The transaction generated an L2 to L1 message in outbox with eth block number:`)
+  logger.info(l2ToL1Message.event.ethBlockNum.toString())
   logger.info(
     `After the dispute period is finalized (in ~1 week), you can finalize this by calling`,
   )
@@ -119,6 +120,7 @@ export const finishSendToL1 = async (
   logger.info(`>>> Finishing transaction sending tokens to L1 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+  createNitroNetwork(cliArgs.providerUrl)
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -162,27 +164,22 @@ export const finishSendToL1 = async (
   if (wait) {
     const retryDelayMs = cliArgs.retryDelaySeconds ? cliArgs.retryDelaySeconds * 1000 : 60000
     logger.info('Waiting for outbox entry to be created, this can take a full week...')
-    await waitUntilOutboxEntryCreatedWithCb(l2ToL1Message, retryDelayMs, () => {
+    await waitUntilOutboxEntryCreatedWithCb(l2ToL1Message, l2Provider, retryDelayMs, () => {
       logger.info('Still waiting...')
     })
   } else {
-    logger.info('Checking if L2 to L1 message is confirmed...')
-    const status = await l2ToL1Message.status(null)
-    if (status != L2ToL1MessageStatus.CONFIRMED) {
+    const status = await l2ToL1Message.status(l2Provider)
+    if (status == L2ToL1MessageStatus.EXECUTED) {
+      throw new Error('Message already executed!')
+    } else if (status != L2ToL1MessageStatus.CONFIRMED) {
       throw new Error(
         `Transaction is not confirmed, status is ${status} when it should be ${L2ToL1MessageStatus.CONFIRMED}. Has the dispute period passed?`,
       )
     }
   }
-  logger.info('Getting proof to execute message')
-  const proofInfo = await l2ToL1Message.tryGetProof(l2Provider)
-
-  if (await l2ToL1Message.hasExecuted(proofInfo)) {
-    throw new Error('Message already executed!')
-  }
 
   logger.info('Executing outbox transaction')
-  const tx = await l2ToL1Message.execute(proofInfo)
+  const tx = await l2ToL1Message.execute(l2Provider)
   const outboxExecuteReceipt = await tx.wait()
   logger.info('Transaction succeeded! tx hash:')
   logger.info(outboxExecuteReceipt.transactionHash)

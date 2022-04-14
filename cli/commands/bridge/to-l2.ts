@@ -1,69 +1,49 @@
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
-import { getContractAt, getProvider, sendTransaction, toGRT } from '../../network'
-import { BigNumber, utils } from 'ethers'
+import { getProvider, sendTransaction, toGRT } from '../../network'
+import { utils } from 'ethers'
 import { parseEther } from '@ethersproject/units'
 import {
   L1TransactionReceipt,
   L1ToL2MessageStatus,
-  getRawArbTransactionReceipt,
   L1ToL2MessageWriter,
+  L1ToL2MessageGasEstimator,
 } from '@arbitrum/sdk'
-import { nodeInterfaceAddress, arbRetryableTxAddress, chainIdIsL2 } from '../../utils'
-import { JsonRpcProvider } from '@ethersproject/providers'
-
-const maxSubmissionPriceIncreasePct = 400
-const maxGasIncreasePct = 50
-
-const percentIncrease = (val: BigNumber, increase: number): BigNumber => {
-  return val.add(val.mul(increase).div(100))
-}
+import { chainIdIsL2, createNitroNetwork } from '../../utils'
 
 const logAutoRedeemReason = (autoRedeemRec) => {
   if (autoRedeemRec == null) {
     logger.info(`Auto redeem was not attempted.`)
     return
   }
-  switch (autoRedeemRec.returnCode) {
-    case 1:
-      logger.info(`Auto redeem reverted.`)
-    case 2:
-      logger.info(`Auto redeem failed: hit congestion in the chain.`)
-    case 8:
-      logger.info(`Auto redeem failed: exceeded the tx gas limit.`)
-    case 10:
-      logger.info(`Auto redeem failed: gas provided is below minimum tx gas.`)
-    case 11:
-      logger.info(`Auto redeem failed: L2 gas price is set too low.`)
-    case 12:
-      logger.info(`Auto redeem failed: no L2 gas is provided for auto redeem.`)
-    default:
-      logger.info(`Auto redeem reverted, unknown code ${autoRedeemRec.returnCode}`)
-  }
+  logger.info(`Auto redeem reverted.`)
 }
 
-const checkAndRedeemMessage = async (
-  l1ToL2Message: L1ToL2MessageWriter,
-  l2Provider: JsonRpcProvider,
-) => {
+const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
+  logger.info(`Waiting for status of ${l1ToL2Message.retryableCreationId}`)
   const res = await l1ToL2Message.waitForStatus()
+  logger.info('Getting auto redeem attempt')
+  const autoRedeemRec = await l1ToL2Message.getAutoRedeemAttempt()
+  const l2TxReceipt = res.status === L1ToL2MessageStatus.REDEEMED ? res.l2TxReceipt : autoRedeemRec
+  let l2TxHash = l2TxReceipt ? l2TxReceipt.transactionHash : 'null'
   if (res.status === L1ToL2MessageStatus.FUNDS_DEPOSITED_ON_L2) {
     /** Message wasn't auto-redeemed! */
     logger.warn('Funds were deposited on L2 but the retryable ticket was not redeemed')
-    const autoRedeemRec = await getRawArbTransactionReceipt(l2Provider, l1ToL2Message.autoRedeemId)
     logAutoRedeemReason(autoRedeemRec)
     logger.info('Attempting to redeem...')
     await l1ToL2Message.redeem()
+    l2TxHash = (await l1ToL2Message.getSuccessfulRedeem()).transactionHash
   } else if (res.status != L1ToL2MessageStatus.REDEEMED) {
     throw new Error(`Unexpected L1ToL2MessageStatus ${res.status}`)
   }
-  logger.info(`Transfer successful: ${l1ToL2Message.l2TxHash}`)
+  logger.info(`Transfer successful: ${l2TxHash}`)
 }
 
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+  createNitroNetwork(cliArgs.providerUrl)
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -87,36 +67,26 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     '0x',
   )
 
-  const arbRetryableTx = getContractAt('ArbRetryableTx', arbRetryableTxAddress, l2Provider)
-  const nodeInterface = getContractAt('NodeInterface', nodeInterfaceAddress, l2Provider)
-
-  logger.info('Estimating retryable ticket submission cost:')
-  let maxSubmissionPrice = (await arbRetryableTx.getSubmissionPrice(depositCalldata.length - 2))[0]
-  logger.info(
-    `maxSubmissionPrice: ${maxSubmissionPrice}, but will accept an increase of up to ${maxSubmissionPriceIncreasePct}%`,
-  )
-  maxSubmissionPrice = percentIncrease(maxSubmissionPrice, maxSubmissionPriceIncreasePct)
-
-  const gasPriceBid = await l2Provider.getGasPrice()
   // Comment from Offchain Labs' implementation:
   // we add a 0.05 ether "deposit" buffer to pay for execution in the gas estimation
   logger.info('Estimating retryable ticket gas:')
-  let maxGas = (
-    await nodeInterface.estimateRetryableTicket(
-      gateway.address,
-      parseEther('0.05'),
-      l2Dest,
-      parseEther('0'),
-      maxSubmissionPrice,
-      cli.wallet.address,
-      cli.wallet.address,
-      0,
-      gasPriceBid,
-      depositCalldata,
-    )
-  )[0]
-  logger.info(`maxGas: ${maxGas}, but will accept an increase of up to ${maxGasIncreasePct}%`)
-  maxGas = percentIncrease(maxGas, maxGasIncreasePct)
+  const baseFee = (await cli.wallet.provider.getBlock('latest')).baseFeePerGas
+  const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
+  const gasParams = await gasEstimator.estimateMessage(
+    gateway.address,
+    l2Dest,
+    depositCalldata,
+    parseEther('0'),
+    baseFee,
+    gateway.address,
+    gateway.address,
+  )
+  const maxGas = gasParams.maxGasBid
+  const gasPriceBid = gasParams.maxGasPriceBid
+  const maxSubmissionPrice = gasParams.maxSubmissionPriceBid
+  logger.info(
+    `Using max gas: ${maxGas}, gas price bid: ${gasPriceBid}, max submission price: ${maxSubmissionPrice}`,
+  )
 
   const ethValue = maxSubmissionPrice.add(gasPriceBid.mul(maxGas))
   logger.info(`tx value: ${ethValue}`)
@@ -134,7 +104,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
 
   logger.info('Waiting for message to propagate to L2...')
   try {
-    await checkAndRedeemMessage(l1ToL2Message, l2Provider)
+    await checkAndRedeemMessage(l1ToL2Message)
   } catch (e) {
     logger.error('Auto redeem failed')
     logger.error(e)
@@ -147,6 +117,7 @@ export const redeemSendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
   logger.info(`>>> Redeeming pending tokens on L2 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+  createNitroNetwork(cliArgs.providerUrl)
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -156,10 +127,11 @@ export const redeemSendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
 
   const receipt = await l1Provider.getTransactionReceipt(cliArgs.txHash)
   const l1Receipt = new L1TransactionReceipt(receipt)
-  const l1ToL2Message = await l1Receipt.getL1ToL2Message(cli.wallet.connect(l2Provider))
+  const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
+  const l1ToL2Message = l1ToL2Messages[0]
 
   logger.info('Checking message status in L2...')
-  await checkAndRedeemMessage(l1ToL2Message, l2Provider)
+  await checkAndRedeemMessage(l1ToL2Message)
 }
 
 export const sendToL2Command = {
