@@ -573,7 +573,6 @@ describe('Rewards', () => {
       }
 
       it('should distribute rewards on closed allocation and stake', async function () {
-
         // Align with the epoch boundary
         await advanceToNextEpoch(epochManager)
         // Setup
