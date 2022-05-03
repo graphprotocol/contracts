@@ -170,6 +170,7 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Tells if subgraph is in deny list
      * @param _subgraphDeploymentID Subgraph deployment ID to check
+     * @return Whether the subgraph is denied for claiming rewards or not
      */
     function isDenied(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return denylist[_subgraphDeploymentID] > 0;
@@ -227,6 +228,7 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Gets the currently accumulated rewards per signal.
+     * @return Currently accumulated rewards per signal
      */
     function getAccRewardsPerSignal() public view override returns (uint256) {
         return accRewardsPerSignal.add(getNewRewardsPerSignal());
