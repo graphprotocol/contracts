@@ -251,7 +251,7 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
 
         // Only accrue rewards if over a threshold
-        uint256 newRewards = (subgraphSignalledTokens > minimumSubgraphSignal) // Accrue new rewards since last snapshot
+        uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
             ? getAccRewardsPerSignal()
                 .sub(subgraph.accRewardsPerSignalSnapshot)
                 .mul(subgraphSignalledTokens)
