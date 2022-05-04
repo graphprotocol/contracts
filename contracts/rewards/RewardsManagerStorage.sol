@@ -26,3 +26,8 @@ contract RewardsManagerV2Storage is RewardsManagerV1Storage {
     // Minimum amount of signaled tokens on a subgraph required to accrue rewards
     uint256 public minimumSubgraphSignal;
 }
+
+contract RewardsManagerV3Storage is RewardsManagerV2Storage {
+    // Snapshot of the total supply of GRT when accRewardsPerSignal was last updated
+    uint256 public tokenSupplySnapshot;
+}
