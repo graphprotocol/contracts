@@ -27,7 +27,7 @@ import "./IRewardsManager.sol";
  * These functions may overestimate the actual rewards due to changes in the total supply
  * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
@@ -68,11 +68,8 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Initialize this contract.
      */
-    function initialize(address _controller, uint256 _issuanceRate) external onlyImpl {
+    function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
-
-        // Settings
-        _setIssuanceRate(_issuanceRate);
     }
 
     // -- Config --
@@ -224,7 +221,7 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
         }
 
         uint256 r = issuanceRate;
-        uint256 p = graphToken.totalSupply();
+        uint256 p = tokenSupplySnapshot;
         uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
 
         // New issuance of tokens during time steps
@@ -315,6 +312,7 @@ contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsMa
     function updateAccRewardsPerSignal() public override returns (uint256) {
         accRewardsPerSignal = getAccRewardsPerSignal();
         accRewardsPerSignalLastBlockUpdated = block.number;
+        tokenSupplySnapshot = graphToken().totalSupply();
         return accRewardsPerSignal;
     }
 
