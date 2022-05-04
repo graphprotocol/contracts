@@ -17,6 +17,15 @@ import "./IRewardsManager.sol";
  * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
  * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
  * that Subgraph.
+ *
+ * Note:
+ * The contract provides getter functions to query the state of accrued rewards:
+ * - getAccRewardsPerSignal
+ * - getAccRewardsForSubgraph
+ * - getAccRewardsPerAllocatedToken
+ * - getRewards
+ * These functions may overestimate the actual rewards due to changes in the total supply
+ * until the actual takeRewards function is called.
  */
 contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
