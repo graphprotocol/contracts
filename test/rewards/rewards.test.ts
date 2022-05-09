@@ -391,7 +391,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -428,7 +429,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -471,7 +473,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -516,7 +519,8 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).stake(tokensToAllocate)
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -558,7 +562,8 @@ describe('Rewards', () => {
         // Allocate
         await staking
           .connect(indexer1.signer)
-          .allocate(
+          .allocateFrom(
+            indexer1.address,
             subgraphDeploymentID1,
             tokensToAllocate,
             allocationID,
@@ -568,11 +573,13 @@ describe('Rewards', () => {
       }
 
       it('should distribute rewards on closed allocation and stake', async function () {
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
-        await advanceBlocks(await epochManager.epochLength())
+        await advanceToNextEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -580,7 +587,14 @@ describe('Rewards', () => {
         const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
-        const expectedIndexingRewards = toGRT('1471954234')
+        // All the rewards in this subgraph go to this allocation.
+        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
+        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
+        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
+        // The final snapshot is when we close the allocation, that happens 9 blocks later:
+        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
+        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
+        const expectedIndexingRewards = toGRT('913715958')
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
@@ -618,11 +632,13 @@ describe('Rewards', () => {
         const destinationAddress = randomHexBytes(20)
         await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
 
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
-        await advanceBlocks(await epochManager.epochLength())
+        await advanceToNextEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -630,7 +646,14 @@ describe('Rewards', () => {
         const beforeDestinationBalance = await grt.balanceOf(destinationAddress)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
-        const expectedIndexingRewards = toGRT('1471954234')
+        // All the rewards in this subgraph go to this allocation.
+        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
+        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
+        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
+        // The final snapshot is when we close the allocation, that happens 9 blocks later:
+        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
+        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
+        const expectedIndexingRewards = toGRT('913715958')
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
@@ -673,10 +696,13 @@ describe('Rewards', () => {
         }
         const tokensToDelegate = toGRT('2000')
 
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
+        // Setup the allocation and delegators
         await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
 
         // Jump
-        await advanceBlocks(await epochManager.epochLength())
+        await advanceToNextEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -693,8 +719,15 @@ describe('Rewards', () => {
 
         // Check that rewards are put into indexer stake (only indexer cut)
         // Check that rewards are put into delegators pool accordingly
-        // NOTE: calculated manually on a spreadsheet
-        const expectedIndexingRewards = toGRT('1454109066')
+
+        // All the rewards in this subgraph go to this allocation.
+        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
+        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
+        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 14500 = 8466.995
+        // The final snapshot is when we close the allocation, that happens 4 blocks later:
+        // endRewardsPerToken = (10004000000 * 1.01227 ^ 4 - 10004000000) / 14500 = 34496.55
+        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 14500.
+        const expectedIndexingRewards = toGRT('377428566.77')
         // Calculate delegators cut
         const indexerRewards = delegationParams.indexingRewardCut
           .mul(expectedIndexingRewards)
@@ -720,7 +753,7 @@ describe('Rewards', () => {
         await setupIndexerAllocation()
 
         // Jump
-        await advanceBlocks(await epochManager.epochLength())
+        await advanceToNextEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())
@@ -754,7 +787,8 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).stake(tokensToAllocate)
       await staking
         .connect(indexer1.signer)
-        .allocate(
+        .allocateFrom(
+          indexer1.address,
           subgraphDeploymentID1,
           tokensToAllocate,
           allocationID,
@@ -763,7 +797,7 @@ describe('Rewards', () => {
         )
 
       // Jump
-      await advanceBlocks(await epochManager.epochLength())
+      await advanceToNextEpoch(epochManager)
 
       // Remove all signal from the subgraph
       const curatorShares = await curation.getCuratorSignal(curator1.address, subgraphDeploymentID1)

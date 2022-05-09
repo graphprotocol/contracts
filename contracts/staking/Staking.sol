@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
+import "../base/Multicall.sol";
 import "../upgrades/GraphUpgradeable.sol";
 import "../utils/TokenUtils.sol";
 
@@ -20,7 +21,7 @@ import "./libs/Stakes.sol";
  * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
  * contract also has the slashing functionality.
  */
-contract Staking is StakingV2Storage, GraphUpgradeable, IStaking {
+contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;

@@ -125,7 +125,7 @@ const config: HardhatUserConfig = {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
       mining: {
-        auto: true,
+        auto: false,
         interval: 30000,
       },
       hardfork: 'london',

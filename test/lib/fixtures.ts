@@ -2,7 +2,7 @@
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert } from './testHelpers'
+import { evmSnapshot, evmRevert, provider } from './testHelpers'
 
 export class NetworkFixture {
   lastSnapshotId: number
@@ -16,6 +16,12 @@ export class NetworkFixture {
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
   ): Promise<any> {
+    // Enable automining with each transaction, and disable
+    // the mining interval. Individual tests may modify this
+    // behavior as needed.
+    provider().send('evm_setIntervalMining', [0])
+    provider().send('evm_setAutomine', [true])
+
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
     const slasherAddress = await slasher.getAddress()
