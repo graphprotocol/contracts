@@ -869,6 +869,26 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _allocationID The allocation identifier
      * @param _metadata IPFS hash for additional information about the allocation
      * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     */
+    function allocateFrom(
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        address _allocationID,
+        bytes32 _metadata,
+        bytes calldata _proof
+    ) external override notPaused {
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof, 0x0);
+    }
+
+    /**
+     * @dev Allocate available tokens to a subgraph deployment.
+     * @param _indexer Indexer address to allocate funds from.
+     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param _tokens Amount of tokens to allocate
+     * @param _allocationID The allocation identifier
+     * @param _metadata IPFS hash for additional information about the allocation
+     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      * @param _poi Proof of indexing
      */
     function allocateFrom(
@@ -935,7 +955,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         bytes calldata _proof
     ) external override notPaused {
         _closeAllocation(_closingAllocationID, _poi);
-        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof);
+        _allocate(_indexer, _subgraphDeploymentID, _tokens, _allocationID, _metadata, _proof, 0x0);
     }
 
     /**

@@ -100,6 +100,15 @@ interface IStaking is IStakingData {
         uint256 _tokens,
         address _allocationID,
         bytes32 _metadata,
+        bytes calldata _proof
+    ) external;
+
+    function allocateFrom(
+        address _indexer,
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        address _allocationID,
+        bytes32 _metadata,
         bytes calldata _proof,
         bytes32 _poi
     ) external;
