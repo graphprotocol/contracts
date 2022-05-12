@@ -1,5 +1,5 @@
 import { expect, use } from 'chai'
-import { constants, Signer, utils } from 'ethers'
+import { constants, ContractTransaction, Signer, utils } from 'ethers'
 import hre from 'hardhat'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
@@ -9,9 +9,12 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import { FakeContract, smock } from '@defi-wonderland/smock'
 
+import rewardsManagerMockAbi from '../../build/abis/RewardsManagerMock.json'
+
 use(smock.matchers)
 
-import { getAccounts, toGRT, Account, provider, applyL1ToL2Alias } from '../lib/testHelpers'
+import { getAccounts, toGRT, Account, provider, applyL1ToL2Alias, toBN } from '../lib/testHelpers'
+import { Interface } from 'ethers/lib/utils'
 
 const { AddressZero } = constants
 
@@ -43,10 +46,11 @@ describe('L2GraphTokenGateway', () => {
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const notEmptyCallHookData = '0x12'
+  const rmmIface = new Interface(rewardsManagerMockAbi)
+  const notEmptyCallHookData = rmmIface.encodeFunctionData('pow', [toBN(1), toBN(2), toBN(3)])
   const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
-    ['bytes'],
-    [notEmptyCallHookData],
+    ['bytes', 'bytes'],
+    ['0x', notEmptyCallHookData],
   )
 
   before(async function () {
@@ -159,6 +163,48 @@ describe('L2GraphTokenGateway', () => {
           .emit(l2GraphTokenGateway, 'L1CounterpartAddressSet')
           .withArgs(mockL1Gateway.address)
         expect(await l2GraphTokenGateway.l1Counterpart()).eq(mockL1Gateway.address)
+      })
+    })
+    describe('addToCallhookWhitelist', function () {
+      it('is not callable by addreses that are not the governor', async function () {
+        const tx = l2GraphTokenGateway
+          .connect(tokenSender.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
+      })
+      it('adds an address to the callhook whitelist', async function () {
+        const tx = l2GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await expect(tx)
+          .emit(l2GraphTokenGateway, 'AddedToCallhookWhitelist')
+          .withArgs(tokenSender.address)
+        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
+      })
+    })
+    describe('removeFromCallhookWhitelist', function () {
+      it('is not callable by addreses that are not the governor', async function () {
+        await l2GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        const tx = l2GraphTokenGateway
+          .connect(tokenSender.signer)
+          .removeFromCallhookWhitelist(tokenSender.address)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
+      })
+      it('removes an address from the callhook whitelist', async function () {
+        await l2GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        const tx = l2GraphTokenGateway
+          .connect(governor.signer)
+          .removeFromCallhookWhitelist(tokenSender.address)
+        await expect(tx)
+          .emit(l2GraphTokenGateway, 'RemovedFromCallhookWhitelist')
+          .withArgs(tokenSender.address)
+        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
       })
     })
     describe('Pausable behavior', () => {
@@ -322,6 +368,37 @@ describe('L2GraphTokenGateway', () => {
     })
 
     describe('finalizeInboundTransfer', function () {
+      const testValidFinalizeTransfer = async function (
+        data: string,
+      ): Promise<ContractTransaction> {
+        const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
+        await me.signer.sendTransaction({
+          to: await mockL1GatewayL2Alias.getAddress(),
+          value: utils.parseUnits('1', 'ether'),
+        })
+        const tx = l2GraphTokenGateway
+          .connect(mockL1GatewayL2Alias)
+          .finalizeInboundTransfer(
+            mockL1GRT.address,
+            tokenSender.address,
+            l2Receiver.address,
+            toGRT('10'),
+            data,
+          )
+        await expect(tx)
+          .emit(l2GraphTokenGateway, 'DepositFinalized')
+          .withArgs(mockL1GRT.address, tokenSender.address, l2Receiver.address, toGRT('10'))
+
+        await expect(tx).emit(grt, 'BridgeMinted').withArgs(l2Receiver.address, toGRT('10'))
+
+        // Unchanged
+        const senderBalance = await grt.balanceOf(tokenSender.address)
+        await expect(senderBalance).eq(toGRT('1000'))
+        // 10 newly minted GRT
+        const receiverBalance = await grt.balanceOf(l2Receiver.address)
+        await expect(receiverBalance).eq(toGRT('10'))
+        return tx
+      }
       it('reverts when called by an account that is not the gateway', async function () {
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
@@ -347,6 +424,35 @@ describe('L2GraphTokenGateway', () => {
         await expect(tx).revertedWith('ONLY_COUNTERPART_GATEWAY')
       })
       it('mints and sends tokens when called by the aliased gateway', async function () {
+        await testValidFinalizeTransfer(defaultData)
+      })
+      it('does not call any callhooks if the sender is not whitelisted', async function () {
+        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+          address: l2Receiver.address,
+        })
+        rewardsManagerMock.pow.returns(1)
+        await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
+        expect(rewardsManagerMock.pow).to.not.have.been.called
+      })
+      it('calls a callhook if the sender is whitelisted', async function () {
+        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+          address: l2Receiver.address,
+        })
+        rewardsManagerMock.pow.returns(1)
+        await l2GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
+        expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
+      })
+      it('reverts if a callhook reverts', async function () {
+        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+          address: l2Receiver.address,
+        })
+        rewardsManagerMock.pow.reverts()
+        await l2GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -359,20 +465,10 @@ describe('L2GraphTokenGateway', () => {
             tokenSender.address,
             l2Receiver.address,
             toGRT('10'),
-            defaultData,
+            defaultDataWithNotEmptyCallHookData,
           )
         await expect(tx)
-          .emit(l2GraphTokenGateway, 'DepositFinalized')
-          .withArgs(mockL1GRT.address, tokenSender.address, l2Receiver.address, toGRT('10'))
-
-        await expect(tx).emit(grt, 'BridgeMinted').withArgs(l2Receiver.address, toGRT('10'))
-
-        // Unchanged
-        const senderBalance = await grt.balanceOf(tokenSender.address)
-        await expect(senderBalance).eq(toGRT('1000'))
-        // 10 newly minted GRT
-        const receiverBalance = await grt.balanceOf(l2Receiver.address)
-        await expect(receiverBalance).eq(toGRT('10'))
+          .revertedWith('CALLHOOK_FAILED')
       })
     })
   })

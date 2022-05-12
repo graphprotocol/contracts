@@ -186,6 +186,48 @@ describe('L1GraphTokenGateway', () => {
         expect(await l1GraphTokenGateway.escrow()).eq(bridgeEscrow.address)
       })
     })
+    describe('addToCallhookWhitelist', function () {
+      it('is not callable by addreses that are not the governor', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+        expect(await l1GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
+      })
+      it('adds an address to the callhook whitelist', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'AddedToCallhookWhitelist')
+          .withArgs(tokenSender.address)
+        expect(await l1GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
+      })
+    })
+    describe('removeFromCallhookWhitelist', function () {
+      it('is not callable by addreses that are not the governor', async function () {
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .removeFromCallhookWhitelist(tokenSender.address)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+        expect(await l1GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
+      })
+      it('removes an address from the callhook whitelist', async function () {
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        const tx = l1GraphTokenGateway
+          .connect(governor.signer)
+          .removeFromCallhookWhitelist(tokenSender.address)
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'RemovedFromCallhookWhitelist')
+          .withArgs(tokenSender.address)
+        expect(await l1GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
+      })
+    })
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
         let tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
@@ -230,7 +272,7 @@ describe('L1GraphTokenGateway', () => {
   })
 
   context('> after configuring and unpausing', function () {
-    const createMsgData = function () {
+    const createMsgData = function (callHookData: string) {
       const selector = l1GraphTokenGateway.interface.getSighash('finalizeInboundTransfer')
       const params = utils.defaultAbiCoder.encode(
         ['address', 'address', 'address', 'uint256', 'bytes'],
@@ -239,7 +281,7 @@ describe('L1GraphTokenGateway', () => {
           tokenSender.address,
           l2Receiver.address,
           toGRT('10'),
-          utils.defaultAbiCoder.encode(['bytes', 'bytes'], [emptyCallHookData, emptyCallHookData]),
+          utils.defaultAbiCoder.encode(['bytes', 'bytes'], [emptyCallHookData, callHookData]),
         ],
       )
       const outboundData = utils.hexlify(utils.concat([selector, params]))
@@ -283,7 +325,11 @@ describe('L1GraphTokenGateway', () => {
       )
       return expectedInboxAccsEntry
     }
-    const testValidOutboundTransfer = async function (signer: Signer, data: string) {
+    const testValidOutboundTransfer = async function (
+      signer: Signer,
+      data: string,
+      callHookData: string,
+    ) {
       const tx = l1GraphTokenGateway
         .connect(signer)
         .outboundTransfer(grt.address, l2Receiver.address, toGRT('10'), maxGas, gasPriceBid, data, {
@@ -295,7 +341,7 @@ describe('L1GraphTokenGateway', () => {
         .emit(l1GraphTokenGateway, 'DepositInitiated')
         .withArgs(grt.address, tokenSender.address, l2Receiver.address, expectedSeqNum, toGRT('10'))
 
-      const msgData = createMsgData()
+      const msgData = createMsgData(callHookData)
       const msgDataHash = utils.keccak256(msgData)
       const expectedInboxAccsEntry = createInboxAccsEntry(msgDataHash)
 
@@ -365,7 +411,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('puts tokens in escrow and creates a retryable ticket', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData)
+        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
       })
       it('decodes the sender address from messages sent by the router', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
@@ -373,7 +419,7 @@ describe('L1GraphTokenGateway', () => {
           ['address', 'bytes'],
           [tokenSender.address, defaultData],
         )
-        await testValidOutboundTransfer(mockRouter.signer, routerEncodedData)
+        await testValidOutboundTransfer(mockRouter.signer, routerEncodedData, emptyCallHookData)
       })
       it('reverts when called with the wrong value', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
@@ -392,7 +438,7 @@ describe('L1GraphTokenGateway', () => {
           )
         await expect(tx).revertedWith('WRONG_ETH_VALUE')
       })
-      it('reverts when called with nonempty calldata', async function () {
+      it('reverts when called with nonempty calldata, if the sender is not whitelisted', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
@@ -408,6 +454,17 @@ describe('L1GraphTokenGateway', () => {
             },
           )
         await expect(tx).revertedWith('CALL_HOOK_DATA_NOT_ALLOWED')
+      })
+      it('allows sending nonempty calldata, if the sender is whitelisted', async function () {
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .addToCallhookWhitelist(tokenSender.address)
+        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(
+          tokenSender.signer,
+          defaultDataWithNotEmptyCallHookData,
+          notEmptyCallHookData,
+        )
       })
       it('reverts when the sender does not have enough GRT', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('1001'))
@@ -503,7 +560,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('reverts if the gateway is revoked from escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData)
+        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
         // At this point, the gateway holds 10 GRT in escrow
         // But we revoke the gateway's permission to move the funds:
         await bridgeEscrow.connect(governor.signer).revokeAll(l1GraphTokenGateway.address)
@@ -538,7 +595,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('sends tokens out of escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData)
+        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
         // At this point, the gateway holds 10 GRT in escrow
         const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
           'finalizeInboundTransfer',

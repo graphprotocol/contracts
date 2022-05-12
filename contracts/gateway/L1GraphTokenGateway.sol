@@ -30,6 +30,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     address public l2Counterpart;
     // Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
+    // Address of the L1 Reservoir that is the only sender allowed to send extra data
+    mapping(address => bool) public callhookWhitelist;
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
@@ -57,6 +59,10 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     event L2CounterpartAddressSet(address _l2Counterpart);
     // Emitted when the escrow address has been updated
     event EscrowAddressSet(address _escrow);
+    // Emitted when an address is added to the callhook whitelist
+    event AddedToCallhookWhitelist(address newWhitelisted);
+    // Emitted when an address is removed from the callhook whitelist
+    event RemovedFromCallhookWhitelist(address notWhitelisted);
 
     /**
      * @dev Allows a function to be called only by the gateway's L2 counterpart.
@@ -123,6 +129,26 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     }
 
     /**
+     * @dev Adds an address to the callhook whitelist.
+     * This address will be allowed to include callhooks when transferring tokens.
+     * @param newWhitelisted Address to add to the whitelist
+     */
+    function addToCallhookWhitelist(address newWhitelisted) external onlyGovernor {
+        callhookWhitelist[newWhitelisted] = true;
+        emit AddedToCallhookWhitelist(newWhitelisted);
+    }
+
+    /**
+     * @dev Removes an address from the callhook whitelist.
+     * This address will no longer be allowed to include callhooks when transferring tokens.
+     * @param notWhitelisted Address to remove from the whitelist
+     */
+    function removeFromCallhookWhitelist(address notWhitelisted) external onlyGovernor {
+        callhookWhitelist[notWhitelisted] = false;
+        emit RemovedFromCallhookWhitelist(notWhitelisted);
+    }
+
+    /**
      * @notice Creates and sends a retryable ticket to transfer GRT to L2 using the Arbitrum Inbox.
      * The tokens are escrowed by the gateway until they are withdrawn back to L1.
      * The ticket must be redeemed on L2 to receive tokens at the specified address.
@@ -156,7 +182,10 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
             {
                 bytes memory extraData;
                 (from, maxSubmissionCost, extraData) = parseOutboundData(_data);
-                require(extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
+                require(
+                    extraData.length == 0 || callhookWhitelist[msg.sender] == true,
+                    "CALL_HOOK_DATA_NOT_ALLOWED"
+                );
                 require(maxSubmissionCost > 0, "NO_SUBMISSION_COST");
 
                 {
