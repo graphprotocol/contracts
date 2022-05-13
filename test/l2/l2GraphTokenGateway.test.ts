@@ -445,7 +445,7 @@ describe('L2GraphTokenGateway', () => {
         await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
         expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
       })
-      it('performs the transfer even if a callhook reverts', async function () {
+      it('reverts if a callhook reverts', async function () {
         const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
           address: l2Receiver.address,
         })
@@ -453,9 +453,22 @@ describe('L2GraphTokenGateway', () => {
         await l2GraphTokenGateway
           .connect(governor.signer)
           .addToCallhookWhitelist(tokenSender.address)
-        const tx = testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        await expect(tx).emit(l2GraphTokenGateway, 'CallhookFailed').withArgs(l2Receiver.address)
-        expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
+        const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
+        await me.signer.sendTransaction({
+          to: await mockL1GatewayL2Alias.getAddress(),
+          value: utils.parseUnits('1', 'ether'),
+        })
+        const tx = l2GraphTokenGateway
+          .connect(mockL1GatewayL2Alias)
+          .finalizeInboundTransfer(
+            mockL1GRT.address,
+            tokenSender.address,
+            l2Receiver.address,
+            toGRT('10'),
+            defaultDataWithNotEmptyCallHookData,
+          )
+        await expect(tx)
+          .revertedWith('CALLHOOK_FAILED')
       })
     })
   })

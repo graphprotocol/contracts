@@ -245,10 +245,10 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
             // solhint-disable-next-line avoid-low-level-calls
             (success, ) = _to.call(callhookData);
             // Callhooks shouldn't revert, but if they do:
-            // We don't want to revert if the callhook failed,
-            // to prevent the tokens staying locked in the bridge.
+            // we revert, so that the retryable ticket can be re-attempted
+            // later.
             if (!success) {
-                emit CallhookFailed(_to);
+                revert("CALLHOOK_FAILED");
             }
         }
 
