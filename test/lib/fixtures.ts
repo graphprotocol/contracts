@@ -96,6 +96,7 @@ export class NetworkFixture {
 
   async setUp(): Promise<void> {
     this.lastSnapshotId = await evmSnapshot()
+    provider().send('evm_setAutomine', [true])
   }
 
   async tearDown(): Promise<void> {
