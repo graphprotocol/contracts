@@ -87,6 +87,16 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
+     * @dev Emitted when a curator transfers signal.
+     */
+    event SignalTransferred(
+        uint256 indexed subgraphID,
+        address indexed from,
+        address indexed to,
+        uint256 nSignalTransferred
+    );
+
+    /**
      * @dev Emitted when a subgraph is created.
      */
     event SubgraphPublished(
@@ -453,6 +463,38 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         require(graphToken().transfer(curator, tokens), "GNS: Error sending tokens");
 
         emit SignalBurned(_subgraphID, curator, _nSignal, vSignal, tokens);
+    }
+
+    /**
+     * @dev Move subgraph signal from sender to `_recipient`
+     * @param _subgraphID Subgraph ID
+     * @param _recipient Address to send the signal to
+     * @param _amount The amount of nSignal to transfer
+     */
+    function transferSignal(
+        uint256 _subgraphID,
+        address _recipient,
+        uint256 _amount
+    ) external override notPartialPaused returns (bool) {
+        require(_recipient != address(0), "GNS: Curator cannot transfer to the zero address");
+
+        // Subgraph checks
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
+
+        // Balance checks
+        address curator = msg.sender;
+        uint256 curatorBalance = subgraphData.curatorNSignal[curator];
+        require(curatorBalance >= _amount, "GNS: Curator transfer amount exceeds balance");
+
+        // Move the signal
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_amount);
+        subgraphData.curatorNSignal[_recipient] = subgraphData.curatorNSignal[_recipient].add(
+            _amount
+        );
+
+        emit SignalTransferred(_subgraphID, curator, _recipient, _amount);
+
+        return true;
     }
 
     /**

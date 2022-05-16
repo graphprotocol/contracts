@@ -65,6 +65,12 @@ interface IGNS {
         uint256 _tokensOutMin
     ) external;
 
+    function transferSignal(
+        uint256 _subgraphID,
+        address _recipient,
+        uint256 _amount
+    ) external returns (bool);
+
     function withdraw(uint256 _subgraphID) external;
 
     // -- Getters --

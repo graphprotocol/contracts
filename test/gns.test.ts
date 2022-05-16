@@ -48,6 +48,7 @@ const buildSubgraphID = (account: string, seqID: BigNumber): string =>
 describe('GNS', () => {
   let me: Account
   let other: Account
+  let another: Account
   let governor: Account
 
   let fixture: NetworkFixture
@@ -444,6 +445,34 @@ describe('GNS', () => {
     return tx
   }
 
+  const transferSignal = async (
+    subgraphID: string,
+    owner: Account,
+    recipient: Account,
+    amount: BigNumber,
+  ): Promise<ContractTransaction> => {
+    // Before state
+    const beforeOwnerNSignal = await gns.getCuratorSignal(subgraphID, owner.address)
+    const beforeRecipientNSignal = await gns.getCuratorSignal(subgraphID, recipient.address)
+
+    // Transfer
+    const tx = gns.connect(owner.signer).transferSignal(subgraphID, recipient.address, amount)
+
+    await expect(tx)
+      .emit(gns, 'SignalTransferred')
+      .withArgs(subgraphID, owner.address, recipient.address, amount)
+
+    // After state
+    const afterOwnerNSignal = await gns.getCuratorSignal(subgraphID, owner.address)
+    const afterRecipientNSignal = await gns.getCuratorSignal(subgraphID, recipient.address)
+
+    // Check state
+    expect(afterOwnerNSignal).eq(beforeOwnerNSignal.sub(amount))
+    expect(afterRecipientNSignal).eq(beforeRecipientNSignal.add(amount))
+
+    return tx
+  }
+
   const withdraw = async (account: Account, subgraphID: string): Promise<ContractTransaction> => {
     // Before state
     const beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, account.address)
@@ -475,7 +504,7 @@ describe('GNS', () => {
   }
 
   before(async function () {
-    ;[me, other, governor] = await getAccounts()
+    ;[me, other, governor, another] = await getAccounts()
     fixture = new NetworkFixture()
     ;({ grt, curation, gns } = await fixture.load(governor.signer))
     newSubgraph0 = buildSubgraph()
@@ -824,6 +853,46 @@ describe('GNS', () => {
       })
     })
 
+    describe('transferSignal()', async function () {
+      let subgraph: Subgraph
+      let otherNSignal: BigNumber
+
+      beforeEach(async () => {
+        subgraph = await publishNewSubgraph(me, newSubgraph0)
+        await mintSignal(other, subgraph.id, tokens10000)
+        otherNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
+      })
+
+      it('should transfer signal from one curator to another', async function () {
+        await transferSignal(subgraph.id, other, another, otherNSignal)
+      })
+      it('should fail when transfering to zero address', async function () {
+        const tx = gns
+          .connect(other.signer)
+          .transferSignal(subgraph.id, ethers.constants.AddressZero, otherNSignal)
+        await expect(tx).revertedWith('GNS: Curator cannot transfer to the zero address')
+      })
+      it('should fail when name signal is disabled', async function () {
+        await deprecateSubgraph(me, subgraph.id)
+        const tx = gns
+          .connect(other.signer)
+          .transferSignal(subgraph.id, another.address, otherNSignal)
+        await expect(tx).revertedWith('GNS: Must be active')
+      })
+      it('should fail if you try to transfer on a non existing name', async function () {
+        const subgraphID = randomHexBytes(32)
+        const tx = gns
+          .connect(other.signer)
+          .transferSignal(subgraphID, another.address, otherNSignal)
+        await expect(tx).revertedWith('GNS: Must be active')
+      })
+      it('should fail when the curator tries to transfer more signal than they have', async function () {
+        const tx = gns
+          .connect(other.signer)
+          .transferSignal(subgraph.id, another.address, otherNSignal.add(otherNSignal))
+        await expect(tx).revertedWith('GNS: Curator transfer amount exceeds balance')
+      })
+    })
     describe('withdraw()', async function () {
       let subgraph: Subgraph
 
