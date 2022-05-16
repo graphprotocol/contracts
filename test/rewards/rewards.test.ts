@@ -611,7 +611,7 @@ describe('Rewards', () => {
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
-        expect(event.allocationID1).eq(allocationID1)
+        expect(event.allocationID).eq(allocationID1)
         expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
@@ -670,7 +670,7 @@ describe('Rewards', () => {
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
-        expect(event.allocationID1).eq(allocationID1)
+        expect(event.allocationID).eq(allocationID1)
         expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
