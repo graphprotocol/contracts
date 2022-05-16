@@ -23,6 +23,7 @@ import {
   formatGRT,
   Account,
   advanceToNextEpoch,
+  provider,
 } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
@@ -816,6 +817,55 @@ describe('Rewards', () => {
   })
 
   describe('multiple allocations', function () {
+    it('two allocations in the same block with a GRT burn in the middle should succeed', async function () {
+      // If rewards are not monotonically increasing, this can trigger
+      // a subtraction overflow error as seen in mainnet tx:
+      // 0xb6bf7bbc446720a7409c482d714aebac239dd62e671c3c94f7e93dd3a61835ab
+      await advanceToNextEpoch(epochManager)
+
+      // Setup
+      await epochManager.setEpochLength(10)
+
+      // Update total signalled
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Stake
+      const tokensToStake = toGRT('12500')
+      await staking.connect(indexer1.signer).stake(tokensToStake)
+
+      // Allocate simultaneously, burning in the middle
+      const tokensToAlloc = toGRT('5000')
+      await provider().send('evm_setAutomine', [false])
+      const tx1 = await staking
+        .connect(indexer1.signer)
+        .allocateFrom(
+          indexer1.address,
+          subgraphDeploymentID1,
+          tokensToAlloc,
+          allocationID1,
+          metadata,
+          await channelKey1.generateProof(indexer1.address),
+        )
+      const tx2 = await grt.connect(indexer1.signer).burn(toGRT(1))
+      const tx3 = await staking
+        .connect(indexer1.signer)
+        .allocateFrom(
+          indexer1.address,
+          subgraphDeploymentID1,
+          tokensToAlloc,
+          allocationID2,
+          metadata,
+          await channelKey2.generateProof(indexer1.address),
+        )
+
+      await provider().send('evm_mine', [])
+      await provider().send('evm_setAutomine', [true])
+
+      await expect(tx1).emit(staking, 'AllocationCreated')
+      await expect(tx2).emit(grt, 'Transfer')
+      await expect(tx3).emit(staking, 'AllocationCreated')
+    })
     it('two simultanous-similar allocations should get same amount of rewards', async function () {
       await advanceToNextEpoch(epochManager)
 
