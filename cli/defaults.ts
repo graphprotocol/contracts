@@ -5,7 +5,7 @@ export const local = {
   mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
   providerUrl: 'http://localhost:8545',
   addressBookPath: './addresses.json',
-  graphConfigPath: './graph.config.yml',
+  graphConfigPath: './config/graph.mainnet.yml',
   accountNumber: '0',
 }
 

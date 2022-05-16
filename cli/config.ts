@@ -42,9 +42,13 @@ function parseAddressBookRef(addressBook: AddressBook, value: string, cli: CLIEn
 }
 
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-export function readConfig(path: string): any {
+export function readConfig(path: string, retainMetadata = false): any {
   const file = fs.readFileSync(path, 'utf8')
-  return YAML.parse(file)
+  return retainMetadata ? YAML.parseDocument(file) : YAML.parse(file)
+}
+
+export function writeConfig(path: string, data: string): void {
+  fs.writeFileSync(path, data)
 }
 
 export function loadCallParams(

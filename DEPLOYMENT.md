@@ -49,12 +49,12 @@ To deploy using your own wallet add the HD Wallet Config to the `hardhat.config.
 
 ### Configuration
 
-A configuration file called `graph.config.yml` contains the parameters needed to deploy the contracts. Please edit these params as you see fit.
+A configuration file called `graph.<networkName>.yml` located in the `config` folder contains the parameters needed to deploy the contracts. Please edit these params as you see fit.
 
 You can use a different set of configuration options by specifying the file location in the command line:
 
 ```
-yarn deploy -- --graph-config another-graph.config.yml
+yarn deploy -- --graph-config another-graph.mainnet.yml
 ```
 
 Rules:
@@ -67,7 +67,7 @@ Rules:
 
 Example:
 
-[https://github.com/graphprotocol/contracts/blob/master/graph.config.yml](https://github.com/graphprotocol/contracts/blob/master/graph.config.yml)
+[https://github.com/graphprotocol/contracts/blob/master/config/graph.mainnet.yml](https://github.com/graphprotocol/contracts/blob/master/config/graph.mainnet.yml)
 
 ### Address book
 
