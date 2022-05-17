@@ -1202,11 +1202,12 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         }
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
-        // Distribute rewards if proof of indexing was presented by the indexer or operator
+        // Distribute rewards if proof of indexing was presented by the indexer or operator,
+        // otherwise the rewards will be burned from the reservoir.
         if (isIndexer && _poi != 0) {
             _distributeRewards(_allocationID, alloc.indexer);
         } else {
-            _updateRewards(alloc.subgraphDeploymentID);
+            _takeAndBurnRewards(_allocationID);
         }
 
         // Free allocated tokens from use
@@ -1584,7 +1585,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         }
 
         // Automatically triggers update of rewards snapshot as allocation will change
-        // after this call. Take rewards mint tokens for the Staking contract to distribute
+        // after this call. Take rewards transfers tokens for the Staking contract to distribute
         // between indexer and delegators
         uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
         if (totalRewards == 0) {
@@ -1602,6 +1603,21 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             _indexer,
             rewardsDestination[_indexer] == address(0)
         );
+    }
+
+    /**
+     * @dev Burn rewards for the closed allocation and update the allocation state.
+     * @param _allocationID Allocation
+     */
+    function _takeAndBurnRewards(address _allocationID) private {
+        IRewardsManager rewardsManager = rewardsManager();
+        if (address(rewardsManager) == address(0)) {
+            return;
+        }
+
+        // Automatically triggers update of rewards snapshot as allocation will change
+        // after this call.
+        rewardsManager.takeAndBurnRewards(_allocationID);
     }
 
     /**

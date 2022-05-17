@@ -35,30 +35,28 @@ let allContracts = [
   'AllocationExchange',
   'L1GraphTokenGateway',
   'BridgeEscrow',
+  'L1Reservoir',
 ]
 
-// This is all we'll want to deploy to L2 eventually:
-// const l2Contracts = [
-//   'GraphProxyAdmin',
-//   'BancorFormula',
-//   'Controller',
-//   'EpochManager',
-//   'L2GraphToken',
-//   'GraphCurationToken',
-//   'ServiceRegistry',
-//   'Curation',
-//   'SubgraphNFTDescriptor',
-//   'SubgraphNFT',
-//   'GNS',
-//   'Staking',
-//   'RewardsManager',
-//   'DisputeManager',
-//   'AllocationExchange',
-//   'L2GraphTokenGateway',
-// ]
-//
-// But for now we'll only include a subset:
-const l2Contracts = ['GraphProxyAdmin', 'Controller', 'L2GraphToken', 'L2GraphTokenGateway']
+const l2Contracts = [
+  'GraphProxyAdmin',
+  'BancorFormula',
+  'Controller',
+  'EpochManager',
+  'L2GraphToken',
+  'GraphCurationToken',
+  'ServiceRegistry',
+  'Curation',
+  'SubgraphNFTDescriptor',
+  'SubgraphNFT',
+  'GNS',
+  'Staking',
+  'RewardsManager',
+  'DisputeManager',
+  'AllocationExchange',
+  'L2GraphTokenGateway',
+  'L2Reservoir',
+]
 
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphConfigPath = cliArgs.graphConfig

@@ -9,6 +9,8 @@ interface IGraphToken is IERC20 {
 
     function burn(uint256 amount) external;
 
+    function burnFrom(address _from, uint256 amount) external;
+
     function mint(address _to, uint256 _amount) external;
 
     // -- Mint Admin --

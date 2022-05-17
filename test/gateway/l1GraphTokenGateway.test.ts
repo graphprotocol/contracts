@@ -7,8 +7,7 @@ import { InboxMock } from '../../build/types/InboxMock'
 import { OutboxMock } from '../../build/types/OutboxMock'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 
-import { NetworkFixture } from '../lib/fixtures'
-import { deployContract } from '../lib/deployment'
+import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
 import {
   getAccounts,
@@ -30,6 +29,7 @@ describe('L1GraphTokenGateway', () => {
   let mockL2GRT: Account
   let mockL2Gateway: Account
   let pauseGuardian: Account
+  let mockL2Reservoir: Account
   let fixture: NetworkFixture
 
   let grt: GraphToken
@@ -38,6 +38,9 @@ describe('L1GraphTokenGateway', () => {
   let bridgeMock: BridgeMock
   let inboxMock: InboxMock
   let outboxMock: OutboxMock
+
+  let arbitrumMocks: ArbitrumL1Mocks
+  let fixtureContracts: L1FixtureContracts
 
   const senderTokens = toGRT('1000')
   const maxGas = toBN('1000000')
@@ -56,18 +59,26 @@ describe('L1GraphTokenGateway', () => {
   )
 
   before(async function () {
-    ;[governor, tokenSender, l2Receiver, mockRouter, mockL2GRT, mockL2Gateway, pauseGuardian] =
-      await getAccounts()
+    ;[
+      governor,
+      tokenSender,
+      l2Receiver,
+      mockRouter,
+      mockL2GRT,
+      mockL2Gateway,
+      pauseGuardian,
+      mockL2Reservoir,
+    ] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ grt, l1GraphTokenGateway, bridgeEscrow } = await fixture.load(governor.signer))
+    fixtureContracts = await fixture.load(governor.signer)
+    ;({ grt, l1GraphTokenGateway, bridgeEscrow } = fixtureContracts)
 
     // Give some funds to the token sender
     await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
     // Deploy contracts that mock Arbitrum's bridge contracts
-    bridgeMock = (await deployContract('BridgeMock', governor.signer)) as unknown as BridgeMock
-    inboxMock = (await deployContract('InboxMock', governor.signer)) as unknown as InboxMock
-    outboxMock = (await deployContract('OutboxMock', governor.signer)) as unknown as OutboxMock
+    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
+    ;({ bridgeMock, inboxMock, outboxMock } = arbitrumMocks)
   })
 
   beforeEach(async function () {
@@ -362,23 +373,15 @@ describe('L1GraphTokenGateway', () => {
       await expect(senderBalance).eq(toGRT('990'))
     }
     before(async function () {
-      // First configure the Arbitrum bridge mocks
-      await bridgeMock.connect(governor.signer).setInbox(inboxMock.address, true)
-      await bridgeMock.connect(governor.signer).setOutbox(outboxMock.address, true)
-      await inboxMock.connect(governor.signer).setBridge(bridgeMock.address)
-      await outboxMock.connect(governor.signer).setBridge(bridgeMock.address)
-
-      // Configure the gateway
-      await l1GraphTokenGateway
-        .connect(governor.signer)
-        .setArbitrumAddresses(inboxMock.address, mockRouter.address)
-      await l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(mockL2GRT.address)
-      await l1GraphTokenGateway
-        .connect(governor.signer)
-        .setL2CounterpartAddress(mockL2Gateway.address)
-      await l1GraphTokenGateway.connect(governor.signer).setEscrowAddress(bridgeEscrow.address)
-      await bridgeEscrow.connect(governor.signer).approveAll(l1GraphTokenGateway.address)
-      await l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+      await fixture.configureL1Bridge(
+        governor.signer,
+        arbitrumMocks,
+        fixtureContracts,
+        mockRouter.address,
+        mockL2GRT.address,
+        mockL2Gateway.address,
+        mockL2Reservoir.address,
+      )
     })
 
     describe('calculateL2TokenAddress', function () {
