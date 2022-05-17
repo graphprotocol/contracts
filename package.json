@@ -49,7 +49,7 @@
     "eslint-plugin-prettier": "^3.4.0",
     "ethereum-waffle": "^3.3.0",
     "graphql-tag": "^2.12.4",
-    "hardhat": "^2.2.0",
+    "hardhat": "^2.9.5",
     "hardhat-abi-exporter": "^2.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
