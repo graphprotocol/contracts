@@ -1,11 +1,10 @@
 import { expect, use } from 'chai'
 import { constants, ContractTransaction, Signer, utils } from 'ethers'
-import hre from 'hardhat'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 
-import { NetworkFixture } from '../lib/fixtures'
+import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { FakeContract, smock } from '@defi-wonderland/smock'
 
@@ -13,24 +12,14 @@ import path from 'path'
 import { Artifacts } from 'hardhat/internal/artifacts'
 const ARTIFACTS_PATH = path.resolve('build/contracts')
 const artifacts = new Artifacts(ARTIFACTS_PATH)
-const rewardsManagerMockAbi = artifacts.readArtifactSync('RewardsManagerMock').abi
+const reservoirMockAbi = artifacts.readArtifactSync('ReservoirMock').abi
 
 use(smock.matchers)
 
-import { getAccounts, toGRT, Account, provider, applyL1ToL2Alias, toBN } from '../lib/testHelpers'
+import { getAccounts, toGRT, Account, toBN, getL2SignerFromL1 } from '../lib/testHelpers'
 import { Interface } from 'ethers/lib/utils'
 
 const { AddressZero } = constants
-
-// Adapted from:
-// https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/test/utils/messaging.ts#L5
-async function getL2SignerFromL1(l1Address: string): Promise<Signer> {
-  const l2Address = applyL1ToL2Alias(l1Address)
-  await provider().send('hardhat_impersonateAccount', [l2Address])
-  const l2Signer = await hre.ethers.getSigner(l2Address)
-
-  return l2Signer
-}
 
 describe('L2GraphTokenGateway', () => {
   let me: Account
@@ -42,16 +31,18 @@ describe('L2GraphTokenGateway', () => {
   let mockL1GRT: Account
   let mockL1Gateway: Account
   let pauseGuardian: Account
+  let mockL1Reservoir: Account
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
+  let fixtureContracts: L2FixtureContracts
   let grt: L2GraphToken
   let l2GraphTokenGateway: L2GraphTokenGateway
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const rmmIface = new Interface(rewardsManagerMockAbi)
-  const notEmptyCallHookData = rmmIface.encodeFunctionData('pow', [toBN(1), toBN(2), toBN(3)])
+  const mockIface = new Interface(reservoirMockAbi)
+  const notEmptyCallHookData = mockIface.encodeFunctionData('pow', [toBN(1), toBN(2), toBN(3)])
   const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['bytes', 'bytes'],
     ['0x', notEmptyCallHookData],
@@ -68,10 +59,12 @@ describe('L2GraphTokenGateway', () => {
       mockL1Gateway,
       l2Receiver,
       pauseGuardian,
+      mockL1Reservoir,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ grt, l2GraphTokenGateway } = await fixture.loadL2(governor.signer))
+    fixtureContracts = await fixture.loadL2(governor.signer)
+    ;({ grt, l2GraphTokenGateway } = fixtureContracts)
 
     // Give some funds to the token sender
     await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
@@ -297,17 +290,14 @@ describe('L2GraphTokenGateway', () => {
       await expect(senderBalance).eq(toGRT('990'))
     }
     before(async function () {
-      // Configure the L2 GRT
-      // Configure the gateway
-      await grt.connect(governor.signer).setGateway(l2GraphTokenGateway.address)
-      await grt.connect(governor.signer).setL1Address(mockL1GRT.address)
-      // Configure the gateway
-      await l2GraphTokenGateway.connect(governor.signer).setL2Router(mockRouter.address)
-      await l2GraphTokenGateway.connect(governor.signer).setL1TokenAddress(mockL1GRT.address)
-      await l2GraphTokenGateway
-        .connect(governor.signer)
-        .setL1CounterpartAddress(mockL1Gateway.address)
-      await l2GraphTokenGateway.connect(governor.signer).setPaused(false)
+      await fixture.configureL2Bridge(
+        governor.signer,
+        fixtureContracts,
+        mockRouter.address,
+        mockL1GRT.address,
+        mockL1Gateway.address,
+        mockL1Reservoir.address,
+      )
     })
 
     describe('calculateL2TokenAddress', function () {
@@ -431,29 +421,29 @@ describe('L2GraphTokenGateway', () => {
         await testValidFinalizeTransfer(defaultData)
       })
       it('does not call any callhooks if the sender is not whitelisted', async function () {
-        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+        const reservoirMock = await smock.fake('ReservoirMock', {
           address: l2Receiver.address,
         })
-        rewardsManagerMock.pow.returns(1)
+        reservoirMock.pow.returns(1)
         await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        expect(rewardsManagerMock.pow).to.not.have.been.called
+        expect(reservoirMock.pow).to.not.have.been.called
       })
       it('calls a callhook if the sender is whitelisted', async function () {
-        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+        const reservoirMock = await smock.fake('ReservoirMock', {
           address: l2Receiver.address,
         })
-        rewardsManagerMock.pow.returns(1)
+        reservoirMock.pow.returns(1)
         await l2GraphTokenGateway
           .connect(governor.signer)
           .addToCallhookWhitelist(tokenSender.address)
         await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
+        expect(reservoirMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
       })
       it('reverts if a callhook reverts', async function () {
-        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
+        const reservoirMock = await smock.fake('ReservoirMock', {
           address: l2Receiver.address,
         })
-        rewardsManagerMock.pow.reverts()
+        reservoirMock.pow.reverts()
         await l2GraphTokenGateway
           .connect(governor.signer)
           .addToCallhookWhitelist(tokenSender.address)

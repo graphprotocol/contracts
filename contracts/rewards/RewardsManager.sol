@@ -10,6 +10,8 @@ import "../upgrades/GraphUpgradeable.sol";
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
 
+import "../reservoir/IReservoir.sol";
+
 /**
  * @title Rewards Manager Contract
  * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
@@ -27,7 +29,7 @@ import "./IRewardsManager.sol";
  * These functions may overestimate the actual rewards due to changes in the total supply
  * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
@@ -46,9 +48,24 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
     );
 
     /**
-     * @dev Emitted when rewards are denied to an indexer.
+     * @dev Emitted when rewards are denied to an indexer (and therefore burned).
      */
-    event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
+    event RewardsDenied(
+        address indexed indexer,
+        address indexed allocationID,
+        uint256 epoch,
+        uint256 amount
+    );
+
+    /**
+     * @dev Emitted when rewards for an indexer are burned .
+     */
+    event RewardsBurned(
+        address indexed indexer,
+        address indexed allocationID,
+        uint256 epoch,
+        uint256 amount
+    );
 
     /**
      * @dev Emitted when a subgraph is denied for claiming rewards.
@@ -73,32 +90,6 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
     }
 
     // -- Config --
-
-    /**
-     * @dev Sets the issuance rate.
-     * The issuance rate is defined as a percentage increase of the total supply per block.
-     * This means that it needs to be greater than 1.0, any number under 1.0 is not
-     * allowed and an issuance rate of 1.0 means no issuance.
-     * To accommodate a high precision the issuance rate is expressed in wei.
-     * @param _issuanceRate Issuance rate expressed in wei
-     */
-    function setIssuanceRate(uint256 _issuanceRate) external override onlyGovernor {
-        _setIssuanceRate(_issuanceRate);
-    }
-
-    /**
-     * @dev Sets the issuance rate.
-     * @param _issuanceRate Issuance rate
-     */
-    function _setIssuanceRate(uint256 _issuanceRate) private {
-        require(_issuanceRate >= MIN_ISSUANCE_RATE, "Issuance rate under minimum allowed");
-
-        // Called since `issuance rate` will change
-        updateAccRewardsPerSignal();
-
-        issuanceRate = _issuanceRate;
-        emit ParameterUpdated("issuanceRate");
-    }
 
     /**
      * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
@@ -187,32 +178,13 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Gets the issuance of rewards per signal since last updated.
      *
-     * Compound interest formula: `a = p(1 + r/n)^nt`
-     * The formula is simplified with `n = 1` as we apply the interest once every time step.
-     * The `r` is passed with +1 included. So for 10% instead of 0.1 it is 1.1
-     * The simplified formula is `a = p * r^t`
-     *
-     * Notation:
-     * t: time steps are in blocks since last updated
-     * p: total supply of GRT tokens
-     * a: inflated amount of total supply for the period `t` when interest `r` is applied
-     * x: newly accrued rewards token for the period `t`
+     * The compound interest formula is applied in the Reservoir contract.
+     * This function will compare accumulated rewards at the current block
+     * with the value that was cached at accRewardsPerSignalLastBlockUpdated.
      *
      * @return newly accrued rewards per signal since last update
      */
     function getNewRewardsPerSignal() public view override returns (uint256) {
-        // Calculate time steps
-        uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
-        // Optimization to skip calculations if zero time steps elapsed
-        if (t == 0) {
-            return 0;
-        }
-
-        // Zero issuance under a rate of 1.0
-        if (issuanceRate <= MIN_ISSUANCE_RATE) {
-            return 0;
-        }
-
         // Zero issuance if no signalled tokens
         IGraphToken graphToken = graphToken();
         uint256 signalledTokens = graphToken.balanceOf(address(curation()));
@@ -220,16 +192,14 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        uint256 r = issuanceRate;
-        uint256 p = tokenSupplySnapshot;
-        uint256 a = p.mul(_pow(r, t, TOKEN_DECIMALS)).div(TOKEN_DECIMALS);
-
-        // New issuance of tokens during time steps
-        uint256 x = a.sub(p);
+        uint256 accRewardsNow = reservoir().getAccumulatedRewards(block.number);
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
-        return x.mul(TOKEN_DECIMALS).div(signalledTokens);
+        return
+            (accRewardsNow.sub(accRewardsOnLastSignalUpdate)).mul(TOKEN_DECIMALS).div(
+                signalledTokens
+            );
     }
 
     /**
@@ -312,7 +282,7 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
     function updateAccRewardsPerSignal() public override returns (uint256) {
         accRewardsPerSignal = getAccRewardsPerSignal();
         accRewardsPerSignalLastBlockUpdated = block.number;
-        tokenSupplySnapshot = graphToken().totalSupply();
+        accRewardsOnLastSignalUpdate = reservoir().getAccumulatedRewards(block.number);
         return accRewardsPerSignal;
     }
 
@@ -399,7 +369,7 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Pull rewards from the contract for a particular allocation.
      * This function can only be called by the Staking contract.
-     * This function will mint the necessary tokens to reward based on the inflation calculation.
+     * This function will transfer the necessary tokens to reward based on the inflation calculation.
      * @param _allocationID Allocation
      * @return Assigned rewards amount
      */
@@ -413,11 +383,46 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
             alloc.subgraphDeploymentID
         );
 
-        // Do not do rewards on denied subgraph deployments ID
-        if (isDenied(alloc.subgraphDeploymentID)) {
-            emit RewardsDenied(alloc.indexer, _allocationID, alloc.closedAtEpoch);
+        // Calculate rewards accrued by this allocation
+        uint256 rewards = _calcRewards(
+            alloc.tokens,
+            alloc.accRewardsPerAllocatedToken,
+            accRewardsPerAllocatedToken
+        );
+        if (!isDenied(alloc.subgraphDeploymentID)) {
+            // Transfer to staking contract for the reward amount
+            // The staking contract will do bookkeeping of the reward and
+            // assign in proportion to each stakeholder incentive
+            if (rewards > 0) {
+                graphToken().transferFrom(address(reservoir()), address(staking), rewards);
+            }
+            emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
+        } else {
+            if (rewards > 0) {
+                graphToken().burnFrom(address(reservoir()), rewards);
+            }
+            emit RewardsDenied(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
             return 0;
         }
+
+        return rewards;
+    }
+
+    /**
+     * @dev Burn rewards for a particular allocation.
+     * This function can only be called by the Staking contract.
+     * This function will burn the necessary tokens to reward based on the inflation calculation.
+     * @param _allocationID Allocation
+     */
+    function takeAndBurnRewards(address _allocationID) external override {
+        // Only Staking contract is authorized as caller
+        IStaking staking = staking();
+        require(msg.sender == address(staking), "Caller must be the staking contract");
+
+        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
+        uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
+            alloc.subgraphDeploymentID
+        );
 
         // Calculate rewards accrued by this allocation
         uint256 rewards = _calcRewards(
@@ -426,77 +431,12 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
             accRewardsPerAllocatedToken
         );
         if (rewards > 0) {
-            // Mint directly to staking contract for the reward amount
-            // The staking contract will do bookkeeping of the reward and
-            // assign in proportion to each stakeholder incentive
-            graphToken().mint(address(staking), rewards);
+            graphToken().burnFrom(address(reservoir()), rewards);
+            emit RewardsBurned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
         }
-
-        emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
-
-        return rewards;
     }
 
-    /**
-     * @dev Raises x to the power of n with scaling factor of base.
-     * Based on: https://github.com/makerdao/dss/blob/master/src/pot.sol#L81
-     * @param x Base of the exponentiation
-     * @param n Exponent
-     * @param base Scaling factor
-     * @return z Exponential of n with base x
-     */
-    function _pow(
-        uint256 x,
-        uint256 n,
-        uint256 base
-    ) private pure returns (uint256 z) {
-        assembly {
-            switch x
-            case 0 {
-                switch n
-                case 0 {
-                    z := base
-                }
-                default {
-                    z := 0
-                }
-            }
-            default {
-                switch mod(n, 2)
-                case 0 {
-                    z := base
-                }
-                default {
-                    z := x
-                }
-                let half := div(base, 2) // for rounding.
-                for {
-                    n := div(n, 2)
-                } n {
-                    n := div(n, 2)
-                } {
-                    let xx := mul(x, x)
-                    if iszero(eq(div(xx, x), x)) {
-                        revert(0, 0)
-                    }
-                    let xxRound := add(xx, half)
-                    if lt(xxRound, xx) {
-                        revert(0, 0)
-                    }
-                    x := div(xxRound, base)
-                    if mod(n, 2) {
-                        let zx := mul(z, x)
-                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
-                            revert(0, 0)
-                        }
-                        let zxRound := add(zx, half)
-                        if lt(zxRound, zx) {
-                            revert(0, 0)
-                        }
-                        z := div(zxRound, base)
-                    }
-                }
-            }
-        }
+    function reservoir() internal view returns (IReservoir) {
+        return IReservoir(_resolveContract(keccak256("Reservoir")));
     }
 }
