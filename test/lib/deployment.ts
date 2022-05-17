@@ -22,6 +22,8 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { L1Reservoir } from '../../build/types/L1Reservoir'
+import { L2Reservoir } from '../../build/types/L2Reservoir'
 
 // Disable logging for tests
 logger.pause()
@@ -298,4 +300,30 @@ export async function deployL2GRT(
     [await deployer.getAddress()],
     deployer,
   ) as unknown as L2GraphToken
+}
+
+export async function deployL1Reservoir(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L1Reservoir> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L1Reservoir',
+    [controller, defaults.rewards.dripInterval],
+    deployer,
+  ) as unknown as L1Reservoir
+}
+
+export async function deployL2Reservoir(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2Reservoir> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L2Reservoir',
+    [controller],
+    deployer,
+  ) as unknown as L2Reservoir
 }

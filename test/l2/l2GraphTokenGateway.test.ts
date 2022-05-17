@@ -28,6 +28,7 @@ describe('L2GraphTokenGateway', () => {
   let mockL1GRT: Account
   let mockL1Gateway: Account
   let pauseGuardian: Account
+  let mockL1Reservoir: Account
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
@@ -59,6 +60,7 @@ describe('L2GraphTokenGateway', () => {
       mockL1Gateway,
       l2Receiver,
       pauseGuardian,
+      mockL1Reservoir,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
