@@ -33,6 +33,9 @@ contracts:
       - fn: "setContractProxy"
         id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
         contractAddress: "${{L1GraphTokenGateway.address}}"
+      - fn: "setContractProxy"
+        id: "0x96ba401694892957e25e29c7a1e4171ae9945b5ee36339de79b199a530436e9e" # keccak256('Reservoir')
+        contractAddress: "${{L1Reservoir.address}}"
   ServiceRegistry:
     proxy: true
     init:
@@ -47,7 +50,7 @@ contracts:
       initialSupply: "10000000000000000000000000000" # in wei
     calls:
       - fn: "addMinter"
-        minter: "${{RewardsManager.address}}"
+        minter: "${{L1Reservoir.address}}"
   Curation:
     proxy: true
     init:
@@ -109,9 +112,6 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-    calls:
-      - fn: "setIssuanceRate"
-        issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
@@ -128,3 +128,11 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+  L1Reservoir:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      dripInterval: 50400
+    calls:
+      - fn: "approveRewardsManager"
+      - fn: "initialSnapshot"

@@ -36,6 +36,7 @@ let allContracts = [
   'AllocationExchange',
   'L1GraphTokenGateway',
   'BridgeEscrow',
+  'L1Reservoir',
 ]
 
 const l2Contracts = [
@@ -55,6 +56,7 @@ const l2Contracts = [
   'DisputeManager',
   'AllocationExchange',
   'L2GraphTokenGateway',
+  'L2Reservoir',
 ]
 
 export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
