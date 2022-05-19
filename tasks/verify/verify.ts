@@ -1,7 +1,7 @@
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
 import { submitSourcesToSourcify } from './sourcify'
-import { getAddressBook } from '../../cli/address-book'
+import { AddressBook, getAddressBook } from '../../cli/address-book'
 import { cliOpts } from '../../cli/defaults'
 
 task('verify:sourcify', 'submit contract source code to sourcify (https://sourcify.dev)')
@@ -20,23 +20,41 @@ task('verify:sourcify', 'submit contract source code to sourcify (https://sourci
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .setAction(async (args, hre) => {
     const chainId = hre.network.config.chainId.toString()
-    const contractName = args.contractSource.split('/').pop().split('.').shift()
-    const addressBook = getAddressBook(args.addressBook, chainId)
-    const contract = addressBook.getEntry(contractName)
 
+    const contractName = getContractName(args.contractSource)
+    const contractAddress = getContractAddress(args.addressBook, contractName, chainId)
     const config = {
       endpoint: args.sourcifyEndpoint,
       contract: {
         source: args.contractSource,
         name: contractName,
-        address: contract.implementation.address,
+        address: contractAddress,
       },
     }
 
     console.log('## Verify contract with sourcify ##')
     console.log(`Network: ${hre.network.name}`)
     console.log(`Contract: ${contractName}`)
-    console.log(`Address: ${contract.implementation.address}`)
+    console.log(`Address: ${contractAddress}`)
 
     await submitSourcesToSourcify(hre, config)
   })
+
+const getContractName = (contractSource: string): string => {
+  return contractSource.split('/').pop().split('.').shift()
+}
+
+const getContractAddress = (addressBookPath: string, contractName: string, chainId: string) => {
+  const addressBook = getAddressBook(addressBookPath, chainId)
+  const contract = addressBook.getEntry(contractName)
+
+  if (contract === undefined) {
+    throw new Error(`Contract ${contractName} not found in address book.`)
+  }
+
+  if (contract.implementation?.address === undefined) {
+    throw new Error(`Contract ${contractName} has no implementation address.`)
+  }
+
+  return contract.implementation.address
+}

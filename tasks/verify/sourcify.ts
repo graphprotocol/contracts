@@ -31,7 +31,7 @@ export async function submitSourcesToSourcify(
     contractBuildInfo.output.contracts[contract.source][contract.name] as any
   ).metadata
 
-  if (!contractMetadata) {
+  if (contractMetadata === undefined) {
     throw new Error(
       `Contract ${contract.name} was deployed without saving metadata. Cannot submit to sourcify, skipping.`,
     )
