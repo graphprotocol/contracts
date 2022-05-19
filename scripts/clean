@@ -18,8 +18,6 @@ FLATTENED_FILES=(
     "$OUT_DIR/GraphToken.sol"
     "$OUT_DIR/EpochManager.sol"
     "$OUT_DIR/GraphProxy.sol"
-    "$OUT_DIR/GDAI.sol"
-    "$OUT_DIR/GSRManager.sol"
 )
 
 for path in ${FLATTENED_FILES[@]}; do

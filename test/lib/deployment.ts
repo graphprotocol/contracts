@@ -17,8 +17,6 @@ import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { Staking } from '../../build/types/Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
-import { GDAI } from '../../build/types/GDAI'
-import { GSRManager } from '../../build/types/GSRManager'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 import { SubgraphNFT } from '../../build/types/SubgraphNFT'
 
@@ -53,11 +51,6 @@ export const defaults = {
   },
   token: {
     initialSupply: toGRT('10000000000'), // 10 billion
-  },
-  gdai: {
-    // 5% annual inflation. r^n = 1.05, where n = 365*24*60*60. 18 decimal points.
-    savingsRate: toGRT('1.000000001547125958'),
-    initialSupply: toGRT('100000000'), // 100 M
   },
   rewards: {
     issuanceRate: toGRT('1.000000023206889619'), // 5% annual rate
@@ -96,19 +89,6 @@ export async function deployGRT(deployer: Signer): Promise<GraphToken> {
     deployer,
     defaults.token.initialSupply.toString(),
   ) as unknown as Promise<GraphToken>
-}
-
-export async function deployGDAI(deployer: Signer): Promise<GDAI> {
-  return deployContract('GDAI', deployer) as unknown as Promise<GDAI>
-}
-
-export async function deployGSR(deployer: Signer, gdaiAddress: string): Promise<GSRManager> {
-  return deployContract(
-    'GSRManager',
-    deployer,
-    defaults.gdai.savingsRate.toString(),
-    gdaiAddress,
-  ) as unknown as Promise<GSRManager>
 }
 
 export async function deployCuration(

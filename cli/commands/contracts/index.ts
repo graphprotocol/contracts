@@ -3,10 +3,8 @@ import yargs, { Argv } from 'yargs'
 import { curationCommand } from './curation'
 import { serviceRegistryCommand } from './serviceRegistry'
 import { ensCommand } from './ens'
-import { ethereumDIDRegistryCommand } from './ethereumDIDRegistry'
 import { gnsCommand } from './gns'
 import { graphTokenCommand } from './graphToken'
-import { gdaiCommand } from './gsr-gdai'
 import { stakingCommand } from './staking'
 import { anyCommand } from './any'
 import { governanceCommand } from './governance'
@@ -21,10 +19,8 @@ export const contractsCommand = {
       .command(curationCommand)
       .command(serviceRegistryCommand)
       .command(ensCommand)
-      .command(ethereumDIDRegistryCommand)
       .command(gnsCommand)
       .command(graphTokenCommand)
-      .command(gdaiCommand)
       .command(stakingCommand)
       .command(anyCommand)
       .command(disputeManagerCommand)
