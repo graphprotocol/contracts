@@ -5,11 +5,9 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Readable } from 'stream'
 import { getFullyQualifiedName } from 'hardhat/utils/contract-names'
 
-// Modified from: https://github.com/wighawag/hardhat-deploy/blob/9c8cd433a37188e793181b727222e2d22aef34b0/src/sourcify.ts
-function ensureTrailingSlash(s: string): string {
-  return s.endsWith('/') ? s : `${s}/`
-}
-
+// Inspired by:
+// - https://github.com/wighawag/hardhat-deploy/blob/9c8cd433a37188e793181b727222e2d22aef34b0/src/sourcify.ts
+// - https://github.com/zoey-t/hardhat-sourcify/blob/26f10a08eb6cf97700c78989bf42b009c9cb3275/src/sourcify.ts
 export async function submitSourcesToSourcify(
   hre: HardhatRuntimeEnvironment,
   config: {
@@ -33,7 +31,6 @@ export async function submitSourcesToSourcify(
     contractBuildInfo.output.contracts[contract.source][contract.name] as any
   ).metadata
 
-  // const contractMetadata = JSON.stringify(contractBuildInfo)
   if (!contractMetadata) {
     throw new Error(
       `Contract ${contract.name} was deployed without saving metadata. Cannot submit to sourcify, skipping.`,
@@ -71,12 +68,19 @@ export async function submitSourcesToSourcify(
     const submissionResponse = await axios.post(sourcifyUrl, formData, {
       headers: formData.getHeaders(),
     })
-    if (submissionResponse.data.result[0].status === 'perfect') {
+    const { status } = submissionResponse.data.result[0]
+    if (status === 'perfect') {
       console.log(` => contract ${contract.name} is now verified`)
+    } else if (status === 'partial') {
+      console.log(` => contract ${contract.name} is partially verified`)
     } else {
       console.error(` => contract ${contract.name} is not verified`)
     }
   } catch (e) {
     console.error(((e as any).response && JSON.stringify((e as any).response.data)) || e)
   }
+}
+
+function ensureTrailingSlash(s: string): string {
+  return s.endsWith('/') ? s : `${s}/`
 }
