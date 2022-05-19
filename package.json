@@ -48,6 +48,7 @@
     "eslint-plugin-no-only-tests": "^2.4.0",
     "eslint-plugin-prettier": "^3.4.0",
     "ethereum-waffle": "^3.3.0",
+    "form-data": "^4.0.0",
     "graphql-tag": "^2.12.4",
     "hardhat": "^2.9.5",
     "hardhat-abi-exporter": "^2.2.0",
