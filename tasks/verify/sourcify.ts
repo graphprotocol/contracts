@@ -3,38 +3,33 @@ import axios from 'axios'
 import FormData from 'form-data'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Readable } from 'stream'
-import { getFullyQualifiedName } from 'hardhat/utils/contract-names'
 
 // Inspired by:
 // - https://github.com/wighawag/hardhat-deploy/blob/9c8cd433a37188e793181b727222e2d22aef34b0/src/sourcify.ts
 // - https://github.com/zoey-t/hardhat-sourcify/blob/26f10a08eb6cf97700c78989bf42b009c9cb3275/src/sourcify.ts
 export async function submitSourcesToSourcify(
   hre: HardhatRuntimeEnvironment,
-  config: {
-    endpoint: string
-    contract: {
-      source: string
-      name: string
-      address: string
-    }
-    writeFailingMetadata?: boolean
+  contract: {
+    source: string
+    name: string
+    address: string
+    fqn: string
   },
 ): Promise<void> {
-  const { contract } = config
   const chainId = hre.network.config.chainId
-  const sourcifyUrl = ensureTrailingSlash(config.endpoint)
+  const sourcifyUrl = 'https://sourcify.dev/server/'
 
   // Get contract metadata
-  const contractFQN = getFullyQualifiedName(contract.source, contract.name)
-  const contractBuildInfo = await hre.artifacts.getBuildInfo(contractFQN)
+  const contractBuildInfo = await hre.artifacts.getBuildInfo(contract.fqn)
   const contractMetadata = (
     contractBuildInfo.output.contracts[contract.source][contract.name] as any
   ).metadata
 
   if (contractMetadata === undefined) {
-    throw new Error(
+    console.error(
       `Contract ${contract.name} was deployed without saving metadata. Cannot submit to sourcify, skipping.`,
     )
+    return
   }
 
   // Check if contract already verified
@@ -79,8 +74,4 @@ export async function submitSourcesToSourcify(
   } catch (e) {
     console.error(((e as any).response && JSON.stringify((e as any).response.data)) || e)
   }
-}
-
-function ensureTrailingSlash(s: string): string {
-  return s.endsWith('/') ? s : `${s}/`
 }
