@@ -59,6 +59,12 @@
       "runtimeCodeHash": "0xb964f76194a04272e7582382a4d6bd6271bbb90deb5c1fd3ae3913504ea3a830",
       "txHash": "0x079625b9f58a40f1948b396b7007d09ff4aa193d7ec798923910fc179294cab8"
     },
+    "GraphCurationToken": {
+      "address": "0xb2e26f17aea8efa534e15bde5c79c25d0c3dfa2e",
+      "creationCodeHash": "",
+      "runtimeCodeHash": "",
+      "txHash": "0x68eb11f4d6eaec5036c97b4c6102a509ac31933f1fe011f275b3e5fee30b6590"
+    },
     "ServiceRegistry": {
       "address": "0xaD0C9DaCf1e515615b0581c8D7E295E296Ec26E6",
       "initArgs": [
@@ -338,6 +344,12 @@
       "creationCodeHash": "0x30da7a30d71fbd41d3327e4d0183401f257af3e905a0c68ebfd18b590b27b530",
       "runtimeCodeHash": "0xb964f76194a04272e7582382a4d6bd6271bbb90deb5c1fd3ae3913504ea3a830",
       "txHash": "0xfd3da9962b88397134b71259287bb056b60cdd092f91c114dcd7c794e6237c78"
+    },
+    "GraphCurationToken": {
+      "address": "",
+      "creationCodeHash": "",
+      "runtimeCodeHash": "",
+      "txHash": ""
     },
     "ServiceRegistry": {
       "address": "0xB2cD4D1205A55303ef0DeC2e4EfB5338f9c182bc",
