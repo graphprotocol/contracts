@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.4;
 
 /// @title Base58Encoder
 /// @author Original author - Martin Lundfall (martin.lundfall@gmail.com)

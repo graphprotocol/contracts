@@ -1,4 +1,4 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.4;
 
 // Needed for abi and typechain in the npm package
 interface IENS {

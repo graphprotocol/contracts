@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 

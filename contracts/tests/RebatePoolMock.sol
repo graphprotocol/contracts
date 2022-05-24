@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.7.4;
+pragma experimental ABIEncoderV2;
 
 import "../staking/libs/Rebates.sol";
 import "../staking/libs/Cobbs.sol";

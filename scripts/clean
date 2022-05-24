@@ -25,6 +25,6 @@ for path in ${FLATTENED_FILES[@]}; do
     sed -i \
         -e "s|pragma solidity.*||g" \
         -e "s|// SPDX-License-Identifier:.*||g" \
-        -e 's|pragma abicoder v2;|//pragma abicoder v2;|g' \
-        -e '1s|^|pragma abicoder v2;\n|' $path
+        -e 's|pragma experimental ABIEncoderV2;|//pragma experimental ABIEncoderV2;|g' \
+        -e '1s|^|pragma experimental ABIEncoderV2;\n|' $path
 done
