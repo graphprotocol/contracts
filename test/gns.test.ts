@@ -1067,5 +1067,22 @@ describe('GNS', () => {
       const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
       expect('ipfs://' + subgraph0.id).eq(tokenURI)
     })
+
+    it('without token descriptor and metadata with leading zeros', async function () {
+      const newSubgraph = buildSubgraph()
+      newSubgraph.subgraphMetadata = `0x00${newSubgraph.subgraphMetadata.slice(4)}`
+
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph)
+
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      await subgraphNFT.connect(governor.signer).setTokenDescriptor(AddressZero)
+      await subgraphNFT.connect(governor.signer).setBaseURI('ipfs://')
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
+
+      const sub = new SubgraphDeploymentID(newSubgraph.subgraphMetadata)
+
+      expect('ipfs://' + sub.bytes32).eq(tokenURI)
+    })
   })
 })
