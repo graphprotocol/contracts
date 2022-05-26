@@ -28,7 +28,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('./tasks/gre.ts')
-  ;['contracts', 'misc', 'deployment', 'actions'].forEach((folder) => {
+  ;['contracts', 'misc', 'deployment', 'actions', 'verify'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
@@ -102,6 +102,9 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 200,
+          },
+          metadata: {
+            useLiteralContent: true,
           },
           outputSelection: {
             '*': {
