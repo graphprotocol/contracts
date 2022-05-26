@@ -14,6 +14,11 @@ interface Contract {
   initParams: ContractInitParam[]
 }
 
+interface GeneralParam {
+  contract: string // contract where the param is defined
+  name: string // name of the parameter
+}
+
 interface ContractInitParam {
   name: string // as declared in config.yml
   type: 'number' | 'BigNumber' // as returned by the contract
@@ -27,13 +32,6 @@ const epochManager: Contract = {
     { name: 'lengthInBlocks', type: 'BigNumber', getter: 'epochLength', format: 'number' },
   ],
 }
-
-// GraphToken
-// TODO > 'initialSupply' not on chain
-// const graphToken: Contract = {
-//   name: 'GraphToken',
-//   initParams: [],
-// }
 
 const curation: Contract = {
   name: 'Curation',
@@ -77,6 +75,21 @@ const rewardsManager: Contract = {
 
 const contractList: Contract[] = [epochManager, curation, disputeManager, staking, rewardsManager]
 
+const generalParams: GeneralParam[] = [
+  {
+    contract: 'DisputeManager',
+    name: 'arbitrator',
+  },
+  {
+    contract: 'Controller',
+    name: 'governor',
+  },
+  {
+    contract: 'AllocationExchange',
+    name: 'authority',
+  },
+]
+
 task('update-config', 'Update graph config parameters with onchain data')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
@@ -108,6 +121,13 @@ task('update-config', 'Update graph config parameters with onchain data')
 
     const graphConfig = readConfig(configFile, true)
 
+    // general parameters
+    console.log(`> General`)
+    for (const param of generalParams) {
+      await updateGeneralParams(hre, param, graphConfig)
+    }
+
+    // contracts parameters
     for (const contract of contractList) {
       console.log(`> ${contract.name}`)
       await updateContractParams(hre, contract, graphConfig)
@@ -120,6 +140,18 @@ task('update-config', 'Update graph config parameters with onchain data')
       writeConfig(configFile, graphConfig.toString())
     }
   })
+
+const updateGeneralParams = async (
+  hre: HardhatRuntimeEnvironment,
+  param: GeneralParam,
+  config: YAML.Document.Parsed,
+) => {
+  const value = await hre.contracts[param.contract][param.name]()
+  const updated = updateItem(config, `general/${param.name}`, value)
+  if (updated) {
+    console.log(`\t- Updated ${param.name} to ${value}`)
+  }
+}
 
 const updateContractParams = async (
   hre: HardhatRuntimeEnvironment,

@@ -18,6 +18,7 @@ import { BancorFormula } from '../build/types/BancorFormula'
 import { IENS } from '../build/types/IENS'
 import { IEthereumDIDRegistry } from '../build/types/IEthereumDIDRegistry'
 import { GraphGovernance } from '../build/types/GraphGovernance'
+import { AllocationExchange } from '../build/types/AllocationExchange'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -34,6 +35,7 @@ export interface NetworkContracts {
   IENS: IENS
   IEthereumDIDRegistry: IEthereumDIDRegistry
   GraphGovernance: GraphGovernance
+  AllocationExchange: AllocationExchange
 }
 
 export const loadContracts = (

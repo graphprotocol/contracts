@@ -1,7 +1,7 @@
 general:
-  arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3" # Arbitration Council
-  governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
-  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+  arbitrator: &arbitrator "0x87D11BD744b882b7bc5A6b5450cbA8C35D90eb10" # Arbitration Council
+  governor: &governor "0x1679A1D1caf1252BA43Fb8Fc17ebF914a0C725AE" # Graph Council
+  authority: &authority "0xe1EC4339019eC9628438F8755f847e3023e4ff9c" # Authority that signs payment vouchers
 
 contracts:
   Controller:
