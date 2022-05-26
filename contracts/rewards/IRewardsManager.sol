@@ -13,9 +13,11 @@ interface IRewardsManager {
         uint256 accRewardsPerAllocatedToken;
     }
 
-    // -- Params --
+    // -- Config --
 
     function setIssuanceRate(uint256 _issuanceRate) external;
+
+    function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
 
     // -- Denylist --
 

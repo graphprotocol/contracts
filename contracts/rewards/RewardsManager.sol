@@ -17,8 +17,17 @@ import "./IRewardsManager.sol";
  * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
  * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
  * that Subgraph.
+ *
+ * Note:
+ * The contract provides getter functions to query the state of accrued rewards:
+ * - getAccRewardsPerSignal
+ * - getAccRewardsForSubgraph
+ * - getAccRewardsPerAllocatedToken
+ * - getRewards
+ * These functions may overestimate the actual rewards due to changes in the total supply
+ * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV2Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DECIMALS = 1e18;
@@ -66,6 +75,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         _setIssuanceRate(_issuanceRate);
     }
 
+    // -- Config --
+
     /**
      * @dev Sets the issuance rate.
      * The issuance rate is defined as a percentage increase of the total supply per block.
@@ -104,6 +115,24 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
         subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
         emit ParameterUpdated("subgraphAvailabilityOracle");
     }
+
+    /**
+     * @dev Sets the minimum signaled tokens on a subgraph to start accruing rewards.
+     * @dev Can be set to zero which means that this feature is not being used.
+     * @param _minimumSubgraphSignal Minimum signaled tokens
+     */
+    function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
+        // Caller can be the SAO or the governor
+        require(
+            msg.sender == address(subgraphAvailabilityOracle) ||
+                msg.sender == controller.getGovernor(),
+            "Not authorized"
+        );
+        minimumSubgraphSignal = _minimumSubgraphSignal;
+        emit ParameterUpdated("minimumSubgraphSignal");
+    }
+
+    // -- Denylist --
 
     /**
      * @dev Denies to claim rewards for a subgraph.
@@ -150,10 +179,13 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Tells if subgraph is in deny list
      * @param _subgraphDeploymentID Subgraph deployment ID to check
+     * @return Whether the subgraph is denied for claiming rewards or not
      */
     function isDenied(bytes32 _subgraphDeploymentID) public view override returns (bool) {
         return denylist[_subgraphDeploymentID] > 0;
     }
+
+    // -- Getters --
 
     /**
      * @dev Gets the issuance of rewards per signal since last updated.
@@ -205,6 +237,7 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Gets the currently accumulated rewards per signal.
+     * @return Currently accumulated rewards per signal
      */
     function getAccRewardsPerSignal() public view override returns (uint256) {
         return accRewardsPerSignal.add(getNewRewardsPerSignal());
@@ -223,11 +256,16 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
     {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
-        uint256 newRewardsPerSignal = getAccRewardsPerSignal().sub(
-            subgraph.accRewardsPerSignalSnapshot
-        );
+        // Get tokens signalled on the subgraph
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
-        uint256 newRewards = newRewardsPerSignal.mul(subgraphSignalledTokens).div(TOKEN_DECIMALS);
+
+        // Only accrue rewards if over a threshold
+        uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
+            ? getAccRewardsPerSignal()
+                .sub(subgraph.accRewardsPerSignalSnapshot)
+                .mul(subgraphSignalledTokens)
+                .div(TOKEN_DECIMALS)
+            : 0;
         return subgraph.accRewardsForSubgraph.add(newRewards);
     }
 
@@ -265,6 +303,8 @@ contract RewardsManager is RewardsManagerV1Storage, GraphUpgradeable, IRewardsMa
             accRewardsForSubgraph
         );
     }
+
+    // -- Updates --
 
     /**
      * @dev Updates the accumulated rewards per signal and save checkpoint block number.
