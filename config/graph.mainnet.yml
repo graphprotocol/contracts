@@ -1,7 +1,7 @@
 general:
   arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3" # Arbitration Council
   governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
-  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+  authority: &authority "0x982D10c56b8BBbD6e09048F5c5f01b43C65D5aE0" # Authority that signs payment vouchers
 
 contracts:
   Controller:
@@ -35,10 +35,10 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 1108 # 4 hours (in 13 second blocks)
+      lengthInBlocks: 6646 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
   GraphToken:
     init:
-      initialSupply: "10000000000000000000000000000" # 10,000,000,000 GRT
+      initialSupply: "10000000000000000000000000000" # in wei
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
@@ -48,18 +48,18 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
-      reserveRatio: 500000 # 50% (parts per million)
-      curationTaxPercentage: 10000 # 1% (parts per million)
-      minimumCurationDeposit: "1000000000000000000" # 1 GRT
+      reserveRatio: 500000 # in parts per million
+      curationTaxPercentage: 10000 # in parts per million
+      minimumCurationDeposit: "1000000000000000000" # in wei
   DisputeManager:
     proxy: true
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "10000000000000000000000" # 10,000 GRT (in wei)
-      fishermanRewardPercentage: 500000 # 50% (parts per million)
-      idxSlashingPercentage: 25000 # 2.5% (parts per million)
-      qrySlashingPercentage: 5000 # 0.5% (parts per million)
+      minimumDeposit: "10000000000000000000000" # in wei
+      fishermanRewardPercentage: 500000 # in parts per million
+      idxSlashingPercentage: 25000 # in parts per million
+      qrySlashingPercentage: 25000 # in parts per million
   GNS:
     proxy: true
     init:
@@ -80,19 +80,19 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
-      thawingPeriod: 6646 # 10 days (in blocks)
-      protocolPercentage: 10000 # 1% (parts per million)
-      curationPercentage: 100000 # 10% (parts per million)
-      channelDisputeEpochs: 2 # (in epochs)
-      maxAllocationEpochs: 6 # Based on epoch length this is 28 days (in epochs)
-      delegationUnbondingPeriod: 6 # Based on epoch length this is 28 days (in epochs)
-      delegationRatio: 16 # 16x (delegated stake to indexer stake multiplier)
+      minimumIndexerStake: "100000000000000000000000" # in wei
+      thawingPeriod: 186092 # in blocks
+      protocolPercentage: 10000 # in parts per million
+      curationPercentage: 100000 # in parts per million
+      channelDisputeEpochs: 7 # in epochs
+      maxAllocationEpochs: 28 # in epochs
+      delegationUnbondingPeriod: 28 # in epochs
+      delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
     calls:
       - fn: "setDelegationTaxPercentage"
-        delegationTaxPercentage: 5000 # 0.5% (parts per million)
+        delegationTaxPercentage: 5000 # parts per million
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
@@ -103,7 +103,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      issuanceRate: "1000000012184945188" # 3% annual rate (per block increase of total supply, blocks in a year = 365*60*60*24/13)
+      issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
