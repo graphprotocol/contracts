@@ -42,6 +42,7 @@ describe('Rewards', () => {
   let indexer1: Account
   let indexer2: Account
   let oracle: Account
+  let keeper: Account
 
   let fixture: NetworkFixture
 
@@ -107,7 +108,8 @@ describe('Rewards', () => {
   }
 
   before(async function () {
-    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle] = await getAccounts()
+    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle, keeper] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, curation, epochManager, staking, rewardsManager, l1Reservoir } = await fixture.load(
@@ -299,7 +301,7 @@ describe('Rewards', () => {
     beforeEach(async function () {
       // 5% minute rate (4 blocks)
       await l1Reservoir.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
-      await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
+      await l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
       dripBlock = await latestBlock()
     })
 

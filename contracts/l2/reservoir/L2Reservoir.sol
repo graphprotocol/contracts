@@ -16,7 +16,7 @@ import "./L2ReservoirStorage.sol";
  * It receives tokens for rewards from L1, and provides functions to compute accumulated and new
  * total rewards at a particular block number.
  */
-contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
+contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
     using SafeMath for uint256;
 
     event DripReceived(uint256 _issuanceBase);
@@ -88,14 +88,20 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
      * Note that the transaction might revert if it's received out-of-order,
      * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
      * again once the ticket for previous drip has been redeemed.
+     * A keeper reward will be sent to the keeper that dripped on L1, and part of it
+     * to whoever redeemed the current retryable ticket (tx.origin)
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
+     * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed  the retryable tx
+     * @param _l1Keeper Address of the keeper that called drip in L1
      */
     function receiveDrip(
         uint256 _issuanceBase,
         uint256 _issuanceRate,
-        uint256 _nonce
+        uint256 _nonce,
+        uint256 _keeperReward,
+        address _l1Keeper
     ) external override onlyL2Gateway {
         require(_nonce == nextDripNonce, "INVALID_NONCE");
         nextDripNonce = nextDripNonce.add(1);
@@ -108,6 +114,11 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
             snapshotAccumulatedRewards();
         }
         issuanceBase = _issuanceBase;
+        uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(TOKEN_DECIMALS);
+        IGraphToken grt = graphToken();
+        // solhint-disable-next-line avoid-tx-origin
+        grt.transfer(tx.origin, _l2KeeperReward);
+        grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
         emit DripReceived(issuanceBase);
     }
 

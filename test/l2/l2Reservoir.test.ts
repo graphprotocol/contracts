@@ -160,7 +160,13 @@ describe('L2Reservoir', () => {
     it('rejects the call when not called by the gateway', async function () {
       const tx = l2Reservoir
         .connect(governor.signer)
-        .receiveDrip(dripNormalizedSupply, dripIssuanceRate, toBN('0'))
+        .receiveDrip(
+          dripNormalizedSupply,
+          dripIssuanceRate,
+          toBN('0'),
+          toBN('0'),
+          testAccount1.address,
+        )
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects the call when received out of order', async function () {
@@ -169,6 +175,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         dripIssuanceRate,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -181,6 +189,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply.add(1),
         dripIssuanceRate.add(1),
         toBN('2'),
+        toBN('0'),
+        testAccount1.address,
       )
       const tx2 = gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -192,6 +202,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         dripIssuanceRate,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -205,6 +217,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         dripIssuanceRate,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -216,6 +230,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply.add(1),
         dripIssuanceRate.add(1),
         toBN('1'),
+        toBN('0'),
+        testAccount1.address,
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -230,6 +246,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         dripIssuanceRate,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -241,6 +259,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply.add(1),
         dripIssuanceRate,
         toBN('1'),
+        toBN('0'),
+        testAccount1.address,
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -255,6 +275,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         dripIssuanceRate,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -267,6 +289,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply.add(1),
         dripIssuanceRate,
         toBN('2'),
+        toBN('0'),
+        testAccount1.address,
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
@@ -285,6 +309,8 @@ describe('L2Reservoir', () => {
         dripNormalizedSupply,
         ISSUANCE_RATE_PER_BLOCK,
         toBN('0'),
+        toBN('0'),
+        testAccount1.address,
       )
       await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()

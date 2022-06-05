@@ -35,7 +35,7 @@ const l2ReservoirAbi = artifacts.readArtifactSync('L2Reservoir').abi
 const l2ReservoirIface = new Interface(l2ReservoirAbi)
 
 const { AddressZero } = constants
-const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
+const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
 
 const maxGas = toBN('1000000')
 const maxSubmissionCost = toBN('7')
@@ -49,6 +49,7 @@ describe('L1Reservoir', () => {
   let mockL2GRT: Account
   let mockL2Gateway: Account
   let mockL2Reservoir: Account
+  let keeper: Account
   let fixture: NetworkFixture
 
   let grt: GraphToken
@@ -120,7 +121,9 @@ describe('L1Reservoir', () => {
     expect(await tracker.accRewards(dripBlock)).to.eq(0)
     let expectedNextDeadline = dripBlock.add(dripInterval)
     let expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
-    const tx1 = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
+    const tx1 = await l1Reservoir
+      .connect(keeper.signer)
+      .drip(toBN(0), toBN(0), toBN(0), keeper.address)
     const actualAmount = await grt.balanceOf(l1Reservoir.address)
     expect(await latestBlock()).eq(dripBlock)
     expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount))
@@ -133,7 +136,9 @@ describe('L1Reservoir', () => {
 
     await advanceBlocks(blocksToAdvance)
 
-    const tx2 = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
+    const tx2 = await l1Reservoir
+      .connect(keeper.signer)
+      .drip(toBN(0), toBN(0), toBN(0), keeper.address)
     const newAmount = (await grt.balanceOf(l1Reservoir.address)).sub(actualAmount)
     expectedNextDeadline = (await latestBlock()).add(dripInterval)
     const expectedSnapshottedSupply = supplyBeforeDrip.add(await tracker.accRewards())
@@ -147,7 +152,7 @@ describe('L1Reservoir', () => {
   }
 
   before(async function () {
-    ;[governor, testAccount1, mockRouter, mockL2GRT, mockL2Gateway, mockL2Reservoir] =
+    ;[governor, testAccount1, mockRouter, mockL2GRT, mockL2Gateway, mockL2Reservoir, keeper] =
       await getAccounts()
 
     fixture = new NetworkFixture()
@@ -248,7 +253,7 @@ describe('L1Reservoir', () => {
         await expect(tx).emit(l1Reservoir, 'IssuanceRateStaged').withArgs(newIssuanceRate)
         expect(await l1Reservoir.issuanceRate()).eq(0)
         expect(await l1Reservoir.nextIssuanceRate()).eq(newIssuanceRate)
-        tx = l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
+        tx = l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
         await expect(tx).emit(l1Reservoir, 'IssuanceRateUpdated').withArgs(newIssuanceRate)
         expect(await l1Reservoir.issuanceRate()).eq(newIssuanceRate)
       })
@@ -313,10 +318,23 @@ describe('L1Reservoir', () => {
         await expect(tx).emit(l1Reservoir, 'L2RewardsFractionStaged').withArgs(newValue)
         expect(await l1Reservoir.nextL2RewardsFraction()).eq(newValue)
         tx = l1Reservoir
-          .connect(governor.signer)
-          .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+          .connect(keeper.signer)
+          .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
         await expect(tx).emit(l1Reservoir, 'L2RewardsFractionUpdated').withArgs(newValue)
         expect(await l1Reservoir.l2RewardsFraction()).eq(newValue)
+      })
+    })
+    describe('minimum drip interval update', function () {
+      it('rejects setting minimum drip interval if unauthorized', async function () {
+        const tx = l1Reservoir.connect(testAccount1.signer).setMinDripInterval(toBN('200'))
+        await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+
+      it('sets the minimum drip interval', async function () {
+        const newValue = toBN('200')
+        const tx = l1Reservoir.connect(governor.signer).setMinDripInterval(newValue)
+        await expect(tx).emit(l1Reservoir, 'MinDripIntervalUpdated').withArgs(newValue)
+        expect(await l1Reservoir.minDripInterval()).eq(newValue)
       })
     })
   })
@@ -337,7 +355,9 @@ describe('L1Reservoir', () => {
       expect(await tracker.accRewards(dripBlock)).to.eq(0)
       const expectedNextDeadline = dripBlock.add(defaults.rewards.dripInterval)
       const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
-      const tx = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
+      const tx = await l1Reservoir
+        .connect(keeper.signer)
+        .drip(toBN(0), toBN(0), toBN(0), keeper.address)
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount))
       expect(await l1Reservoir.issuanceBase()).to.eq(supplyBeforeDrip)
@@ -345,7 +365,7 @@ describe('L1Reservoir', () => {
         .emit(l1Reservoir, 'RewardsDripped')
         .withArgs(actualAmount, toBN(0), expectedNextDeadline)
     })
-    it('has no effect if called a second time in the same block', async function () {
+    it('cannot be called more than once per minDripInterval', async function () {
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)
@@ -358,14 +378,16 @@ describe('L1Reservoir', () => {
       expect(await tracker.accRewards(dripBlock)).to.eq(0)
       const expectedNextDeadline = dripBlock.add(defaults.rewards.dripInterval)
       const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
-      await provider().send('evm_setAutomine', [false])
-      const tx1 = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
-      const tx2 = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
-      await provider().send('evm_mine', [])
-      await provider().send('evm_setAutomine', [true])
+
+      const tx1 = await l1Reservoir
+        .connect(keeper.signer)
+        .drip(toBN(0), toBN(0), toBN(0), keeper.address)
+
+      const minInterval = toBN('200')
+      await l1Reservoir.connect(governor.signer).setMinDripInterval(minInterval)
 
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
-      expect(await latestBlock()).eq(dripBlock) // Just in case disabling automine stops working
+
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount))
       await expect(tx1)
         .emit(l1Reservoir, 'RewardsDripped')
@@ -373,15 +395,24 @@ describe('L1Reservoir', () => {
       await expect(tx1)
         .emit(grt, 'Transfer')
         .withArgs(AddressZero, l1Reservoir.address, actualAmount)
-      await expect(tx2)
-        .emit(l1Reservoir, 'RewardsDripped')
-        .withArgs(toBN(0), toBN(0), expectedNextDeadline)
-      await expect(tx2).not.emit(grt, 'Transfer')
+
+      const tx2 = l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
+      await expect(tx2).revertedWith('WAIT_FOR_MIN_INTERVAL')
+
+      // We've had 1 block since the last drip so far, so we jump to one block before the interval is done
+      await advanceBlocks(minInterval.sub(2))
+      const tx3 = l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
+      await expect(tx3).revertedWith('WAIT_FOR_MIN_INTERVAL')
+
+      await advanceBlocks(1)
+      // Now we're over the interval so we can drip again
+      const tx4 = l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
+      await expect(tx4).emit(l1Reservoir, 'RewardsDripped')
     })
     it('prevents locking eth in the contract if l2RewardsFraction is 0', async function () {
       const tx = l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       await expect(tx).revertedWith('No eth value needed')
     })
     it('mints only a few more tokens if called on the next block', async function () {
@@ -413,8 +444,8 @@ describe('L1Reservoir', () => {
       const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
       const expectedSentToL2 = expectedMintedAmount.div(2)
       const tx = await l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
       const escrowedAmount = await grt.balanceOf(bridgeEscrow.address)
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount.sub(expectedSentToL2)))
@@ -434,6 +465,69 @@ describe('L1Reservoir', () => {
         l2IssuanceBase,
         issuanceRate,
         toBN('0'),
+        toBN('0'),
+        keeper.address,
+      ])
+      const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+        grt.address,
+        l1Reservoir.address,
+        mockL2Reservoir.address,
+        escrowedAmount,
+        expectedCallhookData,
+      )
+      await expect(tx)
+        .emit(l1GraphTokenGateway, 'TxToL2')
+        .withArgs(l1Reservoir.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+    })
+    it('sends the specified fraction of the rewards with a keeper reward to L2', async function () {
+      await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0.5'))
+      await l1Reservoir.connect(governor.signer).setDripRewardPerBlock(toGRT('3'))
+      await l1Reservoir.connect(governor.signer).setMinDripInterval(toBN('2'))
+      // lastRewardsUpdateBlock is set to block.number with initialSnapshot
+      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
+      await advanceBlocks(toBN('4'))
+
+      // now we're at lastRewardsUpdateBlock + minDripInterval + 3, so keeper reward should be:
+      // dripRewardPerBlock * 3
+      supplyBeforeDrip = await grt.totalSupply()
+      const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
+      expect(startAccrued).to.eq(0)
+      const dripBlock = (await latestBlock()).add(1) // We're gonna drip in the next transaction
+      const tracker = await RewardsTracker.create(
+        supplyBeforeDrip,
+        defaults.rewards.issuanceRate,
+        dripBlock,
+      )
+      expect(await tracker.accRewards(dripBlock)).to.eq(0)
+      const expectedNextDeadline = dripBlock.add(defaults.rewards.dripInterval)
+      const expectedMintedRewards = await tracker.accRewards(expectedNextDeadline)
+      const expectedMintedAmount = expectedMintedRewards.add(toGRT('9'))
+      const expectedSentToL2 = expectedMintedRewards.div(2)
+      const tx = await l1Reservoir
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
+      const actualAmount = await grt.balanceOf(l1Reservoir.address)
+      const escrowedAmount = await grt.balanceOf(bridgeEscrow.address)
+
+      expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount.sub(expectedSentToL2)))
+      expect(toRound((await grt.totalSupply()).sub(supplyBeforeDrip))).to.eq(
+        toRound(expectedMintedAmount),
+      )
+      expect(toRound(escrowedAmount)).to.eq(toRound(expectedSentToL2))
+      await expect(tx)
+        .emit(l1Reservoir, 'RewardsDripped')
+        .withArgs(actualAmount.add(escrowedAmount), escrowedAmount, expectedNextDeadline)
+
+      const normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+        .mul(await l1Reservoir.l2RewardsFraction())
+        .div(toGRT('1'))
+      const issuanceRate = await l1Reservoir.issuanceRate()
+      const expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
+        normalizedTokenSupply,
+        issuanceRate,
+        toBN('0'),
+        toGRT('9'), // keeper reward
+        keeper.address,
       ])
       const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
@@ -462,8 +556,8 @@ describe('L1Reservoir', () => {
       const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
       const expectedSentToL2 = expectedMintedAmount.div(2)
       const tx = await l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
       const escrowedAmount = await grt.balanceOf(bridgeEscrow.address)
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount.sub(expectedSentToL2)))
@@ -483,6 +577,8 @@ describe('L1Reservoir', () => {
         l2IssuanceBase,
         issuanceRate,
         toBN('0'),
+        toBN('0'),
+        keeper.address,
       ])
       let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
@@ -511,8 +607,8 @@ describe('L1Reservoir', () => {
         .add(expectedTotalRewards.sub(rewardsUntilSecondDripBlock).mul(8).div(10))
 
       const tx2 = await l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       const newActualAmount = await grt.balanceOf(l1Reservoir.address)
       const newEscrowedAmount = await grt.balanceOf(bridgeEscrow.address)
       expect(toRound(newActualAmount)).to.eq(
@@ -529,6 +625,8 @@ describe('L1Reservoir', () => {
         l2IssuanceBase,
         issuanceRate,
         toBN('1'), // Incremented nonce
+        toBN('0'),
+        keeper.address,
       ])
       expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
@@ -564,8 +662,8 @@ describe('L1Reservoir', () => {
       const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
       const expectedSentToL2 = expectedMintedAmount.div(2)
       const tx = await l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
       const escrowedAmount = await grt.balanceOf(bridgeEscrow.address)
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount.sub(expectedSentToL2)))
@@ -585,6 +683,8 @@ describe('L1Reservoir', () => {
         l2IssuanceBase,
         issuanceRate,
         toBN('0'),
+        toBN('0'),
+        keeper.address,
       ])
       let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
@@ -610,8 +710,8 @@ describe('L1Reservoir', () => {
       const expectedNewTotalSentToL2 = expectedTotalRewards.div(2)
 
       const tx2 = await l1Reservoir
-        .connect(governor.signer)
-        .drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        .connect(keeper.signer)
+        .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
       const newActualAmount = await grt.balanceOf(l1Reservoir.address)
       const newEscrowedAmount = await grt.balanceOf(bridgeEscrow.address)
       expect(toRound(newActualAmount)).to.eq(
@@ -628,6 +728,8 @@ describe('L1Reservoir', () => {
         l2IssuanceBase,
         issuanceRate,
         toBN('1'), // Incremented nonce
+        toBN('0'),
+        keeper.address,
       ])
       expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
@@ -654,7 +756,7 @@ describe('L1Reservoir', () => {
       // 5% minute rate (4 blocks)
       await l1Reservoir.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
       supplyBeforeDrip = await grt.totalSupply()
-      await l1Reservoir.drip(toBN(0), toBN(0), toBN(0))
+      await l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
       dripBlock = await latestBlock()
     })
 
@@ -724,7 +826,9 @@ describe('L1Reservoir', () => {
       it('computes the rewards delta considering the L2 rewards fraction', async function () {
         const lambda = toGRT('0.32')
         await l1Reservoir.connect(governor.signer).setL2RewardsFraction(lambda)
-        await l1Reservoir.drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
+        await l1Reservoir
+          .connect(keeper.signer)
+          .drip(maxGas, gasPriceBid, maxSubmissionCost, keeper.address, { value: defaultEthValue })
         supplyBeforeDrip = await l1Reservoir.issuanceBase() // Has been updated accordingly
         dripBlock = await latestBlock()
         await advanceBlocks(20)
