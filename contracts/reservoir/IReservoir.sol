@@ -56,3 +56,29 @@ interface IL2Reservoir is IReservoir {
         uint256 _nonce
     ) external;
 }
+
+/**
+ * @title Interface for the L1 Rewards Reservoir
+ * @dev This exposes a specific function for the L1Reservoir that is called
+ * by the ReservoirDripKeeper.
+ */
+interface IL1Reservoir is IReservoir {
+    /**
+     * @dev Drip indexer rewards for layers 1 and 2
+     * This function will mint enough tokens to cover all indexer rewards for the next
+     * dripInterval number of blocks. If the l2RewardsFraction is > 0, it will also send
+     * tokens and a callhook to the L2Reservoir, through the GRT Arbitrum bridge.
+     * Any staged changes to issuanceRate or l2RewardsFraction will be applied when this function
+     * is called. If issuanceRate changes, it also triggers a snapshot of rewards per signal on the RewardsManager.
+     * The call value must be equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
+     * only be nonzero if l2RewardsFraction is nonzero.
+     * @param l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     * @param l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     * @param l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     */
+    function drip(
+        uint256 l2MaxGas,
+        uint256 l2GasPriceBid,
+        uint256 l2MaxSubmissionCost
+    ) external payable;
+}
