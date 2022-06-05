@@ -21,3 +21,10 @@ contract L1ReservoirV1Storage {
     // Auto-incrementing nonce that will be used when sending rewards to L2, to ensure ordering
     uint256 public nextDripNonce;
 }
+
+contract L1ReservoirV2Storage is L1ReservoirV1Storage {
+    // Minimum number of blocks since last drip for a new drip to be allowed
+    uint256 public minDripInterval;
+    // Drip reward in GRT for each block since lastRewardsUpdateBlock + dripRewardThreshold
+    uint256 public dripRewardPerBlock;
+}
