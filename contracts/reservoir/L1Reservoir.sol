@@ -17,7 +17,7 @@ import "./L1ReservoirStorage.sol";
  * It provides a function to periodically drip rewards, and functions to compute accumulated and new
  * total rewards at a particular block number.
  */
-contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
+contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     using SafeMath for uint256;
 
     // Emitted when the initial supply snapshot is taken after contract deployment
@@ -38,6 +38,10 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     event RewardsDripped(uint256 totalMinted, uint256 sentToL2, uint256 nextDeadline);
     // Emitted when the address for the L2Reservoir is updated
     event L2ReservoirAddressUpdated(address l2ReservoirAddress);
+    // Emitted when drip reward per block is updated
+    event DripRewardPerBlockUpdated(uint256 dripRewardPerBlock);
+    // Emitted when minDripInterval is updated
+    event MinDripIntervalUpdated(uint256 minDripInterval);
 
     /**
      * @dev Initialize this contract.
@@ -106,6 +110,26 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     }
 
     /**
+     * @dev Sets the drip reward per block
+     * This is the reward in GRT provided to the keeper that calls drip()
+     * @param _dripRewardPerBlock GRT accrued for each block after the threshold
+     */
+    function setDripRewardPerBlock(uint256 _dripRewardPerBlock) external onlyGovernor {
+        dripRewardPerBlock = _dripRewardPerBlock;
+        emit DripRewardPerBlockUpdated(_dripRewardPerBlock);
+    }
+
+    /**
+     * @dev Sets the minimum drip interval
+     * This is the minimum number of blocks between two successful drips
+     * @param _minDripInterval Minimum number of blocks since last drip for drip to be allowed
+     */
+    function setMinDripInterval(uint256 _minDripInterval) external onlyGovernor {
+        minDripInterval = _minDripInterval;
+        emit MinDripIntervalUpdated(_minDripInterval);
+    }
+
+    /**
      * @dev Sets the L2 Reservoir address
      * This is the address on L2 to which we send tokens for rewards.
      * @param _l2ReservoirAddress New address for the L2Reservoir on L2
@@ -153,16 +177,23 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @param _l2MaxGas Max gas for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
      * @param _l2GasPriceBid Gas price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
      * @param _l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _keeperRewardBeneficiary Address to which to credit keeper reward (will be redeemed in L2 if l2RewardsFraction is nonzero)
      */
     function drip(
         uint256 _l2MaxGas,
         uint256 _l2GasPriceBid,
         uint256 _l2MaxSubmissionCost
+        address _keeperRewardBeneficiary
     ) external payable notPaused {
+        require(block.number > lastRewardsUpdateBlock + minDripInterval, "WAIT_FOR_MIN_INTERVAL");
+
         uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
         uint256 mintedRewardsActual = getNewGlobalRewards(block.number);
         // eps = (signed int) mintedRewardsTotal - mintedRewardsActual
 
+        uint256 keeperReward = dripRewardPerBlock.mul(
+            block.number.sub(lastRewardsUpdateBlock).sub(minDripInterval)
+        );
         if (nextIssuanceRate != issuanceRate) {
             rewardsManager().updateAccRewardsPerSignal();
             snapshotAccumulatedRewards(mintedRewardsActual); // This updates lastRewardsUpdateBlock
@@ -178,7 +209,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         // N = n - eps
         uint256 tokensToMint;
         {
-            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual);
+            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual).add(keeperReward);
             require(
                 newRewardsPlusMintedActual >= mintedRewardsTotal,
                 "Would mint negative tokens, wait before calling again"
@@ -186,8 +217,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             tokensToMint = newRewardsPlusMintedActual.sub(mintedRewardsTotal);
         }
 
+        IGraphToken grt = graphToken();
         if (tokensToMint > 0) {
-            graphToken().mint(address(this), tokensToMint);
+            grt.mint(address(this), tokensToMint);
         }
 
         uint256 tokensToSendToL2 = 0;
@@ -223,7 +255,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
                 tokensToSendToL2,
                 _l2MaxGas,
                 _l2GasPriceBid,
-                _l2MaxSubmissionCost
+                _l2MaxSubmissionCost,
+                keeperReward,
+                _keeperRewardBeneficiary
             );
         } else if (l2RewardsFraction > 0) {
             tokensToSendToL2 = tokensToMint.mul(l2RewardsFraction).div(FIXED_POINT_SCALING_FACTOR);
@@ -231,12 +265,16 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
                 tokensToSendToL2,
                 _l2MaxGas,
                 _l2GasPriceBid,
-                _l2MaxSubmissionCost
+                _l2MaxSubmissionCost,
+                keeperReward,
+                _keeperRewardBeneficiary
             );
         } else {
             // Avoid locking funds in this contract if we don't need to
             // send a message to L2.
             require(msg.value == 0, "No eth value needed");
+            // If we don't send rewards to L2, pay the keeper reward in L1
+            grt.transfer(_keeperRewardBeneficiary, keeperReward);
         }
         emit RewardsDripped(tokensToMint, tokensToSendToL2, rewardsMintedUntilBlock);
     }
@@ -317,12 +355,16 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @param _maxGas Max gas for the L2 retryable ticket execution
      * @param _gasPriceBid Gas price for the L2 retryable ticket execution
      * @param _maxSubmissionCost Max submission price for the L2 retryable ticket
+     * @param _keeperReward Tokens to assign as keeper reward for calling drip
+     * @param _keeper Address of the keeper that will be rewarded
      */
     function _sendNewTokensAndStateToL2(
         uint256 _nTokens,
         uint256 _maxGas,
         uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
+        uint256 _maxSubmissionCost,
+        uint256 _keeperReward,
+        address _keeper
     ) internal {
         uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(
             FIXED_POINT_SCALING_FACTOR
@@ -331,7 +373,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             IL2Reservoir.receiveDrip.selector,
             l2IssuanceBase,
             issuanceRate,
-            nextDripNonce
+            nextDripNonce,
+            _keeperReward,
+            _keeper
         );
         nextDripNonce = nextDripNonce.add(1);
         bytes memory data = abi.encode(_maxSubmissionCost, extraData);
