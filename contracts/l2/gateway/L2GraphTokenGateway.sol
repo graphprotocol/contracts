@@ -235,6 +235,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
 
+        L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
+
         if (_data.length > 0 && callhookWhitelist[_from] == true) {
             bytes memory callhookData;
             {
@@ -251,8 +253,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
                 revert("CALLHOOK_FAILED");
             }
         }
-
-        L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
 
         emit DepositFinalized(_l1Token, _from, _to, _amount);
     }
