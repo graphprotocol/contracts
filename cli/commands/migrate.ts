@@ -1,4 +1,4 @@
-import { constants, utils } from 'ethers'
+import { constants, providers, utils } from 'ethers'
 import yargs, { Argv } from 'yargs'
 
 import { logger } from '../logging'
@@ -41,6 +41,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const chainId = cli.chainId
 
   if (chainId == 1337) {
+    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
     allContracts = ['EthereumDIDRegistry', ...allContracts]
   }
 
@@ -132,6 +133,10 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const spent = formatEther(cli.balance.sub(await cli.wallet.getBalance()))
   const nTx = (await cli.wallet.getTransactionCount()) - cli.nonce
   logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
+
+  if (chainId == 1337) {
+    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [false])
+  }
 }
 
 export const migrateCommand = {

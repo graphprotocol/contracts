@@ -129,7 +129,7 @@ const config: HardhatUserConfig = {
       },
       mining: {
         auto: false,
-        interval: 30000,
+        interval: 13000,
       },
       hardfork: 'london',
     },
