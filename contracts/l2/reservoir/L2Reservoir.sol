@@ -114,11 +114,15 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
             snapshotAccumulatedRewards();
         }
         issuanceBase = _issuanceBase;
-        uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(TOKEN_DECIMALS);
         IGraphToken grt = graphToken();
-        // solhint-disable-next-line avoid-tx-origin
-        grt.transfer(tx.origin, _l2KeeperReward);
-        grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
+        // We'd like to reward the keeper that redeemed the tx in L2
+        // but this won't work right now as tx.origin will actually be the L1 sender.
+        // uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(TOKEN_DECIMALS);
+        // // solhint-disable-next-line avoid-tx-origin
+        // grt.transfer(tx.origin, _l2KeeperReward);
+        // grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
+        // So for now we just send all the rewards to teh L1 keeper:
+        grt.transfer(_l1Keeper, _keeperReward);
         emit DripReceived(issuanceBase);
     }
 
