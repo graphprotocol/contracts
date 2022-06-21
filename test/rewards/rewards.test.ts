@@ -122,6 +122,7 @@ describe('Rewards', () => {
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(curation.address, toGRT('1000000'))
     }
+    await l1Reservoir.connect(governor.signer).grantDripPermission(keeper.address)
     await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
     supplyBeforeDrip = await grt.totalSupply()
   })
@@ -301,7 +302,9 @@ describe('Rewards', () => {
     beforeEach(async function () {
       // 5% minute rate (4 blocks)
       await l1Reservoir.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
-      await l1Reservoir.connect(keeper.signer).drip(toBN(0), toBN(0), toBN(0), keeper.address)
+      await l1Reservoir
+        .connect(keeper.signer)
+        ['drip(uint256,uint256,uint256,address)'](toBN(0), toBN(0), toBN(0), keeper.address)
       dripBlock = await latestBlock()
     })
 
@@ -682,18 +685,15 @@ describe('Rewards', () => {
     describe('takeRewards', function () {
       it('should distribute rewards on closed allocation and stake', async function () {
         // Align with the epoch boundary
-        // dripBlock (81)
         await epochManager.setEpochLength(10)
-        // dripBlock + 1
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 4
+
         // Setup
         await setupIndexerAllocation()
         const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
-        // dripBlock + 7
+
         // Jump
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 14
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -872,7 +872,7 @@ describe('Rewards', () => {
 
         // Jump
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 14
+        // dripBlock + 13
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -914,17 +914,23 @@ describe('Rewards', () => {
 
       it('should deny and burn rewards if subgraph on denylist', async function () {
         // Setup
+        // dripBlock (82)
         await epochManager.setEpochLength(10)
+        // dripBlock + 1
         await rewardsManager
           .connect(governor.signer)
           .setSubgraphAvailabilityOracle(governor.address)
+        // dripBlock + 2
         await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
+        // dripBlock + 3 (epoch boundary!)
         await advanceToNextEpoch(epochManager)
+        // dripBlock + 13
         await setupIndexerAllocation()
         const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
 
         // Jump
         await advanceToNextEpoch(epochManager)
+        // dripBlock + 23
 
         const supplyBefore = await grt.totalSupply()
         // Close allocation. At this point rewards should be collected for that indexer
