@@ -42,6 +42,29 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     event DripRewardPerBlockUpdated(uint256 dripRewardPerBlock);
     // Emitted when minDripInterval is updated
     event MinDripIntervalUpdated(uint256 minDripInterval);
+    // Emitted when a new allowedDripper is added
+    event AllowedDripperAdded(address dripper);
+    // Emitted when an allowedDripper is revoked
+    event AllowedDripperRevoked(address dripper);
+
+    /**
+     * @dev Checks that the sender is an indexer with stake on the Staking contract,
+     * or that the sender is an address whitelisted by governance to call.
+     */
+    modifier onlyIndexerOrAllowedDripper() {
+        require(allowedDrippers[msg.sender] || _isIndexer(msg.sender), "UNAUTHORIZED");
+        _;
+    }
+
+    /**
+     * @dev Checks that the sender is an operator for the specified indexer
+     * (also checks that the specified indexer is, indeed, an indexer).
+     * @param _indexer Indexer for which the sender must be an operator
+     */
+    modifier onlyIndexerOperator(address _indexer) {
+        require(_isIndexer(_indexer) && staking().isOperator(msg.sender, _indexer), "UNAUTHORIZED");
+        _;
+    }
 
     /**
      * @dev Initialize this contract.
@@ -141,6 +164,24 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     }
 
     /**
+     * @dev Grants an address permission to call drip()
+     * @param _dripper Address that will be an allowed dripper
+     */
+    function grantDripPermission(address _dripper) external onlyGovernor {
+        allowedDrippers[_dripper] = true;
+        emit AllowedDripperAdded(_dripper);
+    }
+
+    /**
+     * @dev Revokes an address' permission to call drip()
+     * @param _dripper Address that will not be an allowed dripper anymore
+     */
+    function revokeDripPermission(address _dripper) external onlyGovernor {
+        allowedDrippers[_dripper] = false;
+        emit AllowedDripperRevoked(_dripper);
+    }
+
+    /**
      * @dev Computes the initial snapshot for token supply and mints any pending rewards
      * This will initialize the issuanceBase to the current GRT supply, after which
      * we will keep an internal accounting only using newly minted rewards. This function
@@ -164,7 +205,42 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * tokens and a callhook to the L2Reservoir, through the GRT Arbitrum bridge.
      * Any staged changes to issuanceRate or l2RewardsFraction will be applied when this function
      * is called. If issuanceRate changes, it also triggers a snapshot of rewards per signal on the RewardsManager.
-     * The call value must be equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
+     * The call value must be greater than or equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
+     * only be nonzero if l2RewardsFraction is nonzero.
+     * Calling this function can revert if the issuance rate has recently been reduced, and the existing
+     * tokens are sufficient to cover the full pending period. In this case, it's necessary to wait
+     * until the drip amount becomes positive before calling the function again. It can also revert
+     * if the l2RewardsFraction has been updated and the amount already sent to L2 is more than what we
+     * should send now.
+     * Note that the transaction on the L2 side might revert if it's received out-of-order by the L2Reservoir,
+     * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
+     * again once the ticket for previous drip has been redeemed.
+     * This function with an additional parameter is only provided so that indexer operators can call it,
+     * specifying the indexer for which they are an operator.
+     * @param _l2MaxGas Max gas for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _l2GasPriceBid Gas price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _keeperRewardBeneficiary Address to which to credit keeper reward (will be redeemed in L2 if l2RewardsFraction is nonzero)
+     * @param _indexer Indexer for whom the sender must be an authorized Operator
+     */
+    function drip(
+        uint256 _l2MaxGas,
+        uint256 _l2GasPriceBid,
+        uint256 _l2MaxSubmissionCost,
+        address _keeperRewardBeneficiary,
+        address _indexer
+    ) external payable notPaused onlyIndexerOperator(_indexer) {
+        _drip(_l2MaxGas, _l2GasPriceBid, _l2MaxSubmissionCost, _keeperRewardBeneficiary);
+    }
+
+    /**
+     * @dev Drip indexer rewards for layers 1 and 2
+     * This function will mint enough tokens to cover all indexer rewards for the next
+     * dripInterval number of blocks. If the l2RewardsFraction is > 0, it will also send
+     * tokens and a callhook to the L2Reservoir, through the GRT Arbitrum bridge.
+     * Any staged changes to issuanceRate or l2RewardsFraction will be applied when this function
+     * is called. If issuanceRate changes, it also triggers a snapshot of rewards per signal on the RewardsManager.
+     * The call value must be greater than or equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
      * only be nonzero if l2RewardsFraction is nonzero.
      * Calling this function can revert if the issuance rate has recently been reduced, and the existing
      * tokens are sufficient to cover the full pending period. In this case, it's necessary to wait
@@ -182,9 +258,40 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     function drip(
         uint256 _l2MaxGas,
         uint256 _l2GasPriceBid,
-        uint256 _l2MaxSubmissionCost
+        uint256 _l2MaxSubmissionCost,
         address _keeperRewardBeneficiary
-    ) external payable notPaused {
+    ) external payable notPaused onlyIndexerOrAllowedDripper {
+        _drip(_l2MaxGas, _l2GasPriceBid, _l2MaxSubmissionCost, _keeperRewardBeneficiary);
+    }
+
+    /**
+     * @dev Drip indexer rewards for layers 1 and 2, private implementation.
+     * This function will mint enough tokens to cover all indexer rewards for the next
+     * dripInterval number of blocks. If the l2RewardsFraction is > 0, it will also send
+     * tokens and a callhook to the L2Reservoir, through the GRT Arbitrum bridge.
+     * Any staged changes to issuanceRate or l2RewardsFraction will be applied when this function
+     * is called. If issuanceRate changes, it also triggers a snapshot of rewards per signal on the RewardsManager.
+     * The call value must be greater than or equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
+     * only be nonzero if l2RewardsFraction is nonzero.
+     * Calling this function can revert if the issuance rate has recently been reduced, and the existing
+     * tokens are sufficient to cover the full pending period. In this case, it's necessary to wait
+     * until the drip amount becomes positive before calling the function again. It can also revert
+     * if the l2RewardsFraction has been updated and the amount already sent to L2 is more than what we
+     * should send now.
+     * Note that the transaction on the L2 side might revert if it's received out-of-order by the L2Reservoir,
+     * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
+     * again once the ticket for previous drip has been redeemed.
+     * @param _l2MaxGas Max gas for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _l2GasPriceBid Gas price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if l2RewardsFraction is > 0
+     * @param _keeperRewardBeneficiary Address to which to credit keeper reward (will be redeemed in L2 if l2RewardsFraction is nonzero)
+     */
+    function _drip(
+        uint256 _l2MaxGas,
+        uint256 _l2GasPriceBid,
+        uint256 _l2MaxSubmissionCost,
+        address _keeperRewardBeneficiary
+    ) private {
         require(block.number > lastRewardsUpdateBlock + minDripInterval, "WAIT_FOR_MIN_INTERVAL");
 
         uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
@@ -390,5 +497,14 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
             _gasPriceBid,
             data
         );
+    }
+
+    /**
+     * @dev Checks if an address is an indexer with stake in the Staking contract
+     * @param _indexer Address that will be checked
+     */
+    function _isIndexer(address _indexer) internal view returns (bool) {
+        IStaking staking = staking();
+        return staking.hasStake(_indexer);
     }
 }
