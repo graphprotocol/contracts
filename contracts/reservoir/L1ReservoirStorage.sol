@@ -27,4 +27,6 @@ contract L1ReservoirV2Storage is L1ReservoirV1Storage {
     uint256 public minDripInterval;
     // Drip reward in GRT for each block since lastRewardsUpdateBlock + dripRewardThreshold
     uint256 public dripRewardPerBlock;
+    // True for addresses that are allowed to call drip()
+    mapping(address => bool) public allowedDrippers;
 }
