@@ -316,7 +316,9 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         // N = n - eps
         uint256 tokensToMint;
         {
-            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual).add(keeperReward);
+            uint256 newRewardsPlusMintedActual = newRewardsToDistribute
+                .add(mintedRewardsActual)
+                .add(keeperReward);
             require(
                 newRewardsPlusMintedActual >= mintedRewardsTotal,
                 "Would mint negative tokens, wait before calling again"
@@ -348,9 +350,9 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
                     tokensToSendToL2 > l2OffsetAmount,
                     "Negative amount would be sent to L2, wait before calling again"
                 );
-                tokensToSendToL2 = tokensToSendToL2.sub(l2OffsetAmount);
+                tokensToSendToL2 = tokensToSendToL2.add(keeperReward).sub(l2OffsetAmount);
             } else {
-                tokensToSendToL2 = tokensToSendToL2.add(
+                tokensToSendToL2 = tokensToSendToL2.add(keeperReward).add(
                     l2RewardsFraction.mul(mintedRewardsActual.sub(mintedRewardsTotal)).div(
                         FIXED_POINT_SCALING_FACTOR
                     )
@@ -367,7 +369,10 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
                 _keeperRewardBeneficiary
             );
         } else if (l2RewardsFraction > 0) {
-            tokensToSendToL2 = tokensToMint.mul(l2RewardsFraction).div(FIXED_POINT_SCALING_FACTOR);
+            tokensToSendToL2 = tokensToMint
+                .mul(l2RewardsFraction)
+                .div(FIXED_POINT_SCALING_FACTOR)
+                .add(keeperReward);
             _sendNewTokensAndStateToL2(
                 tokensToSendToL2,
                 _l2MaxGas,
