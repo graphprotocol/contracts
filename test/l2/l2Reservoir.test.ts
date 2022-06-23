@@ -106,6 +106,7 @@ describe('L2Reservoir', () => {
 
   const validGatewayFinalizeTransfer = async (
     callhookData: string,
+    keeperReward = toGRT('0'),
   ): Promise<ContractTransaction> => {
     const tx = await gatewayFinalizeTransfer(callhookData)
     await expect(tx)
@@ -116,7 +117,7 @@ describe('L2Reservoir', () => {
 
     // newly minted GRT
     const receiverBalance = await grt.balanceOf(l2Reservoir.address)
-    await expect(receiverBalance).eq(dripAmount)
+    await expect(receiverBalance).eq(dripAmount.sub(keeperReward))
     return tx
   }
 
@@ -210,6 +211,26 @@ describe('L2Reservoir', () => {
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
+    })
+    it('delivers the keeper reward to the beneficiary address', async function () {
+      normalizedSupply = dripNormalizedSupply
+      const reward = toBN('15')
+      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
+        dripNormalizedSupply,
+        dripIssuanceRate,
+        toBN('0'),
+        reward,
+        testAccount1.address,
+      )
+      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data, reward)
+      dripBlock = await latestBlock()
+      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
+      await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
+      await expect(tx)
+        .emit(grt, 'Transfer')
+        .withArgs(l2Reservoir.address, testAccount1.address, reward)
+      await expect(await grt.balanceOf(testAccount1.address)).to.eq(reward)
     })
     it('updates the normalized supply cache and issuance rate', async function () {
       normalizedSupply = dripNormalizedSupply
