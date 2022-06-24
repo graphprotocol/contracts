@@ -7,6 +7,8 @@
  * MODIFIED from lidofinance's implementation:
  * - Changed solidity version to 0.7.6 (pablo@edgeandnode.com)
  * - Using local copy of the RLPReader library instead of using the package
+ * - Silenced linter warnings about inline assembly
+ * - Renamed a variable for mixedCase consistency
  */
 
 /**
@@ -196,6 +198,7 @@ library MerklePatriciaProofVerifier {
         }
         uint8 b;
         uint256 memPtr = item.memPtr;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             b := byte(0, mload(memPtr))
         }
@@ -208,18 +211,18 @@ library MerklePatriciaProofVerifier {
         returns (bool isLeaf, bytes memory nibbles)
     {
         require(compact.length > 0);
-        uint256 first_nibble = (uint8(compact[0]) >> 4) & 0xF;
+        uint256 firstNibble = (uint8(compact[0]) >> 4) & 0xF;
         uint256 skipNibbles;
-        if (first_nibble == 0) {
+        if (firstNibble == 0) {
             skipNibbles = 2;
             isLeaf = false;
-        } else if (first_nibble == 1) {
+        } else if (firstNibble == 1) {
             skipNibbles = 1;
             isLeaf = false;
-        } else if (first_nibble == 2) {
+        } else if (firstNibble == 2) {
             skipNibbles = 2;
             isLeaf = true;
-        } else if (first_nibble == 3) {
+        } else if (firstNibble == 3) {
             skipNibbles = 1;
             isLeaf = true;
         } else {

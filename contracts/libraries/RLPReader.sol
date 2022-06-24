@@ -6,6 +6,10 @@
  *
  * (using edumar111's fork as it includes Solidity 0.7+ support,
  * which we need, and the PR is still open on hamdiallam's original repo)
+ *
+ * MODIFIED from hamdiallam's implementation:
+ * - Explicitly marked visibility of constants
+ * - Silenced linter warnings about inline assembly
  */
 
 /*
@@ -14,12 +18,13 @@
  */
 pragma solidity >=0.5.0 <0.9.0;
 
+// solhint-disable no-inline-assembly
 library RLPReader {
-    uint8 constant STRING_SHORT_START = 0x80;
-    uint8 constant STRING_LONG_START = 0xb8;
-    uint8 constant LIST_SHORT_START = 0xc0;
-    uint8 constant LIST_LONG_START = 0xf8;
-    uint8 constant WORD_SIZE = 32;
+    uint8 public constant STRING_SHORT_START = 0x80;
+    uint8 public constant STRING_LONG_START = 0xb8;
+    uint8 public constant LIST_SHORT_START = 0xc0;
+    uint8 public constant LIST_LONG_START = 0xf8;
+    uint8 public constant WORD_SIZE = 32;
 
     struct RLPItem {
         uint256 len;

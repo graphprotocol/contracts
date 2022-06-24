@@ -7,6 +7,7 @@
  * MODIFIED from lidofinance's implementation:
  * - Changed solidity version to 0.7.6 (pablo@edgeandnode.com)
  * - Using local copy of the RLPReader library instead of using the package
+ * - Explicitly marked visibility of constants
  */
 
 pragma solidity 0.7.6;
@@ -21,9 +22,9 @@ library StateProofVerifier {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for bytes;
 
-    uint256 constant HEADER_STATE_ROOT_INDEX = 3;
-    uint256 constant HEADER_NUMBER_INDEX = 8;
-    uint256 constant HEADER_TIMESTAMP_INDEX = 11;
+    uint256 public constant HEADER_STATE_ROOT_INDEX = 3;
+    uint256 public constant HEADER_NUMBER_INDEX = 8;
+    uint256 public constant HEADER_TIMESTAMP_INDEX = 11;
 
     struct BlockHeader {
         bytes32 hash;
