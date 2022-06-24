@@ -49,3 +49,10 @@ abstract contract GNSV2Storage is GNSV1Storage {
     // Contract that represents subgraph ownership through an NFT
     ISubgraphNFT public subgraphNFT;
 }
+
+abstract contract GNSV3Storage is GNSV2Storage {
+    // Block numbers and tokens for subgraphs that are locked and ready to be sent to L2
+    mapping(uint256 => IGNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
+    // Address of the counterpart GNS contract (L1GNS/L2GNS)
+    address counterpartGNSAddress;
+}

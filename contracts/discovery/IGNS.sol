@@ -15,6 +15,12 @@ interface IGNS {
         uint256 withdrawableGRT;
     }
 
+    struct SubgraphL2MigrationData {
+        uint256 lockedAtBlock; // Block at which the subgraph was locked for migration
+        uint256 tokens; // GRT that will be sent to L2 to mint signal
+        bool l1Done; // Migration finished on L1 side (or subgraph deprecated)
+    }
+
     struct LegacySubgraphKey {
         address account;
         uint256 accountSeqID;

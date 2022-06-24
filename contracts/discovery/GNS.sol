@@ -23,7 +23,7 @@ import "./GNSStorage.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
+contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMath for uint256;
 
     // -- Constants --
@@ -785,7 +785,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(uint256 _subgraphID) private view returns (SubgraphData storage) {
+    function _getSubgraphData(uint256 _subgraphID) internal view returns (SubgraphData storage) {
         // If there is a legacy subgraph created return it
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         if (legacySubgraphKey.account != address(0)) {
