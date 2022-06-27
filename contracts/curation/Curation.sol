@@ -70,6 +70,11 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
+    modifier onlyGNS() {
+        require(msg.sender == _resolveContract(keccak256("GNS")), "Only the GNS can call this");
+        _;
+    }
+
     /**
      * @dev Initialize this contract.
      */
@@ -265,6 +270,63 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
 
         return (signalOut, curationTax);
+    }
+
+    /**
+     * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
+     * This function charges no tax and can only be called by GNS in specific scenarios (for now
+     * only during an L1-L2 migration).
+     * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
+     * @param _tokensIn Amount of Graph Tokens to deposit
+     * @param _signalOutMin Expected minimum amount of signal to receive
+     * @return Signal minted
+     */
+    function mintTaxFree(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint256 _signalOutMin
+    ) external override notPartialPaused onlyGNS returns (uint256) {
+        // Need to deposit some funds
+        require(_tokensIn > 0, "Cannot deposit zero tokens");
+
+        // Exchange GRT tokens for GCS of the subgraph pool (no tax)
+        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+
+        // Slippage protection
+        require(signalOut >= _signalOutMin, "Slippage protection");
+
+        address curator = msg.sender;
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+
+        // If it hasn't been curated before then initialize the curve
+        if (!isCurated(_subgraphDeploymentID)) {
+            curationPool.reserveRatio = defaultReserveRatio;
+
+            // If no signal token for the pool - create one
+            if (address(curationPool.gcs) == address(0)) {
+                // Use a minimal proxy to reduce gas cost
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
+                gcs.initialize(address(this));
+                curationPool.gcs = gcs;
+            }
+        }
+
+        // Trigger update rewards calculation snapshot
+        _updateRewards(_subgraphDeploymentID);
+
+        // Transfer tokens from the curator to this contract
+        // NOTE: This needs to happen after _updateRewards snapshot as that function
+        // is using balanceOf(curation)
+        IGraphToken _graphToken = graphToken();
+        TokenUtils.pullTokens(_graphToken, curator, _tokensIn);
+
+        // Update curation pool
+        curationPool.tokens = curationPool.tokens.add(_tokensIn);
+        curationPool.gcs.mint(curator, signalOut);
+
+        emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, 0);
+
+        return signalOut;
     }
 
     /**

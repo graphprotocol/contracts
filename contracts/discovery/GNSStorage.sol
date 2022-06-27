@@ -54,5 +54,5 @@ abstract contract GNSV3Storage is GNSV2Storage {
     // Block numbers and tokens for subgraphs that are locked and ready to be sent to L2
     mapping(uint256 => IGNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
     // Address of the counterpart GNS contract (L1GNS/L2GNS)
-    address counterpartGNSAddress;
+    address public counterpartGNSAddress;
 }

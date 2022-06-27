@@ -717,7 +717,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         require(legacySubgraphExists == true, "GNS: Subgraph does not exist");
 
         // Must not be a claimed subgraph
-        uint256 subgraphID = _buildSubgraphID(_graphAccount, _subgraphNumber);
+        uint256 subgraphID = _buildLegacySubgraphID(_graphAccount, _subgraphNumber);
         require(
             legacySubgraphKeys[subgraphID].account == address(0),
             "GNS: Subgraph was already claimed"
@@ -752,11 +752,31 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
     /**
      * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * Only used for legacy subgraphs being migrated, as new ones will also use the chainid.
+     * Subgraph ID is the keccak hash of account+seqID
+     * @return Subgraph ID
+     */
+    function _buildLegacySubgraphID(address _account, uint256 _seqID)
+        internal
+        pure
+        returns (uint256)
+    {
+        return uint256(keccak256(abi.encodePacked(_account, _seqID)));
+    }
+
+    /**
+     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
      * Subgraph ID is the keccak hash of account+seqID
      * @return Subgraph ID
      */
     function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(_account, _seqID)));
+        uint256 chainId;
+        // Too bad solidity 0.7.6 still doesn't have block.chainid
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            chainId := chainid()
+        }
+        return uint256(keccak256(abi.encodePacked(_account, _seqID, chainId)));
     }
 
     /**

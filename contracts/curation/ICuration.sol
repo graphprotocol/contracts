@@ -23,6 +23,13 @@ interface ICuration {
         uint256 _signalOutMin
     ) external returns (uint256, uint256);
 
+    // Callable only by GNS in specific scenarios
+    function mintTaxFree(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint256 _signalOutMin
+    ) external returns (uint256);
+
     function burn(
         bytes32 _subgraphDeploymentID,
         uint256 _signalIn,
