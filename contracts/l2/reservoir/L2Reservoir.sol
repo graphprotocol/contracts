@@ -4,11 +4,21 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "arbos-precompiles/arbos/builtin/ArbRetryableTx.sol";
 
 import "../../reservoir/IReservoir.sol";
 import "../../reservoir/Reservoir.sol";
 import "./IL2Reservoir.sol";
 import "./L2ReservoirStorage.sol";
+
+interface IArbTxWithRedeemer {
+    /**
+     * @notice Gets the redeemer of the current retryable redeem attempt.
+     * Returns the zero address if the current transaction is not a retryable redeem attempt.
+     * If this is an auto-redeem, returns the fee refund address of the retryable.
+     */
+    function getCurrentRedeemer() external view returns (address);
+}
 
 /**
  * @title L2 Rewards Reservoir
@@ -19,8 +29,12 @@ import "./L2ReservoirStorage.sol";
 contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
     using SafeMath for uint256;
 
+    address public constant ARB_TX_ADDRESS = 0x000000000000000000000000000000000000006E;
+
     event DripReceived(uint256 _issuanceBase);
     event NextDripNonceUpdated(uint256 _nonce);
+    event L1ReservoirAddressUpdated(address _l1ReservoirAddress);
+    event L2KeeperRewardFractionUpdated(uint256 _l2KeeperRewardFraction);
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
@@ -50,6 +64,29 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
     function setNextDripNonce(uint256 _nonce) external onlyGovernor {
         nextDripNonce = _nonce;
         emit NextDripNonceUpdated(_nonce);
+    }
+
+    /**
+     * @dev Sets the L1 Reservoir address
+     * This is the address on L1 that will appear as redeemer when a ticket
+     * was auto-redeemed.
+     * @param _l1ReservoirAddress New address for the L1Reservoir on L1
+     */
+    function setL1ReservoirAddress(address _l1ReservoirAddress) external onlyGovernor {
+        l1ReservoirAddress = _l1ReservoirAddress;
+        emit L1ReservoirAddressUpdated(_l1ReservoirAddress);
+    }
+
+    /**
+     * @dev Sets the L2 keeper reward fraction
+     * This is the fraction of the keeper reward that will be sent to the redeemer on L2
+     * if the retryable ticket is not auto-redeemed
+     * @param _l2KeeperRewardFraction New value for the fraction, with fixed point at 1e18
+     */
+    function setL2KeeperRewardFraction(uint256 _l2KeeperRewardFraction) external onlyGovernor {
+        require(_l2KeeperRewardFraction <= FIXED_POINT_SCALING_FACTOR, "INVALID_VALUE");
+        l2KeeperRewardFraction = _l2KeeperRewardFraction;
+        emit L2KeeperRewardFractionUpdated(_l2KeeperRewardFraction);
     }
 
     /**
@@ -115,14 +152,19 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
         }
         issuanceBase = _issuanceBase;
         IGraphToken grt = graphToken();
-        // We'd like to reward the keeper that redeemed the tx in L2
-        // but this won't work right now as tx.origin will actually be the L1 sender.
-        // uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(TOKEN_DECIMALS);
-        // // solhint-disable-next-line avoid-tx-origin
-        // grt.transfer(tx.origin, _l2KeeperReward);
-        // grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
-        // So for now we just send all the rewards to teh L1 keeper:
-        grt.transfer(_l1Keeper, _keeperReward);
+
+        // Part of the reward always goes to whoever redeemed the  ticket in L2,
+        // unless this was an autoredeem, in which case the "redeemer" is the sender, i.e. L1Reservoir
+        address redeemer = IArbTxWithRedeemer(ARB_TX_ADDRESS).getCurrentRedeemer();
+        if (redeemer != l1ReservoirAddress) {
+            uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(FIXED_POINT_SCALING_FACTOR);
+            grt.transfer(redeemer, _l2KeeperReward);
+            grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
+        } else {
+            // In an auto-redeem, we just send all the rewards to teh L1 keeper:
+            grt.transfer(_l1Keeper, _keeperReward);
+        }
+
         emit DripReceived(issuanceBase);
     }
 

@@ -4,6 +4,7 @@ import { BigNumber, constants, ContractTransaction, utils } from 'ethers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { BigNumber as BN } from 'bignumber.js'
+import { FakeContract, smock } from '@defi-wonderland/smock'
 
 import {
   advanceBlocks,
@@ -30,11 +31,13 @@ const dripIssuanceRate = toBN('1000000023206889619')
 describe('L2Reservoir', () => {
   let governor: Account
   let testAccount1: Account
+  let testAccount2: Account
   let mockRouter: Account
   let mockL1GRT: Account
   let mockL1Gateway: Account
   let mockL1Reservoir: Account
   let fixture: NetworkFixture
+  let arbTxMock: FakeContract
 
   let grt: L2GraphToken
   let l2Reservoir: L2Reservoir
@@ -122,7 +125,7 @@ describe('L2Reservoir', () => {
   }
 
   before(async function () {
-    ;[governor, testAccount1, mockRouter, mockL1GRT, mockL1Gateway, mockL1Reservoir] =
+    ;[governor, testAccount1, mockRouter, mockL1GRT, mockL1Gateway, mockL1Reservoir, testAccount2] =
       await getAccounts()
 
     fixture = new NetworkFixture()
@@ -136,6 +139,11 @@ describe('L2Reservoir', () => {
       mockL1Gateway.address,
       mockL1Reservoir.address,
     )
+
+    arbTxMock = await smock.fake('IArbTxWithRedeemer', {
+      address: '0x000000000000000000000000000000000000006E',
+    })
+    arbTxMock.getCurrentRedeemer.returns(mockL1Reservoir.address)
   })
 
   beforeEach(async function () {
@@ -157,7 +165,42 @@ describe('L2Reservoir', () => {
       await expect(await l2Reservoir.nextDripNonce()).to.eq(toBN('10'))
     })
   })
+
+  describe('setL1ReservoirAddress', async function () {
+    it('rejects unauthorized calls', async function () {
+      const tx = l2Reservoir
+        .connect(testAccount1.signer)
+        .setL1ReservoirAddress(testAccount1.address)
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+    it('sets the L1Reservoir address', async function () {
+      const tx = l2Reservoir.connect(governor.signer).setL1ReservoirAddress(testAccount1.address)
+      await expect(tx).emit(l2Reservoir, 'L1ReservoirAddressUpdated').withArgs(testAccount1.address)
+      await expect(await l2Reservoir.l1ReservoirAddress()).to.eq(testAccount1.address)
+    })
+  })
+
+  describe('setL2KeeperRewardFraction', async function () {
+    it('rejects unauthorized calls', async function () {
+      const tx = l2Reservoir.connect(testAccount1.signer).setL2KeeperRewardFraction(toBN(1))
+      await expect(tx).revertedWith('Caller must be Controller governor')
+    })
+    it('rejects invalid values (> 1)', async function () {
+      const tx = l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('1.000001'))
+      await expect(tx).revertedWith('INVALID_VALUE')
+    })
+    it('sets the L1Reservoir address', async function () {
+      const tx = l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('0.999'))
+      await expect(tx).emit(l2Reservoir, 'L2KeeperRewardFractionUpdated').withArgs(toGRT('0.999'))
+      await expect(await l2Reservoir.l2KeeperRewardFraction()).to.eq(toGRT('0.999'))
+    })
+  })
+
   describe('receiveDrip', async function () {
+    beforeEach(async function () {
+      await l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('0.2'))
+      await l2Reservoir.connect(governor.signer).setL1ReservoirAddress(mockL1Reservoir.address)
+    })
     it('rejects the call when not called by the gateway', async function () {
       const tx = l2Reservoir
         .connect(governor.signer)
@@ -224,13 +267,39 @@ describe('L2Reservoir', () => {
       )
       const tx = await validGatewayFinalizeTransfer(receiveDripTx.data, reward)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
       await expect(tx)
         .emit(grt, 'Transfer')
         .withArgs(l2Reservoir.address, testAccount1.address, reward)
       await expect(await grt.balanceOf(testAccount1.address)).to.eq(reward)
+    })
+    it('delivers part of the keeper reward to the L2 redeemer', async function () {
+      arbTxMock.getCurrentRedeemer.returns(testAccount2.address)
+      await l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('0.25'))
+      normalizedSupply = dripNormalizedSupply
+      const reward = toGRT('16')
+      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
+        dripNormalizedSupply,
+        dripIssuanceRate,
+        toBN('0'),
+        reward,
+        testAccount1.address,
+      )
+      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data, reward)
+      dripBlock = await latestBlock()
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
+      await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
+      await expect(tx)
+        .emit(grt, 'Transfer')
+        .withArgs(l2Reservoir.address, testAccount1.address, toGRT('12'))
+      await expect(tx)
+        .emit(grt, 'Transfer')
+        .withArgs(l2Reservoir.address, testAccount2.address, toGRT('4'))
+      await expect(await grt.balanceOf(testAccount1.address)).to.eq(toGRT('12'))
+      await expect(await grt.balanceOf(testAccount2.address)).to.eq(toGRT('4'))
     })
     it('updates the normalized supply cache and issuance rate', async function () {
       normalizedSupply = dripNormalizedSupply
