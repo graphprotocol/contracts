@@ -8,7 +8,7 @@ import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
-import { getAccounts, randomHexBytes, Account, toGRT } from './lib/testHelpers'
+import { getAccounts, randomHexBytes, Account, toGRT, getChainID } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 import { getContractAt } from '../cli/network'
@@ -42,8 +42,8 @@ interface AccountDefaultName {
 const DEFAULT_RESERVE_RATIO = 1000000
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: number) => n.toFixed(12)
-const buildSubgraphID = (account: string, seqID: BigNumber): string =>
-  solidityKeccak256(['address', 'uint256'], [account, seqID])
+const buildSubgraphID = async (account: string, seqID: BigNumber): Promise<string> =>
+  solidityKeccak256(['address', 'uint256', 'uint256'], [account, seqID, await getChainID()])
 
 describe('GNS', () => {
   let me: Account
@@ -146,7 +146,10 @@ describe('GNS', () => {
     account: Account,
     newSubgraph: PublishSubgraph, // Defaults to subgraph created in before()
   ): Promise<Subgraph> => {
-    const subgraphID = buildSubgraphID(account.address, await gns.nextAccountSeqID(account.address))
+    const subgraphID = await buildSubgraphID(
+      account.address,
+      await gns.nextAccountSeqID(account.address),
+    )
 
     // Send tx
     const tx = gns
@@ -615,7 +618,7 @@ describe('GNS', () => {
 
     describe('isPublished', function () {
       it('should return if the subgraph is published', async function () {
-        const subgraphID = buildSubgraphID(me.address, toBN(0))
+        const subgraphID = await buildSubgraphID(me.address, toBN(0))
         expect(await gns.isPublished(subgraphID)).eq(false)
         await publishNewSubgraph(me, newSubgraph0)
         expect(await gns.isPublished(subgraphID)).eq(true)
@@ -1014,7 +1017,7 @@ describe('GNS', () => {
         newSubgraph0.subgraphMetadata,
       )
       // Curate on the subgraph
-      const subgraphID = buildSubgraphID(me.address, await gns.nextAccountSeqID(me.address))
+      const subgraphID = await buildSubgraphID(me.address, await gns.nextAccountSeqID(me.address))
       const tx2 = await gns.populateTransaction.mintSignal(subgraphID, toGRT('90000'), 0)
 
       // Batch send transaction
