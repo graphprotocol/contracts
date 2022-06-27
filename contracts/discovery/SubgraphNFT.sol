@@ -164,4 +164,15 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
         // If there is a baseURI but no tokenURI, concatenate the tokenID to the baseURI.
         return string(abi.encodePacked(base, HexStrings.toString(_tokenId)));
     }
+
+    /**
+     * @notice Get the metadata for a subgraph represented by `_tokenId`.
+     * @dev `_tokenId` must exist.
+     * @param _tokenId ID of the NFT
+     * @return IPFS hash for the metadata
+     */
+    function getSubgraphMetadata(uint256 _tokenId) external view override returns (bytes32) {
+        require(_exists(_tokenId), "ERC721Metadata: URI set of nonexistent token");
+        return _subgraphMetadataHashes[_tokenId];
+    }
 }

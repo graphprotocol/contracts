@@ -228,5 +228,6 @@ abstract contract Managed is IManaged {
         _syncContract("Staking");
         _syncContract("GraphToken");
         _syncContract("GraphTokenGateway");
+        _syncContract("GNS");
     }
 }

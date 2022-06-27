@@ -21,6 +21,13 @@ interface IGNS {
         bool l1Done; // Migration finished on L1 side (or subgraph deprecated)
     }
 
+    struct MigratedSubgraphData {
+        bytes32 lockedAtBlockHash;
+        mapping(address => bool) curatorBalanceClaimed;
+        uint256 tokens;
+        bool l2Done;
+    }
+
     struct LegacySubgraphKey {
         address account;
         uint256 accountSeqID;

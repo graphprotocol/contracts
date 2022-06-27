@@ -12,7 +12,8 @@ import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Curation } from '../../build/types/Curation'
-import { GNS } from '../../build/types/GNS'
+import { L1GNS } from '../../build/types/L1GNS'
+import { L2GNS } from '../../build/types/L2GNS'
 import { Staking } from '../../build/types/Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
@@ -28,7 +29,7 @@ export interface L1FixtureContracts {
   epochManager: EpochManager
   grt: GraphToken
   curation: Curation
-  gns: GNS
+  gns: L1GNS
   staking: Staking
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
@@ -43,7 +44,7 @@ export interface L2FixtureContracts {
   epochManager: EpochManager
   grt: L2GraphToken
   curation: Curation
-  gns: GNS
+  gns: L2GNS
   staking: Staking
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
@@ -92,7 +93,12 @@ export class NetworkFixture {
     }
 
     const curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
-    const gns = await deployment.deployGNS(deployer, controller.address, proxyAdmin)
+    let gns: L1GNS | L2GNS
+    if (isL2) {
+      gns = await deployment.deployL2GNS(deployer, controller.address, proxyAdmin)
+    } else {
+      gns = await deployment.deployL1GNS(deployer, controller.address, proxyAdmin)
+    }
     const staking = await deployment.deployStaking(deployer, controller.address, proxyAdmin)
     const disputeManager = await deployment.deployDisputeManager(
       deployer,

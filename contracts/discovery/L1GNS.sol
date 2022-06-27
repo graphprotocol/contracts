@@ -37,16 +37,17 @@ contract L1GNS is GNS {
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
 
-        // Move all signal from previous version to L2
-        if (subgraphData.nSignal > 0) {
-            // Burn all version signal in the name pool for tokens (w/no slippage protection)
-            // Sell all signal from the old deployment
-            migrationData.tokens = curation().burn(
-                subgraphData.subgraphDeploymentID,
-                subgraphData.vSignal,
-                0
-            );
-        }
+        // Lock the subgraph so no more signal can be minted or burned.
+        // This can only be done for subgraphs that have nonzero signal.
+        require(subgraphData.nSignal > 0, "!SIGNAL");
+
+        // Burn all version signal in the name pool for tokens (w/no slippage protection)
+        // Sell all signal from the old deployment
+        migrationData.tokens = curation().burn(
+            subgraphData.subgraphDeploymentID,
+            subgraphData.vSignal,
+            1 // We do check that the output must be nonzero...
+        );
 
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
@@ -70,21 +71,17 @@ contract L1GNS is GNS {
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
         require(
             migrationData.lockedAtBlock > 0 &&
-                migrationData.lockedAtBlock > block.number.sub(255) &&
+                migrationData.lockedAtBlock >= block.number.sub(255) &&
                 migrationData.lockedAtBlock < block.number,
             "!LOCKED"
         );
         require(!migrationData.l1Done, "ALREADY_DONE");
         migrationData.l1Done = true;
 
-        bytes memory extraData = abi.encodeWithSelector(
-            L2GNS.receiveSubgraphFromL1.selector,
+        bytes memory extraData = encodeSubgraphMetadataForL2(
             _subgraphID,
-            ownerOf(_subgraphID),
-            migrationData.tokens,
-            blockhash(migrationData.lockedAtBlock),
-            subgraphData.nSignal,
-            subgraphData.reserveRatio
+            migrationData,
+            subgraphData
         );
 
         bytes memory data = abi.encode(maxSubmissionCost, extraData);
@@ -103,6 +100,24 @@ contract L1GNS is GNS {
         subgraphData.reserveRatio = 0;
         _burnNFT(_subgraphID);
         emit SubgraphSentToL2(_subgraphID);
+    }
+
+    function encodeSubgraphMetadataForL2(
+        uint256 _subgraphID,
+        SubgraphL2MigrationData storage migrationData,
+        SubgraphData storage subgraphData
+    ) internal view returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                L2GNS.receiveSubgraphFromL1.selector,
+                _subgraphID,
+                ownerOf(_subgraphID),
+                migrationData.tokens,
+                blockhash(migrationData.lockedAtBlock),
+                subgraphData.nSignal,
+                subgraphData.reserveRatio,
+                subgraphNFT.getSubgraphMetadata(_subgraphID)
+            );
     }
 
     /**
