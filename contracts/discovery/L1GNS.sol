@@ -8,8 +8,10 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./GNS.sol";
 import "./GNSStorage.sol";
+import "./L1GNSStorage.sol";
 
 import "../arbitrum/ITokenGateway.sol";
+import "../arbitrum/L1ArbitrumMessenger.sol";
 import "../l2/discovery/L2GNS.sol";
 
 /**
@@ -21,11 +23,21 @@ import "../l2/discovery/L2GNS.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L1GNS is GNS {
+contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     using SafeMath for uint256;
 
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
     event SubgraphSentToL2(uint256 _subgraphID);
+    event ArbitrumInboxAddressSet(address _inbox);
+
+    /**
+     * @dev sets the addresses for L1 inbox provided by Arbitrum
+     * @param _inbox Address of the Inbox that is part of the Arbitrum Bridge
+     */
+    function setArbitrumInboxAddress(address _inbox) external onlyGovernor {
+        arbitrumInboxAddress = _inbox;
+        emit ArbitrumInboxAddressSet(_inbox);
+    }
 
     function lockSubgraphForMigrationToL2(uint256 _subgraphID)
         external
@@ -142,5 +154,50 @@ contract L1GNS is GNS {
         _burnNFT(_subgraphID);
 
         emit SubgraphDeprecated(_subgraphID, subgraphData.withdrawableGRT);
+    }
+
+    function claimCuratorBalanceToBeneficiaryOnL2(
+        uint256 _subgraphID,
+        address _beneficiary,
+        uint256 _maxGas,
+        uint256 _gasPriceBid,
+        uint256 _maxSubmissionCost
+    ) external payable notPaused returns (bytes memory) {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
+
+        require(migrationData.l1Done, "!MIGRATED");
+        require(subgraphData.withdrawableGRT == 0, "DEPRECATED");
+
+        require(_maxSubmissionCost > 0, "NO_SUBMISSION_COST");
+
+        {
+            // makes sure only sufficient ETH is supplied required for successful redemption on L2
+            // if a user does not desire immediate redemption they should provide
+            // a msg.value of AT LEAST maxSubmissionCost
+            uint256 expectedEth = _maxSubmissionCost + (_maxGas * _gasPriceBid);
+            require(msg.value == expectedEth, "WRONG_ETH_VALUE");
+        }
+        L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
+
+        bytes memory outboundCalldata = abi.encodeWithSelector(
+            L2GNS.claimL1CuratorBalanceToBeneficiary.selector,
+            _subgraphID,
+            msg.sender,
+            subgraphData.curatorNSignal[msg.sender],
+            _beneficiary
+        );
+
+        uint256 seqNum = sendTxToL2(
+            arbitrumInboxAddress,
+            counterpartGNSAddress,
+            msg.sender,
+            msg.value,
+            0,
+            gasParams,
+            outboundCalldata
+        );
+
+        return abi.encode(seqNum);
     }
 }

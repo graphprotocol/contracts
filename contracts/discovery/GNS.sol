@@ -132,6 +132,11 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 withdrawnGRT
     );
 
+    /**
+     * @dev Emitted when the counterpart (L1/L2) GNS address is updated
+     */
+    event CounterpartGNSAddressUpdated(address _counterpart);
+
     // -- Modifiers --
 
     /**
@@ -217,6 +222,15 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
         subgraphNFT = ISubgraphNFT(_subgraphNFT);
         emit SubgraphNFTUpdated(_subgraphNFT);
+    }
+
+    /**
+     * @dev Set the counterpart (L1/L2) GNS address
+     * @param _counterpart Owner tax percentage
+     */
+    function setCounterpartGNSAddress(address _counterpart) external onlyGovernor {
+        counterpartGNSAddress = _counterpart;
+        emit CounterpartGNSAddressUpdated(_counterpart);
     }
 
     // -- Actions --
