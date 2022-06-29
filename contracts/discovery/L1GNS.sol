@@ -28,7 +28,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
     event SubgraphSentToL2(uint256 _subgraphID);
-    event ArbitrumInboxAddressSet(address _inbox);
+    event ArbitrumInboxAddressUpdated(address _inbox);
 
     /**
      * @dev sets the addresses for L1 inbox provided by Arbitrum
@@ -36,7 +36,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      */
     function setArbitrumInboxAddress(address _inbox) external onlyGovernor {
         arbitrumInboxAddress = _inbox;
-        emit ArbitrumInboxAddressSet(_inbox);
+        emit ArbitrumInboxAddressUpdated(_inbox);
     }
 
     function lockSubgraphForMigrationToL2(uint256 _subgraphID)
