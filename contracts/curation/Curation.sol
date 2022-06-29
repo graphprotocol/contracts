@@ -453,6 +453,22 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
     }
 
     /**
+     * @dev Calculate amount of signal that can be bought with tokens in a curation pool,
+     * without accounting for curation tax.
+     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of signal that can be bought and tokens subtracted for the tax
+     */
+    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+    }
+
+    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
      * @param _tokensIn Amount of tokens used to mint signal

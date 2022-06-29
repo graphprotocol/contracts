@@ -56,6 +56,11 @@ interface ICuration {
         view
         returns (uint256, uint256);
 
+    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        view
+        returns (uint256);
+
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         external
         view
