@@ -9,6 +9,9 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "../../discovery/GNS.sol";
 import "./L2GNSStorage.sol";
 
+import { RLPReader } from "../../libraries/RLPReader.sol";
+import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
+
 /**
  * @title GNS
  * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
@@ -19,14 +22,37 @@ import "./L2GNSStorage.sol";
  * transaction.
  */
 contract L2GNS is GNS, L2GNSV1Storage {
+    using RLPReader for bytes;
+    using RLPReader for RLPReader.RLPItem;
+    using SafeMath for uint256;
+
+    // Offset applied by the bridge to L1 addresses sending messages to L2
+    uint160 internal constant L2_ADDRESS_OFFSET =
+        uint160(0x1111000000000000000000000000000000001111);
+
     event SubgraphReceivedFromL1(uint256 _subgraphID);
     event SubgraphMigrationFinalized(uint256 _subgraphID);
+    event CuratorBalanceClaimed(
+        uint256 _subgraphID,
+        address _l1Curator,
+        address _l2Curator,
+        uint256 _nSignalClaimed
+    );
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */
     modifier onlyL2Gateway() {
         require(msg.sender == _resolveContract(keccak256("GraphTokenGateway")), "ONLY_GATEWAY");
+        _;
+    }
+
+    /**
+     * @dev Checks that the sender is the L2 alias of the counterpart
+     * GNS on L1.
+     */
+    modifier onlyL1Counterpart() {
+        require(msg.sender == l1ToL2Alias(counterpartGNSAddress), "ONLY_COUNTERPART_GNS");
         _;
     }
 
@@ -103,37 +129,101 @@ contract L2GNS is GNS, L2GNSV1Storage {
      * @dev Claim curator balance belonging to a curator from L1.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
+     * @param _subgraphID Subgraph for which to claim a balance
      * @param _blockHeaderRlpBytes RLP-encoded block header from the block when the subgraph was locked on L1
      * @param _proofRlpBytes RLP-encoded list of proofs: first proof of the L1 GNS account, then proof of the slot for the curator's balance
      */
-    function claimL1CuratorBalance(bytes memory _blockHeaderRlpBytes, bytes memory _proofRlpBytes)
-        external
-        notPartialPaused
-    {
-        // TODO
+    function claimL1CuratorBalance(
+        uint256 _subgraphID,
+        bytes memory _blockHeaderRlpBytes,
+        bytes memory _proofRlpBytes
+    ) external notPartialPaused {
+        Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
+        IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
+
+        require(migratedData.l2Done, "!MIGRATED");
+        require(blockHeader.hash == migratedData.lockedAtBlockHash, "!BLOCKHASH");
+        require(!migratedData.curatorBalanceClaimed[msg.sender], "ALREADY_CLAIMED");
+
+        RLPReader.RLPItem[] memory proofs = _proofRlpBytes.toRlpItem().toList();
+        require(proofs.length == 2, "!N_PROOFS");
+
+        Verifier.Account memory l1GNSAccount = Verifier.extractAccountFromProof(
+            keccak256(abi.encodePacked(counterpartGNSAddress)),
+            blockHeader.stateRootHash,
+            proofs[0].toList()
+        );
+
+        require(l1GNSAccount.exists, "!ACCOUNT");
+
+        // subgraphs mapping at slot 7.
+        // So our subgraph is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(7)))
+        // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
+        // So the mapping is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(7))) + 2
+        // Therefore the nSignal value for msg.sender should be at slot:
+        uint256 curatorSlot = uint256(
+            keccak256(
+                abi.encodePacked(
+                    uint256(msg.sender),
+                    uint256(
+                        uint256(keccak256(abi.encodePacked(uint256(_subgraphID), uint256(7)))) + 2
+                    )
+                )
+            )
+        );
+
+        Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
+            keccak256(abi.encodePacked(curatorSlot)),
+            l1GNSAccount.storageRoot,
+            proofs[1].toList()
+        );
+
+        require(curatorNSignalSlot.exists, "!CURATOR_SLOT");
+
+        SubgraphData storage subgraphData = subgraphs[_subgraphID];
+        subgraphData.curatorNSignal[msg.sender] = subgraphData.curatorNSignal[msg.sender].add(
+            curatorNSignalSlot.value
+        );
+        migratedData.curatorBalanceClaimed[msg.sender] = true;
+
+        emit CuratorBalanceClaimed(_subgraphID, msg.sender, msg.sender, curatorNSignalSlot.value);
     }
 
     /**
      * @dev Claim curator balance belonging to a curator from L1.
-     * This will be credited to the a beneficiary on L2, and a signature must be provided
-     * to prove the L1 curator permits this assignment.
-     * @param _blockHeaderRlpBytes RLP-encoded block header from the block when the subgraph was locked on L1
-     * @param _proofRlpBytes RLP-encoded list of proofs: first proof of the L1 GNS account, then proof of the slot for the curator's balance
-     * @param _beneficiary Address of a beneficiary for the balance
-     * @param _deadline Expiration time of the signed permit
-     * @param _v Signature version
-     * @param _r Signature r value
-     * @param _s Signature s value
+     * This will be credited to the a beneficiary on L2, and can only be called
+     * from the GNS on L1 through a retryable ticket.
+     * @param _subgraphID Subgraph on which to claim the balance
+     * @param _curator Curator who owns the balance on L1
+     * @param _balance Balance of the curator from L1
+     * @param _beneficiary Address of an L2 beneficiary for the balance
      */
     function claimL1CuratorBalanceToBeneficiary(
-        bytes memory _blockHeaderRlpBytes,
-        bytes memory _proofRlpBytes,
-        address _beneficiary,
-        uint256 _deadline,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-    ) external notPartialPaused {
-        // TODO
+        uint256 _subgraphID,
+        address _curator,
+        uint256 _balance,
+        address _beneficiary
+    ) external notPartialPaused onlyL1Counterpart {
+        GNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
+
+        require(migratedData.l2Done, "!MIGRATED");
+        require(!migratedData.curatorBalanceClaimed[_curator], "ALREADY_CLAIMED");
+
+        SubgraphData storage subgraphData = subgraphs[_subgraphID];
+        subgraphData.curatorNSignal[_beneficiary] = subgraphData.curatorNSignal[_beneficiary].add(
+            _balance
+        );
+        migratedData.curatorBalanceClaimed[_curator] = true;
+    }
+
+    /**
+     * @notice Converts L1 address to its L2 alias used when sending messages
+     * @dev The Arbitrum bridge adds an offset to addresses when sending messages,
+     * so we need to apply it to check any L1 address from a message in L2
+     * @param _l1Address The L1 address
+     * @return _l2Address the L2 alias of _l1Address
+     */
+    function l1ToL2Alias(address _l1Address) internal pure returns (address _l2Address) {
+        _l2Address = address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
     }
 }
