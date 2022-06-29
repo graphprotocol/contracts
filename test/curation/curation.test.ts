@@ -6,7 +6,15 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, randomHexBytes, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'
+import {
+  getAccounts,
+  randomHexBytes,
+  toBN,
+  toGRT,
+  formatGRT,
+  Account,
+  impersonateAccount,
+} from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -34,6 +42,7 @@ describe('Curation', () => {
   let governor: Account
   let curator: Account
   let stakingMock: Account
+  let gnsImpersonator: Account
 
   let fixture: NetworkFixture
 
@@ -124,6 +133,50 @@ describe('Curation', () => {
     expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(curationTax))
   }
 
+  const shouldMintTaxFree = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
+    // Before state
+    const beforeTokenTotalSupply = await grt.totalSupply()
+    const beforeCuratorTokens = await grt.balanceOf(gnsImpersonator.address)
+    const beforeCuratorSignal = await curation.getCuratorSignal(
+      gnsImpersonator.address,
+      subgraphDeploymentID,
+    )
+    const beforePool = await curation.pools(subgraphDeploymentID)
+    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const beforeTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curate
+    const tx = curation
+      .connect(gnsImpersonator.signer)
+      .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+    await expect(tx)
+      .emit(curation, 'Signalled')
+      .withArgs(gnsImpersonator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, 0)
+
+    // After state
+    const afterTokenTotalSupply = await grt.totalSupply()
+    const afterCuratorTokens = await grt.balanceOf(gnsImpersonator.address)
+    const afterCuratorSignal = await curation.getCuratorSignal(
+      gnsImpersonator.address,
+      subgraphDeploymentID,
+    )
+    const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const afterTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curator balance updated
+    expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToDeposit))
+    expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
+    // Allocated and balance updated
+    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit))
+    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
+    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    // Contract balance updated
+    expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit))
+    // Total supply is reduced to curation tax burning
+    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply)
+  }
+
   const shouldBurn = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
     // Before balances
     const beforeTokenTotalSupply = await grt.totalSupply()
@@ -186,14 +239,16 @@ describe('Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, governor, curator, stakingMock] = await getAccounts()
+    ;[me, governor, curator, stakingMock, gnsImpersonator] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ controller, curation, grt } = await fixture.load(governor.signer))
 
-    // Give some funds to the curator and approve the curation contract
+    // Give some funds to the curator and GNS impersonator and approve the curation contract
     await grt.connect(governor.signer).mint(curator.address, curatorTokens)
     await grt.connect(curator.signer).approve(curation.address, curatorTokens)
+    await grt.connect(governor.signer).mint(gnsImpersonator.address, curatorTokens)
+    await grt.connect(gnsImpersonator.signer).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
     await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
@@ -300,6 +355,61 @@ describe('Curation', () => {
       const tx = curation
         .connect(curator.signer)
         .mint(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
+      await expect(tx).revertedWith('Slippage protection')
+    })
+  })
+
+  describe('curate tax free (from GNS)', async function () {
+    beforeEach(async function () {
+      await controller.setContractProxy(utils.id('GNS'), gnsImpersonator.address)
+    })
+    it('can not be called by anyone other than GNS', async function () {
+      const tokensToDeposit = await curation.minimumCurationDeposit()
+      const tx = curation
+        .connect(curator.signer)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+      await expect(tx).revertedWith('Only the GNS can call this')
+    })
+
+    it('reject deposit below minimum tokens required', async function () {
+      const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
+      const tx = curation
+        .connect(gnsImpersonator.signer)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+      await expect(tx).revertedWith('Curation deposit is below minimum required')
+    })
+
+    it('should deposit on a subgraph deployment', async function () {
+      const tokensToDeposit = await curation.minimumCurationDeposit()
+      const expectedSignal = toGRT('1')
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should get signal according to bonding curve', async function () {
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = signalAmountFor1000Tokens
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should get signal according to bonding curve (and with zero tax)', async function () {
+      // Set curation tax
+      await curation.connect(governor.signer).setCurationTaxPercentage(50000) // 5%
+
+      // Mint
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = await curation.tokensToSignalNoTax(
+        subgraphDeploymentID,
+        tokensToDeposit,
+      )
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should revert curate if over slippage', async function () {
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = signalAmountFor1000Tokens
+      const tx = curation
+        .connect(gnsImpersonator.signer)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
   })
