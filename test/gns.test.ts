@@ -3,7 +3,7 @@ import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
 import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
 
-import { GNS } from '../build/types/GNS'
+import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
@@ -12,6 +12,12 @@ import { getAccounts, randomHexBytes, Account, toGRT, getChainID } from './lib/t
 import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 import { getContractAt } from '../cli/network'
+import { deployContract } from './lib/deployment'
+import { BancorFormula } from '../build/types/BancorFormula'
+import { network } from '../cli'
+import { Controller } from '../build/types/Controller'
+import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
+import { L1GNS } from '../build/types/L1GNS'
 
 const { AddressZero, HashZero } = ethers.constants
 
@@ -45,7 +51,10 @@ const toRound = (n: number) => n.toFixed(12)
 const buildSubgraphID = async (account: string, seqID: BigNumber): Promise<string> =>
   solidityKeccak256(['address', 'uint256', 'uint256'], [account, seqID, await getChainID()])
 
-describe('GNS', () => {
+const buildLegacySubgraphID = (account: string, seqID: BigNumber): string =>
+  solidityKeccak256(['address', 'uint256'], [account, seqID])
+
+describe('GNS (L1)', () => {
   let me: Account
   let other: Account
   let another: Account
@@ -53,9 +62,12 @@ describe('GNS', () => {
 
   let fixture: NetworkFixture
 
-  let gns: GNS
+  let gns: L1GNS
+  let legacyGNSMock: LegacyGNSMock
   let grt: GraphToken
   let curation: Curation
+  let controller: Controller
+  let proxyAdmin: GraphProxyAdmin
 
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
@@ -509,7 +521,7 @@ describe('GNS', () => {
   before(async function () {
     ;[me, other, governor, another] = await getAccounts()
     fixture = new NetworkFixture()
-    ;({ grt, curation, gns } = await fixture.load(governor.signer))
+    ;({ grt, curation, gns, controller, proxyAdmin } = await fixture.load(governor.signer))
     newSubgraph0 = buildSubgraph()
     newSubgraph1 = buildSubgraph()
     defaultName = createDefaultName('graph')
@@ -550,6 +562,38 @@ describe('GNS', () => {
       it('reject set `ownerTaxPercentage` if not allowed', async function () {
         const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
         await expect(tx).revertedWith('Only Controller governor')
+      })
+    })
+
+    describe('setCounterpartGNSAddress', function () {
+      it('should set `counterpartGNSAddress`', async function () {
+        // Can set if allowed
+        const newValue = other.address
+        const tx = gns.connect(governor.signer).setCounterpartGNSAddress(newValue)
+        await expect(tx).emit(gns, 'CounterpartGNSAddressUpdated').withArgs(newValue)
+        expect(await gns.counterpartGNSAddress()).eq(newValue)
+      })
+
+      it('reject set `counterpartGNSAddress` if not allowed', async function () {
+        const newValue = other.address
+        const tx = gns.connect(me.signer).setCounterpartGNSAddress(newValue)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+    })
+
+    describe('setArbitrumInboxAddress', function () {
+      it('should set `arbitrumInboxAddress`', async function () {
+        // Can set if allowed
+        const newValue = other.address
+        const tx = gns.connect(governor.signer).setArbitrumInboxAddress(newValue)
+        await expect(tx).emit(gns, 'ArbitrumInboxAddressUpdated').withArgs(newValue)
+        expect(await gns.arbitrumInboxAddress()).eq(newValue)
+      })
+
+      it('reject set `arbitrumInboxAddress` if not allowed', async function () {
+        const newValue = other.address
+        const tx = gns.connect(me.signer).setArbitrumInboxAddress(newValue)
+        await expect(tx).revertedWith('Caller must be Controller governor')
       })
     })
 
@@ -1138,6 +1182,70 @@ describe('GNS', () => {
       await subgraphNFT.connect(governor.signer).setBaseURI('ipfs://')
       const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(subgraph0.id)
       expect('ipfs://' + subgraph0.id).eq(tokenURI)
+    })
+  })
+  describe('Legacy subgraph migration', function () {
+    beforeEach(async function () {
+      const bondingCurve = (await deployContract(
+        'BancorFormula',
+        governor.signer,
+      )) as unknown as BancorFormula
+      const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', governor.signer)
+      const subgraphNFT = (await deployContract(
+        'SubgraphNFT',
+        governor.signer,
+        governor.address,
+      )) as SubgraphNFT
+
+      // Deploy
+      legacyGNSMock = (await network.deployContractWithProxy(
+        proxyAdmin,
+        'LegacyGNSMock',
+        [controller.address, bondingCurve.address, subgraphNFT.address],
+        governor.signer,
+      )) as unknown as LegacyGNSMock
+
+      // Post-config
+      await subgraphNFT.connect(governor.signer).setMinter(legacyGNSMock.address)
+      await subgraphNFT.connect(governor.signer).setTokenDescriptor(subgraphDescriptor.address)
+    })
+    it('migrates a legacy subgraph', async function () {
+      const seqID = toBN('2')
+      await legacyGNSMock
+        .connect(me.signer)
+        .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+      const tx = legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
+      const expectedSubgraphID = buildLegacySubgraphID(me.address, seqID)
+      const migratedSubgraphDeploymentID = await legacyGNSMock.getSubgraphDeploymentID(
+        expectedSubgraphID,
+      )
+      const migratedNSignal = await legacyGNSMock.getSubgraphNSignal(expectedSubgraphID)
+      expect(migratedSubgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
+      expect(migratedNSignal).eq(toBN('1000'))
+
+      const subgraphNFTAddress = await legacyGNSMock.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      const tokenURI = await subgraphNFT.connect(me.signer).tokenURI(expectedSubgraphID)
+
+      const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
+      expect(sub.ipfsHash).eq(tokenURI)
+    })
+    it('refuses to migrate an already migrated subgraph', async function () {
+      const seqID = toBN('2')
+      await legacyGNSMock
+        .connect(me.signer)
+        .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+      let tx = legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
+      tx = legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(tx).revertedWith('GNS: Subgraph was already claimed')
     })
   })
 })

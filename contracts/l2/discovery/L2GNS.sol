@@ -66,7 +66,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         bytes32 subgraphMetadata
     ) external notPartialPaused onlyL2Gateway {
         IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[subgraphID];
-        SubgraphData storage subgraphData = subgraphs[subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
 
         subgraphData.reserveRatio = reserveRatio;
         // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
@@ -91,7 +91,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         bytes32 _versionMetadata
     ) external notPartialPaused onlySubgraphAuth(_subgraphID) {
         IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
-        SubgraphData storage subgraphData = subgraphs[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         // A subgraph
         require(migratedData.tokens > 0, "INVALID_SUBGRAPH");
         require(!migratedData.l2Done, "ALREADY_DONE");
@@ -180,7 +180,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
 
         require(curatorNSignalSlot.exists, "!CURATOR_SLOT");
 
-        SubgraphData storage subgraphData = subgraphs[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         subgraphData.curatorNSignal[msg.sender] = subgraphData.curatorNSignal[msg.sender].add(
             curatorNSignalSlot.value
         );
@@ -209,7 +209,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         require(migratedData.l2Done, "!MIGRATED");
         require(!migratedData.curatorBalanceClaimed[_curator], "ALREADY_CLAIMED");
 
-        SubgraphData storage subgraphData = subgraphs[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         subgraphData.curatorNSignal[_beneficiary] = subgraphData.curatorNSignal[_beneficiary].add(
             _balance
         );

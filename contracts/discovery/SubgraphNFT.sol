@@ -172,7 +172,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
      * @return IPFS hash for the metadata
      */
     function getSubgraphMetadata(uint256 _tokenId) external view override returns (bytes32) {
-        require(_exists(_tokenId), "ERC721Metadata: URI set of nonexistent token");
+        require(_exists(_tokenId), "ERC721Metadata: metadata query of nonexistent token");
         return _subgraphMetadataHashes[_tokenId];
     }
 }
