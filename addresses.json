@@ -119,7 +119,7 @@
         "txHash": "0x2e44da799ad8866ac49aae2e40a16c57784ed4b1e9343daa4f764c39a05e0826"
       }
     },
-    "GNS": {
+    "L1GNS": {
       "address": "0xaDcA0dd4729c8BA3aCf3E99F3A9f471EF37b6825",
       "initArgs": [
         {
@@ -601,7 +601,7 @@
         "txHash": "0xc93d39f849b249792924ee973c022aea2445c6662ce26f450d324b1c721c25a7"
       }
     },
-    "GNS": {
+    "L1GNS": {
       "address": "0xA94B7f0465E98609391C623d0560C5720a3f2D33",
       "initArgs": [
         "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
