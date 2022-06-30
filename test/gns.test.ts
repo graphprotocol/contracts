@@ -54,7 +54,7 @@ const buildSubgraphID = async (account: string, seqID: BigNumber): Promise<strin
 const buildLegacySubgraphID = (account: string, seqID: BigNumber): string =>
   solidityKeccak256(['address', 'uint256'], [account, seqID])
 
-describe('GNS (L1)', () => {
+describe('L1GNS', () => {
   let me: Account
   let other: Account
   let another: Account
@@ -1246,6 +1246,38 @@ describe('GNS (L1)', () => {
         .connect(me.signer)
         .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
       await expect(tx).revertedWith('GNS: Subgraph was already claimed')
+    })
+  })
+  describe('Subgraph migration to L2', function () {
+    describe('lockSubgraphForMigrationToL2', function () {
+      it('locks and disables a subgraph, burning the signal and storing the block number')
+      it('locks and disables a legacy subgraph, burning the signal and storing the block number')
+      it('rejects calls from someone who is not the subgraph owner')
+      it('rejects a call for a non-existent subgraph')
+      it('rejects a call for a subgraph with no signal')
+    })
+    describe('sendSubgraphToL2', function () {
+      it('sends tokens and calldata to L2 through the GRT bridge')
+      it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge')
+      it('rejects calls from someone who is not the subgraph owner')
+      it('rejects calls for a subgraph that is not locked')
+      it('rejects calls for a subgraph that was already sent')
+      it('rejects calls after too many blocks have passed')
+    })
+    describe('deprecateLockedSubgraph', function () {
+      it('makes the GRT from the subgraph withdrawable')
+      it('rejects calls for a subgraph that was not locked')
+      it('rejects calls if not enough blocks have passed')
+      it('rejects calls for a subgraph that was sent to L2')
+      it('rejects calls for a subgraph that was already deprecated')
+    })
+    describe('claimCuratorBalanceToBeneficiaryOnL2', function () {
+      it('sends a transaction to the L2GNS using the Arbitrum inbox')
+      it('rejects calls for a subgraph that was locked but not sent to L2')
+      it('rejects calls for a subgraph that was not locked')
+      it('rejects calls for a subgraph that was locked but deprecated')
+      it('rejects calls with an incorrect eth value')
+      it('rejects calls with zero maxSubmissionCost')
     })
   })
 })

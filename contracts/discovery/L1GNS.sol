@@ -42,7 +42,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     function lockSubgraphForMigrationToL2(uint256 _subgraphID)
         external
         payable
-        notPaused
+        notPartialPaused
         onlySubgraphAuth(_subgraphID)
     {
         // Subgraph check
@@ -78,7 +78,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 maxGas,
         uint256 gasPriceBid,
         uint256 maxSubmissionCost
-    ) external payable notPaused onlySubgraphAuth(_subgraphID) {
+    ) external payable notPartialPaused onlySubgraphAuth(_subgraphID) {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
         require(
@@ -137,7 +137,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      * This allows curators to recover their funds if the subgraph was locked
      * for a migration to L2 but the subgraph was never actually sent to L2.
      */
-    function deprecateLockedSubgraph(uint256 _subgraphID) external notPaused {
+    function deprecateLockedSubgraph(uint256 _subgraphID) external notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
         require(
@@ -162,7 +162,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external payable notPaused returns (bytes memory) {
+    ) external payable notPartialPaused returns (bytes memory) {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
 
