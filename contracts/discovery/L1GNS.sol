@@ -50,15 +50,13 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
 
         // Lock the subgraph so no more signal can be minted or burned.
-        // This can only be done for subgraphs that have nonzero signal.
-        require(subgraphData.nSignal > 0, "!SIGNAL");
 
         // Burn all version signal in the name pool for tokens (w/no slippage protection)
         // Sell all signal from the old deployment
         migrationData.tokens = curation().burn(
             subgraphData.subgraphDeploymentID,
             subgraphData.vSignal,
-            1 // We do check that the output must be nonzero...
+            0
         );
 
         subgraphData.disabled = true;

@@ -19,13 +19,9 @@ interface IGNS {
         uint256 lockedAtBlock; // Block at which the subgraph was locked for migration
         uint256 tokens; // GRT that will be sent to L2 to mint signal
         bool l1Done; // Migration finished on L1 side (or subgraph deprecated)
-    }
-
-    struct MigratedSubgraphData {
-        bytes32 lockedAtBlockHash;
-        mapping(address => bool) curatorBalanceClaimed;
-        uint256 tokens;
-        bool l2Done;
+        bytes32 lockedAtBlockHash; // Blockhash from block at which the subgraph was locked for migration
+        mapping(address => bool) curatorBalanceClaimed; // True for curators whose balance has been claimed in L2
+        bool l2Done; // Migration finished on L2 side
     }
 
     struct LegacySubgraphKey {
@@ -124,4 +120,11 @@ interface IGNS {
         returns (uint256);
 
     function isPublished(uint256 _subgraphID) external view returns (bool);
+
+    function isLegacySubgraph(uint256 _subgraphID) external view returns (bool);
+
+    function getLegacySubgraphKey(uint256 _subgraphID)
+        external
+        view
+        returns (address account, uint256 seqID);
 }

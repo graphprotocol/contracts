@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../../discovery/GNS.sol";
-import "./L2GNSStorage.sol";
 
 import { RLPReader } from "../../libraries/RLPReader.sol";
 import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
@@ -21,7 +20,7 @@ import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifi
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L2GNS is GNS, L2GNSV1Storage {
+contract L2GNS is GNS {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
     using SafeMath for uint256;
@@ -29,10 +28,10 @@ contract L2GNS is GNS, L2GNSV1Storage {
     // Offset applied by the bridge to L1 addresses sending messages to L2
     uint160 internal constant L2_ADDRESS_OFFSET =
         uint160(0x1111000000000000000000000000000000001111);
-    // Storage slot where the subgraphs mapping is stored
+    // Storage slot where the subgraphs mapping is stored on L1GNS
     uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
-    // Storage slot where the legacy subgraphs mapping is stored
-    uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 17;
+    // Storage slot where the legacy subgraphs mapping is stored on L1GNS
+    uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 15;
 
     event SubgraphReceivedFromL1(uint256 _subgraphID);
     event SubgraphMigrationFinalized(uint256 _subgraphID);
@@ -69,7 +68,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         uint32 reserveRatio,
         bytes32 subgraphMetadata
     ) external notPartialPaused onlyL2Gateway {
-        IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[subgraphID];
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
 
         subgraphData.reserveRatio = reserveRatio;
@@ -79,6 +78,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
 
         migratedData.tokens = tokens;
         migratedData.lockedAtBlockHash = lockedAtBlockHash;
+        migratedData.l1Done = true;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
@@ -94,10 +94,10 @@ contract L2GNS is GNS, L2GNSV1Storage {
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
     ) external notPartialPaused onlySubgraphAuth(_subgraphID) {
-        IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         // A subgraph
-        require(migratedData.tokens > 0, "INVALID_SUBGRAPH");
+        require(migratedData.l1Done, "INVALID_SUBGRAPH");
         require(!migratedData.l2Done, "ALREADY_DONE");
         migratedData.l2Done = true;
 
@@ -143,7 +143,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         bytes memory _proofRlpBytes
     ) external notPartialPaused {
         Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
-        IGNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
 
         require(migratedData.l2Done, "!MIGRATED");
         require(blockHeader.hash == migratedData.lockedAtBlockHash, "!BLOCKHASH");
@@ -170,15 +170,10 @@ contract L2GNS is GNS, L2GNSV1Storage {
                 abi.encodePacked(
                     uint256(msg.sender),
                     uint256(
-                        uint256(
-                            keccak256(
-                                abi.encodePacked(
-                                    uint256(_subgraphID),
-                                    uint256(SUBGRAPH_MAPPING_SLOT)
-                                )
-                            )
-                        ) + 2
-                    )
+                        keccak256(
+                            abi.encodePacked(uint256(_subgraphID), uint256(SUBGRAPH_MAPPING_SLOT))
+                        )
+                    ).add(2)
                 )
             )
         );
@@ -204,12 +199,75 @@ contract L2GNS is GNS, L2GNSV1Storage {
      * @dev Claim curator balance belonging to a curator from L1 on a legacy subgraph.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
-     * @param _subgraphID Subgraph for which to claim a balance
+     * Users can query getLegacySubgraphKey on L1 to get the _subgraphCreatorAccount and _seqID.
+     * @param _subgraphCreatorAccount Account that created the subgraph in L1
+     * @param _seqID Sequence number for the subgraph
      * @param _blockHeaderRlpBytes RLP-encoded block header from the block when the subgraph was locked on L1
      * @param _proofRlpBytes RLP-encoded list of proofs: first proof of the L1 GNS account, then proof of the slot for the curator's balance
      */
-    function claimL1CuratorBalanceForLegacySubgraph() external {
-        // TODO
+    function claimL1CuratorBalanceForLegacySubgraph(
+        address _subgraphCreatorAccount,
+        uint256 _seqID,
+        bytes memory _blockHeaderRlpBytes,
+        bytes memory _proofRlpBytes
+    ) external {
+        uint256 _subgraphID = _buildLegacySubgraphID(_subgraphCreatorAccount, _seqID);
+
+        Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+
+        require(migratedData.l2Done, "!MIGRATED");
+        require(blockHeader.hash == migratedData.lockedAtBlockHash, "!BLOCKHASH");
+        require(!migratedData.curatorBalanceClaimed[msg.sender], "ALREADY_CLAIMED");
+
+        RLPReader.RLPItem[] memory proofs = _proofRlpBytes.toRlpItem().toList();
+        require(proofs.length == 2, "!N_PROOFS");
+
+        Verifier.Account memory l1GNSAccount = Verifier.extractAccountFromProof(
+            keccak256(abi.encodePacked(counterpartGNSAddress)),
+            blockHeader.stateRootHash,
+            proofs[0].toList()
+        );
+
+        require(l1GNSAccount.exists, "!ACCOUNT");
+
+        uint256 curatorSlot;
+        {
+            // legacy subgraphs mapping is stored at slot LEGACY_SUBGRAPH_MAPPING_SLOT.
+            // So the subgraphs for the account are at slot keccak256(abi.encodePacked(uint256(_subgraphCreatorAccount), uint256(SUBGRAPH_MAPPING_SLOT)))
+            uint256 accountSlot = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        uint256(_subgraphCreatorAccount),
+                        uint256(LEGACY_SUBGRAPH_MAPPING_SLOT)
+                    )
+                )
+            );
+            // Then the subgraph for this _seqID should be at:
+            uint256 subgraphSlot = uint256(keccak256(abi.encodePacked(_seqID, accountSlot)));
+            // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
+            // So the mapping is at slot subgraphSlot + 2
+            // Therefore the nSignal value for msg.sender should be at slot:
+            curatorSlot = uint256(
+                keccak256(abi.encodePacked(uint256(msg.sender), uint256(subgraphSlot).add(2)))
+            );
+        }
+
+        Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
+            keccak256(abi.encodePacked(curatorSlot)),
+            l1GNSAccount.storageRoot,
+            proofs[1].toList()
+        );
+
+        require(curatorNSignalSlot.exists, "!CURATOR_SLOT");
+
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        subgraphData.curatorNSignal[msg.sender] = subgraphData.curatorNSignal[msg.sender].add(
+            curatorNSignalSlot.value
+        );
+        migratedData.curatorBalanceClaimed[msg.sender] = true;
+
+        emit CuratorBalanceClaimed(_subgraphID, msg.sender, msg.sender, curatorNSignalSlot.value);
     }
 
     /**
@@ -227,7 +285,7 @@ contract L2GNS is GNS, L2GNSV1Storage {
         uint256 _balance,
         address _beneficiary
     ) external notPartialPaused onlyL1Counterpart {
-        GNS.MigratedSubgraphData storage migratedData = migratedSubgraphData[_subgraphID];
+        GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
 
         require(migratedData.l2Done, "!MIGRATED");
         require(!migratedData.curatorBalanceClaimed[_curator], "ALREADY_CLAIMED");
