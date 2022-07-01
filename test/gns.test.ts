@@ -1453,7 +1453,7 @@ describe('L1GNS', () => {
         )
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2GNS.address, toBN(1), expectedL2Data)
+          .withArgs(gns.address, mockL2Gateway.address, toBN(1), expectedL2Data)
       })
       it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge')
       it('rejects calls from someone who is not the subgraph owner')
