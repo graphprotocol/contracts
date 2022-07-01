@@ -3,12 +3,12 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../discovery/GNS.sol";
+import "../discovery/L1GNS.sol";
 
 /**
  * @title LegacyGNSMock contract
  */
-contract LegacyGNSMock is GNS {
+contract LegacyGNSMock is L1GNS {
     function createLegacySubgraph(uint256 subgraphNumber, bytes32 subgraphDeploymentID) external {
         SubgraphData storage subgraphData = legacySubgraphData[msg.sender][subgraphNumber];
         legacySubgraphs[msg.sender][subgraphNumber] = subgraphDeploymentID;

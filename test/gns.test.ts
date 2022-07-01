@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { solidityKeccak256 } from 'ethers/lib/utils'
+import { Interface, solidityKeccak256 } from 'ethers/lib/utils'
 import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
 
 import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
@@ -8,7 +8,15 @@ import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
-import { getAccounts, randomHexBytes, Account, toGRT, getChainID } from './lib/testHelpers'
+import {
+  getAccounts,
+  randomHexBytes,
+  Account,
+  toGRT,
+  getChainID,
+  latestBlock,
+  advanceBlocks,
+} from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 import { getContractAt } from '../cli/network'
@@ -18,8 +26,16 @@ import { network } from '../cli'
 import { Controller } from '../build/types/Controller'
 import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
 import { L1GNS } from '../build/types/L1GNS'
+import path from 'path'
+import { Artifacts } from 'hardhat/internal/artifacts'
+import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 
 const { AddressZero, HashZero } = ethers.constants
+
+const ARTIFACTS_PATH = path.resolve('build/contracts')
+const artifacts = new Artifacts(ARTIFACTS_PATH)
+const l2GNSabi = artifacts.readArtifactSync('L2GNS').abi
+const l2GNSIface = new Interface(l2GNSabi)
 
 // Entities
 interface PublishSubgraph {
@@ -59,6 +75,10 @@ describe('L1GNS', () => {
   let other: Account
   let another: Account
   let governor: Account
+  let mockRouter: Account
+  let mockL2GRT: Account
+  let mockL2Gateway: Account
+  let mockL2GNS: Account
 
   let fixture: NetworkFixture
 
@@ -68,6 +88,7 @@ describe('L1GNS', () => {
   let curation: Curation
   let controller: Controller
   let proxyAdmin: GraphProxyAdmin
+  let l1GraphTokenGateway: L1GraphTokenGateway
 
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
@@ -518,10 +539,39 @@ describe('L1GNS', () => {
     return tx
   }
 
+  const deployLegacyGNSMock = async (): Promise<any> => {
+    const bondingCurve = (await deployContract(
+      'BancorFormula',
+      governor.signer,
+    )) as unknown as BancorFormula
+    const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', governor.signer)
+    const subgraphNFT = (await deployContract(
+      'SubgraphNFT',
+      governor.signer,
+      governor.address,
+    )) as SubgraphNFT
+
+    // Deploy
+    legacyGNSMock = (await network.deployContractWithProxy(
+      proxyAdmin,
+      'LegacyGNSMock',
+      [controller.address, bondingCurve.address, subgraphNFT.address],
+      governor.signer,
+    )) as unknown as LegacyGNSMock
+
+    // Post-config
+    await subgraphNFT.connect(governor.signer).setMinter(legacyGNSMock.address)
+    await subgraphNFT.connect(governor.signer).setTokenDescriptor(subgraphDescriptor.address)
+    await legacyGNSMock.connect(governor.signer).syncAllContracts()
+    await legacyGNSMock.connect(governor.signer).approveAll()
+  }
+
   before(async function () {
-    ;[me, other, governor, another] = await getAccounts()
+    ;[me, other, governor, another, mockRouter, mockL2GRT, mockL2Gateway, mockL2GNS] =
+      await getAccounts()
     fixture = new NetworkFixture()
-    ;({ grt, curation, gns, controller, proxyAdmin } = await fixture.load(governor.signer))
+    const fixtureContracts = await fixture.load(governor.signer)
+    ;({ grt, curation, gns, controller, proxyAdmin, l1GraphTokenGateway } = fixtureContracts)
     newSubgraph0 = buildSubgraph()
     newSubgraph1 = buildSubgraph()
     defaultName = createDefaultName('graph')
@@ -534,6 +584,21 @@ describe('L1GNS', () => {
     await grt.connect(other.signer).approve(curation.address, tokens100000)
     // Update curation tax to test the functionality of it in disableNameSignal()
     await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+
+    // Deploying a GNS mock with support for legacy subgraphs
+    await deployLegacyGNSMock()
+    await grt.connect(me.signer).approve(legacyGNSMock.address, tokens100000)
+
+    const arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
+    await fixture.configureL1Bridge(
+      governor.signer,
+      arbitrumMocks,
+      fixtureContracts,
+      mockRouter.address,
+      mockL2GRT.address,
+      mockL2Gateway.address,
+      mockL2GNS.address,
+    )
   })
 
   beforeEach(async function () {
@@ -1185,30 +1250,6 @@ describe('L1GNS', () => {
     })
   })
   describe('Legacy subgraph migration', function () {
-    beforeEach(async function () {
-      const bondingCurve = (await deployContract(
-        'BancorFormula',
-        governor.signer,
-      )) as unknown as BancorFormula
-      const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', governor.signer)
-      const subgraphNFT = (await deployContract(
-        'SubgraphNFT',
-        governor.signer,
-        governor.address,
-      )) as SubgraphNFT
-
-      // Deploy
-      legacyGNSMock = (await network.deployContractWithProxy(
-        proxyAdmin,
-        'LegacyGNSMock',
-        [controller.address, bondingCurve.address, subgraphNFT.address],
-        governor.signer,
-      )) as unknown as LegacyGNSMock
-
-      // Post-config
-      await subgraphNFT.connect(governor.signer).setMinter(legacyGNSMock.address)
-      await subgraphNFT.connect(governor.signer).setTokenDescriptor(subgraphDescriptor.address)
-    })
     it('migrates a legacy subgraph', async function () {
       const seqID = toBN('2')
       await legacyGNSMock
@@ -1250,14 +1291,170 @@ describe('L1GNS', () => {
   })
   describe('Subgraph migration to L2', function () {
     describe('lockSubgraphForMigrationToL2', function () {
-      it('locks and disables a subgraph, burning the signal and storing the block number')
-      it('locks and disables a legacy subgraph, burning the signal and storing the block number')
-      it('rejects calls from someone who is not the subgraph owner')
-      it('rejects a call for a non-existent subgraph')
-      it('rejects a call for a subgraph with no signal')
+      it('locks and disables a subgraph, burning the signal and storing the block number', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+        const curatedTokens = await grt.balanceOf(curation.address)
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        expect(subgraphBefore.vSignal).not.eq(0)
+        const tx = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        await expect(tx).emit(gns, 'SubgraphLockedForMigrationToL2').withArgs(subgraph0.id)
+
+        const subgraphAfter = await gns.subgraphs(subgraph0.id)
+        expect(subgraphAfter.vSignal).eq(0)
+        expect(subgraphAfter.nSignal).eq(subgraphBefore.nSignal)
+        expect(await grt.balanceOf(gns.address)).eq(curatedTokens)
+        expect(subgraphAfter.disabled).eq(true)
+        expect(subgraphAfter.withdrawableGRT).eq(0)
+
+        const migrationData = await gns.subgraphL2MigrationData(subgraph0.id)
+        expect(migrationData.lockedAtBlock).eq(await latestBlock())
+        expect(migrationData.l1Done).eq(false)
+
+        let invalidTx = gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        await expect(invalidTx).revertedWith('GNS: Must be active')
+        invalidTx = gns.connect(me.signer).burnSignal(subgraph0.id, toGRT('90000'), 0)
+        await expect(invalidTx).revertedWith('GNS: Must be active')
+      })
+      it('locks and disables a legacy subgraph, burning the signal and storing the block number', async function () {
+        const seqID = toBN('2')
+        await legacyGNSMock
+          .connect(me.signer)
+          .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+        // The legacy subgraph must be claimed
+        const migrateTx = legacyGNSMock
+          .connect(me.signer)
+          .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+        await expect(migrateTx)
+          .emit(legacyGNSMock, ' LegacySubgraphClaimed')
+          .withArgs(me.address, seqID)
+        const subgraphID = buildLegacySubgraphID(me.address, seqID)
+
+        // Curate on the subgraph
+        await legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('10000'), 0)
+
+        const curatedTokens = await grt.balanceOf(curation.address)
+        const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
+        expect(subgraphBefore.vSignal).not.eq(0)
+        const tx = legacyGNSMock.connect(me.signer).lockSubgraphForMigrationToL2(subgraphID)
+        await expect(tx).emit(legacyGNSMock, 'SubgraphLockedForMigrationToL2').withArgs(subgraphID)
+
+        const subgraphAfter = await legacyGNSMock.legacySubgraphData(me.address, seqID)
+        expect(subgraphAfter.vSignal).eq(0)
+        expect(subgraphAfter.nSignal).eq(subgraphBefore.nSignal)
+        expect(await grt.balanceOf(legacyGNSMock.address)).eq(curatedTokens)
+        expect(subgraphAfter.disabled).eq(true)
+        expect(subgraphAfter.withdrawableGRT).eq(0)
+
+        const migrationData = await legacyGNSMock.subgraphL2MigrationData(subgraphID)
+        expect(migrationData.lockedAtBlock).eq(await latestBlock())
+        expect(migrationData.l1Done).eq(false)
+
+        let invalidTx = legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('90000'), 0)
+        await expect(invalidTx).revertedWith('GNS: Must be active')
+        invalidTx = legacyGNSMock.connect(me.signer).burnSignal(subgraphID, toGRT('90000'), 0)
+        await expect(invalidTx).revertedWith('GNS: Must be active')
+      })
+      it('rejects calls from someone who is not the subgraph owner', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+        const tx = gns.connect(other.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        await expect(tx).revertedWith('GNS: Must be authorized')
+      })
+      it('rejects a call for a non-existent subgraph', async function () {
+        const subgraphID = buildLegacySubgraphID(me.address, toBN('0'))
+
+        const tx = gns.connect(other.signer).lockSubgraphForMigrationToL2(subgraphID)
+        await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+      })
+      it('rejects a call for a subgraph that is already locked', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+        const tx = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        await expect(tx).emit(gns, 'SubgraphLockedForMigrationToL2').withArgs(subgraph0.id)
+
+        const tx2 = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        await expect(tx2).revertedWith('GNS: Must be active')
+      })
+      it('rejects a call for a subgraph that is deprecated', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+        await gns.connect(me.signer).deprecateSubgraph(subgraph0.id)
+
+        const tx2 = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        // Deprecating the subgraph burns the NFT
+        await expect(tx2).revertedWith('ERC721: owner query for nonexistent token')
+      })
     })
     describe('sendSubgraphToL2', function () {
-      it('sends tokens and calldata to L2 through the GRT bridge')
+      it('sends tokens and calldata to L2 through the GRT bridge', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+        // We need the block number to be > 256 to avoid underflows...
+        await advanceBlocks(256)
+
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+        const curatedTokens = await grt.balanceOf(curation.address)
+        const lockTx = await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        const lockReceipt = await lockTx.wait()
+        const lockBlockhash = lockReceipt.blockHash
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
+
+        const subgraphAfter = await gns.subgraphs(subgraph0.id)
+        expect(subgraphAfter.vSignal).eq(0)
+        expect(await grt.balanceOf(gns.address)).eq(0)
+        expect(subgraphAfter.disabled).eq(true)
+        expect(subgraphAfter.withdrawableGRT).eq(0)
+
+        const migrationData = await gns.subgraphL2MigrationData(subgraph0.id)
+        expect(migrationData.lockedAtBlock).eq((await latestBlock()).sub(1))
+        expect(migrationData.l1Done).eq(true)
+
+        const expectedCallhookData = l2GNSIface.encodeFunctionData('receiveSubgraphFromL1', [
+          subgraph0.id,
+          me.address,
+          curatedTokens,
+          lockBlockhash,
+          subgraphAfter.nSignal,
+          subgraphAfter.reserveRatio,
+          newSubgraph0.subgraphMetadata,
+        ])
+
+        const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          gns.address,
+          mockL2GNS.address,
+          curatedTokens,
+          expectedCallhookData,
+        )
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(gns.address, mockL2GNS.address, toBN(1), expectedL2Data)
+      })
       it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge')
       it('rejects calls from someone who is not the subgraph owner')
       it('rejects calls for a subgraph that is not locked')
@@ -1272,7 +1469,8 @@ describe('L1GNS', () => {
       it('rejects calls for a subgraph that was already deprecated')
     })
     describe('claimCuratorBalanceToBeneficiaryOnL2', function () {
-      it('sends a transaction to the L2GNS using the Arbitrum inbox')
+      it('sends a transaction with a curator balance to the L2GNS using the Arbitrum inbox')
+      it('sends a transaction with a curator balance from a legacy subgraph to the L2GNS')
       it('rejects calls for a subgraph that was locked but not sent to L2')
       it('rejects calls for a subgraph that was not locked')
       it('rejects calls for a subgraph that was locked but deprecated')
