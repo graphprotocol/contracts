@@ -1120,9 +1120,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             // Needs to have free capacity not used for other purposes to allocate
             require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
         } else {
-            // Allocating zero-tokens still needs to have stake
-            // Minimum indexer stake is managed by stake/unstake
-            require(stakes[_indexer].tokensSecureStake() > 0, "!stake");
+            // Allocating zero-tokens still needs to comply with stake requirements
+            require(
+                stakes[_indexer].tokensSecureStake() >= minimumIndexerStake,
+                "!minimumIndexerStake"
+            );
         }
 
         // Creates an allocation

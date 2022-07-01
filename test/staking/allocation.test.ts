@@ -357,9 +357,9 @@ describe('Staking:Allocation', () => {
       await expect(tx).revertedWith('!capacity')
     })
 
-    it('reject allocate zero tokens if no tokens staked', async function () {
+    it('reject allocate zero tokens if no minimum stake', async function () {
       const tx = allocate(toBN('0'))
-      await expect(tx).revertedWith('!stake')
+      await expect(tx).revertedWith('!minimumIndexerStake')
     })
 
     context('> when staked', function () {
