@@ -238,6 +238,7 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL2GRTAddress: string,
     mockL2GatewayAddress: string,
+    mockL2GNSAddress: string,
   ): Promise<any> {
     // First configure the Arbitrum bridge mocks
     await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
@@ -263,6 +264,10 @@ export class NetworkFixture {
     await l1FixtureContracts.bridgeEscrow
       .connect(deployer)
       .approveAll(l1FixtureContracts.l1GraphTokenGateway.address)
+    await l1FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
+    await l1FixtureContracts.l1GraphTokenGateway
+      .connect(deployer)
+      .addToCallhookWhitelist(l1FixtureContracts.gns.address)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
