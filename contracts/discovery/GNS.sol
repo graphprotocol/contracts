@@ -765,6 +765,33 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
+     * @dev Return whether a subgraph is a legacy subgraph (created before subgraph NFTs).
+     * @param _subgraphID Subgraph ID
+     * @return Return true if subgraph is a legacy subgraph
+     */
+    function isLegacySubgraph(uint256 _subgraphID) public view override returns (bool) {
+        (address account, ) = getLegacySubgraphKey(_subgraphID);
+        return account != address(0);
+    }
+
+    /**
+     * @dev Returns account and sequence ID for a legacy subgraph (created before subgraph NFTs).
+     * @param _subgraphID Subgraph ID
+     * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
+     * @return seqID Sequence number for the subgraph
+     */
+    function getLegacySubgraphKey(uint256 _subgraphID)
+        public
+        view
+        override
+        returns (address account, uint256 seqID)
+    {
+        LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
+        account = legacySubgraphKey.account;
+        seqID = legacySubgraphKey.accountSeqID;
+    }
+
+    /**
      * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
      * Only used for legacy subgraphs being migrated, as new ones will also use the chainid.
      * Subgraph ID is the keccak hash of account+seqID
