@@ -23,7 +23,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     // Emitted when the initial supply snapshot is taken after contract deployment
     event InitialSnapshotTaken(
         uint256 _blockNumber,
-        uint256 _tokenSupplyCache,
+        uint256 _issuanceBase,
         uint256 _mintedPendingRewards
     );
     // Emitted when an issuance rate update is staged, to be applied on the next drip
@@ -102,7 +102,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
 
     /**
      * @dev Computes the initial snapshot for token supply and mints any pending rewards
-     * This will initialize the tokenSupplyCache to the current GRT supply, after which
+     * This will initialize the issuanceBase to the current GRT supply, after which
      * we will keep an internal accounting only using newly minted rewards. This function
      * will also mint any pending rewards to cover up to the current block for open allocations,
      * to be computed off-chain.
@@ -112,8 +112,8 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         lastRewardsUpdateBlock = block.number;
         IGraphToken grt = graphToken();
         grt.mint(address(this), pendingRewards);
-        tokenSupplyCache = grt.totalSupply();
-        emit InitialSnapshotTaken(block.number, tokenSupplyCache, pendingRewards);
+        issuanceBase = grt.totalSupply();
+        emit InitialSnapshotTaken(block.number, issuanceBase, pendingRewards);
     }
 
     /**
@@ -224,11 +224,11 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     /**
      * @dev Snapshot accumulated rewards on this layer
      * We compute accumulatedLayerRewards and mark this block as the lastRewardsUpdateBlock.
-     * We also update the tokenSupplyCache by adding the new total rewards on both layers.
+     * We also update the issuanceBase by adding the new total rewards on both layers.
      * @param globalDelta New global rewards (i.e. rewards on L1 and L2) since the last update block
      */
     function snapshotAccumulatedRewards(uint256 globalDelta) internal {
-        tokenSupplyCache = tokenSupplyCache + globalDelta;
+        issuanceBase = issuanceBase + globalDelta;
         // Reimplementation of getAccumulatedRewards but reusing the globalDelta calculated above,
         // to save gas
         accumulatedLayerRewards =
@@ -252,7 +252,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         uint256 gasPriceBid,
         uint256 maxSubmissionCost
     ) internal {
-        uint256 normalizedSupply = l2RewardsFraction.mul(tokenSupplyCache).div(TOKEN_DECIMALS);
+        uint256 normalizedSupply = l2RewardsFraction.mul(issuanceBase).div(TOKEN_DECIMALS);
         bytes memory extraData = abi.encodeWithSelector(
             IL2Reservoir.receiveDrip.selector,
             normalizedSupply,
@@ -288,10 +288,10 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         if (issuanceRate <= MIN_ISSUANCE_RATE || blocknum == t0) {
             return 0;
         }
-        deltaRewards = tokenSupplyCache
+        deltaRewards = issuanceBase
             .mul(_pow(issuanceRate, blocknum.sub(t0), TOKEN_DECIMALS))
             .div(TOKEN_DECIMALS)
-            .sub(tokenSupplyCache);
+            .sub(issuanceBase);
     }
 
     /**

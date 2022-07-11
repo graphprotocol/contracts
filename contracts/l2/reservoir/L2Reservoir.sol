@@ -18,7 +18,7 @@ import "./L2ReservoirStorage.sol";
 contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
     using SafeMath for uint256;
 
-    event DripReceived(uint256 _normalizedTokenSupply);
+    event DripReceived(uint256 _issuanceBase);
     event NextDripNonceUpdated(uint256 _nonce);
 
     /**
@@ -51,7 +51,7 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
     /**
      * @dev Get new total rewards accumulated since the last drip.
      * This is deltaR = p * r ^ (blocknum - t0) - p, where:
-     * - p is the normalized token supply snapshot at t0
+     * - p is the issuance base at t0 (normalized by the L2 rewards fraction)
      * - t0 is the last drip block, i.e. lastRewardsUpdateBlock
      * - r is the issuanceRate
      * @param blocknum Block number at which to calculate rewards
@@ -67,25 +67,25 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
         if (issuanceRate <= MIN_ISSUANCE_RATE || blocknum == t0) {
             return 0;
         }
-        deltaRewards = normalizedTokenSupplyCache
+        deltaRewards = issuanceBase
             .mul(_pow(issuanceRate, blocknum.sub(t0), TOKEN_DECIMALS))
             .div(TOKEN_DECIMALS)
-            .sub(normalizedTokenSupplyCache);
+            .sub(issuanceBase);
     }
 
     /**
      * @dev Receive dripped tokens from L1.
      * This function can only be called by the gateway, as it is
      * meant to be a callhook when receiving tokens from L1. It
-     * updates the normalizedTokenSupplyCache and issuanceRate,
+     * updates the issuanceBase and issuanceRate,
      * and snapshots the accumulated rewards. If issuanceRate changes,
      * it also triggers a snapshot of rewards per signal on the RewardsManager.
-     * @param _normalizedTokenSupply Snapshot of total GRT supply multiplied by L2 rewards fraction
+     * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
      */
     function receiveDrip(
-        uint256 _normalizedTokenSupply,
+        uint256 _issuanceBase,
         uint256 _issuanceRate,
         uint256 _nonce
     ) external override onlyL2Gateway {
@@ -99,8 +99,8 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
         } else {
             snapshotAccumulatedRewards();
         }
-        normalizedTokenSupplyCache = _normalizedTokenSupply;
-        emit DripReceived(normalizedTokenSupplyCache);
+        issuanceBase = _issuanceBase;
+        emit DripReceived(issuanceBase);
     }
 
     /**

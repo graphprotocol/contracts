@@ -14,8 +14,6 @@ contract L1ReservoirV1Storage {
     address public l2ReservoirAddress;
     // Block until the minted supplies should last before another drip is needed
     uint256 public rewardsMintedUntilBlock;
-    // Snapshot of initial token supply plus accumulated global rewards
-    uint256 public tokenSupplyCache;
     // New issuance rate to be applied on the next drip
     uint256 public nextIssuanceRate;
     // Interval for rewards drip, in blocks

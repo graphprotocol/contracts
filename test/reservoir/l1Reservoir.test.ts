@@ -121,7 +121,7 @@ describe('L1Reservoir', () => {
     const actualAmount = await grt.balanceOf(l1Reservoir.address)
     expect(await latestBlock()).eq(dripBlock)
     expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount))
-    expect(await l1Reservoir.tokenSupplyCache()).to.eq(supplyBeforeDrip)
+    expect(await l1Reservoir.issuanceBase()).to.eq(supplyBeforeDrip)
     await expect(tx1)
       .emit(l1Reservoir, 'RewardsDripped')
       .withArgs(actualAmount, toBN(0), expectedNextDeadline)
@@ -136,7 +136,7 @@ describe('L1Reservoir', () => {
     const expectedSnapshottedSupply = supplyBeforeDrip.add(await tracker.accRewards())
     expectedMintedAmount = (await tracker.accRewards(expectedNextDeadline)).sub(actualAmount)
     expect(toRound(newAmount)).to.eq(toRound(expectedMintedAmount))
-    expect(toRound(await l1Reservoir.tokenSupplyCache())).to.eq(toRound(expectedSnapshottedSupply))
+    expect(toRound(await l1Reservoir.issuanceBase())).to.eq(toRound(expectedSnapshottedSupply))
     await expect(tx2)
       .emit(l1Reservoir, 'RewardsDripped')
       .withArgs(newAmount, toBN(0), expectedNextDeadline)
@@ -189,7 +189,7 @@ describe('L1Reservoir', () => {
           .emit(l1Reservoir, 'InitialSnapshotTaken')
           .withArgs(await latestBlock(), supply, toGRT('0'))
         expect(await grt.balanceOf(l1Reservoir.address)).to.eq(toGRT('0'))
-        expect(await l1Reservoir.tokenSupplyCache()).to.eq(supply)
+        expect(await l1Reservoir.issuanceBase()).to.eq(supply)
         expect(await l1Reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
       })
       it('mints pending rewards and includes them in the snapshot', async function () {
@@ -201,7 +201,7 @@ describe('L1Reservoir', () => {
           .emit(l1Reservoir, 'InitialSnapshotTaken')
           .withArgs(await latestBlock(), expectedSupply, pending)
         expect(await grt.balanceOf(l1Reservoir.address)).to.eq(pending)
-        expect(await l1Reservoir.tokenSupplyCache()).to.eq(expectedSupply)
+        expect(await l1Reservoir.issuanceBase()).to.eq(expectedSupply)
         expect(await l1Reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
       })
     })
@@ -324,7 +324,7 @@ describe('L1Reservoir', () => {
       const tx = await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
       const actualAmount = await grt.balanceOf(l1Reservoir.address)
       expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount))
-      expect(await l1Reservoir.tokenSupplyCache()).to.eq(supplyBeforeDrip)
+      expect(await l1Reservoir.issuanceBase()).to.eq(supplyBeforeDrip)
       await expect(tx)
         .emit(l1Reservoir, 'RewardsDripped')
         .withArgs(actualAmount, toBN(0), expectedNextDeadline)
@@ -413,12 +413,12 @@ describe('L1Reservoir', () => {
         .emit(l1Reservoir, 'RewardsDripped')
         .withArgs(actualAmount.add(escrowedAmount), escrowedAmount, expectedNextDeadline)
 
-      const normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+      const l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
       const expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        normalizedTokenSupply,
+        l2IssuanceBase,
         issuanceRate,
         toBN('0'),
       ])
@@ -463,12 +463,12 @@ describe('L1Reservoir', () => {
         .emit(l1Reservoir, 'RewardsDripped')
         .withArgs(actualAmount.add(escrowedAmount), escrowedAmount, expectedNextDeadline)
 
-      let normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+      let l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
       let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        normalizedTokenSupply,
+        l2IssuanceBase,
         issuanceRate,
         toBN('0'),
       ])
@@ -510,11 +510,11 @@ describe('L1Reservoir', () => {
         toRound(expectedNewMintedAmount),
       )
       expect(toRound(newEscrowedAmount)).to.eq(toRound(expectedNewTotalSentToL2))
-      normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+      l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        normalizedTokenSupply,
+        l2IssuanceBase,
         issuanceRate,
         toBN('1'), // Incremented nonce
       ])
@@ -566,12 +566,12 @@ describe('L1Reservoir', () => {
         .emit(l1Reservoir, 'RewardsDripped')
         .withArgs(actualAmount.add(escrowedAmount), escrowedAmount, expectedNextDeadline)
 
-      let normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+      let l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
       let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        normalizedTokenSupply,
+        l2IssuanceBase,
         issuanceRate,
         toBN('0'),
       ])
@@ -610,11 +610,11 @@ describe('L1Reservoir', () => {
         toRound(expectedNewMintedAmount),
       )
       expect(toRound(newEscrowedAmount)).to.eq(toRound(expectedNewTotalSentToL2))
-      normalizedTokenSupply = (await l1Reservoir.tokenSupplyCache())
+      l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        normalizedTokenSupply,
+        l2IssuanceBase,
         issuanceRate,
         toBN('1'), // Incremented nonce
       ])
@@ -714,7 +714,7 @@ describe('L1Reservoir', () => {
         const lambda = toGRT('0.32')
         await l1Reservoir.connect(governor.signer).setL2RewardsFraction(lambda)
         await l1Reservoir.drip(maxGas, gasPriceBid, maxSubmissionCost, { value: defaultEthValue })
-        supplyBeforeDrip = await l1Reservoir.tokenSupplyCache() // Has been updated accordingly
+        supplyBeforeDrip = await l1Reservoir.issuanceBase() // Has been updated accordingly
         dripBlock = await latestBlock()
         await advanceBlocks(20)
         const t0 = dripBlock
