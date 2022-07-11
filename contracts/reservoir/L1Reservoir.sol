@@ -127,7 +127,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * only be nonzero if l2RewardsFraction is nonzero.
      * Calling this function can revert if the issuance rate has recently been reduced, and the existing
      * tokens are sufficient to cover the full pending period. In this case, it's necessary to wait
-     * until the drip amount becomes positive before calling the function again.
+     * until the drip amount becomes positive before calling the function again. It can also revert
+     * if the l2RewardsFraction has been updated and the amount already sent to L2 is more than what we
+     * should send now.
      * @param l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
@@ -177,12 +179,17 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
                 // eps > 0, i.e. t < t1_old
                 // Note this can fail if the old l2RewardsFraction is larger
                 // than the new, in which case we just have to wait until enough time has passed
-                // so that eps is small enough.
-                tokensToSendToL2 = tokensToSendToL2.sub(
-                    l2RewardsFraction.mul(mintedRewardsTotal.sub(mintedRewardsActual)).div(
-                        TOKEN_DECIMALS
-                    )
+                // so that eps is small enough. This also applies to the case where the new
+                // l2RewardsFraction is zero, since we still need to send one last message
+                // with the new values to the L2Reservoir.
+                uint256 l2OffsetAmount = l2RewardsFraction
+                    .mul(mintedRewardsTotal.sub(mintedRewardsActual))
+                    .div(TOKEN_DECIMALS);
+                require(
+                    tokensToSendToL2 > l2OffsetAmount,
+                    "Negative amount would be sent to L2, wait before calling again"
                 );
+                tokensToSendToL2 = tokensToSendToL2.sub(l2OffsetAmount);
             } else {
                 tokensToSendToL2 = tokensToSendToL2.add(
                     l2RewardsFraction.mul(mintedRewardsActual.sub(mintedRewardsTotal)).div(
