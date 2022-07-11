@@ -172,7 +172,7 @@ describe('L2Reservoir', () => {
       )
       const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
@@ -195,7 +195,7 @@ describe('L2Reservoir', () => {
       )
       const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
     })
@@ -208,7 +208,7 @@ describe('L2Reservoir', () => {
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
@@ -219,9 +219,7 @@ describe('L2Reservoir', () => {
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(
-        dripNormalizedSupply.add(1),
-      )
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate.add(1))
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply.add(1))
       await expect(await grt.balanceOf(l2Reservoir.address)).to.eq(dripAmount.mul(2))
@@ -235,7 +233,7 @@ describe('L2Reservoir', () => {
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
@@ -246,9 +244,7 @@ describe('L2Reservoir', () => {
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(
-        dripNormalizedSupply.add(1),
-      )
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply.add(1))
       await expect(await grt.balanceOf(l2Reservoir.address)).to.eq(dripAmount.mul(2))
@@ -262,7 +258,7 @@ describe('L2Reservoir', () => {
       )
       let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(dripNormalizedSupply)
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
@@ -274,9 +270,7 @@ describe('L2Reservoir', () => {
       )
       tx = await gatewayFinalizeTransfer(receiveDripTx.data)
       dripBlock = await latestBlock()
-      await expect(await l2Reservoir.normalizedTokenSupplyCache()).to.eq(
-        dripNormalizedSupply.add(1),
-      )
+      await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply.add(1))
       await expect(await grt.balanceOf(l2Reservoir.address)).to.eq(dripAmount.mul(2))
