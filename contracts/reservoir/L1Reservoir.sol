@@ -105,10 +105,11 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * This will initialize the issuanceBase to the current GRT supply, after which
      * we will keep an internal accounting only using newly minted rewards. This function
      * will also mint any pending rewards to cover up to the current block for open allocations,
-     * to be computed off-chain.
+     * to be computed off-chain. Can only be called once as it checks that the issuanceBase is zero.
      * @param pendingRewards Pending rewards up to the current block for open allocations, to be minted by this function
      */
     function initialSnapshot(uint256 pendingRewards) external onlyGovernor {
+        require(issuanceBase == 0, "Cannot call this function more than once");
         lastRewardsUpdateBlock = block.number;
         IGraphToken grt = graphToken();
         grt.mint(address(this), pendingRewards);
