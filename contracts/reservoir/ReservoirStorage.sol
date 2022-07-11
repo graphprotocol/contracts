@@ -15,4 +15,6 @@ contract ReservoirV1Storage is Managed {
     uint256 public accumulatedLayerRewards;
     // Last block at which rewards when updated, i.e. block at which the last drip happened or was received
     uint256 public lastRewardsUpdateBlock;
+    // Base value for token issuance, set initially to GRT supply and afterwards using accumulated rewards to update
+    uint256 public issuanceBase;
 }
