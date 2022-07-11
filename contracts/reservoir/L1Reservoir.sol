@@ -125,6 +125,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * is called. If issuanceRate changes, it also triggers a snapshot of rewards per signal on the RewardsManager.
      * The call value must be equal to l2MaxSubmissionCost + (l2MaxGas * l2GasPriceBid), and must
      * only be nonzero if l2RewardsFraction is nonzero.
+     * Calling this function can revert if the issuance rate has recently been reduced, and the existing
+     * tokens are sufficient to cover the full pending period. In this case, it's necessary to wait
+     * until the drip amount becomes positive before calling the function again.
      * @param l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
@@ -151,9 +154,15 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         // n = deltaR(t1, t0)
         uint256 newRewardsToDistribute = getNewGlobalRewards(rewardsMintedUntilBlock);
         // N = n - eps
-        uint256 tokensToMint = newRewardsToDistribute.add(mintedRewardsActual).sub(
-            mintedRewardsTotal
-        );
+        uint256 tokensToMint;
+        {
+            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual);
+            require(
+                newRewardsPlusMintedActual >= mintedRewardsTotal,
+                "Would mint negative tokens, wait before calling again"
+            );
+            tokensToMint = newRewardsPlusMintedActual.sub(mintedRewardsTotal);
+        }
 
         if (tokensToMint > 0) {
             graphToken().mint(address(this), tokensToMint);
