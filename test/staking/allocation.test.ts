@@ -696,7 +696,7 @@ describe('Staking:Allocation', () => {
 
           // Move max allocation epochs to close by delegator
           const maxAllocationEpochs = await staking.maxAllocationEpochs()
-          await advanceEpochs(epochManager, maxAllocationEpochs)
+          await advanceEpochs(epochManager, maxAllocationEpochs + 1)
 
           // Closing should only be possible if allocated tokens > 0
           const alloc = await staking.getAllocation(allocationID)

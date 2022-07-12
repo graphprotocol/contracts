@@ -84,7 +84,7 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
 }
 
 export const advanceEpochs = async (epochManager: EpochManager, n: number): Promise<void> => {
-  for (let i = 0; i < n + 1; i++) {
+  for (let i = 0; i < n; i++) {
     await advanceToNextEpoch(epochManager)
   }
 }
