@@ -202,7 +202,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     // if a user does not desire immediate redemption they should provide
                     // a msg.value of AT LEAST maxSubmissionCost
                     uint256 expectedEth = maxSubmissionCost + (_maxGas * _gasPriceBid);
-                    require(msg.value == expectedEth, "WRONG_ETH_VALUE");
+                    require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
                 }
                 outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
             }
