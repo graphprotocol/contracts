@@ -30,8 +30,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     address public l1Counterpart;
     // Address of the Arbitrum Gateway Router on L2
     address public l2Router;
-    // Addresses in L1 that are whitelisted to have callhooks on transfers
-    mapping(address => bool) public callhookWhitelist;
+
     // Calldata included in an outbound transfer, stored as a structure for convenience and stack depth
     struct OutboundCalldata {
         address from;
@@ -62,10 +61,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     event L1TokenAddressSet(address _l1GRT);
     // Emitted when the address of the counterpart gateway on L1 has been updated
     event L1CounterpartAddressSet(address _l1Counterpart);
-    // Emitted when an address is added to the callhook whitelist
-    event AddedToCallhookWhitelist(address newWhitelisted);
-    // Emitted when an address is removed from the callhook whitelist
-    event RemovedFromCallhookWhitelist(address notWhitelisted);
     // Emitted when a callhook call failed
     event CallhookFailed(address destination);
 
@@ -116,26 +111,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(_l1Counterpart != address(0), "INVALID_L1_COUNTERPART");
         l1Counterpart = _l1Counterpart;
         emit L1CounterpartAddressSet(_l1Counterpart);
-    }
-
-    /**
-     * @dev Adds an L1 address to the callhook whitelist.
-     * This address will be allowed to include callhooks when transferring tokens.
-     * @param newWhitelisted Address to add to the whitelist
-     */
-    function addToCallhookWhitelist(address newWhitelisted) external onlyGovernor {
-        callhookWhitelist[newWhitelisted] = true;
-        emit AddedToCallhookWhitelist(newWhitelisted);
-    }
-
-    /**
-     * @dev Removes an L1 address from the callhook whitelist.
-     * This address will no longer be allowed to include callhooks when transferring tokens.
-     * @param notWhitelisted Address to remove from the whitelist
-     */
-    function removeFromCallhookWhitelist(address notWhitelisted) external onlyGovernor {
-        callhookWhitelist[notWhitelisted] = false;
-        emit RemovedFromCallhookWhitelist(notWhitelisted);
     }
 
     /**
@@ -241,7 +216,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
 
         L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
 
-        if (_data.length > 0 && callhookWhitelist[_from] == true) {
+        if (_data.length > 0) {
             bytes memory callhookData;
             {
                 bytes memory gatewayData;
