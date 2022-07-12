@@ -212,10 +212,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphNFT Address of the ERC721 contract
      */
     function _setSubgraphNFT(address _subgraphNFT) private {
-        require(
-            _subgraphNFT != address(0) && Address.isContract(_subgraphNFT),
-            "NFT must be valid"
-        );
+        require(_subgraphNFT != address(0), "NFT address cant be zero");
+        require(Address.isContract(_subgraphNFT), "NFT must be valid");
+
         subgraphNFT = ISubgraphNFT(_subgraphNFT);
         emit SubgraphNFTUpdated(_subgraphNFT);
     }
@@ -475,7 +474,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 _subgraphID,
         address _recipient,
         uint256 _amount
-    ) external override notPartialPaused returns (bool) {
+    ) external override notPartialPaused {
         require(_recipient != address(0), "GNS: Curator cannot transfer to the zero address");
 
         // Subgraph checks
@@ -493,8 +492,6 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         );
 
         emit SignalTransferred(_subgraphID, curator, _recipient, _amount);
-
-        return true;
     }
 
     /**

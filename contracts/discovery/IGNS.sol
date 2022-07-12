@@ -69,7 +69,7 @@ interface IGNS {
         uint256 _subgraphID,
         address _recipient,
         uint256 _amount
-    ) external returns (bool);
+    ) external;
 
     function withdraw(uint256 _subgraphID) external;
 

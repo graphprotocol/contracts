@@ -560,7 +560,7 @@ describe('GNS', () => {
 
       it('revert set to empty address', async function () {
         const tx = gns.connect(governor.signer).setSubgraphNFT(AddressZero)
-        await expect(tx).revertedWith('NFT must be valid')
+        await expect(tx).revertedWith('NFT address cant be zero')
       })
 
       it('revert set to non-contract', async function () {
