@@ -178,7 +178,6 @@ export class NetworkFixture {
       await grt.connect(deployer).addMinter(l1Reservoir.address)
       await l1Reservoir.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
       await l1Reservoir.connect(deployer).approveRewardsManager()
-      await l1Reservoir.connect(deployer).initialSnapshot(toBN(0))
     }
 
     // Unpause the protocol
