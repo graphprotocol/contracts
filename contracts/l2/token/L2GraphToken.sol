@@ -239,11 +239,12 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
     /**
      * @dev L2 Graph Token Contract initializer.
      * @param owner Governance address that owns this contract
-     * @param _initialSupply Initial supply of GRT
      */
-    function initialize(address owner, uint256 _initialSupply) external onlyImpl {
+    function initialize(address owner) external onlyImpl {
         require(owner != address(0), "Owner must be set");
-        GraphTokenUpgradeable._initialize(owner, _initialSupply);
+        // Initial supply hard coded to 0 as tokens are only supposed
+        // to be minted through the bridge.
+        GraphTokenUpgradeable._initialize(owner, 0);
     }
 
     /**

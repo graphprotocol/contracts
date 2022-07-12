@@ -16,7 +16,6 @@ contracts:
     proxy: true
     init:
       owner: *governor
-      initialSupply: "0"
   L2GraphTokenGateway:
     proxy: true
     init:
