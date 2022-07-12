@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { BigNumber, constants, utils } from 'ethers'
 
-import { defaults, deployContract } from '../lib/deployment'
+import { defaults, deployContract, deployL1Reservoir } from '../lib/deployment'
 import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { GraphToken } from '../../build/types/GraphToken'
@@ -26,6 +26,9 @@ import path from 'path'
 import { Artifacts } from 'hardhat/internal/artifacts'
 import { Interface } from 'ethers/lib/utils'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
+import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
+import { Controller } from '../../build/types/Controller'
+import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 const ARTIFACTS_PATH = path.resolve('build/contracts')
 const artifacts = new Artifacts(ARTIFACTS_PATH)
 const l2ReservoirAbi = artifacts.readArtifactSync('L2Reservoir').abi
@@ -53,6 +56,8 @@ describe('L1Reservoir', () => {
   let l1Reservoir: L1Reservoir
   let bridgeEscrow: BridgeEscrow
   let l1GraphTokenGateway: L1GraphTokenGateway
+  let controller: Controller
+  let proxyAdmin: GraphProxyAdmin
 
   let supplyBeforeDrip: BigNumber
   let dripBlock: BigNumber
@@ -103,8 +108,6 @@ describe('L1Reservoir', () => {
     blocksToAdvance: BigNumber,
     dripInterval = defaults.rewards.dripInterval,
   ) => {
-    // Initial snapshot defines the first lastRewardsUpdateBlock
-    await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
     const supplyBeforeDrip = await grt.totalSupply()
     const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
     expect(startAccrued).to.eq(0)
@@ -149,8 +152,10 @@ describe('L1Reservoir', () => {
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.load(governor.signer)
-    ;({ grt, l1Reservoir, bridgeEscrow, l1GraphTokenGateway } = fixtureContracts)
+    ;({ grt, l1Reservoir, bridgeEscrow, l1GraphTokenGateway, controller, proxyAdmin } =
+      fixtureContracts)
 
+    await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
     arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
     await fixture.configureL1Bridge(
       governor.signer,
@@ -177,32 +182,45 @@ describe('L1Reservoir', () => {
 
   describe('configuration', function () {
     describe('initial snapshot', function () {
+      let reservoir: L1Reservoir
+      beforeEach(async function () {
+        // Deploy a new reservoir to avoid issues with initialSnapshot being called twice
+        reservoir = await deployL1Reservoir(governor.signer, controller.address, proxyAdmin)
+        await grt.connect(governor.signer).addMinter(reservoir.address)
+      })
+
       it('rejects call if unauthorized', async function () {
-        const tx = l1Reservoir.connect(testAccount1.signer).initialSnapshot(toGRT('1.025'))
+        const tx = reservoir.connect(testAccount1.signer).initialSnapshot(toGRT('1.025'))
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
 
       it('snapshots the total GRT supply', async function () {
-        const tx = l1Reservoir.connect(governor.signer).initialSnapshot(toGRT('0'))
+        const tx = reservoir.connect(governor.signer).initialSnapshot(toGRT('0'))
         const supply = await grt.totalSupply()
         await expect(tx)
-          .emit(l1Reservoir, 'InitialSnapshotTaken')
+          .emit(reservoir, 'InitialSnapshotTaken')
           .withArgs(await latestBlock(), supply, toGRT('0'))
-        expect(await grt.balanceOf(l1Reservoir.address)).to.eq(toGRT('0'))
-        expect(await l1Reservoir.issuanceBase()).to.eq(supply)
-        expect(await l1Reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
+        expect(await grt.balanceOf(reservoir.address)).to.eq(toGRT('0'))
+        expect(await reservoir.issuanceBase()).to.eq(supply)
+        expect(await reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
       })
       it('mints pending rewards and includes them in the snapshot', async function () {
         const pending = toGRT('10000000')
-        const tx = l1Reservoir.connect(governor.signer).initialSnapshot(pending)
+        const tx = reservoir.connect(governor.signer).initialSnapshot(pending)
         const supply = await grt.totalSupply()
         const expectedSupply = supply.add(pending)
         await expect(tx)
-          .emit(l1Reservoir, 'InitialSnapshotTaken')
+          .emit(reservoir, 'InitialSnapshotTaken')
           .withArgs(await latestBlock(), expectedSupply, pending)
-        expect(await grt.balanceOf(l1Reservoir.address)).to.eq(pending)
-        expect(await l1Reservoir.issuanceBase()).to.eq(expectedSupply)
-        expect(await l1Reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
+        expect(await grt.balanceOf(reservoir.address)).to.eq(pending)
+        expect(await reservoir.issuanceBase()).to.eq(expectedSupply)
+        expect(await reservoir.lastRewardsUpdateBlock()).to.eq(await latestBlock())
+      })
+      it('cannot be called more than once', async function () {
+        let tx = reservoir.connect(governor.signer).initialSnapshot(toGRT('0'))
+        await expect(tx).emit(reservoir, 'InitialSnapshotTaken')
+        tx = reservoir.connect(governor.signer).initialSnapshot(toGRT('0'))
+        await expect(tx).revertedWith('Cannot call this function more than once')
       })
     })
     describe('issuance rate update', function () {
@@ -307,8 +325,6 @@ describe('L1Reservoir', () => {
   // issuanceRate or l2RewardsFraction is updated
   describe('drip', function () {
     it('mints rewards for the next week', async function () {
-      // Initial snapshot defines the first lastRewardsUpdateBlock
-      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)
@@ -330,8 +346,6 @@ describe('L1Reservoir', () => {
         .withArgs(actualAmount, toBN(0), expectedNextDeadline)
     })
     it('has no effect if called a second time in the same block', async function () {
-      // Initial snapshot defines the first lastRewardsUpdateBlock
-      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)
@@ -385,7 +399,6 @@ describe('L1Reservoir', () => {
     })
     it('sends the specified fraction of the rewards with a callhook to L2', async function () {
       await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0.5'))
-      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)
@@ -435,7 +448,6 @@ describe('L1Reservoir', () => {
     })
     it('sends the outstanding amount if the L2 rewards fraction changes', async function () {
       await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0.5'))
-      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)
@@ -538,7 +550,6 @@ describe('L1Reservoir', () => {
     })
     it('sends the outstanding amount if the L2 rewards fraction stays constant', async function () {
       await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0.5'))
-      await l1Reservoir.connect(governor.signer).initialSnapshot(toBN(0))
       supplyBeforeDrip = await grt.totalSupply()
       const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
       expect(startAccrued).to.eq(0)

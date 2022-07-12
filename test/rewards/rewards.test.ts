@@ -9,6 +9,8 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { Staking } from '../../build/types/Staking'
 
+import { BigNumber as BN } from 'bignumber.js'
+
 import {
   advanceBlocks,
   deriveChannelKey,
@@ -111,10 +113,6 @@ describe('Rewards', () => {
     ;({ grt, curation, epochManager, staking, rewardsManager, l1Reservoir } = await fixture.load(
       governor.signer,
     ))
-
-    // 5% minute rate (4 blocks)
-    // await l1Reservoir.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
-    // await l1Reservoir.connect(governor.signer).drip(toBN(0), toBN(0), toBN(0))
 
     // Distribute test funds
     for (const wallet of [indexer1, indexer2, curator1, curator2]) {
@@ -248,6 +246,31 @@ describe('Rewards', () => {
           metadata,
           await channelKey1.generateProof(indexer1.address),
         )
+    }
+
+    function calculatedExpectedRewards(
+      firstSnapshotBlocks: BN,
+      lastSnapshotBlocks: BN,
+      allocatedTokens: BN,
+    ): BigNumber {
+      const issuanceBase = new BN(10004000000)
+      const issuanceRate = new BN(ISSUANCE_RATE_PER_BLOCK.toString()).div(1e18)
+      // All the rewards in this subgraph go to this allocation.
+      // Rewards per token will be (issuanceBase * issuanceRate^nBlocks - issuanceBase) / allocatedTokens
+      // The first snapshot is after allocating, that is lastSnapshotBlocks blocks after dripBlock:
+      const startRewardsPerToken = issuanceBase
+        .times(issuanceRate.pow(firstSnapshotBlocks))
+        .minus(issuanceBase)
+        .div(allocatedTokens)
+      // The final snapshot is when we close the allocation, that happens 8 blocks later:
+      const endRewardsPerToken = issuanceBase
+        .times(issuanceRate.pow(lastSnapshotBlocks))
+        .minus(issuanceBase)
+        .div(allocatedTokens)
+      // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * allocatedTokens.
+      return toGRT(
+        endRewardsPerToken.minus(startRewardsPerToken).times(allocatedTokens).toPrecision(18),
+      )
     }
 
     beforeEach(async function () {
@@ -573,17 +596,15 @@ describe('Rewards', () => {
     describe('takeAndBurnRewards', function () {
       it('should burn rewards on closed allocation with POI zero', async function () {
         // Align with the epoch boundary
-        // dripBlock (81)
         await epochManager.setEpochLength(10)
-        // dripBlock + 1
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 4
+
         // Setup
         await setupIndexerAllocation()
-        // dripBlock + 7
+        const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
+
         // Jump
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 14
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -591,18 +612,17 @@ describe('Rewards', () => {
         const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 7 blocks after dripBlock:
-        // startRewardsPerToken = (10004000000 * 1.0001227 ^ 7 - 10004000000) / 12500 = 687.77
-        // The final snapshot is when we close the allocation, that happens 8 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.0001227 ^ 15 - 10004000000) / 12500 = 1474.52
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('9834378')
-
         // Close allocation with POI zero, which should burn the rewards
         const tx = await staking.connect(indexer1.signer).closeAllocation(allocationID1, HashZero)
         const receipt = await tx.wait()
+
+        const lastSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
+
+        const expectedIndexingRewards = calculatedExpectedRewards(
+          firstSnapshotBlocks,
+          lastSnapshotBlocks,
+          new BN(12500),
+        )
 
         const log = findRewardsManagerEvents(receipt)[0]
         const event = log.args
@@ -645,6 +665,7 @@ describe('Rewards', () => {
         // dripBlock + 4
         // Setup
         await setupIndexerAllocation()
+        const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
         // dripBlock + 7
         // Jump
         await advanceToNextEpoch(epochManager)
@@ -656,20 +677,18 @@ describe('Rewards', () => {
         const beforeIndexer1Balance = await grt.balanceOf(indexer1.address)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 7 blocks after dripBlock:
-        // startRewardsPerToken = (10004000000 * 1.0001227 ^ 7 - 10004000000) / 12500 = 687.77
-        // The final snapshot is when we close the allocation, that happens 8 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.0001227 ^ 15 - 10004000000) / 12500 = 1474.52
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('9834378')
-
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
           .connect(indexer1.signer)
           .closeAllocation(allocationID1, randomHexBytes())
         const receipt = await tx.wait()
+
+        const lastSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
+        const expectedIndexingRewards = calculatedExpectedRewards(
+          firstSnapshotBlocks,
+          lastSnapshotBlocks,
+          new BN(12500),
+        )
 
         const event = findRewardsManagerEvents(receipt)[0].args
         expect(event.indexer).eq(indexer1.address)
@@ -707,6 +726,7 @@ describe('Rewards', () => {
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
+        const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
 
         // Jump
         await advanceToNextEpoch(epochManager)
@@ -717,24 +737,22 @@ describe('Rewards', () => {
         const beforeDestinationBalance = await grt.balanceOf(destinationAddress)
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 7 blocks after dripBlock:
-        // startRewardsPerToken = (10004000000 * 1.0001227 ^ 7 - 10004000000) / 12500 = 687.77
-        // The final snapshot is when we close the allocation, that happens 8 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.0001227 ^ 15 - 10004000000) / 12500 = 1474.52
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('9834378')
-
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
           .connect(indexer1.signer)
           .closeAllocation(allocationID1, randomHexBytes())
         const receipt = await tx.wait()
+        const lastSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
         const event = findRewardsManagerEvents(receipt)[0].args
         expect(event.indexer).eq(indexer1.address)
         expect(event.allocationID).eq(allocationID1)
         expect(event.epoch).eq(await epochManager.currentEpoch())
+
+        const expectedIndexingRewards = calculatedExpectedRewards(
+          firstSnapshotBlocks,
+          lastSnapshotBlocks,
+          new BN(12500),
+        )
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
         // After state
@@ -766,15 +784,15 @@ describe('Rewards', () => {
           cooldownBlocks: 5,
         }
         const tokensToDelegate = toGRT('2000')
-        // dripBlock (81)
         await epochManager.setEpochLength(10)
-        // dripBlock + 1
+
         // Align with the epoch boundary
         await advanceToNextEpoch(epochManager)
-        // dripBlock + 4
+
         // Setup the allocation and delegators
         await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
-        // dripBlock + 11
+        const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
+
         // Jump
         await advanceToNextEpoch(epochManager)
         // dripBlock + 14
@@ -786,6 +804,7 @@ describe('Rewards', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        const lastSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
 
         // After state
         const afterTokenSupply = await grt.totalSupply()
@@ -795,14 +814,12 @@ describe('Rewards', () => {
         // Check that rewards are put into indexer stake (only indexer cut)
         // Check that rewards are put into delegators pool accordingly
 
-        // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 11 blocks after dripBlock:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 11 - 10004000000) / 14500 = 931.94
-        // The final snapshot is when we close the allocation, that happens 4 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 15 - 10004000000) / 14500 = 1271.14
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 14500.
-        const expectedIndexingRewards = toGRT('4918396')
+        const expectedIndexingRewards = calculatedExpectedRewards(
+          firstSnapshotBlocks,
+          lastSnapshotBlocks,
+          new BN(14500),
+        )
+
         // Calculate delegators cut
         const indexerRewards = delegationParams.indexingRewardCut
           .mul(expectedIndexingRewards)
@@ -827,17 +844,16 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
         await advanceToNextEpoch(epochManager)
         await setupIndexerAllocation()
+        const firstSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
 
         // Jump
         await advanceToNextEpoch(epochManager)
 
-        // This is the same amount as in the test above
-        // (see 'should distribute rewards on closed allocation and stake')
-        const expectedIndexingRewards = toGRT('9834378')
         const supplyBefore = await grt.totalSupply()
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx).emit(rewardsManager, 'RewardsDenied')
+        const lastSnapshotBlocks = new BN((await latestBlock()).sub(dripBlock).toString())
         const receipt = await (await tx).wait()
         const logs = findRewardsManagerEvents(receipt)
         expect(logs.length).to.eq(1)
@@ -846,6 +862,12 @@ describe('Rewards', () => {
         expect(ev.indexer).to.eq(indexer1.address)
         expect(ev.allocationID).to.eq(allocationID1)
         expect(ev.epoch).to.eq(await epochManager.currentEpoch())
+
+        const expectedIndexingRewards = calculatedExpectedRewards(
+          firstSnapshotBlocks,
+          lastSnapshotBlocks,
+          new BN(12500),
+        )
         expect(toRound(ev.amount)).to.eq(toRound(expectedIndexingRewards))
         // Check that the rewards were burned
         // We divide by 10 to accept numeric errors up to 10 GRT
