@@ -93,6 +93,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l2Router Address of the L2 Router (provided by Arbitrum)
      */
     function setL2Router(address _l2Router) external onlyGovernor {
+        require(_l2Router != address(0), "INVALID_L2_ROUTER");
         l2Router = _l2Router;
         emit L2RouterSet(_l2Router);
     }
@@ -102,6 +103,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1GRT L1 address of the Graph Token contract
      */
     function setL1TokenAddress(address _l1GRT) external onlyGovernor {
+        require(_l1GRT != address(0), "INVALID_L1_GRT");
         l1GRT = _l1GRT;
         emit L1TokenAddressSet(_l1GRT);
     }
@@ -111,6 +113,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1Counterpart Address of the L1GraphTokenGateway on L1
      */
     function setL1CounterpartAddress(address _l1Counterpart) external onlyGovernor {
+        require(_l1Counterpart != address(0), "INVALID_L1_COUNTERPART");
         l1Counterpart = _l1Counterpart;
         emit L1CounterpartAddressSet(_l1Counterpart);
     }
@@ -159,6 +162,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
+        require(_to != address(0), "INVALID_DESTINATION");
 
         OutboundCalldata memory s;
 

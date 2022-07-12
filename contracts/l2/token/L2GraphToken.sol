@@ -138,6 +138,7 @@ contract GraphTokenUpgradeable is
      * @param _account Address of the minter
      */
     function addMinter(address _account) external onlyGovernor {
+        require(_account != address(0), "INVALID_MINTER");
         _addMinter(_account);
     }
 
@@ -146,6 +147,7 @@ contract GraphTokenUpgradeable is
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
+        require(_minters[_account], "NOT_A_MINTER");
         _removeMinter(_account);
     }
 
@@ -153,6 +155,7 @@ contract GraphTokenUpgradeable is
      * @dev Renounce to be a minter.
      */
     function renounceMinter() external {
+        require(_minters[msg.sender], "NOT_A_MINTER");
         _removeMinter(msg.sender);
     }
 
@@ -251,6 +254,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
      * @dev Sets the address of the L2 gateway allowed to mint tokens
      */
     function setGateway(address gw) external onlyGovernor {
+        require(gw != address(0), "INVALID_GATEWAY");
         gateway = gw;
         emit GatewaySet(gateway);
     }
@@ -259,6 +263,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
      * @dev Sets the address of the counterpart token on L1
      */
     function setL1Address(address addr) external onlyGovernor {
+        require(addr != address(0), "INVALID_L1_ADDRESS");
         l1Address = addr;
         emit L1AddressSet(addr);
     }
