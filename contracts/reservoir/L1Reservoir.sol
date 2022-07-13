@@ -47,7 +47,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      */
     function initialize(address _controller, uint256 _dripInterval) external onlyImpl {
         Managed._initialize(_controller);
-        dripInterval = _dripInterval;
+        _setDripInterval(_dripInterval);
     }
 
     /**
@@ -59,9 +59,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @param _dripInterval The new interval in blocks for which drip() will mint rewards
      */
     function setDripInterval(uint256 _dripInterval) external onlyGovernor {
-        require(_dripInterval > 0, "Drip interval must be > 0");
-        dripInterval = _dripInterval;
-        emit DripIntervalUpdated(_dripInterval);
+        _setDripInterval(_dripInterval);
     }
 
     /**
@@ -230,6 +228,54 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     }
 
     /**
+     * @dev Get new total rewards on both layers at a particular block, since the last drip event
+     * This is deltaR = p * r ^ (blocknum - t0) - p, where:
+     * - p is the total token supply snapshot at t0
+     * - t0 is the last drip block, i.e. lastRewardsUpdateBlock
+     * - r is the issuanceRate
+     * @param _blocknum Block number at which to calculate rewards
+     * @return deltaRewards New total rewards on both layers since the last drip
+     */
+    function getNewGlobalRewards(uint256 _blocknum) public view returns (uint256 deltaRewards) {
+        uint256 t0 = lastRewardsUpdateBlock;
+        if (issuanceRate <= MIN_ISSUANCE_RATE || _blocknum == t0) {
+            return 0;
+        }
+        deltaRewards = issuanceBase
+            .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
+            .div(TOKEN_DECIMALS)
+            .sub(issuanceBase);
+    }
+
+    /**
+     * @dev Get new total rewards on this layer at a particular block, since the last drip event
+     * This is deltaR_L1 = (1-lambda) * deltaR, where:
+     * - deltaR is the new global rewards on both layers (see getNewGlobalRewards)
+     * - lambda is the fraction of rewards sent to L2, i.e. l2RewardsFraction
+     * @param _blocknum Block number at which to calculate rewards
+     * @return deltaRewards New total rewards on Layer 1 since the last drip
+     */
+    function getNewRewards(uint256 _blocknum) public view override returns (uint256 deltaRewards) {
+        deltaRewards = getNewGlobalRewards(_blocknum)
+            .mul(TOKEN_DECIMALS.sub(l2RewardsFraction))
+            .div(TOKEN_DECIMALS);
+    }
+
+    /**
+     * @dev Sets the drip interval (internal).
+     * This is the time in the future (in blocks) for which drip() will mint rewards.
+     * Keep in mind that changing this value will require manually re-adjusting
+     * the reservoir's token balance, because the first call to drip might produce
+     * more or less tokens than needed.
+     * @param _dripInterval The new interval in blocks for which drip() will mint rewards
+     */
+    function _setDripInterval(uint256 _dripInterval) internal {
+        require(_dripInterval > 0, "Drip interval must be > 0");
+        dripInterval = _dripInterval;
+        emit DripIntervalUpdated(_dripInterval);
+    }
+
+    /**
      * @dev Snapshot accumulated rewards on this layer
      * We compute accumulatedLayerRewards and mark this block as the lastRewardsUpdateBlock.
      * We also update the issuanceBase by adding the new total rewards on both layers.
@@ -280,39 +326,5 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             _gasPriceBid,
             data
         );
-    }
-
-    /**
-     * @dev Get new total rewards on both layers at a particular block, since the last drip event
-     * This is deltaR = p * r ^ (blocknum - t0) - p, where:
-     * - p is the total token supply snapshot at t0
-     * - t0 is the last drip block, i.e. lastRewardsUpdateBlock
-     * - r is the issuanceRate
-     * @param _blocknum Block number at which to calculate rewards
-     * @return deltaRewards New total rewards on both layers since the last drip
-     */
-    function getNewGlobalRewards(uint256 _blocknum) public view returns (uint256 deltaRewards) {
-        uint256 t0 = lastRewardsUpdateBlock;
-        if (issuanceRate <= MIN_ISSUANCE_RATE || _blocknum == t0) {
-            return 0;
-        }
-        deltaRewards = issuanceBase
-            .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
-            .div(TOKEN_DECIMALS)
-            .sub(issuanceBase);
-    }
-
-    /**
-     * @dev Get new total rewards on this layer at a particular block, since the last drip event
-     * This is deltaR_L1 = (1-lambda) * deltaR, where:
-     * - deltaR is the new global rewards on both layers (see getNewGlobalRewards)
-     * - lambda is the fraction of rewards sent to L2, i.e. l2RewardsFraction
-     * @param _blocknum Block number at which to calculate rewards
-     * @return deltaRewards New total rewards on Layer 1 since the last drip
-     */
-    function getNewRewards(uint256 _blocknum) public view override returns (uint256 deltaRewards) {
-        deltaRewards = getNewGlobalRewards(_blocknum)
-            .mul(TOKEN_DECIMALS.sub(l2RewardsFraction))
-            .div(TOKEN_DECIMALS);
     }
 }
