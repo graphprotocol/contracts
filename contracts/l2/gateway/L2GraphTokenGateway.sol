@@ -195,7 +195,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         if (l1ERC20 != l1GRT) {
             return address(0);
         }
-        return Managed._resolveContract(keccak256("GraphToken"));
+        return address(graphToken());
     }
 
     /**

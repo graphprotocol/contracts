@@ -326,7 +326,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         nextDripNonce = nextDripNonce.add(1);
         bytes memory data = abi.encode(_maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
-        ITokenGateway gateway = ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
+        ITokenGateway gateway = graphTokenGateway();
         grt.approve(address(gateway), _nTokens);
         gateway.outboundTransfer{ value: msg.value }(
             address(grt),

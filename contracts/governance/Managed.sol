@@ -9,6 +9,8 @@ import "../epochs/IEpochManager.sol";
 import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
+import "../arbitrum/ITokenGateway.sol";
+import "../reservoir/IReservoir.sol";
 
 /**
  * @title Graph Managed contract
@@ -143,6 +145,22 @@ contract Managed {
      */
     function graphToken() internal view returns (IGraphToken) {
         return IGraphToken(_resolveContract(keccak256("GraphToken")));
+    }
+
+    /**
+     * @dev Return GraphTokenGateway (L1 or L2) interface.
+     * @return Graph token gateway contract registered with Controller
+     */
+    function graphTokenGateway() internal view returns (ITokenGateway) {
+        return ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
+    }
+
+    /**
+     * @dev Return Reservoir (L1 or L2) interface.
+     * @return Reservoir contract registered with Controller
+     */
+    function reservoir() internal view returns (IReservoir) {
+        return IReservoir(_resolveContract(keccak256("Reservoir")));
     }
 
     /**
