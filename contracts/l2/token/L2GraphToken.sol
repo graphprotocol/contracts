@@ -152,6 +152,7 @@ contract GraphTokenUpgradeable is
 
     /**
      * @dev Graph Token Contract initializer.
+     * @param _owner Owner of this contract, who will hold the initial supply and will be a minter
      * @param _initialSupply Initial supply of GRT
      */
     function _initialize(address _owner, uint256 _initialSupply) internal {
@@ -252,6 +253,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
 
     /**
      * @dev Sets the address of the L2 gateway allowed to mint tokens
+     * @param _gw Address for the L2GraphTokenGateway that will be allowed to mint tokens
      */
     function setGateway(address _gw) external onlyGovernor {
         require(_gw != address(0), "INVALID_GATEWAY");
@@ -261,6 +263,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
 
     /**
      * @dev Sets the address of the counterpart token on L1
+     * @param _addr Address for the GraphToken contract on L1
      */
     function setL1Address(address _addr) external onlyGovernor {
         require(_addr != address(0), "INVALID_L1_ADDRESS");
