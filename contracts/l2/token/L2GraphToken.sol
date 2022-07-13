@@ -124,12 +124,12 @@ contract GraphTokenUpgradeable is
                 )
             )
         );
-        nonces[_owner] = nonces[_owner].add(1);
 
         address recoveredAddress = ECDSA.recover(digest, abi.encodePacked(_r, _s, _v));
         require(_owner == recoveredAddress, "GRT: invalid permit");
         require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
+        nonces[_owner] = nonces[_owner].add(1);
         _approve(_owner, _spender, _value);
     }
 
