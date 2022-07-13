@@ -70,6 +70,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * This means that it needs to be greater than 1.0, any number under 1.0 is not
      * allowed and an issuance rate of 1.0 means no issuance.
      * To accommodate a high precision the issuance rate is expressed in wei, i.e. fixed point at 1e18.
+     * Note: It is strongly recommended that the governor triggers a drip immediately after calling this,
+     * including excess gas to guarantee that the L2 retryable ticket succeeds immediately, to ensure
+     * good synchronization between L1 and L2.
      * @param _issuanceRate Issuance rate expressed in wei / fixed point at 1e18
      */
     function setIssuanceRate(uint256 _issuanceRate) external onlyGovernor {
@@ -82,6 +85,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @dev Sets the L2 rewards fraction.
      * This is the portion of the indexer rewards that are sent to L2.
      * The value is in fixed point at 1e18 and must be less than 1.
+     * Note: It is strongly recommended that the governor triggers a drip immediately after calling this,
+     * including excess gas to guarantee that the L2 retryable ticket succeeds immediately, to ensure
+     * good synchronization between L1 and L2.
      * @param _l2RewardsFraction Fraction of rewards to send to L2, in wei / fixed point at 1e18
      */
     function setL2RewardsFraction(uint256 _l2RewardsFraction) external onlyGovernor {
