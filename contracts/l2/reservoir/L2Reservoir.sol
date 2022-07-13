@@ -31,7 +31,10 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
 
     /**
      * @dev Initialize this contract.
-     * The contract will be paused.
+     * The contract will be paused. Note that issuance parameters
+     * are not set here because they are set from L1 through the drip function.
+     * The RewardsManager's address might also not be available in the controller at initialization
+     * time, so approveRewardsManager() must be called separately.
      * @param _controller Address of the Controller that manages this contract
      */
     function initialize(address _controller) external onlyImpl {

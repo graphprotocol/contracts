@@ -42,6 +42,14 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     /**
      * @dev Initialize this contract.
      * The contract will be paused.
+     * Note that the contract is designed to not accrue rewards until the first call
+     * to the drip function, that also requires the initial supply snapshot to be taken
+     * using initialSnapshot. For this reason, issuanceRate and l2RewardsFraction
+     * are not initialized here and instead need a call to setIssuanceRate and setL2RewardsFraction.
+     * On the other hand, the l2ReservoirAddress is not expected to be known at initialization
+     * time and must therefore be set using setL2ReservoirAddress.
+     * The RewardsManager's address might also not be available in the controller at initialization
+     * time, so approveRewardsManager() must be called separately as well.
      * @param _controller Address of the Controller that manages this contract
      * @param _dripInterval Drip interval, i.e. time period for which rewards are minted each time we drip
      */
