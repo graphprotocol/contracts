@@ -30,8 +30,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     address public l1Counterpart;
     // Address of the Arbitrum Gateway Router on L2
     address public l2Router;
-    // Addresses in L1 that are whitelisted to have callhooks on transfers
-    mapping(address => bool) public callhookWhitelist;
+
     // Calldata included in an outbound transfer, stored as a structure for convenience and stack depth
     struct OutboundCalldata {
         address from;
@@ -62,10 +61,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     event L1TokenAddressSet(address _l1GRT);
     // Emitted when the address of the counterpart gateway on L1 has been updated
     event L1CounterpartAddressSet(address _l1Counterpart);
-    // Emitted when an address is added to the callhook whitelist
-    event AddedToCallhookWhitelist(address newWhitelisted);
-    // Emitted when an address is removed from the callhook whitelist
-    event RemovedFromCallhookWhitelist(address notWhitelisted);
     // Emitted when a callhook call failed
     event CallhookFailed(address destination);
 
@@ -93,6 +88,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l2Router Address of the L2 Router (provided by Arbitrum)
      */
     function setL2Router(address _l2Router) external onlyGovernor {
+        require(_l2Router != address(0), "INVALID_L2_ROUTER");
         l2Router = _l2Router;
         emit L2RouterSet(_l2Router);
     }
@@ -102,6 +98,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1GRT L1 address of the Graph Token contract
      */
     function setL1TokenAddress(address _l1GRT) external onlyGovernor {
+        require(_l1GRT != address(0), "INVALID_L1_GRT");
         l1GRT = _l1GRT;
         emit L1TokenAddressSet(_l1GRT);
     }
@@ -111,28 +108,9 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1Counterpart Address of the L1GraphTokenGateway on L1
      */
     function setL1CounterpartAddress(address _l1Counterpart) external onlyGovernor {
+        require(_l1Counterpart != address(0), "INVALID_L1_COUNTERPART");
         l1Counterpart = _l1Counterpart;
         emit L1CounterpartAddressSet(_l1Counterpart);
-    }
-
-    /**
-     * @dev Adds an L1 address to the callhook whitelist.
-     * This address will be allowed to include callhooks when transferring tokens.
-     * @param newWhitelisted Address to add to the whitelist
-     */
-    function addToCallhookWhitelist(address newWhitelisted) external onlyGovernor {
-        callhookWhitelist[newWhitelisted] = true;
-        emit AddedToCallhookWhitelist(newWhitelisted);
-    }
-
-    /**
-     * @dev Removes an L1 address from the callhook whitelist.
-     * This address will no longer be allowed to include callhooks when transferring tokens.
-     * @param notWhitelisted Address to remove from the whitelist
-     */
-    function removeFromCallhookWhitelist(address notWhitelisted) external onlyGovernor {
-        callhookWhitelist[notWhitelisted] = false;
-        emit RemovedFromCallhookWhitelist(notWhitelisted);
     }
 
     /**
@@ -159,6 +137,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
+        require(_to != address(0), "INVALID_DESTINATION");
 
         OutboundCalldata memory s;
 
@@ -237,7 +216,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
 
         L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
 
-        if (_data.length > 0 && callhookWhitelist[_from] == true) {
+        if (_data.length > 0) {
             bytes memory callhookData;
             {
                 bytes memory gatewayData;

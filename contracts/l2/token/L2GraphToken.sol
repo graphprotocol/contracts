@@ -101,7 +101,7 @@ contract GraphTokenUpgradeable is
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
-     * @param _deadline Expiration time of the signed permit
+     * @param _deadline Expiration time of the signed permit (if zero, the permit will never expire, so use with caution)
      * @param _v Signature version
      * @param _r Signature r value
      * @param _s Signature s value
@@ -138,6 +138,7 @@ contract GraphTokenUpgradeable is
      * @param _account Address of the minter
      */
     function addMinter(address _account) external onlyGovernor {
+        require(_account != address(0), "INVALID_MINTER");
         _addMinter(_account);
     }
 
@@ -146,6 +147,7 @@ contract GraphTokenUpgradeable is
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
+        require(_minters[_account], "NOT_A_MINTER");
         _removeMinter(_account);
     }
 
@@ -153,6 +155,7 @@ contract GraphTokenUpgradeable is
      * @dev Renounce to be a minter.
      */
     function renounceMinter() external {
+        require(_minters[msg.sender], "NOT_A_MINTER");
         _removeMinter(msg.sender);
     }
 
@@ -239,17 +242,19 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
     /**
      * @dev L2 Graph Token Contract initializer.
      * @param owner Governance address that owns this contract
-     * @param _initialSupply Initial supply of GRT
      */
-    function initialize(address owner, uint256 _initialSupply) external onlyImpl {
+    function initialize(address owner) external onlyImpl {
         require(owner != address(0), "Owner must be set");
-        GraphTokenUpgradeable._initialize(owner, _initialSupply);
+        // Initial supply hard coded to 0 as tokens are only supposed
+        // to be minted through the bridge.
+        GraphTokenUpgradeable._initialize(owner, 0);
     }
 
     /**
      * @dev Sets the address of the L2 gateway allowed to mint tokens
      */
     function setGateway(address gw) external onlyGovernor {
+        require(gw != address(0), "INVALID_GATEWAY");
         gateway = gw;
         emit GatewaySet(gateway);
     }
@@ -258,6 +263,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
      * @dev Sets the address of the counterpart token on L1
      */
     function setL1Address(address addr) external onlyGovernor {
+        require(addr != address(0), "INVALID_L1_ADDRESS");
         l1Address = addr;
         emit L1AddressSet(addr);
     }

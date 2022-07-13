@@ -46,7 +46,6 @@ contracts:
     proxy: true
     init:
       owner: *governor
-      initialSupply: "0"
   Curation:
     proxy: true
     init:

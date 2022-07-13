@@ -436,7 +436,7 @@ describe('L1GraphTokenGateway', () => {
             gasPriceBid,
             defaultData,
             {
-              value: defaultEthValue.add(1),
+              value: defaultEthValue.sub(1),
             },
           )
         await expect(tx).revertedWith('WRONG_ETH_VALUE')

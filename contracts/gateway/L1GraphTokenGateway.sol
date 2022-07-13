@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../arbitrum/L1ArbitrumMessenger.sol";
@@ -96,6 +97,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _l1Router Address of the Gateway Router
      */
     function setArbitrumAddresses(address _inbox, address _l1Router) external onlyGovernor {
+        require(_inbox != address(0), "INVALID_INBOX");
+        require(_l1Router != address(0), "INVALID_L1_ROUTER");
         inbox = _inbox;
         l1Router = _l1Router;
         emit ArbitrumAddressesSet(_inbox, _l1Router);
@@ -106,6 +109,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _l2GRT Address of the GRT contract on L2
      */
     function setL2TokenAddress(address _l2GRT) external onlyGovernor {
+        require(_l2GRT != address(0), "INVALID_L2_GRT");
         l2GRT = _l2GRT;
         emit L2TokenAddressSet(_l2GRT);
     }
@@ -115,6 +119,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _l2Counterpart Address of the corresponding L2GraphTokenGateway on Arbitrum
      */
     function setL2CounterpartAddress(address _l2Counterpart) external onlyGovernor {
+        require(_l2Counterpart != address(0), "INVALID_L2_COUNTERPART");
         l2Counterpart = _l2Counterpart;
         emit L2CounterpartAddressSet(_l2Counterpart);
     }
@@ -124,6 +129,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _escrow Address of the BridgeEscrow
      */
     function setEscrowAddress(address _escrow) external onlyGovernor {
+        require(_escrow != address(0) && Address.isContract(_escrow), "INVALID_ESCROW");
         escrow = _escrow;
         emit EscrowAddressSet(_escrow);
     }
@@ -134,6 +140,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param newWhitelisted Address to add to the whitelist
      */
     function addToCallhookWhitelist(address newWhitelisted) external onlyGovernor {
+        require(newWhitelisted != address(0), "INVALID_ADDRESS");
         callhookWhitelist[newWhitelisted] = true;
         emit AddedToCallhookWhitelist(newWhitelisted);
     }
@@ -144,6 +151,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param notWhitelisted Address to remove from the whitelist
      */
     function removeFromCallhookWhitelist(address notWhitelisted) external onlyGovernor {
+        require(notWhitelisted != address(0), "INVALID_ADDRESS");
         callhookWhitelist[notWhitelisted] = false;
         emit RemovedFromCallhookWhitelist(notWhitelisted);
     }
@@ -172,6 +180,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         IGraphToken token = graphToken();
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
+        require(_to != address(0), "INVALID_DESTINATION");
 
         // nested scopes to avoid stack too deep errors
         address from;
@@ -193,7 +202,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     // if a user does not desire immediate redemption they should provide
                     // a msg.value of AT LEAST maxSubmissionCost
                     uint256 expectedEth = maxSubmissionCost + (_maxGas * _gasPriceBid);
-                    require(msg.value == expectedEth, "WRONG_ETH_VALUE");
+                    require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
                 }
                 outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
             }

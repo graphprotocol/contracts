@@ -162,48 +162,6 @@ describe('L2GraphTokenGateway', () => {
         expect(await l2GraphTokenGateway.l1Counterpart()).eq(mockL1Gateway.address)
       })
     })
-    describe('addToCallhookWhitelist', function () {
-      it('is not callable by addreses that are not the governor', async function () {
-        const tx = l2GraphTokenGateway
-          .connect(tokenSender.signer)
-          .addToCallhookWhitelist(tokenSender.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
-        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
-      })
-      it('adds an address to the callhook whitelist', async function () {
-        const tx = l2GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
-        await expect(tx)
-          .emit(l2GraphTokenGateway, 'AddedToCallhookWhitelist')
-          .withArgs(tokenSender.address)
-        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
-      })
-    })
-    describe('removeFromCallhookWhitelist', function () {
-      it('is not callable by addreses that are not the governor', async function () {
-        await l2GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
-        const tx = l2GraphTokenGateway
-          .connect(tokenSender.signer)
-          .removeFromCallhookWhitelist(tokenSender.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
-        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(true)
-      })
-      it('removes an address from the callhook whitelist', async function () {
-        await l2GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
-        const tx = l2GraphTokenGateway
-          .connect(governor.signer)
-          .removeFromCallhookWhitelist(tokenSender.address)
-        await expect(tx)
-          .emit(l2GraphTokenGateway, 'RemovedFromCallhookWhitelist')
-          .withArgs(tokenSender.address)
-        expect(await l2GraphTokenGateway.callhookWhitelist(tokenSender.address)).eq(false)
-      })
-    })
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
         let tx = l2GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
@@ -420,22 +378,11 @@ describe('L2GraphTokenGateway', () => {
       it('mints and sends tokens when called by the aliased gateway', async function () {
         await testValidFinalizeTransfer(defaultData)
       })
-      it('does not call any callhooks if the sender is not whitelisted', async function () {
-        const reservoirMock = await smock.fake('ReservoirMock', {
-          address: l2Receiver.address,
-        })
-        reservoirMock.pow.returns(1)
-        await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        expect(reservoirMock.pow).to.not.have.been.called
-      })
       it('calls a callhook if the sender is whitelisted', async function () {
         const reservoirMock = await smock.fake('ReservoirMock', {
           address: l2Receiver.address,
         })
         reservoirMock.pow.returns(1)
-        await l2GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
         await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
         expect(reservoirMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
       })
@@ -444,9 +391,6 @@ describe('L2GraphTokenGateway', () => {
           address: l2Receiver.address,
         })
         reservoirMock.pow.reverts()
-        await l2GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),

@@ -302,7 +302,7 @@ export async function deployL2GRT(
   return network.deployContractWithProxy(
     proxyAdmin,
     'L2GraphToken',
-    [await deployer.getAddress(), toBN('0')],
+    [await deployer.getAddress()],
     deployer,
   ) as unknown as L2GraphToken
 }
