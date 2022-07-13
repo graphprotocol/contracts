@@ -40,27 +40,27 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     // Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
     event DepositFinalized(
         address indexed l1Token,
-        address indexed _from,
-        address indexed _to,
-        uint256 _amount
+        address indexed from,
+        address indexed to,
+        uint256 amount
     );
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
     event WithdrawalInitiated(
         address l1Token,
-        address indexed _from,
-        address indexed _to,
-        uint256 indexed _l2ToL1Id,
-        uint256 _exitNum,
-        uint256 _amount
+        address indexed from,
+        address indexed to,
+        uint256 indexed l2ToL1Id,
+        uint256 exitNum,
+        uint256 amount
     );
 
     // Emitted when the Arbitrum Gateway Router address on L2 has been updated
-    event L2RouterSet(address _l2Router);
+    event L2RouterSet(address l2Router);
     // Emitted when the L1 Graph Token address has been updated
-    event L1TokenAddressSet(address _l1GRT);
+    event L1TokenAddressSet(address l1GRT);
     // Emitted when the address of the counterpart gateway on L1 has been updated
-    event L1CounterpartAddressSet(address _l1Counterpart);
+    event L1CounterpartAddressSet(address l1Counterpart);
 
     /**
      * @dev Checks that the sender is the L2 alias of the counterpart
@@ -239,46 +239,46 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @notice Creates calldata required to send tx to L1
      * @dev encodes the target function with its params which
      * will be called on L1 when the message is received on L1
-     * @param token Address of the token on L1
-     * @param from Address of the token sender on L2
-     * @param to Address to which we're sending tokens on L1
-     * @param amount Amount of GRT to transfer
-     * @param data Additional calldata for the transaction
+     * @param _token Address of the token on L1
+     * @param _from Address of the token sender on L2
+     * @param _to Address to which we're sending tokens on L1
+     * @param _amount Amount of GRT to transfer
+     * @param _data Additional calldata for the transaction
      */
     function getOutboundCalldata(
-        address token,
-        address from,
-        address to,
-        uint256 amount,
-        bytes memory data
+        address _token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _data
     ) public pure returns (bytes memory outboundCalldata) {
         outboundCalldata = abi.encodeWithSelector(
             ITokenGateway.finalizeInboundTransfer.selector,
-            token,
-            from,
-            to,
-            amount,
-            abi.encode(0, data) // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
+            _token,
+            _from,
+            _to,
+            _amount,
+            abi.encode(0, _data) // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
         );
     }
 
     /**
      * @notice Decodes calldata required for migration of tokens
      * @dev extraData can be left empty
-     * @param data Encoded callhook data
+     * @param _data Encoded callhook data
      * @return from Sender of the tx
      * @return extraData Any other data sent to L1
      */
-    function parseOutboundData(bytes memory data)
+    function parseOutboundData(bytes memory _data)
         private
         view
         returns (address from, bytes memory extraData)
     {
         if (msg.sender == l2Router) {
-            (from, extraData) = abi.decode(data, (address, bytes));
+            (from, extraData) = abi.decode(_data, (address, bytes));
         } else {
             from = msg.sender;
-            extraData = data;
+            extraData = _data;
         }
     }
 

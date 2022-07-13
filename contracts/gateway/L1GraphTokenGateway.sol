@@ -36,30 +36,30 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
-        address _l1Token,
-        address indexed _from,
-        address indexed _to,
-        uint256 indexed _sequenceNumber,
-        uint256 _amount
+        address l1Token,
+        address indexed from,
+        address indexed to,
+        uint256 indexed sequenceNumber,
+        uint256 amount
     );
 
     // Emitted when an incoming transfer is finalized, i.e tokens are withdrawn from L2 to L1
     event WithdrawalFinalized(
-        address _l1Token,
-        address indexed _from,
-        address indexed _to,
-        uint256 indexed _exitNum,
-        uint256 _amount
+        address l1Token,
+        address indexed from,
+        address indexed to,
+        uint256 indexed exitNum,
+        uint256 amount
     );
 
     // Emitted when the Arbitrum Inbox and Gateway Router addresses have been updated
-    event ArbitrumAddressesSet(address _inbox, address _l1Router);
+    event ArbitrumAddressesSet(address inbox, address l1Router);
     // Emitted when the L2 GRT address has been updated
-    event L2TokenAddressSet(address _l2GRT);
+    event L2TokenAddressSet(address l2GRT);
     // Emitted when the counterpart L2GraphTokenGateway address has been updated
-    event L2CounterpartAddressSet(address _l2Counterpart);
+    event L2CounterpartAddressSet(address l2Counterpart);
     // Emitted when the escrow address has been updated
-    event EscrowAddressSet(address _escrow);
+    event EscrowAddressSet(address escrow);
     // Emitted when an address is added to the callhook whitelist
     event AddedToCallhookWhitelist(address newWhitelisted);
     // Emitted when an address is removed from the callhook whitelist
@@ -137,23 +137,23 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     /**
      * @dev Adds an address to the callhook whitelist.
      * This address will be allowed to include callhooks when transferring tokens.
-     * @param newWhitelisted Address to add to the whitelist
+     * @param _newWhitelisted Address to add to the whitelist
      */
-    function addToCallhookWhitelist(address newWhitelisted) external onlyGovernor {
-        require(newWhitelisted != address(0), "INVALID_ADDRESS");
-        callhookWhitelist[newWhitelisted] = true;
-        emit AddedToCallhookWhitelist(newWhitelisted);
+    function addToCallhookWhitelist(address _newWhitelisted) external onlyGovernor {
+        require(_newWhitelisted != address(0), "INVALID_ADDRESS");
+        callhookWhitelist[_newWhitelisted] = true;
+        emit AddedToCallhookWhitelist(_newWhitelisted);
     }
 
     /**
      * @dev Removes an address from the callhook whitelist.
      * This address will no longer be allowed to include callhooks when transferring tokens.
-     * @param notWhitelisted Address to remove from the whitelist
+     * @param _notWhitelisted Address to remove from the whitelist
      */
-    function removeFromCallhookWhitelist(address notWhitelisted) external onlyGovernor {
-        require(notWhitelisted != address(0), "INVALID_ADDRESS");
-        callhookWhitelist[notWhitelisted] = false;
-        emit RemovedFromCallhookWhitelist(notWhitelisted);
+    function removeFromCallhookWhitelist(address _notWhitelisted) external onlyGovernor {
+        require(_notWhitelisted != address(0), "INVALID_ADDRESS");
+        callhookWhitelist[_notWhitelisted] = false;
+        emit RemovedFromCallhookWhitelist(_notWhitelisted);
     }
 
     /**
@@ -264,12 +264,12 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @notice decodes calldata required for migration of tokens
      * @dev data must include maxSubmissionCost, extraData can be left empty. When the router
      * sends an outbound message, data also contains the from address.
-     * @param data encoded callhook data
+     * @param _data encoded callhook data
      * @return from sender of the tx
      * @return maxSubmissionCost base ether value required to keep retyrable ticket alive
      * @return extraData any other data sent to L2
      */
-    function parseOutboundData(bytes memory data)
+    function parseOutboundData(bytes memory _data)
         private
         view
         returns (
@@ -280,10 +280,10 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     {
         if (msg.sender == l1Router) {
             // Data encoded by the Gateway Router includes the sender address
-            (from, extraData) = abi.decode(data, (address, bytes));
+            (from, extraData) = abi.decode(_data, (address, bytes));
         } else {
             from = msg.sender;
-            extraData = data;
+            extraData = _data;
         }
         // User-encoded data contains the max retryable ticket submission cost
         // and additional L2 calldata
@@ -294,41 +294,41 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @notice Creates calldata required to create a retryable ticket
      * @dev encodes the target function with its params which
      * will be called on L2 when the retryable ticket is redeemed
-     * @param l1Token Address of the Graph token contract on L1
-     * @param from Address on L1 from which we're transferring tokens
-     * @param to Address on L2 to which we're transferring tokens
-     * @param amount Amount of GRT to transfer
-     * @param data Additional call data for the L2 transaction, which must be empty
+     * @param _l1Token Address of the Graph token contract on L1
+     * @param _from Address on L1 from which we're transferring tokens
+     * @param _to Address on L2 to which we're transferring tokens
+     * @param _amount Amount of GRT to transfer
+     * @param _data Additional call data for the L2 transaction, which must be empty
      * @return outboundCalldata Encoded calldata (including function selector) for the L2 transaction
      */
     function getOutboundCalldata(
-        address l1Token,
-        address from,
-        address to,
-        uint256 amount,
-        bytes memory data
+        address _l1Token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _data
     ) public pure returns (bytes memory outboundCalldata) {
         bytes memory emptyBytes;
 
         outboundCalldata = abi.encodeWithSelector(
             ITokenGateway.finalizeInboundTransfer.selector,
-            l1Token,
-            from,
-            to,
-            amount,
-            abi.encode(emptyBytes, data)
+            _l1Token,
+            _from,
+            _to,
+            _amount,
+            abi.encode(emptyBytes, _data)
         );
     }
 
     /**
      * @notice Calculate the L2 address of a bridged token
      * @dev In our case, this would only work for GRT.
-     * @param l1ERC20 address of L1 GRT contract
+     * @param _l1ERC20 address of L1 GRT contract
      * @return L2 address of the bridged GRT token
      */
-    function calculateL2TokenAddress(address l1ERC20) external view override returns (address) {
+    function calculateL2TokenAddress(address _l1ERC20) external view override returns (address) {
         IGraphToken token = graphToken();
-        if (l1ERC20 != address(token)) {
+        if (_l1ERC20 != address(token)) {
             return address(0);
         }
         return l2GRT;

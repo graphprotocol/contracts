@@ -21,12 +21,12 @@ contract InboxMock is IInbox {
 
     /**
      * @dev Send a message to L2 (by delivering it to the Bridge)
-     * @param messageData Encoded data to send in the message
+     * @param _messageData Encoded data to send in the message
      * @return message number returned by the inbox
      */
-    function sendL2Message(bytes calldata messageData) external override returns (uint256) {
-        uint256 msgNum = deliverToBridge(L2_MSG, msg.sender, keccak256(messageData));
-        emit InboxMessageDelivered(msgNum, messageData);
+    function sendL2Message(bytes calldata _messageData) external override returns (uint256) {
+        uint256 msgNum = deliverToBridge(L2_MSG, msg.sender, keccak256(_messageData));
+        emit InboxMessageDelivered(msgNum, _messageData);
         return msgNum;
     }
 
@@ -93,52 +93,52 @@ contract InboxMock is IInbox {
     /**
      * @dev Utility function that converts the address in the L1 that submitted a tx to
      * the inbox to the msg.sender viewed in the L2
-     * @param l1Address the address in the L1 that triggered the tx to L2
+     * @param _l1Address the address in the L1 that triggered the tx to L2
      * @return l2Address L2 address as viewed in msg.sender
      */
-    function applyL1ToL2Alias(address l1Address) internal pure returns (address l2Address) {
-        l2Address = address(uint160(l1Address) + OFFSET);
+    function applyL1ToL2Alias(address _l1Address) internal pure returns (address l2Address) {
+        l2Address = address(uint160(_l1Address) + OFFSET);
     }
 
     /**
      * @dev Creates a retryable ticket for an L2 transaction
-     * @param destAddr Address of the contract to call in L2
-     * @param arbTxCallValue Callvalue to use in the L2 transaction
-     * @param maxSubmissionCost Max cost of submitting the ticket, in Wei
-     * @param submissionRefundAddress L2 address to refund for any remaining value from the submission cost
-     * @param valueRefundAddress L2 address to refund if the ticket times out or gets cancelled
-     * @param maxGas Max gas for the L2 transcation
-     * @param gasPriceBid Gas price bid on L2
-     * @param data Encoded calldata for the L2 transaction (including function selector)
+     * @param _destAddr Address of the contract to call in L2
+     * @param _arbTxCallValue Callvalue to use in the L2 transaction
+     * @param _maxSubmissionCost Max cost of submitting the ticket, in Wei
+     * @param _submissionRefundAddress L2 address to refund for any remaining value from the submission cost
+     * @param _valueRefundAddress L2 address to refund if the ticket times out or gets cancelled
+     * @param _maxGas Max gas for the L2 transcation
+     * @param _gasPriceBid Gas price bid on L2
+     * @param _data Encoded calldata for the L2 transaction (including function selector)
      * @return message number returned by the bridge
      */
     function createRetryableTicket(
-        address destAddr,
-        uint256 arbTxCallValue,
-        uint256 maxSubmissionCost,
-        address submissionRefundAddress,
-        address valueRefundAddress,
-        uint256 maxGas,
-        uint256 gasPriceBid,
-        bytes calldata data
+        address _destAddr,
+        uint256 _arbTxCallValue,
+        uint256 _maxSubmissionCost,
+        address _submissionRefundAddress,
+        address _valueRefundAddress,
+        uint256 _maxGas,
+        uint256 _gasPriceBid,
+        bytes calldata _data
     ) external payable override returns (uint256) {
-        submissionRefundAddress = applyL1ToL2Alias(submissionRefundAddress);
-        valueRefundAddress = applyL1ToL2Alias(valueRefundAddress);
+        _submissionRefundAddress = applyL1ToL2Alias(_submissionRefundAddress);
+        _valueRefundAddress = applyL1ToL2Alias(_valueRefundAddress);
         return
             _deliverMessage(
                 L1MessageType_submitRetryableTx,
                 msg.sender,
                 abi.encodePacked(
-                    uint256(uint160(bytes20(destAddr))),
-                    arbTxCallValue,
+                    uint256(uint160(bytes20(_destAddr))),
+                    _arbTxCallValue,
                     msg.value,
-                    maxSubmissionCost,
-                    uint256(uint160(bytes20(submissionRefundAddress))),
-                    uint256(uint160(bytes20(valueRefundAddress))),
-                    maxGas,
-                    gasPriceBid,
-                    data.length,
-                    data
+                    _maxSubmissionCost,
+                    uint256(uint160(bytes20(_submissionRefundAddress))),
+                    uint256(uint160(bytes20(_valueRefundAddress))),
+                    _maxGas,
+                    _gasPriceBid,
+                    _data.length,
+                    _data
                 )
             );
     }
@@ -194,16 +194,16 @@ contract InboxMock is IInbox {
 
     /**
      * @dev Deliver a message to the bridge
-     * @param kind Type of the message
-     * @param sender Address that is sending the message
-     * @param messageDataHash keccak256 hash of the encoded message data
+     * @param _kind Type of the message
+     * @param _sender Address that is sending the message
+     * @param _messageDataHash keccak256 hash of the encoded message data
      * @return Message number returned by the bridge
      */
     function deliverToBridge(
-        uint8 kind,
-        address sender,
-        bytes32 messageDataHash
+        uint8 _kind,
+        address _sender,
+        bytes32 _messageDataHash
     ) internal returns (uint256) {
-        return bridge.deliverMessageToInbox{ value: msg.value }(kind, sender, messageDataHash);
+        return bridge.deliverMessageToInbox{ value: msg.value }(_kind, _sender, _messageDataHash);
     }
 }

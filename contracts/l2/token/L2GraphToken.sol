@@ -70,33 +70,6 @@ contract GraphTokenUpgradeable is
     }
 
     /**
-     * @dev Graph Token Contract initializer.
-     * @param _initialSupply Initial supply of GRT
-     */
-    function _initialize(address owner, uint256 _initialSupply) internal {
-        __ERC20_init("Graph Token", "GRT");
-        Governed._initialize(owner);
-
-        // The Governor has the initial supply of tokens
-        _mint(owner, _initialSupply);
-
-        // The Governor is the default minter
-        _addMinter(owner);
-
-        // EIP-712 domain separator
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                DOMAIN_TYPE_HASH,
-                DOMAIN_NAME_HASH,
-                DOMAIN_VERSION_HASH,
-                _getChainID(),
-                address(this),
-                DOMAIN_SALT
-            )
-        );
-    }
-
-    /**
      * @dev Approve token allowance by validating a message signed by the holder.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
@@ -125,7 +98,7 @@ contract GraphTokenUpgradeable is
             )
         );
 
-        address recoveredAddress = ECDSA.recover(digest, abi.encodePacked(_r, _s, _v));
+        address recoveredAddress = ECDSA.recover(digest, _v, _r, _s);
         require(_owner == recoveredAddress, "GRT: invalid permit");
         require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
@@ -175,6 +148,33 @@ contract GraphTokenUpgradeable is
      */
     function isMinter(address _account) public view returns (bool) {
         return _minters[_account];
+    }
+
+    /**
+     * @dev Graph Token Contract initializer.
+     * @param _initialSupply Initial supply of GRT
+     */
+    function _initialize(address _owner, uint256 _initialSupply) internal {
+        __ERC20_init("Graph Token", "GRT");
+        Governed._initialize(_owner);
+
+        // The Governor has the initial supply of tokens
+        _mint(_owner, _initialSupply);
+
+        // The Governor is the default minter
+        _addMinter(_owner);
+
+        // EIP-712 domain separator
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                DOMAIN_TYPE_HASH,
+                DOMAIN_NAME_HASH,
+                DOMAIN_VERSION_HASH,
+                _getChainID(),
+                address(this),
+                DOMAIN_SALT
+            )
+        );
     }
 
     /**
@@ -241,50 +241,50 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
 
     /**
      * @dev L2 Graph Token Contract initializer.
-     * @param owner Governance address that owns this contract
+     * @param _owner Governance address that owns this contract
      */
-    function initialize(address owner) external onlyImpl {
-        require(owner != address(0), "Owner must be set");
+    function initialize(address _owner) external onlyImpl {
+        require(_owner != address(0), "Owner must be set");
         // Initial supply hard coded to 0 as tokens are only supposed
         // to be minted through the bridge.
-        GraphTokenUpgradeable._initialize(owner, 0);
+        GraphTokenUpgradeable._initialize(_owner, 0);
     }
 
     /**
      * @dev Sets the address of the L2 gateway allowed to mint tokens
      */
-    function setGateway(address gw) external onlyGovernor {
-        require(gw != address(0), "INVALID_GATEWAY");
-        gateway = gw;
+    function setGateway(address _gw) external onlyGovernor {
+        require(_gw != address(0), "INVALID_GATEWAY");
+        gateway = _gw;
         emit GatewaySet(gateway);
     }
 
     /**
      * @dev Sets the address of the counterpart token on L1
      */
-    function setL1Address(address addr) external onlyGovernor {
-        require(addr != address(0), "INVALID_L1_ADDRESS");
-        l1Address = addr;
-        emit L1AddressSet(addr);
+    function setL1Address(address _addr) external onlyGovernor {
+        require(_addr != address(0), "INVALID_L1_ADDRESS");
+        l1Address = _addr;
+        emit L1AddressSet(_addr);
     }
 
     /**
      * @dev Increases token supply, only callable by the L1/L2 bridge (when tokens are transferred to L2)
-     * @param account Address to credit with the new tokens
-     * @param amount Number of tokens to mint
+     * @param _account Address to credit with the new tokens
+     * @param _amount Number of tokens to mint
      */
-    function bridgeMint(address account, uint256 amount) external override onlyGateway {
-        _mint(account, amount);
-        emit BridgeMinted(account, amount);
+    function bridgeMint(address _account, uint256 _amount) external override onlyGateway {
+        _mint(_account, _amount);
+        emit BridgeMinted(_account, _amount);
     }
 
     /**
      * @dev Decreases token supply, only callable by the L1/L2 bridge (when tokens are transferred to L1).
-     * @param account Address from which to extract the tokens
-     * @param amount Number of tokens to burn
+     * @param _account Address from which to extract the tokens
+     * @param _amount Number of tokens to burn
      */
-    function bridgeBurn(address account, uint256 amount) external override onlyGateway {
-        burnFrom(account, amount);
-        emit BridgeBurned(account, amount);
+    function bridgeBurn(address _account, uint256 _amount) external override onlyGateway {
+        burnFrom(_account, _amount);
+        emit BridgeBurned(_account, _amount);
     }
 }

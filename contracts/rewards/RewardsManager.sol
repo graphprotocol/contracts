@@ -397,6 +397,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
                 graphToken().transferFrom(address(reservoir()), address(staking), rewards);
             }
             emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
+            return rewards;
         } else {
             if (rewards > 0) {
                 graphToken().burnFrom(address(reservoir()), rewards);
@@ -404,8 +405,6 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             emit RewardsDenied(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
             return 0;
         }
-
-        return rewards;
     }
 
     /**

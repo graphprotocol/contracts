@@ -21,25 +21,25 @@ contract BridgeMock is IBridge {
     /**
      * @dev Deliver a message to the inbox. The encoded message will be
      * added to the inbox array, and messageIndex will be incremented.
-     * @param kind Type of the message
-     * @param sender Address that is sending the message
-     * @param messageDataHash keccak256 hash of the message data
+     * @param _kind Type of the message
+     * @param _sender Address that is sending the message
+     * @param _messageDataHash keccak256 hash of the message data
      * @return The next index for the inbox array
      */
     function deliverMessageToInbox(
-        uint8 kind,
-        address sender,
-        bytes32 messageDataHash
+        uint8 _kind,
+        address _sender,
+        bytes32 _messageDataHash
     ) external payable override returns (uint256) {
         messageIndex = messageIndex + 1;
-        inboxAccs.push(keccak256(abi.encodePacked(inbox, kind, sender, messageDataHash)));
+        inboxAccs.push(keccak256(abi.encodePacked(inbox, _kind, _sender, _messageDataHash)));
         emit MessageDelivered(
             messageIndex,
             inboxAccs[messageIndex - 1],
             msg.sender,
-            kind,
-            sender,
-            messageDataHash
+            _kind,
+            _sender,
+            _messageDataHash
         );
         return messageIndex;
     }
@@ -47,40 +47,40 @@ contract BridgeMock is IBridge {
     /**
      * @dev Executes an L1 function call incoing from L2. This can only be called
      * by the Outbox.
-     * @param destAddr Contract to call
-     * @param amount ETH value to send
-     * @param data Calldata for the function call
+     * @param _destAddr Contract to call
+     * @param _amount ETH value to send
+     * @param _data Calldata for the function call
      */
     function executeCall(
-        address destAddr,
-        uint256 amount,
-        bytes calldata data
+        address _destAddr,
+        uint256 _amount,
+        bytes calldata _data
     ) external override returns (bool success, bytes memory returnData) {
         require(outbox == msg.sender, "NOT_FROM_OUTBOX");
 
         // solhint-disable-next-line avoid-low-level-calls
-        (success, returnData) = destAddr.call{ value: amount }(data);
-        emit BridgeCallTriggered(msg.sender, destAddr, amount, data);
+        (success, returnData) = _destAddr.call{ value: _amount }(_data);
+        emit BridgeCallTriggered(msg.sender, _destAddr, _amount, _data);
     }
 
     /**
      * @dev Set the address of the inbox. Anyone can call this, because it's a mock.
      * @param _inbox Address of the inbox
-     * @param enabled Enable the inbox (ignored)
+     * @param _enabled Enable the inbox (ignored)
      */
-    function setInbox(address _inbox, bool enabled) external override {
+    function setInbox(address _inbox, bool _enabled) external override {
         inbox = _inbox;
-        emit InboxToggle(inbox, enabled);
+        emit InboxToggle(inbox, _enabled);
     }
 
     /**
      * @dev Set the address of the outbox. Anyone can call this, because it's a mock.
      * @param _outbox Address of the outbox
-     * @param enabled Enable the outbox (ignored)
+     * @param _enabled Enable the outbox (ignored)
      */
-    function setOutbox(address _outbox, bool enabled) external override {
+    function setOutbox(address _outbox, bool _enabled) external override {
         outbox = _outbox;
-        emit OutboxToggle(outbox, enabled);
+        emit OutboxToggle(outbox, _enabled);
     }
 
     // View functions

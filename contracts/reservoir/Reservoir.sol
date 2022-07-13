@@ -32,26 +32,26 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
 
     /**
      * @dev Get accumulated total rewards on this layer at a particular block
-     * @param blocknum Block number at which to calculate rewards
+     * @param _blocknum Block number at which to calculate rewards
      * @return totalRewards Accumulated total rewards on this layer
      */
-    function getAccumulatedRewards(uint256 blocknum)
+    function getAccumulatedRewards(uint256 _blocknum)
         public
         view
         override
         returns (uint256 totalRewards)
     {
         // R(t) = R(t0) + (DeltaR(t, t0))
-        totalRewards = accumulatedLayerRewards + getNewRewards(blocknum);
+        totalRewards = accumulatedLayerRewards + getNewRewards(_blocknum);
     }
 
     /**
      * @dev Get new total rewards on this layer at a particular block, since the last drip event.
      * Must be implemented by the reservoir on each layer.
-     * @param blocknum Block number at which to calculate rewards
+     * @param _blocknum Block number at which to calculate rewards
      * @return deltaRewards New total rewards on this layer since the last drip
      */
-    function getNewRewards(uint256 blocknum)
+    function getNewRewards(uint256 _blocknum)
         public
         view
         virtual
@@ -59,63 +59,63 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
         returns (uint256 deltaRewards);
 
     /**
-     * @dev Raises x to the power of n with scaling factor of base.
+     * @dev Raises _x to the power of _n with scaling factor of _base.
      * Based on: https://github.com/makerdao/dss/blob/master/src/pot.sol#L81
-     * @param x Base of the exponentiation
-     * @param n Exponent
-     * @param base Scaling factor
-     * @return z Exponential of n with base x
+     * @param _x Base of the exponentiation
+     * @param _n Exponent
+     * @param _base Scaling factor
+     * @return z Exponential of _n with base _x
      */
     function _pow(
-        uint256 x,
-        uint256 n,
-        uint256 base
+        uint256 _x,
+        uint256 _n,
+        uint256 _base
     ) internal pure returns (uint256 z) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            switch x
+            switch _x
             case 0 {
-                switch n
+                switch _n
                 case 0 {
-                    z := base
+                    z := _base
                 }
                 default {
                     z := 0
                 }
             }
             default {
-                switch mod(n, 2)
+                switch mod(_n, 2)
                 case 0 {
-                    z := base
+                    z := _base
                 }
                 default {
-                    z := x
+                    z := _x
                 }
-                let half := div(base, 2) // for rounding.
+                let half := div(_base, 2) // for rounding.
                 for {
-                    n := div(n, 2)
-                } n {
-                    n := div(n, 2)
+                    _n := div(_n, 2)
+                } _n {
+                    _n := div(_n, 2)
                 } {
-                    let xx := mul(x, x)
-                    if iszero(eq(div(xx, x), x)) {
+                    let xx := mul(_x, _x)
+                    if iszero(eq(div(xx, _x), _x)) {
                         revert(0, 0)
                     }
                     let xxRound := add(xx, half)
                     if lt(xxRound, xx) {
                         revert(0, 0)
                     }
-                    x := div(xxRound, base)
-                    if mod(n, 2) {
-                        let zx := mul(z, x)
-                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
+                    _x := div(xxRound, _base)
+                    if mod(_n, 2) {
+                        let zx := mul(z, _x)
+                        if and(iszero(iszero(_x)), iszero(eq(div(zx, _x), z))) {
                             revert(0, 0)
                         }
                         let zxRound := add(zx, half)
                         if lt(zxRound, zx) {
                             revert(0, 0)
                         }
-                        z := div(zxRound, base)
+                        z := div(zxRound, _base)
                     }
                 }
             }

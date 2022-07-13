@@ -42,10 +42,10 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
 
     /**
      * @notice Change the paused state of the contract
-     * @param newPaused New value for the pause state (true means the transfers will be paused)
+     * @param _newPaused New value for the pause state (true means the transfers will be paused)
      */
-    function setPaused(bool newPaused) external onlyGovernorOrGuardian {
-        _setPaused(newPaused);
+    function setPaused(bool _newPaused) external onlyGovernorOrGuardian {
+        _setPaused(_newPaused);
     }
 
     /**

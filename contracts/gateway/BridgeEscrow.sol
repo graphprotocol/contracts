@@ -25,18 +25,18 @@ contract BridgeEscrow is GraphUpgradeable, Managed {
 
     /**
      * @dev Approve a spender (i.e. a bridge that manages the GRT funds held by the escrow)
-     * @param spender Address of the spender that will be approved
+     * @param _spender Address of the spender that will be approved
      */
-    function approveAll(address spender) external onlyGovernor {
-        graphToken().approve(spender, MAX_UINT256);
+    function approveAll(address _spender) external onlyGovernor {
+        graphToken().approve(_spender, MAX_UINT256);
     }
 
     /**
      * @dev Revoke a spender (i.e. a bridge that will no longer manage the GRT funds held by the escrow)
-     * @param spender Address of the spender that will be revoked
+     * @param _spender Address of the spender that will be revoked
      */
-    function revokeAll(address spender) external onlyGovernor {
+    function revokeAll(address _spender) external onlyGovernor {
         IGraphToken grt = graphToken();
-        grt.decreaseAllowance(spender, grt.allowance(address(this), spender));
+        grt.decreaseAllowance(_spender, grt.allowance(address(this), _spender));
     }
 }
