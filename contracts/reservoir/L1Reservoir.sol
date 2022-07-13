@@ -260,10 +260,10 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         uint256 gasPriceBid,
         uint256 maxSubmissionCost
     ) internal {
-        uint256 normalizedSupply = l2RewardsFraction.mul(issuanceBase).div(TOKEN_DECIMALS);
+        uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(TOKEN_DECIMALS);
         bytes memory extraData = abi.encodeWithSelector(
             IL2Reservoir.receiveDrip.selector,
-            normalizedSupply,
+            l2IssuanceBase,
             issuanceRate,
             nextDripNonce
         );
