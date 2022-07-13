@@ -1568,9 +1568,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return 0;
-        }
         return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
@@ -1580,9 +1577,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      */
     function _distributeRewards(address _allocationID, address _indexer) private {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return;
-        }
 
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards transfers tokens for the Staking contract to distribute
@@ -1611,9 +1605,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
      */
     function _takeAndBurnRewards(address _allocationID) private {
         IRewardsManager rewardsManager = rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return;
-        }
 
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call.
