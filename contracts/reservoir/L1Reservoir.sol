@@ -22,22 +22,22 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
 
     // Emitted when the initial supply snapshot is taken after contract deployment
     event InitialSnapshotTaken(
-        uint256 _blockNumber,
-        uint256 _issuanceBase,
-        uint256 _mintedPendingRewards
+        uint256 blockNumber,
+        uint256 issuanceBase,
+        uint256 mintedPendingRewards
     );
     // Emitted when an issuance rate update is staged, to be applied on the next drip
-    event IssuanceRateStaged(uint256 _newValue);
+    event IssuanceRateStaged(uint256 newValue);
     // Emitted when an L2 rewards fraction update is staged, to be applied on the next drip
-    event L2RewardsFractionStaged(uint256 _newValue);
+    event L2RewardsFractionStaged(uint256 newValue);
     // Emitted when the L2 rewards fraction is updated (during a drip)
-    event L2RewardsFractionUpdated(uint256 _newValue);
+    event L2RewardsFractionUpdated(uint256 newValue);
     // Emitted when the drip interval is updated
-    event DripIntervalUpdated(uint256 _newValue);
+    event DripIntervalUpdated(uint256 newValue);
     // Emitted when new rewards are dripped and potentially sent to L2
-    event RewardsDripped(uint256 _totalMinted, uint256 _sentToL2, uint256 _nextDeadline);
+    event RewardsDripped(uint256 totalMinted, uint256 sentToL2, uint256 nextDeadline);
     // Emitted when the address for the L2Reservoir is updated
-    event L2ReservoirAddressUpdated(address _l2ReservoirAddress);
+    event L2ReservoirAddressUpdated(address l2ReservoirAddress);
 
     /**
      * @dev Initialize this contract.
@@ -113,15 +113,15 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * we will keep an internal accounting only using newly minted rewards. This function
      * will also mint any pending rewards to cover up to the current block for open allocations,
      * to be computed off-chain. Can only be called once as it checks that the issuanceBase is zero.
-     * @param pendingRewards Pending rewards up to the current block for open allocations, to be minted by this function
+     * @param _pendingRewards Pending rewards up to the current block for open allocations, to be minted by this function
      */
-    function initialSnapshot(uint256 pendingRewards) external onlyGovernor {
+    function initialSnapshot(uint256 _pendingRewards) external onlyGovernor {
         require(issuanceBase == 0, "Cannot call this function more than once");
         lastRewardsUpdateBlock = block.number;
         IGraphToken grt = graphToken();
-        grt.mint(address(this), pendingRewards);
+        grt.mint(address(this), _pendingRewards);
         issuanceBase = grt.totalSupply();
-        emit InitialSnapshotTaken(block.number, issuanceBase, pendingRewards);
+        emit InitialSnapshotTaken(block.number, issuanceBase, _pendingRewards);
     }
 
     /**
@@ -138,14 +138,14 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * until the drip amount becomes positive before calling the function again. It can also revert
      * if the l2RewardsFraction has been updated and the amount already sent to L2 is more than what we
      * should send now.
-     * @param l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
-     * @param l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
-     * @param l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     * @param _l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     * @param _l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
+     * @param _l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      */
     function drip(
-        uint256 l2MaxGas,
-        uint256 l2GasPriceBid,
-        uint256 l2MaxSubmissionCost
+        uint256 _l2MaxGas,
+        uint256 _l2GasPriceBid,
+        uint256 _l2MaxSubmissionCost
     ) external payable notPaused {
         uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
         uint256 mintedRewardsActual = getNewGlobalRewards(block.number);
@@ -209,17 +209,17 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             emit L2RewardsFractionUpdated(l2RewardsFraction);
             _sendNewTokensAndStateToL2(
                 tokensToSendToL2,
-                l2MaxGas,
-                l2GasPriceBid,
-                l2MaxSubmissionCost
+                _l2MaxGas,
+                _l2GasPriceBid,
+                _l2MaxSubmissionCost
             );
         } else if (l2RewardsFraction > 0) {
             tokensToSendToL2 = tokensToMint.mul(l2RewardsFraction).div(TOKEN_DECIMALS);
             _sendNewTokensAndStateToL2(
                 tokensToSendToL2,
-                l2MaxGas,
-                l2GasPriceBid,
-                l2MaxSubmissionCost
+                _l2MaxGas,
+                _l2GasPriceBid,
+                _l2MaxSubmissionCost
             );
         } else {
             // Avoid locking funds in this contract if we don't need to
@@ -233,15 +233,15 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @dev Snapshot accumulated rewards on this layer
      * We compute accumulatedLayerRewards and mark this block as the lastRewardsUpdateBlock.
      * We also update the issuanceBase by adding the new total rewards on both layers.
-     * @param globalDelta New global rewards (i.e. rewards on L1 and L2) since the last update block
+     * @param _globalDelta New global rewards (i.e. rewards on L1 and L2) since the last update block
      */
-    function snapshotAccumulatedRewards(uint256 globalDelta) internal {
-        issuanceBase = issuanceBase + globalDelta;
-        // Reimplementation of getAccumulatedRewards but reusing the globalDelta calculated above,
+    function snapshotAccumulatedRewards(uint256 _globalDelta) internal {
+        issuanceBase = issuanceBase + _globalDelta;
+        // Reimplementation of getAccumulatedRewards but reusing the _globalDelta calculated above,
         // to save gas
         accumulatedLayerRewards =
             accumulatedLayerRewards +
-            globalDelta.mul(TOKEN_DECIMALS.sub(l2RewardsFraction)).div(TOKEN_DECIMALS);
+            _globalDelta.mul(TOKEN_DECIMALS.sub(l2RewardsFraction)).div(TOKEN_DECIMALS);
         lastRewardsUpdateBlock = block.number;
     }
 
@@ -249,16 +249,16 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @dev Send new tokens and a message with state to L2
      * This function will use the L1GraphTokenGateway to send tokens
      * to L2, and will also encode a callhook to update state on the L2Reservoir.
-     * @param nTokens Number of tokens to send to L2
-     * @param maxGas Max gas for the L2 retryable ticket execution
-     * @param gasPriceBid Gas price for the L2 retryable ticket execution
-     * @param maxSubmissionCost Max submission price for the L2 retryable ticket
+     * @param _nTokens Number of tokens to send to L2
+     * @param _maxGas Max gas for the L2 retryable ticket execution
+     * @param _gasPriceBid Gas price for the L2 retryable ticket execution
+     * @param _maxSubmissionCost Max submission price for the L2 retryable ticket
      */
     function _sendNewTokensAndStateToL2(
-        uint256 nTokens,
-        uint256 maxGas,
-        uint256 gasPriceBid,
-        uint256 maxSubmissionCost
+        uint256 _nTokens,
+        uint256 _maxGas,
+        uint256 _gasPriceBid,
+        uint256 _maxSubmissionCost
     ) internal {
         uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(TOKEN_DECIMALS);
         bytes memory extraData = abi.encodeWithSelector(
@@ -268,16 +268,16 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             nextDripNonce
         );
         nextDripNonce = nextDripNonce.add(1);
-        bytes memory data = abi.encode(maxSubmissionCost, extraData);
+        bytes memory data = abi.encode(_maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
         ITokenGateway gateway = ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
-        grt.approve(address(gateway), nTokens);
+        grt.approve(address(gateway), _nTokens);
         gateway.outboundTransfer{ value: msg.value }(
             address(grt),
             l2ReservoirAddress,
-            nTokens,
-            maxGas,
-            gasPriceBid,
+            _nTokens,
+            _maxGas,
+            _gasPriceBid,
             data
         );
     }
@@ -288,16 +288,16 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * - p is the total token supply snapshot at t0
      * - t0 is the last drip block, i.e. lastRewardsUpdateBlock
      * - r is the issuanceRate
-     * @param blocknum Block number at which to calculate rewards
+     * @param _blocknum Block number at which to calculate rewards
      * @return deltaRewards New total rewards on both layers since the last drip
      */
-    function getNewGlobalRewards(uint256 blocknum) public view returns (uint256 deltaRewards) {
+    function getNewGlobalRewards(uint256 _blocknum) public view returns (uint256 deltaRewards) {
         uint256 t0 = lastRewardsUpdateBlock;
-        if (issuanceRate <= MIN_ISSUANCE_RATE || blocknum == t0) {
+        if (issuanceRate <= MIN_ISSUANCE_RATE || _blocknum == t0) {
             return 0;
         }
         deltaRewards = issuanceBase
-            .mul(_pow(issuanceRate, blocknum.sub(t0), TOKEN_DECIMALS))
+            .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
             .div(TOKEN_DECIMALS)
             .sub(issuanceBase);
     }
@@ -307,12 +307,12 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * This is deltaR_L1 = (1-lambda) * deltaR, where:
      * - deltaR is the new global rewards on both layers (see getNewGlobalRewards)
      * - lambda is the fraction of rewards sent to L2, i.e. l2RewardsFraction
-     * @param blocknum Block number at which to calculate rewards
+     * @param _blocknum Block number at which to calculate rewards
      * @return deltaRewards New total rewards on Layer 1 since the last drip
      */
-    function getNewRewards(uint256 blocknum) public view override returns (uint256 deltaRewards) {
-        deltaRewards = getNewGlobalRewards(blocknum).mul(TOKEN_DECIMALS.sub(l2RewardsFraction)).div(
-                TOKEN_DECIMALS
-            );
+    function getNewRewards(uint256 _blocknum) public view override returns (uint256 deltaRewards) {
+        deltaRewards = getNewGlobalRewards(_blocknum)
+            .mul(TOKEN_DECIMALS.sub(l2RewardsFraction))
+            .div(TOKEN_DECIMALS);
     }
 }
