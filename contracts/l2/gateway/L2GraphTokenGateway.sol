@@ -61,8 +61,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     event L1TokenAddressSet(address _l1GRT);
     // Emitted when the address of the counterpart gateway on L1 has been updated
     event L1CounterpartAddressSet(address _l1Counterpart);
-    // Emitted when a callhook call failed
-    event CallhookFailed(address destination);
 
     /**
      * @dev Checks that the sender is the L2 alias of the counterpart
