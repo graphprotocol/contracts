@@ -265,19 +265,22 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @dev data must include maxSubmissionCost, extraData can be left empty. When the router
      * sends an outbound message, data also contains the from address.
      * @param _data encoded callhook data
-     * @return from sender of the tx
-     * @return maxSubmissionCost base ether value required to keep retyrable ticket alive
-     * @return extraData any other data sent to L2
+     * @return Sender of the tx
+     * @return Base ether value required to keep retryable ticket alive
+     * @return Additional data sent to L2
      */
     function parseOutboundData(bytes memory _data)
         private
         view
         returns (
-            address from,
-            uint256 maxSubmissionCost,
-            bytes memory extraData
+            address,
+            uint256,
+            bytes memory
         )
     {
+        address from;
+        uint256 maxSubmissionCost;
+        bytes memory extraData;
         if (msg.sender == l1Router) {
             // Data encoded by the Gateway Router includes the sender address
             (from, extraData) = abi.decode(_data, (address, bytes));
@@ -288,6 +291,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         // User-encoded data contains the max retryable ticket submission cost
         // and additional L2 calldata
         (maxSubmissionCost, extraData) = abi.decode(extraData, (uint256, bytes));
+        return (from, maxSubmissionCost, extraData);
     }
 
     /**
@@ -299,7 +303,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _to Address on L2 to which we're transferring tokens
      * @param _amount Amount of GRT to transfer
      * @param _data Additional call data for the L2 transaction, which must be empty
-     * @return outboundCalldata Encoded calldata (including function selector) for the L2 transaction
+     * @return Encoded calldata (including function selector) for the L2 transaction
      */
     function getOutboundCalldata(
         address _l1Token,
@@ -307,17 +311,18 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         address _to,
         uint256 _amount,
         bytes memory _data
-    ) public pure returns (bytes memory outboundCalldata) {
+    ) public pure returns (bytes memory) {
         bytes memory emptyBytes;
 
-        outboundCalldata = abi.encodeWithSelector(
-            ITokenGateway.finalizeInboundTransfer.selector,
-            _l1Token,
-            _from,
-            _to,
-            _amount,
-            abi.encode(emptyBytes, _data)
-        );
+        return
+            abi.encodeWithSelector(
+                ITokenGateway.finalizeInboundTransfer.selector,
+                _l1Token,
+                _from,
+                _to,
+                _amount,
+                abi.encode(emptyBytes, _data)
+            );
     }
 
     /**

@@ -33,30 +33,20 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
     /**
      * @dev Get accumulated total rewards on this layer at a particular block
      * @param _blocknum Block number at which to calculate rewards
-     * @return totalRewards Accumulated total rewards on this layer
+     * @return Accumulated total rewards on this layer
      */
-    function getAccumulatedRewards(uint256 _blocknum)
-        public
-        view
-        override
-        returns (uint256 totalRewards)
-    {
+    function getAccumulatedRewards(uint256 _blocknum) public view override returns (uint256) {
         // R(t) = R(t0) + (DeltaR(t, t0))
-        totalRewards = accumulatedLayerRewards + getNewRewards(_blocknum);
+        return accumulatedLayerRewards + getNewRewards(_blocknum);
     }
 
     /**
      * @dev Get new total rewards on this layer at a particular block, since the last drip event.
      * Must be implemented by the reservoir on each layer.
      * @param _blocknum Block number at which to calculate rewards
-     * @return deltaRewards New total rewards on this layer since the last drip
+     * @return New total rewards on this layer since the last drip
      */
-    function getNewRewards(uint256 _blocknum)
-        public
-        view
-        virtual
-        override
-        returns (uint256 deltaRewards);
+    function getNewRewards(uint256 _blocknum) public view virtual override returns (uint256);
 
     /**
      * @dev Raises _x to the power of _n with scaling factor of _base.
@@ -64,13 +54,14 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
      * @param _x Base of the exponentiation
      * @param _n Exponent
      * @param _base Scaling factor
-     * @return z Exponential of _n with base _x
+     * @return Exponential of _n with base _x
      */
     function _pow(
         uint256 _x,
         uint256 _n,
         uint256 _base
-    ) internal pure returns (uint256 z) {
+    ) internal pure returns (uint256) {
+        uint256 z;
         // solhint-disable-next-line no-inline-assembly
         assembly {
             switch _x
@@ -120,5 +111,6 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
                 }
             }
         }
+        return z;
     }
 }

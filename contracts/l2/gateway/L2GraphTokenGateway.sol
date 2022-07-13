@@ -244,6 +244,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _to Address to which we're sending tokens on L1
      * @param _amount Amount of GRT to transfer
      * @param _data Additional calldata for the transaction
+     * @return Calldata for a transaction sent to L1
      */
     function getOutboundCalldata(
         address _token,
@@ -251,35 +252,35 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         address _to,
         uint256 _amount,
         bytes memory _data
-    ) public pure returns (bytes memory outboundCalldata) {
-        outboundCalldata = abi.encodeWithSelector(
-            ITokenGateway.finalizeInboundTransfer.selector,
-            _token,
-            _from,
-            _to,
-            _amount,
-            abi.encode(0, _data) // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
-        );
+    ) public pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                ITokenGateway.finalizeInboundTransfer.selector,
+                _token,
+                _from,
+                _to,
+                _amount,
+                abi.encode(0, _data) // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
+            );
     }
 
     /**
      * @notice Decodes calldata required for migration of tokens
      * @dev extraData can be left empty
      * @param _data Encoded callhook data
-     * @return from Sender of the tx
-     * @return extraData Any other data sent to L1
+     * @return Sender of the tx
+     * @return Any other data sent to L1
      */
-    function parseOutboundData(bytes memory _data)
-        private
-        view
-        returns (address from, bytes memory extraData)
-    {
+    function parseOutboundData(bytes memory _data) private view returns (address, bytes memory) {
+        address from;
+        bytes memory extraData;
         if (msg.sender == l2Router) {
             (from, extraData) = abi.decode(_data, (address, bytes));
         } else {
             from = msg.sender;
             extraData = _data;
         }
+        return (from, extraData);
     }
 
     /**
@@ -287,9 +288,9 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @dev The Arbitrum bridge adds an offset to addresses when sending messages,
      * so we need to apply it to check any L1 address from a message in L2
      * @param _l1Address The L1 address
-     * @return _l2Address the L2 alias of _l1Address
+     * @return The L2 alias of _l1Address
      */
-    function l1ToL2Alias(address _l1Address) internal pure returns (address _l2Address) {
-        _l2Address = address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
+    function l1ToL2Alias(address _l1Address) internal pure returns (address) {
+        return address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
     }
 }

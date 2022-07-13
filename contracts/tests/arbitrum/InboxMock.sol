@@ -94,10 +94,10 @@ contract InboxMock is IInbox {
      * @dev Utility function that converts the address in the L1 that submitted a tx to
      * the inbox to the msg.sender viewed in the L2
      * @param _l1Address the address in the L1 that triggered the tx to L2
-     * @return l2Address L2 address as viewed in msg.sender
+     * @return L2 address as viewed in msg.sender
      */
-    function applyL1ToL2Alias(address _l1Address) internal pure returns (address l2Address) {
-        l2Address = address(uint160(_l1Address) + OFFSET);
+    function applyL1ToL2Alias(address _l1Address) internal pure returns (address) {
+        return address(uint160(_l1Address) + OFFSET);
     }
 
     /**

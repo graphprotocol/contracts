@@ -50,17 +50,22 @@ contract BridgeMock is IBridge {
      * @param _destAddr Contract to call
      * @param _amount ETH value to send
      * @param _data Calldata for the function call
+     * @return True if the call was successful, false otherwise
+     * @return Return data from the call
      */
     function executeCall(
         address _destAddr,
         uint256 _amount,
         bytes calldata _data
-    ) external override returns (bool success, bytes memory returnData) {
+    ) external override returns (bool, bytes memory) {
         require(outbox == msg.sender, "NOT_FROM_OUTBOX");
+        bool success;
+        bytes memory returnData;
 
         // solhint-disable-next-line avoid-low-level-calls
         (success, returnData) = _destAddr.call{ value: _amount }(_data);
         emit BridgeCallTriggered(msg.sender, _destAddr, _amount, _data);
+        return (success, returnData);
     }
 
     /**
