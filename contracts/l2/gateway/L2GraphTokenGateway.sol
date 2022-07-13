@@ -6,6 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../arbitrum/L2ArbitrumMessenger.sol";
+import "../../arbitrum/AddressAliasHelper.sol";
 import "../../gateway/GraphTokenGateway.sol";
 import "../token/L2GraphToken.sol";
 
@@ -19,10 +20,6 @@ import "../token/L2GraphToken.sol";
  */
 contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     using SafeMath for uint256;
-
-    // Offset applied by the bridge to L1 addresses sending messages to L2
-    uint160 internal constant L2_ADDRESS_OFFSET =
-        uint160(0x1111000000000000000000000000000000001111);
 
     // Address of the Graph Token contract on L1
     address public l1GRT;
@@ -67,7 +64,10 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * gateway on L1.
      */
     modifier onlyL1Counterpart() {
-        require(msg.sender == l1ToL2Alias(l1Counterpart), "ONLY_COUNTERPART_GATEWAY");
+        require(
+            msg.sender == AddressAliasHelper.applyL1ToL2Alias(l1Counterpart),
+            "ONLY_COUNTERPART_GATEWAY"
+        );
         _;
     }
 
@@ -286,16 +286,5 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
             extraData = _data;
         }
         return (from, extraData);
-    }
-
-    /**
-     * @notice Converts L1 address to its L2 alias used when sending messages
-     * @dev The Arbitrum bridge adds an offset to addresses when sending messages,
-     * so we need to apply it to check any L1 address from a message in L2
-     * @param _l1Address The L1 address
-     * @return The L2 alias of _l1Address
-     */
-    function l1ToL2Alias(address _l1Address) internal pure returns (address) {
-        return address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
     }
 }

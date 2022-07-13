@@ -3,14 +3,13 @@
 pragma solidity ^0.7.6;
 
 import "../../arbitrum/IInbox.sol";
+import "../../arbitrum/AddressAliasHelper.sol";
 
 /**
  * @title Arbitrum Inbox mock contract
  * @dev This contract implements (a subset of) Arbitrum's IInbox interface for testing purposes
  */
 contract InboxMock is IInbox {
-    // Offset used when calculating the L2 alias of an L1 address
-    uint160 internal constant OFFSET = uint160(0x1111000000000000000000000000000000001111);
     // Type indicator for a standard L2 message
     uint8 internal constant L2_MSG = 3;
     // Type indicator for a retryable ticket message
@@ -91,16 +90,6 @@ contract InboxMock is IInbox {
     }
 
     /**
-     * @dev Utility function that converts the address in the L1 that submitted a tx to
-     * the inbox to the msg.sender viewed in the L2
-     * @param _l1Address the address in the L1 that triggered the tx to L2
-     * @return L2 address as viewed in msg.sender
-     */
-    function applyL1ToL2Alias(address _l1Address) internal pure returns (address) {
-        return address(uint160(_l1Address) + OFFSET);
-    }
-
-    /**
      * @dev Creates a retryable ticket for an L2 transaction
      * @param _destAddr Address of the contract to call in L2
      * @param _arbTxCallValue Callvalue to use in the L2 transaction
@@ -122,8 +111,8 @@ contract InboxMock is IInbox {
         uint256 _gasPriceBid,
         bytes calldata _data
     ) external payable override returns (uint256) {
-        _submissionRefundAddress = applyL1ToL2Alias(_submissionRefundAddress);
-        _valueRefundAddress = applyL1ToL2Alias(_valueRefundAddress);
+        _submissionRefundAddress = AddressAliasHelper.applyL1ToL2Alias(_submissionRefundAddress);
+        _valueRefundAddress = AddressAliasHelper.applyL1ToL2Alias(_valueRefundAddress);
         return
             _deliverMessage(
                 L1MessageType_submitRetryableTx,
