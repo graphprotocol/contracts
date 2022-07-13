@@ -84,6 +84,14 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     /**
      * @dev Initialize this contract.
      * The contract will be paused.
+     * Note some parameters have to be set separately as they are generally
+     * not expected to be available at initialization time:
+     * - inbox  and l1Router using setArbitrumAddresses
+     * - l2GRT using setL2TokenAddress
+     * - l2Counterpart using setL2CounterpartAddress
+     * - escrow using setEscrowAddress
+     * - whitelisted callhook callers using addToCallhookWhitelist
+     * - pauseGuardian using setPauseGuardian
      * @param _controller Address of the Controller that manages this contract
      */
     function initialize(address _controller) external onlyImpl {

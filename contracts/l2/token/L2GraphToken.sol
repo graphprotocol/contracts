@@ -242,6 +242,10 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
 
     /**
      * @dev L2 Graph Token Contract initializer.
+     * Note some parameters have to be set separately as they are generally
+     * not expected to be available at initialization time:
+     * - gateway using setGateway
+     * - l1Address using setL1Address
      * @param _owner Governance address that owns this contract
      */
     function initialize(address _owner) external onlyImpl {
