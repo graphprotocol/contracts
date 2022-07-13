@@ -311,9 +311,6 @@ export class NetworkFixture {
     await l2FixtureContracts.l2GraphTokenGateway
       .connect(deployer)
       .setL1CounterpartAddress(mockL1GatewayAddress)
-    await l2FixtureContracts.l2GraphTokenGateway
-      .connect(deployer)
-      .addToCallhookWhitelist(mockL1ReservoirAddress)
     await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
