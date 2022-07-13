@@ -20,16 +20,16 @@ interface IReservoir {
     /**
      * @dev Get accumulated total rewards on this layer at a particular block
      * @param _blocknum Block number at which to calculate rewards
-     * @return totalRewards Accumulated total rewards on this layer
+     * @return Accumulated total rewards on this layer
      */
-    function getAccumulatedRewards(uint256 _blocknum) external view returns (uint256 totalRewards);
+    function getAccumulatedRewards(uint256 _blocknum) external view returns (uint256);
 
     /**
      * @dev Get new total rewards on this layer at a particular block, since the last drip event
      * @param _blocknum Block number at which to calculate rewards
-     * @return deltaRewards New total rewards on this layer since the last drip
+     * @return New total rewards on this layer since the last drip
      */
-    function getNewRewards(uint256 _blocknum) external view returns (uint256 deltaRewards);
+    function getNewRewards(uint256 _blocknum) external view returns (uint256);
 }
 
 /**

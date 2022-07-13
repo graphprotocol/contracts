@@ -55,22 +55,23 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
      * - t0 is the last drip block, i.e. lastRewardsUpdateBlock
      * - r is the issuanceRate
      * @param _blocknum Block number at which to calculate rewards
-     * @return deltaRewards New total rewards on L2 since the last drip
+     * @return New total rewards on L2 since the last drip
      */
     function getNewRewards(uint256 _blocknum)
         public
         view
         override(Reservoir, IReservoir)
-        returns (uint256 deltaRewards)
+        returns (uint256)
     {
         uint256 t0 = lastRewardsUpdateBlock;
         if (issuanceRate <= MIN_ISSUANCE_RATE || _blocknum == t0) {
             return 0;
         }
-        deltaRewards = issuanceBase
-            .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
-            .div(TOKEN_DECIMALS)
-            .sub(issuanceBase);
+        return
+            issuanceBase
+                .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
+                .div(TOKEN_DECIMALS)
+                .sub(issuanceBase);
     }
 
     /**
