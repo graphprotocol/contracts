@@ -48,7 +48,7 @@ contract RebatePoolMock {
         uint32 _alphaNumerator,
         uint32 _alphaDenominator
     ) external pure returns (uint256) {
-        if (_totalFees == 0) {
+        if (_totalFees == 0 || _totalStake == 0) {
             return 0;
         }
 

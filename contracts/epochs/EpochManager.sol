@@ -29,7 +29,9 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
 
         Managed._initialize(_controller);
 
-        lastLengthUpdateEpoch = 0;
+        // NOTE: We make the first epoch to be one instead of zero to avoid any issue
+        // with composing contracts that may use zero as an empty value
+        lastLengthUpdateEpoch = 1;
         lastLengthUpdateBlock = blockNum();
         epochLength = _epochLength;
 

@@ -83,6 +83,12 @@ export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<vo
   return advanceBlocks(epochLen.sub(blocksSinceEpoch))
 }
 
+export const advanceEpochs = async (epochManager: EpochManager, n: number): Promise<void> => {
+  for (let i = 0; i < n; i++) {
+    await advanceToNextEpoch(epochManager)
+  }
+}
+
 export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
 export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
 
