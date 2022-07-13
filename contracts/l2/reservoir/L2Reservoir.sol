@@ -25,7 +25,7 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */
     modifier onlyL2Gateway() {
-        require(msg.sender == _resolveContract(keccak256("GraphTokenGateway")), "ONLY_GATEWAY");
+        require(msg.sender == address(graphTokenGateway()), "ONLY_GATEWAY");
         _;
     }
 

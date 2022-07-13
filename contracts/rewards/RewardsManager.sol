@@ -437,8 +437,4 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             emit RewardsBurned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
         }
     }
-
-    function reservoir() internal view returns (IReservoir) {
-        return IReservoir(_resolveContract(keccak256("Reservoir")));
-    }
 }
