@@ -122,7 +122,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L1
      * @param _amount Amount of tokens to burn
-     * @param _data Contains sender and additional data (always zero) to send to L1
+     * @param _data Contains sender and additional data (always empty) to send to L1
      * @return ID of the withdraw transaction
      */
     function outboundTransfer(
@@ -194,8 +194,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
 
     /**
      * @notice Receives token amount from L1 and mints the equivalent tokens to the receiving address
-     * @dev Only accepts transactions from the L1 GRT Gateway
-     * data param is unused because no additional data is allowed from L1.
+     * @dev Only accepts transactions from the L1 GRT Gateway.
      * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
      * @param _l1Token L1 Address of GRT
      * @param _from Address of the sender on L1

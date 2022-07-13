@@ -82,7 +82,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
     /**
      * @dev Sets the L2 rewards fraction.
      * This is the portion of the indexer rewards that are sent to L2.
-     * The value is in fixed point at 1e18 and must be less than 1.
+     * The value is in fixed point at 1e18 and must be less than or equal to 1.
      * Note: It is strongly recommended that the governor triggers a drip immediately after calling this,
      * including excess gas to guarantee that the L2 retryable ticket succeeds immediately, to ensure
      * good synchronization between L1 and L2.

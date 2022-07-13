@@ -31,7 +31,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     address public l2Counterpart;
     // Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
-    // Address of the L1 Reservoir that is the only sender allowed to send extra data
+    // Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
     mapping(address => bool) public callhookWhitelist;
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
@@ -302,7 +302,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param _from Address on L1 from which we're transferring tokens
      * @param _to Address on L2 to which we're transferring tokens
      * @param _amount Amount of GRT to transfer
-     * @param _data Additional call data for the L2 transaction, which must be empty
+     * @param _data Additional call data for the L2 transaction, which must be empty unless the caller is whitelisted
      * @return Encoded calldata (including function selector) for the L2 transaction
      */
     function getOutboundCalldata(
