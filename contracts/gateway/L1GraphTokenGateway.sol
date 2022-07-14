@@ -149,6 +149,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      */
     function addToCallhookWhitelist(address _newWhitelisted) external onlyGovernor {
         require(_newWhitelisted != address(0), "INVALID_ADDRESS");
+        require(!callhookWhitelist[_newWhitelisted], "ALREADY_WHITELISTED");
         callhookWhitelist[_newWhitelisted] = true;
         emit AddedToCallhookWhitelist(_newWhitelisted);
     }
@@ -160,6 +161,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      */
     function removeFromCallhookWhitelist(address _notWhitelisted) external onlyGovernor {
         require(_notWhitelisted != address(0), "INVALID_ADDRESS");
+        require(callhookWhitelist[_notWhitelisted], "NOT_WHITELISTED");
         callhookWhitelist[_notWhitelisted] = false;
         emit RemovedFromCallhookWhitelist(_notWhitelisted);
     }
