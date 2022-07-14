@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../arbitrum/ITokenGateway.sol";
 
-import "./IReservoir.sol";
+import "../l2/reservoir/IL2Reservoir.sol";
 import "./Reservoir.sol";
 import "./L1ReservoirStorage.sol";
 
