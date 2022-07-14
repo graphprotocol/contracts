@@ -276,7 +276,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Updates --
 
     /**
-     * @dev Updates the accumulated rewards per signal and save checkpoint block number.
+     * @dev Updates the accumulated rewards per signal and saves the checkpoint block number.
      * Also snapshots total accumulated rewards (`accRewardsOnLastSignalUpdate`).
      * Must be called before `issuanceRate` or `total signalled GRT` changes
      * Called from the Curation contract on mint() and burn()
