@@ -2,7 +2,6 @@
 
 pragma solidity ^0.7.6;
 
-import "./IReservoir.sol";
 import "../governance/Managed.sol";
 
 /**
