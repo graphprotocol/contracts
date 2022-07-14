@@ -147,6 +147,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * until the drip amount becomes positive before calling the function again. It can also revert
      * if the l2RewardsFraction has been updated and the amount already sent to L2 is more than what we
      * should send now.
+     * Note that the transaction on the L2 side might revert if it's received out-of-order by the L2Reservoir,
+     * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
+     * again once the ticket for previous drip has been redeemed.
      * @param _l2MaxGas Max gas for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param _l2GasPriceBid Gas price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
      * @param _l2MaxSubmissionCost Max submission price for the L2 retryable ticket, only needed if L2RewardsFraction is > 0
