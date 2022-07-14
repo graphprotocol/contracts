@@ -13,8 +13,6 @@ import "../token/IGraphToken.sol";
  * approved as a spender.
  */
 contract BridgeEscrow is GraphUpgradeable, Managed {
-    uint256 private constant MAX_UINT256 = 2**256 - 1;
-
     /**
      * @dev Initialize this contract.
      * @param _controller Address of the Controller that manages this contract
@@ -28,7 +26,7 @@ contract BridgeEscrow is GraphUpgradeable, Managed {
      * @param _spender Address of the spender that will be approved
      */
     function approveAll(address _spender) external onlyGovernor {
-        graphToken().approve(_spender, MAX_UINT256);
+        graphToken().approve(_spender, type(uint256).max);
     }
 
     /**
