@@ -20,7 +20,7 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
     using SafeMath for uint256;
 
     uint256 private constant MAX_UINT256 = 2**256 - 1;
-    uint256 internal constant TOKEN_DECIMALS = 1e18;
+    uint256 internal constant FIXED_POINT_SCALING_FACTOR = 1e18;
     uint256 internal constant MIN_ISSUANCE_RATE = 1e18;
 
     /**
