@@ -85,6 +85,9 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
      * updates the issuanceBase and issuanceRate,
      * and snapshots the accumulated rewards. If issuanceRate changes,
      * it also triggers a snapshot of rewards per signal on the RewardsManager.
+     * Note that the transaction might revert if it's received out-of-order,
+     * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
+     * again once the ticket for previous drip has been redeemed.
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
