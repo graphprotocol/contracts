@@ -11,6 +11,7 @@ import {
   sendTransaction,
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { confirm } from '../helpers'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
@@ -39,6 +40,10 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const force = cliArgs.force
   const contractName = cliArgs.contract
   const chainId = cli.chainId
+
+  // Ensure action
+  const sure = await confirm('Are you sure you want to migrate contracts?')
+  if (!sure) return
 
   if (chainId == 1337) {
     await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])

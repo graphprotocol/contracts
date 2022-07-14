@@ -13,9 +13,7 @@ export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
 
   // Warn about changing ownership
   const sure = await confirm(`Are you sure to set the admin to ${adminAddress}?`)
-  if (!sure) {
-    return
-  }
+  if (!sure) return
 
   // Get address book info
   const addressEntry = cli.addressBook.getEntry(contractName)

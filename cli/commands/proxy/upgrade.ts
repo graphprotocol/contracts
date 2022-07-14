@@ -3,12 +3,17 @@ import yargs, { Argv } from 'yargs'
 import { logger } from '../../logging'
 import { getContractAt, isContractDeployed, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { confirm } from '../../helpers'
 
 export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
   const implAddress = cliArgs.impl
   const initArgs = cliArgs.init
   const buildAcceptProxyTx = cliArgs.buildTx
+
+  // Warn about upgrade
+  const sure = await confirm(`Are you sure you want to upgrade ${contractName} to ${implAddress}?`)
+  if (!sure) return
 
   logger.info(`Upgrading contract ${contractName}...`)
 
