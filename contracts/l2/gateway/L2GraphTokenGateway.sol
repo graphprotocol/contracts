@@ -150,10 +150,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(outboundCalldata.extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
 
         // from needs to approve this contract to burn the amount first
-        L2GraphToken(this.calculateL2TokenAddress(l1GRT)).bridgeBurn(
-            outboundCalldata.from,
-            _amount
-        );
+        L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeBurn(outboundCalldata.from, _amount);
 
         uint256 id = sendTxToL1(
             0,
@@ -191,7 +188,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         uint256 _amount,
         bytes calldata _data
     ) external returns (bytes memory) {
-        return outboundTransfer(_l1Token, _to, _amount, uint256(0), uint256(0), _data);
+        return outboundTransfer(_l1Token, _to, _amount, 0, 0, _data);
     }
 
     /**

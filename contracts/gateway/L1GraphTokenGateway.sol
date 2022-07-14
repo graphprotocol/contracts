@@ -242,30 +242,30 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     /**
      * @notice Receives withdrawn tokens from L2
      * The equivalent tokens are released from escrow and sent to the destination.
-     * @dev can only accept transactions coming from the L2 GRT Gateway
+     * @dev can only accept transactions coming from the L2 GRT Gateway.
+     * The last parameter is unused but kept for compatibility with Arbitrum gateways,
+     * and the encoded exitNum is assumed to be 0.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _from Address of the sender
      * @param _to Recepient address on L1
      * @param _amount Amount of tokens transferred
-     * @param _data Contains exitNum which is always set to 0
      */
     function finalizeInboundTransfer(
         address _l1Token,
         address _from,
         address _to,
         uint256 _amount,
-        bytes calldata _data
+        bytes calldata // _data, contains exitNum, unused by this contract
     ) external payable override notPaused onlyL2Counterpart {
         IGraphToken token = graphToken();
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
-        (uint256 exitNum, ) = abi.decode(_data, (uint256, bytes));
 
         uint256 escrowBalance = token.balanceOf(escrow);
         // If the bridge doesn't have enough tokens, something's very wrong!
         require(_amount <= escrowBalance, "BRIDGE_OUT_OF_FUNDS");
         token.transferFrom(escrow, _to, _amount);
 
-        emit WithdrawalFinalized(_l1Token, _from, _to, exitNum, _amount);
+        emit WithdrawalFinalized(_l1Token, _from, _to, 0, _amount);
     }
 
     /**
