@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../reservoir/IReservoir.sol";
 import "../../reservoir/Reservoir.sol";
+import "./IL2Reservoir.sol";
 import "./L2ReservoirStorage.sol";
 
 /**
