@@ -100,7 +100,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     }
 
     /**
-     * @dev sets the addresses for L1 contracts provided by Arbitrum
+     * @dev Sets the addresses for L1 contracts provided by Arbitrum
      * @param _inbox Address of the Inbox that is part of the Arbitrum Bridge
      * @param _l1Router Address of the Gateway Router
      */
@@ -207,7 +207,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                 require(maxSubmissionCost > 0, "NO_SUBMISSION_COST");
 
                 {
-                    // makes sure only sufficient ETH is supplied required for successful redemption on L2
+                    // makes sure only sufficient ETH is supplied as required for successful redemption on L2
                     // if a user does not desire immediate redemption they should provide
                     // a msg.value of AT LEAST maxSubmissionCost
                     uint256 expectedEth = maxSubmissionCost + (_maxGas * _gasPriceBid);
@@ -269,8 +269,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     }
 
     /**
-     * @notice decodes calldata required for migration of tokens
-     * @dev data must include maxSubmissionCost, extraData can be left empty. When the router
+     * @notice Decodes calldata required for migration of tokens
+     * @dev Data must include maxSubmissionCost, extraData can be left empty. When the router
      * sends an outbound message, data also contains the from address.
      * @param _data encoded callhook data
      * @return Sender of the tx

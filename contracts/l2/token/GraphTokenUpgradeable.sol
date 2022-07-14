@@ -14,7 +14,7 @@ import "../../governance/Governed.sol";
 /**
  * @title GraphTokenUpgradeable contract
  * @dev This is the implementation of the ERC20 Graph Token.
- * The implementation exposes a Permit() function to allow for a spender to send a signed message
+ * The implementation exposes a permit() function to allow for a spender to send a signed message
  * and approve funds to a spender following EIP2612 to make integration with other contracts easier.
  *
  * The token is initially owned by the deployer address that can mint tokens to create the initial
@@ -74,7 +74,7 @@ contract GraphTokenUpgradeable is
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
      * @param _deadline Expiration time of the signed permit (if zero, the permit will never expire, so use with caution)
-     * @param _v Signature version
+     * @param _v Signature recovery id
      * @param _r Signature r value
      * @param _s Signature s value
      */

@@ -13,7 +13,7 @@ import "../token/L2GraphToken.sol";
 /**
  * @title L2 Graph Token Gateway Contract
  * @dev Provides the L2 side of the Ethereum-Arbitrum GRT bridge. Receives GRT from the L1 chain
- * and mints them on the L2 side. Sending GRT back to L1 by burning them on the L2 side.
+ * and mints them on the L2 side. Sends GRT back to L1 by burning them on the L2 side.
  * Based on Offchain Labs' reference implementation and Livepeer's arbitrum-lpt-bridge
  * (See: https://github.com/OffchainLabs/arbitrum/tree/master/packages/arb-bridge-peripherals/contracts/tokenbridge
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
