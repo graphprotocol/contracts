@@ -31,28 +31,3 @@ interface IReservoir {
      */
     function getNewRewards(uint256 _blocknum) external view returns (uint256);
 }
-
-/**
- * @title Interface for the L2 Rewards Reservoir
- * @dev This exposes a specific function for the L2Reservoir that is called
- * as a callhook from L1 to L2, so that state can be updated when dripped rewards
- * are bridged between layers.
- */
-interface IL2Reservoir is IReservoir {
-    /**
-     * @dev Receive dripped tokens from L1.
-     * This function can only be called by the gateway, as it is
-     * meant to be a callhook when receiving tokens from L1. It
-     * updates the issuanceBase and issuanceRate,
-     * and snapshots the accumulated rewards. If issuanceRate changes,
-     * it also triggers a snapshot of rewards per signal on the RewardsManager.
-     * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
-     * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
-     * @param _nonce Incrementing nonce to ensure messages are received in order
-     */
-    function receiveDrip(
-        uint256 _issuanceBase,
-        uint256 _issuanceRate,
-        uint256 _nonce
-    ) external;
-}
