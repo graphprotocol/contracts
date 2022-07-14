@@ -2,7 +2,6 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -27,12 +26,7 @@ import "../../governance/Governed.sol";
  * initializer functions and upgradeable OpenZeppelin contracts instead of
  * the original's constructor + non-upgradeable approach.
  */
-contract GraphTokenUpgradeable is
-    GraphUpgradeable,
-    Governed,
-    ERC20Upgradeable,
-    ERC20BurnableUpgradeable
-{
+contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
     using SafeMath for uint256;
 
     // -- EIP712 --
