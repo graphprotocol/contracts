@@ -73,8 +73,8 @@ contract L2Reservoir is L2ReservoirV1Storage, Reservoir, IL2Reservoir {
         }
         return
             issuanceBase
-                .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
-                .div(TOKEN_DECIMALS)
+                .mul(_pow(issuanceRate, _blocknum.sub(t0), FIXED_POINT_SCALING_FACTOR))
+                .div(FIXED_POINT_SCALING_FACTOR)
                 .sub(issuanceBase);
     }
 
