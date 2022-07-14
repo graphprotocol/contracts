@@ -85,6 +85,7 @@
     "deploy-ganache-manual": "yarn deploy -- --force --network ganache",
     "deploy-hardhat": "yarn deploy -- --force --network hardhat",
     "deploy-rinkeby": "yarn deploy -- --force --network rinkeby --graph-config config/graph.rinkeby.yml",
+    "deploy-goerli": "yarn deploy -- --force --network goerli --graph-config config/graph.goerli.yml",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
