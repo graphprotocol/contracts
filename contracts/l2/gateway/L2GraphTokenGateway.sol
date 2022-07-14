@@ -144,23 +144,32 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
         require(_to != address(0), "INVALID_DESTINATION");
 
-        OutboundCalldata memory s;
+        OutboundCalldata memory outboundCalldata;
 
-        (s.from, s.extraData) = parseOutboundData(_data);
-        require(s.extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
+        (outboundCalldata.from, outboundCalldata.extraData) = parseOutboundData(_data);
+        require(outboundCalldata.extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
 
         // from needs to approve this contract to burn the amount first
-        L2GraphToken(this.calculateL2TokenAddress(l1GRT)).bridgeBurn(s.from, _amount);
+        L2GraphToken(this.calculateL2TokenAddress(l1GRT)).bridgeBurn(
+            outboundCalldata.from,
+            _amount
+        );
 
         uint256 id = sendTxToL1(
             0,
-            s.from,
+            outboundCalldata.from,
             l1Counterpart,
-            getOutboundCalldata(_l1Token, s.from, _to, _amount, s.extraData)
+            getOutboundCalldata(
+                _l1Token,
+                outboundCalldata.from,
+                _to,
+                _amount,
+                outboundCalldata.extraData
+            )
         );
 
         // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
-        emit WithdrawalInitiated(_l1Token, s.from, _to, id, 0, _amount);
+        emit WithdrawalInitiated(_l1Token, outboundCalldata.from, _to, id, 0, _amount);
 
         return abi.encode(id);
     }

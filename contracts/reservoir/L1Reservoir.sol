@@ -97,7 +97,10 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @param _l2RewardsFraction Fraction of rewards to send to L2, in wei / fixed point at 1e18
      */
     function setL2RewardsFraction(uint256 _l2RewardsFraction) external onlyGovernor {
-        require(_l2RewardsFraction <= TOKEN_DECIMALS, "L2 Rewards fraction must be <= 1");
+        require(
+            _l2RewardsFraction <= FIXED_POINT_SCALING_FACTOR,
+            "L2 Rewards fraction must be <= 1"
+        );
         nextL2RewardsFraction = _l2RewardsFraction;
         emit L2RewardsFractionStaged(_l2RewardsFraction);
     }
@@ -187,7 +190,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         uint256 tokensToSendToL2 = 0;
         if (l2RewardsFraction != nextL2RewardsFraction) {
             tokensToSendToL2 = nextL2RewardsFraction.mul(newRewardsToDistribute).div(
-                TOKEN_DECIMALS
+                FIXED_POINT_SCALING_FACTOR
             );
             if (mintedRewardsTotal > mintedRewardsActual) {
                 // eps > 0, i.e. t < t1_old
@@ -198,7 +201,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
                 // with the new values to the L2Reservoir.
                 uint256 l2OffsetAmount = l2RewardsFraction
                     .mul(mintedRewardsTotal.sub(mintedRewardsActual))
-                    .div(TOKEN_DECIMALS);
+                    .div(FIXED_POINT_SCALING_FACTOR);
                 require(
                     tokensToSendToL2 > l2OffsetAmount,
                     "Negative amount would be sent to L2, wait before calling again"
@@ -207,7 +210,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
             } else {
                 tokensToSendToL2 = tokensToSendToL2.add(
                     l2RewardsFraction.mul(mintedRewardsActual.sub(mintedRewardsTotal)).div(
-                        TOKEN_DECIMALS
+                        FIXED_POINT_SCALING_FACTOR
                     )
                 );
             }
@@ -220,7 +223,7 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
                 _l2MaxSubmissionCost
             );
         } else if (l2RewardsFraction > 0) {
-            tokensToSendToL2 = tokensToMint.mul(l2RewardsFraction).div(TOKEN_DECIMALS);
+            tokensToSendToL2 = tokensToMint.mul(l2RewardsFraction).div(FIXED_POINT_SCALING_FACTOR);
             _sendNewTokensAndStateToL2(
                 tokensToSendToL2,
                 _l2MaxGas,
@@ -251,8 +254,8 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         }
         return
             issuanceBase
-                .mul(_pow(issuanceRate, _blocknum.sub(t0), TOKEN_DECIMALS))
-                .div(TOKEN_DECIMALS)
+                .mul(_pow(issuanceRate, _blocknum.sub(t0), FIXED_POINT_SCALING_FACTOR))
+                .div(FIXED_POINT_SCALING_FACTOR)
                 .sub(issuanceBase);
     }
 
@@ -266,9 +269,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      */
     function getNewRewards(uint256 _blocknum) public view override returns (uint256) {
         return
-            getNewGlobalRewards(_blocknum).mul(TOKEN_DECIMALS.sub(l2RewardsFraction)).div(
-                TOKEN_DECIMALS
-            );
+            getNewGlobalRewards(_blocknum)
+                .mul(FIXED_POINT_SCALING_FACTOR.sub(l2RewardsFraction))
+                .div(FIXED_POINT_SCALING_FACTOR);
     }
 
     /**
@@ -297,7 +300,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         // to save gas
         accumulatedLayerRewards =
             accumulatedLayerRewards +
-            _globalDelta.mul(TOKEN_DECIMALS.sub(l2RewardsFraction)).div(TOKEN_DECIMALS);
+            _globalDelta.mul(FIXED_POINT_SCALING_FACTOR.sub(l2RewardsFraction)).div(
+                FIXED_POINT_SCALING_FACTOR
+            );
         lastRewardsUpdateBlock = block.number;
     }
 
@@ -316,7 +321,9 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) internal {
-        uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(TOKEN_DECIMALS);
+        uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(
+            FIXED_POINT_SCALING_FACTOR
+        );
         bytes memory extraData = abi.encodeWithSelector(
             IL2Reservoir.receiveDrip.selector,
             l2IssuanceBase,

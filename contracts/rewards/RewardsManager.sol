@@ -32,7 +32,7 @@ import "../reservoir/IReservoir.sol";
 contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
-    uint256 private constant TOKEN_DECIMALS = 1e18;
+    uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
     uint256 private constant MIN_ISSUANCE_RATE = 1e18;
 
     // -- Events --
@@ -197,7 +197,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
         return
-            (accRewardsNow.sub(accRewardsOnLastSignalUpdate)).mul(TOKEN_DECIMALS).div(
+            (accRewardsNow.sub(accRewardsOnLastSignalUpdate)).mul(FIXED_POINT_SCALING_FACTOR).div(
                 signalledTokens
             );
     }
@@ -231,7 +231,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             ? getAccRewardsPerSignal()
                 .sub(subgraph.accRewardsPerSignalSnapshot)
                 .mul(subgraphSignalledTokens)
-                .div(TOKEN_DECIMALS)
+                .div(FIXED_POINT_SCALING_FACTOR)
             : 0;
         return subgraph.accRewardsForSubgraph.add(newRewards);
     }
@@ -262,9 +262,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             return (0, accRewardsForSubgraph);
         }
 
-        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph.mul(TOKEN_DECIMALS).div(
-            subgraphAllocatedTokens
-        );
+        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph
+            .mul(FIXED_POINT_SCALING_FACTOR)
+            .div(subgraphAllocatedTokens);
         return (
             subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken),
             accRewardsForSubgraph
@@ -364,7 +364,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         uint256 _endAccRewardsPerAllocatedToken
     ) private pure returns (uint256) {
         uint256 newAccrued = _endAccRewardsPerAllocatedToken.sub(_startAccRewardsPerAllocatedToken);
-        return newAccrued.mul(_tokens).div(TOKEN_DECIMALS);
+        return newAccrued.mul(_tokens).div(FIXED_POINT_SCALING_FACTOR);
     }
 
     /**
