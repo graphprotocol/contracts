@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 /**
  * @title Interface for the Rewards Reservoir
  * @dev This is the shared interface between L1 and L2, for the contracts
- * that hold rewards on each layers and provide functions to compute
+ * that hold rewards on each layer and provide functions to compute
  * accumulated and new total rewards.
  */
 interface IReservoir {
