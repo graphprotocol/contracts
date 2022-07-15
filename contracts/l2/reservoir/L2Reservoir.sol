@@ -135,7 +135,7 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
-     * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed  the retryable tx
+     * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed the retryable tx
      * @param _l1Keeper Address of the keeper that called drip in L1
      */
     function receiveDrip(
@@ -168,7 +168,7 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
             grt.transfer(redeemer, _l2KeeperReward);
             grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
         } else {
-            // In an auto-redeem, we just send all the rewards to teh L1 keeper:
+            // In an auto-redeem, we just send all the rewards to the L1 keeper:
             grt.transfer(_l1Keeper, _keeperReward);
         }
 
