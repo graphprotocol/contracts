@@ -1410,6 +1410,7 @@ describe('L1GNS', () => {
         await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
 
         const curatedTokens = await grt.balanceOf(curation.address)
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
         const lockTx = await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
         const lockReceipt = await lockTx.wait()
         const lockBlockhash = lockReceipt.blockHash
@@ -1439,8 +1440,8 @@ describe('L1GNS', () => {
           me.address,
           curatedTokens,
           lockBlockhash,
-          subgraphAfter.nSignal,
-          subgraphAfter.reserveRatio,
+          subgraphBefore.nSignal,
+          subgraphBefore.reserveRatio,
           newSubgraph0.subgraphMetadata,
         ])
 
