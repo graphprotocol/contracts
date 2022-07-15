@@ -73,6 +73,8 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * to the drip function, that also requires the initial supply snapshot to be taken
      * using initialSnapshot. For this reason, issuanceRate and l2RewardsFraction
      * are not initialized here and instead need a call to setIssuanceRate and setL2RewardsFraction.
+     * The same applies to minDripInterval (set through setMinDripInterval) and dripRewardPerBlock
+     * (set through setDripRewardPerBlock).
      * On the other hand, the l2ReservoirAddress is not expected to be known at initialization
      * time and must therefore be set using setL2ReservoirAddress.
      * The RewardsManager's address might also not be available in the controller at initialization
@@ -292,7 +294,10 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         uint256 _l2MaxSubmissionCost,
         address _keeperRewardBeneficiary
     ) private {
-        require(block.number > lastRewardsUpdateBlock + minDripInterval, "WAIT_FOR_MIN_INTERVAL");
+        require(
+            block.number > lastRewardsUpdateBlock.add(minDripInterval),
+            "WAIT_FOR_MIN_INTERVAL"
+        );
 
         uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
         uint256 mintedRewardsActual = getNewGlobalRewards(block.number);
