@@ -282,9 +282,6 @@ export class NetworkFixture {
     await l1FixtureContracts.l1Reservoir
       .connect(deployer)
       .setL2ReservoirAddress(mockL2ReservoirAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .addToCallhookWhitelist(l1FixtureContracts.l1Reservoir.address)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
