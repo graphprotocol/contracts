@@ -27,7 +27,7 @@ interface IL2Reservoir is IReservoir {
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
-     * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed  the retryable tx
+     * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed the retryable tx
      * @param _l1Keeper Address of the keeper that called drip in L1
      */
     function receiveDrip(
