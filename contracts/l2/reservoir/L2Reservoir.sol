@@ -31,10 +31,10 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
 
     address public constant ARB_TX_ADDRESS = 0x000000000000000000000000000000000000006E;
 
-    event DripReceived(uint256 _issuanceBase);
-    event NextDripNonceUpdated(uint256 _nonce);
-    event L1ReservoirAddressUpdated(address _l1ReservoirAddress);
-    event L2KeeperRewardFractionUpdated(uint256 _l2KeeperRewardFraction);
+    event DripReceived(uint256 issuanceBase);
+    event NextDripNonceUpdated(uint256 nonce);
+    event L1ReservoirAddressUpdated(address l1ReservoirAddress);
+    event L2KeeperRewardFractionUpdated(uint256 l2KeeperRewardFraction);
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
@@ -50,6 +50,10 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * are not set here because they are set from L1 through the drip function.
      * The RewardsManager's address might also not be available in the controller at initialization
      * time, so approveRewardsManager() must be called separately.
+     * The l1ReservoirAddress must also be set separately through setL1ReservoirAddress
+     * for the same reason.
+     * In the same vein, the l2KeeperRewardFraction is assumed to be zero at initialization,
+     * so it must be set through setL2KeeperRewardFraction.
      * @param _controller Address of the Controller that manages this contract
      */
     function initialize(address _controller) external onlyImpl {
