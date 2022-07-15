@@ -126,7 +126,8 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
      * again once the ticket for previous drip has been redeemed.
      * A keeper reward will be sent to the keeper that dripped on L1, and part of it
-     * to whoever redeemed the current retryable ticket (tx.origin)
+     * to whoever redeemed the current retryable ticket (as reported by ArbRetryableTx.getCurrentRedeemer) if
+     * the ticket is not auto-redeemed.
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
@@ -157,7 +158,9 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
         // unless this was an autoredeem, in which case the "redeemer" is the sender, i.e. L1Reservoir
         address redeemer = IArbTxWithRedeemer(ARB_TX_ADDRESS).getCurrentRedeemer();
         if (redeemer != l1ReservoirAddress) {
-            uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(FIXED_POINT_SCALING_FACTOR);
+            uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(
+                FIXED_POINT_SCALING_FACTOR
+            );
             grt.transfer(redeemer, _l2KeeperReward);
             grt.transfer(_l1Keeper, _keeperReward.sub(_l2KeeperReward));
         } else {
