@@ -170,6 +170,8 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * @param _dripper Address that will be an allowed dripper
      */
     function grantDripPermission(address _dripper) external onlyGovernor {
+        require(_dripper != address(0), "INVALID_ADDRESS");
+        require(!allowedDrippers[_dripper], "ALREADY_A_DRIPPER");
         allowedDrippers[_dripper] = true;
         emit AllowedDripperAdded(_dripper);
     }
@@ -179,6 +181,8 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * @param _dripper Address that will not be an allowed dripper anymore
      */
     function revokeDripPermission(address _dripper) external onlyGovernor {
+        require(_dripper != address(0), "INVALID_ADDRESS");
+        require(allowedDrippers[_dripper], "NOT_A_DRIPPER");
         allowedDrippers[_dripper] = false;
         emit AllowedDripperRevoked(_dripper);
     }
