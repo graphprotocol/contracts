@@ -298,14 +298,14 @@ contract L1Reservoir is L1ReservoirV1Storage, Reservoir {
      * @param _globalDelta New global rewards (i.e. rewards on L1 and L2) since the last update block
      */
     function snapshotAccumulatedRewards(uint256 _globalDelta) internal {
-        issuanceBase = issuanceBase + _globalDelta;
+        issuanceBase = issuanceBase.add(_globalDelta);
         // Reimplementation of getAccumulatedRewards but reusing the _globalDelta calculated above,
         // to save gas
-        accumulatedLayerRewards =
-            accumulatedLayerRewards +
+        accumulatedLayerRewards = accumulatedLayerRewards.add(
             _globalDelta.mul(FIXED_POINT_SCALING_FACTOR.sub(l2RewardsFraction)).div(
                 FIXED_POINT_SCALING_FACTOR
-            );
+            )
+        );
         lastRewardsUpdateBlock = block.number;
     }
 

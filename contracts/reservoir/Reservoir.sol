@@ -36,7 +36,7 @@ abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir 
      */
     function getAccumulatedRewards(uint256 _blocknum) public view override returns (uint256) {
         // R(t) = R(t0) + (DeltaR(t, t0))
-        return accumulatedLayerRewards + getNewRewards(_blocknum);
+        return accumulatedLayerRewards.add(getNewRewards(_blocknum));
     }
 
     /**
