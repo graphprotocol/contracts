@@ -22,7 +22,8 @@ interface IL2Reservoir is IReservoir {
      * because it checks an incrementing nonce. If that is the case, the retryable ticket can be redeemed
      * again once the ticket for previous drip has been redeemed.
      * A keeper reward will be sent to the keeper that dripped on L1, and part of it
-     * to whoever redeemed the current retryable ticket (tx.origin)
+     * to whoever redeemed the current retryable ticket (as reported by ArbRetryableTx.getCurrentRedeemer) if
+     * the ticket is not auto-redeemed.
      * @param _issuanceBase Base value for token issuance (approximation for token supply times L2 rewards fraction)
      * @param _issuanceRate Rewards issuance rate, using fixed point at 1e18, and including a +1
      * @param _nonce Incrementing nonce to ensure messages are received in order
