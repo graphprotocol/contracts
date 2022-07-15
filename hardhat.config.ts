@@ -108,7 +108,7 @@ const config: HardhatUserConfig = {
           },
           outputSelection: {
             '*': {
-              '*': ['storageLayout'],
+              '*': ['storageLayout', 'metadata'],
             },
           },
         },
