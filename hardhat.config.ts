@@ -58,6 +58,7 @@ interface NetworkConfig {
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
   { network: 'rinkeby', chainId: 4 },
+  { network: 'goerli', chainId: 5 },
   { network: 'kovan', chainId: 42 },
 ]
 
