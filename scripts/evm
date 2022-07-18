@@ -1,0 +1,19 @@
+#!/bin/bash
+
+TESTRPC_PORT=${TESTRPC_PORT:-8545}
+
+evm_running() {
+  nc -z localhost "$TESTRPC_PORT" > /dev/null
+}
+
+evm_start() {
+  echo "Starting our own evm instance at port $TESTRPC_PORT"
+  npx hardhat node --port "$TESTRPC_PORT" > /dev/null &
+}
+
+evm_kill() {
+  if evm_running; then
+    echo "Killing evm instance at port $TESTRPC_PORT"
+    kill -9 $(lsof -i:$TESTRPC_PORT -t)
+  fi
+}

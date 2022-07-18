@@ -1,27 +1,9 @@
 #!/bin/bash
 
 set -eo pipefail
+source $(pwd)/scripts/evm
 
 MNEMONIC="myth like bonus scare over problem client lizard pioneer submit female collect"
-TESTRPC_PORT=8545
-
-### Functions
-
-evm_running() {
-  nc -z localhost "$TESTRPC_PORT"
-}
-
-evm_start() {
-  echo "Starting our own evm instance at port $TESTRPC_PORT"
-  npx hardhat node --port "$TESTRPC_PORT" > /dev/null &
-}
-
-evm_kill() {
-  if evm_running; then
-    echo "Killing evm instance at port $TESTRPC_PORT"
-    kill -9 $(lsof -i:$TESTRPC_PORT -t)
-  fi
-}
 
 ### Setup EVM
 

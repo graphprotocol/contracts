@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -eo pipefail
+source $(pwd)/scripts/evm
+
+MNEMONIC="myth like bonus scare over problem client lizard pioneer submit female collect"
+ADDRESS_BOOK="localhost.json"
+GRAPH_CONFIG="config/graph.localhost.yml"
+
+### Setup
+# Compile contracts
+yarn build
+
+# Start evm
+evm_kill
+evm_start
+sleep 5
+
+# Initialize address book
+echo '{}' > "$ADDRESS_BOOK"
+
+# Deploy protocol
+npx hardhat migrate --network localhost --address-book "$ADDRESS_BOOK" --graph-config "$GRAPH_CONFIG"
+
+
+### Test
+# Run tests using the localhost evm instance
+npx hardhat test --network localhost e2e/*.ts
+
+
+### Cleanup
+# Exit error mode so the evm instance always gets killed
+set +e
+result=0
+
+evm_kill
+rm "$ADDRESS_BOOK"
+
+exit $result
