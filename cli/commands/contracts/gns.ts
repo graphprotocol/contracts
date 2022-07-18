@@ -77,12 +77,12 @@ export const updateSubgraphMetadata = async (
 }
 
 export const mintSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const subgraphID = cliArgs.subgraphID
+  const nftID = cliArgs.nftID
   const tokens = parseGRT(cliArgs.tokens)
   const gns = cli.contracts.GNS
 
-  logger.info(`Minting signal for ${subgraphID}...`)
-  await sendTransaction(cli.wallet, gns, 'mintSignal', [subgraphID, tokens, 0])
+  logger.info(`Minting signal for ${nftID} with ${tokens} tokens...`)
+  await sendTransaction(cli.wallet, gns, 'mintSignal', [nftID, tokens, 0])
 }
 
 export const burnSignal = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -253,7 +253,7 @@ export const gnsCommand = {
         describe: 'Mint Name Signal by depositing tokens',
         builder: (yargs: Argv) => {
           return yargs
-            .option('subgraphID', {
+            .option('nftID', {
               description: 'Subgraph identifier',
               type: 'string',
               requiresArg: true,
