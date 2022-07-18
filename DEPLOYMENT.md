@@ -105,3 +105,37 @@ Some contracts require the address from previously deployed contracts. For that 
 4. Merge this update into master, branch off and save for whatever version of the testnet is going on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
 5. Pull the updated package into the subgraph, and other apps that depend on the package.json.
 6. Send tokens to the whole team using `./cli/cli.ts airdrop`
+
+## Verifying the deployed smart contracts
+
+Deployed smart contracts can be verified on etherscan and sourcify using built-in commands.
+
+### Etherscan
+
+[Etherscan](https://etherscan.io/) verification can be performed by using the [hardhat-etherscan](https://hardhat.org/hardhat-runner/plugins/nomiclabs-hardhat-etherscan) plugin. __Note__: ensure you have set a valid `ETHERSCAN_API_KEY` in the `.env` file.
+
+- To verify a single contract, run:
+
+  ```bash
+  npx hardhat verify --network {networkName} --contract {FullyQualifiedContractName} {contractAddress} {constructorInitParams}
+  ```
+
+- To verify all contracts on the address book, run:
+  ```bash
+  npx hardhat verifyAll --network {networkName} --graph-config {graphConfigFile}
+  ```
+
+### Sourcify
+
+Additionally you can verify contracts on [Sourcify](https://sourcify.dev/).
+
+- To verify a single contract, run:
+
+  ```bash
+  npx hardhat sourcify --network {networkName} --contract {FullyQualifiedContractName} {contractAddress}
+  ```
+
+- To verify all contracts on the address book, run:
+  ```bash
+  npx hardhat sourcifyAll --network {networkName}
+  ```
