@@ -1,7 +1,7 @@
 import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-ethers'
 import { cliOpts } from '../../cli/defaults'
-import { readConfig, writeConfig } from '../../cli/config'
+import { writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
 import { Scalar, YAMLMap } from 'yaml/types'
@@ -117,7 +117,7 @@ task('update-config', 'Update graph config parameters with onchain data')
       if (!sure) return
     }
 
-    const graphConfig = readConfig(configFile, true)
+    const { graphConfig } = hre.graph
 
     // general parameters
     console.log(`> General`)
@@ -144,7 +144,7 @@ const updateGeneralParams = async (
   param: GeneralParam,
   config: YAML.Document.Parsed,
 ) => {
-  const value = await hre.contracts[param.contract][param.name]()
+  const value = await hre.graph.contracts[param.contract][param.name]()
   const updated = updateItem(config, `general/${param.name}`, value)
   if (updated) {
     console.log(`\t- Updated ${param.name} to ${value}`)
@@ -157,7 +157,7 @@ const updateContractParams = async (
   config: YAML.Document.Parsed,
 ) => {
   for (const param of contract.initParams) {
-    let value = await hre.contracts[contract.name][param.getter ?? param.name]()
+    let value = await hre.graph.contracts[contract.name][param.getter ?? param.name]()
     if (param.type === 'BigNumber') {
       if (param.format === 'number') {
         value = value.toNumber()

@@ -1,48 +1,21 @@
-import { Contract } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
-import '@nomiclabs/hardhat-ethers'
 
 import { cliOpts } from '../cli/defaults'
 import { getAddressBook } from '../cli/address-book'
-import { loadContracts, NetworkContracts } from '../cli/contracts'
+import { loadContracts } from '../cli/contracts'
+import { readConfig } from '../cli/config'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
-
-declare module 'hardhat/types/runtime' {
-  export interface HardhatRuntimeEnvironment {
-    contracts: NetworkContracts
-  }
-}
-
-interface ConsoleNetworkContracts extends NetworkContracts {
-  connect: () => void
-}
-
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre['contracts'] = lazyObject(() => {
-    const chainId = hre.network.config.chainId.toString()
-    const provider = hre.ethers.provider
-    const addressBook = getAddressBook(cliOpts.addressBook.default, chainId)
-    const contracts = loadContracts(addressBook, provider) as ConsoleNetworkContracts
+  const chainId = hre.network.config.chainId?.toString() ?? '1337'
 
-    // Connect contracts to a signing account
-    contracts.connect = async function (n = 0) {
-      const accounts = await hre.ethers.getSigners()
-      const senderAccount = accounts[n]
-      console.log(`> Sender set to ${senderAccount.address}`)
-      for (const [k, contract] of Object.entries(contracts)) {
-        if (contract instanceof Contract) {
-          contracts[k] = contract.connect(senderAccount)
-        }
-      }
-    }
+  // hre converts user defined task argvs into env variables
+  const addressBookPath = process.env.ADDRESS_BOOK ?? cliOpts.addressBook.default // --address-book
+  const graphConfigPath = process.env.GRAPH_CONFIG ?? cliOpts.graphConfig.default // --graph-config
 
-    return contracts
-  })
-  hre['provider'] = lazyObject(() => hre.ethers.provider)
-  hre['accounts'] = function () {
-    return hre.ethers.getSigners()
-  }
+  hre.graph.addressBook = lazyObject(() => getAddressBook(addressBookPath, chainId))
+  hre.graph.graphConfig = lazyObject(() => readConfig(graphConfigPath, true))
+  hre.graph.contracts = lazyObject(() => loadContracts(hre.graph.addressBook, hre.ethers.provider))
 })
