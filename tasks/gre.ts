@@ -15,7 +15,9 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   const addressBookPath = process.env.ADDRESS_BOOK ?? cliOpts.addressBook.default // --address-book
   const graphConfigPath = process.env.GRAPH_CONFIG ?? cliOpts.graphConfig.default // --graph-config
 
-  hre.graph.addressBook = lazyObject(() => getAddressBook(addressBookPath, chainId))
-  hre.graph.graphConfig = lazyObject(() => readConfig(graphConfigPath, true))
-  hre.graph.contracts = lazyObject(() => loadContracts(hre.graph.addressBook, hre.ethers.provider))
+  hre.graph = {
+    addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId)),
+    graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
+    contracts: lazyObject(() => loadContracts(hre.graph.addressBook, hre.ethers.provider)),
+  }
 })
