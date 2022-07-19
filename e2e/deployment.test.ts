@@ -1,20 +1,13 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { ContractFactory } from 'ethers'
 import { ethers } from 'hardhat'
 import { getAccounts, Account, toGRT } from '../test/lib/testHelpers'
-import { AddressBook, getAddressBook } from '../cli/address-book'
 import { GraphToken } from '../build/types/GraphToken'
 
-// Some ideas we could test
-// Deployment:
-// - Contract ownership of upgradeable contracts
-// - Protocol parameters should match graph config file (init)
-// - Protocol roles should be configured correctly
-// Protocol:
-// - traditional actions should work
-
 describe('Protocol deployment', () => {
-  const addressBook: AddressBook = getAddressBook('localhost.json', '1337')
+  const { addressBook } = hre.graph()
+
   let deployer: Account
   let grtFactory: ContractFactory
   let grt: GraphToken

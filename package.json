@@ -86,6 +86,7 @@
     "deploy-goerli": "yarn deploy -- --force --network goerli --graph-config config/graph.goerli.yml",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
+    "test:e2e": "scripts/e2e",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "test:coverage": "scripts/coverage",
     "lint": "yarn lint:ts && yarn lint:sol",
