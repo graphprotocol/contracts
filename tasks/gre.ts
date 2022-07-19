@@ -2,22 +2,33 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
 
-import { cliOpts } from '../cli/defaults'
 import { getAddressBook } from '../cli/address-book'
 import { loadContracts } from '../cli/contracts'
 import { readConfig } from '../cli/config'
+import { GREOptions } from './type-extensions'
+import fs from 'fs'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  const chainId = hre.network.config.chainId?.toString() ?? '1337'
+  hre.graph = (opts: GREOptions = {}) => {
+    const chainId = hre.network.config.chainId?.toString() ?? '1337'
+    const addressBookPath = opts.addressBook ?? process.env.ADDRESS_BOOK
+    const graphConfigPath = opts.graphConfig ?? process.env.GRAPH_CONFIG
 
-  // hre converts user defined task argvs into env variables
-  const addressBookPath = process.env.ADDRESS_BOOK ?? cliOpts.addressBook.default // --address-book
-  const graphConfigPath = process.env.GRAPH_CONFIG ?? cliOpts.graphConfig.default // --graph-config
+    if (!fs.existsSync(addressBookPath)) {
+      throw new Error(`Address book not found: ${addressBookPath}`)
+    }
 
-  hre.graph = {
-    addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId)),
-    graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
-    contracts: lazyObject(() => loadContracts(hre.graph.addressBook, hre.ethers.provider)),
+    if (!fs.existsSync(graphConfigPath)) {
+      throw new Error(`Graph config not found: ${graphConfigPath}`)
+    }
+
+    return {
+      addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId)),
+      graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
+      contracts: lazyObject(() =>
+        loadContracts(getAddressBook(addressBookPath, chainId), hre.ethers.provider),
+      ),
+    }
   }
 })

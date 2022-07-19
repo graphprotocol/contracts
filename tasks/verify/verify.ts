@@ -44,7 +44,7 @@ task('sourcifyAll', 'Verifies all contracts on sourcify')
       throw new Error('Cannot verify contracts without a network')
     }
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook } = hre.graph
+    const { addressBook } = hre.graph({ addressBook: _args.addressBook })
 
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
@@ -84,7 +84,10 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, graphConfig } = hre.graph
+    const { addressBook, graphConfig } = hre.graph({
+      addressBook: args.addressBook,
+      graphConfig: args.graphConfig,
+    })
 
     const accounts = await hre.ethers.getSigners()
     const env = await loadEnv(args, accounts[0] as unknown as Wallet)
