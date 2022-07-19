@@ -564,6 +564,8 @@ describe('L1GNS', () => {
     await subgraphNFT.connect(governor.signer).setTokenDescriptor(subgraphDescriptor.address)
     await legacyGNSMock.connect(governor.signer).syncAllContracts()
     await legacyGNSMock.connect(governor.signer).approveAll()
+    await l1GraphTokenGateway.connect(governor.signer).addToCallhookWhitelist(legacyGNSMock.address)
+    await legacyGNSMock.connect(governor.signer).setCounterpartGNSAddress(mockL2GNS.address)
   }
 
   before(async function () {
@@ -1456,8 +1458,95 @@ describe('L1GNS', () => {
           .emit(l1GraphTokenGateway, 'TxToL2')
           .withArgs(gns.address, mockL2Gateway.address, toBN(1), expectedL2Data)
       })
-      it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge')
-      it('rejects calls from someone who is not the subgraph owner')
+      it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge', async function () {
+        const seqID = toBN('2')
+        await legacyGNSMock
+          .connect(me.signer)
+          .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+        const migrateTx = legacyGNSMock
+          .connect(me.signer)
+          .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+        await expect(migrateTx)
+          .emit(legacyGNSMock, ' LegacySubgraphClaimed')
+          .withArgs(me.address, seqID)
+        const subgraphID = buildLegacySubgraphID(me.address, seqID)
+
+        // We need the block number to be > 256 to avoid underflows...
+        await advanceBlocks(256)
+
+        // Curate on the subgraph
+        await legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('90000'), 0)
+
+        const curatedTokens = await grt.balanceOf(curation.address)
+        const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
+        const lockTx = await legacyGNSMock
+          .connect(me.signer)
+          .lockSubgraphForMigrationToL2(subgraphID)
+        const lockReceipt = await lockTx.wait()
+        const lockBlockhash = lockReceipt.blockHash
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = legacyGNSMock
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraphID, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID)
+
+        const subgraphAfter = await legacyGNSMock.legacySubgraphData(me.address, seqID)
+        expect(subgraphAfter.vSignal).eq(0)
+        expect(await grt.balanceOf(legacyGNSMock.address)).eq(0)
+        expect(subgraphAfter.disabled).eq(true)
+        expect(subgraphAfter.withdrawableGRT).eq(0)
+
+        const migrationData = await legacyGNSMock.subgraphL2MigrationData(subgraphID)
+        expect(migrationData.lockedAtBlock).eq((await latestBlock()).sub(1))
+        expect(migrationData.l1Done).eq(true)
+
+        const expectedCallhookData = l2GNSIface.encodeFunctionData('receiveSubgraphFromL1', [
+          subgraphID,
+          me.address,
+          curatedTokens,
+          lockBlockhash,
+          subgraphBefore.nSignal,
+          subgraphBefore.reserveRatio,
+          newSubgraph0.subgraphMetadata,
+        ])
+
+        const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          legacyGNSMock.address,
+          mockL2GNS.address,
+          curatedTokens,
+          expectedCallhookData,
+        )
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(legacyGNSMock.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+      })
+      it('rejects calls from someone who is not the subgraph owner', async function () {
+        // Publish a named subgraph-0 -> subgraphDeployment0
+        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+
+        // We need the block number to be > 256 to avoid underflows...
+        await advanceBlocks(256)
+
+        // Curate on the subgraph
+        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(other.signer)
+          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).revertedWith('GNS: Must be authorized')
+      })
       it('rejects calls for a subgraph that is not locked')
       it('rejects calls for a subgraph that was already sent')
       it('rejects calls after too many blocks have passed')
