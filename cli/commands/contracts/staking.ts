@@ -33,6 +33,7 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const amount = parseGRT(cliArgs.amount)
   const allocationID = cliArgs.allocationID
   const metadata = cliArgs.metadata
+  const proof = cliArgs.proof
   const staking = cli.contracts.Staking
 
   logger.info(`Allocating ${cliArgs.amount} tokens on ${subgraphDeploymentID}...`)
@@ -42,32 +43,26 @@ export const allocate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     amount,
     allocationID,
     metadata,
+    proof,
   ])
 }
 
 export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const allocationID = cliArgs.allocationID
+  const poi = cliArgs.poi
   const staking = cli.contracts.Staking
 
-  logger.info(`Closing allocation with allocationID ${allocationID}...`)
-  await sendTransaction(cli.wallet, staking, 'close', [allocationID])
-}
-
-export const collect = async (): Promise<void> => {
-  logger.info(
-    `COLLECT NOT IMPLEMENTED. NORMALLY CALLED FROM PROXY ACCOUNT. plan is to 
-     implement this in the near future when we start adding some more 
-     functionality to the CLI and supporting scripts`,
-  )
+  logger.info(`Closing allocation ${allocationID} with poi ${poi}...`)
+  await sendTransaction(cli.wallet, staking, 'closeAllocation', [allocationID, poi])
 }
 
 export const claim = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const channelID = cliArgs.channelID
+  const allocationID = cliArgs.allocationID
   const restake = cliArgs.restake
   const staking = cli.contracts.Staking
 
-  logger.info(`Claiming on ${channelID} with restake = ${restake}...`)
-  await sendTransaction(cli.wallet, staking, 'claim', [channelID, restake])
+  logger.info(`Claiming allocation ${allocationID} with restake = ${restake}...`)
+  await sendTransaction(cli.wallet, staking, 'claim', [allocationID, restake])
 }
 
 export const delegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -200,6 +195,13 @@ export const stakingCommand = {
               requiresArg: true,
               demandOption: true,
             })
+            .option('proof', {
+              description:
+                'A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return allocate(await loadEnv(argv), argv)
@@ -209,52 +211,31 @@ export const stakingCommand = {
         command: 'close-allocation',
         describe: 'Close an allocation',
         builder: (yargs: Argv) => {
-          return yargs.option('channelID', {
-            description: 'The channel / allocation being closed',
-            type: 'string',
-            requiresArg: true,
-            demandOption: true,
-          })
+          return yargs
+            .option('allocationID', {
+              description: 'The allocation being closed',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
+            .option('poi', {
+              description: 'Proof of indexing',
+              type: 'string',
+              requiresArg: true,
+              demandOption: true,
+            })
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return closeAllocation(await loadEnv(argv), argv)
         },
       })
       .command({
-        command: 'collect',
-        describe: 'Channel proxy calls this to collect GRT',
-        builder: (yargs: Argv) => {
-          return yargs
-            .option('channelID', {
-              description: 'ID of the channel we are collecting funds from',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('amount', {
-              description: 'Token amount to withdraw',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('from', {
-              description: 'Multisig channel address that triggered the withdrawal',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-        },
-        handler: async (): Promise<void> => {
-          return collect()
-        },
-      })
-      .command({
         command: 'claim',
-        describe: 'Claim GRT',
+        describe: 'Claim rebate',
         builder: (yargs: Argv) => {
           return yargs
-            .option('channelID', {
-              description: 'ID of the channel we are claiming funds from',
+            .option('allocationID', {
+              description: 'The allocation claimed from the rebate pool',
               type: 'string',
               requiresArg: true,
               demandOption: true,
