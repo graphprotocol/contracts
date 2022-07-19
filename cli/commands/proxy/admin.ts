@@ -8,11 +8,12 @@ import { confirm } from '../../helpers'
 export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
   const adminAddress = cliArgs.admin
+  const skipConfirmation = cliArgs.skipConfirmation
 
   logger.info(`Set proxy admin for contract ${contractName} to ${adminAddress}`)
 
   // Warn about changing ownership
-  const sure = await confirm(`Are you sure to set the admin to ${adminAddress}?`)
+  const sure = await confirm(`Are you sure to set the admin to ${adminAddress}?`, skipConfirmation)
   if (!sure) return
 
   // Get address book info

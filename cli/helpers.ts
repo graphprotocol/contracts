@@ -91,7 +91,8 @@ export const pinMetadataToIPFS = async (
   return IPFS.ipfsHashToBytes32(metaHash)
 }
 
-export const confirm = async (message: string): Promise<boolean> => {
+export const confirm = async (message: string, skip: boolean): Promise<boolean> => {
+  if (skip) return true
   const res = await inquirer.prompt({
     name: 'confirm',
     type: 'confirm',

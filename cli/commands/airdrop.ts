@@ -149,6 +149,7 @@ const createBatches = (
 
 export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphToken = cli.contracts.GraphToken
+  const skipConfirmation = cliArgs.skipConfirmation
 
   // Load data
   const resumeList = loadResumeList(cliArgs.resumefile).map((r) => r.address)
@@ -179,7 +180,10 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   }
 
   // Confirmation
-  const sure = await confirm('Are you sure you want to proceed with the distribution?')
+  const sure = await confirm(
+    'Are you sure you want to proceed with the distribution?',
+    skipConfirmation,
+  )
   if (!sure) return
 
   // Approve
