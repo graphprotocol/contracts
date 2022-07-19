@@ -16,9 +16,10 @@ export const deploy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<voi
   const initArgs = cliArgs.init
   const deployType = cliArgs.type
   const buildAcceptProxyTx = cliArgs.buildTx
+  const skipConfirmation = cliArgs.skipConfirmation
 
   // Ensure action
-  const sure = await confirm(`Are you sure to deploy ${contractName}?`)
+  const sure = await confirm(`Are you sure to deploy ${contractName}?`, skipConfirmation)
   if (!sure) return
 
   // Deploy contract

@@ -7,7 +7,7 @@ import YAML from 'yaml'
 import { Scalar, YAMLMap } from 'yaml/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import fs from 'fs'
-import inquirer from 'inquirer'
+import { confirm } from '../../cli/helpers'
 
 interface Contract {
   name: string
@@ -93,10 +93,12 @@ const generalParams: GeneralParam[] = [
 task('update-config', 'Update graph config parameters with onchain data')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
+  .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
   .setAction(async (taskArgs, hre) => {
     const networkName = hre.network.name
     const configFile = taskArgs.graphConfig
     const dryRun = taskArgs.dryRun
+    const skipConfirmation = taskArgs.skipConfirmation
 
     if (!fs.existsSync(configFile)) {
       throw new Error(`Could not find config file: ${configFile}`)
@@ -108,15 +110,11 @@ task('update-config', 'Update graph config parameters with onchain data')
 
     // Prompt to avoid accidentally overwriting the config file with data from another network
     if (!configFile.includes(networkName)) {
-      const res = await inquirer.prompt({
-        name: 'confirm',
-        type: 'confirm',
-        default: false,
-        message: `Config file ${configFile} doesn't match 'graph.<networkName>.yml'. Are you sure you want to continue?`,
-      })
-      if (!res.confirm) {
-        return
-      }
+      const sure = await confirm(
+        `Config file ${configFile} doesn't match 'graph.<networkName>.yml'. Are you sure you want to continue?`,
+        skipConfirmation,
+      )
+      if (!sure) return
     }
 
     const graphConfig = readConfig(configFile, true)

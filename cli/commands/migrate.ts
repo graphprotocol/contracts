@@ -40,9 +40,10 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const force = cliArgs.force
   const contractName = cliArgs.contract
   const chainId = cli.chainId
+  const skipConfirmation = cliArgs.skipConfirmation
 
   // Ensure action
-  const sure = await confirm('Are you sure you want to migrate contracts?')
+  const sure = await confirm('Are you sure you want to migrate contracts?', skipConfirmation)
   if (!sure) return
 
   if (chainId == 1337) {

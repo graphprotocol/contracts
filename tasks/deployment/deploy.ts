@@ -9,6 +9,7 @@ import { migrate } from '../../cli/commands/migrate'
 task('migrate', 'Migrate contracts')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
   .addFlag('force', cliOpts.force.description)
   .setAction(async (taskArgs, hre) => {
     const accounts = await hre.ethers.getSigners()

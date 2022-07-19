@@ -27,6 +27,7 @@ yargs
   .option('m', cliOpts.mnemonic)
   .option('p', cliOpts.providerUrl)
   .option('n', cliOpts.accountNumber)
+  .option('s', cliOpts.skipConfirmation)
   .command(deployCommand)
   .command(migrateCommand)
   .command(proxyCommand)

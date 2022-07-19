@@ -10,9 +10,13 @@ export const upgradeProxy = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promi
   const implAddress = cliArgs.impl
   const initArgs = cliArgs.init
   const buildAcceptProxyTx = cliArgs.buildTx
+  const skipConfirmation = cliArgs.skipConfirmation
 
   // Warn about upgrade
-  const sure = await confirm(`Are you sure you want to upgrade ${contractName} to ${implAddress}?`)
+  const sure = await confirm(
+    `Are you sure you want to upgrade ${contractName} to ${implAddress}?`,
+    skipConfirmation,
+  )
   if (!sure) return
 
   logger.info(`Upgrading contract ${contractName}...`)

@@ -56,4 +56,10 @@ export const cliOpts = {
     type: 'boolean',
     default: false,
   },
+  skipConfirmation: {
+    alias: 'skip-confirmation',
+    description: 'Skip confirmation prompt on write actions',
+    type: 'boolean',
+    default: false,
+  },
 } as { [key: string]: Options }
