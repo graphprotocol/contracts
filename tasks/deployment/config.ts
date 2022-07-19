@@ -5,9 +5,8 @@ import { writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
 import { Scalar, YAMLMap } from 'yaml/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import fs from 'fs'
 import { confirm } from '../../cli/helpers'
+import { NetworkContracts } from '../../cli/contracts'
 
 interface Contract {
   name: string
