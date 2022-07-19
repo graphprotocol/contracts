@@ -16,7 +16,7 @@ evm_start
 sleep 5
 
 # Deploy protocol
-npx hardhat migrate --network localhost --graph-config "$GRAPH_CONFIG"
+npx hardhat migrate --network localhost --skip-confirmation --graph-config "$GRAPH_CONFIG"
 
 
 ### Test

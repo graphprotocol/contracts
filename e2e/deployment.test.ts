@@ -1,24 +1,15 @@
 import { expect } from 'chai'
-import hre from 'hardhat'
-import { ContractFactory } from 'ethers'
-import { ethers } from 'hardhat'
 import { getAccounts, Account, toGRT } from '../test/lib/testHelpers'
-import { GraphToken } from '../build/types/GraphToken'
+import hre from 'hardhat'
 
 describe('Protocol deployment', () => {
-  const { addressBook } = hre.graph()
+  const { contracts } = hre.graph()
+  const grt = contracts.GraphToken
 
   let deployer: Account
-  let grtFactory: ContractFactory
-  let grt: GraphToken
 
   before(async function () {
     ;[deployer] = await getAccounts()
-    console.log(deployer.address)
-
-    grtFactory = await ethers.getContractFactory('GraphToken', deployer)
-    const contract = addressBook.getEntry('GraphToken')
-    grt = grtFactory.attach(contract.address) as GraphToken
   })
 
   it('Test GRT totalSupply', async function () {
