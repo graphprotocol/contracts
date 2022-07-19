@@ -10,7 +10,7 @@ export const mint = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void>
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.info(`Minting ${cliArgs.amount} tokens for user ${account}...`)
+  logger.info(`Minting ${cliArgs.amount} tokens for spender ${account}...`)
   await sendTransaction(cli.wallet, graphToken, 'mint', [account, amount])
 }
 
@@ -27,7 +27,7 @@ export const transfer = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.info(`Transferring ${cliArgs.amount} tokens to user ${account}...`)
+  logger.info(`Transferring ${cliArgs.amount} tokens to spender ${account}...`)
   await sendTransaction(cli.wallet, graphToken, 'transfer', [account, amount])
 }
 
@@ -36,7 +36,7 @@ export const approve = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const account = cliArgs.account
   const graphToken = cli.contracts.GraphToken
 
-  logger.info(`Approving ${cliArgs.amount} tokens for user ${account} to spend...`)
+  logger.info(`Approving ${cliArgs.amount} tokens for spender ${account} to spend...`)
   await sendTransaction(cli.wallet, graphToken, 'approve', [account, amount])
 }
 
