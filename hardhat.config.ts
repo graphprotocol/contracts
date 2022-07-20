@@ -134,6 +134,11 @@ const config: HardhatUserConfig = {
       },
       hardfork: 'london',
     },
+    localhost: {
+      accounts: {
+        mnemonic: DEFAULT_TEST_MNEMONIC,
+      },
+    },
     ganache: {
       chainId: 1337,
       url: 'http://localhost:8545',

@@ -18,6 +18,7 @@ import { BancorFormula } from '../build/types/BancorFormula'
 import { IENS } from '../build/types/IENS'
 import { GraphGovernance } from '../build/types/GraphGovernance'
 import { AllocationExchange } from '../build/types/AllocationExchange'
+import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -34,6 +35,7 @@ export interface NetworkContracts {
   IENS: IENS
   GraphGovernance: GraphGovernance
   AllocationExchange: AllocationExchange
+  SubgraphNFT: SubgraphNFT
 }
 
 export const loadContracts = (

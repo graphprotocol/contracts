@@ -3,9 +3,6 @@
 set -eo pipefail
 source $(pwd)/scripts/evm
 
-MNEMONIC="myth like bonus scare over problem client lizard pioneer submit female collect"
-GRAPH_CONFIG="config/graph.localhost.yml"
-
 ### Setup
 # Compile contracts
 yarn build
@@ -15,13 +12,19 @@ evm_kill
 evm_start
 sleep 5
 
-# Deploy protocol
-npx hardhat migrate --network localhost --skip-confirmation --graph-config "$GRAPH_CONFIG"
+# Pre-deploy actions
+npx hardhat migrate:accounts --network localhost --graph-config config/graph.localhost.yml
 
+# Deploy protocol
+npx hardhat migrate --network localhost --skip-confirmation --graph-config config/graph.localhost.yml
+
+# Post deploy actions
+npx hardhat migrate:ownership --network localhost
+npx hardhat migrate:unpause --network localhost
 
 ### Test
 # Run tests using the localhost evm instance and the localhost graph config
-GRAPH_CONFIG='config/graph.localhost.yml' npx hardhat test e2e/*.ts --network localhost
+GRAPH_CONFIG='config/graph.localhost.yml' npx hardhat test e2e/**/*.ts --network localhost
 
 
 ### Cleanup

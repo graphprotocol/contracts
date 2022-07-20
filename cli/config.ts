@@ -1,5 +1,6 @@
 import fs from 'fs'
 import YAML from 'yaml'
+import { Scalar, YAMLMap } from 'yaml/types'
 
 import { AddressBook } from './address-book'
 import { CLIEnvironment } from './env'
@@ -109,4 +110,37 @@ export function getContractConfig(
     calls: contractCalls,
     proxy,
   }
+}
+
+// YAML helper functions
+export const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
+  try {
+    let node: YAMLMap
+    for (const p of path) {
+      node = node === undefined ? doc.get(p) : node.get(p)
+    }
+    return node
+  } catch (error) {
+    throw new Error(`Could not find node: ${path}.`)
+  }
+}
+
+export const getItem = (node: YAMLMap, key: string): Scalar => {
+  if (!node.has(key)) {
+    throw new Error(`Could not find item: ${key}.`)
+  }
+  return node.get(key, true) as Scalar
+}
+
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export const updateItem = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
+  const splitPath = path.split('/')
+  const itemKey = splitPath.pop()
+
+  const node = getNode(doc, splitPath)
+  const item = getItem(node, itemKey)
+
+  const updated = item.value !== value
+  item.value = value
+  return updated
 }

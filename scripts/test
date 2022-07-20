@@ -3,8 +3,6 @@
 set -eo pipefail
 source $(pwd)/scripts/evm
 
-MNEMONIC="myth like bonus scare over problem client lizard pioneer submit female collect"
-
 ### Setup EVM
 
 # Ensure we compiled sources
