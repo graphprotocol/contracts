@@ -19,6 +19,3 @@ bin/
 # Coverage and other reports
 /reports
 coverage.json
-
-# Test address book
-localhost.json
