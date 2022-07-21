@@ -1,13 +1,12 @@
 import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-ethers'
 import { cliOpts } from '../../cli/defaults'
-import { readConfig, writeConfig } from '../../cli/config'
+import { writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
 import { Scalar, YAMLMap } from 'yaml/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import fs from 'fs'
 import { confirm } from '../../cli/helpers'
+import { NetworkContracts } from '../../cli/contracts'
 
 interface Contract {
   name: string
@@ -100,10 +99,6 @@ task('update-config', 'Update graph config parameters with onchain data')
     const dryRun = taskArgs.dryRun
     const skipConfirmation = taskArgs.skipConfirmation
 
-    if (!fs.existsSync(configFile)) {
-      throw new Error(`Could not find config file: ${configFile}`)
-    }
-
     console.log('## Update graph config ##')
     console.log(`Network: ${networkName}`)
     console.log(`Config file: ${configFile}\n`)
@@ -117,18 +112,18 @@ task('update-config', 'Update graph config parameters with onchain data')
       if (!sure) return
     }
 
-    const graphConfig = readConfig(configFile, true)
+    const { graphConfig, contracts } = hre.graph({ graphConfig: configFile })
 
     // general parameters
     console.log(`> General`)
     for (const param of generalParams) {
-      await updateGeneralParams(hre, param, graphConfig)
+      await updateGeneralParams(contracts, param, graphConfig)
     }
 
     // contracts parameters
     for (const contract of contractList) {
       console.log(`> ${contract.name}`)
-      await updateContractParams(hre, contract, graphConfig)
+      await updateContractParams(contracts, contract, graphConfig)
     }
 
     if (dryRun) {
@@ -140,11 +135,11 @@ task('update-config', 'Update graph config parameters with onchain data')
   })
 
 const updateGeneralParams = async (
-  hre: HardhatRuntimeEnvironment,
+  contracts: NetworkContracts,
   param: GeneralParam,
   config: YAML.Document.Parsed,
 ) => {
-  const value = await hre.contracts[param.contract][param.name]()
+  const value = await contracts[param.contract][param.name]()
   const updated = updateItem(config, `general/${param.name}`, value)
   if (updated) {
     console.log(`\t- Updated ${param.name} to ${value}`)
@@ -152,12 +147,12 @@ const updateGeneralParams = async (
 }
 
 const updateContractParams = async (
-  hre: HardhatRuntimeEnvironment,
+  contracts: NetworkContracts,
   contract: Contract,
   config: YAML.Document.Parsed,
 ) => {
   for (const param of contract.initParams) {
-    let value = await hre.contracts[contract.name][param.getter ?? param.name]()
+    let value = await contracts[contract.name][param.getter ?? param.name]()
     if (param.type === 'BigNumber') {
       if (param.format === 'number') {
         value = value.toNumber()

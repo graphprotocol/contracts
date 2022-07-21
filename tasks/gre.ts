@@ -1,48 +1,34 @@
-import { Contract } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
-import '@nomiclabs/hardhat-ethers'
 
-import { cliOpts } from '../cli/defaults'
 import { getAddressBook } from '../cli/address-book'
-import { loadContracts, NetworkContracts } from '../cli/contracts'
+import { loadContracts } from '../cli/contracts'
+import { readConfig } from '../cli/config'
+import { GREOptions } from './type-extensions'
+import fs from 'fs'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
-
-declare module 'hardhat/types/runtime' {
-  export interface HardhatRuntimeEnvironment {
-    contracts: NetworkContracts
-  }
-}
-
-interface ConsoleNetworkContracts extends NetworkContracts {
-  connect: () => void
-}
-
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre['contracts'] = lazyObject(() => {
-    const chainId = hre.network.config.chainId.toString()
-    const provider = hre.ethers.provider
-    const addressBook = getAddressBook(cliOpts.addressBook.default, chainId)
-    const contracts = loadContracts(addressBook, provider) as ConsoleNetworkContracts
+  hre.graph = (opts: GREOptions = {}) => {
+    const chainId = hre.network.config.chainId?.toString() ?? '1337'
+    const addressBookPath = opts.addressBook ?? process.env.ADDRESS_BOOK
+    const graphConfigPath = opts.graphConfig ?? process.env.GRAPH_CONFIG
 
-    // Connect contracts to a signing account
-    contracts.connect = async function (n = 0) {
-      const accounts = await hre.ethers.getSigners()
-      const senderAccount = accounts[n]
-      console.log(`> Sender set to ${senderAccount.address}`)
-      for (const [k, contract] of Object.entries(contracts)) {
-        if (contract instanceof Contract) {
-          contracts[k] = contract.connect(senderAccount)
-        }
-      }
+    if (!fs.existsSync(addressBookPath)) {
+      throw new Error(`Address book not found: ${addressBookPath}`)
     }
 
-    return contracts
-  })
-  hre['provider'] = lazyObject(() => hre.ethers.provider)
-  hre['accounts'] = function () {
-    return hre.ethers.getSigners()
+    if (!fs.existsSync(graphConfigPath)) {
+      throw new Error(`Graph config not found: ${graphConfigPath}`)
+    }
+
+    return {
+      addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId)),
+      graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
+      contracts: lazyObject(() =>
+        loadContracts(getAddressBook(addressBookPath, chainId), hre.ethers.provider),
+      ),
+    }
   }
 })

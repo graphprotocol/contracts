@@ -11,7 +11,7 @@ MNEMONIC=
 ETHERSCAN_API_KEY=
 INFURA_KEY=
 ADDRESS_BOOK="addresses.json"
-GRAPH_CONFIG=""config/graph.mainnet.yml""
+GRAPH_CONFIG="config/graph.mainnet.yml"
 PROVIDER_URL="http://localhost:8545"
 ```
 

@@ -5,13 +5,11 @@ import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/con
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
 import { loadEnv } from '../../cli/env'
 import { cliOpts } from '../../cli/defaults'
-import { getAddressBook } from '../../cli/address-book'
-import { getContractConfig, readConfig } from '../../cli/config'
+import { getContractConfig } from '../../cli/config'
 import { Wallet } from 'ethers'
-import { NomicLabsHardhatPluginError } from 'hardhat/plugins'
 import fs from 'fs'
 import path from 'path'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
 
 task('sourcify', 'Verifies contract on sourcify')
   .addPositionalParam('address', 'Address of the smart contract to verify', undefined, types.string)
@@ -46,7 +44,7 @@ task('sourcifyAll', 'Verifies all contracts on sourcify')
       throw new Error('Cannot verify contracts without a network')
     }
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const addressBook = getAddressBook(cliOpts.addressBook.default, chainId.toString())
+    const { addressBook } = hre.graph({ addressBook: _args.addressBook })
 
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
@@ -86,8 +84,10 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const addressBook = getAddressBook(args.addressBook, chainId.toString())
-    const graphConfig = readConfig(args.graphConfig)
+    const { addressBook, graphConfig } = hre.graph({
+      addressBook: args.addressBook,
+      graphConfig: args.graphConfig,
+    })
 
     const accounts = await hre.ethers.getSigners()
     const env = await loadEnv(args, accounts[0] as unknown as Wallet)

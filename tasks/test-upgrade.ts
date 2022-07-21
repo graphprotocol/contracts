@@ -1,5 +1,4 @@
 import fs from 'fs'
-
 import { task } from 'hardhat/config'
 
 function saveProxyAddresses(data) {
