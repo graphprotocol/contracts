@@ -636,6 +636,41 @@ describe('Rewards', () => {
         expect(toRound(afterTokenSupply)).eq(toRound(expectedTokenSupply))
       })
 
+      it('does not revert with an underflow if the minimum signal changes', async function () {
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
+        // Setup
+        await setupIndexerAllocation()
+
+        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
+
+        // Jump
+        await advanceToNextEpoch(epochManager)
+
+        // Close allocation. At this point rewards should be collected for that indexer
+        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+      })
+
+      it('does not revert if signal was already under minimum', async function () {
+        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(2000))
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
+        // Setup
+        await setupIndexerAllocation()
+
+        // Jump
+        await advanceToNextEpoch(epochManager)
+        // Close allocation. At this point rewards should be collected for that indexer
+        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+      })
+
       it('should distribute rewards on closed allocation and send to destination', async function () {
         const destinationAddress = randomHexBytes(20)
         await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
