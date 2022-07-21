@@ -16,7 +16,6 @@ import { GraphToken } from '../build/types/GraphToken'
 import { Controller } from '../build/types/Controller'
 import { BancorFormula } from '../build/types/BancorFormula'
 import { IENS } from '../build/types/IENS'
-import { IEthereumDIDRegistry } from '../build/types/IEthereumDIDRegistry'
 import { GraphGovernance } from '../build/types/GraphGovernance'
 import { AllocationExchange } from '../build/types/AllocationExchange'
 
@@ -33,7 +32,6 @@ export interface NetworkContracts {
   Controller: Controller
   BancorFormula: BancorFormula
   IENS: IENS
-  IEthereumDIDRegistry: IEthereumDIDRegistry
   GraphGovernance: GraphGovernance
   AllocationExchange: AllocationExchange
 }

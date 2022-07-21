@@ -17,7 +17,7 @@ const { EtherSymbol } = constants
 const { formatEther } = utils
 
 // Contracts are deployed in the order defined in this list
-let allContracts = [
+const allContracts = [
   'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
@@ -48,7 +48,6 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
   if (chainId == 1337) {
     await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
-    allContracts = ['EthereumDIDRegistry', ...allContracts]
   }
 
   logger.info(`>>> Migrating contracts <<<\n`)
