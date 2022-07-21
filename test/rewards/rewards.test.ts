@@ -537,6 +537,29 @@ describe('Rewards', () => {
           )
       }
 
+      async function setupIndexerAllocationSignalingAfter() {
+        // Setup
+        await epochManager.setEpochLength(10)
+
+        // Allocate
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1.signer)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Update total signalled
+        const signalled1 = toGRT('1500')
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+      }
+
       async function setupIndexerAllocationWithDelegation(
         tokensToDelegate: BigNumber,
         delegationParams: DelegationParameters,
@@ -641,6 +664,24 @@ describe('Rewards', () => {
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
+
+        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
+
+        // Jump
+        await advanceToNextEpoch(epochManager)
+
+        // Close allocation. At this point rewards should be collected for that indexer
+        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+      })
+
+      it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
+        // Align with the epoch boundary
+        await advanceToNextEpoch(epochManager)
+        // Setup
+        await setupIndexerAllocationSignalingAfter()
 
         await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
 
