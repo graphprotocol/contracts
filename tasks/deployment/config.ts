@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
-import { updateItem, writeConfig } from '../../cli/config'
+import { updateItemValue, writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
 import { confirm } from '../../cli/helpers'
@@ -138,7 +138,7 @@ const updateGeneralParams = async (
   config: YAML.Document.Parsed,
 ) => {
   const value = await contracts[param.contract][param.name]()
-  const updated = updateItem(config, `general/${param.name}`, value)
+  const updated = updateItemValue(config, `general/${param.name}`, value)
   if (updated) {
     console.log(`\t- Updated ${param.name} to ${value}`)
   }
@@ -159,7 +159,7 @@ const updateContractParams = async (
       }
     }
 
-    const updated = updateItem(config, `contracts/${contract.name}/init/${param.name}`, value)
+    const updated = updateItemValue(config, `contracts/${contract.name}/init/${param.name}`, value)
     if (updated) {
       console.log(`\t- Updated ${param.name} to ${value}`)
     }

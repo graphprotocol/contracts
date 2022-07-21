@@ -113,7 +113,7 @@ export function getContractConfig(
 }
 
 // YAML helper functions
-export const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
+const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
   try {
     let node: YAMLMap
     for (const p of path) {
@@ -125,21 +125,29 @@ export const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
   }
 }
 
-export const getItem = (node: YAMLMap, key: string): Scalar => {
+function getItem(node: YAMLMap, key: string): Scalar {
   if (!node.has(key)) {
     throw new Error(`Could not find item: ${key}.`)
   }
   return node.get(key, true) as Scalar
 }
 
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
-export const updateItem = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
+function getItemFromPath(doc: YAML.Document.Parsed, path: string) {
   const splitPath = path.split('/')
   const itemKey = splitPath.pop()
 
   const node = getNode(doc, splitPath)
   const item = getItem(node, itemKey)
+  return item
+}
 
+export const getItemValue = (doc: YAML.Document.Parsed, path: string): any => {
+  const item = getItemFromPath(doc, path)
+  return item.value
+}
+
+export const updateItemValue = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
+  const item = getItemFromPath(doc, path)
   const updated = item.value !== value
   item.value = value
   return updated

@@ -1,7 +1,7 @@
 import { task } from 'hardhat/config'
 
 import { cliOpts } from '../../cli/defaults'
-import { updateItem, writeConfig } from '../../cli/config'
+import { updateItemValue, writeConfig } from '../../cli/config'
 
 task('migrate:accounts', '[localhost] Creates protocol accounts and saves them in graph config')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
@@ -32,12 +32,12 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
     console.log(`- Pause Guardian: ${pauseGuardian.address}`)
     console.log(`- Edge & Node: ${edgeAndNode.address}`)
 
-    updateItem(graphConfig, 'general/arbitrator', arbitrator.address)
-    updateItem(graphConfig, 'general/governor', governor.address)
-    updateItem(graphConfig, 'general/authority', authority.address)
-    updateItem(graphConfig, 'general/availabilityOracle', availabilityOracle.address)
-    updateItem(graphConfig, 'general/pauseGuardian', pauseGuardian.address)
-    updateItem(graphConfig, 'general/edgeAndNode', edgeAndNode.address)
+    updateItemValue(graphConfig, 'general/arbitrator', arbitrator.address)
+    updateItemValue(graphConfig, 'general/governor', governor.address)
+    updateItemValue(graphConfig, 'general/authority', authority.address)
+    updateItemValue(graphConfig, 'general/availabilityOracle', availabilityOracle.address)
+    updateItemValue(graphConfig, 'general/pauseGuardian', pauseGuardian.address)
+    updateItemValue(graphConfig, 'general/edgeAndNode', edgeAndNode.address)
 
     writeConfig(taskArgs.graphConfig, graphConfig.toString())
   })
