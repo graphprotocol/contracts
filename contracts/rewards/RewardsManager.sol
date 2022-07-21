@@ -281,9 +281,12 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
-        uint256 newRewardsForSubgraph = accRewardsForSubgraph.sub(
-            subgraph.accRewardsForSubgraphSnapshot
-        );
+        uint256 newRewardsForSubgraph;
+        if (accRewardsForSubgraph > subgraph.accRewardsForSubgraphSnapshot) {
+            newRewardsForSubgraph = accRewardsForSubgraph.sub(
+                subgraph.accRewardsForSubgraphSnapshot
+            );
+        }
 
         uint256 subgraphAllocatedTokens = staking().getSubgraphAllocatedTokens(
             _subgraphDeploymentID
