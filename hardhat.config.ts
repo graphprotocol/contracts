@@ -134,6 +134,11 @@ const config: HardhatUserConfig = {
       },
       hardfork: 'london',
     },
+    localhost: {
+      accounts: {
+        mnemonic: DEFAULT_TEST_MNEMONIC,
+      },
+    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,

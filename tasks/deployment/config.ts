@@ -1,10 +1,8 @@
 import { task } from 'hardhat/config'
-import '@nomiclabs/hardhat-ethers'
 import { cliOpts } from '../../cli/defaults'
-import { writeConfig } from '../../cli/config'
+import { updateItemValue, writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
-import { Scalar, YAMLMap } from 'yaml/types'
 import { confirm } from '../../cli/helpers'
 import { NetworkContracts } from '../../cli/contracts'
 
@@ -140,7 +138,7 @@ const updateGeneralParams = async (
   config: YAML.Document.Parsed,
 ) => {
   const value = await contracts[param.contract][param.name]()
-  const updated = updateItem(config, `general/${param.name}`, value)
+  const updated = updateItemValue(config, `general/${param.name}`, value)
   if (updated) {
     console.log(`\t- Updated ${param.name} to ${value}`)
   }
@@ -161,42 +159,9 @@ const updateContractParams = async (
       }
     }
 
-    const updated = updateItem(config, `contracts/${contract.name}/init/${param.name}`, value)
+    const updated = updateItemValue(config, `contracts/${contract.name}/init/${param.name}`, value)
     if (updated) {
       console.log(`\t- Updated ${param.name} to ${value}`)
     }
   }
-}
-
-// YAML helper functions
-const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
-  try {
-    let node: YAMLMap
-    for (const p of path) {
-      node = node === undefined ? doc.get(p) : node.get(p)
-    }
-    return node
-  } catch (error) {
-    throw new Error(`Could not find node: ${path}.`)
-  }
-}
-
-const getItem = (node: YAMLMap, key: string): Scalar => {
-  if (!node.has(key)) {
-    throw new Error(`Could not find item: ${key}.`)
-  }
-  return node.get(key, true) as Scalar
-}
-
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
-const updateItem = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
-  const splitPath = path.split('/')
-  const itemKey = splitPath.pop()
-
-  const node = getNode(doc, splitPath)
-  const item = getItem(node, itemKey)
-
-  const updated = item.value !== value
-  item.value = value
-  return updated
 }

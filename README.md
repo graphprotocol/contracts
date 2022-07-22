@@ -83,11 +83,38 @@ Testing is done with the following stack:
 - [Typescript](https://www.typescriptlang.org/)
 - [Ethers](https://docs.ethers.io/v5/)
 
-To test all files, use `yarn test`. To test a single file run:
+## Contracts
+To test all the smart contracts, use `yarn test`. 
+To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
+
+## E2E Testing
+
+End to end tests are also available and can be run against a local network or a live network. These can be useful to validate a protocol deployment is configured and working as expected.
+
+### Hardhat local node
+To run e2e tests against a hardhat local node run:
 
 ```bash
-npx hardhat test test/<FILE_NAME>.ts
+yarn test:e2e
 ```
+
+The command will invoke several hardhat tasks, including:
+
+- Start a hardhat node (localhost)
+- Run `migrate:accounts` hardhat task to create keys for all protocol roles (deployer, governor, arbiter, etc). This currently doesn't support multisig accounts.
+- Run `migrate` hardhat task to deploy the protocol
+- Run `migrate:ownership` hardhat task to transfer ownership of governed contracts to the governor
+- Run `migrate:unpause` to unpause the protocol
+- Run e2e tests
+
+### Other networks
+To run tests against a live testnet or even mainnet run:
+
+```bash
+GRAPH_CONFIG=config/graph.<network>.yml ADDRESS_BOOK=addresses.json npx hardhat test e2e/**/*.ts --network <network>
+```
+
+This command will only run the tests so you need to be sure the protocol is already deployed and the graph config file and address book files are up to date.
 
 # Interacting with the contracts
 

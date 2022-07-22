@@ -2,6 +2,9 @@ general:
   arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3" # Arbitration Council
   governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
   authority: &authority "0x982D10c56b8BBbD6e09048F5c5f01b43C65D5aE0" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle
+  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian
+  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner
 
 contracts:
   Controller:
