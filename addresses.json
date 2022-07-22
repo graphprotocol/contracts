@@ -79,7 +79,7 @@
       }
     },
     "GraphCurationToken": {
-      "address": "0xb2e26f17aea8efa534e15bde5c79c25d0c3dfa2e",
+      "address": "0xb2E26f17Aea8eFA534e15Bde5C79c25D0C3dfa2e",
       "creationCodeHash": "0x7e9a56b6fc05d428d1c1116eaa88a658f05487b493d847bfe5c69e35ec34f092",
       "runtimeCodeHash": "0x587f9d4e9ecf9e7048d9f42f027957ca34ee6a95ca37d9758d8cd0ee16e89818",
       "txHash": "0x68eb11f4d6eaec5036c97b4c6102a509ac31933f1fe011f275b3e5fee30b6590"

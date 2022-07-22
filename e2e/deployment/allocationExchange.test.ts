@@ -8,10 +8,10 @@ describe('AllocationExchange deployment', () => {
     contracts: { AllocationExchange, GraphToken, Staking },
   } = hre.graph()
 
-  it('should be owned by edgeAndNode', async function () {
+  it('should be owned by allocationExchangeOwner', async function () {
     const owner = await AllocationExchange.governor()
-    const edgeAndNode = getItemValue(graphConfig, 'general/edgeAndNode')
-    expect(owner).eq(edgeAndNode)
+    const allocationExchangeOwner = getItemValue(graphConfig, 'general/allocationExchangeOwner')
+    expect(owner).eq(allocationExchangeOwner)
   })
 
   it('should accept vouchers from authority', async function () {

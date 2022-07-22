@@ -4,7 +4,7 @@ general:
   authority: &authority "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d" # Authority that signs payment vouchers
   availabilityOracle: &availabilityOracle "0xd03ea8624C8C5987235048901fB614fDcA89b117" # Subgraph Availability Oracle
   pauseGuardian: &pauseGuardian "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC" # Protocol pause guardian
-  edgeAndNode: &edgeAndNode "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9" # Allocation Exchange owner 
+  allocationExchangeOwner: &allocationExchangeOwner "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9" # Allocation Exchange owner
 
 contracts:
   Controller:
@@ -127,7 +127,7 @@ contracts:
     init:
       graphToken: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      governor: *edgeAndNode
+      governor: *allocationExchangeOwner
       authority: *authority
     calls:
       - fn: "approveAll"

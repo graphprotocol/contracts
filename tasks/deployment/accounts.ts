@@ -21,7 +21,7 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
       authority,
       availabilityOracle,
       pauseGuardian,
-      edgeAndNode,
+      allocationExchangeOwner,
     ] = await hre.ethers.getSigners()
 
     console.log(`- Deployer: ${deployer.address}`)
@@ -30,14 +30,14 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
     console.log(`- Authority: ${authority.address}`)
     console.log(`- Availability Oracle: ${availabilityOracle.address}`)
     console.log(`- Pause Guardian: ${pauseGuardian.address}`)
-    console.log(`- Edge & Node: ${edgeAndNode.address}`)
+    console.log(`- Allocation Exchange Owner: ${allocationExchangeOwner.address}`)
 
     updateItemValue(graphConfig, 'general/arbitrator', arbitrator.address)
     updateItemValue(graphConfig, 'general/governor', governor.address)
     updateItemValue(graphConfig, 'general/authority', authority.address)
     updateItemValue(graphConfig, 'general/availabilityOracle', availabilityOracle.address)
     updateItemValue(graphConfig, 'general/pauseGuardian', pauseGuardian.address)
-    updateItemValue(graphConfig, 'general/edgeAndNode', edgeAndNode.address)
+    updateItemValue(graphConfig, 'general/allocationExchangeOwner', allocationExchangeOwner.address)
 
     writeConfig(taskArgs.graphConfig, graphConfig.toString())
   })

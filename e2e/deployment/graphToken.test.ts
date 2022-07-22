@@ -6,7 +6,7 @@ import { getItemValue } from '../../cli/config'
 describe('GraphToken deployment', () => {
   const {
     graphConfig,
-    contracts: { GraphToken, RewardsManager, Controller },
+    contracts: { GraphToken, RewardsManager },
   } = hre.graph()
 
   let deployer: SignerWithAddress
@@ -34,6 +34,10 @@ describe('GraphToken deployment', () => {
   it('total supply should match "initialSupply" on the config file', async function () {
     const value = await GraphToken.totalSupply()
     const expected = getItemValue(graphConfig, 'contracts/GraphToken/init/initialSupply')
-    expect(value).eq(expected)
+    if (hre.network.config.chainId === 1337) {
+      expect(value).eq(expected)
+    } else {
+      expect(value).gte(expected)
+    }
   })
 })
