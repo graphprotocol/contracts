@@ -134,11 +134,6 @@ const config: HardhatUserConfig = {
       },
       hardfork: 'london',
     },
-    local: {
-      chainId: 1337,
-      url: 'http://127.0.0.1:8545',
-      gasPrice: 300000000000, // 300 gwei
-    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
