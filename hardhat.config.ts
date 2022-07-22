@@ -62,8 +62,10 @@ const networkConfigs: NetworkConfig[] = [
   { network: 'kovan', chainId: 42 },
 ]
 
-function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
+function getAccountsKeys() {
+  if (process.env.MNEMONIC) return { mnemonic: process.env.MNEMONIC }
+  if (process.env.PRIVATE_KEY) return [process.env.PRIVATE_KEY]
+  return 'remote'
 }
 
 function getDefaultProviderURL(network: string) {
@@ -77,9 +79,7 @@ function setupNetworkProviders(hardhatConfig) {
       url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
       gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
-      accounts: {
-        mnemonic: getAccountMnemonic(),
-      },
+      accounts: getAccountsKeys(),
     }
   }
 }
@@ -135,9 +135,8 @@ const config: HardhatUserConfig = {
       hardfork: 'london',
     },
     localhost: {
-      accounts: {
-        mnemonic: DEFAULT_TEST_MNEMONIC,
-      },
+      accounts:
+        process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
   },
   etherscan: {
