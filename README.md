@@ -84,7 +84,8 @@ Testing is done with the following stack:
 - [Ethers](https://docs.ethers.io/v5/)
 
 ## Contracts
-To test all the smart contracts, use `yarn test`. 
+
+To test all the smart contracts, use `yarn test`.
 To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
 
 ## E2E Testing
@@ -92,6 +93,7 @@ To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
 End to end tests are also available and can be run against a local network or a live network. These can be useful to validate a protocol deployment is configured and working as expected.
 
 ### Hardhat local node
+
 To run e2e tests against a hardhat local node run:
 
 ```bash
@@ -108,6 +110,7 @@ The command will invoke several hardhat tasks, including:
 - Run e2e tests
 
 ### Other networks
+
 To run tests against a live testnet or even mainnet run:
 
 ```bash
@@ -120,7 +123,7 @@ This command will only run the tests so you need to be sure the protocol is alre
 
 There are three ways to interact with the contracts through this repo:
 
-**Hardhat**
+### Hardhat
 
 The most straightforward way to interact with the contracts is through the hardhat console. We have extended the hardhat runtime environment to include all of the contracts. This makes it easy to run the console with autocomplete for all contracts and all functions. It is a quick and easy way to read and write to the contracts.
 
@@ -129,13 +132,36 @@ The most straightforward way to interact with the contracts is through the hardh
 npx hardhat console --network rinkeby
 ```
 
-**Hardhat Tasks**
+### Hardhat Tasks
 
 There are hardhat tasks under the `/tasks` folder. Most tasks are for complex queries to get back data from the protocol.
 
-**cli**
+### CLI
 
-There is a cli that can be used to read or write to the contracts. It includes scripts to help with deployment.
+There is a CLI that can be used to read or write to the contracts. It includes scripts to help with deployment.
+
+## Environment
+
+When running the Hardhat console or tasks you can set what network and accounts to use when sending transactions.
+
+### Network
+
+Selecting a network requires just passing `--network <name>` when running Hardhat. It's important that the network exists in the Hardhat configuration file.
+
+_There is a special network called `localhost` that connects it to a node running on localhost._
+
+### Accounts
+
+The accounts used depends on a few environment variables:
+
+- If MNEMONIC is set you will have available the set of addresses derived from the seed.
+- If PRIVATE_KEY is set, just that account is imported. MNEMONIC always takes precedence over PRIVATE_KEY.
+- If no MNEMONIC or PRIVATE_KEY is set it will use the remote accounts from the provider node.
+- You can always get an account using `ethers.getSigner(<address>)`
+
+Considerations when forking a chain:
+
+- When running on the `localhost` network it will use by default a deterministic seed for testing purposes. If you want to connect to a local node that is forking while retaining the capability to impersonate accounts or use local accounts you need to set the FORK=true environment variable.
 
 # Deploying Contracts
 
