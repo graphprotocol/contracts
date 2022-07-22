@@ -139,11 +139,6 @@ const config: HardhatUserConfig = {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
     },
-    ganache: {
-      chainId: 1337,
-      url: 'http://localhost:8545',
-      gasPrice: 300000000000, // 300 gwei
-    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
