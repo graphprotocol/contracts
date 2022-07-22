@@ -81,7 +81,7 @@
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
     "deploy": "yarn build && scripts/predeploy && hardhat migrate",
-    "deploy-local": "yarn deploy --force --network local",
+    "deploy-localhost": "yarn deploy --force --network localhost",
     "deploy-rinkeby": "yarn deploy --force --network rinkeby --graph-config config/graph.rinkeby.yml",
     "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
     "predeploy": "scripts/predeploy",
