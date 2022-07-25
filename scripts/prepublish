@@ -7,6 +7,7 @@ set -eo pipefail
 # Build contracts
 yarn clean
 yarn build
+npx hardhat export-abi
 
 # Refresh distribution folder
 rm -rf dist && mkdir -p dist/types/_src
@@ -16,7 +17,7 @@ cp -R build/types/ dist/types/_src
 ### Build Typechain bindings
 
 # Build and create TS declarations
-tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR}
+tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR} --esModuleInterop
 # Copy back sources
 cp ${TYPECHAIN_DIR}/_src/*.ts ${TYPECHAIN_DIR}
 # Delete temporary src dir
