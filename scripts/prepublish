@@ -7,7 +7,6 @@ set -eo pipefail
 # Build contracts
 yarn clean
 yarn build
-npx hardhat export-abi
 
 # Refresh distribution folder
 rm -rf dist && mkdir -p dist/types/_src
