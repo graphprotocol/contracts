@@ -2,7 +2,7 @@ const skipFiles = ['bancor', 'ens', 'erc1056']
 
 module.exports = {
   providerOptions: {
-    mnemonic: process.env.DEFAULT_TEST_MNEMONIC,
+    mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     network_id: 1337,
   },
   skipFiles,
