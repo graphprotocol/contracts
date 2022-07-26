@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('RewardsManager deployment', () => {
+describe('RewardsManager configuration', () => {
   const {
     graphConfig,
     contracts: { RewardsManager, Controller },

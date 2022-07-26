@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('GraphToken deployment', () => {
+describe('GraphToken configuration', () => {
   const {
     graphConfig,
     contracts: { GraphToken, RewardsManager },
@@ -24,11 +24,5 @@ describe('GraphToken deployment', () => {
   it('RewardsManager should be minter', async function () {
     const deployerIsMinter = await GraphToken.isMinter(RewardsManager.address)
     expect(deployerIsMinter).eq(true)
-  })
-
-  it('total supply should match "initialSupply" on the config file', async function () {
-    const value = await GraphToken.totalSupply()
-    const expected = getItemValue(graphConfig, 'contracts/GraphToken/init/initialSupply')
-    hre.network.config.chainId === 1337 ? expect(value).eq(expected) : expect(value).gte(expected)
   })
 })

@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('DisputeManager deployment', () => {
+describe('DisputeManager configuration', () => {
   const {
     graphConfig,
     contracts: { Controller, DisputeManager },

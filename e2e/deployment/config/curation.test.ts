@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('Curation deployment', () => {
+describe('Curation configuration', () => {
   const {
     graphConfig,
     contracts: { Controller, Curation, BancorFormula, GraphCurationToken },

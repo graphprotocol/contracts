@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('SubgraphNFT deployment', () => {
+describe('SubgraphNFT configuration', () => {
   const {
     graphConfig,
     contracts: { SubgraphNFT, GNS, SubgraphNFTDescriptor },

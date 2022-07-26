@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('Controller deployment', () => {
+describe('Controller configuration', () => {
   const { contracts, graphConfig } = hre.graph()
   const { Controller } = contracts
 

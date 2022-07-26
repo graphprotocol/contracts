@@ -28,7 +28,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('./tasks/gre.ts')
-  ;['contracts', 'misc', 'deployment', 'actions', 'verify'].forEach((folder) => {
+  ;['contracts', 'misc', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
@@ -86,6 +86,9 @@ function setupNetworkProviders(hardhatConfig) {
 
 // Config
 
+const DEFAULT_TEST_MNEMONIC =
+  'myth like bonus scare over problem client lizard pioneer submit female collect'
+
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
@@ -123,7 +126,7 @@ const config: HardhatUserConfig = {
       initialBaseFeePerGas: 0,
       blockGasLimit: 12000000,
       accounts: {
-        mnemonic: process.env.DEFAULT_TEST_MNEMONIC,
+        mnemonic: DEFAULT_TEST_MNEMONIC,
       },
       mining: {
         auto: false,
@@ -133,9 +136,7 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       accounts:
-        process.env.FORK === 'true'
-          ? getAccountsKeys()
-          : { mnemonic: process.env.DEFAULT_TEST_MNEMONIC },
+        process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
   },
   etherscan: {

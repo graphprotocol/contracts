@@ -1,11 +1,11 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('AllocationExchange deployment', () => {
+describe('AllocationExchange configuration', () => {
   const {
     graphConfig,
-    contracts: { AllocationExchange, GraphToken, Staking },
+    contracts: { AllocationExchange },
   } = hre.graph()
 
   it('should be owned by allocationExchangeOwner', async function () {
@@ -23,9 +23,4 @@ describe('AllocationExchange deployment', () => {
   // graphToken and staking are private variables so we can't verify
   it.skip('graphToken should match the GraphToken deployment address')
   it.skip('staking should match the Staking deployment address')
-
-  it('should allow Staking contract to spend MAX_UINT256 tokens on AllocationExchange behalf', async function () {
-    const allowance = await GraphToken.allowance(AllocationExchange.address, Staking.address)
-    expect(allowance).eq(hre.ethers.constants.MaxUint256)
-  })
 })
