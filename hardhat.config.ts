@@ -87,9 +87,6 @@ function setupNetworkProviders(hardhatConfig) {
 
 // Config
 
-const DEFAULT_TEST_MNEMONIC =
-  'myth like bonus scare over problem client lizard pioneer submit female collect'
-
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
@@ -127,7 +124,7 @@ const config: HardhatUserConfig = {
       initialBaseFeePerGas: 0,
       blockGasLimit: 12000000,
       accounts: {
-        mnemonic: DEFAULT_TEST_MNEMONIC,
+        mnemonic: process.env.DEFAULT_TEST_MNEMONIC,
       },
       mining: {
         auto: false,
@@ -137,7 +134,9 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       accounts:
-        process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+        process.env.FORK === 'true'
+          ? getAccountsKeys()
+          : { mnemonic: process.env.DEFAULT_TEST_MNEMONIC },
     },
   },
   etherscan: {

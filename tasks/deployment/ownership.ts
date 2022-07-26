@@ -23,10 +23,10 @@ task(
     console.log(`- Governor: ${governor.address}`)
 
     const txs: ContractTransaction[] = []
-    txs.push(await contracts.GraphToken.connect(governor).acceptOwnership())
-    txs.push(await contracts.Controller.connect(governor).acceptOwnership())
-    txs.push(await contracts.GraphProxyAdmin.connect(governor).acceptOwnership())
-    txs.push(await contracts.SubgraphNFT.connect(governor).acceptOwnership())
+    txs.push(await contracts.GraphToken.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.Controller.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.GraphProxyAdmin.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.SubgraphNFT.connect(governor.signer).acceptOwnership())
 
     await Promise.all(txs.map((tx) => tx.wait()))
     console.log('Done!')
