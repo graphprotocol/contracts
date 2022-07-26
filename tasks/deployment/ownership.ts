@@ -12,17 +12,17 @@ task(
       throw new Error('This task can only be run on localhost network')
     }
 
-    const { contracts } = hre.graph({ addressBook: taskArgs.addressBook })
-    const [, , governor] = await hre.ethers.getSigners()
+    const { contracts, getNamedAccounts } = hre.graph({ addressBook: taskArgs.addressBook })
+    const { governor } = await getNamedAccounts()
 
     console.log('> Accepting ownership of contracts')
     console.log(`- Governor: ${governor.address}`)
 
     const txs: ContractTransaction[] = []
-    txs.push(await contracts.GraphToken.connect(governor).acceptOwnership())
-    txs.push(await contracts.Controller.connect(governor).acceptOwnership())
-    txs.push(await contracts.GraphProxyAdmin.connect(governor).acceptOwnership())
-    txs.push(await contracts.SubgraphNFT.connect(governor).acceptOwnership())
+    txs.push(await contracts.GraphToken.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.Controller.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.GraphProxyAdmin.connect(governor.signer).acceptOwnership())
+    txs.push(await contracts.SubgraphNFT.connect(governor.signer).acceptOwnership())
 
     await Promise.all(txs.map((tx) => tx.wait()))
     console.log('Done!')

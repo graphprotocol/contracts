@@ -2,7 +2,7 @@ import { Options } from 'yargs'
 import { Overrides } from 'ethers'
 
 export const local = {
-  mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+  mnemonic: process.env.DEFAULT_TEST_MNEMONIC,
   providerUrl: 'http://localhost:8545',
   addressBookPath: './addresses.json',
   graphConfigPath: './config/graph.mainnet.yml',
