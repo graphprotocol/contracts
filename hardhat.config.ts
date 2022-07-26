@@ -154,8 +154,9 @@ const config: HardhatUserConfig = {
   },
   abiExporter: {
     path: './build/abis',
-    clear: false,
+    clear: true,
     flat: true,
+    runOnCompile: true,
   },
   tenderly: {
     project: 'graph-network',
