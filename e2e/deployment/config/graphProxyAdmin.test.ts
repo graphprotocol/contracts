@@ -1,16 +1,21 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../cli/config'
+import { NamedAccounts } from '../../../tasks/type-extensions'
 
 describe('GraphProxyAdmin configuration', () => {
   const {
     contracts: { GraphProxyAdmin },
-    graphConfig,
+    getNamedAccounts,
   } = hre.graph()
+
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
 
   it('should be owned by governor', async function () {
     const owner = await GraphProxyAdmin.governor()
-    const governorAddress = getItemValue(graphConfig, 'general/governor')
-    expect(owner).eq(governorAddress)
+    expect(owner).eq(namedAccounts.governor.address)
   })
 })

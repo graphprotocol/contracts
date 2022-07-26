@@ -1,22 +1,26 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../cli/config'
+import { NamedAccounts } from '../../../tasks/type-extensions'
 
 describe('AllocationExchange configuration', () => {
   const {
-    graphConfig,
     contracts: { AllocationExchange },
+    getNamedAccounts,
   } = hre.graph()
+
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
 
   it('should be owned by allocationExchangeOwner', async function () {
     const owner = await AllocationExchange.governor()
-    const allocationExchangeOwner = getItemValue(graphConfig, 'general/allocationExchangeOwner')
-    expect(owner).eq(allocationExchangeOwner)
+    expect(owner).eq(namedAccounts.allocationExchangeOwner.address)
   })
 
   it('should accept vouchers from authority', async function () {
-    const authorityAddress = getItemValue(graphConfig, 'general/authority')
-    const allowed = await AllocationExchange.authority(authorityAddress)
+    const allowed = await AllocationExchange.authority(namedAccounts.authority.address)
     expect(allowed).eq(true)
   })
 

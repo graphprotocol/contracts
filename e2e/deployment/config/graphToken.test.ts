@@ -1,18 +1,23 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../cli/config'
+import { NamedAccounts } from '../../../tasks/type-extensions'
 
 describe('GraphToken configuration', () => {
   const {
-    graphConfig,
+    getNamedAccounts,
     contracts: { GraphToken, RewardsManager },
     getDeployer,
   } = hre.graph()
 
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
+
   it('should be owned by governor', async function () {
     const owner = await GraphToken.governor()
-    const governorAddress = getItemValue(graphConfig, 'general/governor')
-    expect(owner).eq(governorAddress)
+    expect(owner).eq(namedAccounts.governor.address)
   })
 
   it('deployer should not be minter', async function () {
