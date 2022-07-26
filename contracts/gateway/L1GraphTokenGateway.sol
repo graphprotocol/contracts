@@ -172,6 +172,12 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * The ticket must be redeemed on L2 to receive tokens at the specified address.
      * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
      * @dev maxGas and gasPriceBid must be set using Arbitrum's NodeInterface.estimateRetryableTicket method.
+     * Also note that whitelisted senders (some protocol contracts) can include additional calldata
+     * for a callhook to be executed on the L2 side when the tokens are received. In this case, the L2 transaction
+     * can revert if the callhook reverts, potentially locking the tokens on the bridge if the callhook
+     * never succeeds. This requires extra care when adding contracts to the whitelist, but is necessary to ensure that
+     * the tickets can be retried in the case of a temporary failure, and to ensure the atomicity of callhooks
+     * with token transfers.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L2
      * @param _amount Amount of tokens to tranfer

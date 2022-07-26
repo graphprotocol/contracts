@@ -208,6 +208,12 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @notice Receives token amount from L1 and mints the equivalent tokens to the receiving address
      * @dev Only accepts transactions from the L1 GRT Gateway.
      * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
+     * Note that whitelisted senders (some protocol contracts) can include additional calldata
+     * for a callhook to be executed on the L2 side when the tokens are received. In this case, the L2 transaction
+     * can revert if the callhook reverts, potentially locking the tokens on the bridge if the callhook
+     * never succeeds. This requires extra care when adding contracts to the whitelist, but is necessary to ensure that
+     * the tickets can be retried in the case of a temporary failure, and to ensure the atomicity of callhooks
+     * with token transfers.
      * @param _l1Token L1 Address of GRT
      * @param _from Address of the sender on L1
      * @param _to Recipient address on L2
