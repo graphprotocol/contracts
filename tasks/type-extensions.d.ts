@@ -23,8 +23,13 @@ declare module 'hardhat/types/runtime' {
       graphConfig: any
       addressBook: AddressBook
       getNamedAccounts: () => Promise<NamedAccounts>
+<<<<<<< HEAD
       getTestAccounts: () => Promise<SignerWithAddress[]>
       getDeployer: () => Promise<SignerWithAddress>
+=======
+      getTestAccounts: () => Promise<Account[]>
+      getDeployer: () => Promise<Account>
+>>>>>>> 6e68b48 (feat: replace getAccounts with getTestAccounts)
     }
   }
 }
