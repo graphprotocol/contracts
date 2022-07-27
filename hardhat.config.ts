@@ -21,6 +21,7 @@ import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
 import 'solidity-coverage'
+import 'hardhat-storage-layout'
 
 // Tasks
 
