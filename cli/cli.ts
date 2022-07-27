@@ -29,6 +29,7 @@ yargs
   .option('p', cliOpts.providerUrl)
   .option('n', cliOpts.accountNumber)
   .option('r', cliOpts.arbitrumAddressBook)
+  .option('s', cliOpts.skipConfirmation)
   .command(deployCommand)
   .command(migrateCommand)
   .command(proxyCommand)

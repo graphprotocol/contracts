@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "1.11.1",
+  "version": "1.13.0",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -70,9 +70,9 @@
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.16",
-    "ts-node": "^9.1.1",
+    "ts-node": "^10.9.1",
     "typechain": "^5.0.0",
-    "typescript": "^4.2.4",
+    "typescript": "^4.7.4",
     "winston": "^3.3.3",
     "yaml": "^1.10.2",
     "yargs": "^17.0.0"
@@ -83,13 +83,13 @@
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
-    "deploy": "scripts/predeploy && hardhat migrate",
-    "deploy-ganache": "yarn deploy -- --force",
-    "deploy-ganache-manual": "yarn deploy -- --force --network ganache",
-    "deploy-hardhat": "yarn deploy -- --force --network hardhat",
-    "deploy-rinkeby": "yarn deploy -- --force --network rinkeby --graph-config config/graph.rinkeby.yml",
+    "deploy": "yarn build && scripts/predeploy && hardhat migrate",
+    "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
+    "deploy-rinkeby": "yarn deploy --force --network rinkeby --graph-config config/graph.rinkeby.yml",
+    "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
+    "test:e2e": "scripts/e2e",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "test:coverage": "scripts/coverage",
     "lint": "yarn lint:ts && yarn lint:sol",

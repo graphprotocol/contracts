@@ -69,8 +69,10 @@ const networkConfigs: NetworkConfig[] = [
   },
 ]
 
-function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
+function getAccountsKeys() {
+  if (process.env.MNEMONIC) return { mnemonic: process.env.MNEMONIC }
+  if (process.env.PRIVATE_KEY) return [process.env.PRIVATE_KEY]
+  return 'remote'
 }
 
 function getDefaultProviderURL(network: string) {
@@ -84,9 +86,7 @@ function setupNetworkProviders(hardhatConfig) {
       url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
       gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
-      accounts: {
-        mnemonic: getAccountMnemonic(),
-      },
+      accounts: getAccountsKeys(),
     }
   }
 }
@@ -116,7 +116,7 @@ const config: HardhatUserConfig = {
           },
           outputSelection: {
             '*': {
-              '*': ['storageLayout'],
+              '*': ['storageLayout', 'metadata'],
             },
           },
         },
@@ -137,14 +137,13 @@ const config: HardhatUserConfig = {
       },
       mining: {
         auto: false,
-        interval: 30000,
+        interval: 13000,
       },
       hardfork: 'london',
     },
-    ganache: {
-      chainId: 1337,
-      url: 'http://localhost:8545',
-      gasPrice: 300000000000, // 300 gwei
+    localhost: {
+      accounts:
+        process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
   },
   etherscan: {
@@ -162,8 +161,9 @@ const config: HardhatUserConfig = {
   },
   abiExporter: {
     path: './build/abis',
-    clear: false,
+    clear: true,
     flat: true,
+    runOnCompile: true,
   },
   tenderly: {
     project: 'graph-network',

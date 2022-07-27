@@ -16,7 +16,6 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { Staking } from '../../build/types/Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { EthereumDIDRegistry } from '../../build/types/EthereumDIDRegistry'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 import { SubgraphNFT } from '../../build/types/SubgraphNFT'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
@@ -185,10 +184,6 @@ export async function deployGNS(
   await subgraphNFT.connect(deployer).setTokenDescriptor(subgraphDescriptor.address)
 
   return proxy
-}
-
-export async function deployEthereumDIDRegistry(deployer: Signer): Promise<EthereumDIDRegistry> {
-  return deployContract('EthereumDIDRegistry', deployer) as unknown as Promise<EthereumDIDRegistry>
 }
 
 export async function deployServiceRegistry(

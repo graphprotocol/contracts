@@ -70,6 +70,11 @@ describe('EpochManager', () => {
     })
 
     describe('calculations', () => {
+      it('first epoch should be 1', async function () {
+        const currentEpoch = await epochManager.currentEpoch()
+        expect(currentEpoch).eq(1)
+      })
+
       it('should return correct block number', async function () {
         const currentBlock = await latestBlock()
         expect(await epochManager.blockNum()).eq(currentBlock)

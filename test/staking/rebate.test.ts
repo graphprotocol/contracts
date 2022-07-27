@@ -44,6 +44,14 @@ describe('Staking:Rebate', () => {
     { totalRewards: 0, fees: 0, totalFees: 0, stake: 1200, totalStake: 7300 },
   ]
 
+  // Edge case #2 - Closed allocations with queries but no stake
+  const edgeCases2: RebateTestCase[] = [
+    { totalRewards: 1300, fees: 100, totalFees: 1300, stake: 0, totalStake: 0 },
+    { totalRewards: 1300, fees: 0, totalFees: 1300, stake: 0, totalStake: 0 },
+    { totalRewards: 1300, fees: 200, totalFees: 1300, stake: 0, totalStake: 0 },
+    { totalRewards: 1300, fees: 1000, totalFees: 1300, stake: 0, totalStake: 0 },
+  ]
+
   // This function calculates the Cobb-Douglas formula in Typescript so we can compare against
   // the Solidity implementation
   // TODO: consider using bignumber.js to get extra precision
@@ -56,7 +64,7 @@ describe('Staking:Rebate', () => {
     alphaNumerator: number,
     alphaDenominator: number,
   ) {
-    if (totalFees === 0) {
+    if (totalFees === 0 || totalStake === 0) {
       return 0
     }
     const feeRatio = fees / totalFees
@@ -202,6 +210,10 @@ describe('Staking:Rebate', () => {
     describe('edge #1 test case', function () {
       testAlphas(shouldMatchFormulas, edgeCases1)
     })
+
+    describe('edge #2 test case', function () {
+      testAlphas(shouldMatchFormulas, edgeCases2)
+    })
   })
 
   describe('should match rewards out from rebates', function () {
@@ -212,6 +224,10 @@ describe('Staking:Rebate', () => {
     describe('edge #1 test case', function () {
       testAlphas(shouldMatchOut, edgeCases1)
     })
+
+    describe('edge #2 test case', function () {
+      testAlphas(shouldMatchFormulas, edgeCases2)
+    })
   })
 
   describe('should always be that sum of rebate rewards obtained <= to total rewards', function () {
@@ -221,6 +237,10 @@ describe('Staking:Rebate', () => {
 
     describe('edge #1 test case', function () {
       testAlphas(shouldConserveBalances, edgeCases1)
+    })
+
+    describe('edge #2 test case', function () {
+      testAlphas(shouldMatchFormulas, edgeCases2)
     })
   })
 })

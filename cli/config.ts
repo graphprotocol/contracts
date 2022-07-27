@@ -1,5 +1,6 @@
 import fs from 'fs'
 import YAML from 'yaml'
+import { Scalar, YAMLMap } from 'yaml/types'
 
 import { AddressBook } from './address-book'
 import { CLIEnvironment } from './env'
@@ -109,4 +110,45 @@ export function getContractConfig(
     calls: contractCalls,
     proxy,
   }
+}
+
+// YAML helper functions
+const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
+  try {
+    let node: YAMLMap
+    for (const p of path) {
+      node = node === undefined ? doc.get(p) : node.get(p)
+    }
+    return node
+  } catch (error) {
+    throw new Error(`Could not find node: ${path}.`)
+  }
+}
+
+function getItem(node: YAMLMap, key: string): Scalar {
+  if (!node.has(key)) {
+    throw new Error(`Could not find item: ${key}.`)
+  }
+  return node.get(key, true) as Scalar
+}
+
+function getItemFromPath(doc: YAML.Document.Parsed, path: string) {
+  const splitPath = path.split('/')
+  const itemKey = splitPath.pop()
+
+  const node = getNode(doc, splitPath)
+  const item = getItem(node, itemKey)
+  return item
+}
+
+export const getItemValue = (doc: YAML.Document.Parsed, path: string): any => {
+  const item = getItemFromPath(doc, path)
+  return item.value
+}
+
+export const updateItemValue = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
+  const item = getItemFromPath(doc, path)
+  const updated = item.value !== value
+  item.value = value
+  return updated
 }

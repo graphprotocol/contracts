@@ -71,6 +71,7 @@ describe('DisputeManager:Query', async () => {
       await getChainID(),
       disputeManager.address,
       receipt,
+      '0',
     )
     return attestation
   }

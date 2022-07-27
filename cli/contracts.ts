@@ -16,7 +16,6 @@ import { GraphToken } from '../build/types/GraphToken'
 import { Controller } from '../build/types/Controller'
 import { BancorFormula } from '../build/types/BancorFormula'
 import { IENS } from '../build/types/IENS'
-import { IEthereumDIDRegistry } from '../build/types/IEthereumDIDRegistry'
 import { GraphGovernance } from '../build/types/GraphGovernance'
 import { AllocationExchange } from '../build/types/AllocationExchange'
 import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
@@ -24,6 +23,9 @@ import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
 import { BridgeEscrow } from '../build/types/BridgeEscrow'
 import { chainIdIsL2 } from './utils'
+import { SubgraphNFT } from '../build/types/SubgraphNFT'
+import { GraphCurationToken } from '../build/types/GraphCurationToken'
+import { SubgraphNFTDescriptor } from '../build/types/SubgraphNFTDescriptor'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -38,13 +40,15 @@ export interface NetworkContracts {
   Controller: Controller
   BancorFormula: BancorFormula
   IENS: IENS
-  IEthereumDIDRegistry: IEthereumDIDRegistry
   GraphGovernance: GraphGovernance
   AllocationExchange: AllocationExchange
   L1GraphTokenGateway: L1GraphTokenGateway
   BridgeEscrow: BridgeEscrow
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway
+  SubgraphNFT: SubgraphNFT
+  SubgraphNFTDescriptor: SubgraphNFTDescriptor
+  GraphCurationToken: GraphCurationToken
 }
 
 export const loadAddressBookContract = (

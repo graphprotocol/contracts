@@ -1,4 +1,3 @@
-import inquirer from 'inquirer'
 import fs from 'fs'
 import PQueue from 'p-queue'
 import yargs, { Argv } from 'yargs'
@@ -10,6 +9,7 @@ import { NonceManager } from '@ethersproject/experimental'
 import { logger } from '../logging'
 import { sendTransaction } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { confirm } from '../helpers'
 
 const { getAddress } = utils
 
@@ -64,20 +64,6 @@ interface AirdropRecipient {
   address: string
   amount: BigNumber
   txHash?: string
-}
-
-const sure = async (message = 'Are you sure?'): Promise<boolean> => {
-  // Warn about changing ownership
-  const res = await inquirer.prompt({
-    name: 'confirm',
-    type: 'confirm',
-    message,
-  })
-  if (!res.confirm) {
-    logger.info('Cancelled')
-    return false
-  }
-  return true
 }
 
 const getDisperseContract = (chainID: number, provider) => {
@@ -163,6 +149,7 @@ const createBatches = (
 
 export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const graphToken = cli.contracts.GraphToken
+  const skipConfirmation = cliArgs.skipConfirmation
 
   // Load data
   const resumeList = loadResumeList(cliArgs.resumefile).map((r) => r.address)
@@ -193,10 +180,11 @@ export const airdrop = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   }
 
   // Confirmation
-  logger.info('Are you sure you want to proceed with the distribution?')
-  if (!(await sure())) {
-    process.exit(1)
-  }
+  const sure = await confirm(
+    'Are you sure you want to proceed with the distribution?',
+    skipConfirmation,
+  )
+  if (!sure) return
 
   // Approve
   logger.info('## Token approval')

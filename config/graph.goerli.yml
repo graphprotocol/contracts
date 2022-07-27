@@ -1,10 +1,10 @@
 general:
-  arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3" # Arbitration Council
-  governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
-  authority: &authority "0x982D10c56b8BBbD6e09048F5c5f01b43C65D5aE0" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle
-  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian
-  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner
+  arbitrator: &arbitrator "0xFD01aa87BeB04D0ac764FC298aCFd05FfC5439cD" # Arbitration Council
+  governor: &governor "0xf1135bFF22512FF2A585b8d4489426CE660f204c" # Graph Council
+  authority: &authority "0x52e498aE9B8A5eE2A5Cd26805F06A9f29A7F489F" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0x14053D40ea2E81D3AB0739728a54ab84F21200F9" # Subgraph Availability Oracle
+  pauseGuardian: &pauseGuardian "0x6855D551CaDe60754D145fb5eDCD90912D860262" # Protocol pause guardian
+  allocationExchangeOwner: &allocationExchangeOwner "0xf1135bFF22512FF2A585b8d4489426CE660f204c" # Allocation Exchange owner
 
 contracts:
   Controller:
@@ -30,12 +30,6 @@ contracts:
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
-      - fn: "setContractProxy"
-        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
-        contractAddress: "${{L1GraphTokenGateway.address}}"
-      - fn: "setContractProxy"
-        id: "0x96ba401694892957e25e29c7a1e4171ae9945b5ee36339de79b199a530436e9e" # keccak256('Reservoir')
-        contractAddress: "${{L1Reservoir.address}}"
   ServiceRegistry:
     proxy: true
     init:
@@ -44,13 +38,13 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 6646 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+      lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # in wei
     calls:
       - fn: "addMinter"
-        minter: "${{L1Reservoir.address}}"
+        minter: "${{RewardsManager.address}}"
   Curation:
     proxy: true
     init:
@@ -90,12 +84,12 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "100000000000000000000000" # in wei
-      thawingPeriod: 186092 # in blocks
+      thawingPeriod: 6646 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 7 # in epochs
-      maxAllocationEpochs: 28 # in epochs
-      delegationUnbondingPeriod: 28 # in epochs
+      channelDisputeEpochs: 2 # in epochs
+      maxAllocationEpochs: 4 # in epochs
+      delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
@@ -112,27 +106,12 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+      issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      governor: *governor
+      governor: *allocationExchangeOwner
       authority: *authority
     calls:
       - fn: "approveAll"
-  L1GraphTokenGateway:
-    proxy: true
-    init:
-      controller: "${{Controller.address}}"
-  BridgeEscrow:
-    proxy: true
-    init:
-      controller: "${{Controller.address}}"
-  L1Reservoir:
-    proxy: true
-    init:
-      controller: "${{Controller.address}}"
-      dripInterval: 50400
-    calls:
-      - fn: "approveRewardsManager"
-      - fn: "initialSnapshot"

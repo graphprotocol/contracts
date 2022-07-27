@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv'
 
 import { utils, providers, Wallet } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
+import inquirer from 'inquirer'
 
 import * as bs58 from 'bs58'
 
@@ -88,4 +89,18 @@ export const pinMetadataToIPFS = async (
   // }
   logger.info(`Upload metadata successful: ${metaHash}\n`)
   return IPFS.ipfsHashToBytes32(metaHash)
+}
+
+export const confirm = async (message: string, skip: boolean): Promise<boolean> => {
+  if (skip) return true
+  const res = await inquirer.prompt({
+    name: 'confirm',
+    type: 'confirm',
+    message,
+  })
+  if (!res.confirm) {
+    logger.info('Cancelled')
+    return false
+  }
+  return true
 }

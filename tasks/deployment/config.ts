@@ -1,13 +1,10 @@
 import { task } from 'hardhat/config'
-import '@nomiclabs/hardhat-ethers'
 import { cliOpts } from '../../cli/defaults'
-import { readConfig, writeConfig } from '../../cli/config'
+import { updateItemValue, writeConfig } from '../../cli/config'
 import YAML from 'yaml'
 
-import { Scalar, YAMLMap } from 'yaml/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import fs from 'fs'
-import inquirer from 'inquirer'
+import { confirm } from '../../cli/helpers'
+import { NetworkContracts } from '../../cli/contracts'
 
 interface Contract {
   name: string
@@ -93,14 +90,12 @@ const generalParams: GeneralParam[] = [
 task('update-config', 'Update graph config parameters with onchain data')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
+  .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
   .setAction(async (taskArgs, hre) => {
     const networkName = hre.network.name
     const configFile = taskArgs.graphConfig
     const dryRun = taskArgs.dryRun
-
-    if (!fs.existsSync(configFile)) {
-      throw new Error(`Could not find config file: ${configFile}`)
-    }
+    const skipConfirmation = taskArgs.skipConfirmation
 
     console.log('## Update graph config ##')
     console.log(`Network: ${networkName}`)
@@ -108,29 +103,25 @@ task('update-config', 'Update graph config parameters with onchain data')
 
     // Prompt to avoid accidentally overwriting the config file with data from another network
     if (!configFile.includes(networkName)) {
-      const res = await inquirer.prompt({
-        name: 'confirm',
-        type: 'confirm',
-        default: false,
-        message: `Config file ${configFile} doesn't match 'graph.<networkName>.yml'. Are you sure you want to continue?`,
-      })
-      if (!res.confirm) {
-        return
-      }
+      const sure = await confirm(
+        `Config file ${configFile} doesn't match 'graph.<networkName>.yml'. Are you sure you want to continue?`,
+        skipConfirmation,
+      )
+      if (!sure) return
     }
 
-    const graphConfig = readConfig(configFile, true)
+    const { graphConfig, contracts } = hre.graph({ graphConfig: configFile })
 
     // general parameters
     console.log(`> General`)
     for (const param of generalParams) {
-      await updateGeneralParams(hre, param, graphConfig)
+      await updateGeneralParams(contracts, param, graphConfig)
     }
 
     // contracts parameters
     for (const contract of contractList) {
       console.log(`> ${contract.name}`)
-      await updateContractParams(hre, contract, graphConfig)
+      await updateContractParams(contracts, contract, graphConfig)
     }
 
     if (dryRun) {
@@ -142,24 +133,24 @@ task('update-config', 'Update graph config parameters with onchain data')
   })
 
 const updateGeneralParams = async (
-  hre: HardhatRuntimeEnvironment,
+  contracts: NetworkContracts,
   param: GeneralParam,
   config: YAML.Document.Parsed,
 ) => {
-  const value = await hre.contracts[param.contract][param.name]()
-  const updated = updateItem(config, `general/${param.name}`, value)
+  const value = await contracts[param.contract][param.name]()
+  const updated = updateItemValue(config, `general/${param.name}`, value)
   if (updated) {
     console.log(`\t- Updated ${param.name} to ${value}`)
   }
 }
 
 const updateContractParams = async (
-  hre: HardhatRuntimeEnvironment,
+  contracts: NetworkContracts,
   contract: Contract,
   config: YAML.Document.Parsed,
 ) => {
   for (const param of contract.initParams) {
-    let value = await hre.contracts[contract.name][param.getter ?? param.name]()
+    let value = await contracts[contract.name][param.getter ?? param.name]()
     if (param.type === 'BigNumber') {
       if (param.format === 'number') {
         value = value.toNumber()
@@ -168,42 +159,9 @@ const updateContractParams = async (
       }
     }
 
-    const updated = updateItem(config, `contracts/${contract.name}/init/${param.name}`, value)
+    const updated = updateItemValue(config, `contracts/${contract.name}/init/${param.name}`, value)
     if (updated) {
       console.log(`\t- Updated ${param.name} to ${value}`)
     }
   }
-}
-
-// YAML helper functions
-const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap => {
-  try {
-    let node: YAMLMap
-    for (const p of path) {
-      node = node === undefined ? doc.get(p) : node.get(p)
-    }
-    return node
-  } catch (error) {
-    throw new Error(`Could not find node: ${path}.`)
-  }
-}
-
-const getItem = (node: YAMLMap, key: string): Scalar => {
-  if (!node.has(key)) {
-    throw new Error(`Could not find item: ${key}.`)
-  }
-  return node.get(key, true) as Scalar
-}
-
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
-const updateItem = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
-  const splitPath = path.split('/')
-  const itemKey = splitPath.pop()
-
-  const node = getNode(doc, splitPath)
-  const item = getItem(node, itemKey)
-
-  const updated = item.value !== value
-  item.value = value
-  return updated
 }

@@ -1,4 +1,4 @@
-import { constants, utils } from 'ethers'
+import { constants, providers, utils } from 'ethers'
 import yargs, { Argv } from 'yargs'
 
 import { logger } from '../logging'
@@ -12,12 +12,13 @@ import {
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
 import { chainIdIsL2 } from '../utils'
+import { confirm } from '../helpers'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
 
 // Contracts are deployed in the order defined in this list
-let allContracts = [
+const allContracts = [
   'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
@@ -63,9 +64,15 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const force = cliArgs.force
   const contractName = cliArgs.contract
   const chainId = cli.chainId
+  const skipConfirmation = cliArgs.skipConfirmation
+
+  // Ensure action
+  const sure = await confirm('Are you sure you want to migrate contracts?', skipConfirmation)
+  if (!sure) return
 
   if (chainId == 1337) {
     allContracts = ['EthereumDIDRegistry', ...allContracts]
+    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
   } else if (chainIdIsL2(chainId)) {
     allContracts = l2Contracts
   }
@@ -158,6 +165,10 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   const spent = formatEther(cli.balance.sub(await cli.wallet.getBalance()))
   const nTx = (await cli.wallet.getTransactionCount()) - cli.nonce
   logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
+
+  if (chainId == 1337) {
+    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [false])
+  }
 }
 
 export const migrateCommand = {

@@ -1,26 +1,20 @@
-import inquirer from 'inquirer'
 import yargs, { Argv } from 'yargs'
 
 import { logger } from '../../logging'
 import { getContractAt, sendTransaction } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { confirm } from '../../helpers'
 
 export const setProxyAdmin = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const contractName = cliArgs.contract
   const adminAddress = cliArgs.admin
+  const skipConfirmation = cliArgs.skipConfirmation
 
   logger.info(`Set proxy admin for contract ${contractName} to ${adminAddress}`)
 
   // Warn about changing ownership
-  const res = await inquirer.prompt({
-    name: 'confirm',
-    type: 'confirm',
-    message: `Are you sure to set the admin to ${adminAddress}?`,
-  })
-  if (!res.confirm) {
-    logger.info('Cancelled')
-    return
-  }
+  const sure = await confirm(`Are you sure to set the admin to ${adminAddress}?`, skipConfirmation)
+  if (!sure) return
 
   // Get address book info
   const addressEntry = cli.addressBook.getEntry(contractName)
