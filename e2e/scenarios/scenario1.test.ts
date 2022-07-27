@@ -6,7 +6,7 @@ import { fixture } from './scenario1'
 describe('Scenario 1', () => {
   const {
     contracts: { GraphToken, Staking },
-    getAccounts,
+    getTestAccounts,
   } = hre.graph()
 
   let indexer1: Account
@@ -19,7 +19,7 @@ describe('Scenario 1', () => {
   let curators: Account[] = []
 
   before(async () => {
-    ;[indexer1, indexer2, curator1, curator2, curator3] = await getAccounts()
+    ;[indexer1, indexer2, curator1, curator2, curator3] = await getTestAccounts()
     indexers = [indexer1, indexer2]
     curators = [curator1, curator2, curator3]
   })

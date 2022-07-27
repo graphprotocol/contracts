@@ -29,7 +29,7 @@ export const fixture = {
 async function main() {
   const graph = hre.graph()
   const [indexer1, indexer2, subgraphOwner, curator1, curator2, curator3] =
-    await graph.getAccounts()
+    await graph.getTestAccounts()
   const deployer = await graph.getDeployer()
 
   // Airdrop some GRT
