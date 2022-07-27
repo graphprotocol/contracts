@@ -33,7 +33,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       'allocationExchangeOwner',
     ]
 
-    const getAccounts = async (): Promise<Account[]> => {
+    const getTestAccounts = async (): Promise<Account[]> => {
       const accounts = []
       const signers: Signer[] = await hre.ethers.getSigners()
 
@@ -44,29 +44,23 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       return accounts
     }
 
+    // Returns void signers. Upgrades to signer on loca networks.
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
-      const testAccounts = await getTestAccounts()
-      const namedAccounts = namedAccountList.reduce((acc, name, i) => {
-        acc[name] = chainId === '1337' ? testAccounts[i] : getNamedAccountFromConfig(name)
+      const namedAccounts = namedAccountList.reduce((acc, name) => {
+        const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
+
+        if (chainId === '1337') {
+          const signer = hre.ethers.provider.getSigner(address)
+          acc[name] = { signer, address: address }
+        } else {
+          const signer = new VoidSigner(address)
+          acc[name] = { signer, address: signer.address }
+        }
+
         return acc
       }, {} as NamedAccounts)
 
       return namedAccounts
-    }
-
-    const getNamedAccountFromConfig = (name: string): Account => {
-      const signer = new VoidSigner(
-        getItemValue(readConfig(graphConfigPath, true), `general/${name}`),
-      )
-      return { signer, address: signer.address }
-    }
-
-    const getTestAccounts = async (): Promise<Account[]> => {
-      // Skip deployer account
-      return (await hre.ethers.getSigners()).slice(1).map((s) => ({
-        signer: s,
-        address: s.address,
-      }))
     }
 
     return {
@@ -76,7 +70,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
         loadContracts(getAddressBook(addressBookPath, chainId), hre.ethers.provider),
       ),
       getNamedAccounts: lazyFunction(() => getNamedAccounts),
-      getAccounts: lazyFunction(() => getAccounts),
+      getTestAccounts: lazyFunction(() => getTestAccounts),
       getDeployer: lazyFunction(() => async () => {
         const signer = hre.ethers.provider.getSigner(0)
         return { signer, address: await signer.getAddress() }

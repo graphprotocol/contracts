@@ -3,8 +3,12 @@ import { cliOpts } from '../../cli/defaults'
 
 task('migrate:unpause', 'Unpause protocol')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .setAction(async (taskArgs, hre) => {
-    const { contracts, getNamedAccounts } = hre.graph({ addressBook: taskArgs.addressBook })
+    const { contracts, getNamedAccounts } = hre.graph({
+      addressBook: taskArgs.addressBook,
+      graphConfig: taskArgs.graphConfig,
+    })
     const { governor } = await getNamedAccounts()
 
     console.log('> Unpausing protocol')

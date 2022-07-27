@@ -25,6 +25,7 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
       pauseGuardian,
       allocationExchangeOwner,
     } = await getNamedAccounts()
+    console.log(await getNamedAccounts())
 
     console.log(`- Deployer: ${deployer.address}`)
     console.log(`- Arbitrator: ${arbitrator.address}`)
