@@ -27,7 +27,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId)),
       graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
       contracts: lazyObject(() =>
-        loadContracts(getAddressBook(addressBookPath, chainId), hre.ethers.provider),
+        loadContracts(getAddressBook(addressBookPath, chainId), chainId, hre.ethers.provider),
       ),
     }
   }
