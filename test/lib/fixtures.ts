@@ -75,6 +75,7 @@ export class NetworkFixture {
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await grt.connect(deployer).addMinter(rewardsManager.address)
     await gns.connect(deployer).approveAll()
+    await rewardsManager.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
@@ -95,6 +96,7 @@ export class NetworkFixture {
 
   async setUp(): Promise<void> {
     this.lastSnapshotId = await evmSnapshot()
+    provider().send('evm_setAutomine', [true])
   }
 
   async tearDown(): Promise<void> {

@@ -226,7 +226,7 @@ export async function deployRewardsManager(
   return network.deployContractWithProxy(
     proxyAdmin,
     'RewardsManager',
-    [controller, defaults.rewards.issuanceRate],
+    [controller],
     deployer,
   ) as unknown as RewardsManager
 }
