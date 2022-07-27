@@ -24,46 +24,46 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       throw new Error(`Graph config not found: ${graphConfigPath}`)
     }
 
+    const namedAccountList = [
+      'arbitrator',
+      'governor',
+      'authority',
+      'availabilityOracle',
+      'pauseGuardian',
+      'allocationExchangeOwner',
+    ]
+
     const getAccounts = async (): Promise<Account[]> => {
       const accounts = []
       const signers: Signer[] = await hre.ethers.getSigners()
 
-      for (const signer of signers) {
-        accounts.push({ signer, address: await signer.getAddress() })
+      // Skip deployer and named accounts
+      for (let i = namedAccountList.length + 1; i < signers.length; i++) {
+        accounts.push({ signer: signers[i], address: await signers[i].getAddress() })
       }
       return accounts
     }
 
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
-      const names = [
-        'arbitrator',
-        'governor',
-        'authority',
-        'availabilityOracle',
-        'pauseGuardian',
-        'allocationExchangeOwner',
-      ]
-
       const testAccounts = await getTestAccounts()
-      const namedAccounts = names.reduce((acc, name, i) => {
-        acc[name] = chainId === '1337' ? testAccounts[i] : getNamedAccount(name)
+      const namedAccounts = namedAccountList.reduce((acc, name, i) => {
+        acc[name] = chainId === '1337' ? testAccounts[i] : getNamedAccountFromConfig(name)
         return acc
       }, {} as NamedAccounts)
 
       return namedAccounts
     }
 
-    const getNamedAccount = (name: string): Account => {
+    const getNamedAccountFromConfig = (name: string): Account => {
       const signer = new VoidSigner(
         getItemValue(readConfig(graphConfigPath, true), `general/${name}`),
       )
       return { signer, address: signer.address }
     }
 
-    // Get accounts from the tail end of the signers list
-    // This is to prevent named accounts them from collisioning with test accounts
     const getTestAccounts = async (): Promise<Account[]> => {
-      return (await hre.ethers.getSigners()).reverse().map((s) => ({
+      // Skip deployer account
+      return (await hre.ethers.getSigners()).slice(1).map((s) => ({
         signer: s,
         address: s.address,
       }))
@@ -78,7 +78,8 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       getNamedAccounts: lazyFunction(() => getNamedAccounts),
       getAccounts: lazyFunction(() => getAccounts),
       getDeployer: lazyFunction(() => async () => {
-        return (await getAccounts())[0]
+        const signer = hre.ethers.provider.getSigner(0)
+        return { signer, address: await signer.getAddress() }
       }),
     }
   }
