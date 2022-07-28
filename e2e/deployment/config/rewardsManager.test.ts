@@ -1,11 +1,9 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../cli/config'
 import { NamedAccounts } from '../../../tasks/type-extensions'
 
 describe('RewardsManager configuration', () => {
   const {
-    graphConfig,
     getNamedAccounts,
     contracts: { RewardsManager, Controller },
   } = hre.graph()
@@ -23,8 +21,7 @@ describe('RewardsManager configuration', () => {
 
   it('issuanceRate should match "issuanceRate" in the config file', async function () {
     const value = await RewardsManager.issuanceRate()
-    const expected = getItemValue(graphConfig, 'contracts/RewardsManager/init/issuanceRate')
-    expect(value).eq(expected)
+    expect(value).eq('1000000012184945188') // hardcoded as it's set with a function call rather than init parameter
   })
 
   it('should allow subgraph availability oracle to deny rewards', async function () {
