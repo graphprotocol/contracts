@@ -1,5 +1,5 @@
 {
-  "source": "https://github.com/OffchainLabs/arbitrum/tree/f54baf10871ee86aedca4880796342ef9bd0b0ab/packages/",
+  "source": "https://developer.offchainlabs.com/docs/useful_addresses",
   "1": {
     "L1GatewayRouter": {
       "address": "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef"
@@ -18,10 +18,10 @@
   },
   "5": {
     "L1GatewayRouter": {
-      "address": "0x8BDFa67ace22cE2BFb2fFebe72f0c91CDA694d4b"
+      "address": "0x4c7708168395aEa569453Fc36862D2ffcDaC588c"
     },
     "IInbox": {
-      "address": "0x1FdBBcC914e84aF593884bf8e8Dd6877c29035A2"
+      "address": "0x6BEbC4925716945D46F0Ec336D5C2564F419682C"
     }
   },
   "42161": {
@@ -34,9 +34,9 @@
       "address": "0x9413AD42910c1eA60c737dB5f58d1C504498a3cD"
     }
   },
-  "421612": {
+  "421613": {
     "L2GatewayRouter": {
-      "address": "0xC502Ded1EE1d616B43F7f20Ebde83Be1A275ca3c"
+      "address": "0xE5B9d8d42d656d1DcB8065A6c012FE3780246041"
     }
   }
 }

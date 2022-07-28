@@ -9,7 +9,7 @@ import {
   L1ToL2MessageWriter,
   L1ToL2MessageGasEstimator,
 } from '@arbitrum/sdk'
-import { chainIdIsL2, createNitroNetwork } from '../../utils'
+import { chainIdIsL2 } from '../../utils'
 
 const logAutoRedeemReason = (autoRedeemRec) => {
   if (autoRedeemRec == null) {
@@ -43,7 +43,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info(`>>> Sending tokens to L2 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  createNitroNetwork(cliArgs.providerUrl)
+
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -117,7 +117,7 @@ export const redeemSendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
   logger.info(`>>> Redeeming pending tokens on L2 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  createNitroNetwork(cliArgs.providerUrl)
+
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',

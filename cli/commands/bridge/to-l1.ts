@@ -2,7 +2,7 @@ import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getAddressBook } from '../../address-book'
 import { getProvider, sendTransaction, toGRT } from '../../network'
-import { chainIdIsL2, createNitroNetwork } from '../../utils'
+import { chainIdIsL2 } from '../../utils'
 import { loadAddressBookContract } from '../../contracts'
 import {
   L2TransactionReceipt,
@@ -67,7 +67,7 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   logger.info(`>>> Sending tokens to L1 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  createNitroNetwork(cliArgs.providerUrl)
+
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -120,7 +120,7 @@ export const finishSendToL1 = async (
   logger.info(`>>> Finishing transaction sending tokens to L1 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  createNitroNetwork(cliArgs.providerUrl)
+
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',

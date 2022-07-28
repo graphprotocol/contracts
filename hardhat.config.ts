@@ -63,9 +63,9 @@ const networkConfigs: NetworkConfig[] = [
   { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
   { network: 'arbitrum-one', chainId: 42161, url: 'https://arb1.arbitrum.io/rpc' },
   {
-    network: 'arbitrum-nitro-devnet',
-    chainId: 421612,
-    url: 'https://nitro-devnet.arbitrum.io/rpc',
+    network: 'arbitrum-goerli',
+    chainId: 421613,
+    url: 'https://goerli-rollup.arbitrum.io/rpc',
   },
 ]
 
