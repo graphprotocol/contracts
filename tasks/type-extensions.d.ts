@@ -1,4 +1,4 @@
-import { Signer } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { AddressBook } from '../cli/address-book'
 import { NetworkContracts } from '../cli/contracts'
 
@@ -7,18 +7,13 @@ export interface GREOptions {
   graphConfig?: string
 }
 
-export interface Account {
-  readonly signer: Signer
-  readonly address: string
-}
-
 export interface NamedAccounts {
-  arbitrator: Account
-  governor: Account
-  authority: Account
-  availabilityOracle: Account
-  pauseGuardian: Account
-  allocationExchangeOwner: Account
+  arbitrator: SignerWithAddress
+  governor: SignerWithAddress
+  authority: SignerWithAddress
+  availabilityOracle: SignerWithAddress
+  pauseGuardian: SignerWithAddress
+  allocationExchangeOwner: SignerWithAddress
 }
 
 declare module 'hardhat/types/runtime' {
@@ -28,8 +23,8 @@ declare module 'hardhat/types/runtime' {
       graphConfig: any
       addressBook: AddressBook
       getNamedAccounts: () => Promise<NamedAccounts>
-      getTestAccounts: () => Promise<Account[]>
-      getDeployer: () => Promise<Account>
+      getTestAccounts: () => Promise<SignerWithAddress[]>
+      getDeployer: () => Promise<SignerWithAddress>
     }
   }
 }

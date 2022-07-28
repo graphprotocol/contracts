@@ -5,9 +5,9 @@ import { lazyFunction, lazyObject } from 'hardhat/plugins'
 import { getAddressBook } from '../cli/address-book'
 import { loadContracts } from '../cli/contracts'
 import { getItemValue, readConfig } from '../cli/config'
-import { Account, GREOptions, NamedAccounts } from './type-extensions'
+import { GREOptions, NamedAccounts } from './type-extensions'
 import fs from 'fs'
-import { Signer } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
@@ -33,45 +33,38 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       'allocationExchangeOwner',
     ]
 
-    const getTestAccounts = async (): Promise<Account[]> => {
+    const getTestAccounts = async (): Promise<SignerWithAddress[]> => {
       // Get list of privileged accounts we don't want as test accounts
       const namedAccounts = await getNamedAccounts()
       const blacklist = namedAccountList.map((a) => {
-        const account = namedAccounts[a] as Account
+        const account = namedAccounts[a] as SignerWithAddress
         return account.address
       })
       blacklist.push((await getDeployer()).address)
 
-      // Get signers from provider and filter out blacklisted accounts
-      let signers: Signer[] = await hre.ethers.getSigners()
+      // Get signers and filter out blacklisted accounts
+      let signers: SignerWithAddress[] = await hre.ethers.getSigners()
       signers = signers.filter(async (s) => {
-        const address = await s.getAddress()
-        return !blacklist.includes(address)
+        return !blacklist.includes(s.address)
       })
 
-      // Build accounts
-      const accounts = []
-      for (const signer of signers) {
-        accounts.push({ signer: signer, address: await signer.getAddress() })
-      }
-
-      return accounts
+      return signers
     }
 
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
-      const namedAccounts = namedAccountList.reduce((acc, name) => {
+      const namedAccounts = namedAccountList.reduce(async (accP, name) => {
+        const acc = await accP
         const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-        const signer = hre.ethers.provider.getSigner(address)
-        acc[name] = { signer, address: address }
+        acc[name] = await hre.ethers.getSigner(address)
         return acc
-      }, {} as NamedAccounts)
+      }, Promise.resolve({} as NamedAccounts))
 
       return namedAccounts
     }
 
     const getDeployer = async () => {
       const signer = hre.ethers.provider.getSigner(0)
-      return { signer, address: await signer.getAddress() }
+      return hre.ethers.getSigner(await signer.getAddress())
     }
 
     return {
