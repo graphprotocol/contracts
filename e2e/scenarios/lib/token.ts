@@ -6,7 +6,7 @@ export const airdrop = async (
   sender: Signer,
   beneficiaries: string[],
   amount: BigNumberish,
-): Promise<void> => {
+): Promise<ContractReceipt[]> => {
   const { GraphToken } = contracts
 
   const txs: Promise<ContractReceipt>[] = []
@@ -15,5 +15,5 @@ export const airdrop = async (
     const tx = await GraphToken.connect(sender).transfer(beneficiary, amount)
     txs.push(tx.wait())
   }
-  await Promise.all(txs)
+  return Promise.all(txs)
 }

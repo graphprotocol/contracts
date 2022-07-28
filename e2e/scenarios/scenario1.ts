@@ -33,9 +33,10 @@ async function main() {
   const deployer = await graph.getDeployer()
 
   // Airdrop some GRT
-  airdrop(
+  console.log('- Sending GRT to indexers, curators and subgraph owner...')
+  await airdrop(
     graph.contracts,
-    deployer.signer,
+    deployer,
     [
       indexer1.address,
       indexer2.address,
@@ -48,21 +49,27 @@ async function main() {
   )
 
   // Two indexers with stake
-  await stake(graph.contracts, indexer1.signer, fixture.indexer1.stake)
-  await stake(graph.contracts, indexer2.signer, fixture.indexer2.stake)
+  console.log('- Staking tokens...')
+  await stake(graph.contracts, indexer1, fixture.indexer1.stake)
+  await stake(graph.contracts, indexer2, fixture.indexer2.stake)
+  console.log('done')
 
   // Four subgraphs
+  // console.log('- Publishing subgraphs...')
   // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[0])
   // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[1])
   // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[2])
 
   // Signal subgraphs
+  // console.log('- Signaling subgraphs...')
   // await signal(graph.contracts, curator1.signer, fixture.subgraphs[0], toGRT(1_000_000))
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
-  console.error(error)
-  process.exitCode = 1
-})
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })

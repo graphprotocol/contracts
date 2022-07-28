@@ -1,6 +1,6 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { Account } from '../../tasks/type-extensions'
 import { fixture } from './scenario1'
 
 describe('Scenario 1', () => {
@@ -9,14 +9,14 @@ describe('Scenario 1', () => {
     getTestAccounts,
   } = hre.graph()
 
-  let indexer1: Account
-  let indexer2: Account
-  let curator1: Account
-  let curator2: Account
-  let curator3: Account
+  let indexer1: SignerWithAddress
+  let indexer2: SignerWithAddress
+  let curator1: SignerWithAddress
+  let curator2: SignerWithAddress
+  let curator3: SignerWithAddress
 
-  let indexers: Account[] = []
-  let curators: Account[] = []
+  let indexers: SignerWithAddress[] = []
+  let curators: SignerWithAddress[] = []
 
   before(async () => {
     ;[indexer1, indexer2, curator1, curator2, curator3] = await getTestAccounts()
