@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-describe('Protocol', () => {
+describe('Protocol configuration', () => {
   const { contracts } = hre.graph()
 
   it('should be unpaused', async function () {

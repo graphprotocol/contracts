@@ -19,12 +19,12 @@ npx hardhat migrate:accounts --network localhost --graph-config config/graph.loc
 npx hardhat migrate --network localhost --skip-confirmation --graph-config config/graph.localhost.yml
 
 # Post deploy actions
-npx hardhat migrate:ownership --network localhost
-npx hardhat migrate:unpause --network localhost
+npx hardhat migrate:ownership --network localhost --graph-config config/graph.localhost.yml
+npx hardhat migrate:unpause --network localhost --graph-config config/graph.localhost.yml
 
 ### Test
 # Run tests using the localhost evm instance and the localhost graph config
-GRAPH_CONFIG='config/graph.localhost.yml' npx hardhat test e2e/**/*.ts --network localhost
+npx hardhat e2e --network localhost --graph-config config/graph.localhost.yml
 
 
 ### Cleanup

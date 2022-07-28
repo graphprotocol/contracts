@@ -10,19 +10,22 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
       throw new Error('This task can only be run on localhost network')
     }
 
-    const { graphConfig } = hre.graph({ graphConfig: taskArgs.graphConfig })
+    const { graphConfig, getNamedAccounts, getDeployer } = hre.graph({
+      graphConfig: taskArgs.graphConfig,
+    })
 
     console.log('> Generating addresses')
 
-    const [
-      deployer,
+    const deployer = await getDeployer()
+    const {
       arbitrator,
       governor,
       authority,
       availabilityOracle,
       pauseGuardian,
       allocationExchangeOwner,
-    ] = await hre.ethers.getSigners()
+    } = await getNamedAccounts()
+    console.log(await getNamedAccounts())
 
     console.log(`- Deployer: ${deployer.address}`)
     console.log(`- Arbitrator: ${arbitrator.address}`)

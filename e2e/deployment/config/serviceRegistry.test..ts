@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-describe('ServiceRegistry deployment', () => {
+describe('ServiceRegistry configuration', () => {
   const {
     contracts: { ServiceRegistry, Controller },
   } = hre.graph()
