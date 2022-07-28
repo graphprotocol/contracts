@@ -52,11 +52,11 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     }
 
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
-      const namedAccounts = namedAccountList.reduce(async (accP, name) => {
-        const acc = await accP
+      const namedAccounts = namedAccountList.reduce(async (accountsPromise, name) => {
+        const accounts = await accountsPromise
         const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-        acc[name] = await hre.ethers.getSigner(address)
-        return acc
+        accounts[name] = await hre.ethers.getSigner(address)
+        return accounts
       }, Promise.resolve({} as NamedAccounts))
 
       return namedAccounts
