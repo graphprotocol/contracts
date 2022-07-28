@@ -12,7 +12,7 @@ task('migrate:unpause', 'Unpause protocol')
     const { governor } = await getNamedAccounts()
 
     console.log('> Unpausing protocol')
-    const tx = await contracts.Controller.connect(governor.signer).setPaused(false)
+    const tx = await contracts.Controller.connect(governor).setPaused(false)
     await tx.wait()
     console.log('Done!')
   })
