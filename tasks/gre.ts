@@ -44,7 +44,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
       // Get signers and filter out blacklisted accounts
       let signers: SignerWithAddress[] = await hre.ethers.getSigners()
-      signers = signers.filter(async (s) => {
+      signers = signers.filter((s) => {
         return !blacklist.includes(s.address)
       })
 
