@@ -55,14 +55,14 @@ async function main() {
   console.log('done')
 
   // Four subgraphs
-  // console.log('- Publishing subgraphs...')
-  // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[0])
-  // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[1])
-  // await publishNewSubgraph(graph.contracts, subgraphOwner.signer, fixture.subgraphs[2])
+  console.log('- Publishing subgraphs...')
+  await publishNewSubgraph(graph.contracts, subgraphOwner, fixture.subgraphs[0])
+  await publishNewSubgraph(graph.contracts, subgraphOwner, fixture.subgraphs[1])
+  await publishNewSubgraph(graph.contracts, subgraphOwner, fixture.subgraphs[2])
 
   // Signal subgraphs
-  // console.log('- Signaling subgraphs...')
-  // await signal(graph.contracts, curator1.signer, fixture.subgraphs[0], toGRT(1_000_000))
+  console.log('- Signaling subgraphs...')
+  await signal(graph.contracts, curator1, fixture.subgraphs[0], toGRT(1_000_000))
 }
 
 // We recommend this pattern to be able to use async/await everywhere
