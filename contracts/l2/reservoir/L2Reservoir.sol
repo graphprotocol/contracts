@@ -11,7 +11,12 @@ import "../../reservoir/Reservoir.sol";
 import "./IL2Reservoir.sol";
 import "./L2ReservoirStorage.sol";
 
-interface IArbTxWithRedeemer {
+/**
+ * @dev ArbRetryableTx with additional interface to query the current redeemer.
+ * This is being added by the Arbitrum team but hasn't made it into the arbos-precompiles
+ * package yet.
+ */
+interface IArbTxWithRedeemer is ArbRetryableTx {
     /**
      * @notice Gets the redeemer of the current retryable redeem attempt.
      * Returns the zero address if the current transaction is not a retryable redeem attempt.
