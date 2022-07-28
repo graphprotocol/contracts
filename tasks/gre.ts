@@ -7,7 +7,7 @@ import { loadContracts } from '../cli/contracts'
 import { getItemValue, readConfig } from '../cli/config'
 import { Account, GREOptions, NamedAccounts } from './type-extensions'
 import fs from 'fs'
-import { Signer, VoidSigner } from 'ethers'
+import { Signer } from 'ethers'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
@@ -34,33 +34,44 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     ]
 
     const getTestAccounts = async (): Promise<Account[]> => {
-      const accounts = []
-      const signers: Signer[] = await hre.ethers.getSigners()
+      // Get list of privileged accounts we don't want as test accounts
+      const namedAccounts = await getNamedAccounts()
+      const blacklist = namedAccountList.map((a) => {
+        const account = namedAccounts[a] as Account
+        return account.address
+      })
+      blacklist.push((await getDeployer()).address)
 
-      // Skip deployer and named accounts
-      for (let i = namedAccountList.length + 1; i < signers.length; i++) {
-        accounts.push({ signer: signers[i], address: await signers[i].getAddress() })
+      // Get signers from provider and filter out blacklisted accounts
+      let signers: Signer[] = await hre.ethers.getSigners()
+      signers = signers.filter(async (s) => {
+        const address = await s.getAddress()
+        return !blacklist.includes(address)
+      })
+
+      // Build accounts
+      const accounts = []
+      for (const signer of signers) {
+        accounts.push({ signer: signer, address: await signer.getAddress() })
       }
+
       return accounts
     }
 
-    // Returns void signers. Upgrades to signer on loca networks.
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
       const namedAccounts = namedAccountList.reduce((acc, name) => {
         const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-
-        if (chainId === '1337') {
-          const signer = hre.ethers.provider.getSigner(address)
-          acc[name] = { signer, address: address }
-        } else {
-          const signer = new VoidSigner(address)
-          acc[name] = { signer, address: signer.address }
-        }
-
+        const signer = hre.ethers.provider.getSigner(address)
+        acc[name] = { signer, address: address }
         return acc
       }, {} as NamedAccounts)
 
       return namedAccounts
+    }
+
+    const getDeployer = async () => {
+      const signer = hre.ethers.provider.getSigner(0)
+      return { signer, address: await signer.getAddress() }
     }
 
     return {
@@ -71,10 +82,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       ),
       getNamedAccounts: lazyFunction(() => getNamedAccounts),
       getTestAccounts: lazyFunction(() => getTestAccounts),
-      getDeployer: lazyFunction(() => async () => {
-        const signer = hre.ethers.provider.getSigner(0)
-        return { signer, address: await signer.getAddress() }
-      }),
+      getDeployer: lazyFunction(() => getDeployer),
     }
   }
 })
