@@ -25,12 +25,7 @@ task('migrate:accounts', '[localhost] Creates protocol accounts and saves them i
       availabilityOracle,
       pauseGuardian,
       allocationExchangeOwner,
-<<<<<<< HEAD
     ] = await hre.ethers.getSigners()
-=======
-    } = await getNamedAccounts()
-    console.log(await getNamedAccounts())
->>>>>>> 6e68b48 (feat: replace getAccounts with getTestAccounts)
 
     console.log(`- Deployer: ${deployer.address}`)
     console.log(`- Arbitrator: ${arbitrator.address}`)
