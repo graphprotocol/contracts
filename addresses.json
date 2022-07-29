@@ -808,6 +808,12 @@
       "creationCodeHash": "0x97714e1a80674ab0af90a10f2c7156cc92794ef81565fe9c7c35ecbe0025cc08",
       "runtimeCodeHash": "0x5c20792fefe71126668be8ab19ab26cdb8ab9a6f73efbfa1d90f91e26459fa67",
       "txHash": "0x87b35e5289792800832902206cf0ee4b9900e4d38089bd6634d10ea78729bf54"
+    },
+    "IENS": {
+      "address": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+    },
+    "IEthereumDIDRegistry": {
+      "address": "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"
     }
   },
   "1337": {

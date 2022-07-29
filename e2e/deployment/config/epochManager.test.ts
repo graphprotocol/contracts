@@ -1,8 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { getItemValue } from '../../../cli/config'
 
-describe('EpochManager deployment', () => {
+describe('EpochManager configuration', () => {
   const {
     graphConfig,
     contracts: { EpochManager, Controller },
