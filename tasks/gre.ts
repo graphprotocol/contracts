@@ -51,7 +51,6 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       return signers
     }
 
-    // Returns void signers. Upgrades to signer on loca networks.
     const getNamedAccounts = async (): Promise<NamedAccounts> => {
       const namedAccounts = namedAccountList.reduce(async (accountsPromise, name) => {
         const accounts = await accountsPromise
