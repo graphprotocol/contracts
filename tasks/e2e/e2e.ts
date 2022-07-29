@@ -70,6 +70,7 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addFlag('skipScript', "Don't run scenario script")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphEnvVars(args)
 
@@ -78,13 +79,15 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
     const script = `e2e/scenarios/${args.scenario}.ts`
     const test = `e2e/scenarios/${args.scenario}.test.ts`
 
-    if (fs.existsSync(script)) {
-      await hre.run(TASK_RUN, {
-        script: script,
-        noCompile: true,
-      })
-    } else {
-      console.log(`No script found for scenario ${args.scenario}`)
+    if (!args.skipScript) {
+      if (fs.existsSync(script)) {
+        await hre.run(TASK_RUN, {
+          script: script,
+          noCompile: true,
+        })
+      } else {
+        console.log(`No script found for scenario ${args.scenario}`)
+      }
     }
 
     if (fs.existsSync(test)) {
