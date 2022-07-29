@@ -135,4 +135,3 @@ contracts:
       dripInterval: 50400
     calls:
       - fn: "approveRewardsManager"
-      - fn: "initialSnapshot"
