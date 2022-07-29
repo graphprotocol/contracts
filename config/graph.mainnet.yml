@@ -36,6 +36,14 @@ contracts:
       - fn: "setContractProxy"
         id: "0x96ba401694892957e25e29c7a1e4171ae9945b5ee36339de79b199a530436e9e" # keccak256('Reservoir')
         contractAddress: "${{L1Reservoir.address}}"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
+      - fn: "transferOwnership"
+        owner: *governor
+  GraphProxyAdmin:
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
   ServiceRegistry:
     proxy: true
     init:
@@ -51,6 +59,9 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{L1Reservoir.address}}"
+      - fn: "renounceMinter"
+      - fn: "transferOwnership"
+        owner: *governor
   Curation:
     proxy: true
     init:
@@ -85,6 +96,8 @@ contracts:
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
       - fn: "setMinter"
         minter: "${{GNS.address}}"
+      - fn: "transferOwnership"
+        owner: *governor
   Staking:
     proxy: true
     init:
@@ -112,11 +125,14 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "setSubgraphAvailabilityOracle"
+        subgraphAvailabilityOracle: *availabilityOracle
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      governor: *governor
+      governor: *allocationExchangeOwner
       authority: *authority
     calls:
       - fn: "approveAll"
