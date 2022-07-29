@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Run CI tests
 
 on:
   push:
@@ -11,18 +11,16 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install packages
         run: yarn install --non-interactive --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
       - name: Run tests
         run: yarn test:coverage
       - name: Upload coverage report
