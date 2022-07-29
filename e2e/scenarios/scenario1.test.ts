@@ -56,17 +56,17 @@ describe('Scenario 1', () => {
     })
   })
 
-  describe('Subgraphs', () => {
-    for (const subgraphDeploymentId of fixture.subgraphs) {
-      it(`${subgraphDeploymentId} is published`, async function () {
-        const seqID = await GNS.nextAccountSeqID(subgraphOwner.address)
-        const subgraphId = solidityKeccak256(['address', 'uint256'], [subgraphOwner.address, seqID])
+  // describe('Subgraphs', () => {
+  //   for (const subgraphDeploymentId of fixture.subgraphs) {
+  //     it(`${subgraphDeploymentId} is published`, async function () {
+  //       const seqID = await GNS.nextAccountSeqID(subgraphOwner.address)
+  //       const subgraphId = solidityKeccak256(['address', 'uint256'], [subgraphOwner.address, seqID])
 
-        await GNS.subgraphs(subgraphDeploymentId)
+  //       await GNS.subgraphs(subgraphDeploymentId)
 
-        const isPublished = await GNS.isPublished(subgraphId)
-        expect(isPublished).eq(true)
-      })
-    }
-  })
+  //       const isPublished = await GNS.isPublished(subgraphId)
+  //       expect(isPublished).eq(true)
+  //     })
+  //   }
+  // })
 })
