@@ -1,13 +1,18 @@
-import hre from 'hardhat'
-import { Staking } from '../../../build/types/Staking'
+import { BigNumberish, Signer } from 'ethers'
+import { NetworkContracts } from '../../../cli/contracts'
 
-export const stake = async (amountWei: string): Promise<void> => {
-  const graph = hre.graph()
+export const stake = async (
+  contracts: NetworkContracts,
+  indexer: Signer,
+  amount: BigNumberish,
+): Promise<void> => {
+  const { GraphToken, Staking } = contracts
 
   // Approve
-  const stakeAmountWei = hre.ethers.utils.parseEther(amountWei).toString()
-  await graph.contracts.GraphToken.approve(graph.contracts.Staking.address, stakeAmountWei)
+  const txApprove = await GraphToken.connect(indexer).approve(Staking.address, amount)
+  await txApprove.wait()
 
   // Stake
-  await graph.contracts.Staking.stake(stakeAmountWei)
+  const txStake = await Staking.connect(indexer).stake(amount)
+  await txStake.wait()
 }
