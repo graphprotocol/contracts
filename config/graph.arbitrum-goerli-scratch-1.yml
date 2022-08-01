@@ -1,10 +1,10 @@
 general:
-  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council (TODO: update)
-  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council (TODO: update)
-  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers (TODO: update)
-  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle (TODO: update)
-  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian (TODO: update)
-  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner (TODO: update)
+  arbitrator: &arbitrator "0xed42A803C9f0bAE74bF0E63f36FF0Ae7FF38beF7" # Arbitration Council (TODO: update)
+  governor: &governor "0xf6De21Ce446B47d7599BC6554Eaa9EDF05Dfe731" # Graph Council (TODO: update)
+  authority: &authority "0xDfaf2F953899c3Fae4aa4979727fd9F441E006b2" # Authority that signs payment vouchers (TODO: update)
+  availabilityOracle: &availabilityOracle "0xC241E5A6e35432bf340B9853F025D90031a9E8ef" # Subgraph Availability Oracle (TODO: update)
+  pauseGuardian: &pauseGuardian "0x5753d3c0c08C2Cee7be69eBbd058299faB0ea966" # Protocol pause guardian (TODO: update)
+  allocationExchangeOwner: &allocationExchangeOwner "0x91cEc32a6975265cF96A43f4209F39274cBEc088" # Allocation Exchange owner (TODO: update)
 
 contracts:
   Controller:
