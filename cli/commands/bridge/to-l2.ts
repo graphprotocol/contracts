@@ -1,7 +1,7 @@
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getProvider, sendTransaction, toGRT } from '../../network'
-import { utils } from 'ethers'
+import { BigNumber, utils } from 'ethers'
 import { parseEther } from '@ethersproject/units'
 import {
   L1TransactionReceipt,
@@ -32,7 +32,12 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
     logAutoRedeemReason(autoRedeemRec)
     logger.info('Attempting to redeem...')
     await l1ToL2Message.redeem()
-    l2TxHash = (await l1ToL2Message.getSuccessfulRedeem()).transactionHash
+    const redeemAttempt = await l1ToL2Message.getSuccessfulRedeem()
+    if (redeemAttempt.status == L1ToL2MessageStatus.REDEEMED) {
+      l2TxHash = redeemAttempt.l2TxReceipt ? redeemAttempt.l2TxReceipt.transactionHash : 'null'
+    } else {
+      throw new Error(`Unexpected L1ToL2MessageStatus after redeem attempt: ${res.status}`)
+    }
   } else if (res.status != L1ToL2MessageStatus.REDEEMED) {
     throw new Error(`Unexpected L1ToL2MessageStatus ${res.status}`)
   }
@@ -72,18 +77,19 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info('Estimating retryable ticket gas:')
   const baseFee = (await cli.wallet.provider.getBlock('latest')).baseFeePerGas
   const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
-  const gasParams = await gasEstimator.estimateMessage(
+  const gasParams = await gasEstimator.estimateAll(
     gateway.address,
     l2Dest,
     depositCalldata,
     parseEther('0'),
-    baseFee,
+    baseFee as BigNumber,
     gateway.address,
     gateway.address,
+    cli.wallet.provider,
   )
-  const maxGas = gasParams.maxGasBid
-  const gasPriceBid = gasParams.maxGasPriceBid
-  const maxSubmissionPrice = gasParams.maxSubmissionPriceBid
+  const maxGas = gasParams.gasLimit
+  const gasPriceBid = gasParams.maxFeePerGas
+  const maxSubmissionPrice = gasParams.maxSubmissionFee
   logger.info(
     `Using max gas: ${maxGas}, gas price bid: ${gasPriceBid}, max submission price: ${maxSubmissionPrice}`,
   )
@@ -100,7 +106,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     value: ethValue,
   })
   const l1Receipt = new L1TransactionReceipt(receipt)
-  const l1ToL2Message = await l1Receipt.getL1ToL2Message(cli.wallet.connect(l2Provider))
+  const l1ToL2Message = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))[0]
 
   logger.info('Waiting for message to propagate to L2...')
   try {
