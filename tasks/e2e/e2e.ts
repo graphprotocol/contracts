@@ -6,8 +6,8 @@ import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
 import path from 'path'
 
-const CONFIG_TESTS = 'e2e/deployment/config/*.test.ts'
-const INIT_TESTS = 'e2e/deployment/init/*.test.ts'
+const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
+const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
 const SCENARIOS = 'e2e/scenarios/*[!.test].ts'
 
 // Built-in test & run tasks don't support our arguments

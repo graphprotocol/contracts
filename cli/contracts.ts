@@ -27,6 +27,7 @@ import { SubgraphNFT } from '../build/types/SubgraphNFT'
 import { GraphCurationToken } from '../build/types/GraphCurationToken'
 import { SubgraphNFTDescriptor } from '../build/types/SubgraphNFTDescriptor'
 import { L1Reservoir } from '../build/types/L1Reservoir'
+import { L2Reservoir } from '../build/types/L2Reservoir'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -43,14 +44,15 @@ export interface NetworkContracts {
   IENS: IENS
   GraphGovernance: GraphGovernance
   AllocationExchange: AllocationExchange
+  SubgraphNFT: SubgraphNFT
+  SubgraphNFTDescriptor: SubgraphNFTDescriptor
+  GraphCurationToken: GraphCurationToken
   L1GraphTokenGateway: L1GraphTokenGateway
   L1Reservoir: L1Reservoir
   BridgeEscrow: BridgeEscrow
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway
-  SubgraphNFT: SubgraphNFT
-  SubgraphNFTDescriptor: SubgraphNFTDescriptor
-  GraphCurationToken: GraphCurationToken
+  L2Reservoir: L2Reservoir
 }
 
 export const loadAddressBookContract = (
