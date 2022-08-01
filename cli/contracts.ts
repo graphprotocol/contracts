@@ -26,6 +26,7 @@ import { chainIdIsL2 } from './utils'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
 import { GraphCurationToken } from '../build/types/GraphCurationToken'
 import { SubgraphNFTDescriptor } from '../build/types/SubgraphNFTDescriptor'
+import { L1Reservoir } from '../build/types/L1Reservoir'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -43,6 +44,7 @@ export interface NetworkContracts {
   GraphGovernance: GraphGovernance
   AllocationExchange: AllocationExchange
   L1GraphTokenGateway: L1GraphTokenGateway
+  L1Reservoir: L1Reservoir
   BridgeEscrow: BridgeEscrow
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway

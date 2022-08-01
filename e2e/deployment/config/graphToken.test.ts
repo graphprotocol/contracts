@@ -5,7 +5,7 @@ import { NamedAccounts } from '../../../tasks/type-extensions'
 describe('GraphToken configuration', () => {
   const {
     getNamedAccounts,
-    contracts: { GraphToken, RewardsManager },
+    contracts: { GraphToken, RewardsManager, L1Reservoir },
     getDeployer,
   } = hre.graph()
 
@@ -26,8 +26,13 @@ describe('GraphToken configuration', () => {
     hre.network.config.chainId === 1337 ? this.skip() : expect(deployerIsMinter).eq(false)
   })
 
-  it('RewardsManager should be minter', async function () {
+  it('RewardsManager should not be a minter', async function () {
     const deployerIsMinter = await GraphToken.isMinter(RewardsManager.address)
+    expect(deployerIsMinter).eq(false)
+  })
+
+  it('L1Reservoir should be a minter', async function () {
+    const deployerIsMinter = await GraphToken.isMinter(L1Reservoir.address)
     expect(deployerIsMinter).eq(true)
   })
 })
