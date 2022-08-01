@@ -6,10 +6,6 @@ import { updateItemValue, writeConfig } from '../../cli/config'
 task('migrate:accounts', '[localhost] Creates protocol accounts and saves them in graph config')
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .setAction(async (taskArgs, hre) => {
-    if (hre.network.name !== 'localhost') {
-      throw new Error('This task can only be run on localhost network')
-    }
-
     const { graphConfig, getDeployer } = hre.graph({
       graphConfig: taskArgs.graphConfig,
     })
