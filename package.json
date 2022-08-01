@@ -85,7 +85,7 @@
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
-    "deploy": "yarn build && scripts/predeploy && hardhat migrate",
+    "deploy": "yarn build && yarn predeploy && hardhat migrate",
     "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
     "deploy-rinkeby": "yarn deploy --force --network rinkeby --graph-config config/graph.rinkeby.yml",
     "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",

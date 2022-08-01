@@ -9,10 +9,6 @@ task(
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .setAction(async (taskArgs, hre) => {
-    if (hre.network.name !== 'localhost') {
-      throw new Error('This task can only be run on localhost network')
-    }
-
     const { contracts, getNamedAccounts } = hre.graph({
       addressBook: taskArgs.addressBook,
       graphConfig: taskArgs.graphConfig,
