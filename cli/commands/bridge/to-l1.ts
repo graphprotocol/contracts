@@ -4,12 +4,7 @@ import { getAddressBook } from '../../address-book'
 import { getProvider, sendTransaction, toGRT } from '../../network'
 import { chainIdIsL2 } from '../../utils'
 import { loadAddressBookContract } from '../../contracts'
-import {
-  L2TransactionReceipt,
-  getL2Network,
-  L2ToL1MessageStatus,
-  L2ToL1MessageWriter,
-} from '@arbitrum/sdk'
+import { L2TransactionReceipt, L2ToL1MessageStatus, L2ToL1MessageWriter } from '@arbitrum/sdk'
 import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
@@ -99,9 +94,7 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     params,
   )
   const l2Receipt = new L2TransactionReceipt(receipt)
-  const l2ToL1Message = (
-    await l2Receipt.getL2ToL1Messages(cli.wallet, await getL2Network(l2Provider))
-  )[0]
+  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
 
   logger.info(`The transaction generated an L2 to L1 message in outbox with eth block number:`)
   logger.info(l2ToL1Message.event.ethBlockNum.toString())
@@ -157,9 +150,7 @@ export const finishSendToL1 = async (
 
   const l2Receipt = new L2TransactionReceipt(receipt)
   logger.info(`Getting L2 to L1 message...`)
-  const l2ToL1Message = (
-    await l2Receipt.getL2ToL1Messages(cli.wallet, await getL2Network(l2Provider))
-  )[0]
+  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
 
   if (wait) {
     const retryDelayMs = cliArgs.retryDelaySeconds ? cliArgs.retryDelaySeconds * 1000 : 60000
