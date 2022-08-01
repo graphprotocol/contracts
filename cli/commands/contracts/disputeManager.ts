@@ -16,7 +16,13 @@ interface ChannelKey {
 }
 
 async function buildAttestation(receipt: Receipt, signer: string, disputeManagerAddress: string) {
-  const attestation = await createAttestation(signer, getChainID(), disputeManagerAddress, receipt)
+  const attestation = await createAttestation(
+    signer,
+    getChainID(),
+    disputeManagerAddress,
+    receipt,
+    '0',
+  )
   return attestation
 }
 
