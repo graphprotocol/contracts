@@ -1,4 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { BigNumber } from 'ethers'
+import { ethers } from 'hardhat'
 import { NetworkContracts } from '../../../cli/contracts'
 import { ensureETHBalance, ensureGRTBalance } from './helpers'
 
@@ -20,6 +22,22 @@ export const setupAccounts = async (
     ...fixture.curators.map((c) => c.signer.address),
   ]
 
+  // Ensure sender has enough funds to distribute
+  const minEthBalance = BigNumber.from(fixture.ethAmount).mul(beneficiaries.length)
+  const minGRTBalance = BigNumber.from(fixture.grtAmount).mul(beneficiaries.length)
+
+  const senderEthBalance = await ethers.provider.getBalance(sender.address)
+  const senderGRTBalance = await contracts.GraphToken.balanceOf(sender.address)
+
+  if (senderEthBalance.lt(minEthBalance) || senderGRTBalance.lt(minGRTBalance)) {
+    console.log(`Sender ETH balance: ${senderEthBalance}`)
+    console.log(`Required ETH balance: ${minEthBalance}`)
+    console.log(`Sender GRT balance: ${senderGRTBalance}`)
+    console.log(`Required GRT balance: ${minGRTBalance}`)
+    throw new Error(`Sender does not have enough funds to distribute.`)
+  }
+
+  // Fund the accounts
   await ensureETHBalance(contracts, sender, beneficiaries, fixture.ethAmount)
 
   for (const beneficiary of beneficiaries) {
