@@ -15,5 +15,7 @@ export const signal = async (
 
   // Add signal
   console.log(`\nAdd ${amount} in signal to subgraphId ${subgraphId}..`)
-  await sendTransaction(curator, contracts.GNS, 'mintSignal', [subgraphId, amount, 0])
+  await sendTransaction(curator, contracts.GNS, 'mintSignal', [subgraphId, amount, 0], {
+    gasLimit: 2000000,
+  })
 }

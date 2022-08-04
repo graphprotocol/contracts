@@ -13,7 +13,7 @@ export const setupAccounts = async (
   console.log('Setting up:')
   fixture.indexers.map((indexer, i) => console.log(`- indexer${i}: ${indexer.signer.address}`))
   console.log(`- subgraphOwner: ${fixture.subgraphOwner.address}`)
-  fixture.curators.map((curator, i) => console.log(`- indexer${i}: ${curator.signer.address}`))
+  fixture.curators.map((curator, i) => console.log(`- curator${i}: ${curator.signer.address}`))
   console.log('\n')
 
   const beneficiaries: string[] = [

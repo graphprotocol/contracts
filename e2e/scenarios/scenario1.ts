@@ -50,7 +50,8 @@ async function main() {
   for (const curator of fixture.curators) {
     for (const subgraph of curator.subgraphs) {
       const subgraphData = fixture.subgraphs.find((s) => s.deploymentId === subgraph.deploymentId)
-      await signal(graph.contracts, curator.signer, subgraphData.subgraphId, subgraph.signal)
+      if (subgraphData)
+        await signal(graph.contracts, curator.signer, subgraphData.subgraphId, subgraph.signal)
     }
   }
 

@@ -18,7 +18,7 @@ export const ensureGRTAllowance = async (
 
   if (allowTokens.gt(0)) {
     console.log(`\nApproving ${allowTokens} tokens...`)
-    await sendTransaction(signer, contracts.GraphToken, 'approve', [spender, allowTokens])
+    await sendTransaction(signer, contracts.GraphToken, 'approve', [spender, amount])
   }
 }
 
