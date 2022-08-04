@@ -48,7 +48,8 @@ The command will perform the following actions:
 - Run `migrate` hardhat task to deploy the protocol
 - Run `migrate:ownership` hardhat task to transfer ownership of governed contracts to the governor
 - Run `migrate:unpause` to unpause the protocol
-- Run `e2e` hardhat task to run all e2e tests, including scenarios
+- Run `e2e` hardhat task to run all deployment tests (config and init)
+- Run `e2e:scenario` hardhat task to run all scenario tests
 
 ### Other networks
 
@@ -69,6 +70,25 @@ npx hardhat e2e:scenario <scenario> --network <network> --graph-config config/gr
 ```
 
 Note that this command will only run the tests so you need to be sure the protocol is already deployed and the graph config file and address book files are up to date.
+
+### Scenarios
+
+#### Scenario 1
+
+This scenario sets up and tests the following:
+
+- two indexers with stake
+- each indexer has two or three allocations, one of which is open
+- four subgraphs, with 0, 400, 10000 and 12500 tokens signalled, with signal coming from three different curators
+
+```bash
+# Set up indexers, subgraphs, curators and open allocations
+npx hardhat e2e:scenario scenario1 --network <network> --graph-config config/graph.<network>.yml
+
+# Close some of the allocations.
+# Need to wait at least 1 epoch before running. On localhost, epoch is automatically advanced
+npx hardhat e2e:scenario scenario1-part2 --network <network> --graph-config config/graph.<network>.yml
+```
 
 ### How to add scenarios
 

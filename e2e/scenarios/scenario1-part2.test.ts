@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { fixture as importedFixture } from './scenario1'
+import { fixture as importedFixture } from './fixtures/fixture1'
 import { setFixtureSigners } from './lib/helpers'
 
 enum AllocationState {
