@@ -34,14 +34,15 @@ export const allocateFrom = async (
   const metadata = ethers.constants.HashZero
 
   console.log(`\nAllocating ${amount} tokens on ${allocationId}...`)
-  await sendTransaction(indexer, contracts.Staking, 'allocateFrom', [
-    indexer.address,
-    subgraphDeploymentID,
-    amount,
-    allocationId,
-    metadata,
-    proof,
-  ])
+  await sendTransaction(
+    indexer,
+    contracts.Staking,
+    'allocateFrom',
+    [indexer.address, subgraphDeploymentID, amount, allocationId, metadata, proof],
+    {
+      gasLimit: 2000000,
+    },
+  )
 }
 
 export const closeAllocation = async (
