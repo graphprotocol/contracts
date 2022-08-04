@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { recreatePreviousSubgraphId } from './lib/subgraph'
-import { fixture as importedFixture } from './scenario1'
+import { fixture as importedFixture } from './fixtures/fixture1'
 import { setFixtureSigners } from './lib/helpers'
 import { BigNumber } from 'ethers'
 

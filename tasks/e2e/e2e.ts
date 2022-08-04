@@ -59,10 +59,12 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphEnvVars(args)
 
-    console.log(`> Running scenario: ${args.scenario}`)
-
     const script = `e2e/scenarios/${args.scenario}.ts`
     const test = `e2e/scenarios/${args.scenario}.test.ts`
+
+    console.log(`> Running scenario: ${args.scenario}`)
+    console.log(`- script file: ${script}`)
+    console.log(`- test file: ${test}`)
 
     if (!args.skipScript) {
       if (fs.existsSync(script)) {

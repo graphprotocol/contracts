@@ -8,7 +8,7 @@ import hre from 'hardhat'
 import { closeAllocation } from './lib/staking'
 import { advanceToNextEpoch } from '../../test/lib/testHelpers'
 import { setFixtureSigners } from './lib/helpers'
-import { fixture as importedFixture } from './scenario1'
+import { fixture as importedFixture } from './fixtures/fixture1'
 
 let fixture: any
 
