@@ -1,72 +1,101 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-import { solidityKeccak256 } from 'ethers/lib/utils'
 import hre from 'hardhat'
-import { fixture } from './scenario1'
+import { recreatePreviousSubgraphId } from './lib/subgraph'
+import { fixture as importedFixture } from './scenario1'
+import { setFixtureSigners } from './lib/helpers'
+import { BigNumber } from 'ethers'
 
+enum AllocationState {
+  Null,
+  Active,
+  Closed,
+  Finalized,
+  Claimed,
+}
+
+let fixture: any = null
 describe('Scenario 1', () => {
-  const {
-    contracts: { GraphToken, Staking, GNS },
-    getTestAccounts,
-  } = hre.graph()
-
-  let indexer1: SignerWithAddress
-  let indexer2: SignerWithAddress
-  let curator1: SignerWithAddress
-  let curator2: SignerWithAddress
-  let curator3: SignerWithAddress
-  let subgraphOwner: SignerWithAddress
-
-  let indexers: SignerWithAddress[] = []
-  let curators: SignerWithAddress[] = []
+  const { contracts } = hre.graph()
+  const { GraphToken, Staking, GNS, Curation } = contracts
 
   before(async () => {
-    ;[indexer1, indexer2, subgraphOwner, curator1, curator2, curator3] = await getTestAccounts()
-    indexers = [indexer1, indexer2]
-    curators = [curator1, curator2, curator3]
+    fixture = await setFixtureSigners(hre, importedFixture)
   })
 
   describe('GRT balances', () => {
-    it('indexer1 should match airdropped amount minus staked', async function () {
-      const balance = await GraphToken.balanceOf(indexer1.address)
-      expect(balance).eq(fixture.grtAmount.sub(fixture.indexer1.stake))
+    it(`indexer balances should match airdropped amount minus staked`, async function () {
+      for (const indexer of fixture.indexers) {
+        const address = indexer.signer.address
+        const balance = await GraphToken.balanceOf(address)
+        expect(balance).eq(fixture.grtAmount.sub(indexer.stake))
+      }
     })
 
-    it('indexer2 should match airdropped amount minus staked', async function () {
-      const balance = await GraphToken.balanceOf(indexer2.address)
-      expect(balance).eq(fixture.grtAmount.sub(fixture.indexer2.stake))
-    })
-
-    it('curator should match airdropped amount', async function () {
-      for (const account of curators) {
-        const balance = await GraphToken.balanceOf(account.address)
-        expect(balance).eq(fixture.grtAmount)
+    it(`curator balances should match airdropped amount minus signalled`, async function () {
+      for (const curator of fixture.curators) {
+        const address = curator.signer.address
+        const balance = await GraphToken.balanceOf(address)
+        expect(balance).eq(fixture.grtAmount.sub(curator.signalled))
       }
     })
   })
 
   describe('Staking', () => {
-    it('indexer1 should have tokens staked', async function () {
-      const tokensStaked = (await Staking.stakes(indexer1.address)).tokensStaked
-      expect(tokensStaked).eq(fixture.indexer1.stake)
-    })
-    it('indexer2 should have tokens staked', async function () {
-      const tokensStaked = (await Staking.stakes(indexer2.address)).tokensStaked
-      expect(tokensStaked).eq(fixture.indexer2.stake)
+    it(`indexers should have staked tokens`, async function () {
+      for (const indexer of fixture.indexers) {
+        const address = indexer.signer.address
+        const tokensStaked = (await Staking.stakes(address)).tokensStaked
+        expect(tokensStaked).eq(indexer.stake)
+      }
     })
   })
 
-  // describe('Subgraphs', () => {
-  //   for (const subgraphDeploymentId of fixture.subgraphs) {
-  //     it(`${subgraphDeploymentId} is published`, async function () {
-  //       const seqID = await GNS.nextAccountSeqID(subgraphOwner.address)
-  //       const subgraphId = solidityKeccak256(['address', 'uint256'], [subgraphOwner.address, seqID])
+  describe('Subgraphs', () => {
+    it(`should be published`, async function () {
+      for (let i = 0; i < fixture.subgraphs.length; i++) {
+        const subgraphId = await recreatePreviousSubgraphId(
+          contracts,
+          fixture.subgraphOwner.address,
+          fixture.subgraphs.length - i,
+        )
+        const isPublished = await GNS.isPublished(subgraphId)
+        expect(isPublished).eq(true)
+      }
+    })
 
-  //       await GNS.subgraphs(subgraphDeploymentId)
+    it(`should have signal`, async function () {
+      for (let i = 0; i < fixture.subgraphs.length; i++) {
+        const subgraph = fixture.subgraphs[i]
+        const subgraphId = await recreatePreviousSubgraphId(
+          contracts,
+          fixture.subgraphOwner.address,
+          fixture.subgraphs.length - i,
+        )
 
-  //       const isPublished = await GNS.isPublished(subgraphId)
-  //       expect(isPublished).eq(true)
-  //     })
-  //   }
-  // })
+        let totalSignal: BigNumber = BigNumber.from(0)
+        for (const curator of fixture.curators) {
+          const _subgraph = curator.subgraphs.find((s) => s.deploymentId === subgraph.deploymentId)
+          if (_subgraph) {
+            totalSignal = totalSignal.add(_subgraph.signal)
+          }
+        }
+
+        const tokens = await GNS.subgraphTokens(subgraphId)
+        const MAX_PPM = 1000000
+        const curationTax = await Curation.curationTaxPercentage()
+        const tax = totalSignal.mul(curationTax).div(MAX_PPM)
+        expect(tokens).eq(totalSignal.sub(tax))
+      }
+    })
+  })
+
+  describe('Allocations', () => {
+    it(`allocatons should be open`, async function () {
+      const allocations = fixture.indexers.map((i) => i.allocations).flat()
+      for (const allocation of allocations) {
+        const state = await Staking.getAllocationState(allocation.signer.address)
+        expect(state).eq(AllocationState.Active)
+      }
+    })
+  })
 })

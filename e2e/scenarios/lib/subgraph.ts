@@ -1,17 +1,35 @@
-import { Signer, utils } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { BigNumber } from 'ethers'
+import { solidityKeccak256 } from 'ethers/lib/utils'
 import { NetworkContracts } from '../../../cli/contracts'
+import { randomHexBytes, sendTransaction } from '../../../cli/network'
 
-const { hexlify, randomBytes } = utils
+export const recreatePreviousSubgraphId = async (
+  contracts: NetworkContracts,
+  owner: string,
+  previousIndex: number,
+): Promise<string> => {
+  const seqID = (await contracts.GNS.nextAccountSeqID(owner)).sub(previousIndex)
+  return buildSubgraphID(owner, seqID)
+}
+
+export const buildSubgraphID = (account: string, seqID: BigNumber): string =>
+  solidityKeccak256(['address', 'uint256'], [account, seqID])
 
 export const publishNewSubgraph = async (
   contracts: NetworkContracts,
-  publisher: Signer,
+  publisher: SignerWithAddress,
   deploymentId: string,
-): Promise<void> => {
-  const tx = await contracts.GNS.connect(publisher).publishNewSubgraph(
-    deploymentId,
-    hexlify(randomBytes(32)),
-    hexlify(randomBytes(32)),
+): Promise<string> => {
+  console.log(`\nPublishing new subgraph with deploymentId ${deploymentId}...`)
+  const subgraphId = buildSubgraphID(
+    publisher.address,
+    await contracts.GNS.nextAccountSeqID(publisher.address),
   )
-  await tx.wait()
+  await sendTransaction(publisher, contracts.GNS, 'publishNewSubgraph', [
+    deploymentId,
+    randomHexBytes(),
+    randomHexBytes(),
+  ])
+  return subgraphId
 }

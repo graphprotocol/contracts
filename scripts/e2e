@@ -25,7 +25,8 @@ npx hardhat migrate:unpause --network localhost --graph-config config/graph.loca
 ### Test
 # Run tests using the localhost evm instance and the localhost graph config
 npx hardhat e2e --network localhost --l1-graph-config config/graph.localhost.yml
-
+npx hardhat e2e:scenario scenario1 --network localhost --graph-config config/graph.localhost.yml
+npx hardhat e2e:scenario scenario1-part2 --network localhost --graph-config config/graph.localhost.yml
 
 ### Cleanup
 # Exit error mode so the evm instance always gets killed
