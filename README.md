@@ -1,5 +1,5 @@
 ![License: GPL](https://img.shields.io/badge/license-GPLv2-blue)
-![Version Badge](https://img.shields.io/badge/version-1.14.0-lightgrey.svg)
+![Version Badge](https://img.shields.io/badge/version-2.0.0-testnet-scratch1-lightgrey.svg)
 ![CI Status](https://github.com/graphprotocol/contracts/actions/workflows/npmtest.yml/badge.svg)
 [![codecov](https://codecov.io/gh/graphprotocol/contracts/branch/dev/graph/badge.svg?token=S8JWGR9SBN)](https://codecov.io/gh/graphprotocol/contracts)
 
