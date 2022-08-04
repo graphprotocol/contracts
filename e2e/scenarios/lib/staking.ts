@@ -53,5 +53,7 @@ export const closeAllocation = async (
   const poi = randomHexBytes()
 
   console.log(`\nClosing ${allocationId}...`)
-  await sendTransaction(indexer, contracts.Staking, 'closeAllocation', [allocationId, poi])
+  await sendTransaction(indexer, contracts.Staking, 'closeAllocation', [allocationId, poi], {
+    gasLimit: 2000000,
+  })
 }
