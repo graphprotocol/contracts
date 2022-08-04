@@ -4,11 +4,9 @@ import { TASK_TEST, TASK_RUN } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
-import path from 'path'
 
 const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
-const SCENARIOS = 'e2e/scenarios/*[!.test].ts'
 
 // Built-in test & run tasks don't support our arguments
 // we can pass them to GRE via env vars
@@ -29,19 +27,6 @@ task('e2e', 'Run all e2e tests')
     await hre.run(TASK_TEST, {
       testFiles: testFiles,
     })
-
-    // Run scenarios one by one
-    // we don't know how one scenario can affect tests from another one
-    const scenarios = new glob.GlobSync(SCENARIOS).found.map((s) =>
-      path.basename(s, path.extname(s)),
-    )
-    for (const scenario of scenarios) {
-      await hre.run('e2e:scenario', {
-        scenario: scenario,
-        graphConfig: args.graphConfig,
-        addressBook: args.addressBook,
-      })
-    }
   })
 
 task('e2e:config', 'Run deployment configuration e2e tests')
