@@ -32,16 +32,16 @@ task('e2e', 'Run all e2e tests')
 
     // Run scenarios one by one
     // we don't know how one scenario can affect tests from another one
-    const scenarios = new glob.GlobSync(SCENARIOS).found.map((s) =>
-      path.basename(s, path.extname(s)),
-    )
-    for (const scenario of scenarios) {
-      await hre.run('e2e:scenario', {
-        scenario: scenario,
-        graphConfig: args.graphConfig,
-        addressBook: args.addressBook,
-      })
-    }
+    // const scenarios = new glob.GlobSync(SCENARIOS).found.map((s) =>
+    //   path.basename(s, path.extname(s)),
+    // )
+    // for (const scenario of scenarios) {
+    //   await hre.run('e2e:scenario', {
+    //     scenario: scenario,
+    //     graphConfig: args.graphConfig,
+    //     addressBook: args.addressBook,
+    //   })
+    // }
   })
 
 task('e2e:config', 'Run deployment configuration e2e tests')

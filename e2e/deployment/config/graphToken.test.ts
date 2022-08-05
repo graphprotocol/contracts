@@ -23,7 +23,7 @@ describe('GraphToken configuration', () => {
   it('deployer should not be minter', async function () {
     const deployer = await getDeployer()
     const deployerIsMinter = await GraphToken.isMinter(deployer.address)
-    hre.network.config.chainId === 1337 ? this.skip() : expect(deployerIsMinter).eq(false)
+    expect(deployerIsMinter).eq(false)
   })
 
   it('RewardsManager should not be a minter', async function () {
