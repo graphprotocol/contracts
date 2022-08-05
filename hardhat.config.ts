@@ -146,6 +146,14 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
+    localnitrol1: {
+      url: 'http://localhost:8545',
+      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+    },
+    localnitrol2: {
+      url: 'http://localhost:8547',
+      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
