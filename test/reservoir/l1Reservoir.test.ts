@@ -592,7 +592,6 @@ describe('L1Reservoir', () => {
       const dripBlock = (await latestBlock()).add(1) // We're gonna drip in the next transaction
       const expectedKeeperReward = dripBlock
         .sub(await l1Reservoir.lastRewardsUpdateBlock())
-        .sub(toBN('2'))
         .mul(toGRT('3'))
       const tracker = await RewardsTracker.create(
         issuanceBase,

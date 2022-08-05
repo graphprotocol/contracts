@@ -307,9 +307,7 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         uint256 mintedRewardsActual = getNewGlobalRewards(block.number);
         // eps = (signed int) mintedRewardsTotal - mintedRewardsActual
 
-        uint256 keeperReward = dripRewardPerBlock.mul(
-            block.number.sub(lastRewardsUpdateBlock).sub(minDripInterval)
-        );
+        uint256 keeperReward = dripRewardPerBlock.mul(block.number.sub(lastRewardsUpdateBlock));
         if (nextIssuanceRate != issuanceRate) {
             rewardsManager().updateAccRewardsPerSignal();
             snapshotAccumulatedRewards(mintedRewardsActual); // This updates lastRewardsUpdateBlock
