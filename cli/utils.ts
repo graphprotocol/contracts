@@ -1,4 +1,3 @@
-import { addCustomNetwork } from '@arbitrum/sdk'
 import { Contract, Wallet, providers } from 'ethers'
 
 import { loadArtifact } from './artifacts'
@@ -7,6 +6,7 @@ export const l1ToL2ChainIdMap = {
   '1': '42161',
   '4': '421611',
   '5': '421613',
+  '1337': '412346',
 }
 
 export const l2ChainIds = Object.values(l1ToL2ChainIdMap).map(Number)

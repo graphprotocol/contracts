@@ -72,7 +72,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
 
   if (chainId == 1337) {
     allContracts = ['EthereumDIDRegistry', ...allContracts]
-    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
+    await setAutoMine(cli.wallet.provider as providers.JsonRpcProvider, true)
   } else if (chainIdIsL2(chainId)) {
     allContracts = l2Contracts
   }
@@ -167,7 +167,15 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
 
   if (chainId == 1337) {
-    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [false])
+    await setAutoMine(cli.wallet.provider as providers.JsonRpcProvider, false)
+  }
+}
+
+const setAutoMine = async (provider: providers.JsonRpcProvider, automine: boolean) => {
+  try {
+    await provider.send('evm_setAutomine', [automine])
+  } catch (error) {
+    logger.warn('The method evm_setAutomine does not exist/is not available!')
   }
 }
 
