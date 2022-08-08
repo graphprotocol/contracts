@@ -6,6 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "arbos-precompiles/arbos/builtin/ArbRetryableTx.sol";
 
+import "../../arbitrum/AddressAliasHelper.sol";
 import "../../reservoir/IReservoir.sol";
 import "../../reservoir/Reservoir.sol";
 import "./IL2Reservoir.sol";
@@ -166,7 +167,7 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
         // Part of the reward always goes to whoever redeemed the  ticket in L2,
         // unless this was an autoredeem, in which case the "redeemer" is the sender, i.e. L1Reservoir
         address redeemer = IArbTxWithRedeemer(ARB_TX_ADDRESS).getCurrentRedeemer();
-        if (redeemer != l1ReservoirAddress) {
+        if (redeemer != AddressAliasHelper.applyL1ToL2Alias(l1ReservoirAddress)) {
             uint256 _l2KeeperReward = _keeperReward.mul(l2KeeperRewardFraction).div(
                 FIXED_POINT_SCALING_FACTOR
             );

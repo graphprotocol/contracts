@@ -16,6 +16,7 @@ import {
   Account,
   RewardsTracker,
   getL2SignerFromL1,
+  applyL1ToL2Alias,
 } from '../lib/testHelpers'
 import { L2Reservoir } from '../../build/types/L2Reservoir'
 
@@ -143,7 +144,7 @@ describe('L2Reservoir', () => {
     arbTxMock = await smock.fake('IArbTxWithRedeemer', {
       address: '0x000000000000000000000000000000000000006E',
     })
-    arbTxMock.getCurrentRedeemer.returns(mockL1Reservoir.address)
+    arbTxMock.getCurrentRedeemer.returns(applyL1ToL2Alias(mockL1Reservoir.address))
   })
 
   beforeEach(async function () {
