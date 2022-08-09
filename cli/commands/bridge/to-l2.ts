@@ -10,6 +10,7 @@ import {
   L1ToL2MessageGasEstimator,
 } from '@arbitrum/sdk'
 import { chainIdIsL2 } from '../../utils'
+import { Argv } from 'yargs'
 
 const logAutoRedeemReason = (autoRedeemRec) => {
   if (autoRedeemRec == null) {
@@ -72,24 +73,44 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     '0x',
   )
 
-  // Comment from Offchain Labs' implementation:
-  // we add a 0.05 ether "deposit" buffer to pay for execution in the gas estimation
-  logger.info('Estimating retryable ticket gas:')
-  const baseFee = (await cli.wallet.provider.getBlock('latest')).baseFeePerGas
-  const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
-  const gasParams = await gasEstimator.estimateAll(
-    gateway.address,
-    l2Dest,
-    depositCalldata,
-    parseEther('0'),
-    baseFee as BigNumber,
-    gateway.address,
-    gateway.address,
-    cli.wallet.provider,
-  )
-  const maxGas = gasParams.gasLimit
-  const gasPriceBid = gasParams.maxFeePerGas
-  const maxSubmissionPrice = gasParams.maxSubmissionFee
+  const senderBalance = await l1GRT.balanceOf(cli.wallet.address)
+  if (senderBalance.lt(amount)) {
+    throw new Error('Sender balance is insufficient for the transfer')
+  }
+  logger.info('Approving token transfer')
+  await sendTransaction(cli.wallet, l1GRT, 'approve', [gateway.address, amount])
+
+  let maxGas: BigNumber
+  let gasPriceBid: BigNumber
+  let maxSubmissionPrice: BigNumber
+
+  if (!cliArgs.maxGas || !cliArgs.gasPrice || !cliArgs.maxSubmissionCost) {
+    // Comment from Offchain Labs' implementation:
+    // we add a 0.05 ether "deposit" buffer to pay for execution in the gas estimation
+    logger.info('Estimating retryable ticket gas:')
+    const baseFee = (await cli.wallet.provider.getBlock('latest')).baseFeePerGas
+    const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
+    const gasParams = await gasEstimator.estimateAll(
+      gateway.address,
+      l2Dest,
+      depositCalldata,
+      parseEther('0'),
+      baseFee as BigNumber,
+      gateway.address,
+      gateway.address,
+      cli.wallet.provider,
+    )
+    maxGas = cliArgs.maxGas ? BigNumber.from(cliArgs.maxGas) : gasParams.gasLimit
+    gasPriceBid = cliArgs.gasPrice ? BigNumber.from(cliArgs.gasPrice) : gasParams.maxFeePerGas
+    maxSubmissionPrice = cliArgs.maxSubmissionCost
+      ? BigNumber.from(cliArgs.maxSubmissionCost)
+      : gasParams.maxSubmissionFee
+  } else {
+    maxGas = BigNumber.from(cliArgs.maxGas)
+    gasPriceBid = BigNumber.from(cliArgs.gasPrice)
+    maxSubmissionPrice = BigNumber.from(cliArgs.maxSubmissionCost)
+  }
+
   logger.info(
     `Using max gas: ${maxGas}, gas price bid: ${gasPriceBid}, max submission price: ${maxSubmissionPrice}`,
   )
@@ -99,14 +120,13 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const data = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionPrice, '0x'])
 
   const params = [l1GRTAddress, recipient, amount, maxGas, gasPriceBid, data]
-  logger.info('Approving token transfer')
-  await sendTransaction(cli.wallet, l1GRT, 'approve', [gateway.address, amount])
   logger.info('Sending outbound transfer transaction')
   const receipt = await sendTransaction(cli.wallet, gateway, 'outboundTransfer', params, {
     value: ethValue,
   })
   const l1Receipt = new L1TransactionReceipt(receipt)
-  const l1ToL2Message = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))[0]
+  const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
+  const l1ToL2Message = l1ToL2Messages[0]
 
   logger.info('Waiting for message to propagate to L2...')
   try {
@@ -143,6 +163,26 @@ export const redeemSendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
 export const sendToL2Command = {
   command: 'send-to-l2 <amount> [recipient]',
   describe: 'Perform an L1-to-L2 Graph Token transaction',
+  builder: (yargs: Argv): Argv => {
+    return yargs
+      .option('max-gas', {
+        description: 'Max gas for the L2 redemption attempt',
+        requiresArg: true,
+        type: 'string',
+      })
+      .option('gas-price', {
+        description: 'Gas price for the L2 redemption attempt',
+        requiresArg: true,
+        type: 'string',
+      })
+      .option('max-submission-cost', {
+        description: 'Max submission cost for the retryable ticket',
+        requiresArg: true,
+        type: 'string',
+      })
+      .positional('amount', { demandOption: true })
+      .positional('recipient', { demandOption: false })
+  },
   handler: async (argv: CLIArgs): Promise<void> => {
     return sendToL2(await loadEnv(argv), argv)
   },

@@ -9,6 +9,7 @@ import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { providers } from 'ethers'
+import { L2GraphToken } from '../../../build/types/L2GraphToken'
 
 const FOURTEEN_DAYS_IN_SECONDS = 24 * 3600 * 14
 
@@ -77,11 +78,16 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   const l2AddressBook = getAddressBook(cliArgs.addressBook, l2ChainId.toString())
 
   const gateway = loadAddressBookContract('L2GraphTokenGateway', l2AddressBook, l2Wallet)
-  const l2GRT = loadAddressBookContract('L2GraphToken', l2AddressBook, l2Wallet)
+  const l2GRT = loadAddressBookContract('L2GraphToken', l2AddressBook, l2Wallet) as L2GraphToken
 
   const l1Gateway = cli.contracts['L1GraphTokenGateway']
   logger.info(`Will send ${cliArgs.amount} GRT to ${recipient}`)
   logger.info(`Using L2 gateway ${gateway.address} and L1 gateway ${l1Gateway.address}`)
+
+  const senderBalance = await l2GRT.balanceOf(cli.wallet.address)
+  if (senderBalance.lt(amount)) {
+    throw new Error('Sender balance is insufficient for the transfer')
+  }
 
   const params = [l1GRTAddress, recipient, amount, '0x']
   logger.info('Approving token transfer')
