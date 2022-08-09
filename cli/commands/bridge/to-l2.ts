@@ -47,9 +47,10 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
 
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
+
+  // parse provider
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-
   if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -61,6 +62,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const amount = toGRT(cliArgs.amount)
   const recipient = cliArgs.recipient ? cliArgs.recipient : cli.wallet.address
   const l2Dest = await gateway.l2Counterpart()
+  const calldata = cliArgs.calldata ?? '0x'
 
   logger.info(`Will send ${cliArgs.amount} GRT to ${recipient}`)
   logger.info(`Using L1 gateway ${gateway.address} and L2 gateway ${l2Dest}`)
@@ -70,7 +72,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     cli.wallet.address,
     recipient,
     amount,
-    '0x',
+    calldata,
   )
 
   const senderBalance = await l1GRT.balanceOf(cli.wallet.address)
@@ -117,7 +119,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
 
   const ethValue = maxSubmissionPrice.add(gasPriceBid.mul(maxGas))
   logger.info(`tx value: ${ethValue}`)
-  const data = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionPrice, '0x'])
+  const data = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionPrice, calldata])
 
   const params = [l1GRTAddress, recipient, amount, maxGas, gasPriceBid, data]
   logger.info('Sending outbound transfer transaction')
@@ -161,7 +163,7 @@ export const redeemSendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pro
 }
 
 export const sendToL2Command = {
-  command: 'send-to-l2 <amount> [recipient]',
+  command: 'send-to-l2 <amount> [recipient] [calldata]',
   describe: 'Perform an L1-to-L2 Graph Token transaction',
   builder: (yargs: Argv): Argv => {
     return yargs
