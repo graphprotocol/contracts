@@ -2,7 +2,7 @@ import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 import { chainIdIsL2 } from '../../cli/utils'
 
-task('migrate:unpause', 'Unpause protocol')
+task('migrate:unpause', 'Unpause protocol and bridge')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .setAction(async (taskArgs, hre) => {

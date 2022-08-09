@@ -12,7 +12,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 // Graph Runtime Environment (GRE) extensions for the HRE
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.graph = (opts: GREOptions = {}) => {
-    const chainId = hre.network.config.chainId?.toString() ?? '1337'
+    const chainId = opts.chainId ?? hre.network.config.chainId?.toString() ?? '1337'
     const addressBookPath = opts.addressBook ?? process.env.ADDRESS_BOOK
     const graphConfigPath = opts.graphConfig ?? process.env.GRAPH_CONFIG
 

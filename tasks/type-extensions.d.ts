@@ -5,6 +5,7 @@ import { NetworkContracts } from '../cli/contracts'
 export interface GREOptions {
   addressBook?: string
   graphConfig?: string
+  chainId?: string
 }
 
 export interface NamedAccounts {

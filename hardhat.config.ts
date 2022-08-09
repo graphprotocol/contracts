@@ -143,6 +143,7 @@ const config: HardhatUserConfig = {
       hardfork: 'london',
     },
     localhost: {
+      chainId: 1337,
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },

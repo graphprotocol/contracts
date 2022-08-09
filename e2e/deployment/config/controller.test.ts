@@ -37,6 +37,11 @@ describe('Controller configuration', () => {
     namedAccounts = await getNamedAccounts()
   })
 
+  it('protocol should be unpaused', async function () {
+    const paused = await contracts.Controller.paused()
+    expect(paused).eq(false)
+  })
+
   const proxyShouldMatchDeployed = async (contractName: string) => {
     // remove L1/L2 prefix, contracts are not registered as L1/L2 on controller
     const name = contractName.replace(/(^L1|L2)/gi, '')
