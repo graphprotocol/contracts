@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { fixture as importedFixture } from './fixtures/fixture1'
-import { setFixtureSigners } from './lib/helpers'
+import { AllocationFixture, getIndexerFixtures, IndexerFixture } from './fixtures/indexers'
 
 enum AllocationState {
   Null,
@@ -11,22 +10,23 @@ enum AllocationState {
   Claimed,
 }
 
-let fixture: any = null
-describe('Scenario 1 - Part 2', () => {
-  const { contracts } = hre.graph()
+let indexerFixtures: IndexerFixture[]
+
+describe('Close allocations', () => {
+  const { contracts, getTestAccounts } = hre.graph()
   const { Staking } = contracts
 
   before(async () => {
-    fixture = await setFixtureSigners(hre, importedFixture)
+    indexerFixtures = getIndexerFixtures(await getTestAccounts())
   })
 
   describe('Allocations', () => {
-    let allocations = []
-    let openAllocations = []
-    let closedAllocations = []
+    let allocations: AllocationFixture[] = []
+    let openAllocations: AllocationFixture[] = []
+    let closedAllocations: AllocationFixture[] = []
 
     before(async () => {
-      allocations = fixture.indexers.map((i) => i.allocations).flat()
+      allocations = indexerFixtures.map((i) => i.allocations).flat()
       openAllocations = allocations.filter((a) => !a.close)
       closedAllocations = allocations.filter((a) => a.close)
     })

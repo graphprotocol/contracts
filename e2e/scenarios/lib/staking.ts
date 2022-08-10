@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumberish, ethers } from 'ethers'
 import { NetworkContracts } from '../../../cli/contracts'
 import { randomHexBytes, sendTransaction } from '../../../cli/network'
-import { ensureGRTAllowance } from './helpers'
+import { ensureGRTAllowance } from './accounts'
 
 export const stake = async (
   contracts: NetworkContracts,
@@ -10,7 +10,7 @@ export const stake = async (
   amount: BigNumberish,
 ): Promise<void> => {
   // Approve
-  await ensureGRTAllowance(contracts, indexer, indexer.address, contracts.Staking.address, amount)
+  await ensureGRTAllowance(indexer, contracts.Staking.address, amount, contracts.GraphToken)
 
   // Stake
   console.log(`\nStaking ${amount} tokens...`)

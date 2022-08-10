@@ -1,0 +1,53 @@
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { getIndexerFixtures, IndexerFixture } from './fixtures/indexers'
+import { fund } from './fixtures/funds'
+
+enum AllocationState {
+  Null,
+  Active,
+  Closed,
+  Finalized,
+  Claimed,
+}
+
+let indexerFixtures: IndexerFixture[]
+
+describe('Open allocations', () => {
+  const { contracts, getTestAccounts } = hre.graph()
+  const { GraphToken, Staking } = contracts
+
+  before(async () => {
+    indexerFixtures = getIndexerFixtures(await getTestAccounts())
+  })
+
+  describe('GRT balances', () => {
+    it(`indexer balances should match airdropped amount minus staked`, async function () {
+      for (const indexer of indexerFixtures) {
+        const address = indexer.signer.address
+        const balance = await GraphToken.balanceOf(address)
+        expect(balance).gte(fund.grtAmount.sub(indexer.stake))
+      }
+    })
+  })
+
+  describe('Staking', () => {
+    it(`indexers should have staked tokens`, async function () {
+      for (const indexer of indexerFixtures) {
+        const address = indexer.signer.address
+        const tokensStaked = (await Staking.stakes(address)).tokensStaked
+        expect(tokensStaked).gte(indexer.stake)
+      }
+    })
+  })
+
+  describe('Allocations', () => {
+    it(`allocatons should be open`, async function () {
+      const allocations = indexerFixtures.map((i) => i.allocations).flat()
+      for (const allocation of allocations) {
+        const state = await Staking.getAllocationState(allocation.signer.address)
+        expect(state).eq(AllocationState.Active)
+      }
+    })
+  })
+})
