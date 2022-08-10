@@ -1,20 +1,20 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 import hre from 'hardhat'
 import { closeAllocation } from './lib/staking'
 import { advanceToNextEpoch } from '../../test/lib/testHelpers'
-import { setFixtureSigners } from './lib/helpers'
-import { fixture as importedFixture } from './fixtures/fixture1'
-
-let fixture: any
+import { fundAccountsEth } from './lib/accounts'
+import { getIndexerFixtures } from './fixtures/indexers'
+import { fund } from './fixtures/funds'
 
 async function main() {
   const graph = hre.graph()
-  fixture = await setFixtureSigners(hre, importedFixture)
+  const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
+
+  const deployer = await graph.getDeployer()
+  const indexers = indexerFixtures.map((i) => i.signer.address)
+
+  // == Fund participants
+  console.log('\n== Fund indexers')
+  await fundAccountsEth(deployer, indexers, fund.ethAmount)
 
   // == Time travel on local networks, ensure allocations can be closed
   if (['hardhat', 'localhost'].includes(hre.network.name)) {
@@ -25,7 +25,7 @@ async function main() {
   // == Close allocations
   console.log('\n== Close allocations')
 
-  for (const indexer of fixture.indexers) {
+  for (const indexer of indexerFixtures) {
     for (const allocation of indexer.allocations.filter((a) => a.close)) {
       await closeAllocation(graph.contracts, indexer.signer, allocation.signer.address)
     }
