@@ -1,6 +1,6 @@
 import { toGRT } from '../../../cli/network'
 
 export const fund = {
-  ethAmount: toGRT(0.1),
+  ethAmount: toGRT(0.01),
   grtAmount: toGRT(100_000),
 }
