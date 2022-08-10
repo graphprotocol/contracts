@@ -182,8 +182,13 @@ export const sendToL2Command = {
         requiresArg: true,
         type: 'string',
       })
-      .positional('amount', { demandOption: true })
-      .positional('recipient', { demandOption: false })
+      .positional('amount', { description: 'Amount to send (will be converted to wei)' })
+      .positional('recipient', {
+        description: 'Receiving address in L2. Same to L1 address if empty',
+      })
+      .positional('calldata', {
+        description: 'Calldata to pass to the recipient. Must be whitelisted in the bridge',
+      })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
     return sendToL2(await loadEnv(argv), argv)
