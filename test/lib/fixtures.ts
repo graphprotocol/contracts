@@ -159,7 +159,9 @@ export class NetworkFixture {
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await gns.connect(deployer).approveAll()
-    await grt.connect(deployer).addMinter(rewardsManager.address)
+    if (!isL2) {
+      await grt.connect(deployer).addMinter(rewardsManager.address)
+    }
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)

@@ -149,3 +149,5 @@ contracts:
       controller: "${{Controller.address}}"
     calls:
       - fn: "syncAllContracts"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
