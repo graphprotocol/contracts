@@ -45,6 +45,8 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
   EpochManager:
     proxy: true
     init:
@@ -68,6 +70,8 @@ contracts:
       reserveRatio: 500000 # in parts per million
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
+    calls:
+      - fn: "syncAllContracts"
   DisputeManager:
     proxy: true
     init:
@@ -77,6 +81,8 @@ contracts:
       fishermanRewardPercentage: 500000 # in parts per million
       idxSlashingPercentage: 25000 # in parts per million
       qrySlashingPercentage: 25000 # in parts per million
+    calls:
+      - fn: "syncAllContracts"
   GNS:
     proxy: true
     init:
@@ -85,6 +91,7 @@ contracts:
       subgraphNFT: "${{SubgraphNFT.address}}"
     calls:
       - fn: "approveAll"
+      - fn: "syncAllContracts"
   SubgraphNFT:
     init:
       governor: "${{Env.deployer}}"
@@ -118,6 +125,7 @@ contracts:
       - fn: "setAssetHolder"
         assetHolder: "${{AllocationExchange.address}}"
         allowed: true
+      - fn: "syncAllContracts"
   RewardsManager:
     proxy: true
     init:
@@ -127,6 +135,7 @@ contracts:
         issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
+      - fn: "syncAllContracts"
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
@@ -139,7 +148,11 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
   BridgeEscrow:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
