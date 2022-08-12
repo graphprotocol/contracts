@@ -22,13 +22,13 @@ import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
 import 'solidity-coverage'
 import 'hardhat-storage-layout'
+import './gre/gre'
 
 // Tasks
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
-  require('./tasks/gre.ts')
   ;['contracts', 'misc', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
@@ -54,10 +54,11 @@ interface NetworkConfig {
   url?: string
   gas?: number | 'auto'
   gasPrice?: number | 'auto'
+  graphConfig?: string
 }
 
 const networkConfigs: NetworkConfig[] = [
-  { network: 'mainnet', chainId: 1 },
+  { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
   { network: 'rinkeby', chainId: 4 },
   { network: 'goerli', chainId: 5 },
   { network: 'kovan', chainId: 42 },
@@ -82,6 +83,9 @@ function setupNetworkProviders(hardhatConfig) {
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: getAccountsKeys(),
     }
+    if (netConfig.graphConfig) {
+      hardhatConfig.networks[netConfig.network].graphConfig = netConfig.graphConfig
+    }
   }
 }
 
@@ -95,6 +99,7 @@ const config: HardhatUserConfig = {
     sources: './contracts',
     tests: './test',
     artifacts: './build/contracts',
+    graphConfigs: './config',
   },
   solidity: {
     compilers: [
@@ -139,6 +144,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
+  },
+  graph: {
+    addressBook: process.env.ADDRESS_BOOK,
+    l1GraphConfig: process.env.GRAPH_CONFIG,
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
