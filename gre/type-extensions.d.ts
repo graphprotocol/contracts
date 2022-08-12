@@ -6,6 +6,7 @@ export interface GraphRuntimeEnvironmentOptions {
   addressBook?: string
   l1GraphConfig?: string
   l2GraphConfig?: string
+  graphConfig?: string
 }
 
 export type AccountNames =
@@ -30,8 +31,8 @@ export interface GraphNetworkEnvironment {
 }
 
 export interface GraphRuntimeEnvironment extends GraphNetworkEnvironment {
-  l1: GraphNetworkEnvironment
-  l2: GraphNetworkEnvironment
+  l1: GraphNetworkEnvironment | null
+  l2: GraphNetworkEnvironment | null
 }
 
 declare module 'hardhat/types/runtime' {
@@ -42,11 +43,11 @@ declare module 'hardhat/types/runtime' {
 
 declare module 'hardhat/types/config' {
   export interface HardhatConfig {
-    graph: GraphRuntimeEnvironmentOptions
+    graph: Omit<GraphRuntimeEnvironmentOptions, 'graphConfig'>
   }
 
   export interface HardhatUserConfig {
-    graph: GraphRuntimeEnvironmentOptions
+    graph: Omit<GraphRuntimeEnvironmentOptions, 'graphConfig'>
   }
 
   export interface HardhatNetworkConfig {

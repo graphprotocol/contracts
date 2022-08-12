@@ -25,24 +25,27 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       opts,
       l1ChainId,
       l2ChainId,
+      isHHL1,
     )
 
-    const l1Graph: GraphNetworkEnvironment = buildGraphNetworkEnvironment(
+    const l1Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
       l1ChainId,
       l1Provider,
       l1GraphConfigPath,
       addressBookPath,
+      isHHL1,
     )
 
-    const l2Graph: GraphNetworkEnvironment = buildGraphNetworkEnvironment(
+    const l2Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
       l2ChainId,
       l2Provider,
       l2GraphConfigPath,
       addressBookPath,
+      isHHL1,
     )
 
     const gre: GraphRuntimeEnvironment = {
-      ...(isHHL1 ? l1Graph : l2Graph),
+      ...(isHHL1 ? (l1Graph as GraphNetworkEnvironment) : (l2Graph as GraphNetworkEnvironment)),
       l1: l1Graph,
       l2: l2Graph,
     }
@@ -54,9 +57,19 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 function buildGraphNetworkEnvironment(
   chainId: number,
   provider: providers.JsonRpcProvider,
-  graphConfigPath: string,
+  graphConfigPath: string | undefined,
   addressBookPath: string,
-): GraphNetworkEnvironment {
+  isHHL1: boolean,
+): GraphNetworkEnvironment | null {
+  if (graphConfigPath === undefined) {
+    console.warn(
+      `No graph config file provided for chain: ${chainId}. L${
+        isHHL1 ? '2' : '1'
+      } graph object will not be initialized.`,
+    )
+    return null
+  }
+
   return {
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),

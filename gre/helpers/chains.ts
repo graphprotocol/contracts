@@ -1,7 +1,8 @@
-class MapWithGetKey<K, V> extends Map<K, V> {
-  getKey(value: V): K | undefined {
+class MapWithGetKey<K> extends Map<K, K> {
+  getKey(value: K): K | undefined {
     for (const [k, v] of this.entries()) {
-      if (v === value) {
+      console.log(k, v, value)
+      if (k === value) {
         return k
       }
     }
@@ -9,7 +10,7 @@ class MapWithGetKey<K, V> extends Map<K, V> {
   }
 }
 
-const chainMap = new MapWithGetKey<number, number>([
+const chainMap = new MapWithGetKey<number>([
   [1, 42161], // Ethereum Mainnet - Arbitrum One
   [4, 421611], // Ethereum Rinkeby - Arbitrum Rinkeby
   [5, 421613], // Ethereum Goerli - Arbitrum Goerli

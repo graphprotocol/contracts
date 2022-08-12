@@ -9,6 +9,9 @@ import { GraphRuntimeEnvironmentOptions } from './type-extensions'
 import { GREPluginError } from './helpers/errors'
 import GraphChains from './helpers/chains'
 
+import debug from 'debug'
+const log = debug('hardhat:graphprotocol:gre')
+
 interface GREChainData {
   l1ChainId: number
   l2ChainId: number
@@ -22,8 +25,8 @@ interface GREProviderData {
 }
 
 interface GREGraphConfigData {
-  l1GraphConfigPath: string
-  l2GraphConfigPath: string
+  l1GraphConfigPath: string | undefined
+  l2GraphConfigPath: string | undefined
 }
 
 export function getAddressBookPath(
@@ -57,12 +60,16 @@ export function getChains(mainChainId: number | undefined): GREChainData {
   mainChainId = mainChainId!
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const secondaryChainId = GraphChains.counterpart(mainChainId!)!
+  const secondaryChainId = GraphChains.counterpart(mainChainId)!
 
   const isHHL1 = GraphChains.isL1(mainChainId)
   const isHHL2 = GraphChains.isL2(mainChainId)
   const l1ChainId = isHHL1 ? mainChainId : secondaryChainId
   const l2ChainId = isHHL2 ? mainChainId : secondaryChainId
+
+  log(`Hardhat chain id: ${mainChainId}`)
+  log(`L1 chain id: ${l1ChainId} - Is HHL1: ${isHHL1}`)
+  log(`L2 chain id: ${l2ChainId} - Is HHL2: ${isHHL2}`)
 
   return {
     l1ChainId,
@@ -100,34 +107,37 @@ export function getGraphConfigPaths(
   opts: GraphRuntimeEnvironmentOptions,
   l1ChainId: number,
   l2ChainId: number,
+  isHHL1: boolean,
 ): GREGraphConfigData {
   const l1Network = getNetworkByChainId(hre.config.networks, l1ChainId)
   const l2Network = getNetworkByChainId(hre.config.networks, l2ChainId)
 
   // Priority is as follows:
-  // - hre.graph() init parameter
+  // - hre.graph() init parameter l1GraphConfigPath/l2GraphConfigPath
+  // - hre.graph() init parameter graphConfigPath (only for layer corresponding to hh network)
   // - hh network config
   // - hh graph config (layer specific: l1GraphConfig, l2GraphConfig)
   const l1GraphConfigPath =
-    opts.l1GraphConfig ?? l1Network?.graphConfig ?? hre.config.graph.l1GraphConfig
+    opts.l1GraphConfig ??
+    (isHHL1 ? opts.graphConfig : undefined) ??
+    l1Network?.graphConfig ??
+    hre.config.graph.l1GraphConfig
+
   const l2GraphConfigPath =
-    opts.l2GraphConfig ?? l2Network?.graphConfig ?? hre.config.graph.l2GraphConfig
+    opts.l2GraphConfig ??
+    (!isHHL1 ? opts.graphConfig : undefined) ??
+    l2Network?.graphConfig ??
+    hre.config.graph.l2GraphConfig
 
   for (const configPath of [l1GraphConfigPath, l2GraphConfigPath]) {
-    if (configPath === undefined) {
-      throw new GREPluginError(`Must set a graphConfig path!`)
-    }
-    if (!fs.existsSync(configPath)) {
+    if (configPath !== undefined && !fs.existsSync(configPath)) {
       throw new GREPluginError(`Graph config file not found: ${configPath}`)
     }
   }
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    l1GraphConfigPath: l1GraphConfigPath!,
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    l2GraphConfigPath: l2GraphConfigPath!,
+    l1GraphConfigPath: l1GraphConfigPath,
+    l2GraphConfigPath: l2GraphConfigPath,
   }
 }
 
