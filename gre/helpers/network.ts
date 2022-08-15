@@ -1,7 +1,6 @@
 class MapWithGetKey<K> extends Map<K, K> {
   getKey(value: K): K | undefined {
-    for (const [k, v] of this.entries()) {
-      console.log(k, v, value)
+    for (const [k] of this.entries()) {
       if (k === value) {
         return k
       }
@@ -30,7 +29,7 @@ export const l1ToL2 = (chainId: number): number | undefined => chainMap.get(chai
 export const l2ToL1 = (chainId: number): number | undefined => chainMap.getKey(chainId)
 export const counterpart = (chainId: number): number | undefined => {
   if (!isSupported(chainId)) return
-  return isL1(chainId) ? l2ToL1(chainId) : l1ToL2(chainId)
+  return isL1(chainId) ? l1ToL2(chainId) : l2ToL1(chainId)
 }
 
 export default {

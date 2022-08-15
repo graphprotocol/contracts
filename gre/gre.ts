@@ -13,6 +13,7 @@ import {
 import { providers } from 'ethers'
 import { getChains, getProviders, getAddressBookPath, getGraphConfigPaths } from './config'
 import { getDeployer, getNamedAccounts, getTestAccounts } from './accounts'
+import { logDebug, logWarn } from './logger'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
@@ -50,6 +51,9 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       l2: l2Graph,
     }
 
+    logDebug('GRE initialized successfully!')
+    logDebug(`Main network: L${isHHL1 ? '1' : '2'}`)
+    logDebug(`Secondary network: ${gre.l2 !== null ? (isHHL1 ? 'L2' : 'L1') : 'not initialized'}`)
     return gre
   }
 })
@@ -62,10 +66,10 @@ function buildGraphNetworkEnvironment(
   isHHL1: boolean,
 ): GraphNetworkEnvironment | null {
   if (graphConfigPath === undefined) {
-    console.warn(
-      `No graph config file provided for chain: ${chainId}. L${
-        isHHL1 ? '2' : '1'
-      } graph object will not be initialized.`,
+    logWarn(
+      `No graph config file provided for chain: ${chainId}. ${
+        isHHL1 ? 'L2' : 'L1'
+      } will not be initialized.`,
     )
     return null
   }

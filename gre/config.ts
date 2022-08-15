@@ -6,25 +6,24 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
 import { HttpNetworkConfig } from 'hardhat/types/config'
 
 import { GraphRuntimeEnvironmentOptions } from './type-extensions'
-import { GREPluginError } from './helpers/errors'
-import GraphChains from './helpers/chains'
+import { GREPluginError } from './helpers/error'
+import GraphNetwork from './helpers/network'
 
-import debug from 'debug'
-const log = debug('hardhat:graphprotocol:gre')
+import { logDebug } from './logger'
 
-interface GREChainData {
+interface GREChains {
   l1ChainId: number
   l2ChainId: number
   isHHL1: boolean
   isHHL2: boolean
 }
 
-interface GREProviderData {
+interface GREProviders {
   l1Provider: providers.JsonRpcProvider
   l2Provider: providers.JsonRpcProvider
 }
 
-interface GREGraphConfigData {
+interface GREGraphConfigs {
   l1GraphConfigPath: string | undefined
   l2GraphConfigPath: string | undefined
 }
@@ -33,6 +32,10 @@ export function getAddressBookPath(
   hre: HardhatRuntimeEnvironment,
   opts: GraphRuntimeEnvironmentOptions,
 ): string {
+  logDebug('== Getting address book path')
+  logDebug(`1) opts.addressBookPath: ${opts.addressBook}`)
+  logDebug(`2) hre.config.graph.addressBook: ${hre.config.graph.addressBook}`)
+
   const addressBookPath = opts.addressBook ?? hre.config.graph.addressBook
 
   if (addressBookPath === undefined) {
@@ -43,33 +46,36 @@ export function getAddressBookPath(
     throw new GREPluginError(`Address book not found: ${addressBookPath}`)
   }
 
+  logDebug(`Address book path found: ${addressBookPath}`)
   return addressBookPath
 }
 
-export function getChains(mainChainId: number | undefined): GREChainData {
-  if (!GraphChains.isSupported(mainChainId)) {
-    const supportedChains = GraphChains.chains.join(',')
+export function getChains(mainChainId: number | undefined): GREChains {
+  logDebug('== Getting chain ids')
+  logDebug(`Hardhat chain id: ${mainChainId}`)
+
+  if (!GraphNetwork.isSupported(mainChainId)) {
+    const supportedChains = GraphNetwork.chains.join(',')
     throw new GREPluginError(
       `Chain ${mainChainId} is not supported! Supported chainIds: ${supportedChains}.`,
     )
   }
 
   // If mainChainId is supported there is a supported counterpart chainId so both chains are not undefined
-
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   mainChainId = mainChainId!
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const secondaryChainId = GraphChains.counterpart(mainChainId)!
+  const secondaryChainId = GraphNetwork.counterpart(mainChainId)!
+  logDebug(`Secondary chain id: ${secondaryChainId}`)
 
-  const isHHL1 = GraphChains.isL1(mainChainId)
-  const isHHL2 = GraphChains.isL2(mainChainId)
+  const isHHL1 = GraphNetwork.isL1(mainChainId)
+  const isHHL2 = GraphNetwork.isL2(mainChainId)
   const l1ChainId = isHHL1 ? mainChainId : secondaryChainId
   const l2ChainId = isHHL2 ? mainChainId : secondaryChainId
 
-  log(`Hardhat chain id: ${mainChainId}`)
-  log(`L1 chain id: ${l1ChainId} - Is HHL1: ${isHHL1}`)
-  log(`L2 chain id: ${l2ChainId} - Is HHL2: ${isHHL2}`)
+  logDebug(`L1 chain id: ${l1ChainId} - Is HHL1: ${isHHL1}`)
+  logDebug(`L2 chain id: ${l2ChainId} - Is HHL2: ${isHHL2}`)
 
   return {
     l1ChainId,
@@ -83,18 +89,25 @@ export function getProviders(
   hre: HardhatRuntimeEnvironment,
   l1ChainId: number,
   l2ChainId: number,
-): GREProviderData {
-  const l1Network = getNetworkByChainId(hre.config.networks, l1ChainId) as HttpNetworkConfig
-  const l2Network = getNetworkByChainId(hre.config.networks, l2ChainId) as HttpNetworkConfig
+): GREProviders {
+  logDebug('== Getting providers')
+
+  const l1Network = getNetworkConfig(hre.config.networks, l1ChainId) as HttpNetworkConfig
+  const l2Network = getNetworkConfig(hre.config.networks, l2ChainId) as HttpNetworkConfig
 
   for (const network of [l1Network, l2Network]) {
-    if (network === undefined || network.url === undefined) {
-      throw new GREPluginError(`Must set a provider url for chain ${l1ChainId}!`)
+    if (network === undefined) {
+      throw new GREPluginError(`L1 or L2 network not found in hardhat config!`)
+    } else if (network.url === undefined) {
+      throw new GREPluginError(`Must set a provider url for chain ${network.chainId}!`)
     }
   }
 
   const l1Provider = new providers.JsonRpcProvider(l1Network.url)
   const l2Provider = new providers.JsonRpcProvider(l2Network.url)
+
+  logDebug(`L1 provider url: ${l1Network.url}`)
+  logDebug(`L2 provider url: ${l2Network.url}`)
 
   return {
     l1Provider,
@@ -108,9 +121,11 @@ export function getGraphConfigPaths(
   l1ChainId: number,
   l2ChainId: number,
   isHHL1: boolean,
-): GREGraphConfigData {
-  const l1Network = getNetworkByChainId(hre.config.networks, l1ChainId)
-  const l2Network = getNetworkByChainId(hre.config.networks, l2ChainId)
+): GREGraphConfigs {
+  logDebug('== Getting graph config paths')
+
+  const l1Network = getNetworkConfig(hre.config.networks, l1ChainId)
+  const l2Network = getNetworkConfig(hre.config.networks, l2ChainId)
 
   // Priority is as follows:
   // - hre.graph() init parameter l1GraphConfigPath/l2GraphConfigPath
@@ -123,11 +138,23 @@ export function getGraphConfigPaths(
     l1Network?.graphConfig ??
     hre.config.graph.l1GraphConfig
 
+  logDebug(`> L1 graph config`)
+  logDebug(`1) opts.l1GraphConfig: ${opts.l1GraphConfig}`)
+  logDebug(`2) opts.graphConfig: ${isHHL1 ? opts.graphConfig : undefined}`)
+  logDebug(`3) l1Network.graphConfig: ${l1Network?.graphConfig}`)
+  logDebug(`4) hre.config.graph.l1GraphConfig: ${hre.config.graph.l1GraphConfig}`)
+
   const l2GraphConfigPath =
     opts.l2GraphConfig ??
     (!isHHL1 ? opts.graphConfig : undefined) ??
     l2Network?.graphConfig ??
     hre.config.graph.l2GraphConfig
+
+  logDebug(`> L2 graph config`)
+  logDebug(`1) opts.l2GraphConfig: ${opts.l2GraphConfig}`)
+  logDebug(`2) opts.graphConfig: ${!isHHL1 ? opts.graphConfig : undefined}`)
+  logDebug(`3) l2Network.graphConfig: ${l2Network?.graphConfig}`)
+  logDebug(`4) hre.config.graph.l2GraphConfig: ${hre.config.graph.l2GraphConfig}`)
 
   for (const configPath of [l1GraphConfigPath, l2GraphConfigPath]) {
     if (configPath !== undefined && !fs.existsSync(configPath)) {
@@ -135,13 +162,16 @@ export function getGraphConfigPaths(
     }
   }
 
+  logDebug(`L1 graph config path: ${l1GraphConfigPath}`)
+  logDebug(`L2 graph config path: ${l2GraphConfigPath}`)
+
   return {
     l1GraphConfigPath: l1GraphConfigPath,
     l2GraphConfigPath: l2GraphConfigPath,
   }
 }
 
-function getNetworkByChainId(networks: NetworksConfig, chainId: number): NetworkConfig | undefined {
+function getNetworkConfig(networks: NetworksConfig, chainId: number): NetworkConfig | undefined {
   return Object.keys(networks)
     .map((n) => networks[n])
     .find((n) => n.chainId === chainId)
