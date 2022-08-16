@@ -10,11 +10,11 @@ import {
   GraphRuntimeEnvironment,
   GraphRuntimeEnvironmentOptions,
 } from './type-extensions'
-import { providers } from 'ethers'
 import { getChains, getProviders, getAddressBookPath, getGraphConfigPaths } from './config'
 import { getDeployer, getNamedAccounts, getTestAccounts } from './accounts'
 import { logDebug, logWarn } from './logger'
 import path from 'path'
+import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 
@@ -81,7 +81,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
 function buildGraphNetworkEnvironment(
   chainId: number,
-  provider: providers.JsonRpcProvider | undefined,
+  provider: EthersProviderWrapper | undefined,
   graphConfigPath: string | undefined,
   addressBookPath: string,
   isHHL1: boolean,

@@ -1,5 +1,5 @@
+import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { providers } from 'ethers'
 import { getItemValue, readConfig } from '../cli/config'
 import { AccountNames, NamedAccounts } from './type-extensions'
 
@@ -13,7 +13,7 @@ const namedAccountList: AccountNames[] = [
 ]
 
 export async function getNamedAccounts(
-  provider: providers.JsonRpcProvider,
+  provider: EthersProviderWrapper,
   graphConfigPath: string,
 ): Promise<NamedAccounts> {
   const namedAccounts = namedAccountList.reduce(async (accountsPromise, name) => {
@@ -26,13 +26,13 @@ export async function getNamedAccounts(
   return namedAccounts
 }
 
-export async function getDeployer(provider: providers.JsonRpcProvider): Promise<SignerWithAddress> {
+export async function getDeployer(provider: EthersProviderWrapper): Promise<SignerWithAddress> {
   const signer = provider.getSigner(0)
   return SignerWithAddress.create(signer)
 }
 
 export async function getTestAccounts(
-  provider: providers.JsonRpcProvider,
+  provider: EthersProviderWrapper,
   graphConfigPath: string,
 ): Promise<SignerWithAddress[]> {
   // Get list of privileged accounts we don't want as test accounts

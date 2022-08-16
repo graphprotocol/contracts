@@ -1,6 +1,5 @@
 import fs from 'fs'
 import path from 'path'
-import { providers } from 'ethers'
 
 import { NetworkConfig, NetworksConfig } from 'hardhat/types/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
@@ -10,8 +9,8 @@ import { GraphRuntimeEnvironmentOptions } from './type-extensions'
 import { GREPluginError } from './helpers/error'
 import GraphNetwork from './helpers/network'
 
-import { createProvider } from '../node_modules/hardhat/internal/core/providers/construction'
-import { EthersProviderWrapper } from '../node_modules/@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import { createProvider } from 'hardhat/internal/core/providers/construction'
+import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
 import { logDebug } from './logger'
 
@@ -104,6 +103,7 @@ export function getProviders(
     chainLabel: string,
   ): EthersProviderWrapper | undefined => {
     const network = getNetworkConfig(networks, chainId) as HttpNetworkConfig
+    const networkName = getNetworkName(networks, chainId)
 
     // Ensure at least main provider is configured
     if (isMainProvider && network === undefined) {
@@ -112,13 +112,12 @@ export function getProviders(
 
     logDebug(`Provider url for ${chainLabel}: ${network?.url}`)
 
-    if (network === undefined) {
+    if (network === undefined || networkName === undefined) {
       return undefined
     }
 
     // Build provider as EthersProviderWrapper instead of JsonRpcProvider
     // This let's us use hardhat's account management methods
-    const networkName = getNetworkName(networks, chainId)
     const ethereumProvider = createProvider(networkName, network)
     const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
     return ethersProviderWrapper
