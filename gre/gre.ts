@@ -1,5 +1,5 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { extendEnvironment } from 'hardhat/config'
+import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
+import { extendConfig, extendEnvironment } from 'hardhat/config'
 import { lazyFunction, lazyObject } from 'hardhat/plugins'
 
 import { getAddressBook } from '../cli/address-book'
@@ -14,12 +14,33 @@ import { providers } from 'ethers'
 import { getChains, getProviders, getAddressBookPath, getGraphConfigPaths } from './config'
 import { getDeployer, getNamedAccounts, getTestAccounts } from './accounts'
 import { logDebug, logWarn } from './logger'
+import path from 'path'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
+
+extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
+  // Source for the path convention:
+  // https://github.com/NomicFoundation/hardhat-ts-plugin-boilerplate/blob/d450d89f4b6ed5d26a8ae32b136b9c55d2aadab5/src/index.ts
+  const userPath = userConfig.paths?.graph
+
+  let newPath: string
+  if (userPath === undefined) {
+    newPath = config.paths.root
+  } else {
+    if (path.isAbsolute(userPath)) {
+      newPath = userPath
+    } else {
+      newPath = path.normalize(path.join(config.paths.root, userPath))
+    }
+  }
+
+  config.paths.graph = newPath
+})
+
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.graph = (opts: GraphRuntimeEnvironmentOptions = {}) => {
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)
-    const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId)
+    const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId, isHHL1)
     const addressBookPath = getAddressBookPath(hre, opts)
     const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
       hre,
@@ -60,7 +81,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
 function buildGraphNetworkEnvironment(
   chainId: number,
-  provider: providers.JsonRpcProvider,
+  provider: providers.JsonRpcProvider | undefined,
   graphConfigPath: string | undefined,
   addressBookPath: string,
   isHHL1: boolean,
@@ -74,7 +95,15 @@ function buildGraphNetworkEnvironment(
     return null
   }
 
+  if (provider === undefined) {
+    logWarn(
+      `No provider URL found for: ${chainId}. ${isHHL1 ? 'L2' : 'L1'} will not be initialized.`,
+    )
+    return null
+  }
+
   return {
+    chainId: chainId,
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
     contracts: lazyObject(() =>

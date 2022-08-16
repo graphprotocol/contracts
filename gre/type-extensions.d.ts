@@ -22,6 +22,7 @@ export type NamedAccounts = {
 }
 
 export interface GraphNetworkEnvironment {
+  chainId: number
   contracts: NetworkContracts
   graphConfig: any
   addressBook: AddressBook
@@ -67,10 +68,10 @@ declare module 'hardhat/types/config' {
   }
 
   export interface ProjectPathsConfig {
-    graphConfigs?: string
+    graph?: string
   }
 
   export interface ProjectPathsUserConfig {
-    graphConfigs?: string
+    graph?: string
   }
 }

@@ -99,7 +99,6 @@ const config: HardhatUserConfig = {
     sources: './contracts',
     tests: './test',
     artifacts: './build/contracts',
-    graphConfigs: './config',
   },
   solidity: {
     compilers: [

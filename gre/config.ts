@@ -1,4 +1,5 @@
 import fs from 'fs'
+import path from 'path'
 import { providers } from 'ethers'
 
 import { NetworkConfig, NetworksConfig } from 'hardhat/types/config'
@@ -19,8 +20,8 @@ interface GREChains {
 }
 
 interface GREProviders {
-  l1Provider: providers.JsonRpcProvider
-  l2Provider: providers.JsonRpcProvider
+  l1Provider: providers.JsonRpcProvider | undefined
+  l2Provider: providers.JsonRpcProvider | undefined
 }
 
 interface GREGraphConfigs {
@@ -33,14 +34,17 @@ export function getAddressBookPath(
   opts: GraphRuntimeEnvironmentOptions,
 ): string {
   logDebug('== Getting address book path')
+  logDebug(`Graph base dir: ${hre.config.paths.graph}`)
   logDebug(`1) opts.addressBookPath: ${opts.addressBook}`)
-  logDebug(`2) hre.config.graph.addressBook: ${hre.config.graph.addressBook}`)
+  logDebug(`2) hre.config.graph.addressBook: ${hre.config.graph?.addressBook}`)
 
-  const addressBookPath = opts.addressBook ?? hre.config.graph.addressBook
+  let addressBookPath = opts.addressBook ?? hre.config.graph?.addressBook
 
   if (addressBookPath === undefined) {
-    throw new GREPluginError(`Must set a an addressBook path!`)
+    throw new GREPluginError('Must set a an addressBook path!')
   }
+
+  addressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
 
   if (!fs.existsSync(addressBookPath)) {
     throw new GREPluginError(`Address book not found: ${addressBookPath}`)
@@ -55,10 +59,7 @@ export function getChains(mainChainId: number | undefined): GREChains {
   logDebug(`Hardhat chain id: ${mainChainId}`)
 
   if (!GraphNetwork.isSupported(mainChainId)) {
-    const supportedChains = GraphNetwork.chains.join(',')
-    throw new GREPluginError(
-      `Chain ${mainChainId} is not supported! Supported chainIds: ${supportedChains}.`,
-    )
+    throw new GREPluginError(`Chain ${mainChainId} is not supported!`)
   }
 
   // If mainChainId is supported there is a supported counterpart chainId so both chains are not undefined
@@ -89,25 +90,34 @@ export function getProviders(
   hre: HardhatRuntimeEnvironment,
   l1ChainId: number,
   l2ChainId: number,
+  isHHL1: boolean,
 ): GREProviders {
   logDebug('== Getting providers')
 
-  const l1Network = getNetworkConfig(hre.config.networks, l1ChainId) as HttpNetworkConfig
-  const l2Network = getNetworkConfig(hre.config.networks, l2ChainId) as HttpNetworkConfig
+  const getProvider = (
+    networks: NetworksConfig,
+    chainId: number,
+    isMainProvider: boolean,
+    chainLabel: string,
+  ): providers.JsonRpcProvider | undefined => {
+    const network = getNetworkConfig(networks, chainId) as HttpNetworkConfig
 
-  for (const network of [l1Network, l2Network]) {
-    if (network === undefined) {
-      throw new GREPluginError(`L1 or L2 network not found in hardhat config!`)
-    } else if (network.url === undefined) {
-      throw new GREPluginError(`Must set a provider url for chain ${network.chainId}!`)
+    // Ensure at least main provider is configured
+    if (isMainProvider && network === undefined) {
+      throw new GREPluginError(`Must set a provider url for chain: ${chainId}!`)
     }
+
+    logDebug(`Provider url for ${chainLabel}: ${network?.url}`)
+
+    if (network === undefined) {
+      return undefined
+    }
+
+    return new providers.JsonRpcProvider(network.url)
   }
 
-  const l1Provider = new providers.JsonRpcProvider(l1Network.url)
-  const l2Provider = new providers.JsonRpcProvider(l2Network.url)
-
-  logDebug(`L1 provider url: ${l1Network.url}`)
-  logDebug(`L2 provider url: ${l2Network.url}`)
+  const l1Provider = getProvider(hre.config.networks, l1ChainId, isHHL1, 'L1')
+  const l2Provider = getProvider(hre.config.networks, l2ChainId, !isHHL1, 'L2')
 
   return {
     l1Provider,
@@ -123,6 +133,7 @@ export function getGraphConfigPaths(
   isHHL1: boolean,
 ): GREGraphConfigs {
   logDebug('== Getting graph config paths')
+  logDebug(`Graph base dir: ${hre.config.paths.graph}`)
 
   const l1Network = getNetworkConfig(hre.config.networks, l1ChainId)
   const l2Network = getNetworkConfig(hre.config.networks, l2ChainId)
@@ -132,7 +143,7 @@ export function getGraphConfigPaths(
   // - hre.graph() init parameter graphConfigPath (only for layer corresponding to hh network)
   // - hh network config
   // - hh graph config (layer specific: l1GraphConfig, l2GraphConfig)
-  const l1GraphConfigPath =
+  let l1GraphConfigPath =
     opts.l1GraphConfig ??
     (isHHL1 ? opts.graphConfig : undefined) ??
     l1Network?.graphConfig ??
@@ -144,7 +155,15 @@ export function getGraphConfigPaths(
   logDebug(`3) l1Network.graphConfig: ${l1Network?.graphConfig}`)
   logDebug(`4) hre.config.graph.l1GraphConfig: ${hre.config.graph.l1GraphConfig}`)
 
-  const l2GraphConfigPath =
+  if (isHHL1 && l1GraphConfigPath === undefined) {
+    throw new GREPluginError('Must specify a graph config file for L1!')
+  }
+
+  if (l1GraphConfigPath !== undefined) {
+    l1GraphConfigPath = normalizePath(l1GraphConfigPath, hre.config.paths.graph)
+  }
+
+  let l2GraphConfigPath =
     opts.l2GraphConfig ??
     (!isHHL1 ? opts.graphConfig : undefined) ??
     l2Network?.graphConfig ??
@@ -155,6 +174,14 @@ export function getGraphConfigPaths(
   logDebug(`2) opts.graphConfig: ${!isHHL1 ? opts.graphConfig : undefined}`)
   logDebug(`3) l2Network.graphConfig: ${l2Network?.graphConfig}`)
   logDebug(`4) hre.config.graph.l2GraphConfig: ${hre.config.graph.l2GraphConfig}`)
+
+  if (!isHHL1 && l2GraphConfigPath === undefined) {
+    throw new GREPluginError('Must specify a graph config file for L2!')
+  }
+
+  if (l2GraphConfigPath !== undefined) {
+    l2GraphConfigPath = normalizePath(l2GraphConfigPath, hre.config.paths.graph)
+  }
 
   for (const configPath of [l1GraphConfigPath, l2GraphConfigPath]) {
     if (configPath !== undefined && !fs.existsSync(configPath)) {
@@ -175,4 +202,11 @@ function getNetworkConfig(networks: NetworksConfig, chainId: number): NetworkCon
   return Object.keys(networks)
     .map((n) => networks[n])
     .find((n) => n.chainId === chainId)
+}
+
+function normalizePath(_path: string, graphPath: string) {
+  if (!path.isAbsolute(_path)) {
+    _path = path.join(graphPath, _path)
+  }
+  return _path
 }

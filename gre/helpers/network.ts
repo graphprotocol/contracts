@@ -1,7 +1,7 @@
 class MapWithGetKey<K> extends Map<K, K> {
   getKey(value: K): K | undefined {
-    for (const [k] of this.entries()) {
-      if (k === value) {
+    for (const [k, v] of this.entries()) {
+      if (v === value) {
         return k
       }
     }
