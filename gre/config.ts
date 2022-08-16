@@ -10,6 +10,9 @@ import { GraphRuntimeEnvironmentOptions } from './type-extensions'
 import { GREPluginError } from './helpers/error'
 import GraphNetwork from './helpers/network'
 
+import { createProvider } from '../node_modules/hardhat/internal/core/providers/construction'
+import { EthersProviderWrapper } from '../node_modules/@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+
 import { logDebug } from './logger'
 
 interface GREChains {
@@ -20,8 +23,8 @@ interface GREChains {
 }
 
 interface GREProviders {
-  l1Provider: providers.JsonRpcProvider | undefined
-  l2Provider: providers.JsonRpcProvider | undefined
+  l1Provider: EthersProviderWrapper | undefined
+  l2Provider: EthersProviderWrapper | undefined
 }
 
 interface GREGraphConfigs {
@@ -99,7 +102,7 @@ export function getProviders(
     chainId: number,
     isMainProvider: boolean,
     chainLabel: string,
-  ): providers.JsonRpcProvider | undefined => {
+  ): EthersProviderWrapper | undefined => {
     const network = getNetworkConfig(networks, chainId) as HttpNetworkConfig
 
     // Ensure at least main provider is configured
@@ -113,7 +116,12 @@ export function getProviders(
       return undefined
     }
 
-    return new providers.JsonRpcProvider(network.url)
+    // Build provider as EthersProviderWrapper instead of JsonRpcProvider
+    // This let's us use hardhat's account management methods
+    const networkName = getNetworkName(networks, chainId)
+    const ethereumProvider = createProvider(networkName, network)
+    const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
+    return ethersProviderWrapper
   }
 
   const l1Provider = getProvider(hre.config.networks, l1ChainId, isHHL1, 'L1')
@@ -202,6 +210,10 @@ function getNetworkConfig(networks: NetworksConfig, chainId: number): NetworkCon
   return Object.keys(networks)
     .map((n) => networks[n])
     .find((n) => n.chainId === chainId)
+}
+
+function getNetworkName(networks: NetworksConfig, chainId: number): string | undefined {
+  return Object.keys(networks).find((n) => networks[n].chainId === chainId)
 }
 
 function normalizePath(_path: string, graphPath: string) {
