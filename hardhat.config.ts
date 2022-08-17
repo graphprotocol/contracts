@@ -22,13 +22,13 @@ import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
 import 'solidity-coverage'
 import 'hardhat-storage-layout'
-import './gre/gre'
 
 // Tasks
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
+  require('./gre/gre')
   ;['contracts', 'misc', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)

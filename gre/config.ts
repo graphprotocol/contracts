@@ -117,7 +117,7 @@ export function getProviders(
     }
 
     // Build provider as EthersProviderWrapper instead of JsonRpcProvider
-    // This let's us use hardhat's account management methods
+    // This allows us to use hardhat's account management methods for free
     const ethereumProvider = createProvider(networkName, network)
     const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
     return ethersProviderWrapper

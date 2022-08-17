@@ -104,6 +104,7 @@ function buildGraphNetworkEnvironment(
 
   return {
     chainId: chainId,
+    provider: provider,
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
     contracts: lazyObject(() =>
