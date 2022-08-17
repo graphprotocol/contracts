@@ -321,22 +321,18 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         // n = deltaR(t1, t0)
         uint256 newRewardsToDistribute = getNewGlobalRewards(rewardsMintedUntilBlock);
         // N = n - eps
-        uint256 tokensToMint;
+        uint256 rewardsTokensToMint;
         {
-            uint256 newRewardsPlusMintedActual = newRewardsToDistribute
-                .add(mintedRewardsActual)
-                .add(keeperReward);
+            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual);
             require(
-                newRewardsPlusMintedActual >= mintedRewardsTotal,
-                "Would mint negative tokens, wait before calling again"
+                newRewardsPlusMintedActual > mintedRewardsTotal,
+                "Would mint negative or zero tokens, wait before calling again"
             );
-            tokensToMint = newRewardsPlusMintedActual.sub(mintedRewardsTotal);
+            rewardsTokensToMint = newRewardsPlusMintedActual.sub(mintedRewardsTotal);
         }
 
         IGraphToken grt = graphToken();
-        if (tokensToMint > 0) {
-            grt.mint(address(this), tokensToMint);
-        }
+        grt.mint(address(this), rewardsTokensToMint.add(keeperReward));
 
         uint256 tokensToSendToL2 = 0;
         if (l2RewardsFraction != nextL2RewardsFraction) {
@@ -376,7 +372,7 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
                 _keeperRewardBeneficiary
             );
         } else if (l2RewardsFraction > 0) {
-            tokensToSendToL2 = tokensToMint
+            tokensToSendToL2 = rewardsTokensToMint
                 .mul(l2RewardsFraction)
                 .div(FIXED_POINT_SCALING_FACTOR)
                 .add(keeperReward);
@@ -395,7 +391,11 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
             // If we don't send rewards to L2, pay the keeper reward in L1
             grt.transfer(_keeperRewardBeneficiary, keeperReward);
         }
-        emit RewardsDripped(tokensToMint, tokensToSendToL2, rewardsMintedUntilBlock);
+        emit RewardsDripped(
+            rewardsTokensToMint.add(keeperReward),
+            tokensToSendToL2,
+            rewardsMintedUntilBlock
+        );
     }
 
     /**
