@@ -1,16 +1,11 @@
+import { Argv } from 'yargs'
+import { utils } from 'ethers'
+import { L1TransactionReceipt, L1ToL2MessageStatus, L1ToL2MessageWriter } from '@arbitrum/sdk'
+
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
-import { getProvider, sendTransaction, toGRT } from '../../network'
-import { BigNumber, utils } from 'ethers'
-import { parseEther } from '@ethersproject/units'
-import {
-  L1TransactionReceipt,
-  L1ToL2MessageStatus,
-  L1ToL2MessageWriter,
-  L1ToL2MessageGasEstimator,
-} from '@arbitrum/sdk'
-import { chainIdIsL2 } from '../../utils'
-import { Argv } from 'yargs'
+import { getProvider, sendTransaction, toGRT, ensureAllowance, toBN } from '../../network'
+import { chainIdIsL2, estimateRetryableTxGas } from '../../cross-chain'
 
 const logAutoRedeemReason = (autoRedeemRec) => {
   if (autoRedeemRec == null) {
@@ -49,95 +44,75 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info(`>>> Sending tokens to L2 <<<\n`)
 
   // parse provider
+  const l1Provider = cli.wallet.provider
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
+  const l1ChainId = cli.chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
+  if (chainIdIsL2(l1ChainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
     )
   }
-  const gateway = cli.contracts['L1GraphTokenGateway']
-  const l1GRT = cli.contracts['GraphToken']
-  const l1GRTAddress = l1GRT.address
+
+  // parse params
+  const { L1GraphTokenGateway: l1Gateway, GraphToken: l1GRT } = cli.contracts
   const amount = toGRT(cliArgs.amount)
-  const recipient = cliArgs.recipient ? cliArgs.recipient : cli.wallet.address
-  const l2Dest = await gateway.l2Counterpart()
+  const recipient = cliArgs.recipient ?? cli.wallet.address
+  const l1GatewayAddress = l1Gateway.address
+  const l2GatewayAddress = await l1Gateway.l2Counterpart()
   const calldata = cliArgs.calldata ?? '0x'
 
+  // transport tokens
   logger.info(`Will send ${cliArgs.amount} GRT to ${recipient}`)
-  logger.info(`Using L1 gateway ${gateway.address} and L2 gateway ${l2Dest}`)
+  logger.info(`Using L1 gateway ${l1GatewayAddress} and L2 gateway ${l2GatewayAddress}`)
+  await ensureAllowance(cli.wallet, l1GatewayAddress, l1GRT, amount)
+
+  // estimate L2 ticket
   // See https://github.com/OffchainLabs/arbitrum/blob/master/packages/arb-ts/src/lib/bridge.ts
-  const depositCalldata = await gateway.getOutboundCalldata(
-    l1GRTAddress,
+  const depositCalldata = await l1Gateway.getOutboundCalldata(
+    l1GRT.address,
     cli.wallet.address,
     recipient,
     amount,
     calldata,
   )
-
-  const senderBalance = await l1GRT.balanceOf(cli.wallet.address)
-  if (senderBalance.lt(amount)) {
-    throw new Error('Sender balance is insufficient for the transfer')
-  }
-  logger.info('Approving token transfer')
-  await sendTransaction(cli.wallet, l1GRT, 'approve', [gateway.address, amount])
-
-  let maxGas: BigNumber
-  let gasPriceBid: BigNumber
-  let maxSubmissionPrice: BigNumber
-
-  if (!cliArgs.maxGas || !cliArgs.gasPrice || !cliArgs.maxSubmissionCost) {
-    // Comment from Offchain Labs' implementation:
-    // we add a 0.05 ether "deposit" buffer to pay for execution in the gas estimation
-    logger.info('Estimating retryable ticket gas:')
-    const baseFee = (await cli.wallet.provider.getBlock('latest')).baseFeePerGas
-    const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
-    const gasParams = await gasEstimator.estimateAll(
-      gateway.address,
-      l2Dest,
-      depositCalldata,
-      parseEther('0'),
-      baseFee as BigNumber,
-      gateway.address,
-      gateway.address,
-      cli.wallet.provider,
-    )
-    maxGas = cliArgs.maxGas ? BigNumber.from(cliArgs.maxGas) : gasParams.gasLimit
-    gasPriceBid = cliArgs.gasPrice ? BigNumber.from(cliArgs.gasPrice) : gasParams.maxFeePerGas
-    maxSubmissionPrice = cliArgs.maxSubmissionCost
-      ? BigNumber.from(cliArgs.maxSubmissionCost)
-      : gasParams.maxSubmissionFee
-  } else {
-    maxGas = BigNumber.from(cliArgs.maxGas)
-    gasPriceBid = BigNumber.from(cliArgs.gasPrice)
-    maxSubmissionPrice = BigNumber.from(cliArgs.maxSubmissionCost)
-  }
-
+  const { maxGas, gasPriceBid, maxSubmissionCost } = await estimateRetryableTxGas(
+    l1Provider,
+    l2Provider,
+    l1GatewayAddress,
+    l2GatewayAddress,
+    depositCalldata,
+    {
+      maxGas: cliArgs.maxGas,
+      gasPriceBid: cliArgs.gasPriceBid,
+      maxSubmissionCost: cliArgs.maxSubmissionCost,
+    },
+  )
+  const ethValue = maxSubmissionCost.add(gasPriceBid.mul(maxGas))
   logger.info(
-    `Using max gas: ${maxGas}, gas price bid: ${gasPriceBid}, max submission price: ${maxSubmissionPrice}`,
+    `Using maxGas:${maxGas}, gasPriceBid:${gasPriceBid}, maxSubmissionCost:${maxSubmissionCost} = tx value: ${ethValue}`,
   )
 
-  const ethValue = maxSubmissionPrice.add(gasPriceBid.mul(maxGas))
-  logger.info(`tx value: ${ethValue}`)
-  const data = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionPrice, calldata])
-
-  const params = [l1GRTAddress, recipient, amount, maxGas, gasPriceBid, data]
+  // build transaction
   logger.info('Sending outbound transfer transaction')
-  const receipt = await sendTransaction(cli.wallet, gateway, 'outboundTransfer', params, {
+  const txData = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionCost, calldata])
+  const txParams = [l1GRT.address, recipient, amount, maxGas, gasPriceBid, txData]
+  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams, {
     value: ethValue,
   })
-  const l1Receipt = new L1TransactionReceipt(receipt)
+
+  // get l2 ticket status
+  logger.info('Waiting for message to propagate to L2...')
+  const l1Receipt = new L1TransactionReceipt(txReceipt)
   const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
   const l1ToL2Message = l1ToL2Messages[0]
-
-  logger.info('Waiting for message to propagate to L2...')
   try {
     await checkAndRedeemMessage(l1ToL2Message)
   } catch (e) {
     logger.error('Auto redeem failed')
     logger.error(e)
     logger.error('You can re-attempt using redeem-send-to-l2 with the following txHash:')
-    logger.error(receipt.transactionHash)
+    logger.error(txReceipt.transactionHash)
   }
 }
 
@@ -172,7 +147,7 @@ export const sendToL2Command = {
         requiresArg: true,
         type: 'string',
       })
-      .option('gas-price', {
+      .option('gas-price-bid', {
         description: 'Gas price for the L2 redemption attempt',
         requiresArg: true,
         type: 'string',
@@ -188,6 +163,11 @@ export const sendToL2Command = {
       })
       .positional('calldata', {
         description: 'Calldata to pass to the recipient. Must be whitelisted in the bridge',
+      })
+      .coerce({
+        maxGas: toBN,
+        gasPriceBid: toBN,
+        maxSubmissionCost: toBN,
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {

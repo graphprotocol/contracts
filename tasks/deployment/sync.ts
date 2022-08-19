@@ -1,7 +1,7 @@
 import { ContractTransaction } from 'ethers'
 import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
-import { chainIdIsL2 } from '../../cli/utils'
+import { chainIdIsL2 } from '../../cli/cross-chain'
 
 task('migrate:sync', 'Sync controller contracts')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)

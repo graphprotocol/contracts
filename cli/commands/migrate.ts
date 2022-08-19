@@ -11,8 +11,8 @@ import {
   sendTransaction,
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { chainIdIsL2 } from '../cross-chain'
 import { confirm } from '../helpers'
-import { chainIdIsL2 } from '../utils'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
