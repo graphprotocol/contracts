@@ -1,6 +1,7 @@
 import { BaseContract, providers, Signer } from 'ethers'
 
 import { AddressBook } from './address-book'
+import { chainIdIsL2 } from './cross-chain'
 import { logger } from './logging'
 import { getContractAt } from './network'
 
@@ -22,7 +23,6 @@ import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
 import { BridgeEscrow } from '../build/types/BridgeEscrow'
-import { chainIdIsL2 } from './utils'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
 import { GraphCurationToken } from '../build/types/GraphCurationToken'
 import { SubgraphNFTDescriptor } from '../build/types/SubgraphNFTDescriptor'
