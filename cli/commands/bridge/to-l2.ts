@@ -97,22 +97,22 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info('Sending outbound transfer transaction')
   const txData = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionCost, calldata])
   const txParams = [l1GRT.address, recipient, amount, maxGas, gasPriceBid, txData]
-  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams, {
-    value: ethValue,
-  })
+  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams)
 
   // get l2 ticket status
-  logger.info('Waiting for message to propagate to L2...')
-  const l1Receipt = new L1TransactionReceipt(txReceipt)
-  const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
-  const l1ToL2Message = l1ToL2Messages[0]
-  try {
-    await checkAndRedeemMessage(l1ToL2Message)
-  } catch (e) {
-    logger.error('Auto redeem failed')
-    logger.error(e)
-    logger.error('You can re-attempt using redeem-send-to-l2 with the following txHash:')
-    logger.error(txReceipt.transactionHash)
+  if (txReceipt.status == 1) {
+    logger.info('Waiting for message to propagate to L2...')
+    const l1Receipt = new L1TransactionReceipt(txReceipt)
+    const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
+    const l1ToL2Message = l1ToL2Messages[0]
+    try {
+      await checkAndRedeemMessage(l1ToL2Message)
+    } catch (e) {
+      logger.error('Auto redeem failed')
+      logger.error(e)
+      logger.error('You can re-attempt using redeem-send-to-l2 with the following txHash:')
+      logger.error(txReceipt.transactionHash)
+    }
   }
 }
 
