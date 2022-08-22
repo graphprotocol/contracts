@@ -878,6 +878,145 @@ describe('L1Reservoir', () => {
           expectedNewNextDeadline,
         )
     })
+
+    it('reverts for a while but can be called again later if L2 fraction goes to zero', async function () {
+      await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0.5'))
+
+      // First drip call, sending half the rewards to L2
+      supplyBeforeDrip = await grt.totalSupply()
+      const startAccrued = await l1Reservoir.getAccumulatedRewards(await latestBlock())
+      expect(startAccrued).to.eq(0)
+      const dripBlock = (await latestBlock()).add(1) // We're gonna drip in the next transaction
+      const tracker = await RewardsTracker.create(
+        supplyBeforeDrip,
+        defaults.rewards.issuanceRate,
+        dripBlock,
+      )
+      expect(await tracker.accRewards(dripBlock)).to.eq(0)
+      const expectedNextDeadline = dripBlock.add(defaults.rewards.dripInterval)
+      const expectedMintedAmount = await tracker.accRewards(expectedNextDeadline)
+      const expectedSentToL2 = expectedMintedAmount.div(2)
+      const tx = await l1Reservoir
+        .connect(keeper.signer)
+        ['drip(uint256,uint256,uint256,address)'](
+          maxGas,
+          gasPriceBid,
+          maxSubmissionCost,
+          keeper.address,
+          { value: defaultEthValue },
+        )
+      const actualAmount = await grt.balanceOf(l1Reservoir.address)
+      const escrowedAmount = await grt.balanceOf(bridgeEscrow.address)
+      expect(toRound(actualAmount)).to.eq(toRound(expectedMintedAmount.sub(expectedSentToL2)))
+      expect(toRound((await grt.totalSupply()).sub(supplyBeforeDrip))).to.eq(
+        toRound(expectedMintedAmount),
+      )
+      expect(toRound(escrowedAmount)).to.eq(toRound(expectedSentToL2))
+      await expect(tx)
+        .emit(l1Reservoir, 'RewardsDripped')
+        .withArgs(actualAmount.add(escrowedAmount), escrowedAmount, expectedNextDeadline)
+
+      let l2IssuanceBase = (await l1Reservoir.issuanceBase())
+        .mul(await l1Reservoir.l2RewardsFraction())
+        .div(toGRT('1'))
+      const issuanceRate = await l1Reservoir.issuanceRate()
+      let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
+        l2IssuanceBase,
+        issuanceRate,
+        toBN('0'),
+        toBN('0'),
+        keeper.address,
+      ])
+      let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+        grt.address,
+        l1Reservoir.address,
+        mockL2Reservoir.address,
+        escrowedAmount,
+        expectedCallhookData,
+      )
+      await expect(tx)
+        .emit(l1GraphTokenGateway, 'TxToL2')
+        .withArgs(l1Reservoir.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+
+      await tracker.snapshotRewards()
+
+      await l1Reservoir.connect(governor.signer).setL2RewardsFraction(toGRT('0'))
+
+      // Second attempt to drip immediately afterwards will revert, because we
+      // would have to send negative tokens to L2 to compensate
+      const tx2 = l1Reservoir
+        .connect(keeper.signer)
+        ['drip(uint256,uint256,uint256,address)'](
+          maxGas,
+          gasPriceBid,
+          maxSubmissionCost,
+          keeper.address,
+          { value: defaultEthValue },
+        )
+      await expect(tx2).revertedWith(
+        'Negative amount would be sent to L2, wait before calling again',
+      )
+
+      await advanceBlocks(await l1Reservoir.dripInterval())
+
+      // Now we should be able to drip again, and a small amount will be sent to L2
+      // to cover the few blocks since the drip interval was over
+      supplyBeforeDrip = await grt.totalSupply()
+      const secondDripBlock = (await latestBlock()).add(1)
+      const expectedNewNextDeadline = secondDripBlock.add(defaults.rewards.dripInterval)
+      const rewardsUntilSecondDripBlock = await tracker.accRewards(secondDripBlock)
+      const expectedTotalRewards = await tracker.accRewards(expectedNewNextDeadline)
+      const expectedNewMintedAmount = expectedTotalRewards.sub(expectedMintedAmount)
+      // The amount sent to L2 should cover up to the new drip block with the old fraction,
+      // and from then onwards with the new fraction, that is zero
+      const expectedNewTotalSentToL2 = rewardsUntilSecondDripBlock.div(2)
+
+      const tx3 = await l1Reservoir
+        .connect(keeper.signer)
+        ['drip(uint256,uint256,uint256,address)'](
+          maxGas,
+          gasPriceBid,
+          maxSubmissionCost,
+          keeper.address,
+          { value: defaultEthValue },
+        )
+      const newActualAmount = await grt.balanceOf(l1Reservoir.address)
+      const newEscrowedAmount = await grt.balanceOf(bridgeEscrow.address)
+      expect(toRound(newActualAmount)).to.eq(
+        toRound(expectedTotalRewards.sub(expectedNewTotalSentToL2)),
+      )
+      expect(toRound((await grt.totalSupply()).sub(supplyBeforeDrip))).to.eq(
+        toRound(expectedNewMintedAmount),
+      )
+      expect(toRound(newEscrowedAmount)).to.eq(toRound(expectedNewTotalSentToL2))
+      l2IssuanceBase = (await l1Reservoir.issuanceBase())
+        .mul(await l1Reservoir.l2RewardsFraction())
+        .div(toGRT('1'))
+      expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
+        l2IssuanceBase,
+        issuanceRate,
+        toBN('1'), // Incremented nonce
+        toBN('0'),
+        keeper.address,
+      ])
+      expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+        grt.address,
+        l1Reservoir.address,
+        mockL2Reservoir.address,
+        newEscrowedAmount.sub(escrowedAmount),
+        expectedCallhookData,
+      )
+      await expect(tx3)
+        .emit(l1GraphTokenGateway, 'TxToL2')
+        .withArgs(l1Reservoir.address, mockL2Gateway.address, toBN(2), expectedL2Data)
+      await expect(tx3)
+        .emit(l1Reservoir, 'RewardsDripped')
+        .withArgs(
+          newActualAmount.add(newEscrowedAmount).sub(actualAmount.add(escrowedAmount)),
+          newEscrowedAmount.sub(escrowedAmount),
+          expectedNewNextDeadline,
+        )
+    })
   })
 
   context('calculating rewards', async function () {
