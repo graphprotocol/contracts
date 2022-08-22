@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 
 /**
- * @dev Storage variables for the L1Reservoir
+ * @dev Storage variables for the L1Reservoir, version 1
  */
 contract L1ReservoirV1Storage {
     // Fraction of total rewards to be sent by L2, expressed in fixed point at 1e18
@@ -22,6 +22,10 @@ contract L1ReservoirV1Storage {
     uint256 public nextDripNonce;
 }
 
+/**
+ * @dev Storage variables for the L1Reservoir, version 2
+ * This version adds some variables that are needed when introducing keeper rewards.
+ */
 contract L1ReservoirV2Storage is L1ReservoirV1Storage {
     // Minimum number of blocks since last drip for a new drip to be allowed
     uint256 public minDripInterval;
