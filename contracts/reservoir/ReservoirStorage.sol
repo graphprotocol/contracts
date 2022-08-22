@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import "../governance/Managed.sol";
 
 /**
- * @dev Base storage variables for the Reservoir on both layers
+ * @dev Base storage variables for the Reservoir on both layers, version 1
  */
 contract ReservoirV1Storage is Managed {
     // Relative increase of the total supply per block, plus 1, expressed in fixed point at 1e18.
