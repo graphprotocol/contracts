@@ -3,14 +3,16 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "arbos-precompiles/arbos/builtin/ArbRetryableTx.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ArbRetryableTx } from "arbos-precompiles/arbos/builtin/ArbRetryableTx.sol";
 
-import "../../arbitrum/AddressAliasHelper.sol";
-import "../../reservoir/IReservoir.sol";
-import "../../reservoir/Reservoir.sol";
-import "./IL2Reservoir.sol";
-import "./L2ReservoirStorage.sol";
+import { Managed } from "../../governance/Managed.sol";
+import { IGraphToken } from "../../token/IGraphToken.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { IReservoir } from "../../reservoir/IReservoir.sol";
+import { Reservoir } from "../../reservoir/Reservoir.sol";
+import { IL2Reservoir } from "./IL2Reservoir.sol";
+import { L2ReservoirV2Storage } from "./L2ReservoirStorage.sol";
 
 /**
  * @dev ArbRetryableTx with additional interface to query the current redeemer.
