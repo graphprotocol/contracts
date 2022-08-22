@@ -43,9 +43,9 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     // Emitted when minDripInterval is updated
     event MinDripIntervalUpdated(uint256 minDripInterval);
     // Emitted when a new allowedDripper is added
-    event AllowedDripperAdded(address dripper);
+    event AllowedDripperAdded(address indexed dripper);
     // Emitted when an allowedDripper is revoked
-    event AllowedDripperRevoked(address dripper);
+    event AllowedDripperRevoked(address indexed dripper);
 
     /**
      * @dev Checks that the sender is an indexer with stake on the Staking contract,
