@@ -174,6 +174,10 @@ describe('L2Reservoir', () => {
         .setL1ReservoirAddress(testAccount1.address)
       await expect(tx).revertedWith('Caller must be Controller governor')
     })
+    it('rejects setting a zero address', async function () {
+      const tx = l2Reservoir.connect(governor.signer).setL1ReservoirAddress(constants.AddressZero)
+      await expect(tx).revertedWith('INVALID_L1_RESERVOIR')
+    })
     it('sets the L1Reservoir address', async function () {
       const tx = l2Reservoir.connect(governor.signer).setL1ReservoirAddress(testAccount1.address)
       await expect(tx).emit(l2Reservoir, 'L1ReservoirAddressUpdated').withArgs(testAccount1.address)

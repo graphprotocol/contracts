@@ -150,6 +150,7 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * @param _minDripInterval Minimum number of blocks since last drip for drip to be allowed
      */
     function setMinDripInterval(uint256 _minDripInterval) external onlyGovernor {
+        require(_minDripInterval < dripInterval, "MUST_BE_LT_DRIP_INTERVAL");
         minDripInterval = _minDripInterval;
         emit MinDripIntervalUpdated(_minDripInterval);
     }
@@ -302,6 +303,9 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
             block.number > lastRewardsUpdateBlock.add(minDripInterval),
             "WAIT_FOR_MIN_INTERVAL"
         );
+        // Note we only validate that the beneficiary is nonzero, as the caller might
+        // want to send the reward to an address that is different to the indexer/dripper's address.
+        require(_keeperRewardBeneficiary != address(0), "INVALID_BENEFICIARY");
 
         uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
         uint256 mintedRewardsActual = getNewGlobalRewards(block.number);

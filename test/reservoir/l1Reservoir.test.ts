@@ -347,7 +347,18 @@ describe('L1Reservoir', () => {
         const tx = l1Reservoir.connect(testAccount1.signer).setMinDripInterval(toBN('200'))
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
-
+      it('rejects setting minimum drip interval if equal to dripInterval', async function () {
+        const tx = l1Reservoir
+          .connect(governor.signer)
+          .setMinDripInterval(await l1Reservoir.dripInterval())
+        await expect(tx).revertedWith('MUST_BE_LT_DRIP_INTERVAL')
+      })
+      it('rejects setting minimum drip interval if larger than dripInterval', async function () {
+        const tx = l1Reservoir
+          .connect(governor.signer)
+          .setMinDripInterval((await l1Reservoir.dripInterval()).add(1))
+        await expect(tx).revertedWith('MUST_BE_LT_DRIP_INTERVAL')
+      })
       it('sets the minimum drip interval', async function () {
         const newValue = toBN('200')
         const tx = l1Reservoir.connect(governor.signer).setMinDripInterval(newValue)
@@ -405,6 +416,13 @@ describe('L1Reservoir', () => {
         .connect(testAccount1.signer)
         ['drip(uint256,uint256,uint256,address)'](toBN(0), toBN(0), toBN(0), testAccount1.address)
       await expect(tx).emit(l1Reservoir, 'RewardsDripped')
+    })
+    it('cannot be called with a zero address for the keeper reward beneficiary', async function () {
+      await l1Reservoir.connect(governor.signer).grantDripPermission(testAccount1.address)
+      const tx = l1Reservoir
+        .connect(testAccount1.signer)
+        ['drip(uint256,uint256,uint256,address)'](toBN(0), toBN(0), toBN(0), constants.AddressZero)
+      await expect(tx).revertedWith('INVALID_BENEFICIARY')
     })
     it('can be called by an indexer operator using an extra parameter', async function () {
       const stakedAmount = toGRT('100000')
