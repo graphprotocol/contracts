@@ -83,6 +83,7 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * @param _l1ReservoirAddress New address for the L1Reservoir on L1
      */
     function setL1ReservoirAddress(address _l1ReservoirAddress) external onlyGovernor {
+        require(_l1ReservoirAddress != address(0), "INVALID_L1_RESERVOIR");
         l1ReservoirAddress = _l1ReservoirAddress;
         emit L1ReservoirAddressUpdated(_l1ReservoirAddress);
     }
