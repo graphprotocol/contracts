@@ -62,7 +62,8 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
      * @param _indexer Indexer for which the sender must be an operator
      */
     modifier onlyIndexerOperator(address _indexer) {
-        require(_isIndexer(_indexer) && staking().isOperator(msg.sender, _indexer), "UNAUTHORIZED");
+        require(_isIndexer(_indexer), "UNAUTHORIZED_INVALID_INDEXER");
+        require(staking().isOperator(msg.sender, _indexer), "UNAUTHORIZED_INVALID_OPERATOR");
         _;
     }
 
