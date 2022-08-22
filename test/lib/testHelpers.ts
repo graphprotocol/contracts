@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
-import { formatUnits, getAddress } from 'ethers/lib/utils'
+import { formatUnits, getAddress, hexValue } from 'ethers/lib/utils'
 import { BigNumber as BN } from 'bignumber.js'
 
 import { EpochManager } from '../../build/types/EpochManager'
@@ -66,24 +66,17 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
       ? toBN(blockNumber)
       : blockNumber
   const currentBlock = await latestBlock()
-  const start = Date.now()
-  let notified
-  if (target.lt(currentBlock))
+  if (target.lt(currentBlock)) {
     throw Error(`Target block #(${target}) is lower than current block #(${currentBlock})`)
-  while ((await latestBlock()).lt(target)) {
-    if (!notified && Date.now() - start >= 5000) {
-      notified = true
-      console.log(`advanceBlockTo: Advancing too ` + 'many blocks is causing this test to be slow.')
-    }
-    await advanceBlock()
+  } else if (target.eq(currentBlock)) {
+    return
+  } else {
+    await advanceBlocks(target.sub(currentBlock))
   }
 }
 
 export const advanceBlocks = async (blocks: string | number | BigNumber): Promise<void> => {
-  const steps = typeof blocks === 'number' || typeof blocks === 'string' ? toBN(blocks) : blocks
-  const currentBlock = await latestBlock()
-  const toBlock = currentBlock.add(steps)
-  return advanceBlockTo(toBlock)
+  await provider().send('hardhat_mine', [hexValue(BigNumber.from(blocks))])
 }
 
 export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
@@ -185,7 +178,7 @@ export class RewardsTracker {
   async snapshotPerSignal(totalSignal: BigNumber, atBlock?: BigNumber): Promise<BigNumber> {
     this.accumulatedPerSignal = await this.accRewardsPerSignal(totalSignal, atBlock)
     this.accumulatedAtLastPerSignalUpdatedBlock = await this.accRewards(atBlock)
-    this.lastPerSignalUpdatedBlock = atBlock
+    this.lastPerSignalUpdatedBlock = atBlock || (await latestBlock())
     return this.accumulatedPerSignal
   }
 

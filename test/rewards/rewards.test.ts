@@ -79,7 +79,7 @@ describe('Rewards', () => {
   ) => {
     // -- t0 --
     const tracker = await RewardsTracker.create(initialSupply, ISSUANCE_RATE_PER_BLOCK, dripBlock)
-    tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
+    await tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
     // Jump
     await advanceBlocks(nBlocks)
 
@@ -330,11 +330,11 @@ describe('Rewards', () => {
         await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Minting signal triggers onSubgraphSignalUpgrade before pulling the GRT,
         // so we snapshot using the previous value
-        tracker.snapshotPerSignal(prevSignal)
+        await tracker.snapshotPerSignal(prevSignal)
 
         // Update
         await rewardsManager.updateAccRewardsPerSignal()
-        tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
+        await tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
 
         const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
@@ -359,14 +359,14 @@ describe('Rewards', () => {
         await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Minting signal triggers onSubgraphSignalUpgrade before pulling the GRT,
         // so we snapshot using the previous value
-        tracker.snapshotPerSignal(prevSignal)
+        await tracker.snapshotPerSignal(prevSignal)
 
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
 
         // Update
         await rewardsManager.updateAccRewardsPerSignal()
-        tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
+        await tracker.snapshotPerSignal(await grt.balanceOf(curation.address))
         const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
         const blockNum = await latestBlock()
