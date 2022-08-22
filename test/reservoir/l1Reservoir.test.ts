@@ -45,6 +45,7 @@ describe('L1Reservoir', () => {
   let governor: Account
   let testAccount1: Account
   let testAccount2: Account
+  let testAccount3: Account
   let mockRouter: Account
   let mockL2GRT: Account
   let mockL2Gateway: Account
@@ -162,6 +163,7 @@ describe('L1Reservoir', () => {
       mockL2Reservoir,
       keeper,
       testAccount2,
+      testAccount3,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
@@ -424,7 +426,43 @@ describe('L1Reservoir', () => {
         ['drip(uint256,uint256,uint256,address)'](toBN(0), toBN(0), toBN(0), constants.AddressZero)
       await expect(tx).revertedWith('INVALID_BENEFICIARY')
     })
-    it('can be called by an indexer operator using an extra parameter', async function () {
+    it('(operator variant) cannot be called with an invalid indexer', async function () {
+      const tx = l1Reservoir
+        .connect(testAccount2.signer)
+        ['drip(uint256,uint256,uint256,address,address)'](
+          toBN(0),
+          toBN(0),
+          toBN(0),
+          testAccount1.address,
+          testAccount1.address,
+        )
+      await expect(tx).revertedWith('UNAUTHORIZED_INVALID_INDEXER')
+    })
+    it('(operator variant) cannot be called by someone who is not an operator for the right indexer', async function () {
+      const stakedAmount = toGRT('100000')
+      // testAccount1 is a valid indexer
+      await grt.connect(governor.signer).mint(testAccount1.address, stakedAmount)
+      await grt.connect(testAccount1.signer).approve(staking.address, stakedAmount)
+      await staking.connect(testAccount1.signer).stake(stakedAmount)
+      // testAccount2 is an operator for testAccount1's indexer
+      await staking.connect(testAccount1.signer).setOperator(testAccount2.address, true)
+      // testAccount3 is another valid indexer
+      await grt.connect(governor.signer).mint(testAccount3.address, stakedAmount)
+      await grt.connect(testAccount3.signer).approve(staking.address, stakedAmount)
+      await staking.connect(testAccount3.signer).stake(stakedAmount)
+      // But testAccount2 is not an operator for testAccount3's indexer
+      const tx = l1Reservoir
+        .connect(testAccount2.signer)
+        ['drip(uint256,uint256,uint256,address,address)'](
+          toBN(0),
+          toBN(0),
+          toBN(0),
+          testAccount1.address,
+          testAccount3.address,
+        )
+      await expect(tx).revertedWith('UNAUTHORIZED_INVALID_OPERATOR')
+    })
+    it('(operator variant) can be called by an indexer operator using an extra parameter', async function () {
       const stakedAmount = toGRT('100000')
       await grt.connect(governor.signer).mint(testAccount1.address, stakedAmount)
       await grt.connect(testAccount1.signer).approve(staking.address, stakedAmount)
