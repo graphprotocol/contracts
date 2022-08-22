@@ -19,7 +19,9 @@ import "./IReservoir.sol";
 abstract contract Reservoir is GraphUpgradeable, ReservoirV1Storage, IReservoir {
     using SafeMath for uint256;
 
+    // Scaling factor for all fixed point arithmetics
     uint256 internal constant FIXED_POINT_SCALING_FACTOR = 1e18;
+    // Minimum issuance rate (expressed in fixed point at 1e18)
     uint256 internal constant MIN_ISSUANCE_RATE = 1e18;
 
     /**

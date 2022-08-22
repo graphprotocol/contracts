@@ -35,11 +35,16 @@ interface IArbTxWithRedeemer is ArbRetryableTx {
 contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
     using SafeMath for uint256;
 
+    // Address for the ArbRetryableTx interface provided by Arbitrum
     address public constant ARB_TX_ADDRESS = 0x000000000000000000000000000000000000006E;
 
+    // Emitted when a rewards drip is received from L1
     event DripReceived(uint256 issuanceBase);
+    // Emitted when the next drip nonce is manually updated by governance
     event NextDripNonceUpdated(uint256 nonce);
+    // Emitted when the L1Reservoir's address is updated
     event L1ReservoirAddressUpdated(address l1ReservoirAddress);
+    // Emitted when the L2 keeper reward fraction is updated
     event L2KeeperRewardFractionUpdated(uint256 l2KeeperRewardFraction);
 
     /**
