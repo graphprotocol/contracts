@@ -178,7 +178,7 @@ export class RewardsTracker {
   async snapshotPerSignal(totalSignal: BigNumber, atBlock?: BigNumber): Promise<BigNumber> {
     this.accumulatedPerSignal = await this.accRewardsPerSignal(totalSignal, atBlock)
     this.accumulatedAtLastPerSignalUpdatedBlock = await this.accRewards(atBlock)
-    this.lastPerSignalUpdatedBlock = atBlock
+    this.lastPerSignalUpdatedBlock = atBlock || (await latestBlock())
     return this.accumulatedPerSignal
   }
 
