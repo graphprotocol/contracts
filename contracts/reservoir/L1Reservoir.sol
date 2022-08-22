@@ -3,13 +3,16 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 
-import "../l2/reservoir/IL2Reservoir.sol";
-import "./Reservoir.sol";
-import "./L1ReservoirStorage.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
+import { IStaking } from "../staking/IStaking.sol";
+import { IL2Reservoir } from "../l2/reservoir/IL2Reservoir.sol";
+import { Reservoir } from "./Reservoir.sol";
+import { L1ReservoirV2Storage } from "./L1ReservoirStorage.sol";
 
 /**
  * @title L1 Rewards Reservoir

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import "../../reservoir/IReservoir.sol";
+import { IReservoir } from "../../reservoir/IReservoir.sol";
 
 /**
  * @title Interface for the L2 Rewards Reservoir
