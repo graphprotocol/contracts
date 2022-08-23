@@ -110,6 +110,7 @@ export function getProviders(
     logDebug(`Provider url for ${chainLabel}(${networkName}): ${network?.url}`)
 
     // Ensure at least main provider is configured
+    // For Hardhat network we don't need url to create a provider
     if (
       isMainProvider &&
       (network === undefined || network.url === undefined) &&

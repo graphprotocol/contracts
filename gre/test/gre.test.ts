@@ -20,7 +20,7 @@ describe('GRE usage', function () {
   describe('graph-config project setting --network to an L2', function () {
     useEnvironment('graph-config', 'arbitrum-goerli')
 
-    it('should return L1 and L2 configured objects ', function () {
+    it('should return L1 and L2 configured objects', function () {
       const g = this.hre.graph()
 
       expect(g).to.be.an('object')
@@ -35,7 +35,7 @@ describe('GRE usage', function () {
   describe('graph-config project setting --network to hardhat network', function () {
     useEnvironment('graph-config', 'hardhat')
 
-    it('should return L1 and L2 configured objects ', function () {
+    it('should return L1 configured object and L2 unconfigured', function () {
       const g = this.hre.graph()
 
       expect(g).to.be.an('object')
