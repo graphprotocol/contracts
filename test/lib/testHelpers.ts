@@ -76,7 +76,15 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
 }
 
 export const advanceBlocks = async (blocks: string | number | BigNumber): Promise<void> => {
-  await provider().send('hardhat_mine', [hexValue(BigNumber.from(blocks))])
+  const blocksBN = BigNumber.from(blocks)
+  const maxIterativeBlocks = BigNumber.from(10)
+  if (blocksBN.lte(maxIterativeBlocks)) {
+    for (let n = 0; blocksBN.gt(n); n++) {
+      await advanceBlock()
+    }
+  } else {
+    await provider().send('hardhat_mine', [hexValue(blocksBN)])
+  }
 }
 
 export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
