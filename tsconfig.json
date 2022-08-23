@@ -14,6 +14,7 @@
     "scripts/**/*.ts",
     "test/**/*.ts",
     "tasks/**/*.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "gre/**/*.ts"
   ]
 }

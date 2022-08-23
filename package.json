@@ -97,6 +97,7 @@
     "test:e2e": "scripts/e2e",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "test:coverage": "scripts/coverage",
+    "test:gre": "cd gre && mocha --exit --recursive 'test/**/*.test.ts' && cd ..",
     "lint": "yarn lint:ts && yarn lint:sol",
     "lint:fix": "yarn lint:ts:fix && yarn lint:sol:fix",
     "lint:ts": "eslint '**/*.{js,ts}'",

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
-import { NamedAccounts } from '../../../tasks/type-extensions'
+import { NamedAccounts } from '../../../gre/type-extensions'
 
 describe('Controller configuration', () => {
   const { contracts, getNamedAccounts } = hre.graph()

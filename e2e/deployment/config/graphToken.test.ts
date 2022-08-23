@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { NamedAccounts } from '../../../tasks/type-extensions'
+import { NamedAccounts } from '../../../gre/type-extensions'
 
 describe('GraphToken configuration', () => {
   const {

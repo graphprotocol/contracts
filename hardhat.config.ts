@@ -28,7 +28,7 @@ import 'hardhat-storage-layout'
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
-  require('./tasks/gre.ts')
+  require('./gre/gre')
   ;['contracts', 'misc', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
@@ -54,10 +54,11 @@ interface NetworkConfig {
   url?: string
   gas?: number | 'auto'
   gasPrice?: number | 'auto'
+  graphConfig?: string
 }
 
 const networkConfigs: NetworkConfig[] = [
-  { network: 'mainnet', chainId: 1 },
+  { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
   { network: 'rinkeby', chainId: 4 },
   { network: 'goerli', chainId: 5 },
   { network: 'kovan', chainId: 42 },
@@ -88,6 +89,9 @@ function setupNetworkProviders(hardhatConfig) {
       gas: netConfig.gas || 'auto',
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: getAccountsKeys(),
+    }
+    if (netConfig.graphConfig) {
+      hardhatConfig.networks[netConfig.network].graphConfig = netConfig.graphConfig
     }
   }
 }
@@ -143,6 +147,7 @@ const config: HardhatUserConfig = {
       hardfork: 'london',
     },
     localhost: {
+      chainId: 1337,
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
@@ -154,6 +159,11 @@ const config: HardhatUserConfig = {
       url: 'http://localhost:8547',
       accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
+  },
+  graph: {
+    addressBook: process.env.ADDRESS_BOOK,
+    l1GraphConfig: process.env.GRAPH_CONFIG,
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
