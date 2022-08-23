@@ -32,6 +32,20 @@ describe('GRE usage', function () {
     })
   })
 
+  describe('graph-config project setting --network to hardhat network', function () {
+    useEnvironment('graph-config', 'hardhat')
+
+    it('should return L1 and L2 configured objects ', function () {
+      const g = this.hre.graph()
+
+      expect(g).to.be.an('object')
+      expect(g.l1).to.be.an('object')
+      expect(g.l2).to.be.null
+      expect(g.l1.chainId).to.equal(1337)
+      expect(g.chainId).to.equal(1337)
+    })
+  })
+
   describe('graph-config project setting --network to an L1 with no configured counterpart', function () {
     useEnvironment('graph-config', 'localhost')
 
