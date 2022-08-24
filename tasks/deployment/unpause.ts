@@ -2,13 +2,10 @@ import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 
 task('migrate:unpause', 'Unpause protocol')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { contracts, getNamedAccounts } = hre.graph({
-      addressBook: taskArgs.addressBook,
-      graphConfig: taskArgs.graphConfig,
-    })
+    const { contracts, getNamedAccounts } = hre.graph(taskArgs)
     const { governor } = await getNamedAccounts()
 
     console.log('> Unpausing protocol')

@@ -2,17 +2,11 @@ import { ContractTransaction } from 'ethers'
 import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 
-task(
-  'migrate:ownership',
-  '[localhost] Accepts ownership of protocol contracts on behalf of governor',
-)
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+task('migrate:ownership', 'Accepts ownership of protocol contracts on behalf of governor')
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { contracts, getNamedAccounts } = hre.graph({
-      addressBook: taskArgs.addressBook,
-      graphConfig: taskArgs.graphConfig,
-    })
+    const { contracts, getNamedAccounts } = hre.graph(taskArgs)
     const { governor } = await getNamedAccounts()
 
     console.log('> Accepting ownership of contracts')

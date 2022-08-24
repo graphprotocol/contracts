@@ -4,13 +4,10 @@ import { cliOpts } from '../../cli/defaults'
 import { chainIdIsL2 } from '../../cli/utils'
 
 task('migrate:sync', 'Sync controller contracts')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { contracts, getDeployer } = hre.graph({
-      addressBook: taskArgs.addressBook,
-      graphConfig: taskArgs.graphConfig,
-    })
+    const { contracts, getDeployer } = hre.graph(taskArgs)
     const deployer = await getDeployer()
 
     const chainId = hre.network.config.chainId?.toString() ?? '1337'
