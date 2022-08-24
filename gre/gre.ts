@@ -111,7 +111,7 @@ function buildGraphNetworkEnvironment(
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
     contracts: lazyObject(() =>
-      loadContracts(getAddressBook(addressBookPath, chainId.toString()), provider),
+      loadContracts(getAddressBook(addressBookPath, chainId.toString()), chainId, provider),
     ),
     getDeployer: lazyFunction(() => () => getDeployer(provider)),
     getNamedAccounts: lazyFunction(() => () => getNamedAccounts(provider, graphConfigPath)),

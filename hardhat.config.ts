@@ -141,6 +141,7 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       chainId: 1337,
+      url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },

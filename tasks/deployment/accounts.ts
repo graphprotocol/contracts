@@ -3,12 +3,10 @@ import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 import { updateItemValue, writeConfig } from '../../cli/config'
 
-task('migrate:accounts', '[localhost] Creates protocol accounts and saves them in graph config')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { graphConfig, getDeployer } = hre.graph({
-      graphConfig: taskArgs.graphConfig,
-    })
+    const { graphConfig, getDeployer } = hre.graph(taskArgs)
 
     console.log('> Generating addresses')
 
