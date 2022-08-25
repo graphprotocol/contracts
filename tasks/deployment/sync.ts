@@ -7,7 +7,7 @@ task('migrate:sync', 'Sync controller contracts')
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { contracts, getDeployer } = hre.graph(taskArgs)
+    const { contracts, getDeployer } = await hre.graph(taskArgs)
     const deployer = await getDeployer()
 
     const chainId = hre.network.config.chainId?.toString() ?? '1337'

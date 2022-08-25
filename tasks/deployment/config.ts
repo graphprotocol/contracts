@@ -110,7 +110,7 @@ task('update-config', 'Update graph config parameters with onchain data')
       if (!sure) return
     }
 
-    const { graphConfig, contracts } = hre.graph({ graphConfig: configFile })
+    const { graphConfig, contracts } = await hre.graph({ graphConfig: configFile })
 
     // general parameters
     console.log(`> General`)

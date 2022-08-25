@@ -6,7 +6,7 @@ import { updateItemValue, writeConfig } from '../../cli/config'
 task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
-    const { graphConfig, getDeployer } = hre.graph(taskArgs)
+    const { graphConfig, getDeployer } = await hre.graph(taskArgs)
 
     console.log('> Generating addresses')
 
