@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { NetworkConfig, NetworksConfig } from 'hardhat/types/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
+import { HardhatRuntimeEnvironment, Network } from 'hardhat/types/runtime'
 import { HttpNetworkConfig } from 'hardhat/types/config'
 
 import { GraphRuntimeEnvironmentOptions } from './type-extensions'
@@ -14,6 +14,7 @@ import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers
 
 import { logDebug, logWarn } from './logger'
 import { HARDHAT_NETWORK_NAME } from 'hardhat/plugins'
+import { network } from 'hardhat'
 
 interface GREChains {
   l1ChainId: number
@@ -89,49 +90,72 @@ export function getChains(mainChainId: number | undefined): GREChains {
   }
 }
 
-export function getProviders(
+export async function getProviders(
   hre: HardhatRuntimeEnvironment,
   l1ChainId: number,
   l2ChainId: number,
   isHHL1: boolean,
-): GREProviders {
+  useSecureAccounts: boolean,
+): Promise<GREProviders> {
   logDebug('== Getting providers')
 
-  const getProvider = (
+  const getProvider = async (
     networks: NetworksConfig,
     chainId: number,
     mainNetworkName: string,
     isMainProvider: boolean,
     chainLabel: string,
-  ): EthersProviderWrapper | undefined => {
-    const network = getNetworkConfig(networks, chainId, mainNetworkName) as HttpNetworkConfig
+  ): Promise<EthersProviderWrapper | undefined> => {
+    const networkConfig = getNetworkConfig(networks, chainId, mainNetworkName) as HttpNetworkConfig
     const networkName = getNetworkName(networks, chainId, mainNetworkName)
 
-    logDebug(`Provider url for ${chainLabel}(${networkName}): ${network?.url}`)
+    logDebug(`Provider url for ${chainLabel}(${networkName}): ${networkConfig?.url}`)
 
     // Ensure at least main provider is configured
     // For Hardhat network we don't need url to create a provider
     if (
       isMainProvider &&
-      (network === undefined || network.url === undefined) &&
+      (networkConfig === undefined || networkConfig.url === undefined) &&
       networkName !== HARDHAT_NETWORK_NAME
     ) {
       throw new GREPluginError(`Must set a provider url for chain: ${chainId}!`)
     }
 
-    if (network === undefined || networkName === undefined) {
+    if (networkConfig === undefined || networkName === undefined) {
       return undefined
     }
 
     // Build provider as EthersProviderWrapper instead of JsonRpcProvider
     // This allows us to use hardhat's account management methods for free
-    const ethereumProvider = createProvider(networkName, network)
-    const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
-    return ethersProviderWrapper
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    if (useSecureAccounts) {
+      logDebug(`Using secure accounts provider for ${chainLabel}(${networkName})`)
+      console.log(
+        `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName})`,
+      )
+      return await hre.accounts.getProvider({ name: networkName, config: networkConfig } as Network)
+    } else {
+      logDebug(`Creating provider for ${chainLabel}(${networkName})`)
+      const ethereumProvider = createProvider(networkName, networkConfig)
+      const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
+      return ethersProviderWrapper
+    }
   }
 
-  const l1Provider = getProvider(hre.config.networks, l1ChainId, hre.network.name, isHHL1, 'L1')
-  const l2Provider = getProvider(hre.config.networks, l2ChainId, hre.network.name, !isHHL1, 'L2')
+  const l1Provider = await getProvider(
+    hre.config.networks,
+    l1ChainId,
+    hre.network.name,
+    isHHL1,
+    'L1',
+  )
+  const l2Provider = await getProvider(
+    hre.config.networks,
+    l2ChainId,
+    hre.network.name,
+    !isHHL1,
+    'L2',
+  )
 
   return {
     l1Provider,

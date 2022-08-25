@@ -11,6 +11,7 @@ export interface GraphRuntimeEnvironmentOptions {
   l2GraphConfig?: string
   graphConfig?: string
   enableTxLogging?: boolean
+  useSecureAccounts?: boolean
 }
 
 export type AccountNames =
@@ -45,7 +46,7 @@ export interface GraphRuntimeEnvironment extends GraphNetworkEnvironment {
 
 declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
-    graph: (opts?: GraphRuntimeEnvironmentOptions) => GraphRuntimeEnvironment
+    graph: (opts?: GraphRuntimeEnvironmentOptions) => Promise<GraphRuntimeEnvironment>
   }
 }
 

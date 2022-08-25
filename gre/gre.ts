@@ -17,6 +17,8 @@ import path from 'path'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { Wallet } from 'ethers'
 
+import 'hardhat-secure-accounts'
+
 // Graph Runtime Environment (GRE) extensions for the HRE
 
 extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
@@ -39,15 +41,24 @@ extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) =>
 })
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre.graph = (opts: GraphRuntimeEnvironmentOptions = {}) => {
+  hre.graph = async (opts: GraphRuntimeEnvironmentOptions = {}) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
 
     const enableTxLogging = opts.enableTxLogging ?? false
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
+    const secureAccounts = opts.useSecureAccounts ?? false
+    logDebug(`Secure accounts: ${secureAccounts ? 'enabled' : 'disabled'}`)
+
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)
-    const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId, isHHL1)
+    const { l1Provider, l2Provider } = await getProviders(
+      hre,
+      l1ChainId,
+      l2ChainId,
+      isHHL1,
+      secureAccounts,
+    )
     const addressBookPath = getAddressBookPath(hre, opts)
     const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
       hre,
