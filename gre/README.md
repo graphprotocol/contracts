@@ -8,8 +8,9 @@ GRE is a hardhat plugin that extends hardhat's runtime environment to inject add
 - Exposes protocol configuration via graph config file and address book
 - Provides account management methods for convenience
 - Multichain! Supports both L1 and L2 layers of the protocol simultaneously
+- Integrates seamlessly with [hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts)
 
-### Usage
+## Usage
 
 #### Example
 Import GRE using `import './gre/gre'` on your hardhat config file and then:
@@ -80,7 +81,7 @@ networks: {
 ...
 },
 graph: {
-	addressBook: 'addresses.json'
+  addressBook: 'addresses.json'
   l1GraphConfig: 'config/graph.mainnet.yml'
   l2GraphConfig: 'config/graph.arbitrum-one.yml'
 }
@@ -122,7 +123,7 @@ The priority for the address book is:
 1) `hre.graph({ ... })` init parameter `addressBook`
 2) `graph.addressBook` graph config parameter `addressBook` in hardhat config file
 
-### API
+## API
 
 GRE exposes functionality via a simple API:
 
@@ -142,6 +143,7 @@ The interface for both `l1` and `l2` objects looks like this:
 export interface GraphNetworkEnvironment {
   chainId: number
   contracts: NetworkContracts
+  provider: EthersProviderWrapper
   graphConfig: any
   addressBook: AddressBook
   getNamedAccounts: () => Promise<NamedAccounts>
@@ -168,7 +170,7 @@ Returns an object with all the contracts available in the network. Connects usin
 
 **Graph Config**
 
-Returns an object that grants raw access to the graph config file for the protocol. The graph config file is a YAML file that contains all the parameters with which the protocol was deployed.
+Returns an object that grants raw access to the YAML parse of the graph config file for the protocol. The graph config file is a YAML file that contains all the parameters with which the protocol was deployed.
 
 > TODO: add better APIs to interact with the graph config file.
 
@@ -227,3 +229,25 @@ Returns an object with wallets derived from the mnemonic or private key provided
 
 **Account management: getWallet**
 Returns a wallet derived from the mnemonic or private key provided via hardhat network configuration that matches a given address. This wallet is not connected to a provider.
+
+#### Integration with hardhat-secure-accounts
+
+[hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts) is a hardhat plugin that allows you to use encrypted keystore files to store your private keys. GRE has built-in support to use this plugin, you just need to enable it when instantiating the GRE object using the `useSecureAccounts` option, then each time you call any of the account management methods you will be prompted for an account name and password to unlock:
+
+```js
+// Without secure accounts
+> const graph = hre.graph()
+> const deployer = await g.l1.getDeployer()
+> deployer.address
+'0xBc7f4d3a85B820fDB1058FD93073Eb6bc9AAF59b'
+
+// With secure accounts
+> const graph = hre.graph({ useSecureAccounts: true })
+> const deployer = await g.l1.getDeployer()
+== Using secure accounts, please unlock an account for L1(goerli)
+Available accounts:  goerli-deployer, arbitrum-goerli-deployer, rinkeby-deployer, test-mnemonic
+Choose an account to unlock (use tab to autocomplete): test-mnemonic
+Enter the password for this account: ************
+> deployer.address
+'0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1'
+```
