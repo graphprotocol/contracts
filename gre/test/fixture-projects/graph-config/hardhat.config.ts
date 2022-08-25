@@ -3,6 +3,7 @@ import '../../../gre'
 module.exports = {
   paths: {
     graph: '../../files',
+    accounts: '.accounts',
   },
   solidity: '0.8.9',
   defaultNetwork: 'hardhat',

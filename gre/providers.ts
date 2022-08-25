@@ -8,9 +8,9 @@ import { getNetworkConfig, getNetworkName } from './helpers/network'
 import { logDebug } from './helpers/logger'
 
 import { GREPluginError } from './helpers/error'
+import { AccountsRuntimeEnvironment } from 'hardhat-secure-accounts/dist/src/type-extensions'
 
 export const getDefaultProvider = (
-  hre: HardhatRuntimeEnvironment,
   networks: NetworksConfig,
   chainId: number,
   mainNetworkName: string,
@@ -18,7 +18,6 @@ export const getDefaultProvider = (
   chainLabel: string,
 ): EthersProviderWrapper | undefined => {
   const { networkConfig, networkName } = getNetworkData(
-    hre,
     networks,
     chainId,
     mainNetworkName,
@@ -30,25 +29,49 @@ export const getDefaultProvider = (
     return undefined
   }
 
-  // Build provider as EthersProviderWrapper instead of JsonRpcProvider
-  // This allows us to use hardhat's account management methods for free
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  // if (useSecureAccounts) {
-  //   logDebug(`Using secure accounts provider for ${chainLabel}(${networkName})`)
-  //   console.log(
-  //     `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName})`,
-  //   )
-  //   return await hre.accounts.getProvider({ name: networkName, config: networkConfig } as Network)
-  // } else {
   logDebug(`Creating provider for ${chainLabel}(${networkName})`)
   const ethereumProvider = createProvider(networkName, networkConfig)
   const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
   return ethersProviderWrapper
-  // }
+}
+
+export const getSecureAccountsProvider = async (
+  accounts: AccountsRuntimeEnvironment,
+  networks: NetworksConfig,
+  chainId: number,
+  mainNetworkName: string,
+  isMainProvider: boolean,
+  chainLabel: string,
+  accountName?: string,
+  accountPassword?: string,
+): Promise<EthersProviderWrapper | undefined> => {
+  const { networkConfig, networkName } = getNetworkData(
+    networks,
+    chainId,
+    mainNetworkName,
+    isMainProvider,
+    chainLabel,
+  )
+
+  if (networkConfig === undefined || networkName === undefined) {
+    return undefined
+  }
+
+  logDebug(`Using secure accounts provider for ${chainLabel}(${networkName})`)
+  if (accountName === undefined || accountPassword === undefined) {
+    console.log(
+      `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName})`,
+    )
+  }
+
+  return await accounts.getProvider(
+    { name: networkName, config: networkConfig } as Network,
+    accountName,
+    accountPassword,
+  )
 }
 
 const getNetworkData = (
-  hre: HardhatRuntimeEnvironment,
   networks: NetworksConfig,
   chainId: number,
   mainNetworkName: string,

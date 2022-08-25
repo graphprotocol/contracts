@@ -61,7 +61,7 @@ describe('GRE init functions', function () {
     })
   })
 
-  describe('getProviders with graph-config project', function () {
+  describe('getDefaultProviders with graph-config project', function () {
     useEnvironment('graph-config')
 
     it('should return L1 and L2 providers for supported networks (HH L1)', function () {
@@ -89,7 +89,7 @@ describe('GRE init functions', function () {
     })
   })
 
-  describe('getProviders with graph-config-bad project', function () {
+  describe('getDefaultProviders with graph-config-bad project', function () {
     useEnvironment('graph-config-bad')
 
     it('should throw if main network is not defined in hardhat config (HH L1)', function () {

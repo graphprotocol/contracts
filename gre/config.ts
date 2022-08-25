@@ -95,7 +95,6 @@ export function getDefaultProviders(
   logDebug('== Getting providers')
 
   const l1Provider = getDefaultProvider(
-    hre,
     hre.config.networks,
     l1ChainId,
     hre.network.name,
@@ -103,7 +102,6 @@ export function getDefaultProviders(
     'L1',
   )
   const l2Provider = getDefaultProvider(
-    hre,
     hre.config.networks,
     l2ChainId,
     hre.network.name,
