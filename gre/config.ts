@@ -1,20 +1,16 @@
 import fs from 'fs'
-import path from 'path'
 
-import { NetworkConfig, NetworksConfig } from 'hardhat/types/config'
-import { HardhatRuntimeEnvironment, Network } from 'hardhat/types/runtime'
-import { HttpNetworkConfig } from 'hardhat/types/config'
+import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
 
 import { GraphRuntimeEnvironmentOptions } from './type-extensions'
 import { GREPluginError } from './helpers/error'
-import GraphNetwork, { counterpartName } from './helpers/network'
-
-import { createProvider } from 'hardhat/internal/core/providers/construction'
+import GraphNetwork from './helpers/chain'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
-import { logDebug, logWarn } from './logger'
-import { HARDHAT_NETWORK_NAME } from 'hardhat/plugins'
-import { network } from 'hardhat'
+import { logDebug } from './helpers/logger'
+import { normalizePath } from './helpers/utils'
+import { getNetworkConfig } from './helpers/network'
+import { getDefaultProvider } from './providers'
 
 interface GREChains {
   l1ChainId: number
@@ -90,66 +86,24 @@ export function getChains(mainChainId: number | undefined): GREChains {
   }
 }
 
-export async function getProviders(
+export function getDefaultProviders(
   hre: HardhatRuntimeEnvironment,
   l1ChainId: number,
   l2ChainId: number,
   isHHL1: boolean,
-  useSecureAccounts: boolean,
-): Promise<GREProviders> {
+): GREProviders {
   logDebug('== Getting providers')
 
-  const getProvider = async (
-    networks: NetworksConfig,
-    chainId: number,
-    mainNetworkName: string,
-    isMainProvider: boolean,
-    chainLabel: string,
-  ): Promise<EthersProviderWrapper | undefined> => {
-    const networkConfig = getNetworkConfig(networks, chainId, mainNetworkName) as HttpNetworkConfig
-    const networkName = getNetworkName(networks, chainId, mainNetworkName)
-
-    logDebug(`Provider url for ${chainLabel}(${networkName}): ${networkConfig?.url}`)
-
-    // Ensure at least main provider is configured
-    // For Hardhat network we don't need url to create a provider
-    if (
-      isMainProvider &&
-      (networkConfig === undefined || networkConfig.url === undefined) &&
-      networkName !== HARDHAT_NETWORK_NAME
-    ) {
-      throw new GREPluginError(`Must set a provider url for chain: ${chainId}!`)
-    }
-
-    if (networkConfig === undefined || networkName === undefined) {
-      return undefined
-    }
-
-    // Build provider as EthersProviderWrapper instead of JsonRpcProvider
-    // This allows us to use hardhat's account management methods for free
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    if (useSecureAccounts) {
-      logDebug(`Using secure accounts provider for ${chainLabel}(${networkName})`)
-      console.log(
-        `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName})`,
-      )
-      return await hre.accounts.getProvider({ name: networkName, config: networkConfig } as Network)
-    } else {
-      logDebug(`Creating provider for ${chainLabel}(${networkName})`)
-      const ethereumProvider = createProvider(networkName, networkConfig)
-      const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
-      return ethersProviderWrapper
-    }
-  }
-
-  const l1Provider = await getProvider(
+  const l1Provider = getDefaultProvider(
+    hre,
     hre.config.networks,
     l1ChainId,
     hre.network.name,
     isHHL1,
     'L1',
   )
-  const l2Provider = await getProvider(
+  const l2Provider = getDefaultProvider(
+    hre,
     hre.config.networks,
     l2ChainId,
     hre.network.name,
@@ -234,62 +188,4 @@ export function getGraphConfigPaths(
     l1GraphConfigPath: l1GraphConfigPath,
     l2GraphConfigPath: l2GraphConfigPath,
   }
-}
-
-function getNetworkConfig(
-  networks: NetworksConfig,
-  chainId: number,
-  mainNetworkName: string,
-): (NetworkConfig & { name: string }) | undefined {
-  const candidateNetworks = Object.keys(networks)
-    .map((n) => ({ ...networks[n], name: n }))
-    .filter((n) => n.chainId === chainId)
-
-  if (candidateNetworks.length > 1) {
-    logWarn(
-      `Found multiple networks with chainId ${chainId}, trying to use main network name to desambiguate`,
-    )
-
-    const filteredByMainNetworkName = candidateNetworks.filter((n) => n.name === mainNetworkName)
-
-    if (filteredByMainNetworkName.length === 1) {
-      logDebug(`Found network with chainId ${chainId} and name ${mainNetworkName}`)
-      return filteredByMainNetworkName[0]
-    } else {
-      logWarn(`Could not desambiguate with main network name, trying secondary network name`)
-      const secondaryNetworkName = counterpartName(mainNetworkName)
-      const filteredBySecondaryNetworkName = candidateNetworks.filter(
-        (n) => n.name === secondaryNetworkName,
-      )
-
-      if (filteredBySecondaryNetworkName.length === 1) {
-        logDebug(`Found network with chainId ${chainId} and name ${mainNetworkName}`)
-        return filteredBySecondaryNetworkName[0]
-      } else {
-        throw new GREPluginError(
-          `Could not desambiguate network with chainID ${chainId}. Use case not supported!`,
-        )
-      }
-    }
-  } else if (candidateNetworks.length === 1) {
-    return candidateNetworks[0]
-  } else {
-    return undefined
-  }
-}
-
-export function getNetworkName(
-  networks: NetworksConfig,
-  chainId: number,
-  mainNetworkName: string,
-): string | undefined {
-  const network = getNetworkConfig(networks, chainId, mainNetworkName)
-  return network?.name
-}
-
-function normalizePath(_path: string, graphPath: string) {
-  if (!path.isAbsolute(_path)) {
-    _path = path.join(graphPath, _path)
-  }
-  return _path
 }

@@ -1,14 +1,9 @@
 import { expect } from 'chai'
 import { useEnvironment } from './helpers'
-
-import {
-  getAddressBookPath,
-  getChains,
-  getGraphConfigPaths,
-  getNetworkName,
-  getProviders,
-} from '../config'
 import path from 'path'
+
+import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from '../config'
+import { getNetworkName } from '../helpers/network'
 
 describe('GRE init functions', function () {
   describe('getAddressBookPath with graph-config project', function () {
@@ -70,25 +65,25 @@ describe('GRE init functions', function () {
     useEnvironment('graph-config')
 
     it('should return L1 and L2 providers for supported networks (HH L1)', function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 5, 421613, true)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 5, 421613, true)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.an('object')
     })
 
     it('should return L1 and L2 providers for supported networks (HH L2)', function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 5, 421613, false)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 5, 421613, false)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.an('object')
     })
 
     it('should return only L1 provider if L2 is not supported (HH L1)', function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 5, 123456, true)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 5, 123456, true)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.undefined
     })
 
     it('should return only L2 provider if L1 is not supported (HH L2)', function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 123456, 421613, false)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 123456, 421613, false)
       expect(l1Provider).to.be.undefined
       expect(l2Provider).to.be.an('object')
     })
@@ -98,13 +93,13 @@ describe('GRE init functions', function () {
     useEnvironment('graph-config-bad')
 
     it('should throw if main network is not defined in hardhat config (HH L1)', function () {
-      expect(() => getProviders(this.hre, 4, 421611, true)).to.throw(
+      expect(() => getDefaultProviders(this.hre, 4, 421611, true)).to.throw(
         /Must set a provider url for chain: /,
       )
     })
 
     it('should throw if main network is not defined in hardhat config (HH L2)', function () {
-      expect(() => getProviders(this.hre, 5, 421613, false)).to.throw(
+      expect(() => getDefaultProviders(this.hre, 5, 421613, false)).to.throw(
         /Must set a provider url for chain: /,
       )
     })
@@ -114,7 +109,7 @@ describe('GRE init functions', function () {
     useEnvironment('graph-config-desambiguate', 'localnitrol1')
 
     it('should use main network name to desambiguate if multiple chains are defined with same chainId', async function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 1337, 412346, true)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 1337, 412346, true)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.an('object')
 
@@ -129,7 +124,7 @@ describe('GRE init functions', function () {
     useEnvironment('graph-config-desambiguate', 'localnitrol2')
 
     it('should use secondary network name to desambiguate if multiple chains are defined with same chainId', async function () {
-      const { l1Provider, l2Provider } = getProviders(this.hre, 1337, 412346, true)
+      const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 1337, 412346, true)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.an('object')
 

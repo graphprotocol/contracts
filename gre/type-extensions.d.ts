@@ -46,7 +46,7 @@ export interface GraphRuntimeEnvironment extends GraphNetworkEnvironment {
 
 declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
-    graph: (opts?: GraphRuntimeEnvironmentOptions) => Promise<GraphRuntimeEnvironment>
+    graph: (opts?: GraphRuntimeEnvironmentOptions) => GraphRuntimeEnvironment
   }
 }
 
