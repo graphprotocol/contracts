@@ -3,10 +3,13 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "../../discovery/GNS.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { GNS } from "../../discovery/GNS.sol";
+import { IGNS } from "../../discovery/IGNS.sol";
+import { ICuration } from "../../curation/ICuration.sol";
 
 import { RLPReader } from "../../libraries/RLPReader.sol";
 import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
@@ -25,9 +28,6 @@ contract L2GNS is GNS {
     using RLPReader for RLPReader.RLPItem;
     using SafeMath for uint256;
 
-    // Offset applied by the bridge to L1 addresses sending messages to L2
-    uint160 internal constant L2_ADDRESS_OFFSET =
-        uint160(0x1111000000000000000000000000000000001111);
     // Storage slot where the subgraphs mapping is stored on L1GNS
     uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
     // Storage slot where the legacy subgraphs mapping is stored on L1GNS
@@ -55,7 +55,10 @@ contract L2GNS is GNS {
      * GNS on L1.
      */
     modifier onlyL1Counterpart() {
-        require(msg.sender == l1ToL2Alias(counterpartGNSAddress), "ONLY_COUNTERPART_GNS");
+        require(
+            msg.sender == AddressAliasHelper.applyL1ToL2Alias(counterpartGNSAddress),
+            "ONLY_COUNTERPART_GNS"
+        );
         _;
     }
 
@@ -295,16 +298,5 @@ contract L2GNS is GNS {
             _balance
         );
         migratedData.curatorBalanceClaimed[_curator] = true;
-    }
-
-    /**
-     * @notice Converts L1 address to its L2 alias used when sending messages
-     * @dev The Arbitrum bridge adds an offset to addresses when sending messages,
-     * so we need to apply it to check any L1 address from a message in L2
-     * @param _l1Address The L1 address
-     * @return _l2Address the L2 alias of _l1Address
-     */
-    function l1ToL2Alias(address _l1Address) internal pure returns (address _l2Address) {
-        _l2Address = address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
     }
 }
