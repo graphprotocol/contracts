@@ -19,10 +19,8 @@ import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
-import { L1Reservoir } from '../../build/types/L1Reservoir'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
-import { L2Reservoir } from '../../build/types/L2Reservoir'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -37,7 +35,6 @@ export interface L1FixtureContracts {
   proxyAdmin: GraphProxyAdmin
   l1GraphTokenGateway: L1GraphTokenGateway
   bridgeEscrow: BridgeEscrow
-  l1Reservoir: L1Reservoir
 }
 
 export interface L2FixtureContracts {
@@ -52,7 +49,6 @@ export interface L2FixtureContracts {
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
   l2GraphTokenGateway: L2GraphTokenGateway
-  l2Reservoir: L2Reservoir
 }
 
 export interface ArbitrumL1Mocks {
@@ -118,15 +114,12 @@ export class NetworkFixture {
     let l1GraphTokenGateway: L1GraphTokenGateway
     let l2GraphTokenGateway: L2GraphTokenGateway
     let bridgeEscrow: BridgeEscrow
-    let l1Reservoir: L1Reservoir
-    let l2Reservoir: L2Reservoir
     if (isL2) {
       l2GraphTokenGateway = await deployment.deployL2GraphTokenGateway(
         deployer,
         controller.address,
         proxyAdmin,
       )
-      l2Reservoir = await deployment.deployL2Reservoir(deployer, controller.address, proxyAdmin)
     } else {
       l1GraphTokenGateway = await deployment.deployL1GraphTokenGateway(
         deployer,
@@ -134,7 +127,6 @@ export class NetworkFixture {
         proxyAdmin,
       )
       bridgeEscrow = await deployment.deployBridgeEscrow(deployer, controller.address, proxyAdmin)
-      l1Reservoir = await deployment.deployL1Reservoir(deployer, controller.address, proxyAdmin)
     }
 
     // Setup controller
@@ -147,10 +139,8 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
     if (isL2) {
       await controller.setContractProxy(utils.id('GraphTokenGateway'), l2GraphTokenGateway.address)
-      await controller.setContractProxy(utils.id('Reservoir'), l2Reservoir.address)
     } else {
       await controller.setContractProxy(utils.id('GraphTokenGateway'), l1GraphTokenGateway.address)
-      await controller.setContractProxy(utils.id('Reservoir'), l1Reservoir.address)
     }
 
     // Setup contracts
@@ -162,23 +152,14 @@ export class NetworkFixture {
     await staking.connect(deployer).syncAllContracts()
     if (isL2) {
       await l2GraphTokenGateway.connect(deployer).syncAllContracts()
-      await l2Reservoir.connect(deployer).syncAllContracts()
     } else {
       await l1GraphTokenGateway.connect(deployer).syncAllContracts()
       await bridgeEscrow.connect(deployer).syncAllContracts()
-      await l1Reservoir.connect(deployer).syncAllContracts()
     }
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await gns.connect(deployer).approveAll()
-    if (isL2) {
-      await grt.connect(deployer).addMinter(l2GraphTokenGateway.address)
-      await l2Reservoir.connect(deployer).approveRewardsManager()
-    } else {
-      await grt.connect(deployer).addMinter(l1Reservoir.address)
-      await l1Reservoir.connect(deployer).setIssuanceRate(deployment.defaults.rewards.issuanceRate)
-      await l1Reservoir.connect(deployer).approveRewardsManager()
-    }
+    await grt.connect(deployer).addMinter(rewardsManager.address)
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
@@ -196,7 +177,6 @@ export class NetworkFixture {
         serviceRegistry,
         proxyAdmin,
         l2GraphTokenGateway,
-        l2Reservoir,
       } as L2FixtureContracts
     } else {
       return {
@@ -212,7 +192,6 @@ export class NetworkFixture {
         proxyAdmin,
         l1GraphTokenGateway,
         bridgeEscrow,
-        l1Reservoir,
       } as L1FixtureContracts
     }
   }
@@ -251,7 +230,6 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL2GRTAddress: string,
     mockL2GatewayAddress: string,
-    mockL2ReservoirAddress: string,
   ): Promise<any> {
     // First configure the Arbitrum bridge mocks
     await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
@@ -274,15 +252,9 @@ export class NetworkFixture {
     await l1FixtureContracts.l1GraphTokenGateway
       .connect(deployer)
       .setEscrowAddress(l1FixtureContracts.bridgeEscrow.address)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .addToCallhookWhitelist(l1FixtureContracts.l1Reservoir.address)
     await l1FixtureContracts.bridgeEscrow
       .connect(deployer)
       .approveAll(l1FixtureContracts.l1GraphTokenGateway.address)
-    await l1FixtureContracts.l1Reservoir
-      .connect(deployer)
-      .setL2ReservoirAddress(mockL2ReservoirAddress)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
@@ -292,7 +264,6 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL1GRTAddress: string,
     mockL1GatewayAddress: string,
-    mockL1ReservoirAddress: string,
   ): Promise<any> {
     // Configure the L2 GRT
     // Configure the gateway

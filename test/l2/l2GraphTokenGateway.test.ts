@@ -12,7 +12,7 @@ import path from 'path'
 import { Artifacts } from 'hardhat/internal/artifacts'
 const ARTIFACTS_PATH = path.resolve('build/contracts')
 const artifacts = new Artifacts(ARTIFACTS_PATH)
-const reservoirMockAbi = artifacts.readArtifactSync('ReservoirMock').abi
+const rewardsManagerMockAbi = artifacts.readArtifactSync('RewardsManagerMock').abi
 
 use(smock.matchers)
 
@@ -31,7 +31,6 @@ describe('L2GraphTokenGateway', () => {
   let mockL1GRT: Account
   let mockL1Gateway: Account
   let pauseGuardian: Account
-  let mockL1Reservoir: Account
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
@@ -41,7 +40,7 @@ describe('L2GraphTokenGateway', () => {
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const mockIface = new Interface(reservoirMockAbi)
+  const mockIface = new Interface(rewardsManagerMockAbi)
   const notEmptyCallHookData = mockIface.encodeFunctionData('pow', [toBN(1), toBN(2), toBN(3)])
   const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['bytes', 'bytes'],
@@ -59,7 +58,6 @@ describe('L2GraphTokenGateway', () => {
       mockL1Gateway,
       l2Receiver,
       pauseGuardian,
-      mockL1Reservoir,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
@@ -254,7 +252,6 @@ describe('L2GraphTokenGateway', () => {
         mockRouter.address,
         mockL1GRT.address,
         mockL1Gateway.address,
-        mockL1Reservoir.address,
       )
     })
 
@@ -379,18 +376,18 @@ describe('L2GraphTokenGateway', () => {
         await testValidFinalizeTransfer(defaultData)
       })
       it('calls a callhook if the sender is whitelisted', async function () {
-        const reservoirMock = await smock.fake('ReservoirMock', {
+        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
           address: l2Receiver.address,
         })
-        reservoirMock.pow.returns(1)
+        rewardsManagerMock.pow.returns(1)
         await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        expect(reservoirMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
+        expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
       })
       it('reverts if a callhook reverts', async function () {
-        const reservoirMock = await smock.fake('ReservoirMock', {
+        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
           address: l2Receiver.address,
         })
-        reservoirMock.pow.reverts()
+        rewardsManagerMock.pow.reverts()
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),

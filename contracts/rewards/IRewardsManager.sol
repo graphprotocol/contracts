@@ -15,6 +15,8 @@ interface IRewardsManager {
 
     // -- Config --
 
+    function setIssuanceRate(uint256 _issuanceRate) external;
+
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
 
     // -- Denylist --
@@ -51,8 +53,6 @@ interface IRewardsManager {
     function updateAccRewardsPerSignal() external returns (uint256);
 
     function takeRewards(address _allocationID) external returns (uint256);
-
-    function takeAndBurnRewards(address _allocationID) external;
 
     // -- Hooks --
 

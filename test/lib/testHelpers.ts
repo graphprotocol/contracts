@@ -140,7 +140,7 @@ const getRewards = (p: BN, r: BN, t: BN): string => {
 }
 
 // Tracks the accumulated rewards as supply changes across snapshots
-// both at a global level (like the Reservoir) and per signal (like RewardsManager)
+// both at a global level and per signal
 export class RewardsTracker {
   totalSupply = BigNumber.from(0)
   lastUpdatedBlock = BigNumber.from(0)

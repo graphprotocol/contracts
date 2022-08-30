@@ -10,7 +10,6 @@ import "../rewards/IRewardsManager.sol";
 import "../staking/IStaking.sol";
 import "../token/IGraphToken.sol";
 import "../arbitrum/ITokenGateway.sol";
-import "../reservoir/IReservoir.sol";
 
 /**
  * @title Graph Managed contract
@@ -156,14 +155,6 @@ contract Managed {
     }
 
     /**
-     * @dev Return Reservoir (L1 or L2) interface.
-     * @return Reservoir contract registered with Controller
-     */
-    function reservoir() internal view returns (IReservoir) {
-        return IReservoir(_resolveContract(keccak256("Reservoir")));
-    }
-
-    /**
      * @dev Resolve a contract address from the cache or the Controller if not found.
      * @return Address of the contract
      */
@@ -201,6 +192,5 @@ contract Managed {
         _syncContract("Staking");
         _syncContract("GraphToken");
         _syncContract("GraphTokenGateway");
-        _syncContract("Reservoir");
     }
 }
