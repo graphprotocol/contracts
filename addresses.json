@@ -223,10 +223,10 @@
       "txHash": "0x32af0bde5040ea6a133270eac13dd7393c8669e08694f400f7ae9907c60314ce",
       "proxy": true,
       "implementation": {
-        "address": "0xe4DB4c666E89A21FA0a823E466a1a2E40b4e2EE7",
-        "creationCodeHash": "0x465d306a14f17483cbb59fa2f0a74a161a12a3003af0949ced323ac76b57ac96",
-        "runtimeCodeHash": "0x7ec7e84eb4bd6e791f38bbef708b89220a3284db81a886b7d1beacdd176be2d2",
-        "txHash": "0x1ebc517fbb6ac1b56dcf3c112fd1bb96af87c120bd63964529f15154b4e540cf"
+        "address": "0x64d27CE1868F34Fa7Fa965E351b7ba35dfAcd01B",
+        "creationCodeHash": "0xb4cb4b4f37f5a6cb22891cd2766cdc7343bc7a57479bca306ecacd1f84a5e323",
+        "runtimeCodeHash": "0x87b05cc98e7c28f7ff06ee3e88a4c86fef69b22a732bd30a284dfc2b0a87ddbe",
+        "txHash": "0xcd89873e4e78e4815748ebba0d5926b931fbe5d7fdb7e7ae4a6771d078291da5"
       }
     }
   },
@@ -433,10 +433,10 @@
       "txHash": "0xd1274c289d4080568a4b7528ed6ccf9f660be3e86e2cdda3bd56209c9b7942fd",
       "proxy": true,
       "implementation": {
-        "address": "0x74D3F2500F85EC941C4b9beb38E641601bA5449F",
-        "creationCodeHash": "0xebec369c396f8375375e962363138ba73d2343cca74c07540013cd52ff7af92e",
-        "runtimeCodeHash": "0x2b118b25a417b06d2bceaf20220234930eb165e0eacedb7651fefbff15fd9f83",
-        "txHash": "0x0ef681f0c8911919cce76e7aa508841f28e1908ea368678bef4976e0d40e7530"
+        "address": "0xbc072567497415ce4CCa41Cc931BeBbf96AD4E3E",
+        "creationCodeHash": "0x1a358afd68d691428fef59fcb5f89a6e3e11eca5409e0f3bceb95fb5295f63fd",
+        "runtimeCodeHash": "0x2dc1e7c5da5e55c14529b70b82c1277439b498e8ee9363247512e2fe43e48d0b",
+        "txHash": "0xde0e0219810fa6096a5f5763792b4ba73a76d6809e8a0a992e8c10280a717015"
       }
     },
     "L2Reservoir": {
