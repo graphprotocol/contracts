@@ -1,17 +1,22 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { NamedAccounts } from '../../../gre/type-extensions'
 
-describe('SubgraphNFT deployment', () => {
+describe('SubgraphNFT configuration', () => {
   const {
-    graphConfig,
+    getNamedAccounts,
     contracts: { SubgraphNFT, GNS, SubgraphNFTDescriptor },
   } = hre.graph()
 
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
+
   it('should be owned by governor', async function () {
     const owner = await SubgraphNFT.governor()
-    const governorAddress = getItemValue(graphConfig, 'general/governor')
-    expect(owner).eq(governorAddress)
+    expect(owner).eq(namedAccounts.governor.address)
   })
 
   it('should allow GNS to mint NFTs', async function () {

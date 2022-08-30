@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { NamedAccounts } from '../../../gre/type-extensions'
 
-describe('Controller deployment', () => {
-  const { contracts, graphConfig } = hre.graph()
+describe('Controller configuration', () => {
+  const { contracts, getNamedAccounts } = hre.graph()
   const { Controller } = contracts
 
   const proxyContracts = [
@@ -16,6 +16,12 @@ describe('Controller deployment', () => {
     'GraphToken',
   ]
 
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
+
   const proxyShouldMatchDeployed = async (contractName: string) => {
     const curationAddress = await Controller.getContractProxy(
       ethers.utils.solidityKeccak256(['string'], [contractName]),
@@ -25,14 +31,12 @@ describe('Controller deployment', () => {
 
   it('should be owned by governor', async function () {
     const owner = await Controller.governor()
-    const governorAddress = getItemValue(graphConfig, 'general/governor')
-    expect(owner).eq(governorAddress)
+    expect(owner).eq(namedAccounts.governor.address)
   })
 
   it('pause guardian should be able to pause protocol', async function () {
-    const pauseGuardianAddress = getItemValue(graphConfig, 'general/pauseGuardian')
     const pauseGuardian = await Controller.pauseGuardian()
-    expect(pauseGuardian).eq(pauseGuardianAddress)
+    expect(pauseGuardian).eq(namedAccounts.pauseGuardian.address)
   })
 
   describe('proxy contract', async function () {

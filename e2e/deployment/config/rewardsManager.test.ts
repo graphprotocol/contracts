@@ -1,12 +1,18 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../cli/config'
+import { NamedAccounts } from '../../../gre/type-extensions'
 
-describe('RewardsManager deployment', () => {
+describe('RewardsManager configuration', () => {
   const {
-    graphConfig,
+    getNamedAccounts,
     contracts: { RewardsManager, Controller },
   } = hre.graph()
+
+  let namedAccounts: NamedAccounts
+
+  before(async () => {
+    namedAccounts = await getNamedAccounts()
+  })
 
   it('should be controlled by Controller', async function () {
     const controller = await RewardsManager.controller()
@@ -15,13 +21,11 @@ describe('RewardsManager deployment', () => {
 
   it('issuanceRate should match "issuanceRate" in the config file', async function () {
     const value = await RewardsManager.issuanceRate()
-    const expected = getItemValue(graphConfig, 'contracts/RewardsManager/init/issuanceRate')
-    expect(value).eq(expected)
+    expect(value).eq('1000000012184945188') // hardcoded as it's set with a function call rather than init parameter
   })
 
   it('should allow subgraph availability oracle to deny rewards', async function () {
-    const availabilityOracleAddress = getItemValue(graphConfig, 'general/availabilityOracle')
     const availabilityOracle = await RewardsManager.subgraphAvailabilityOracle()
-    expect(availabilityOracle).eq(availabilityOracleAddress)
+    expect(availabilityOracle).eq(namedAccounts.availabilityOracle.address)
   })
 })

@@ -112,6 +112,9 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "setIssuanceRate"
+        issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"

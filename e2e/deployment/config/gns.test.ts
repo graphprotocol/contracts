@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-describe('GNS deployment', () => {
+describe('GNS configuration', () => {
   const {
-    contracts: { Controller, GNS, BancorFormula, SubgraphNFT, GraphToken, Curation },
+    contracts: { Controller, GNS, BancorFormula, SubgraphNFT },
   } = hre.graph()
 
   it('should be controlled by Controller', async function () {
@@ -19,10 +19,5 @@ describe('GNS deployment', () => {
   it('subgraphNFT should match the SubgraphNFT deployment address', async function () {
     const subgraphNFT = await GNS.subgraphNFT()
     expect(subgraphNFT).eq(SubgraphNFT.address)
-  })
-
-  it('should allow Curation contract to spend MAX_UINT256 tokens on GNS behalf', async function () {
-    const allowance = await GraphToken.allowance(GNS.address, Curation.address)
-    expect(allowance).eq(hre.ethers.constants.MaxUint256)
   })
 })

@@ -1,5 +1,5 @@
 ![License: GPL](https://img.shields.io/badge/license-GPLv2-blue)
-![Version Badge](https://img.shields.io/badge/version-1.13.0-lightgrey.svg)
+![Version Badge](https://img.shields.io/badge/version-1.14.0-lightgrey.svg)
 ![CI Status](https://github.com/graphprotocol/contracts/actions/workflows/npmtest.yml/badge.svg)
 [![codecov](https://codecov.io/gh/graphprotocol/contracts/branch/dev/graph/badge.svg?token=S8JWGR9SBN)](https://codecov.io/gh/graphprotocol/contracts)
 
@@ -76,48 +76,11 @@ yarn build
 
 # Testing
 
-Testing is done with the following stack:
+For testing details see [TESTING.md](./TESTING.md).
 
-- [Waffle](https://getwaffle.io/)
-- [Hardhat](https://hardhat.org/)
-- [Typescript](https://www.typescriptlang.org/)
-- [Ethers](https://docs.ethers.io/v5/)
+# Deploying Contracts
 
-## Contracts
-
-To test all the smart contracts, use `yarn test`.
-To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
-
-## E2E Testing
-
-End to end tests are also available and can be run against a local network or a live network. These can be useful to validate a protocol deployment is configured and working as expected.
-
-### Hardhat local node
-
-To run e2e tests against a hardhat local node run:
-
-```bash
-yarn test:e2e
-```
-
-The command will invoke several hardhat tasks, including:
-
-- Start a hardhat node (localhost)
-- Run `migrate:accounts` hardhat task to create keys for all protocol roles (deployer, governor, arbiter, etc). This currently doesn't support multisig accounts.
-- Run `migrate` hardhat task to deploy the protocol
-- Run `migrate:ownership` hardhat task to transfer ownership of governed contracts to the governor
-- Run `migrate:unpause` to unpause the protocol
-- Run e2e tests
-
-### Other networks
-
-To run tests against a live testnet or even mainnet run:
-
-```bash
-GRAPH_CONFIG=config/graph.<network>.yml ADDRESS_BOOK=addresses.json npx hardhat test e2e/**/*.ts --network <network>
-```
-
-This command will only run the tests so you need to be sure the protocol is already deployed and the graph config file and address book files are up to date.
+In order to run deployments, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 # Interacting with the contracts
 
@@ -162,10 +125,6 @@ The accounts used depends on a few environment variables:
 Considerations when forking a chain:
 
 - When running on the `localhost` network it will use by default a deterministic seed for testing purposes. If you want to connect to a local node that is forking while retaining the capability to impersonate accounts or use local accounts you need to set the FORK=true environment variable.
-
-# Deploying Contracts
-
-In order to run deployments, see [`./DEPLOYMENT.md`](./DEPLOYMENT.md).
 
 # Contributing
 
