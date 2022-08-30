@@ -39,6 +39,9 @@ extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) =>
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.graph = (opts: GraphRuntimeEnvironmentOptions = {}) => {
+    logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
+    logDebug(`Main network: ${hre.network.name}`)
+
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)
     const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId, isHHL1)
     const addressBookPath = getAddressBookPath(hre, opts)

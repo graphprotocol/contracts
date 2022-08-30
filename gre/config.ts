@@ -12,7 +12,8 @@ import GraphNetwork from './helpers/network'
 import { createProvider } from 'hardhat/internal/core/providers/construction'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
-import { logDebug } from './logger'
+import { logDebug, logWarn } from './logger'
+import { HARDHAT_NETWORK_NAME } from 'hardhat/plugins'
 
 interface GREChains {
   l1ChainId: number
@@ -99,18 +100,24 @@ export function getProviders(
   const getProvider = (
     networks: NetworksConfig,
     chainId: number,
+    mainNetworkName: string,
     isMainProvider: boolean,
     chainLabel: string,
   ): EthersProviderWrapper | undefined => {
-    const network = getNetworkConfig(networks, chainId) as HttpNetworkConfig
-    const networkName = getNetworkName(networks, chainId)
+    const network = getNetworkConfig(networks, chainId, mainNetworkName) as HttpNetworkConfig
+    const networkName = getNetworkName(networks, chainId, mainNetworkName)
+
+    logDebug(`Provider url for ${chainLabel}(${networkName}): ${network?.url}`)
 
     // Ensure at least main provider is configured
-    if (isMainProvider && network === undefined) {
+    // For Hardhat network we don't need url to create a provider
+    if (
+      isMainProvider &&
+      (network === undefined || network.url === undefined) &&
+      networkName !== HARDHAT_NETWORK_NAME
+    ) {
       throw new GREPluginError(`Must set a provider url for chain: ${chainId}!`)
     }
-
-    logDebug(`Provider url for ${chainLabel}: ${network?.url}`)
 
     if (network === undefined || networkName === undefined) {
       return undefined
@@ -123,8 +130,8 @@ export function getProviders(
     return ethersProviderWrapper
   }
 
-  const l1Provider = getProvider(hre.config.networks, l1ChainId, isHHL1, 'L1')
-  const l2Provider = getProvider(hre.config.networks, l2ChainId, !isHHL1, 'L2')
+  const l1Provider = getProvider(hre.config.networks, l1ChainId, hre.network.name, isHHL1, 'L1')
+  const l2Provider = getProvider(hre.config.networks, l2ChainId, hre.network.name, !isHHL1, 'L2')
 
   return {
     l1Provider,
@@ -142,8 +149,8 @@ export function getGraphConfigPaths(
   logDebug('== Getting graph config paths')
   logDebug(`Graph base dir: ${hre.config.paths.graph}`)
 
-  const l1Network = getNetworkConfig(hre.config.networks, l1ChainId)
-  const l2Network = getNetworkConfig(hre.config.networks, l2ChainId)
+  const l1Network = getNetworkConfig(hre.config.networks, l1ChainId, hre.network.name)
+  const l2Network = getNetworkConfig(hre.config.networks, l2ChainId, hre.network.name)
 
   // Priority is as follows:
   // - hre.graph() init parameter l1GraphConfigPath/l2GraphConfigPath
@@ -205,14 +212,43 @@ export function getGraphConfigPaths(
   }
 }
 
-function getNetworkConfig(networks: NetworksConfig, chainId: number): NetworkConfig | undefined {
-  return Object.keys(networks)
-    .map((n) => networks[n])
-    .find((n) => n.chainId === chainId)
+function getNetworkConfig(
+  networks: NetworksConfig,
+  chainId: number,
+  mainNetworkName: string,
+): (NetworkConfig & { name: string }) | undefined {
+  let candidateNetworks = Object.keys(networks)
+    .map((n) => ({ ...networks[n], name: n }))
+    .filter((n) => n.chainId === chainId)
+
+  if (candidateNetworks.length > 1) {
+    logWarn(
+      `Found multiple networks with chainId ${chainId}, trying to use main network name to desambiguate`,
+    )
+
+    candidateNetworks = candidateNetworks.filter((n) => n.name === mainNetworkName)
+
+    if (candidateNetworks.length === 1) {
+      return candidateNetworks[0]
+    } else {
+      throw new GREPluginError(
+        `Found multiple networks with chainID ${chainId}. This is not supported!`,
+      )
+    }
+  } else if (candidateNetworks.length === 1) {
+    return candidateNetworks[0]
+  } else {
+    return undefined
+  }
 }
 
-function getNetworkName(networks: NetworksConfig, chainId: number): string | undefined {
-  return Object.keys(networks).find((n) => networks[n].chainId === chainId)
+function getNetworkName(
+  networks: NetworksConfig,
+  chainId: number,
+  mainNetworkName: string,
+): string | undefined {
+  const network = getNetworkConfig(networks, chainId, mainNetworkName)
+  return network?.name
 }
 
 function normalizePath(_path: string, graphPath: string) {
