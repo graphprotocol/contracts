@@ -27,7 +27,7 @@ import "./IRewardsManager.sol";
  * These functions may overestimate the actual rewards due to changes in the total supply
  * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
@@ -74,24 +74,25 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Config --
 
     /**
-     * @dev Sets the issuance rate.
-     * The issuance rate is defined as a fixed amount of rewards per block in GRT.
-     * @param _issuanceRate Issuance rate expressed in GRT per block
+     * @dev Sets the GRT issuance per block.
+     * The issuance is defined as a fixed amount of rewards per block in GRT.
+     * @param _issuancePerBlock Issuance expressed in GRT per block
      */
-    function setIssuanceRate(uint256 _issuanceRate) external override onlyGovernor {
-        _setIssuanceRate(_issuanceRate);
+    function setIssuancePerBlock(uint256 _issuancePerBlock) external override onlyGovernor {
+        _setIssuancePerBlock(_issuancePerBlock);
     }
 
     /**
-     * @dev Sets the issuance rate.
-     * @param _issuanceRate Issuance rate
+     * @dev Sets the GRT issuance per block.
+     * The issuance is defined as a fixed amount of rewards per block in GRT.
+     * @param _issuancePerBlock Issuance expressed in GRT per block
      */
-    function _setIssuanceRate(uint256 _issuanceRate) private {
-        // Called since `issuance rate` will change
+    function _setIssuancePerBlock(uint256 _issuancePerBlock) private {
+        // Called since `issuance per block` will change
         updateAccRewardsPerSignal();
 
-        issuanceRate = _issuanceRate;
-        emit ParameterUpdated("issuanceRate");
+        issuancePerBlock = _issuancePerBlock;
+        emit ParameterUpdated("issuancePerBlock");
     }
 
     /**
@@ -204,7 +205,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        uint256 x = issuanceRate.mul(t);
+        uint256 x = issuancePerBlock.mul(t);
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
@@ -287,7 +288,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Updates the accumulated rewards per signal and save checkpoint block number.
-     * Must be called before `issuanceRate` or `total signalled GRT` changes
+     * Must be called before `issuancePerBlock` or `total signalled GRT` changes
      * Called from the Curation contract on mint() and burn()
      * @return Accumulated rewards per signal
      */

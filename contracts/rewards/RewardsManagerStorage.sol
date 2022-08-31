@@ -8,7 +8,7 @@ import "../governance/Managed.sol";
 contract RewardsManagerV1Storage is Managed {
     // -- State --
 
-    uint256 public issuanceRate;
+    uint256 public issuanceRateDeprecated;
     uint256 public accRewardsPerSignal;
     uint256 public accRewardsPerSignalLastBlockUpdated;
 
@@ -35,4 +35,9 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     // Accumulated rewards at accRewardsPerSignalLastBlockUpdated
     uint256 public accRewardsOnLastSignalUpdateDeprecated;
+}
+
+contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+    // GRT issued for indexer rewards per block
+    uint256 public issuancePerBlock;
 }
