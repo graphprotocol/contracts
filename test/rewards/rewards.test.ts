@@ -30,7 +30,7 @@ const MAX_PPM = 1000000
 
 const { HashZero, WeiPerEther } = constants
 
-const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
+const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
 
 describe('Rewards', () => {
   let delegator: Account
@@ -62,20 +62,19 @@ describe('Rewards', () => {
 
   const metadata = HashZero
 
-  const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 5% rewards
-  const ISSUANCE_RATE_PER_BLOCK = toBN('1012272234429039270') // % increase every block
+  const ISSUANCE_RATE_PERIODS = 4 // blocks required to issue 800 GRT rewards
+  const ISSUANCE_PER_BLOCK = toBN('200000000000000000000') // 200 GRT every block
 
   // Core formula that gets accumulated rewards per signal for a period of time
-  const getRewardsPerSignal = (p: BN, r: BN, t: BN, s: BN): string => {
+  const getRewardsPerSignal = (k: BN, t: BN, s: BN): string => {
     if (s.eq(0)) {
       return '0'
     }
-    return p.times(r.pow(t)).minus(p).div(s).toPrecision(18).toString()
+    return k.times(t).div(s).toPrecision(18).toString()
   }
 
   // Tracks the accumulated rewards as totalSignalled or supply changes across snapshots
   class RewardsTracker {
-    totalSupply = BigNumber.from(0)
     totalSignalled = BigNumber.from(0)
     lastUpdatedBlock = BigNumber.from(0)
     accumulated = BigNumber.from(0)
@@ -88,7 +87,6 @@ describe('Rewards', () => {
 
     async snapshot() {
       this.accumulated = this.accumulated.add(await this.accrued())
-      this.totalSupply = await grt.totalSupply()
       this.totalSignalled = await grt.balanceOf(curation.address)
       this.lastUpdatedBlock = await latestBlock()
       return this
@@ -106,8 +104,7 @@ describe('Rewards', () => {
 
     async accruedByElapsed(nBlocks: BigNumber | number) {
       const n = getRewardsPerSignal(
-        new BN(this.totalSupply.toString()),
-        new BN(ISSUANCE_RATE_PER_BLOCK.toString()).div(1e18),
+        new BN(ISSUANCE_PER_BLOCK.toString()),
         new BN(nBlocks.toString()),
         new BN(this.totalSignalled.toString()),
       )
@@ -148,8 +145,8 @@ describe('Rewards', () => {
       governor.signer,
     )) as unknown as RewardsManagerMock
 
-    // 5% minute rate (4 blocks)
-    await rewardsManager.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
+    // 200 GRT per block
+    await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
 
     // Distribute test funds
     for (const wallet of [indexer1, indexer2, curator1, curator2]) {
@@ -168,28 +165,22 @@ describe('Rewards', () => {
   })
 
   describe('configuration', function () {
-    describe('issuance rate update', function () {
-      it('reject set issuance rate if unauthorized', async function () {
-        const tx = rewardsManager.connect(indexer1.signer).setIssuanceRate(toGRT('1.025'))
+    describe('issuance per block update', function () {
+      it('reject set issuance per block if unauthorized', async function () {
+        const tx = rewardsManager.connect(indexer1.signer).setIssuancePerBlock(toGRT('1.025'))
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
 
-      it('reject set issuance rate to less than minimum allowed', async function () {
-        const newIssuanceRate = toGRT('0.1') // this get a bignumber with 1e17
-        const tx = rewardsManager.connect(governor.signer).setIssuanceRate(newIssuanceRate)
-        await expect(tx).revertedWith('Issuance rate under minimum allowed')
-      })
-
-      it('should set issuance rate to minimum allowed', async function () {
-        const newIssuanceRate = toGRT('1') // this get a bignumber with 1e18
-        await rewardsManager.connect(governor.signer).setIssuanceRate(newIssuanceRate)
-        expect(await rewardsManager.issuanceRate()).eq(newIssuanceRate)
+      it('should set issuance rate to minimum allowed (0)', async function () {
+        const newIssuancePerBlock = toGRT('0')
+        await rewardsManager.connect(governor.signer).setIssuancePerBlock(newIssuancePerBlock)
+        expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
       })
 
       it('should set issuance rate', async function () {
-        const newIssuanceRate = toGRT('1.025')
-        await rewardsManager.connect(governor.signer).setIssuanceRate(newIssuanceRate)
-        expect(await rewardsManager.issuanceRate()).eq(newIssuanceRate)
+        const newIssuancePerBlock = toGRT('100.025')
+        await rewardsManager.connect(governor.signer).setIssuancePerBlock(newIssuancePerBlock)
+        expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
         expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await latestBlock())
       })
     })
@@ -245,7 +236,7 @@ describe('Rewards', () => {
   context('issuing rewards', async function () {
     beforeEach(async function () {
       // 5% minute rate (4 blocks)
-      await rewardsManager.connect(governor.signer).setIssuanceRate(ISSUANCE_RATE_PER_BLOCK)
+      await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
     })
 
     describe('getNewRewardsPerSignal', function () {
@@ -450,10 +441,8 @@ describe('Rewards', () => {
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
-        // NOTE: calculated the expected result manually as the above code has 1 off block difference
-        // replace with a RewardsManagerMock
-        const expectedSubgraphRewards = toGRT('891695470')
-        const expectedRewardsAT = toGRT('51571')
+        const expectedSubgraphRewards = toGRT('1400') // 7 blocks since signaling to when we do getAccRewardsForSubgraph
+        const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
 
         // Update
         await rewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentID1)
@@ -466,7 +455,7 @@ describe('Rewards', () => {
         const contractRewardsAT = subgraph.accRewardsPerAllocatedToken
 
         expect(toRound(expectedSubgraphRewards)).eq(toRound(contractSubgraphRewards))
-        expect(toRound(expectedRewardsAT)).eq(toRound(contractRewardsAT))
+        expect(toRound(expectedRewardsAT.mul(1000))).eq(toRound(contractRewardsAT.mul(1000)))
       })
     })
 
@@ -619,13 +608,11 @@ describe('Rewards', () => {
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
         // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
-        // The final snapshot is when we close the allocation, that happens 9 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('913715958')
+        // Rewards per token will be (issuancePerBlock * nBlocks) / allocatedTokens
+        // The first snapshot is after allocating, that is 2 blocks after the signal is minted.
+        // The final snapshot is when we close the allocation, that happens 9 blocks after signal is minted.
+        // So the rewards will be ((issuancePerBlock * 7) / allocatedTokens) * allocatedTokens
+        const expectedIndexingRewards = toGRT('1400')
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
@@ -731,13 +718,11 @@ describe('Rewards', () => {
         const beforeStakingBalance = await grt.balanceOf(staking.address)
 
         // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 12500 = 122945.16
-        // The final snapshot is when we close the allocation, that happens 9 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 9 - 10004000000) / 12500 = 92861.24
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 12500.
-        const expectedIndexingRewards = toGRT('913715958')
+        // Rewards per token will be (issuancePerBlock * nBlocks) / allocatedTokens
+        // The first snapshot is after allocating, that is 2 blocks after the signal is minted.
+        // The final snapshot is when we close the allocation, that happens 9 blocks after signal is minted.
+        // So the rewards will be ((issuancePerBlock * 7) / allocatedTokens) * allocatedTokens
+        const expectedIndexingRewards = toGRT('1400')
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = await staking
@@ -805,13 +790,11 @@ describe('Rewards', () => {
         // Check that rewards are put into delegators pool accordingly
 
         // All the rewards in this subgraph go to this allocation.
-        // Rewards per token will be (totalSupply * issuanceRate^nBlocks - totalSupply) / allocatedTokens
-        // The first snapshot is after allocating, that is 2 blocks after the signal is minted:
-        // startRewardsPerToken = (10004000000 * 1.01227 ^ 2 - 10004000000) / 14500 = 8466.995
-        // The final snapshot is when we close the allocation, that happens 4 blocks later:
-        // endRewardsPerToken = (10004000000 * 1.01227 ^ 4 - 10004000000) / 14500 = 34496.55
-        // Then our expected rewards are (endRewardsPerToken - startRewardsPerToken) * 14500.
-        const expectedIndexingRewards = toGRT('377428566.77')
+        // Rewards per token will be (issuancePerBlock * nBlocks) / allocatedTokens
+        // The first snapshot is after allocating, that is 1 block after the signal is minted.
+        // The final snapshot is when we close the allocation, that happens 4 blocks after signal is minted.
+        // So the rewards will be ((issuancePerBlock * 3) / allocatedTokens) * allocatedTokens
+        const expectedIndexingRewards = toGRT('600')
         // Calculate delegators cut
         const indexerRewards = delegationParams.indexingRewardCut
           .mul(expectedIndexingRewards)

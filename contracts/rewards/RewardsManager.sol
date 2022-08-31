@@ -76,7 +76,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Sets the GRT issuance per block.
      * The issuance is defined as a fixed amount of rewards per block in GRT.
-     * @param _issuancePerBlock Issuance expressed in GRT per block
+     * @param _issuancePerBlock Issuance expressed in GRT per block (scaled by 1e18)
      */
     function setIssuancePerBlock(uint256 _issuancePerBlock) external override onlyGovernor {
         _setIssuancePerBlock(_issuancePerBlock);
@@ -85,7 +85,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Sets the GRT issuance per block.
      * The issuance is defined as a fixed amount of rewards per block in GRT.
-     * @param _issuancePerBlock Issuance expressed in GRT per block
+     * @param _issuancePerBlock Issuance expressed in GRT per block (scaled by 1e18)
      */
     function _setIssuancePerBlock(uint256 _issuancePerBlock) private {
         // Called since `issuance per block` will change
