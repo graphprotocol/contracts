@@ -6,6 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../upgrades/GraphUpgradeable.sol";
+import "../staking/libs/MathUtils.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
@@ -281,7 +282,8 @@ contract RewardsManager is RewardsManagerV3Storage, GraphUpgradeable, IRewardsMa
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
-        uint256 newRewardsForSubgraph = accRewardsForSubgraph.sub(
+        uint256 newRewardsForSubgraph = MathUtils.diffOrZero(
+            accRewardsForSubgraph,
             subgraph.accRewardsForSubgraphSnapshot
         );
 
