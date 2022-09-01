@@ -138,7 +138,6 @@ describe('L2Reservoir', () => {
       mockRouter.address,
       mockL1GRT.address,
       mockL1Gateway.address,
-      mockL1Reservoir.address,
     )
 
     arbTxMock = await smock.fake('IArbTxWithRedeemer', {
