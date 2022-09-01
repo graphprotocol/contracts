@@ -4,6 +4,7 @@ import { TASK_TEST, TASK_RUN } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
+import { isL1 } from '../../gre/helpers/network'
 
 const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
@@ -11,18 +12,22 @@ const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
 // Built-in test & run tasks don't support GRE arguments
 // so we pass them by overriding GRE config object
 const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironment) => {
-  const greArgs = ['l1GraphConfig', 'l2GraphConfig', 'addressBook']
+  const greArgs = ['graphConfig', 'l1GraphConfig', 'l2GraphConfig', 'addressBook']
 
   for (const arg of greArgs) {
     if (args[arg]) {
-      hre.config.graph[arg] = args[arg]
+      if (arg === 'graphConfig') {
+        const l1 = isL1(hre.config.networks[hre.network.name].chainId)
+        hre.config.graph[l1 ? 'l1GraphConfig' : 'l2GraphConfig'] = args[arg]
+      } else {
+        hre.config.graph[arg] = args[arg]
+      }
     }
   }
 }
 
 task('e2e', 'Run all e2e tests')
-  .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const testFiles = [
@@ -37,8 +42,8 @@ task('e2e', 'Run all e2e tests')
   })
 
 task('e2e:config', 'Run deployment configuration e2e tests')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(CONFIG_TESTS).found
     setGraphConfig(args, hre)
@@ -48,8 +53,8 @@ task('e2e:config', 'Run deployment configuration e2e tests')
   })
 
 task('e2e:init', 'Run deployment initialization e2e tests')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(INIT_TESTS).found
     setGraphConfig(args, hre)
@@ -60,8 +65,8 @@ task('e2e:init', 'Run deployment initialization e2e tests')
 
 task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addFlag('skipScript', "Don't run scenario script")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
