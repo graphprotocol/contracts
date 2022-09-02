@@ -4,7 +4,6 @@ import { recreatePreviousSubgraphId } from './lib/subgraph'
 import { BigNumber } from 'ethers'
 import { CuratorFixture, getCuratorFixtures } from './fixtures/curators'
 import { SubgraphFixture, getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
-import { fund } from './fixtures/funds'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 let curatorFixtures: CuratorFixture[]
@@ -19,7 +18,7 @@ describe('Publish subgraphs', () => {
     const testAccounts = await getTestAccounts()
     curatorFixtures = getCuratorFixtures(testAccounts)
     subgraphFixtures = getSubgraphFixtures()
-    subgraphOwnerFixture = getSubgraphOwner(testAccounts)
+    subgraphOwnerFixture = getSubgraphOwner(testAccounts).signer
   })
 
   describe('GRT balances', () => {
@@ -27,7 +26,7 @@ describe('Publish subgraphs', () => {
       for (const curator of curatorFixtures) {
         const address = curator.signer.address
         const balance = await GraphToken.balanceOf(address)
-        expect(balance).gte(fund.grtAmount.sub(curator.signalled))
+        expect(balance).gte(curator.grtBalance.sub(curator.signalled))
       }
     })
   })

@@ -1,13 +1,20 @@
+// ### Scenario description ###
+// Common protocol actions > Set up subgraphs: publish and signal
+// This scenario will create a set of subgraphs and add signal to them. See fixtures for details.
+// Run with:
+//    npx hardhat e2e:scenario create-subgraphs --network <network> --graph-config config/graph.<network>.yml
+
 import hre from 'hardhat'
 import { publishNewSubgraph } from './lib/subgraph'
-import { fundAccountsEth, fundAccountsGRT } from './lib/accounts'
+import { fundAccountsETH, fundAccountsGRT } from './lib/accounts'
 import { signal } from './lib/curation'
 import { getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
 import { getCuratorFixtures } from './fixtures/curators'
-import { fund } from './fixtures/funds'
+import { getGraphOptsFromArgv } from './lib/helpers'
 
 async function main() {
-  const graph = hre.graph()
+  const graphOpts = getGraphOptsFromArgv()
+  const graph = hre.graph(graphOpts)
   const testAccounts = await graph.getTestAccounts()
 
   const subgraphFixtures = getSubgraphFixtures()
@@ -15,13 +22,20 @@ async function main() {
   const curatorFixtures = getCuratorFixtures(testAccounts)
 
   const deployer = await graph.getDeployer()
-  const subgraphOwners = [subgraphOwnerFixture.address]
+  const subgraphOwners = [subgraphOwnerFixture.signer.address]
+  const subgraphOwnerETHBalance = [subgraphOwnerFixture.ethBalance]
   const curators = curatorFixtures.map((c) => c.signer.address)
+  const curatorETHBalances = curatorFixtures.map((i) => i.ethBalance)
+  const curatorGRTBalances = curatorFixtures.map((i) => i.grtBalance)
 
   // == Fund participants
   console.log('\n== Fund subgraph owners and curators')
-  await fundAccountsEth(deployer, [...subgraphOwners, ...curators], fund.ethAmount)
-  await fundAccountsGRT(deployer, curators, fund.grtAmount, graph.contracts.GraphToken)
+  await fundAccountsETH(
+    deployer,
+    [...subgraphOwners, ...curators],
+    [...subgraphOwnerETHBalance, ...curatorETHBalances],
+  )
+  await fundAccountsGRT(deployer, curators, curatorGRTBalances, graph.contracts.GraphToken)
 
   // == Publish subgraphs
   console.log('\n== Publishing subgraphs')
@@ -29,7 +43,7 @@ async function main() {
   for (const subgraph of subgraphFixtures) {
     const id = await publishNewSubgraph(
       graph.contracts,
-      subgraphOwnerFixture,
+      subgraphOwnerFixture.signer,
       subgraph.deploymentId,
     )
     const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)

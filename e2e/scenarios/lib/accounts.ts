@@ -2,7 +2,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, BigNumberish, ContractTransaction } from 'ethers'
 import { ethers } from 'hardhat'
 import { GraphToken } from '../../../build/types/GraphToken'
-import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import { TransactionResponse } from '@ethersproject/providers'
 
 const checkBalance = async (
@@ -19,7 +18,7 @@ const checkBalance = async (
 }
 
 const ensureBalance = async (
-  beneficiaries: string[],
+  beneficiary: string,
   amount: BigNumberish,
   getBalanceFn: (address: string) => Promise<BigNumber>,
   transferFn: (
@@ -27,33 +26,34 @@ const ensureBalance = async (
     transferAmount: BigNumber,
   ) => Promise<ContractTransaction | TransactionResponse>,
 ) => {
-  const txs: Promise<TransactionReceipt>[] = []
-  for (const beneficiary of beneficiaries) {
-    const balance = await getBalanceFn(beneficiary)
-    const balanceDif = BigNumber.from(amount).sub(balance)
+  const balance = await getBalanceFn(beneficiary)
+  const balanceDif = BigNumber.from(amount).sub(balance)
 
-    if (balanceDif.gt(0)) {
-      console.log(`Funding ${beneficiary} with ${balanceDif}...`)
-      const tx = await transferFn(beneficiary, balanceDif)
-      txs.push(tx.wait())
-    }
+  if (balanceDif.gt(0)) {
+    console.log(`Funding ${beneficiary} with ${balanceDif}...`)
+    const tx = await transferFn(beneficiary, balanceDif)
+    await tx.wait()
   }
-  await Promise.all(txs)
 }
 
 export const ensureETHBalance = async (
   sender: SignerWithAddress,
   beneficiaries: string[],
-  amount: BigNumberish,
+  amounts: BigNumberish[],
 ): Promise<void> => {
-  await ensureBalance(
-    beneficiaries,
-    amount,
-    ethers.provider.getBalance,
-    (address: string, amount: BigNumber) => {
-      return sender.sendTransaction({ to: address, value: amount })
-    },
-  )
+  if (beneficiaries.length !== amounts.length) {
+    throw new Error('beneficiaries and amounts must be the same length!')
+  }
+  for (let index = 0; index < beneficiaries.length; index++) {
+    await ensureBalance(
+      beneficiaries[index],
+      amounts[index],
+      ethers.provider.getBalance,
+      (address: string, amount: BigNumber) => {
+        return sender.sendTransaction({ to: address, value: amount })
+      },
+    )
+  }
 }
 
 export const ensureGRTAllowance = async (
@@ -72,35 +72,48 @@ export const ensureGRTAllowance = async (
   }
 }
 
-export const fundAccountsEth = async (
+export const fundAccountsETH = async (
   sender: SignerWithAddress,
   beneficiaries: string[],
-  amount: BigNumberish,
+  amounts: BigNumberish[],
 ): Promise<void> => {
+  if (beneficiaries.length !== amounts.length) {
+    throw new Error('beneficiaries and amounts must be the same length!')
+  }
   // Ensure sender has enough funds to distribute
-  await checkBalance(
-    sender.address,
-    BigNumber.from(amount).mul(beneficiaries.length),
-    ethers.provider.getBalance,
+  const totalETH = amounts.reduce(
+    (sum: BigNumber, amount: BigNumberish) => sum.add(BigNumber.from(amount)),
+    BigNumber.from(0),
   )
+  await checkBalance(sender.address, BigNumber.from(totalETH), ethers.provider.getBalance)
 
   // Fund the accounts
-  await ensureETHBalance(sender, beneficiaries, amount)
+  await ensureETHBalance(sender, beneficiaries, amounts)
 }
 
 export const fundAccountsGRT = async (
   sender: SignerWithAddress,
   beneficiaries: string[],
-  amount: BigNumberish,
+  amounts: BigNumberish[],
   grt: GraphToken,
 ): Promise<void> => {
+  if (beneficiaries.length !== amounts.length) {
+    throw new Error('beneficiaries and amounts must be the same length!')
+  }
   // Ensure sender has enough funds to distribute
-  await checkBalance(
-    sender.address,
-    BigNumber.from(amount).mul(beneficiaries.length),
-    grt.balanceOf,
+  const totalGRT = amounts.reduce(
+    (sum: BigNumber, amount: BigNumberish) => sum.add(BigNumber.from(amount)),
+    BigNumber.from(0),
   )
+  await checkBalance(sender.address, BigNumber.from(totalGRT), grt.balanceOf)
 
   // Fund the accounts
-  await ensureBalance(beneficiaries, amount, grt.balanceOf, grt.connect(sender).transfer)
+  for (let index = 0; index < beneficiaries.length; index++) {
+    await ensureBalance(
+      beneficiaries[index],
+      amounts[index],
+      grt.balanceOf,
+      grt.connect(sender).transfer,
+    )
+  }
 }

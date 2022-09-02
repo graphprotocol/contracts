@@ -1,20 +1,29 @@
+// ### Scenario description ###
+// Common protocol actions > Set up indexers: stake and open allocations
+// This scenario will open several allocations. See fixtures for details.
+// Run with:
+//    npx hardhat e2e:scenario open-allocations --network <network> --graph-config config/graph.<network>.yml
+
 import hre from 'hardhat'
 import { allocateFrom, stake } from './lib/staking'
-import { fundAccountsEth, fundAccountsGRT } from './lib/accounts'
+import { fundAccountsETH, fundAccountsGRT } from './lib/accounts'
 import { getIndexerFixtures } from './fixtures/indexers'
-import { fund } from './fixtures/funds'
+import { getGraphOptsFromArgv } from './lib/helpers'
 
 async function main() {
-  const graph = hre.graph()
+  const graphOpts = getGraphOptsFromArgv()
+  const graph = hre.graph(graphOpts)
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
   const deployer = await graph.getDeployer()
   const indexers = indexerFixtures.map((i) => i.signer.address)
+  const indexerETHBalances = indexerFixtures.map((i) => i.ethBalance)
+  const indexerGRTBalances = indexerFixtures.map((i) => i.grtBalance)
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await fundAccountsEth(deployer, indexers, fund.ethAmount)
-  await fundAccountsGRT(deployer, indexers, fund.grtAmount, graph.contracts.GraphToken)
+  await fundAccountsETH(deployer, indexers, indexerETHBalances)
+  await fundAccountsGRT(deployer, indexers, indexerGRTBalances, graph.contracts.GraphToken)
 
   // == Stake
   console.log('\n== Staking tokens')

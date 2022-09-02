@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getIndexerFixtures, IndexerFixture } from './fixtures/indexers'
-import { fund } from './fixtures/funds'
 
 enum AllocationState {
   Null,
@@ -26,7 +25,7 @@ describe('Open allocations', () => {
       for (const indexer of indexerFixtures) {
         const address = indexer.signer.address
         const balance = await GraphToken.balanceOf(address)
-        expect(balance).gte(fund.grtAmount.sub(indexer.stake))
+        expect(balance).gte(indexer.grtBalance.sub(indexer.stake))
       }
     })
   })

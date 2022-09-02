@@ -4,6 +4,8 @@ import { toGRT } from '../../../cli/network'
 
 export interface IndexerFixture {
   signer: SignerWithAddress
+  ethBalance: BigNumber
+  grtBalance: BigNumber
   stake: BigNumber
   allocations: AllocationFixture[]
 }
@@ -31,6 +33,8 @@ export const getIndexerFixtures = (signers: SignerWithAddress[]): IndexerFixture
     // indexer1
     {
       signer: signers[0],
+      ethBalance: toGRT(0.1),
+      grtBalance: toGRT(100_000),
       stake: toGRT(100_000),
       allocations: [
         {
@@ -59,6 +63,8 @@ export const getIndexerFixtures = (signers: SignerWithAddress[]): IndexerFixture
     // indexer2
     {
       signer: signers[1],
+      ethBalance: toGRT(0.1),
+      grtBalance: toGRT(100_000),
       stake: toGRT(100_000),
       allocations: [
         {

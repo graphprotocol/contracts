@@ -4,6 +4,8 @@ import { toGRT } from '../../../cli/network'
 
 export interface CuratorFixture {
   signer: SignerWithAddress
+  ethBalance: BigNumber
+  grtBalance: BigNumber
   signalled: BigNumber
   subgraphs: SubgraphFixture[]
 }
@@ -23,6 +25,8 @@ export const getCuratorFixtures = (signers: SignerWithAddress[]): CuratorFixture
     // curator1
     {
       signer: signers[3],
+      ethBalance: toGRT(0.1),
+      grtBalance: toGRT(100_000),
       signalled: toGRT(10_400),
       subgraphs: [
         {
@@ -42,6 +46,8 @@ export const getCuratorFixtures = (signers: SignerWithAddress[]): CuratorFixture
     // curator2
     {
       signer: signers[4],
+      ethBalance: toGRT(0.1),
+      grtBalance: toGRT(100_000),
       signalled: toGRT(4_500),
       subgraphs: [
         {
@@ -57,6 +63,8 @@ export const getCuratorFixtures = (signers: SignerWithAddress[]): CuratorFixture
     // curator3
     {
       signer: signers[5],
+      ethBalance: toGRT(0.1),
+      grtBalance: toGRT(100_000),
       signalled: toGRT(8_000),
       subgraphs: [
         {

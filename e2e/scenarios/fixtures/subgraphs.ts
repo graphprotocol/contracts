@@ -1,4 +1,12 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { BigNumber } from 'ethers'
+import { toGRT } from '../../../cli/network'
+
+export interface SubgraphOwnerFixture {
+  signer: SignerWithAddress
+  ethBalance: BigNumber
+  grtBalance: BigNumber
+}
 
 export interface SubgraphFixture {
   deploymentId: string
@@ -7,8 +15,12 @@ export interface SubgraphFixture {
 
 // Test account indexes
 // 2: subgraphOwner
-export const getSubgraphOwner = (signers: SignerWithAddress[]): SignerWithAddress => {
-  return signers[2]
+export const getSubgraphOwner = (signers: SignerWithAddress[]): SubgraphOwnerFixture => {
+  return {
+    signer: signers[2],
+    ethBalance: toGRT(0.1),
+    grtBalance: toGRT(100_000),
+  }
 }
 
 export const getSubgraphFixtures = (): SubgraphFixture[] => [

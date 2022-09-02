@@ -5,6 +5,7 @@ import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
 import { isL1 } from '../../gre/helpers/network'
+import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 
 const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
@@ -80,10 +81,15 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
 
     if (!args.skipScript) {
       if (fs.existsSync(script)) {
-        await hre.run(TASK_RUN, {
-          script: script,
-          noCompile: true,
-        })
+        await runScriptWithHardhat(hre.hardhatArguments, script, [
+          args.graphConfig,
+          args.addressBook,
+        ])
+        // await hre.run(TASK_RUN, {
+        //   script: script,
+        //   noCompile: true,
+        //   ...args,
+        // })
       } else {
         console.log(`No script found for scenario ${args.scenario}`)
       }

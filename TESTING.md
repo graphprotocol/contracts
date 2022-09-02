@@ -71,30 +71,6 @@ npx hardhat e2e:scenario <scenario> --network <network> --graph-config config/gr
 
 Note that this command will only run the tests so you need to be sure the protocol is already deployed and the graph config file and address book files are up to date.
 
-### Scenarios
-
-#### Typical protocol actions
-
-Common protocol actions can be tested by running the scenarios:
-
-```bash
-# Set up subgraphs: publish and signal
-npx hardhat e2e:scenario create-subgraph --network <network> --graph-config config/graph.<network>.yml
-
-# Set up indexers: stake and open allocations
-npx hardhat e2e:scenario open-allocations --network <network> --graph-config config/graph.<network>.yml
-
-# Close some allocations
-# Need to wait at least 1 epoch before running. On localhost, epoch is automatically advanced
-npx hardhat e2e:scenario close-allocations --network <network> --graph-config config/graph.<network>.yml
-```
-
-These scenarios will setup the protocol to have at least:
-
-- two indexers with stake
-- each indexer has two or three allocations, one of which is open
-- four subgraphs, with 0, 400, 10000 and 12500 tokens signalled, with signal coming from three different curators
-
 ### How to add scenarios
 
 Scenarios are defined by an optional script and a test file:
