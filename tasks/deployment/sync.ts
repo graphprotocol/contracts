@@ -36,8 +36,10 @@ task('migrate:sync', 'Sync controller contracts')
     if (isL2) {
       console.log('> Syncing cache on L2GraphTokenGateway')
       txs.push(await contracts['L2GraphTokenGateway'].connect(deployer).syncAllContracts())
-      console.log('> Syncing cache on L2Reservoir')
-      txs.push(await contracts['L2Reservoir'].connect(deployer).syncAllContracts())
+      if (contracts['L2Reservoir']) {
+        console.log('> Syncing cache on L2Reservoir')
+        txs.push(await contracts['L2Reservoir'].connect(deployer).syncAllContracts())
+      }
     } else {
       // L1 chains might not have these contracts deployed yet...
       if (contracts['L1GraphTokenGateway']) {
