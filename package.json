@@ -89,6 +89,7 @@
     "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
     "deploy-rinkeby": "yarn deploy --force --network rinkeby --graph-config config/graph.rinkeby.yml",
     "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
+    "deploy-arbitrum-goerli": "yarn deploy --force --network arbitrum-goerli --graph-config config/graph.arbitrum-goerli.yml",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
     "test:e2e": "scripts/e2e",
