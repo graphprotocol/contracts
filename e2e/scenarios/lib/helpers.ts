@@ -5,7 +5,7 @@ export function getGraphOptsFromArgv(): {
   const argv = process.argv.slice(2)
 
   const getArgv = (index: number) =>
-    argv[index] && argv[index] !== 'undefined' ? argv[0] : undefined
+    argv[index] && argv[index] !== 'undefined' ? argv[index] : undefined
 
   return {
     graphConfig: getArgv(0),

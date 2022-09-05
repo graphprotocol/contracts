@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
-import { TASK_TEST, TASK_RUN } from 'hardhat/builtin-tasks/task-names'
+import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
@@ -85,11 +85,6 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
           args.graphConfig,
           args.addressBook,
         ])
-        // await hre.run(TASK_RUN, {
-        //   script: script,
-        //   noCompile: true,
-        //   ...args,
-        // })
       } else {
         console.log(`No script found for scenario ${args.scenario}`)
       }

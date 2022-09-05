@@ -147,8 +147,8 @@ const config: HardhatUserConfig = {
     },
   },
   graph: {
-    addressBook: process.env.ADDRESS_BOOK,
-    l1GraphConfig: process.env.GRAPH_CONFIG,
+    addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
+    l1GraphConfig: process.env.GRAPH_CONFIG ?? 'config/graph.localhost.yml',
     l2GraphConfig: process.env.L2_GRAPH_CONFIG,
   },
   etherscan: {
