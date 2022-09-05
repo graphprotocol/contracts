@@ -14,6 +14,7 @@ describe('Controller configuration', () => {
     'RewardsManager',
     'Staking',
     'GraphToken',
+    'L1GraphTokenGateway',
   ]
 
   let namedAccounts: NamedAccounts
@@ -23,10 +24,13 @@ describe('Controller configuration', () => {
   })
 
   const proxyShouldMatchDeployed = async (contractName: string) => {
-    const curationAddress = await Controller.getContractProxy(
-      ethers.utils.solidityKeccak256(['string'], [contractName]),
+    // remove L1/L2 prefix, contracts are not registered as L1/L2 on controller
+    const name = contractName.replace(/(^L1|L2)/gi, '')
+
+    const address = await Controller.getContractProxy(
+      ethers.utils.solidityKeccak256(['string'], [name]),
     )
-    expect(curationAddress).eq(contracts[contractName].address)
+    expect(address).eq(contracts[contractName].address)
   }
 
   it('should be owned by governor', async function () {
