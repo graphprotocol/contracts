@@ -33,9 +33,6 @@ contracts:
       - fn: "setContractProxy"
         id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
         contractAddress: "${{L1GraphTokenGateway.address}}"
-      - fn: "setContractProxy"
-        id: "0x96ba401694892957e25e29c7a1e4171ae9945b5ee36339de79b199a530436e9e" # keccak256('Reservoir')
-        contractAddress: "${{L1Reservoir.address}}"
       - fn: "setPauseGuardian"
         pauseGuardian: *pauseGuardian
       - fn: "transferOwnership"

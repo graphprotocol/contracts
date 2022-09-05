@@ -1,7 +1,10 @@
 general:
-  arbitrator: &arbitrator "0x87D11BD744b882b7bc5A6b5450cbA8C35D90eb10" # Arbitration Council
-  governor: &governor "0x1679A1D1caf1252BA43Fb8Fc17ebF914a0C725AE" # Graph Council
-  authority: &authority "0xe1EC4339019eC9628438F8755f847e3023e4ff9c" # Authority that signs payment vouchers
+  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council (TODO: update)
+  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council (TODO: update)
+  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers (TODO: update)
+  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle (TODO: update)
+  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian (TODO: update)
+  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner (TODO: update)
 
 contracts:
   Controller:
@@ -26,7 +29,18 @@ contracts:
         contractAddress: "${{Staking.address}}"
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
-        contractAddress: "${{GraphToken.address}}"
+        contractAddress: "${{L2GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L2GraphTokenGateway.address}}"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
+      - fn: "transferOwnership"
+        owner: *governor
+  GraphProxyAdmin:
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
   ServiceRegistry:
     proxy: true
     init:
@@ -35,13 +49,11 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 277 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
-  GraphToken:
+      lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+  L2GraphToken:
+    proxy: true
     init:
-      initialSupply: "10000000000000000000000000000" # in wei
-    calls:
-      - fn: "addMinter"
-        minter: "${{RewardsManager.address}}"
+      owner: *governor
   Curation:
     proxy: true
     init:
@@ -58,8 +70,8 @@ contracts:
       arbitrator: *arbitrator
       minimumDeposit: "10000000000000000000000" # in wei
       fishermanRewardPercentage: 500000 # in parts per million
-      idxSlashingPercentage: 20000 # in parts per million
-      qrySlashingPercentage: 5000 # in parts per million
+      idxSlashingPercentage: 25000 # in parts per million
+      qrySlashingPercentage: 25000 # in parts per million
   GNS:
     proxy: true
     init:
@@ -76,6 +88,8 @@ contracts:
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
       - fn: "setMinter"
         minter: "${{GNS.address}}"
+      - fn: "transferOwnership"
+        owner: *governor
   Staking:
     proxy: true
     init:
@@ -85,8 +99,8 @@ contracts:
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
       channelDisputeEpochs: 2 # in epochs
-      maxAllocationEpochs: 2 # in epochs
-      delegationUnbondingPeriod: 6 # in epochs
+      maxAllocationEpochs: 4 # in epochs
+      delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
@@ -103,12 +117,18 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
+    calls:
+      - fn: "setSubgraphAvailabilityOracle"
+        subgraphAvailabilityOracle: *availabilityOracle
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      governor: *governor
+      governor: *allocationExchangeOwner
       authority: *authority
     calls:
       - fn: "approveAll"
+  L2GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"

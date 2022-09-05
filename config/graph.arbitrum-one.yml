@@ -2,6 +2,9 @@ general:
   arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council
   governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council
   authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle (TODO: update)
+  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian (TODO: update)
+  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner (TODO: update)
 
 contracts:
   Controller:
@@ -30,6 +33,14 @@ contracts:
       - fn: "setContractProxy"
         id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
         contractAddress: "${{L2GraphTokenGateway.address}}"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
+      - fn: "transferOwnership"
+        owner: *governor
+  GraphProxyAdmin:
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
   ServiceRegistry:
     proxy: true
     init:
@@ -38,7 +49,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 1108 # 4 hours (in 13 second blocks)
+      lengthInBlocks: 6646 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
   L2GraphToken:
     proxy: true
     init:
@@ -52,18 +63,18 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
-      reserveRatio: 500000 # 50% (parts per million)
-      curationTaxPercentage: 10000 # 1% (parts per million)
-      minimumCurationDeposit: "1000000000000000000" # 1 GRT
+      reserveRatio: 500000 # in parts per million
+      curationTaxPercentage: 10000 # in parts per million
+      minimumCurationDeposit: "1000000000000000000" # in wei
   DisputeManager:
     proxy: true
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "10000000000000000000000" # 10,000 GRT (in wei)
-      fishermanRewardPercentage: 500000 # 50% (parts per million)
-      idxSlashingPercentage: 25000 # 2.5% (parts per million)
-      qrySlashingPercentage: 5000 # 0.5% (parts per million)
+      minimumDeposit: "10000000000000000000000" # in wei
+      fishermanRewardPercentage: 500000 # in parts per million
+      idxSlashingPercentage: 25000 # in parts per million
+      qrySlashingPercentage: 25000 # in parts per million
   GNS:
     proxy: true
     init:
@@ -80,23 +91,25 @@ contracts:
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
       - fn: "setMinter"
         minter: "${{GNS.address}}"
+      - fn: "transferOwnership"
+        owner: *governor
   Staking:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      minimumIndexerStake: "100000000000000000000000" # 100,000 GRT (in wei)
-      thawingPeriod: 6646 # 10 days (in blocks)
-      protocolPercentage: 10000 # 1% (parts per million)
-      curationPercentage: 100000 # 10% (parts per million)
-      channelDisputeEpochs: 2 # (in epochs)
-      maxAllocationEpochs: 6 # Based on epoch length this is 28 days (in epochs)
-      delegationUnbondingPeriod: 6 # Based on epoch length this is 28 days (in epochs)
-      delegationRatio: 16 # 16x (delegated stake to indexer stake multiplier)
+      minimumIndexerStake: "100000000000000000000000" # in wei
+      thawingPeriod: 186092 # in blocks
+      protocolPercentage: 10000 # in parts per million
+      curationPercentage: 100000 # in parts per million
+      channelDisputeEpochs: 7 # in epochs
+      maxAllocationEpochs: 28 # in epochs
+      delegationUnbondingPeriod: 28 # in epochs
+      delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
     calls:
       - fn: "setDelegationTaxPercentage"
-        delegationTaxPercentage: 5000 # 0.5% (parts per million)
+        delegationTaxPercentage: 5000 # parts per million
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
@@ -107,11 +120,14 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "setSubgraphAvailabilityOracle"
+        subgraphAvailabilityOracle: *availabilityOracle
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
       staking: "${{Staking.address}}"
-      governor: *governor
+      governor: *allocationExchangeOwner
       authority: *authority
     calls:
       - fn: "approveAll"
