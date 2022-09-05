@@ -25,7 +25,7 @@ describe('Open allocations', () => {
       for (const indexer of indexerFixtures) {
         const address = indexer.signer.address
         const balance = await GraphToken.balanceOf(address)
-        expect(balance).gte(indexer.grtBalance.sub(indexer.stake))
+        expect(balance).eq(indexer.grtBalance.sub(indexer.stake))
       }
     })
   })
@@ -35,7 +35,7 @@ describe('Open allocations', () => {
       for (const indexer of indexerFixtures) {
         const address = indexer.signer.address
         const tokensStaked = (await Staking.stakes(address)).tokensStaked
-        expect(tokensStaked).gte(indexer.stake)
+        expect(tokensStaked).eq(indexer.stake)
       }
     })
   })

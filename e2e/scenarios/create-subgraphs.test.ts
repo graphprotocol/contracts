@@ -26,7 +26,7 @@ describe('Publish subgraphs', () => {
       for (const curator of curatorFixtures) {
         const address = curator.signer.address
         const balance = await GraphToken.balanceOf(address)
-        expect(balance).gte(curator.grtBalance.sub(curator.signalled))
+        expect(balance).eq(curator.grtBalance.sub(curator.signalled))
       }
     })
   })
