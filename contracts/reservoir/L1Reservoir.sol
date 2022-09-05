@@ -23,6 +23,14 @@ import { L1ReservoirV2Storage } from "./L1ReservoirStorage.sol";
 contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     using SafeMath for uint256;
 
+    struct L2MessageParams {
+        uint256 maxGas;
+        uint256 gasPriceBid;
+        uint256 maxSubmissionCost;
+        uint256 keeperReward;
+        address keeper;
+    }
+
     // Emitted when the initial supply snapshot is taken after contract deployment
     event InitialSnapshotTaken(
         uint256 blockNumber,
@@ -311,86 +319,55 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         // want to send the reward to an address that is different to the indexer/dripper's address.
         require(_keeperRewardBeneficiary != address(0), "INVALID_BENEFICIARY");
 
-        uint256 mintedRewardsTotal = getNewGlobalRewards(rewardsMintedUntilBlock);
-        uint256 mintedRewardsActual = getNewGlobalRewards(block.number);
-        // eps = (signed int) mintedRewardsTotal - mintedRewardsActual
+        // Total rewards from the previous drip block to the end of the previous drip interval
+        uint256 lastDripTotalRewards = getNewGlobalRewards(rewardsMintedUntilBlock);
+        // Actual rewards accrued up to the current block, since the previous drip block
+        uint256 lastDripRewardsUntilCurrentBlock = getNewGlobalRewards(block.number);
+        // These two variables give us the epsilon "error" value described in GIP-0034:
+        // eps = (signed int) lastDripTotalRewards - lastDripRewardsUntilCurrentBlock
+        // If we're dripping after the drip interval is over, rewards up to current block
+        // will be larger than the total rewards, and eps will be the gap we need to fill
+        // (and a negative value).
+        // If instead we're dripping before the last drip interval is over, eps will be positive
+        // and represents rewards that were minted in the previous drip but were not used yet,
+        // so we can use them in this new drip instead of minting more tokens unnecessarily.
 
         uint256 keeperReward = dripRewardPerBlock.mul(block.number.sub(lastRewardsUpdateBlock));
-        if (nextIssuanceRate != issuanceRate) {
-            rewardsManager().updateAccRewardsPerSignal();
-            snapshotAccumulatedRewards(mintedRewardsActual); // This updates lastRewardsUpdateBlock
-            issuanceRate = nextIssuanceRate;
-            emit IssuanceRateUpdated(issuanceRate);
-        } else {
-            snapshotAccumulatedRewards(mintedRewardsActual);
-        }
+        L2MessageParams memory l2Params = L2MessageParams(
+            _l2MaxGas,
+            _l2GasPriceBid,
+            _l2MaxSubmissionCost,
+            keeperReward,
+            _keeperRewardBeneficiary
+        );
 
+        // Update the accumulated rewards snapshot, and if issuance rate is changing,
+        // update the rewards per signal snapshot in RewardsManager,
+        // and update the issuanceRate.
+        _computeSnapshotsAndUpdateIssuance(lastDripRewardsUntilCurrentBlock);
+
+        // Compute the end of this upcoming drip interval:
         rewardsMintedUntilBlock = block.number.add(dripInterval);
         // n = deltaR(t1, t0)
         uint256 newRewardsToDistribute = getNewGlobalRewards(rewardsMintedUntilBlock);
         // N = n - eps
-        uint256 rewardsTokensToMint;
-        {
-            uint256 newRewardsPlusMintedActual = newRewardsToDistribute.add(mintedRewardsActual);
-            require(
-                newRewardsPlusMintedActual > mintedRewardsTotal,
-                "Would mint negative or zero tokens, wait before calling again"
-            );
-            rewardsTokensToMint = newRewardsPlusMintedActual.sub(mintedRewardsTotal);
-        }
+        uint256 rewardsTokensToMint = _calculateTokensToMintForRewards(
+            newRewardsToDistribute,
+            lastDripRewardsUntilCurrentBlock,
+            lastDripTotalRewards
+        );
 
         IGraphToken grt = graphToken();
         grt.mint(address(this), rewardsTokensToMint.add(keeperReward));
 
-        uint256 tokensToSendToL2 = 0;
-        if (l2RewardsFraction != nextL2RewardsFraction) {
-            tokensToSendToL2 = nextL2RewardsFraction.mul(newRewardsToDistribute).div(
-                FIXED_POINT_SCALING_FACTOR
-            );
-            if (mintedRewardsTotal > mintedRewardsActual) {
-                // eps > 0, i.e. t < t1_old
-                // Note this can fail if the old l2RewardsFraction is larger
-                // than the new, in which case we just have to wait until enough time has passed
-                // so that eps is small enough. This also applies to the case where the new
-                // l2RewardsFraction is zero, since we still need to send one last message
-                // with the new values to the L2Reservoir.
-                uint256 l2OffsetAmount = l2RewardsFraction
-                    .mul(mintedRewardsTotal.sub(mintedRewardsActual))
-                    .div(FIXED_POINT_SCALING_FACTOR);
-                require(
-                    tokensToSendToL2 > l2OffsetAmount,
-                    "Negative amount would be sent to L2, wait before calling again"
-                );
-                tokensToSendToL2 = tokensToSendToL2.add(keeperReward).sub(l2OffsetAmount);
-            } else {
-                tokensToSendToL2 = tokensToSendToL2.add(keeperReward).add(
-                    l2RewardsFraction.mul(mintedRewardsActual.sub(mintedRewardsTotal)).div(
-                        FIXED_POINT_SCALING_FACTOR
-                    )
-                );
-            }
-            l2RewardsFraction = nextL2RewardsFraction;
-            emit L2RewardsFractionUpdated(l2RewardsFraction);
-            _sendNewTokensAndStateToL2(
-                tokensToSendToL2,
-                _l2MaxGas,
-                _l2GasPriceBid,
-                _l2MaxSubmissionCost,
-                keeperReward,
-                _keeperRewardBeneficiary
-            );
-        } else if (l2RewardsFraction > 0) {
-            tokensToSendToL2 = rewardsTokensToMint
-                .mul(l2RewardsFraction)
-                .div(FIXED_POINT_SCALING_FACTOR)
-                .add(keeperReward);
-            _sendNewTokensAndStateToL2(
-                tokensToSendToL2,
-                _l2MaxGas,
-                _l2GasPriceBid,
-                _l2MaxSubmissionCost,
-                keeperReward,
-                _keeperRewardBeneficiary
+        uint256 tokensSentToL2 = 0;
+        if (l2RewardsFraction != 0 || nextL2RewardsFraction != 0) {
+            tokensSentToL2 = _computeAndSendTokensToL2(
+                newRewardsToDistribute,
+                lastDripRewardsUntilCurrentBlock,
+                lastDripTotalRewards,
+                rewardsTokensToMint,
+                l2Params
             );
         } else {
             // Avoid locking funds in this contract if we don't need to
@@ -401,7 +378,7 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         }
         emit RewardsDripped(
             rewardsTokensToMint.add(keeperReward),
-            tokensToSendToL2,
+            tokensSentToL2,
             rewardsMintedUntilBlock
         );
     }
@@ -475,24 +452,54 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     }
 
     /**
+     * @dev Compute the amount of tokens to send to L2, and send them.
+     * Assumes either l2RewardsFraction is nonzero or nextL2RewardsFraction is nonzero.
+     * @param _newRewardsToDistribute Rewards that have to be distributed in the upcoming drip period
+     * @param _lastDripRewardsUntilCurrentBlock Rewards that have been accrued from the last drip up to the current block
+     * @param _lastDripTotalRewards Total rewards that have already been minted in the last drip
+     * @param _rewardsTokensMinted Total tokens that have been minted for rewards in this drip (excluding keeper reward)
+     * @param _l2Params Additional parameters for the L2 message
+     * @return The amount of GRT that has been sent to L2
+     */
+    function _computeAndSendTokensToL2(
+        uint256 _newRewardsToDistribute,
+        uint256 _lastDripRewardsUntilCurrentBlock,
+        uint256 _lastDripTotalRewards,
+        uint256 _rewardsTokensMinted,
+        L2MessageParams memory _l2Params
+    ) internal returns (uint256) {
+        uint256 tokensToSendToL2;
+        if (l2RewardsFraction != nextL2RewardsFraction) {
+            tokensToSendToL2 = _computeTokensForL2WithOffset(
+                _newRewardsToDistribute,
+                _lastDripRewardsUntilCurrentBlock,
+                _lastDripTotalRewards,
+                _l2Params.keeperReward
+            );
+            l2RewardsFraction = nextL2RewardsFraction;
+            emit L2RewardsFractionUpdated(l2RewardsFraction);
+            _sendNewTokensAndStateToL2(tokensToSendToL2, _l2Params);
+        } else {
+            // l2RewardsFraction must be nonzero
+            tokensToSendToL2 = _rewardsTokensMinted
+                .mul(l2RewardsFraction)
+                .div(FIXED_POINT_SCALING_FACTOR)
+                .add(_l2Params.keeperReward);
+            _sendNewTokensAndStateToL2(tokensToSendToL2, _l2Params);
+        }
+        return tokensToSendToL2;
+    }
+
+    /**
      * @dev Send new tokens and a message with state to L2
      * This function will use the L1GraphTokenGateway to send tokens
      * to L2, and will also encode a callhook to update state on the L2Reservoir.
      * @param _nTokens Number of tokens to send to L2
-     * @param _maxGas Max gas for the L2 retryable ticket execution
-     * @param _gasPriceBid Gas price for the L2 retryable ticket execution
-     * @param _maxSubmissionCost Max submission price for the L2 retryable ticket
-     * @param _keeperReward Tokens to assign as keeper reward for calling drip
-     * @param _keeper Address of the keeper that will be rewarded
+     * @param _l2Params Additional parameters for the L2 message
      */
-    function _sendNewTokensAndStateToL2(
-        uint256 _nTokens,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost,
-        uint256 _keeperReward,
-        address _keeper
-    ) internal {
+    function _sendNewTokensAndStateToL2(uint256 _nTokens, L2MessageParams memory _l2Params)
+        internal
+    {
         uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(
             FIXED_POINT_SCALING_FACTOR
         );
@@ -501,11 +508,11 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
             l2IssuanceBase,
             issuanceRate,
             nextDripNonce,
-            _keeperReward,
-            _keeper
+            _l2Params.keeperReward,
+            _l2Params.keeper
         );
         nextDripNonce = nextDripNonce.add(1);
-        bytes memory data = abi.encode(_maxSubmissionCost, extraData);
+        bytes memory data = abi.encode(_l2Params.maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
         ITokenGateway gateway = graphTokenGateway();
         grt.approve(address(gateway), _nTokens);
@@ -513,8 +520,8 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
             address(grt),
             l2ReservoirAddress,
             _nTokens,
-            _maxGas,
-            _gasPriceBid,
+            _l2Params.maxGas,
+            _l2Params.gasPriceBid,
             data
         );
     }
@@ -526,5 +533,92 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
     function _isIndexer(address _indexer) internal view returns (bool) {
         IStaking staking = staking();
         return staking.hasStake(_indexer);
+    }
+
+    /**
+     * @dev Computes the tokens that must be minted for indexer rewards
+     * @param _newRewardsToDistribute Rewards that have to be distributed in the upcoming drip period
+     * @param _lastDripRewardsUntilCurrentBlock Rewards that have been accrued from the last drip up to the current block
+     * @param _lastDripTotalRewards Total rewards that have already been minted in the last drip
+     * @return The amount of tokens that must be minted in this drip (excluding any keeper reward)
+     */
+    function _calculateTokensToMintForRewards(
+        uint256 _newRewardsToDistribute,
+        uint256 _lastDripRewardsUntilCurrentBlock,
+        uint256 _lastDripTotalRewards
+    ) internal pure returns (uint256) {
+        uint256 newRewardsPlusMintedActual = _newRewardsToDistribute.add(
+            _lastDripRewardsUntilCurrentBlock
+        );
+        require(
+            newRewardsPlusMintedActual > _lastDripTotalRewards,
+            "Would mint negative or zero tokens, wait before calling again"
+        );
+        return newRewardsPlusMintedActual.sub(_lastDripTotalRewards);
+    }
+
+    /**
+     * @dev Computes the amount of tokens to send to L2 when an offset has to be applied
+     * because the l2RewardsFraction is changing.
+     * @param _newRewardsToDistribute Rewards that have to be distributed in the upcoming drip period
+     * @param _lastDripRewardsUntilCurrentBlock Rewards that have been accrued from the last drip up to the current block
+     * @param _lastDripTotalRewards Total rewards that have already been minted in the last drip
+     * @param _keeperReward Tokens that have been minted for the keeper reward
+     * @return Total amount of GRT to send to L2, including keeper reward
+     */
+    function _computeTokensForL2WithOffset(
+        uint256 _newRewardsToDistribute,
+        uint256 _lastDripRewardsUntilCurrentBlock,
+        uint256 _lastDripTotalRewards,
+        uint256 _keeperReward
+    ) internal view returns (uint256) {
+        uint256 tokensToSendToL2 = nextL2RewardsFraction.mul(_newRewardsToDistribute).div(
+            FIXED_POINT_SCALING_FACTOR
+        );
+        if (_lastDripTotalRewards > _lastDripRewardsUntilCurrentBlock) {
+            // eps > 0, i.e. we're minting before the last drip interval is over.
+            // So there are tokens that have already been sent to L2 but weren't used yet,
+            // that we need to discount from the ones we're sending for this upcoming interval.
+            // Note this can fail if the old l2RewardsFraction is larger
+            // than the new, in which case we just have to wait until enough time has passed
+            // so that eps is small enough. This also applies to the case where the new
+            // l2RewardsFraction is zero, since we still need to send one last message
+            // with the new values to the L2Reservoir.
+            uint256 l2OffsetAmount = l2RewardsFraction
+                .mul(_lastDripTotalRewards.sub(_lastDripRewardsUntilCurrentBlock))
+                .div(FIXED_POINT_SCALING_FACTOR);
+            require(
+                tokensToSendToL2 > l2OffsetAmount,
+                "Negative amount would be sent to L2, wait before calling again"
+            );
+            tokensToSendToL2 = tokensToSendToL2.add(_keeperReward).sub(l2OffsetAmount);
+        } else {
+            // eps <= 0, i.e. we're minting after the last drip interval is over.
+            // We need to send additional tokens to cover that eps in L2, together
+            // with the tokens from this upcoming interval.
+            tokensToSendToL2 = tokensToSendToL2.add(_keeperReward).add(
+                l2RewardsFraction
+                    .mul(_lastDripRewardsUntilCurrentBlock.sub(_lastDripTotalRewards))
+                    .div(FIXED_POINT_SCALING_FACTOR)
+            );
+        }
+        return tokensToSendToL2;
+    }
+
+    /**
+     * @dev Compute any necessary snapshots for rewards or rewards per signal, and update issuance rate if needed
+     * @param _lastDripRewardsUntilCurrentBlock Rewards that have been accrued from the last drip up to the current block
+     */
+    function _computeSnapshotsAndUpdateIssuance(uint256 _lastDripRewardsUntilCurrentBlock)
+        internal
+    {
+        if (nextIssuanceRate != issuanceRate) {
+            rewardsManager().updateAccRewardsPerSignal();
+            snapshotAccumulatedRewards(_lastDripRewardsUntilCurrentBlock); // This updates lastRewardsUpdateBlock
+            issuanceRate = nextIssuanceRate;
+            emit IssuanceRateUpdated(issuanceRate);
+        } else {
+            snapshotAccumulatedRewards(_lastDripRewardsUntilCurrentBlock);
+        }
     }
 }
