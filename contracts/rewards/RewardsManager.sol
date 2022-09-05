@@ -77,6 +77,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Sets the GRT issuance per block.
      * The issuance is defined as a fixed amount of rewards per block in GRT.
+     * Whenever this function is called in layer 2, the updateL2MintAllowance function
+     * _must_ be called on the L1GraphTokenGateway in L1, to ensure the bridge can mint the
+     * right amount of tokens.
      * @param _issuancePerBlock Issuance expressed in GRT per block (scaled by 1e18)
      */
     function setIssuancePerBlock(uint256 _issuancePerBlock) external override onlyGovernor {
