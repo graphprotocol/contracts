@@ -3,6 +3,10 @@
 set -eo pipefail
 source $(pwd)/scripts/evm
 
+# Allow overriding config
+GRAPH_CONFIG=${1:-"config/graph.localhost.yml"}
+ADDRESS_BOOK=${2:-"addresses.json"}
+
 ### Setup
 # Compile contracts
 yarn build
@@ -13,19 +17,26 @@ evm_start
 sleep 5
 
 # Pre-deploy actions
-npx hardhat migrate:accounts --network localhost --graph-config config/graph.localhost.yml
+npx hardhat migrate:accounts --network localhost --graph-config "$GRAPH_CONFIG"
 
 # Deploy protocol
-npx hardhat migrate --network localhost --skip-confirmation --graph-config config/graph.localhost.yml
+npx hardhat migrate \
+  --network localhost \
+  --skip-confirmation \
+  --auto-mine \
+  --graph-config "$GRAPH_CONFIG" \
+  --address-book "$ADDRESS_BOOK"
 
 # Post deploy actions
-npx hardhat migrate:ownership --network localhost --graph-config config/graph.localhost.yml
-npx hardhat migrate:unpause --network localhost --graph-config config/graph.localhost.yml
+npx hardhat migrate:ownership --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat migrate:unpause --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 
 ### Test
 # Run tests using the localhost evm instance and the localhost graph config
-npx hardhat e2e --network localhost --graph-config config/graph.localhost.yml
-
+npx hardhat e2e --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat e2e:scenario create-subgraphs --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat e2e:scenario open-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat e2e:scenario close-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 
 ### Cleanup
 # Exit error mode so the evm instance always gets killed

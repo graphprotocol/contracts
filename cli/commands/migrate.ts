@@ -35,7 +35,11 @@ const allContracts = [
   'AllocationExchange',
 ]
 
-export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
+export const migrate = async (
+  cli: CLIEnvironment,
+  cliArgs: CLIArgs,
+  autoMine = false,
+): Promise<void> => {
   const graphConfigPath = cliArgs.graphConfig
   const force = cliArgs.force
   const contractName = cliArgs.contract
@@ -140,7 +144,7 @@ export const migrate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<vo
   logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
 
   if (chainId == 1337) {
-    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [false])
+    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [autoMine])
   }
 }
 

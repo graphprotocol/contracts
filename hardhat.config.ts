@@ -141,13 +141,14 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       chainId: 1337,
+      url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
   },
   graph: {
-    addressBook: process.env.ADDRESS_BOOK,
-    l1GraphConfig: process.env.GRAPH_CONFIG,
+    addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
+    l1GraphConfig: process.env.GRAPH_CONFIG ?? 'config/graph.localhost.yml',
     l2GraphConfig: process.env.L2_GRAPH_CONFIG,
   },
   etherscan: {

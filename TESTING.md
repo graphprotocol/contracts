@@ -48,7 +48,8 @@ The command will perform the following actions:
 - Run `migrate` hardhat task to deploy the protocol
 - Run `migrate:ownership` hardhat task to transfer ownership of governed contracts to the governor
 - Run `migrate:unpause` to unpause the protocol
-- Run `e2e` hardhat task to run all e2e tests, including scenarios
+- Run `e2e` hardhat task to run all deployment tests (config and init)
+- Run `e2e:scenario` hardhat task to run a scenario
 
 ### Other networks
 
