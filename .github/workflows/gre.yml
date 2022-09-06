@@ -21,5 +21,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install packages
         run: yarn install --non-interactive --frozen-lockfile
+      - name: Build project
+        run: yarn build
       - name: Run GRE tests
         run: yarn test:gre
