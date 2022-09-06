@@ -125,7 +125,7 @@ contracts:
         subgraphAvailabilityOracle: *availabilityOracle
   AllocationExchange:
     init:
-      graphToken: "${{GraphToken.address}}"
+      graphToken: "${{L2GraphToken.address}}"
       staking: "${{Staking.address}}"
       governor: *allocationExchangeOwner
       authority: *authority

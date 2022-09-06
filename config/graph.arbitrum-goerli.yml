@@ -54,6 +54,9 @@ contracts:
     proxy: true
     init:
       owner: *governor
+    calls:
+      - fn: "addMinter"
+        minter: "${{RewardsManager.address}}"
   Curation:
     proxy: true
     init:
@@ -122,7 +125,7 @@ contracts:
         subgraphAvailabilityOracle: *availabilityOracle
   AllocationExchange:
     init:
-      graphToken: "${{GraphToken.address}}"
+      graphToken: "${{L2GraphToken.address}}"
       staking: "${{Staking.address}}"
       governor: *allocationExchangeOwner
       authority: *authority
