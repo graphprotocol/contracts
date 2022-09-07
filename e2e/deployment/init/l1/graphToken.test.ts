@@ -1,16 +1,19 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
+import GraphChain from '../../../../gre/helpers/network'
 
-describe('GraphToken initialization', () => {
-  const {
-    graphConfig,
-    contracts: { GraphToken },
-  } = hre.graph()
+describe('[L1] GraphToken initialization', () => {
+  const graph = hre.graph()
+  const { GraphToken } = graph.contracts
+
+  before(async function () {
+    if (GraphChain.isL2(graph.chainId)) this.skip()
+  })
 
   it('total supply should match "initialSupply" on the config file', async function () {
     const value = await GraphToken.totalSupply()
-    const expected = getItemValue(graphConfig, 'contracts/GraphToken/init/initialSupply')
-    hre.network.config.chainId === 1337 ? expect(value).eq(expected) : expect(value).gte(expected)
+    const expected = getItemValue(graph.graphConfig, 'contracts/GraphToken/init/initialSupply')
+    expect(value).eq(expected)
   })
 })

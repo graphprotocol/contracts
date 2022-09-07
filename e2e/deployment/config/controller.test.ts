@@ -1,12 +1,13 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
 import { NamedAccounts } from '../../../gre/type-extensions'
+import GraphChain from '../../../gre/helpers/network'
 
 describe('Controller configuration', () => {
-  const { contracts, getNamedAccounts } = hre.graph()
-  const { Controller } = contracts
+  const graph = hre.graph()
+  const { Controller } = graph.contracts
 
-  const proxyContracts = [
+  const l1ProxyContracts = [
     'Curation',
     'GNS',
     'DisputeManager',
@@ -17,10 +18,21 @@ describe('Controller configuration', () => {
     'L1GraphTokenGateway',
   ]
 
+  const l2ProxyContracts = [
+    'Curation',
+    'GNS',
+    'DisputeManager',
+    'EpochManager',
+    'RewardsManager',
+    'Staking',
+    'L2GraphToken',
+    'L2GraphTokenGateway',
+  ]
+
   let namedAccounts: NamedAccounts
 
   before(async () => {
-    namedAccounts = await getNamedAccounts()
+    namedAccounts = await graph.getNamedAccounts()
   })
 
   const proxyShouldMatchDeployed = async (contractName: string) => {
@@ -30,7 +42,7 @@ describe('Controller configuration', () => {
     const address = await Controller.getContractProxy(
       ethers.utils.solidityKeccak256(['string'], [name]),
     )
-    expect(address).eq(contracts[contractName].address)
+    expect(address).eq(graph.contracts[contractName].address)
   }
 
   it('should be owned by governor', async function () {
@@ -44,6 +56,7 @@ describe('Controller configuration', () => {
   })
 
   describe('proxy contract', async function () {
+    const proxyContracts = GraphChain.isL1(graph.chainId) ? l1ProxyContracts : l2ProxyContracts
     for (const contract of proxyContracts) {
       it(`${contract} should match deployed`, async function () {
         await proxyShouldMatchDeployed(contract)

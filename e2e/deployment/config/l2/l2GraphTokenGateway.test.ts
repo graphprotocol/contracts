@@ -2,16 +2,16 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import GraphChain from '../../../../gre/helpers/network'
 
-describe('[L1] BridgeEscrow configuration', function () {
+describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
-  const { Controller, BridgeEscrow } = graph.contracts
+  const { Controller, L2GraphTokenGateway } = graph.contracts
 
   before(async function () {
-    if (GraphChain.isL2(graph.chainId)) this.skip()
+    if (GraphChain.isL1(graph.chainId)) this.skip()
   })
 
   it('should be controlled by Controller', async function () {
-    const controller = await BridgeEscrow.controller()
+    const controller = await L2GraphTokenGateway.controller()
     expect(controller).eq(Controller.address)
   })
 })
