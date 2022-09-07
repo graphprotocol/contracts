@@ -241,10 +241,10 @@ describe('L1GraphTokenGateway', () => {
       it('can be paused and unpaused by the governor', async function () {
         let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-        await expect(await l1GraphTokenGateway.paused()).eq(false)
+        expect(await l1GraphTokenGateway.paused()).eq(false)
         tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
-        await expect(await l1GraphTokenGateway.paused()).eq(true)
+        expect(await l1GraphTokenGateway.paused()).eq(true)
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
@@ -265,10 +265,10 @@ describe('L1GraphTokenGateway', () => {
           await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
           let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-          await expect(await l1GraphTokenGateway.paused()).eq(false)
+          expect(await l1GraphTokenGateway.paused()).eq(false)
           tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
-          await expect(await l1GraphTokenGateway.paused()).eq(true)
+          expect(await l1GraphTokenGateway.paused()).eq(true)
         })
       })
     })
@@ -361,8 +361,8 @@ describe('L1GraphTokenGateway', () => {
         )
       const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
       const senderBalance = await grt.balanceOf(tokenSender.address)
-      await expect(escrowBalance).eq(toGRT('10'))
-      await expect(senderBalance).eq(toGRT('990'))
+      expect(escrowBalance).eq(toGRT('10'))
+      expect(senderBalance).eq(toGRT('990'))
     }
     before(async function () {
       await fixture.configureL1Bridge(
@@ -431,12 +431,12 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be issuancePerBlock * 3
-        await expect(
+        expect(
           await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
         ).to.eq(issuancePerBlock.mul(3))
-        await expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(0)
-        await expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
-        await expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(0)
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
           issuanceUpdatedAtBlock,
         )
 
@@ -455,14 +455,14 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(expectedAccumulatedSnapshot, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
-        await expect(
+        expect(
           await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
         ).to.eq(expectedAccumulatedSnapshot.add(newIssuancePerBlock.mul(2)))
-        await expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           expectedAccumulatedSnapshot,
         )
-        await expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
-        await expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
           newIssuanceUpdatedAtBlock,
         )
       })
@@ -504,14 +504,12 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(snapshotValue, issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be 10 + issuancePerBlock * 3
-        await expect(
+        expect(
           await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
         ).to.eq(snapshotValue.add(issuancePerBlock.mul(3)))
-        await expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
-          snapshotValue,
-        )
-        await expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
-        await expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(snapshotValue)
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
           issuanceUpdatedAtBlock,
         )
 
@@ -532,14 +530,14 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(newSnapshotValue, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
-        await expect(
+        expect(
           await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
         ).to.eq(newSnapshotValue.add(newIssuancePerBlock.mul(2)))
-        await expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           newSnapshotValue,
         )
-        await expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
-        await expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
           newIssuanceUpdatedAtBlock,
         )
       })
@@ -792,8 +790,8 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('8'))
         const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
         const senderBalance = await grt.balanceOf(tokenSender.address)
-        await expect(escrowBalance).eq(toGRT('2'))
-        await expect(senderBalance).eq(toGRT('998'))
+        expect(escrowBalance).eq(toGRT('2'))
+        expect(senderBalance).eq(toGRT('998'))
       })
       it('mints tokens up to the L2 mint allowance', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
@@ -838,16 +836,17 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx)
           .emit(l1GraphTokenGateway, 'WithdrawalFinalized')
           .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('18'))
-        await expect(tx).emit(l1GraphTokenGateway, 'TokensMintedFromL2').withArgs(toGRT('8'))
-        await expect(await l1GraphTokenGateway.totalMintedFromL2()).to.eq(toGRT('8'))
-        await expect(
+          .emit(l1GraphTokenGateway, 'TokensMintedFromL2')
+          .withArgs(toGRT('8'))
+        expect(await l1GraphTokenGateway.totalMintedFromL2()).to.eq(toGRT('8'))
+        expect(
           await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
         ).to.eq(toGRT('8'))
 
         const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
         const senderBalance = await grt.balanceOf(tokenSender.address)
-        await expect(escrowBalance).eq(toGRT('0'))
-        await expect(senderBalance).eq(toGRT('1008'))
+        expect(escrowBalance).eq(toGRT('0'))
+        expect(senderBalance).eq(toGRT('1008'))
       })
       it('reverts if the amount to mint is over the allowance', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
