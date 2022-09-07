@@ -1,7 +1,13 @@
 import { expect } from 'chai'
 import { useEnvironment } from './helpers'
 
-import { getAddressBookPath, getChains, getGraphConfigPaths, getProviders } from '../config'
+import {
+  getAddressBookPath,
+  getChains,
+  getGraphConfigPaths,
+  getNetworkName,
+  getProviders,
+} from '../config'
 import path from 'path'
 
 describe('GRE init functions', function () {
@@ -101,6 +107,36 @@ describe('GRE init functions', function () {
       expect(() => getProviders(this.hre, 5, 421613, false)).to.throw(
         /Must set a provider url for chain: /,
       )
+    })
+  })
+
+  describe('getProviders with graph-config-desambiguate project', function () {
+    useEnvironment('graph-config-desambiguate', 'localnitrol1')
+
+    it('should use main network name to desambiguate if multiple chains are defined with same chainId', async function () {
+      const { l1Provider, l2Provider } = getProviders(this.hre, 1337, 412346, true)
+      expect(l1Provider).to.be.an('object')
+      expect(l2Provider).to.be.an('object')
+
+      const l1NetworkName = getNetworkName(this.hre.config.networks, 1337, 'localnitrol1')
+      const l2NetworkName = getNetworkName(this.hre.config.networks, 412346, 'localnitrol1')
+      expect(l1NetworkName).to.equal('localnitrol1')
+      expect(l2NetworkName).to.equal('localnitrol2')
+    })
+  })
+
+  describe('getProviders with graph-config-desambiguate project', function () {
+    useEnvironment('graph-config-desambiguate', 'localnitrol2')
+
+    it('should use secondary network name to desambiguate if multiple chains are defined with same chainId', async function () {
+      const { l1Provider, l2Provider } = getProviders(this.hre, 1337, 412346, true)
+      expect(l1Provider).to.be.an('object')
+      expect(l2Provider).to.be.an('object')
+
+      const l1NetworkName = getNetworkName(this.hre.config.networks, 1337, 'localnitrol2')
+      const l2NetworkName = getNetworkName(this.hre.config.networks, 412346, 'localnitrol2')
+      expect(l1NetworkName).to.equal('localnitrol1')
+      expect(l2NetworkName).to.equal('localnitrol2')
     })
   })
 

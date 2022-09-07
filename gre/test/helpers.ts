@@ -20,5 +20,6 @@ export function useEnvironment(fixtureProjectName: string, network?: string): vo
 
   afterEach('Resetting hardhat', function () {
     resetHardhatContext()
+    delete process.env.HARDHAT_NETWORK
   })
 }
