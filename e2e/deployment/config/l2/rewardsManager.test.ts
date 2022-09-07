@@ -10,8 +10,8 @@ describe('[L2] RewardsManager configuration', () => {
     if (GraphChain.isL1(graph.chainId)) this.skip()
   })
 
-  it('issuanceRate should be zero', async function () {
-    const value = await RewardsManager.issuanceRate()
-    expect(value).eq('0')
+  it('issuancePerBlock should be zero', async function () {
+    const value = await RewardsManager.issuancePerBlock()
+    expect(value).eq('0') // hardcoded as it's set with a function call rather than init parameter
   })
 })

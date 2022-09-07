@@ -10,8 +10,8 @@ describe('[L1] RewardsManager configuration', () => {
     if (GraphChain.isL2(graph.chainId)) this.skip()
   })
 
-  it('issuanceRate should match "issuanceRate" in the config file', async function () {
-    const value = await RewardsManager.issuanceRate()
-    expect(value).eq('1000000012184945188') // hardcoded as it's set with a function call rather than init parameter
+  it('issuancePerBlock should match "issuancePerBlock" in the config file', async function () {
+    const value = await RewardsManager.issuancePerBlock()
+    expect(value).eq('114155251141552511415') // hardcoded as it's set with a function call rather than init parameter
   })
 })
