@@ -201,6 +201,10 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         if (t == 0) {
             return 0;
         }
+        // ...or if issuance is zero
+        if (issuancePerBlock == 0) {
+            return 0;
+        }
 
         // Zero issuance if no signalled tokens
         IGraphToken graphToken = graphToken();
