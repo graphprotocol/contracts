@@ -427,14 +427,14 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
 
     /**
      * @dev Get the accumulated L2 mint allowance at a particular block number
-     * @param _block Block at which allowance will be computed
+     * @param _blockNum Block at which allowance will be computed
      * @return The accumulated GRT amount that can be minted from L2 at the specified block
      */
-    function accumulatedL2MintAllowanceAtBlock(uint256 _block) public view returns (uint256) {
-        require(_block >= lastL2MintAllowanceUpdateBlock, "INVALID_BLOCK_FOR_MINT_ALLOWANCE");
+    function accumulatedL2MintAllowanceAtBlock(uint256 _blockNum) public view returns (uint256) {
+        require(_blockNum >= lastL2MintAllowanceUpdateBlock, "INVALID_BLOCK_FOR_MINT_ALLOWANCE");
         return
             accumulatedL2MintAllowanceSnapshot.add(
-                l2MintAllowancePerBlock.mul(_block.sub(lastL2MintAllowanceUpdateBlock))
+                l2MintAllowancePerBlock.mul(_blockNum.sub(lastL2MintAllowanceUpdateBlock))
             );
     }
 
