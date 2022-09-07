@@ -7,7 +7,7 @@ import { HttpNetworkConfig } from 'hardhat/types/config'
 
 import { GraphRuntimeEnvironmentOptions } from './type-extensions'
 import { GREPluginError } from './helpers/error'
-import GraphNetwork from './helpers/network'
+import GraphNetwork, { counterpartName } from './helpers/network'
 
 import { createProvider } from 'hardhat/internal/core/providers/construction'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
@@ -217,7 +217,7 @@ function getNetworkConfig(
   chainId: number,
   mainNetworkName: string,
 ): (NetworkConfig & { name: string }) | undefined {
-  let candidateNetworks = Object.keys(networks)
+  const candidateNetworks = Object.keys(networks)
     .map((n) => ({ ...networks[n], name: n }))
     .filter((n) => n.chainId === chainId)
 
@@ -226,14 +226,26 @@ function getNetworkConfig(
       `Found multiple networks with chainId ${chainId}, trying to use main network name to desambiguate`,
     )
 
-    candidateNetworks = candidateNetworks.filter((n) => n.name === mainNetworkName)
+    const filteredByMainNetworkName = candidateNetworks.filter((n) => n.name === mainNetworkName)
 
-    if (candidateNetworks.length === 1) {
-      return candidateNetworks[0]
+    if (filteredByMainNetworkName.length === 1) {
+      logDebug(`Found network with chainId ${chainId} and name ${mainNetworkName}`)
+      return filteredByMainNetworkName[0]
     } else {
-      throw new GREPluginError(
-        `Found multiple networks with chainID ${chainId}. This is not supported!`,
+      logWarn(`Could not desambiguate with main network name, trying secondary network name`)
+      const secondaryNetworkName = counterpartName(mainNetworkName)
+      const filteredBySecondaryNetworkName = candidateNetworks.filter(
+        (n) => n.name === secondaryNetworkName,
       )
+
+      if (filteredBySecondaryNetworkName.length === 1) {
+        logDebug(`Found network with chainId ${chainId} and name ${mainNetworkName}`)
+        return filteredBySecondaryNetworkName[0]
+      } else {
+        throw new GREPluginError(
+          `Could not desambiguate network with chainID ${chainId}. Use case not supported!`,
+        )
+      }
     }
   } else if (candidateNetworks.length === 1) {
     return candidateNetworks[0]
@@ -242,7 +254,7 @@ function getNetworkConfig(
   }
 }
 
-function getNetworkName(
+export function getNetworkName(
   networks: NetworksConfig,
   chainId: number,
   mainNetworkName: string,
