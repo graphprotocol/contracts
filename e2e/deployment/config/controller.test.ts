@@ -45,6 +45,11 @@ describe('Controller configuration', () => {
     expect(address).eq(graph.contracts[contractName].address)
   }
 
+  it('protocol should be unpaused', async function () {
+    const paused = await Controller.paused()
+    expect(paused).eq(false)
+  })
+
   it('should be owned by governor', async function () {
     const owner = await Controller.governor()
     expect(owner).eq(namedAccounts.governor.address)

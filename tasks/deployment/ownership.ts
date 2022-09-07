@@ -15,7 +15,6 @@ task('migrate:ownership', 'Accepts ownership of protocol contracts on behalf of 
     console.log(`- Governor: ${governor.address}`)
 
     const txs: ContractTransaction[] = []
-    txs.push(await GraphToken.connect(governor).acceptOwnership())
     txs.push(await Controller.connect(governor).acceptOwnership())
     txs.push(await GraphProxyAdmin.connect(governor).acceptOwnership())
     txs.push(await SubgraphNFT.connect(governor).acceptOwnership())
