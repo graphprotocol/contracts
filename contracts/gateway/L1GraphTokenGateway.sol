@@ -71,6 +71,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * can tell us who the sender from L2 is.
      */
     modifier onlyL2Counterpart() {
+        require(inbox != address(0), "INBOX_NOT_SET");
+
         // a message coming from the counterpart gateway was executed by the bridge
         IBridge bridge = IInbox(inbox).bridge();
         require(msg.sender == address(bridge), "NOT_FROM_BRIDGE");
