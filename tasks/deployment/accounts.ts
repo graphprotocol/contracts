@@ -2,6 +2,7 @@ import { task } from 'hardhat/config'
 
 import { cliOpts } from '../../cli/defaults'
 import { updateItemValue, writeConfig } from '../../cli/config'
+import { BigNumber, ContractTransaction } from 'ethers'
 
 task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
@@ -42,7 +43,7 @@ task('migrate:accounts', 'Creates protocol accounts and saves them in graph conf
 task('migrate:accounts:nitro', 'Funds protocol accounts on Arbitrum Nitro testnodes')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('privateKey', 'The private key for Arbitrum testnode genesis account')
-  .addParam('amount', 'The amount to fund each account with', '100000000000000000000') // 100 ETH
+  .addOptionalParam('amount', 'The amount to fund each account with')
   .setAction(async (taskArgs, hre) => {
     // Arbitrum Nitro testnodes have a pre-funded genesis account whose private key is hardcoded here:
     // - L1 > https://github.com/OffchainLabs/nitro/blob/01c558c06ad9cbaa083bebe3e51960e195c3fd6b/test-node.bash#L136
@@ -62,9 +63,26 @@ task('migrate:accounts:nitro', 'Funds protocol accounts on Arbitrum Nitro testno
       ...Object.keys(namedAccounts).map((k) => namedAccounts[k]),
     ]
 
-    // Check genesis account balance
+    // Amount to fund
+    // - If amount is specified, use that
+    // - Otherwise, use 95% of genesis account balance with a maximum of 100 Eth
+    let amount: BigNumber
+    const maxAmount = hre.ethers.utils.parseEther('100')
     const genesisAccountBalance = await provider.getBalance(genesisAccount.address)
-    const requiredFunds = hre.ethers.utils.parseEther(taskArgs.amount).mul(accounts.length)
+
+    if (taskArgs.amount) {
+      amount = hre.ethers.BigNumber.from(taskArgs.amount)
+    } else {
+      const splitGenesisBalance = genesisAccountBalance.mul(95).div(100).div(accounts.length)
+      if (splitGenesisBalance.gt(maxAmount)) {
+        amount = maxAmount
+      } else {
+        amount = splitGenesisBalance
+      }
+    }
+
+    // Check genesis account balance
+    const requiredFunds = amount.mul(accounts.length)
     if (genesisAccountBalance.lt(requiredFunds)) {
       throw new Error('Insufficient funds in genesis account')
     }
@@ -72,13 +90,18 @@ task('migrate:accounts:nitro', 'Funds protocol accounts on Arbitrum Nitro testno
     // Fund accounts
     console.log('> Funding protocol addresses')
     console.log(`Genesis account: ${genesisAccount.address}`)
+    console.log(`Total accounts: ${accounts.length}`)
+    console.log(`Amount per account: ${hre.ethers.utils.formatEther(amount)}`)
     console.log(`Required funds: ${hre.ethers.utils.formatEther(requiredFunds)}`)
 
+    const txs: ContractTransaction[] = []
     for (const account of accounts) {
       const tx = await genesisAccount.connect(provider).sendTransaction({
-        value: hre.ethers.utils.parseEther(taskArgs.amount),
+        value: amount,
         to: account.address,
       })
-      await tx.wait()
+      txs.push(tx)
     }
+    await Promise.all(txs.map((tx) => tx.wait()))
+    console.log('Done!')
   })
