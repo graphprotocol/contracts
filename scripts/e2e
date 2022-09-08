@@ -50,8 +50,12 @@ npx hardhat migrate:unpause --network "$NETWORK" --graph-config "$GRAPH_CONFIG" 
 ### Test
 # Run tests
 npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+
+# Skip GRT scenarios in L2 as we don't have bridged GRT yet
+if [[ "$NETWORK" !=  "localnitrol2" ]]; then
+  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+fi
 
 # skip close-allocations for arbitrum testnodes as we can't advance epoch
 if [[ "$NETWORK" !=  *"localnitro"* ]]; then
