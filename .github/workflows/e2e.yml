@@ -22,4 +22,10 @@ jobs:
       - name: Install packages
         run: yarn install --non-interactive --frozen-lockfile
       - name: Run e2e tests
-        run: ADDRESS_BOOK=addresses.json yarn test:e2e
+        run: |
+          git clone https://github.com/offchainlabs/nitro
+          pushd nitro
+          git submodule update --init --recursive
+          ./test-node.bash --init --detach
+          popd
+          NETWORK=localnitro ADDRESS_BOOK=addresses.json yarn test:e2e
