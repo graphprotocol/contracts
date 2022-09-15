@@ -32,12 +32,16 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
 
   const l1Inbox = arbAddressBook.getEntry('IInbox')
   const l1Router = arbAddressBook.getEntry('L1GatewayRouter')
-  logger.info(
-    'L1 Inbox address: ' + l1Inbox.address + ' and L1 Router address: ' + l1Router.address,
-  )
+
+  // There is no L1GatewayRouter on L1, use random address instead as setArbitrumAddresses will reject 0x0
+  const l1RouterAddress =
+    cli.chainId.toString() === '1337'
+      ? '0x000000000000000000000000000000000000dead'
+      : l1Router.address
+  logger.info('L1 Inbox address: ' + l1Inbox.address + ' and L1 Router address: ' + l1RouterAddress)
   await sendTransaction(cli.wallet, gateway, 'setArbitrumAddresses', [
     l1Inbox.address,
-    l1Router.address,
+    l1RouterAddress,
   ])
 }
 
@@ -64,9 +68,12 @@ export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   logger.info('L1 Gateway address: ' + l1Counterpart.address)
   await sendTransaction(cli.wallet, gateway, 'setL1CounterpartAddress', [l1Counterpart.address])
 
-  const l2Router = arbAddressBook.getEntry('L2GatewayRouter')
-  logger.info('L2 Router address: ' + l2Router.address)
-  await sendTransaction(cli.wallet, gateway, 'setL2Router', [l2Router.address])
+  // There is no L2GatewayRouter in localhost
+  if (cli.chainId.toString() !== '412346') {
+    const l2Router = arbAddressBook.getEntry('L2GatewayRouter')
+    logger.info('L2 Router address: ' + l2Router.address)
+    await sendTransaction(cli.wallet, gateway, 'setL2Router', [l2Router.address])
+  }
 
   logger.info('L2 Gateway address: ' + gateway.address)
   await sendTransaction(cli.wallet, token, 'setGateway', [gateway.address])

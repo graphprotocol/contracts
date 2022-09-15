@@ -101,6 +101,9 @@ function setupNetworkProviders(hardhatConfig) {
 const DEFAULT_TEST_MNEMONIC =
   'myth like bonus scare over problem client lizard pioneer submit female collect'
 
+const DEFAULT_L2_TEST_MNEMONIC =
+  'urge never interest human any economy gentle canvas anxiety pave unlock find'
+
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
@@ -160,7 +163,7 @@ const config: HardhatUserConfig = {
     localnitrol2: {
       chainId: 412346,
       url: 'http://localhost:8547',
-      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+      accounts: { mnemonic: DEFAULT_L2_TEST_MNEMONIC },
     },
   },
   graph: {

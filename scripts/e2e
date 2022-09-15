@@ -3,17 +3,134 @@
 set -eo pipefail
 source $(pwd)/scripts/evm
 
+function pre_deploy() {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+
+  # Create named accounts
+  npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+
+  # Fund accounts if using nitro test nodes
+  if [[ "$NETWORK" == *"localnitro"* ]]; then
+    npx hardhat migrate:accounts:nitro --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+  fi
+}
+
+function deploy() {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+  local ADDRESS_BOOK=$3
+
+  # Deploy protocol
+  npx hardhat migrate \
+    --network "$NETWORK" \
+    --skip-confirmation \
+    --auto-mine \
+    --force \
+    --graph-config "$GRAPH_CONFIG" \
+    --address-book "$ADDRESS_BOOK"
+}
+
+function post_deploy () {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+  local ADDRESS_BOOK=$3
+
+  # Governor to accept contracts ownership 
+  npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  
+  # Unpause the protocol
+  npx hardhat migrate:unpause:protocol --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+}
+
+function configure_bridge () {
+  local L1_NETWORK=$1
+  local L1_GRAPH_CONFIG=$2
+  local L2_NETWORK=$3
+  local L2_GRAPH_CONFIG=$4
+  local ADDRESS_BOOK=$5
+
+  # These settings are only used for CLI bridge commands
+  # so we keep them here to avoid confusion with hardhat based tasks
+  local L1_CHAIN_ID=${L1_CHAIN_ID:-"1337"}
+  local L2_CHAIN_ID=${L2_CHAIN_ID:-"412346"}
+
+  local L1_RPC=${L1_RPC:-"http://localhost:8545"}
+  local L2_RPC=${L2_RPC:-"http://localhost:8547"}
+
+  local L1_MNEMONIC=${L1_MNEMONIC:-"myth like bonus scare over problem client lizard pioneer submit female collect"}
+  local L2_MNEMONIC=${L2_MNEMONIC:-"urge never interest human any economy gentle canvas anxiety pave unlock find"}
+
+  # Set L1Inbox address in arbitrum address book
+  local L1_INBOX=$(docker exec $(docker ps -qf "name=nitro_geth") cat /config/deployment.json | jq -r '.inbox')
+  jq -r '."1337" += { "IInbox" : { "address": "'"$L1_INBOX"'" } }' arbitrum-addresses.json > updated.json
+  mv updated.json arbitrum-addresses.json
+
+  # Configure the bridge
+  ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L2_RPC" -m "$L2_MNEMONIC" -n 2 protocol configure-l2-bridge "$L1_CHAIN_ID"
+  ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L1_RPC" -m "$L1_MNEMONIC" -n 2 protocol configure-l1-bridge "$L2_CHAIN_ID"
+
+  # Unpause the bridge
+  npx hardhat migrate:unpause:bridge --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat migrate:unpause:bridge --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+}
+
+function test_e2e () {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+  local ADDRESS_BOOK=$3
+
+  npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+}
+
+function test_e2e_scenarios () {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+  local ADDRESS_BOOK=$3
+
+  # Skip GRT based scenarios as L2 doesnt have tokens yet...
+  if [[ "$NETWORK" !=  "localnitrol2" ]]; then
+    npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+    npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  fi
+
+  # skip close-allocations for arbitrum testnodes as we can't advance epoch
+  if [[ "$NETWORK" !=  *"localnitro"* ]]; then
+    npx hardhat e2e:scenario close-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  fi
+}
+
 # Allow overriding config
-GRAPH_CONFIG=${GRAPH_CONFIG:-"config/graph.localhost.yml"}
+# By default run only L1 tests on localhost network
 ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses.json"}
-NETWORK=${NETWORK:-"localhost"}
+L1_NETWORK=${L1_NETWORK:-"localhost"}
+L2_NETWORK=${L2_NETWORK}
+L1_GRAPH_CONFIG=${L1_GRAPH_CONFIG:-"config/graph.localhost.yml"}
+L2_GRAPH_CONFIG=${L2_GRAPH_CONFIG:-"config/graph.arbitrum-localhost.yml"}
 
 echo "Running e2e tests"
-echo "- Using config: $GRAPH_CONFIG"
 echo "- Using address book: $ADDRESS_BOOK"
-echo "- Using network: $NETWORK"
+echo "- Using L1 network: $L1_NETWORK"
+echo "- Using L1 config: $L1_GRAPH_CONFIG"
 
-### Setup
+if [[ -n "$L2_NETWORK" ]]; then
+  echo "- Using L2 network: $L2_NETWORK"
+  echo "- Using L2 config: $L2_GRAPH_CONFIG"
+else 
+  echo "- Skipping L2 tests"
+fi
+
+### SETUP
+# Check binary dependencies before starting
+dependencies=( jq docker )
+for i in "${dependencies[@]}"
+do
+  if ! command -v "$i" &> /dev/null; then
+    echo "$i not found, please install and re run"
+    exit
+  fi
+done
+
 # Compile contracts
 yarn build
 
@@ -29,38 +146,35 @@ if [[ ! -f "$ADDRESS_BOOK" ]]; then
   echo '{}' > "$ADDRESS_BOOK"
 fi
 
-# Pre-deploy actions
-npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
-if [[ "$NETWORK" == *"localnitro"* ]]; then
-  npx hardhat migrate:accounts:nitro --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+### DEPLOY
+# Deploy L1
+echo "Deploying L1 protocol"
+pre_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG"
+deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+post_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+
+# Deploy L2
+if [[ -n "$L2_NETWORK" ]]; then
+  echo "Deploying L2 protocol"
+  pre_deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG"
+  deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+  post_deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 fi
 
-# Deploy protocol
-npx hardhat migrate \
-  --network "$NETWORK" \
-  --skip-confirmation \
-  --auto-mine \
-  --graph-config "$GRAPH_CONFIG" \
-  --address-book "$ADDRESS_BOOK"
+# Configure bridge
+if [[ -n "$L2_NETWORK" ]]; then
+  configure_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+fi
 
-# Post deploy actions
-npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat migrate:unpause --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 
-### Test
-# Run tests
-npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+### TEST
+# Run e2e tests
+test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+test_e2e "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 
 # Skip GRT scenarios in L2 as we don't have bridged GRT yet
-if [[ "$NETWORK" !=  "localnitrol2" ]]; then
-  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-fi
-
-# skip close-allocations for arbitrum testnodes as we can't advance epoch
-if [[ "$NETWORK" !=  *"localnitro"* ]]; then
-  npx hardhat e2e:scenario close-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-fi
+test_e2e_scenarios "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+test_e2e_scenarios "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 
 ### Cleanup
 # Exit error mode so the evm instance always gets killed
