@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../upgrades/GraphUpgradeable.sol";
-import "../../token/GraphToken.sol";
 import "../../governance/Governed.sol";
 
 /**
