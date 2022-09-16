@@ -76,16 +76,18 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 maxGas,
         uint256 gasPriceBid,
         uint256 maxSubmissionCost
-    ) external payable notPartialPaused onlySubgraphAuth(_subgraphID) {
+    ) external payable notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
         require(
-            migrationData.lockedAtBlock > 0 &&
-                migrationData.lockedAtBlock >= block.number.sub(255) &&
-                migrationData.lockedAtBlock < block.number,
+            migrationData.lockedAtBlock > 0 && migrationData.lockedAtBlock < block.number,
             "!LOCKED"
         );
+        require(migrationData.lockedAtBlock.add(255) >= block.number, "TOO_LATE");
         require(!migrationData.l1Done, "ALREADY_DONE");
+        // This is just like onlySubgraphAuth, but we want it to run after the other checks
+        // to revert with a nicer message in those cases:
+        require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         migrationData.l1Done = true;
 
         bytes memory extraData = encodeSubgraphMetadataForL2(
@@ -138,10 +140,8 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     function deprecateLockedSubgraph(uint256 _subgraphID) external notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
-        require(
-            migrationData.lockedAtBlock > 0 && migrationData.lockedAtBlock < block.number.sub(256),
-            "!LOCKED"
-        );
+        require(migrationData.lockedAtBlock > 0, "!LOCKED");
+        require(migrationData.lockedAtBlock.add(256) < block.number, "TOO_EARLY");
         require(!migrationData.l1Done, "ALREADY_DONE");
         migrationData.l1Done = true;
 
