@@ -38,5 +38,10 @@
     "L2GatewayRouter": {
       "address": "0xE5B9d8d42d656d1DcB8065A6c012FE3780246041"
     }
+  },
+  "1337": {
+    "IInbox": {
+      "address": "0x793f25377a9f2f07787ae0cf282ebe7f41d399fc"
+    }
   }
 }

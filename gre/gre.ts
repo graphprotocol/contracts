@@ -11,10 +11,11 @@ import {
   GraphRuntimeEnvironmentOptions,
 } from './type-extensions'
 import { getChains, getProviders, getAddressBookPath, getGraphConfigPaths } from './config'
-import { getDeployer, getNamedAccounts, getTestAccounts } from './accounts'
+import { getDeployer, getNamedAccounts, getTestAccounts, getWallets } from './accounts'
 import { logDebug, logWarn } from './logger'
 import path from 'path'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import { Wallet } from 'ethers'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 
@@ -53,12 +54,16 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       isHHL1,
     )
 
+    const l1GetWallets = () => getWallets(hre.config.networks, l1ChainId, hre.network.name)
+    const l2GetWallets = () => getWallets(hre.config.networks, l2ChainId, hre.network.name)
+
     const l1Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
       l1ChainId,
       l1Provider,
       l1GraphConfigPath,
       addressBookPath,
       isHHL1,
+      l1GetWallets,
     )
 
     const l2Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
@@ -67,6 +72,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       l2GraphConfigPath,
       addressBookPath,
       isHHL1,
+      l2GetWallets,
     )
 
     const gre: GraphRuntimeEnvironment = {
@@ -88,6 +94,7 @@ function buildGraphNetworkEnvironment(
   graphConfigPath: string | undefined,
   addressBookPath: string,
   isHHL1: boolean,
+  getWallets: () => Promise<Wallet[]>,
 ): GraphNetworkEnvironment | null {
   if (graphConfigPath === undefined) {
     logWarn(
@@ -116,5 +123,6 @@ function buildGraphNetworkEnvironment(
     getDeployer: lazyFunction(() => () => getDeployer(provider)),
     getNamedAccounts: lazyFunction(() => () => getNamedAccounts(provider, graphConfigPath)),
     getTestAccounts: lazyFunction(() => () => getTestAccounts(provider, graphConfigPath)),
+    getWallets: lazyFunction(() => () => getWallets()),
   }
 }

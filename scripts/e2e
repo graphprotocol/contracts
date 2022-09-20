@@ -88,6 +88,8 @@ function test_e2e_scenarios () {
   local GRAPH_CONFIG=$2
   local ADDRESS_BOOK=$3
 
+  npx hardhat e2e:scenario send-grt-to-l2 --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+
   # Skip GRT based scenarios as L2 doesnt have tokens yet...
   if [[ "$NETWORK" !=  "localnitrol2" ]]; then
     npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
@@ -98,6 +100,15 @@ function test_e2e_scenarios () {
   if [[ "$NETWORK" !=  *"localnitro"* ]]; then
     npx hardhat e2e:scenario close-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
   fi
+}
+
+function test_e2e_scenarios_l1 () {
+  local NETWORK=$1
+  local GRAPH_CONFIG=$2
+  local ADDRESS_BOOK=$3
+
+  npx hardhat e2e:scenario send-grt-to-l2 --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+
 }
 
 # Allow overriding config

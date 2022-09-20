@@ -1,4 +1,5 @@
 import { L1ToL2MessageGasEstimator } from '@arbitrum/sdk'
+import { L1ToL2MessageNoGasParams } from '@arbitrum/sdk/dist/lib/message/L1ToL2MessageCreator'
 import { BigNumber, providers } from 'ethers'
 import { parseEther } from 'ethers/lib/utils'
 
@@ -44,20 +45,24 @@ export const estimateRetryableTxGas = async (
   logger.info('Estimating retryable ticket gas:')
   const baseFee = (await l1Provider.getBlock('latest')).baseFeePerGas
   const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
+  const retryableEstimateData: L1ToL2MessageNoGasParams = {
+    from: gatewayAddress,
+    to: l2Dest,
+    data: depositCalldata,
+    l2CallValue: parseEther('0'),
+    excessFeeRefundAddress: gatewayAddress,
+    callValueRefundAddress: gatewayAddress,
+  }
   const gasParams = await gasEstimator.estimateAll(
-    gatewayAddress,
-    l2Dest,
-    depositCalldata,
-    parseEther('0'),
+    retryableEstimateData,
     baseFee as BigNumber,
-    gatewayAddress,
-    gatewayAddress,
     l1Provider,
   )
+
   // override fixed values
   return {
     maxGas: opts.maxGas ?? gasParams.gasLimit,
     gasPriceBid: opts.gasPriceBid ?? gasParams.maxFeePerGas,
-    maxSubmissionCost: opts.maxSubmissionCost ?? gasParams.maxSubmissionFee,
+    maxSubmissionCost: opts.maxSubmissionCost ?? gasParams.maxSubmissionCost,
   }
 }

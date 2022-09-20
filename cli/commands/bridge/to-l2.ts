@@ -1,5 +1,5 @@
 import { Argv } from 'yargs'
-import { utils } from 'ethers'
+import { BigNumber, utils } from 'ethers'
 import { L1TransactionReceipt, L1ToL2MessageStatus, L1ToL2MessageWriter } from '@arbitrum/sdk'
 
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
@@ -45,7 +45,8 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
 
   // parse provider
   const l1Provider = cli.wallet.provider
-  const l2Provider = getProvider(cliArgs.l2ProviderUrl)
+  // TODO: fix this hack for usage with hardhat
+  const l2Provider = cliArgs.l2Provider ? cliArgs.l2Provider : getProvider(cliArgs.l2ProviderUrl)
   const l1ChainId = cli.chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
   if (chainIdIsL2(l1ChainId) || !chainIdIsL2(l2ChainId)) {
@@ -97,7 +98,9 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info('Sending outbound transfer transaction')
   const txData = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionCost, calldata])
   const txParams = [l1GRT.address, recipient, amount, maxGas, gasPriceBid, txData]
-  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams)
+  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams, {
+    value: ethValue,
+  })
 
   // get l2 ticket status
   if (txReceipt.status == 1) {

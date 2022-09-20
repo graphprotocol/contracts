@@ -1,7 +1,11 @@
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { derivePrivateKeys } from 'hardhat/internal/core/providers/util'
+import { Wallet } from 'ethers'
 import { getItemValue, readConfig } from '../cli/config'
 import { AccountNames, NamedAccounts } from './type-extensions'
+import { getNetworkName } from './config'
+import { HttpNetworkHDAccountsConfig, NetworksConfig } from 'hardhat/types'
 
 const namedAccountList: AccountNames[] = [
   'arbitrator',
@@ -52,4 +56,21 @@ export async function getTestAccounts(
   return signers.filter((s) => {
     return !blacklist.includes(s.address)
   })
+}
+
+export async function getWallets(
+  networks: NetworksConfig,
+  chainId: number,
+  mainNetworkName: string,
+): Promise<Wallet[]> {
+  const networkName = getNetworkName(networks, chainId, mainNetworkName)
+  const accounts = networks[networkName].accounts
+  const mnemonic = (accounts as HttpNetworkHDAccountsConfig).mnemonic
+
+  if (mnemonic) {
+    const privateKeys = derivePrivateKeys(mnemonic, "m/44'/60'/0'/0/", 0, 20, '')
+    return privateKeys.map((privateKey) => new Wallet(privateKey))
+  }
+
+  return []
 }
