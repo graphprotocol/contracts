@@ -18,7 +18,7 @@ import {
   advanceBlocks,
   advanceBlock,
 } from './lib/testHelpers'
-import { NetworkFixture } from './lib/fixtures'
+import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 import { getContractAt } from '../cli/network'
 import { deployContract } from './lib/deployment'
@@ -90,6 +90,7 @@ describe('L1GNS', () => {
   let controller: Controller
   let proxyAdmin: GraphProxyAdmin
   let l1GraphTokenGateway: L1GraphTokenGateway
+  let arbitrumMocks: ArbitrumL1Mocks
 
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
@@ -592,7 +593,7 @@ describe('L1GNS', () => {
     await deployLegacyGNSMock()
     await grt.connect(me.signer).approve(legacyGNSMock.address, tokens100000)
 
-    const arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
+    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
     await fixture.configureL1Bridge(
       governor.signer,
       arbitrumMocks,
@@ -1293,12 +1294,62 @@ describe('L1GNS', () => {
     })
   })
   describe('Subgraph migration to L2', function () {
+    const publishAndCurateOnSubgraph = async function (): Promise<Subgraph> {
+      // Publish a named subgraph-0 -> subgraphDeployment0
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+      // Curate on the subgraph
+      await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+
+      return subgraph0
+    }
+    const publishCurateAndLockSubgraph = async function (): Promise<Subgraph> {
+      const subgraph0 = await publishAndCurateOnSubgraph()
+      await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+      return subgraph0
+    }
+    const publishCurateLockAndSendSubgraph = async function (
+      beforeMigrationCallback?: (subgraphID: string) => Promise<void>,
+    ): Promise<Subgraph> {
+      const subgraph0 = await publishAndCurateOnSubgraph()
+
+      if (beforeMigrationCallback != null) {
+        await beforeMigrationCallback(subgraph0.id)
+      }
+
+      await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+      const maxSubmissionCost = toBN('100')
+      const maxGas = toBN('10')
+      const gasPriceBid = toBN('20')
+      const tx = gns
+        .connect(me.signer)
+        .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+      await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
+      return subgraph0
+    }
+    const publishAndCurateOnLegacySubgraph = async function (seqID: BigNumber): Promise<string> {
+      await legacyGNSMock
+        .connect(me.signer)
+        .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+      // The legacy subgraph must be claimed
+      const migrateTx = legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(migrateTx)
+        .emit(legacyGNSMock, ' LegacySubgraphClaimed')
+        .withArgs(me.address, seqID)
+      const subgraphID = buildLegacySubgraphID(me.address, seqID)
+
+      // Curate on the subgraph
+      await legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('10000'), 0)
+
+      return subgraphID
+    }
     describe('lockSubgraphForMigrationToL2', function () {
       it('locks and disables a subgraph, burning the signal and storing the block number', async function () {
         // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await gns.subgraphs(subgraph0.id)
@@ -1324,21 +1375,7 @@ describe('L1GNS', () => {
       })
       it('locks and disables a legacy subgraph, burning the signal and storing the block number', async function () {
         const seqID = toBN('2')
-        await legacyGNSMock
-          .connect(me.signer)
-          .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-        // The legacy subgraph must be claimed
-        const migrateTx = legacyGNSMock
-          .connect(me.signer)
-          .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-        await expect(migrateTx)
-          .emit(legacyGNSMock, ' LegacySubgraphClaimed')
-          .withArgs(me.address, seqID)
-        const subgraphID = buildLegacySubgraphID(me.address, seqID)
-
-        // Curate on the subgraph
-        await legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('10000'), 0)
-
+        const subgraphID = await publishAndCurateOnLegacySubgraph(seqID)
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
         expect(subgraphBefore.vSignal).not.eq(0)
@@ -1362,10 +1399,7 @@ describe('L1GNS', () => {
         await expect(invalidTx).revertedWith('GNS: Must be active')
       })
       it('rejects calls from someone who is not the subgraph owner', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const tx = gns.connect(other.signer).lockSubgraphForMigrationToL2(subgraph0.id)
         await expect(tx).revertedWith('GNS: Must be authorized')
@@ -1377,22 +1411,13 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
       })
       it('rejects a call for a subgraph that is already locked', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
-        const tx = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
-        await expect(tx).emit(gns, 'SubgraphLockedForMigrationToL2').withArgs(subgraph0.id)
+        const subgraph0 = await publishCurateAndLockSubgraph()
 
         const tx2 = gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
         await expect(tx2).revertedWith('GNS: Must be active')
       })
       it('rejects a call for a subgraph that is deprecated', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         await gns.connect(me.signer).deprecateSubgraph(subgraph0.id)
 
@@ -1403,11 +1428,7 @@ describe('L1GNS', () => {
     })
     describe('sendSubgraphToL2', function () {
       it('sends tokens and calldata to L2 through the GRT bridge', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await gns.subgraphs(subgraph0.id)
@@ -1458,20 +1479,7 @@ describe('L1GNS', () => {
       })
       it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge', async function () {
         const seqID = toBN('2')
-        await legacyGNSMock
-          .connect(me.signer)
-          .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-        const migrateTx = legacyGNSMock
-          .connect(me.signer)
-          .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-        await expect(migrateTx)
-          .emit(legacyGNSMock, ' LegacySubgraphClaimed')
-          .withArgs(me.address, seqID)
-        const subgraphID = buildLegacySubgraphID(me.address, seqID)
-
-        // Curate on the subgraph
-        await legacyGNSMock.connect(me.signer).mintSignal(subgraphID, toGRT('90000'), 0)
-
+        const subgraphID = await publishAndCurateOnLegacySubgraph(seqID)
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
         const lockTx = await legacyGNSMock
@@ -1522,12 +1530,7 @@ describe('L1GNS', () => {
           .withArgs(legacyGNSMock.address, mockL2Gateway.address, toBN(1), expectedL2Data)
       })
       it('rejects calls from someone who is not the subgraph owner', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        const subgraph0 = await publishCurateAndLockSubgraph()
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
@@ -1540,11 +1543,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('GNS: Must be authorized')
       })
       it('rejects calls for a subgraph that is not locked', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
@@ -1557,13 +1556,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('!LOCKED')
       })
       it('rejects calls for a subgraph that was already sent', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
-        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        const subgraph0 = await publishCurateAndLockSubgraph()
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
@@ -1583,13 +1576,7 @@ describe('L1GNS', () => {
         await expect(tx2).revertedWith('ALREADY_DONE')
       })
       it('rejects calls after too many blocks have passed', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
-        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        const subgraph0 = await publishCurateAndLockSubgraph()
 
         await advanceBlocks(256)
 
@@ -1606,11 +1593,7 @@ describe('L1GNS', () => {
     })
     describe('deprecateLockedSubgraph', function () {
       it('can be called by anyone, and makes the GRT from the subgraph withdrawable', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const [beforeTokens] = await getTokensAndVSignal(newSubgraph0.subgraphDeploymentID)
         await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
@@ -1630,13 +1613,10 @@ describe('L1GNS', () => {
         expect(afterSubgraph.reserveRatio).eq(0)
         // Should be equal since owner pays curation tax
         expect(afterSubgraph.withdrawableGRT).eq(beforeTokens)
+        expect((await gns.subgraphL2MigrationData(subgraph0.id)).deprecated).to.eq(true)
       })
       it('rejects calls for a subgraph that was not locked', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         await advanceBlocks(256)
 
@@ -1644,13 +1624,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('!LOCKED')
       })
       it('rejects calls if not enough blocks have passed', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
-        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
+        const subgraph0 = await publishCurateAndLockSubgraph()
 
         await advanceBlocks(255) // Not enough!
 
@@ -1658,36 +1632,14 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('TOO_EARLY')
       })
       it('rejects calls for a subgraph that was sent to L2', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
+        const subgraph0 = await publishCurateLockAndSendSubgraph()
 
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
-        await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
-
-        await advanceBlocks(254)
-
-        const maxSubmissionCost = toBN('100')
-        const maxGas = toBN('10')
-        const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
-
-        await advanceBlock()
+        await advanceBlocks(255)
         const tx2 = gns.connect(other.signer).deprecateLockedSubgraph(subgraph0.id)
         await expect(tx2).revertedWith('ALREADY_DONE')
       })
       it('rejects calls for a subgraph that was already deprecated', async function () {
-        // Publish a named subgraph-0 -> subgraphDeployment0
-        const subgraph0 = await publishNewSubgraph(me, newSubgraph0)
-
-        // Curate on the subgraph
-        await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
+        const subgraph0 = await publishAndCurateOnSubgraph()
 
         const [beforeTokens] = await getTokensAndVSignal(newSubgraph0.subgraphDeploymentID)
         await gns.connect(me.signer).lockSubgraphForMigrationToL2(subgraph0.id)
@@ -1701,13 +1653,202 @@ describe('L1GNS', () => {
       })
     })
     describe('claimCuratorBalanceToBeneficiaryOnL2', function () {
-      it('sends a transaction with a curator balance to the L2GNS using the Arbitrum inbox')
-      it('sends a transaction with a curator balance from a legacy subgraph to the L2GNS')
-      it('rejects calls for a subgraph that was locked but not sent to L2')
-      it('rejects calls for a subgraph that was not locked')
-      it('rejects calls for a subgraph that was locked but deprecated')
-      it('rejects calls with an incorrect eth value')
-      it('rejects calls with zero maxSubmissionCost')
+      beforeEach(async function () {
+        await gns.connect(governor.signer).setArbitrumInboxAddress(arbitrumMocks.inboxMock.address)
+        await legacyGNSMock
+          .connect(governor.signer)
+          .setArbitrumInboxAddress(arbitrumMocks.inboxMock.address)
+      })
+      it('sends a transaction with a curator balance to the L2GNS using the Arbitrum inbox', async function () {
+        let beforeCuratorNSignal: BigNumber
+        const subgraph0 = await publishCurateLockAndSendSubgraph(async (subgraphID) => {
+          beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, me.address)
+        })
+
+        const expectedCalldata = l2GNSIface.encodeFunctionData(
+          'claimL1CuratorBalanceToBeneficiary',
+          [subgraph0.id, me.address, beforeCuratorNSignal, other.address],
+        )
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx)
+          .emit(gns, 'TxToL2')
+          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
+      })
+      it('sends a transaction with a curator balance from a legacy subgraph to the L2GNS', async function () {
+        const subgraphID = await publishAndCurateOnLegacySubgraph(toBN('2'))
+
+        const beforeCuratorNSignal = await legacyGNSMock.getCuratorSignal(subgraphID, me.address)
+
+        await legacyGNSMock.connect(me.signer).lockSubgraphForMigrationToL2(subgraphID)
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = legacyGNSMock
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraphID, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID)
+
+        const expectedCalldata = l2GNSIface.encodeFunctionData(
+          'claimL1CuratorBalanceToBeneficiary',
+          [subgraphID, me.address, beforeCuratorNSignal, other.address],
+        )
+
+        const tx2 = legacyGNSMock
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraphID,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx2)
+          .emit(legacyGNSMock, 'TxToL2')
+          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
+      })
+      it('rejects calls for a subgraph that was locked but not sent to L2', async function () {
+        const subgraph0 = await publishCurateAndLockSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('!MIGRATED')
+      })
+      it('rejects calls for a subgraph that was not locked', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('!MIGRATED')
+      })
+      it('rejects calls for a subgraph that was locked but deprecated', async function () {
+        const subgraph0 = await publishCurateAndLockSubgraph()
+
+        await advanceBlocks(256)
+        await gns.connect(me.signer).deprecateLockedSubgraph(subgraph0.id)
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('SUBGRAPH_DEPRECATED')
+      })
+      it('rejects calls with an incorrect eth value', async function () {
+        const subgraph0 = await publishCurateLockAndSendSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).sub(1),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('WRONG_ETH_VALUE')
+      })
+      it('rejects calls with zero maxSubmissionCost', async function () {
+        const subgraph0 = await publishCurateLockAndSendSubgraph()
+
+        const maxSubmissionCost = toBN('0')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('NO_SUBMISSION_COST')
+      })
     })
   })
 })

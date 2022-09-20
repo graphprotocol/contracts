@@ -143,7 +143,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
         require(migrationData.lockedAtBlock.add(256) < block.number, "TOO_EARLY");
         require(!migrationData.l1Done, "ALREADY_DONE");
         migrationData.l1Done = true;
-
+        migrationData.deprecated = true;
         subgraphData.withdrawableGRT = migrationData.tokens;
         subgraphData.reserveRatio = 0;
 
@@ -160,11 +160,10 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused returns (bytes memory) {
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
 
         require(migrationData.l1Done, "!MIGRATED");
-        require(subgraphData.withdrawableGRT == 0, "DEPRECATED");
+        require(!migrationData.deprecated, "SUBGRAPH_DEPRECATED");
 
         require(_maxSubmissionCost > 0, "NO_SUBMISSION_COST");
 
@@ -181,7 +180,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
             IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
             _subgraphID,
             msg.sender,
-            subgraphData.curatorNSignal[msg.sender],
+            getCuratorSignal(_subgraphID, msg.sender),
             _beneficiary
         );
 
