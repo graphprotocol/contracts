@@ -3,7 +3,8 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../discovery/L1GNS.sol";
+import { L1GNS } from "../discovery/L1GNS.sol";
+import { IGNS } from "../discovery/IGNS.sol";
 
 /**
  * @title LegacyGNSMock contract
