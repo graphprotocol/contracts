@@ -10,6 +10,7 @@ import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
 import { GNS } from "../../discovery/GNS.sol";
 import { IGNS } from "../../discovery/IGNS.sol";
 import { ICuration } from "../../curation/ICuration.sol";
+import { IL2GNS } from "./IL2GNS.sol";
 
 import { RLPReader } from "../../libraries/RLPReader.sol";
 import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
@@ -23,7 +24,7 @@ import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifi
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L2GNS is GNS {
+contract L2GNS is GNS, IL2GNS {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
     using SafeMath for uint256;
@@ -63,40 +64,40 @@ contract L2GNS is GNS {
     }
 
     function receiveSubgraphFromL1(
-        uint256 subgraphID,
-        address subgraphOwner,
-        uint256 tokens,
-        bytes32 lockedAtBlockHash,
-        uint256 nSignal,
-        uint32 reserveRatio,
-        bytes32 subgraphMetadata
-    ) external notPartialPaused onlyL2Gateway {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[subgraphID];
-        SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
+        uint256 _subgraphID,
+        address _subgraphOwner,
+        uint256 _tokens,
+        bytes32 _lockedAtBlockHash,
+        uint256 _nSignal,
+        uint32 _reserveRatio,
+        bytes32 _subgraphMetadata
+    ) external override notPartialPaused onlyL2Gateway {
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
-        subgraphData.reserveRatio = reserveRatio;
+        subgraphData.reserveRatio = _reserveRatio;
         // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
         subgraphData.disabled = true;
-        subgraphData.nSignal = nSignal;
+        subgraphData.nSignal = _nSignal;
 
-        migratedData.tokens = tokens;
-        migratedData.lockedAtBlockHash = lockedAtBlockHash;
+        migratedData.tokens = _tokens;
+        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
         migratedData.l1Done = true;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
-        _mintNFT(subgraphOwner, subgraphID);
+        _mintNFT(_subgraphOwner, _subgraphID);
 
         // Set the token metadata
-        _setSubgraphMetadata(subgraphID, subgraphMetadata);
-        emit SubgraphReceivedFromL1(subgraphID);
+        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
+        emit SubgraphReceivedFromL1(_subgraphID);
     }
 
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
-    ) external notPartialPaused onlySubgraphAuth(_subgraphID) {
+    ) external override notPartialPaused onlySubgraphAuth(_subgraphID) {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         // A subgraph
@@ -144,7 +145,7 @@ contract L2GNS is GNS {
         uint256 _subgraphID,
         bytes memory _blockHeaderRlpBytes,
         bytes memory _proofRlpBytes
-    ) external notPartialPaused {
+    ) external override notPartialPaused {
         Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
 
@@ -197,7 +198,7 @@ contract L2GNS is GNS {
         uint256 _seqID,
         bytes memory _blockHeaderRlpBytes,
         bytes memory _proofRlpBytes
-    ) external {
+    ) external override notPartialPaused {
         uint256 _subgraphID = _buildLegacySubgraphID(_subgraphCreatorAccount, _seqID);
 
         Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
@@ -251,7 +252,7 @@ contract L2GNS is GNS {
         address _curator,
         uint256 _balance,
         address _beneficiary
-    ) external notPartialPaused onlyL1Counterpart {
+    ) external override notPartialPaused onlyL1Counterpart {
         GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
 
         require(migratedData.l2Done, "!MIGRATED");

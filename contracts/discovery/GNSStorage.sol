@@ -55,4 +55,6 @@ abstract contract GNSV3Storage is GNSV2Storage {
     mapping(uint256 => IGNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
     // Address of the counterpart GNS contract (L1GNS/L2GNS)
     address public counterpartGNSAddress;
+    // Address of the Arbitrum DelayedInbox - only used by L1GNS
+    address public arbitrumInboxAddress;
 }

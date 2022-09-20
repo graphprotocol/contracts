@@ -3,16 +3,15 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "./GNS.sol";
-import "./GNSStorage.sol";
-import "./L1GNSStorage.sol";
+import { GNS } from "./GNS.sol";
 
-import "../arbitrum/ITokenGateway.sol";
-import "../arbitrum/L1ArbitrumMessenger.sol";
-import "../l2/discovery/L2GNS.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
+import { IL2GNS } from "../l2/discovery/IL2GNS.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title GNS
@@ -23,7 +22,7 @@ import "../l2/discovery/L2GNS.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
+contract L1GNS is GNS, L1ArbitrumMessenger {
     using SafeMath for uint256;
 
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
@@ -121,7 +120,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     ) internal view returns (bytes memory) {
         return
             abi.encodeWithSelector(
-                L2GNS.receiveSubgraphFromL1.selector,
+                IL2GNS.receiveSubgraphFromL1.selector,
                 _subgraphID,
                 ownerOf(_subgraphID),
                 migrationData.tokens,
@@ -179,7 +178,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
 
         bytes memory outboundCalldata = abi.encodeWithSelector(
-            L2GNS.claimL1CuratorBalanceToBeneficiary.selector,
+            IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
             _subgraphID,
             msg.sender,
             subgraphData.curatorNSignal[msg.sender],
