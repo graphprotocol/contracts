@@ -22,6 +22,7 @@ interface IGNS {
         bytes32 lockedAtBlockHash; // Blockhash from block at which the subgraph was locked for migration
         mapping(address => bool) curatorBalanceClaimed; // True for curators whose balance has been claimed in L2
         bool l2Done; // Migration finished on L2 side
+        bool deprecated; // Subgraph was deprecated instead of sent to L2
     }
 
     struct LegacySubgraphKey {
