@@ -97,8 +97,9 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   logger.info('Sending outbound transfer transaction')
   const txData = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionCost, calldata])
   const txParams = [l1GRT.address, recipient, amount, maxGas, gasPriceBid, txData]
-  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams)
-
+  const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams, {
+    value: ethValue,
+  })
   // get l2 ticket status
   if (txReceipt.status == 1) {
     logger.info('Waiting for message to propagate to L2...')
