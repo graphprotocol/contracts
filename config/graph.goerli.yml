@@ -30,6 +30,9 @@ contracts:
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L1GraphTokenGateway.address}}"
       - fn: "setPauseGuardian"
         pauseGuardian: *pauseGuardian
       - fn: "transferOwnership"
@@ -132,3 +135,11 @@ contracts:
       authority: *authority
     calls:
       - fn: "approveAll"
+  L1GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+  BridgeEscrow:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"

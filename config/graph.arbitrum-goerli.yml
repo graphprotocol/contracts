@@ -1,7 +1,7 @@
 general:
-  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council
-  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council
-  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
+  arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council (TODO: update)
+  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council (TODO: update)
+  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers (TODO: update)
   availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle (TODO: update)
   pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian (TODO: update)
   allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner (TODO: update)
@@ -49,7 +49,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 6646 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+      lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
   L2GraphToken:
     proxy: true
     init:
@@ -101,12 +101,12 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       minimumIndexerStake: "100000000000000000000000" # in wei
-      thawingPeriod: 186092 # in blocks
+      thawingPeriod: 6646 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 7 # in epochs
-      maxAllocationEpochs: 28 # in epochs
-      delegationUnbondingPeriod: 28 # in epochs
+      channelDisputeEpochs: 2 # in epochs
+      maxAllocationEpochs: 4 # in epochs
+      delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator

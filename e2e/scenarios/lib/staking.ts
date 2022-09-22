@@ -11,9 +11,11 @@ export const stake = async (
 ): Promise<void> => {
   // Approve
   await ensureGRTAllowance(indexer, contracts.Staking.address, amount, contracts.GraphToken)
+  const allowance = await contracts.GraphToken.allowance(indexer.address, contracts.Staking.address)
+  console.log(`Allowance: ${ethers.utils.formatEther(allowance)}`)
 
   // Stake
-  console.log(`\nStaking ${amount} tokens...`)
+  console.log(`\nStaking ${ethers.utils.formatEther(amount)} tokens...`)
   await sendTransaction(indexer, contracts.Staking, 'stake', [amount])
 }
 

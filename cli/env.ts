@@ -4,7 +4,7 @@ import { Argv } from 'yargs'
 import { logger } from './logging'
 import { getAddressBook, AddressBook } from './address-book'
 import { defaultOverrides } from './defaults'
-import { getProvider } from './utils'
+import { getProvider } from './network'
 import { loadContracts, NetworkContracts } from './contracts'
 
 const { formatEther } = utils

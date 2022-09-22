@@ -4,44 +4,70 @@ set -eo pipefail
 source $(pwd)/scripts/evm
 
 # Allow overriding config
-GRAPH_CONFIG=${1:-"config/graph.localhost.yml"}
-ADDRESS_BOOK=${2:-"addresses.json"}
+GRAPH_CONFIG=${GRAPH_CONFIG:-"config/graph.localhost.yml"}
+ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses.json"}
+NETWORK=${NETWORK:-"localhost"}
+
+echo "Running e2e tests"
+echo "- Using config: $GRAPH_CONFIG"
+echo "- Using address book: $ADDRESS_BOOK"
+echo "- Using network: $NETWORK"
 
 ### Setup
 # Compile contracts
 yarn build
 
 # Start evm
-evm_kill
-evm_start
-sleep 5
+if [[ "$NETWORK" == "localhost" ]]; then
+  evm_kill
+  evm_start
+  sleep 5
+fi
+
+# Create address book if needed
+if [[ ! -f "$ADDRESS_BOOK" ]]; then
+  echo '{}' > "$ADDRESS_BOOK"
+fi
 
 # Pre-deploy actions
-npx hardhat migrate:accounts --network localhost --graph-config "$GRAPH_CONFIG"
+npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+if [[ "$NETWORK" == *"localnitro"* ]]; then
+  npx hardhat migrate:accounts:nitro --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+fi
 
 # Deploy protocol
 npx hardhat migrate \
-  --network localhost \
+  --network "$NETWORK" \
   --skip-confirmation \
   --auto-mine \
   --graph-config "$GRAPH_CONFIG" \
   --address-book "$ADDRESS_BOOK"
 
 # Post deploy actions
-npx hardhat migrate:ownership --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat migrate:unpause --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat migrate:unpause --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 
 ### Test
-# Run tests using the localhost evm instance and the localhost graph config
-npx hardhat e2e --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario create-subgraphs --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario open-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario close-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+# Run tests
+npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+
+# Skip GRT scenarios in L2 as we don't have bridged GRT yet
+if [[ "$NETWORK" !=  "localnitrol2" ]]; then
+  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+fi
+
+# skip close-allocations for arbitrum testnodes as we can't advance epoch
+if [[ "$NETWORK" !=  *"localnitro"* ]]; then
+  npx hardhat e2e:scenario close-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+fi
 
 ### Cleanup
 # Exit error mode so the evm instance always gets killed
-set +e
-result=0
+if [[ "$NETWORK" == "localhost" ]]; then
+  set +e
+  result=0
 
-evm_kill
-exit $result
+  evm_kill
+  exit $result
+fi

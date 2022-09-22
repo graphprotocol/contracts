@@ -83,3 +83,25 @@ Scenarios are defined by an optional script and a test file:
 - Test file
    - Should be named e2e/scenarios/{scenario-name}.test.ts.
    - Standard chai/mocha/hardhat/ethers test file.
+
+## Setting up Arbitrum's testnodes
+
+Arbitrum provides a quick way of setting up L1 and L2 testnodes for local development and testing. The following steps will guide you through the process of setting them up. Note that a local installation of Docker and Docker Compose is required.
+
+```bash
+git clone https://github.com/offchainlabs/nitro
+cd nitro
+git submodule update --init --recursive
+
+# Apply any changes you might want, see below for more info, and then start the testnodes
+./test-node.bash --init
+```
+
+**Useful information**
+- L1 RPC: [http://localhost:8545](http://localhost:8545/)
+- L2 RPC: [http://localhost:8547](http://localhost:8547/)
+- Blockscout explorer (L2 only): [http://localhost:4000/](http://localhost:4000/)
+- Prefunded genesis key (L1 and L2): `e887f7d17d07cc7b8004053fb8826f6657084e88904bb61590e498ca04704cf2`
+
+**Enable automine on L1**
+In `docker-compose.yml` file edit the `geth` service command by removing the `--dev.period 1` flag.

@@ -152,6 +152,16 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
+    localnitrol1: {
+      chainId: 1337,
+      url: 'http://localhost:8545',
+      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+    },
+    localnitrol2: {
+      chainId: 412346,
+      url: 'http://localhost:8547',
+      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+    },
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
