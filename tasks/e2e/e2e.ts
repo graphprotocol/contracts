@@ -4,7 +4,7 @@ import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
-import { isL1 } from '../../gre/helpers/network'
+import { isL1 } from '../../gre/helpers/chain'
 import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 
 const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
@@ -13,7 +13,13 @@ const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
 // Built-in test & run tasks don't support GRE arguments
 // so we pass them by overriding GRE config object
 const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironment) => {
-  const greArgs = ['graphConfig', 'l1GraphConfig', 'l2GraphConfig', 'addressBook']
+  const greArgs = [
+    'graphConfig',
+    'l1GraphConfig',
+    'l2GraphConfig',
+    'addressBook',
+    'disableSecureAccounts',
+  ]
 
   for (const arg of greArgs) {
     if (args[arg]) {
@@ -44,6 +50,7 @@ task('e2e', 'Run all e2e tests')
   })
 
 task('e2e:config', 'Run deployment configuration e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
@@ -55,6 +62,7 @@ task('e2e:config', 'Run deployment configuration e2e tests')
   })
 
 task('e2e:init', 'Run deployment initialization e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
@@ -67,6 +75,7 @@ task('e2e:init', 'Run deployment initialization e2e tests')
 
 task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addFlag('skipScript', "Don't run scenario script")
@@ -85,6 +94,7 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
         await runScriptWithHardhat(hre.hardhatArguments, script, [
           args.graphConfig,
           args.addressBook,
+          args.disableSecureAccounts,
         ])
       } else {
         console.log(`No script found for scenario ${args.scenario}`)
