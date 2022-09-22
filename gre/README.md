@@ -232,17 +232,17 @@ Returns a wallet derived from the mnemonic or private key provided via hardhat n
 
 #### Integration with hardhat-secure-accounts
 
-[hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts) is a hardhat plugin that allows you to use encrypted keystore files to store your private keys. GRE has built-in support to use this plugin, you just need to enable it when instantiating the GRE object using the `useSecureAccounts` option, then each time you call any of the account management methods you will be prompted for an account name and password to unlock:
+[hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts) is a hardhat plugin that allows you to use encrypted keystore files to store your private keys. GRE has built-in support to use this plugin. By default is enabled but can be disabled by setting the `disableSecureAccounts` option to `true` when instantiating the GRE object. When enabled, each time you call any of the account management methods you will be prompted for an account name and password to unlock:
 
 ```js
 // Without secure accounts
-> const graph = hre.graph()
+> const graph = hre.graph({ disableSecureAccounts: true })
 > const deployer = await g.l1.getDeployer()
 > deployer.address
 '0xBc7f4d3a85B820fDB1058FD93073Eb6bc9AAF59b'
 
 // With secure accounts
-> const graph = hre.graph({ useSecureAccounts: true })
+> const graph = hre.graph()
 > const deployer = await g.l1.getDeployer()
 == Using secure accounts, please unlock an account for L1(goerli)
 Available accounts:  goerli-deployer, arbitrum-goerli-deployer, rinkeby-deployer, test-mnemonic

@@ -2,6 +2,7 @@ import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 
 task('migrate:unpause', 'Unpause protocol')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {

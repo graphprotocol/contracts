@@ -92,11 +92,11 @@ describe('GRE usage > account management secure accounts', function () {
 
   beforeEach(function () {
     graph = this.hre.graph({
-      useSecureAccounts: false,
+      disableSecureAccounts: true,
     })
 
     graphSecureAccounts = this.hre.graph({
-      useSecureAccounts: true,
+      disableSecureAccounts: false,
       l1AccountName: 'test-account',
       l1AccountPassword: 'batman-with-cheese',
       l2AccountName: 'test-account-l2',

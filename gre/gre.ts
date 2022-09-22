@@ -49,7 +49,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     const enableTxLogging = opts.enableTxLogging ?? false
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
-    const secureAccounts = opts.useSecureAccounts ?? false
+    const secureAccounts = !(opts.disableSecureAccounts ?? false)
     logDebug(`Secure accounts: ${secureAccounts ? 'enabled' : 'disabled'}`)
 
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)

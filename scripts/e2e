@@ -17,7 +17,7 @@ evm_start
 sleep 5
 
 # Pre-deploy actions
-npx hardhat migrate:accounts --network localhost --graph-config "$GRAPH_CONFIG"
+npx hardhat migrate:accounts --network localhost --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
 
 # Deploy protocol
 npx hardhat migrate \
@@ -28,15 +28,15 @@ npx hardhat migrate \
   --address-book "$ADDRESS_BOOK"
 
 # Post deploy actions
-npx hardhat migrate:ownership --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat migrate:unpause --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat migrate:ownership --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+npx hardhat migrate:unpause --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 
 ### Test
 # Run tests using the localhost evm instance and the localhost graph config
-npx hardhat e2e --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario create-subgraphs --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario open-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-npx hardhat e2e:scenario close-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+npx hardhat e2e --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+npx hardhat e2e:scenario create-subgraphs --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+npx hardhat e2e:scenario open-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+npx hardhat e2e:scenario close-allocations --network localhost --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 
 ### Cleanup
 # Exit error mode so the evm instance always gets killed

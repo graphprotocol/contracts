@@ -28,6 +28,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
 }
 
 task('e2e', 'Run all e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
