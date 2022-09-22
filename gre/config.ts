@@ -242,7 +242,7 @@ function getNetworkConfig(
   }
 }
 
-function getNetworkName(
+export function getNetworkName(
   networks: NetworksConfig,
   chainId: number,
   mainNetworkName: string,

@@ -3,6 +3,7 @@ import { AddressBook } from '../cli/address-book'
 import { NetworkContracts } from '../cli/contracts'
 
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import { Wallet } from 'ethers'
 
 export interface GraphRuntimeEnvironmentOptions {
   addressBook?: string
@@ -32,6 +33,8 @@ export interface GraphNetworkEnvironment {
   getNamedAccounts: () => Promise<NamedAccounts>
   getTestAccounts: () => Promise<SignerWithAddress[]>
   getDeployer: () => Promise<SignerWithAddress>
+  getWallets: () => Promise<Wallet[]>
+  getWallet: (address: string) => Promise<Wallet>
 }
 
 export interface GraphRuntimeEnvironment extends GraphNetworkEnvironment {

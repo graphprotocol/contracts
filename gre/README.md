@@ -212,12 +212,18 @@ Returns an object with all the named accounts available in the network. Named ac
 '0xf1135bFF22512FF2A585b8d4489426CE660f204c'
 ```
 
-The accounts are initialized from the graph config file but if the correct mnemonic or private key is provided via hardhat network configuration then they will be fully capable of signing transactions.
+The accounts are initialized from the graph config file but if the correct mnemonic or private key is provided via hardhat network configuration then they will be fully capable of signing transactions. Accounts are already connected to the network provider.
 
 **Account management: getTestAccounts**
-Returns an object with accounts which can be used for testing/interacting with the protocol. These are obtained from hardhat's network configuration using the provided mnemonic or private key.
+Returns an object with accounts which can be used for testing/interacting with the protocol. These are obtained from hardhat's network configuration using the provided mnemonic or private key. Accounts are already connected to the network provider.
 
 **Account management: getDeployer**
-Returns an object with the would-be deployer account. The deployer is by convention the first (index 0) account derived from the mnemonic or private key provided via hardhat network configuration. 
+Returns an object with the would-be deployer account. The deployer is by convention the first (index 0) account derived from the mnemonic or private key provided via hardhat network configuration. Deployer account is already connected to the network provider.
 
 It's important to note that the deployer is not a named account as it's derived from the provided mnemonic so it won't necessarily match the actual deployer for a given deployment. It's the account that would be used to deploy the protocol with the current configuration. It's not possible at the moment to recover the actual deployer account from a deployed protocol.
+
+**Account management: getWallets**
+Returns an object with wallets derived from the mnemonic or private key provided via hardhat network configuration. These wallets are not connected to a provider.
+
+**Account management: getWallet**
+Returns a wallet derived from the mnemonic or private key provided via hardhat network configuration that matches a given address. This wallet is not connected to a provider.
