@@ -9,6 +9,9 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1337,
+      accounts: {
+        mnemonic: 'pumpkin orient can short never warm truth legend cereal tourist craft skin',
+      },
     },
     mainnet: {
       chainId: 1,
