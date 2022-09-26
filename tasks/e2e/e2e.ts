@@ -66,8 +66,10 @@ task('e2e:init', 'Run deployment initialization e2e tests')
 
 task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
   .addFlag('skipScript', "Don't run scenario script")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
@@ -82,8 +84,10 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
     if (!args.skipScript) {
       if (fs.existsSync(script)) {
         await runScriptWithHardhat(hre.hardhatArguments, script, [
-          args.graphConfig,
           args.addressBook,
+          args.graphConfig,
+          args.l1GraphConfig,
+          args.l2GraphConfig,
         ])
       } else {
         console.log(`No script found for scenario ${args.scenario}`)

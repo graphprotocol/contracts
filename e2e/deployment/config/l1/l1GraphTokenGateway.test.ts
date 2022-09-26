@@ -77,7 +77,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
         '0x00',
       )
 
-      await expect(tx).revertedWith('INBOX_NOT_SET')
+      await expect(tx).revertedWith('NOT_FROM_BRIDGE')
     })
   })
 })
