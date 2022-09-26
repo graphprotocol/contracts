@@ -102,11 +102,16 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   const l2Receipt = new L2TransactionReceipt(receipt)
   const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
 
-  logger.info(`The transaction generated an L2 to L1 message in outbox with eth block number:`)
-  logger.info(l2ToL1Message.event.ethBlockNum.toString())
-  logger.info(
-    `After the dispute period is finalized (in ~1 week), you can finalize this by calling`,
-  )
+  const ethBlockNum = l2ToL1Message.getFirstExecutableBlock(l2Provider)
+  if (ethBlockNum === null) {
+    logger.info(`L2 to L1 message can or already has been executed. If not finalized call`)
+  } else {
+    logger.info(`The transaction generated an L2 to L1 message in outbox with eth block number:`)
+    logger.info(ethBlockNum.toString())
+    logger.info(
+      `After the dispute period is finalized (in ~1 week), you can finalize this by calling`,
+    )
+  }
   logger.info(`finish-send-to-l1 with the following txhash:`)
   logger.info(l2Receipt.transactionHash)
 }
