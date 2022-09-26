@@ -5,7 +5,7 @@ import { NamedAccounts } from '../../../gre/type-extensions'
 describe('GraphToken configuration', () => {
   const {
     getNamedAccounts,
-    contracts: { GraphToken, RewardsManager },
+    contracts: { GraphToken },
     getDeployer,
   } = hre.graph()
 
@@ -24,10 +24,5 @@ describe('GraphToken configuration', () => {
     const deployer = await getDeployer()
     const deployerIsMinter = await GraphToken.isMinter(deployer.address)
     expect(deployerIsMinter).eq(false)
-  })
-
-  it('RewardsManager should be minter', async function () {
-    const deployerIsMinter = await GraphToken.isMinter(RewardsManager.address)
-    expect(deployerIsMinter).eq(true)
   })
 })
