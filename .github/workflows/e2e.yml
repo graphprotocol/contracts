@@ -23,7 +23,7 @@ jobs:
         run: yarn install --non-interactive --frozen-lockfile
       - name: Run e2e tests
         run: |
-          git clone https://github.com/tmigone/nitro
+          git clone https://github.com/edgeandnode/nitro
           pushd nitro
           git checkout ci
           git submodule update --init --recursive
