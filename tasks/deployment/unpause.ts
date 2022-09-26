@@ -2,7 +2,7 @@ import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 import GraphChain from '../../gre/helpers/network'
 
-task('migrate:unpause', 'Unpause protocol (except bridge)')
+task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
@@ -17,7 +17,7 @@ task('migrate:unpause', 'Unpause protocol (except bridge)')
     console.log('Done!')
   })
 
-task('migrate:unpause-bridge', 'Unpause bridge')
+task('migrate:unpause:bridge', 'Unpause bridge')
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
@@ -29,8 +29,8 @@ task('migrate:unpause-bridge', 'Unpause bridge')
     const GraphTokenGateway = GraphChain.isL2(graph.chainId)
       ? L2GraphTokenGateway
       : L1GraphTokenGateway
-    const tx2 = await GraphTokenGateway.connect(governor).setPaused(false)
-    await tx2.wait()
+    const tx = await GraphTokenGateway.connect(governor).setPaused(false)
+    await tx.wait()
 
     console.log('Done!')
   })
