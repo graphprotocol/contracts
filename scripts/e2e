@@ -21,7 +21,6 @@ yarn build
 if [[ "$NETWORK" == "localhost" ]]; then
   evm_kill
   evm_start
-  sleep 5
 fi
 
 # Create address book if needed

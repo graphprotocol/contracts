@@ -6,9 +6,24 @@ evm_running() {
   nc -z localhost "$TESTRPC_PORT" > /dev/null
 }
 
+ping_evm() {
+  PORT=$1
+  curl --location --request POST "localhost:$PORT/" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "jsonrpc":"2.0",
+      "method":"web3_clientVersion",
+      "params":[],
+      "id":1
+    }'
+}
+
 evm_start() {
   echo "Starting our own evm instance at port $TESTRPC_PORT"
   npx hardhat node --port "$TESTRPC_PORT" > /dev/null &
+  while ! ping_evm $TESTRPC_PORT; do
+    sleep 1
+  done
 }
 
 evm_kill() {
