@@ -19,3 +19,7 @@ bin/
 # Coverage and other reports
 /reports
 coverage.json
+
+# Local test files
+addresses-local.json
+arbitrum-addresses-local.json

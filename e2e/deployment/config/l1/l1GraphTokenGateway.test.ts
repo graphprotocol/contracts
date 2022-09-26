@@ -76,7 +76,6 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
         '100',
         '0x00',
       )
-
       await expect(tx).revertedWith('Paused (contract)')
     })
   })
