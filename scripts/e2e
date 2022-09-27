@@ -104,8 +104,13 @@ function test_e2e () {
   local NETWORK=$1
   local GRAPH_CONFIG=$2
   local ADDRESS_BOOK=$3
+  local SKIP_BRIDGE_TESTS=$4
 
-  npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  if [[ -z "$SKIP_BRIDGE_TESTS" ]]; then
+    npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  else
+    npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge
+  fi
 }
 
 function test_e2e_scenarios () {
@@ -177,8 +182,10 @@ fi
 
 ## TEST
 # Run e2e tests
-test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
-if [[ -n "$L2_NETWORK" ]]; then
+if [[ -z "$L2_NETWORK" ]]; then
+  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK" true
+else
+  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
   test_e2e "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 fi
 
