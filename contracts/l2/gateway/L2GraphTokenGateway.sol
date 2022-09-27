@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../arbitrum/L2ArbitrumMessenger.sol";
@@ -18,7 +19,7 @@ import "../token/L2GraphToken.sol";
  * (See: https://github.com/OffchainLabs/arbitrum/tree/master/packages/arb-bridge-peripherals/contracts/tokenbridge
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
-contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
+contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, ReentrancyGuardUpgradeable {
     using SafeMath for uint256;
 
     // Address of the Graph Token contract on L1
@@ -85,6 +86,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
         _paused = true;
+        __ReentrancyGuard_init();
     }
 
     /**
@@ -138,7 +140,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         uint256, // unused on L2
         uint256, // unused on L2
         bytes calldata _data
-    ) public payable override notPaused returns (bytes memory) {
+    ) public payable override notPaused nonReentrant returns (bytes memory) {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
@@ -226,7 +228,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         address _to,
         uint256 _amount,
         bytes calldata _data
-    ) external payable override notPaused onlyL1Counterpart {
+    ) external payable override notPaused onlyL1Counterpart nonReentrant {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
 
