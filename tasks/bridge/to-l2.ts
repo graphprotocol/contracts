@@ -3,7 +3,6 @@ import { cliOpts } from '../../cli/defaults'
 import { sendToL2 } from '../../cli/commands/bridge/to-l2'
 import { loadEnv } from '../../cli/env'
 import { TASK_NITRO_SETUP_SDK } from '../deployment/nitro'
-import { BigNumber } from 'ethers'
 
 export const TASK_BRIDGE_TO_L2 = 'bridge:send-to-l2'
 
@@ -27,7 +26,7 @@ task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
     console.log('> Sending GRT to L2')
     const graph = hre.graph(taskArgs)
 
-    // Add nitro test node networks to sdk
+    // If local, add nitro test node networks to sdk
     if (taskArgs.deploymentFile) {
       console.log('> Adding nitro test node network to sdk')
       await hre.run(TASK_NITRO_SETUP_SDK, { deploymentFile: taskArgs.deploymentFile })

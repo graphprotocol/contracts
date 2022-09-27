@@ -7,7 +7,7 @@ source $(pwd)/scripts/evm
 # Allow overriding config
 ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses-local.json"}
 ARBITRUM_ADDRESS_BOOK=${ARBITRUM_ADDRESS_BOOK:-"arbitrum-addresses-local.json"}
-ARBITRUM_DEPLOYMENT_FILE=${ARBITRUM_DEPLOYMENT_FILE:-"$(pwd)/../arbitrum-sdk/localNetwork.json"}
+ARBITRUM_DEPLOYMENT_FILE=${ARBITRUM_DEPLOYMENT_FILE:-"localNetwork.json"}
 L1_NETWORK=${L1_NETWORK:-"localhost"}
 L2_NETWORK=${L2_NETWORK}   # By default run only L1 tests on localhost network
 L1_GRAPH_CONFIG=${L1_GRAPH_CONFIG:-"config/graph.localhost.yml"}
@@ -139,7 +139,7 @@ function test_e2e_scenarios_bridge () {
 yarn build
 
 # Start evm
-if [[ "$NETWORK" == "localhost" ]]; then
+if [[ "$L1_NETWORK" == "localhost" ]]; then
   evm_kill
   evm_start
 fi
@@ -171,7 +171,7 @@ fi
 
 # Configure bridge
 if [[ -n "$L2_NETWORK" ]]; then
-  configure_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK" "$ARBITRUM_ADDRESS_BOOK"
+  configure_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK" "$ARBITRUM_ADDRESS_BOOK" "$ARBITRUM_DEPLOYMENT_FILE"
 fi
 
 
@@ -191,7 +191,7 @@ fi
 
 ## Cleanup
 # Exit error mode so the evm instance always gets killed
-if [[ "$NETWORK" == "localhost" ]]; then
+if [[ "$L1_NETWORK" == "localhost" ]]; then
   set +e
   result=0
 
