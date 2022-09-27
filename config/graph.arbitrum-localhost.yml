@@ -57,6 +57,8 @@ contracts:
     init:
       owner: "${{Env.deployer}}"
     calls:
+      - fn: "addMinter"
+        minter: "${{RewardsManager.address}}"
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
