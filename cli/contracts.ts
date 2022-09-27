@@ -26,6 +26,8 @@ import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
 import { BridgeEscrow } from '../build/types/BridgeEscrow'
+import { L1Reservoir } from '../build/types/L1Reservoir'
+import { L2Reservoir } from '../build/types/L2Reservoir'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -49,6 +51,8 @@ export interface NetworkContracts {
   BridgeEscrow: BridgeEscrow
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway
+  L1Reservoir: L1Reservoir
+  L2Reservoir: L2Reservoir
 }
 
 export const loadAddressBookContract = (

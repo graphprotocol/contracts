@@ -167,4 +167,5 @@ contracts:
     calls:
       - fn: "approveRewardsManager"
       - fn: "initialSnapshot"
+        pendingRewards: "0"
       - fn: "syncAllContracts"

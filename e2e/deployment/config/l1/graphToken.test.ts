@@ -5,7 +5,7 @@ import GraphChain from '../../../../gre/helpers/network'
 
 describe('[L1] GraphToken', () => {
   const graph = hre.graph()
-  const { GraphToken, RewardsManager } = graph.contracts
+  const { GraphToken, L1Reservoir, RewardsManager } = graph.contracts
 
   let unauthorized: SignerWithAddress
 
@@ -23,9 +23,14 @@ describe('[L1] GraphToken', () => {
       await expect(tx).revertedWith('Only minter can call')
     })
 
-    it('RewardsManager should be minter', async function () {
+    it('L1Reservoir should be minter', async function () {
+      const reservoirIsMinter = await GraphToken.isMinter(L1Reservoir.address)
+      expect(reservoirIsMinter).eq(true)
+    })
+
+    it('RewardsManager should not be minter', async function () {
       const rewardsMgrIsMinter = await GraphToken.isMinter(RewardsManager.address)
-      expect(rewardsMgrIsMinter).eq(true)
+      expect(rewardsMgrIsMinter).eq(false)
     })
   })
 })
