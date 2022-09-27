@@ -17,7 +17,7 @@ export interface BridgeFixture {
 
 export const getBridgeFixture = (signers: SignerWithAddress[]): BridgeFixture => {
   return {
-    deploymentFile: '../arbitrum-sdk/localNetwork.json',
+    deploymentFile: 'localNetwork.json',
     funder: signers[0],
     accountsToFund: [
       {

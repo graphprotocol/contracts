@@ -3,10 +3,12 @@ import { subtask, task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
 import { addCustomNetwork } from '@arbitrum/sdk/dist/lib/dataEntities/networks'
 import fs from 'fs'
+import { execSync } from 'child_process'
 
 export const TASK_NITRO_FUND_ACCOUNTS = 'nitro:fund-accounts'
 export const TASK_NITRO_SETUP_SDK = 'nitro:sdk-setup'
 export const TASK_NITRO_SETUP_ADDRESS_BOOK = 'nitro:address-book-setup'
+export const TASK_NITRO_FETCH_DEPLOYMENT_FILE = 'nitro:fetch-deployment-file'
 
 task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testnodes')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
@@ -77,7 +79,7 @@ task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testno
 // Arbitrum SDK does not support Nitro testnodes out of the box
 // This adds the testnodes to the SDK configuration
 subtask(TASK_NITRO_SETUP_SDK, 'Adds nitro testnodes to SDK config')
-  .addParam('deploymentFile', 'The testnode deployment file to use')
+  .addParam('deploymentFile', 'The testnode deployment file to use', 'localNetwork.json')
   .setAction(async (taskArgs) => {
     if (!fs.existsSync(taskArgs.deploymentFile)) {
       throw new Error(`Deployment file not found: ${taskArgs.deploymentFile}`)
@@ -89,13 +91,33 @@ subtask(TASK_NITRO_SETUP_SDK, 'Adds nitro testnodes to SDK config')
     })
   })
 
+subtask(TASK_NITRO_FETCH_DEPLOYMENT_FILE, 'Fetches nitro deployment file from a local testnode')
+  .addParam(
+    'deploymentFile',
+    'Path to the file where to deployment file will be saved',
+    'localNetwork.json',
+  )
+  .setAction(async (taskArgs) => {
+    console.log(`Attempting to fetch deployment file from testnode...`)
+
+    const command =
+      'docker exec $(docker ps -qf "name=sequencer") cat /deployment/localNetwork.json > localNetwork.json'
+    const stdOut = execSync(command)
+    console.log(stdOut.toString())
+
+    if (!fs.existsSync(taskArgs.deploymentFile)) {
+      throw new Error(`Unable to fetch deployment file: ${taskArgs.deploymentFile}`)
+    }
+    console.log(`Deployment file saved to ${taskArgs.deploymentFile}`)
+  })
+
 // Read arbitrum contract addresses from deployment file and write them to the address book
 task(TASK_NITRO_SETUP_ADDRESS_BOOK, 'Write arbitrum addresses to address book')
   .addParam('deploymentFile', 'The testnode deployment file to use')
   .addParam('arbitrumAddressBook', 'Arbitrum address book file')
-  .setAction(async (taskArgs) => {
+  .setAction(async (taskArgs, hre) => {
     if (!fs.existsSync(taskArgs.deploymentFile)) {
-      throw new Error(`Deployment file not found: ${taskArgs.deploymentFile}`)
+      await hre.run(TASK_NITRO_FETCH_DEPLOYMENT_FILE, taskArgs)
     }
     const deployment = JSON.parse(fs.readFileSync(taskArgs.deploymentFile, 'utf-8'))
 
