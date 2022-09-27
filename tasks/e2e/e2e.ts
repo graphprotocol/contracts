@@ -30,11 +30,16 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
 task('e2e', 'Run all e2e tests')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addFlag('skipBridge', 'Skip bridge tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    const testFiles = [
+    let testFiles = [
       ...new glob.GlobSync(CONFIG_TESTS).found,
       ...new glob.GlobSync(INIT_TESTS).found,
     ]
+
+    if (args.skipBridge) {
+      testFiles = testFiles.filter((file) => !['l1', 'l2'].includes(file.split('/')[3]))
+    }
 
     setGraphConfig(args, hre)
     await hre.run(TASK_TEST, {
