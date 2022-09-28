@@ -14,6 +14,16 @@ describe('[L2] L2GraphToken', () => {
     unauthorized = (await graph.getTestAccounts())[0]
   })
 
+  it('l1Address should match the L1 GraphToken deployed address', async function () {
+    const l1Address = await L2GraphToken.l1Address()
+    expect(l1Address).eq(graph.l1.contracts.GraphToken.address)
+  })
+
+  it('gateway should match the L2 GraphTokenGateway deployed address', async function () {
+    const gateway = await L2GraphToken.gateway()
+    expect(gateway).eq(graph.l2.contracts.L2GraphTokenGateway.address)
+  })
+
   describe('calls with unauthorized user', () => {
     it('mint should revert', async function () {
       const tx = L2GraphToken.connect(unauthorized).mint(
