@@ -3,21 +3,17 @@ import { constants, ContractTransaction, Signer, utils } from 'ethers'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
+import { CallhookReceiverMock } from '../../build/types/CallhookReceiverMock'
 
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { FakeContract, smock } from '@defi-wonderland/smock'
 
-import path from 'path'
-import { Artifacts } from 'hardhat/internal/artifacts'
-const ARTIFACTS_PATH = path.resolve('build/contracts')
-const artifacts = new Artifacts(ARTIFACTS_PATH)
-const rewardsManagerMockAbi = artifacts.readArtifactSync('RewardsManagerMock').abi
-
 use(smock.matchers)
 
 import { getAccounts, toGRT, Account, toBN, getL2SignerFromL1 } from '../lib/testHelpers'
 import { Interface } from 'ethers/lib/utils'
+import { deployContract } from '../lib/deployment'
 
 const { AddressZero } = constants
 
@@ -37,11 +33,14 @@ describe('L2GraphTokenGateway', () => {
   let fixtureContracts: L2FixtureContracts
   let grt: L2GraphToken
   let l2GraphTokenGateway: L2GraphTokenGateway
+  let callhookReceiverMock: CallhookReceiverMock
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const mockIface = new Interface(rewardsManagerMockAbi)
-  const notEmptyCallHookData = mockIface.encodeFunctionData('pow', [toBN(1), toBN(2), toBN(3)])
+  const notEmptyCallHookData = utils.defaultAbiCoder.encode(
+    ['uint256', 'uint256'],
+    [toBN('1337'), toBN('42')],
+  )
   const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['bytes', 'bytes'],
     ['0x', notEmptyCallHookData],
@@ -63,6 +62,11 @@ describe('L2GraphTokenGateway', () => {
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.loadL2(governor.signer)
     ;({ grt, l2GraphTokenGateway } = fixtureContracts)
+
+    callhookReceiverMock = (await deployContract(
+      'CallhookReceiverMock',
+      governor.signer,
+    )) as unknown as CallhookReceiverMock
 
     // Give some funds to the token sender
     await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
@@ -319,7 +323,9 @@ describe('L2GraphTokenGateway', () => {
     describe('finalizeInboundTransfer', function () {
       const testValidFinalizeTransfer = async function (
         data: string,
+        to?: string,
       ): Promise<ContractTransaction> {
+        to = to ?? l2Receiver.address
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -327,24 +333,18 @@ describe('L2GraphTokenGateway', () => {
         })
         const tx = l2GraphTokenGateway
           .connect(mockL1GatewayL2Alias)
-          .finalizeInboundTransfer(
-            mockL1GRT.address,
-            tokenSender.address,
-            l2Receiver.address,
-            toGRT('10'),
-            data,
-          )
+          .finalizeInboundTransfer(mockL1GRT.address, tokenSender.address, to, toGRT('10'), data)
         await expect(tx)
           .emit(l2GraphTokenGateway, 'DepositFinalized')
-          .withArgs(mockL1GRT.address, tokenSender.address, l2Receiver.address, toGRT('10'))
+          .withArgs(mockL1GRT.address, tokenSender.address, to, toGRT('10'))
 
-        await expect(tx).emit(grt, 'BridgeMinted').withArgs(l2Receiver.address, toGRT('10'))
+        await expect(tx).emit(grt, 'BridgeMinted').withArgs(to, toGRT('10'))
 
         // Unchanged
         const senderBalance = await grt.balanceOf(tokenSender.address)
         await expect(senderBalance).eq(toGRT('1000'))
         // 10 newly minted GRT
-        const receiverBalance = await grt.balanceOf(l2Receiver.address)
+        const receiverBalance = await grt.balanceOf(to)
         await expect(receiverBalance).eq(toGRT('10'))
         return tx
       }
@@ -375,19 +375,23 @@ describe('L2GraphTokenGateway', () => {
       it('mints and sends tokens when called by the aliased gateway', async function () {
         await testValidFinalizeTransfer(defaultData)
       })
-      it('calls a callhook if the sender is whitelisted', async function () {
-        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
-          address: l2Receiver.address,
-        })
-        rewardsManagerMock.pow.returns(1)
-        await testValidFinalizeTransfer(defaultDataWithNotEmptyCallHookData)
-        expect(rewardsManagerMock.pow).to.have.been.calledWith(toBN(1), toBN(2), toBN(3))
+      it('calls a callhook if the transfer includes calldata', async function () {
+        const tx = await testValidFinalizeTransfer(
+          defaultDataWithNotEmptyCallHookData,
+          callhookReceiverMock.address,
+        )
+        // Emitted by the callhook:
+        await expect(tx)
+          .emit(callhookReceiverMock, 'TransferReceived')
+          .withArgs(tokenSender.address, toGRT('10'), toBN('1337'), toBN('42'))
       })
       it('reverts if a callhook reverts', async function () {
-        const rewardsManagerMock = await smock.fake('RewardsManagerMock', {
-          address: l2Receiver.address,
-        })
-        rewardsManagerMock.pow.reverts()
+        // The 0 will make the callhook revert (see CallhookReceiverMock.sol)
+        const callHookData = utils.defaultAbiCoder.encode(
+          ['uint256', 'uint256'],
+          [toBN('0'), toBN('42')],
+        )
+        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -398,11 +402,11 @@ describe('L2GraphTokenGateway', () => {
           .finalizeInboundTransfer(
             mockL1GRT.address,
             tokenSender.address,
-            l2Receiver.address,
+            callhookReceiverMock.address,
             toGRT('10'),
-            defaultDataWithNotEmptyCallHookData,
+            data,
           )
-        await expect(tx).revertedWith('CALLHOOK_FAILED')
+        await expect(tx).revertedWith('FOO_IS_ZERO')
       })
     })
   })

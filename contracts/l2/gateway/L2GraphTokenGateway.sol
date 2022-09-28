@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../arbitrum/L2ArbitrumMessenger.sol";
 import "../../arbitrum/AddressAliasHelper.sol";
 import "../../gateway/GraphTokenGateway.sol";
+import "../../gateway/ICallhookReceiver.sol";
 import "../token/L2GraphToken.sol";
 
 /**
@@ -240,15 +241,9 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
                 bytes memory gatewayData;
                 (gatewayData, callhookData) = abi.decode(_data, (bytes, bytes));
             }
-            bool success;
-            // solhint-disable-next-line avoid-low-level-calls
-            (success, ) = _to.call(callhookData);
             // Callhooks shouldn't revert, but if they do:
             // we revert, so that the retryable ticket can be re-attempted
-            // later.
-            if (!success) {
-                revert("CALLHOOK_FAILED");
-            }
+            ICallhookReceiver(_to).onTokenTransfer(_from, _amount, callhookData);
         }
 
         emit DepositFinalized(_l1Token, _from, _to, _amount);
