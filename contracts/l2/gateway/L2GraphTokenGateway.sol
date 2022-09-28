@@ -241,8 +241,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
                 bytes memory gatewayData;
                 (gatewayData, callhookData) = abi.decode(_data, (bytes, bytes));
             }
-            // Callhooks shouldn't revert, but if they do:
-            // we revert, so that the retryable ticket can be re-attempted
             ICallhookReceiver(_to).onTokenTransfer(_from, _amount, callhookData);
         }
 
