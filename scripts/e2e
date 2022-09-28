@@ -7,23 +7,16 @@ source $(pwd)/scripts/evm
 # Allow overriding config
 ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses-local.json"}
 ARBITRUM_ADDRESS_BOOK=${ARBITRUM_ADDRESS_BOOK:-"arbitrum-addresses-local.json"}
-<<<<<<< HEAD
 ARBITRUM_DEPLOYMENT_FILE=${ARBITRUM_DEPLOYMENT_FILE:-"localNetwork.json"}
 
 L1_NETWORK=${L1_NETWORK}
 L2_NETWORK=${L2_NETWORK}
 
-=======
-ARBITRUM_DEPLOYMENT_FILE=${ARBITRUM_DEPLOYMENT_FILE:-"$(pwd)/../arbitrum-sdk/localNetwork.json"}
-L1_NETWORK=${L1_NETWORK:-"localhost"}
-L2_NETWORK=${L2_NETWORK}   # By default run only L1 tests on localhost network
->>>>>>> d372172 (feat(e2e): run L1 and L2 together in e2e tests)
 L1_GRAPH_CONFIG=${L1_GRAPH_CONFIG:-"config/graph.localhost.yml"}
 L2_GRAPH_CONFIG=${L2_GRAPH_CONFIG:-"config/graph.arbitrum-localhost.yml"}
 
 echo "Running e2e tests"
 echo "- Using address book: $ADDRESS_BOOK"
-<<<<<<< HEAD
 
 if [[ -n "$L1_NETWORK" ]]; then
   echo "- Using L1 network: $L1_NETWORK"
@@ -32,18 +25,12 @@ else
   echo "- No L1_NETWORK provided, skipping L1 tests"
 fi
 
-=======
-echo "- Using L1 network: $L1_NETWORK"
-echo "- Using L1 config: $L1_GRAPH_CONFIG"
-
->>>>>>> d372172 (feat(e2e): run L1 and L2 together in e2e tests)
 if [[ -n "$L2_NETWORK" ]]; then
   echo "- Using L2 network: $L2_NETWORK"
   echo "- Using L2 config: $L2_GRAPH_CONFIG"
   echo "- Using arbitrum address book: $ARBITRUM_ADDRESS_BOOK"
   echo "- Using arbitrum deployment file: $ARBITRUM_DEPLOYMENT_FILE"
 else 
-<<<<<<< HEAD
   echo "- No L2_NETWORK provided, skipping L2 tests"
 fi
 
@@ -55,9 +42,6 @@ fi
 if [[ "$L1_NETWORK" == "$L2_NETWORK" ]]; then
   echo "L1_NETWORK and L2_NETWORK must be different networks!"
   exit 0
-=======
-  echo "- Skipping L2 tests"
->>>>>>> d372172 (feat(e2e): run L1 and L2 together in e2e tests)
 fi
 
 ### > SCRIPT AUX FUNCTIONS <
@@ -122,13 +106,9 @@ function configure_bridge () {
   local L2_MNEMONIC=${L2_MNEMONIC:-"urge never interest human any economy gentle canvas anxiety pave unlock find"}
 
   # Copy required arbitrum contract addresses to the local arbitrum address book
-<<<<<<< HEAD
   if [[ "$L1_NETWORK" == *"localnitro"* ]]; then
     npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
   fi
-=======
-  npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
->>>>>>> d372172 (feat(e2e): run L1 and L2 together in e2e tests)
 
   # Configure the bridge
   ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L2_RPC" -m "$L2_MNEMONIC" -n 2 -r "$ARBITRUM_ADDRESS_BOOK" protocol configure-l2-bridge "$L1_CHAIN_ID"
@@ -141,6 +121,7 @@ function configure_bridge () {
 
 function test_e2e () {
   local NETWORK=$1
+<<<<<<< HEAD
   local GRAPH_CONFIG=$2
   local ADDRESS_BOOK=$3
 <<<<<<< HEAD
@@ -148,8 +129,17 @@ function test_e2e () {
 
   if [[ -n "$COUNTERPART_NETWORK" ]]; then
     npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+=======
+  local L1_GRAPH_CONFIG=$2
+  local L2_GRAPH_CONFIG=$3
+  local ADDRESS_BOOK=$4
+  local SKIP_BRIDGE_TESTS=$5
+
+  if [[ -z "$SKIP_BRIDGE_TESTS" ]]; then
+    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+>>>>>>> 0a68870 (chore(e2e): be specific with graph config usage on e2e tasks)
   else
-    npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge
+    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge
   fi
 =======
 
@@ -159,30 +149,34 @@ function test_e2e () {
 
 function test_e2e_scenarios () {
   local NETWORK=$1
-  local GRAPH_CONFIG=$2
-  local ADDRESS_BOOK=$3
+  local L1_GRAPH_CONFIG=$2
+  local L2_GRAPH_CONFIG=$3
+  local ADDRESS_BOOK=$4
 
-  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 
   # skip close-allocations for arbitrum testnodes as we can't advance epoch
 <<<<<<< HEAD
   if [[ "$NETWORK" != *"localnitro"* ]]; then
+<<<<<<< HEAD
 =======
   if [[ "$NETWORK" !=  *"localnitro"* ]]; then
 >>>>>>> d372172 (feat(e2e): run L1 and L2 together in e2e tests)
     npx hardhat e2e:scenario close-allocations --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+=======
+    npx hardhat e2e:scenario close-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+>>>>>>> 0a68870 (chore(e2e): be specific with graph config usage on e2e tasks)
   fi
 }
 
 function test_e2e_scenarios_bridge () {
-  local L1_NETWORK=$1
+  local NETWORK=$1
   local L1_GRAPH_CONFIG=$2
-  local L2_NETWORK=$3
-  local L2_GRAPH_CONFIG=$4
-  local ADDRESS_BOOK=$5
+  local L2_GRAPH_CONFIG=$3
+  local ADDRESS_BOOK=$4
 
-  npx hardhat e2e:scenario send-grt-to-l2 --network "$L1_NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario send-grt-to-l2 --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
 }
 
 
@@ -232,6 +226,7 @@ fi
 
 ## TEST
 # Run e2e tests
+<<<<<<< HEAD
 if [[ -n "$L1_NETWORK" ]]; then
   test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK" "$L2_NETWORK"
 fi
@@ -251,6 +246,20 @@ fi
 
 if [[ -n "$L2_NETWORK" ]]; then
   test_e2e_scenarios "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+=======
+if [[ -z "$L2_NETWORK" ]]; then
+  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK" true
+else
+  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+  test_e2e "$L2_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+fi
+
+# Run scenario tests
+test_e2e_scenarios "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+if [[ -n "$L2_NETWORK" ]]; then
+  test_e2e_scenarios_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+  test_e2e_scenarios "$L2_NETWORK" "$L1_GRAPH_CONFIG" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+>>>>>>> 0a68870 (chore(e2e): be specific with graph config usage on e2e tasks)
 fi
 
 ## Cleanup
