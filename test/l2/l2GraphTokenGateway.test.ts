@@ -14,6 +14,7 @@ use(smock.matchers)
 import { getAccounts, toGRT, Account, toBN, getL2SignerFromL1 } from '../lib/testHelpers'
 import { Interface } from 'ethers/lib/utils'
 import { deployContract } from '../lib/deployment'
+import { RewardsManager } from '../../build/types/RewardsManager'
 
 const { AddressZero } = constants
 
@@ -34,6 +35,7 @@ describe('L2GraphTokenGateway', () => {
   let grt: L2GraphToken
   let l2GraphTokenGateway: L2GraphTokenGateway
   let callhookReceiverMock: CallhookReceiverMock
+  let rewardsManager: RewardsManager
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
@@ -61,7 +63,7 @@ describe('L2GraphTokenGateway', () => {
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.loadL2(governor.signer)
-    ;({ grt, l2GraphTokenGateway } = fixtureContracts)
+    ;({ grt, l2GraphTokenGateway, rewardsManager } = fixtureContracts)
 
     callhookReceiverMock = (await deployContract(
       'CallhookReceiverMock',
@@ -407,6 +409,28 @@ describe('L2GraphTokenGateway', () => {
             data,
           )
         await expect(tx).revertedWith('FOO_IS_ZERO')
+      })
+      it('reverts if trying to call a callhook in a contract that does not implement onTokenTransfer', async function () {
+        const callHookData = utils.defaultAbiCoder.encode(['uint256'], [toBN('0')])
+        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
+        const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
+        await me.signer.sendTransaction({
+          to: await mockL1GatewayL2Alias.getAddress(),
+          value: utils.parseUnits('1', 'ether'),
+        })
+        // RewardsManager does not implement onTokenTransfer, so this will fail
+        const tx = l2GraphTokenGateway
+          .connect(mockL1GatewayL2Alias)
+          .finalizeInboundTransfer(
+            mockL1GRT.address,
+            tokenSender.address,
+            rewardsManager.address,
+            toGRT('10'),
+            data,
+          )
+        await expect(tx).revertedWith(
+          "function selector was not recognized and there's no fallback function",
+        )
       })
     })
   })
