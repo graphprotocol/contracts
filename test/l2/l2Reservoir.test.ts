@@ -22,6 +22,7 @@ import { L2Reservoir } from '../../build/types/L2Reservoir'
 
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 
 const toRound = (n: BigNumber) => formatGRT(n).split('.')[0]
 
@@ -89,7 +90,10 @@ describe('L2Reservoir', () => {
     return expectedValue
   }
 
-  const gatewayFinalizeTransfer = async (callhookData: string): Promise<ContractTransaction> => {
+  const gatewayFinalizeTransfer = async (
+    callhookData: string,
+    from: string = mockL1Reservoir.address,
+  ): Promise<ContractTransaction> => {
     const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
     await testAccount1.signer.sendTransaction({
       to: await mockL1GatewayL2Alias.getAddress(),
@@ -98,24 +102,18 @@ describe('L2Reservoir', () => {
     const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callhookData])
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
-      .finalizeInboundTransfer(
-        mockL1GRT.address,
-        mockL1Reservoir.address,
-        l2Reservoir.address,
-        dripAmount,
-        data,
-      )
+      .finalizeInboundTransfer(mockL1GRT.address, from, l2Reservoir.address, dripAmount, data)
     return tx
   }
 
   const validGatewayFinalizeTransfer = async (
     callhookData: string,
-    keeperReward = toGRT('0'),
+    { keeperReward = toGRT('0'), from = mockL1Reservoir.address },
   ): Promise<ContractTransaction> => {
-    const tx = await gatewayFinalizeTransfer(callhookData)
+    const tx = await gatewayFinalizeTransfer(callhookData, from)
     await expect(tx)
       .emit(l2GraphTokenGateway, 'DepositFinalized')
-      .withArgs(mockL1GRT.address, mockL1Reservoir.address, l2Reservoir.address, dripAmount)
+      .withArgs(mockL1GRT.address, from, l2Reservoir.address, dripAmount)
 
     await expect(tx).emit(grt, 'BridgeMinted').withArgs(l2Reservoir.address, dripAmount)
 
@@ -200,60 +198,64 @@ describe('L2Reservoir', () => {
     })
   })
 
-  describe('receiveDrip', async function () {
+  describe('onTokenTransfer', async function () {
     beforeEach(async function () {
       await l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('0.2'))
       await l2Reservoir.connect(governor.signer).setL1ReservoirAddress(mockL1Reservoir.address)
     })
     it('rejects the call when not called by the gateway', async function () {
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
+      )
       const tx = l2Reservoir
         .connect(governor.signer)
-        .receiveDrip(
-          dripNormalizedSupply,
-          dripIssuanceRate,
-          toBN('0'),
-          toBN('0'),
-          testAccount1.address,
-        )
+        .onTokenTransfer(mockL1Reservoir.address, toGRT('1000000'), data)
       await expect(tx).revertedWith('ONLY_GATEWAY')
+    })
+    it('rejects the call when the L1 sender is not the L1Reservoir', async function () {
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
+      )
+      const tx = gatewayFinalizeTransfer(data, testAccount1.address)
+      await expect(tx).revertedWith('INVALID_L1_SENDER')
     })
     it('rejects the call when received out of order', async function () {
       normalizedSupply = dripNormalizedSupply
-      let receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      let data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
       )
-      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
+      const tx = await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
       // Incorrect nonce
-      receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply.add(1),
-        dripIssuanceRate.add(1),
-        toBN('2'),
-        toBN('0'),
-        testAccount1.address,
+      data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [
+          dripNormalizedSupply.add(1),
+          dripIssuanceRate.add(1),
+          toBN('2'),
+          toBN('0'),
+          testAccount1.address,
+        ],
       )
-      const tx2 = gatewayFinalizeTransfer(receiveDripTx.data)
+
+      const tx2 = gatewayFinalizeTransfer(data)
       dripBlock = await latestBlock()
-      await expect(tx2).revertedWith('CALLHOOK_FAILED') // Gateway overrides revert message
+      await expect(tx2).revertedWith('INVALID_NONCE')
     })
     it('updates the normalized supply cache', async function () {
       normalizedSupply = dripNormalizedSupply
-      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
       )
-      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
+      const tx = await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
@@ -261,37 +263,31 @@ describe('L2Reservoir', () => {
     })
     it('delivers the keeper reward to the beneficiary address', async function () {
       normalizedSupply = dripNormalizedSupply
-      const reward = toBN('15')
-      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        reward,
-        testAccount1.address,
+      const keeperReward = toBN('15')
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), keeperReward, testAccount1.address],
       )
-      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data, reward)
+      const tx = await validGatewayFinalizeTransfer(data, { keeperReward })
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
       await expect(tx)
         .emit(grt, 'Transfer')
-        .withArgs(l2Reservoir.address, testAccount1.address, reward)
-      await expect(await grt.balanceOf(testAccount1.address)).to.eq(reward)
+        .withArgs(l2Reservoir.address, testAccount1.address, keeperReward)
+      await expect(await grt.balanceOf(testAccount1.address)).to.eq(keeperReward)
     })
     it('delivers part of the keeper reward to the L2 redeemer', async function () {
       arbTxMock.getCurrentRedeemer.returns(testAccount2.address)
       await l2Reservoir.connect(governor.signer).setL2KeeperRewardFraction(toGRT('0.25'))
       normalizedSupply = dripNormalizedSupply
-      const reward = toGRT('16')
-      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        reward,
-        testAccount1.address,
+      const keeperReward = toGRT('16')
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), keeperReward, testAccount1.address],
       )
-      const tx = await validGatewayFinalizeTransfer(receiveDripTx.data, reward)
+      const tx = await validGatewayFinalizeTransfer(data, { keeperReward })
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
@@ -307,27 +303,27 @@ describe('L2Reservoir', () => {
     })
     it('updates the normalized supply cache and issuance rate', async function () {
       normalizedSupply = dripNormalizedSupply
-      let receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      let data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
       )
-      let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
+      let tx = await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
-      receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply.add(1),
-        dripIssuanceRate.add(1),
-        toBN('1'),
-        toBN('0'),
-        testAccount1.address,
+      data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [
+          dripNormalizedSupply.add(1),
+          dripIssuanceRate.add(1),
+          toBN('1'),
+          toBN('0'),
+          testAccount1.address,
+        ],
       )
-      tx = await gatewayFinalizeTransfer(receiveDripTx.data)
+      tx = await gatewayFinalizeTransfer(data)
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate.add(1))
@@ -336,27 +332,21 @@ describe('L2Reservoir', () => {
     })
     it('accepts subsequent calls without changing issuance rate', async function () {
       normalizedSupply = dripNormalizedSupply
-      let receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      let data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
       )
-      let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
+      let tx = await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
-      receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply.add(1),
-        dripIssuanceRate,
-        toBN('1'),
-        toBN('0'),
-        testAccount1.address,
+      data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply.add(1), dripIssuanceRate, toBN('1'), toBN('0'), testAccount1.address],
       )
-      tx = await gatewayFinalizeTransfer(receiveDripTx.data)
+      tx = await gatewayFinalizeTransfer(data)
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
@@ -365,28 +355,22 @@ describe('L2Reservoir', () => {
     })
     it('accepts a different nonce set through setNextDripNonce', async function () {
       normalizedSupply = dripNormalizedSupply
-      let receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        dripIssuanceRate,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      let data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, dripIssuanceRate, toBN('0'), toBN('0'), testAccount1.address],
       )
-      let tx = await validGatewayFinalizeTransfer(receiveDripTx.data)
+      let tx = await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply)
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
       await expect(tx).emit(l2Reservoir, 'DripReceived').withArgs(dripNormalizedSupply)
 
       await l2Reservoir.connect(governor.signer).setNextDripNonce(toBN('2'))
-      receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply.add(1),
-        dripIssuanceRate,
-        toBN('2'),
-        toBN('0'),
-        testAccount1.address,
+      data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply.add(1), dripIssuanceRate, toBN('2'), toBN('0'), testAccount1.address],
       )
-      tx = await gatewayFinalizeTransfer(receiveDripTx.data)
+      tx = await gatewayFinalizeTransfer(data)
       dripBlock = await latestBlock()
       await expect(await l2Reservoir.issuanceBase()).to.eq(dripNormalizedSupply.add(1))
       await expect(await l2Reservoir.issuanceRate()).to.eq(dripIssuanceRate)
@@ -397,16 +381,14 @@ describe('L2Reservoir', () => {
 
   context('calculating rewards', async function () {
     beforeEach(async function () {
+      await l2Reservoir.connect(governor.signer).setL1ReservoirAddress(mockL1Reservoir.address)
       // 5% minute rate (4 blocks)
       normalizedSupply = dripNormalizedSupply
-      const receiveDripTx = await l2Reservoir.populateTransaction.receiveDrip(
-        dripNormalizedSupply,
-        ISSUANCE_RATE_PER_BLOCK,
-        toBN('0'),
-        toBN('0'),
-        testAccount1.address,
+      const data = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [dripNormalizedSupply, ISSUANCE_RATE_PER_BLOCK, toBN('0'), toBN('0'), testAccount1.address],
       )
-      await validGatewayFinalizeTransfer(receiveDripTx.data)
+      await validGatewayFinalizeTransfer(data, {})
       dripBlock = await latestBlock()
     })
 

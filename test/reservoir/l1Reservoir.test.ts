@@ -23,15 +23,11 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 import path from 'path'
 import { Artifacts } from 'hardhat/internal/artifacts'
-import { Interface } from 'ethers/lib/utils'
+import { defaultAbiCoder, Interface } from 'ethers/lib/utils'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { Controller } from '../../build/types/Controller'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { Staking } from '../../build/types/Staking'
-const ARTIFACTS_PATH = path.resolve('build/contracts')
-const artifacts = new Artifacts(ARTIFACTS_PATH)
-const l2ReservoirAbi = artifacts.readArtifactSync('L2Reservoir').abi
-const l2ReservoirIface = new Interface(l2ReservoirAbi)
 
 const { AddressZero } = constants
 const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
@@ -616,13 +612,10 @@ describe('L1Reservoir', () => {
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
-      const expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('0'),
-        toBN('0'),
-        keeper.address,
-      ])
+      const expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [l2IssuanceBase, issuanceRate, toBN('0'), toBN('0'), keeper.address],
+      )
       const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -684,13 +677,10 @@ describe('L1Reservoir', () => {
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
-      const expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('0'),
-        expectedKeeperReward,
-        keeper.address,
-      ])
+      const expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [l2IssuanceBase, issuanceRate, toBN('0'), expectedKeeperReward, keeper.address],
+      )
       const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -741,13 +731,10 @@ describe('L1Reservoir', () => {
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
-      let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('0'),
-        toBN('0'),
-        keeper.address,
-      ])
+      let expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [l2IssuanceBase, issuanceRate, toBN('0'), toBN('0'), keeper.address],
+      )
       let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -795,13 +782,16 @@ describe('L1Reservoir', () => {
       l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
-      expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('1'), // Incremented nonce
-        toBN('0'),
-        keeper.address,
-      ])
+      expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [
+          l2IssuanceBase,
+          issuanceRate,
+          toBN('1'), // Incremented nonce
+          toBN('0'),
+          keeper.address,
+        ],
+      )
       expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -859,13 +849,10 @@ describe('L1Reservoir', () => {
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
-      let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('0'),
-        toBN('0'),
-        keeper.address,
-      ])
+      let expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [l2IssuanceBase, issuanceRate, toBN('0'), toBN('0'), keeper.address],
+      )
       let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -909,13 +896,16 @@ describe('L1Reservoir', () => {
       l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
-      expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('1'), // Incremented nonce
-        toBN('0'),
-        keeper.address,
-      ])
+      expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [
+          l2IssuanceBase,
+          issuanceRate,
+          toBN('1'), // Incremented nonce
+          toBN('0'),
+          keeper.address,
+        ],
+      )
       expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -976,13 +966,10 @@ describe('L1Reservoir', () => {
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
       const issuanceRate = await l1Reservoir.issuanceRate()
-      let expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('0'),
-        toBN('0'),
-        keeper.address,
-      ])
+      let expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [l2IssuanceBase, issuanceRate, toBN('0'), toBN('0'), keeper.address],
+      )
       let expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
@@ -1048,13 +1035,16 @@ describe('L1Reservoir', () => {
       l2IssuanceBase = (await l1Reservoir.issuanceBase())
         .mul(await l1Reservoir.l2RewardsFraction())
         .div(toGRT('1'))
-      expectedCallhookData = l2ReservoirIface.encodeFunctionData('receiveDrip', [
-        l2IssuanceBase,
-        issuanceRate,
-        toBN('1'), // Incremented nonce
-        toBN('0'),
-        keeper.address,
-      ])
+      expectedCallhookData = defaultAbiCoder.encode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'address'],
+        [
+          l2IssuanceBase,
+          issuanceRate,
+          toBN('1'), // Incremented nonce
+          toBN('0'),
+          keeper.address,
+        ],
+      )
       expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         l1Reservoir.address,
