@@ -26,10 +26,14 @@ export const publishNewSubgraph = async (
     publisher.address,
     await contracts.GNS.nextAccountSeqID(publisher.address),
   )
-  await sendTransaction(publisher, contracts.GNS, 'publishNewSubgraph', [
-    deploymentId,
-    randomHexBytes(),
-    randomHexBytes(),
-  ])
+  await sendTransaction(
+    publisher,
+    contracts.GNS,
+    'publishNewSubgraph',
+    [deploymentId, randomHexBytes(), randomHexBytes()],
+    {
+      gasLimit: 4_000_000,
+    },
+  )
   return subgraphId
 }
