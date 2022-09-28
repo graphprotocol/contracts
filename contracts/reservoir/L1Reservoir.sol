@@ -10,7 +10,6 @@ import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Managed } from "../governance/Managed.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { IStaking } from "../staking/IStaking.sol";
-import { IL2Reservoir } from "../l2/reservoir/IL2Reservoir.sol";
 import { Reservoir } from "./Reservoir.sol";
 import { L1ReservoirV2Storage } from "./L1ReservoirStorage.sol";
 
@@ -503,8 +502,7 @@ contract L1Reservoir is L1ReservoirV2Storage, Reservoir {
         uint256 l2IssuanceBase = l2RewardsFraction.mul(issuanceBase).div(
             FIXED_POINT_SCALING_FACTOR
         );
-        bytes memory extraData = abi.encodeWithSelector(
-            IL2Reservoir.receiveDrip.selector,
+        bytes memory extraData = abi.encode(
             l2IssuanceBase,
             issuanceRate,
             nextDripNonce,

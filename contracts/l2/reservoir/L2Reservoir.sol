@@ -11,8 +11,8 @@ import { IGraphToken } from "../../token/IGraphToken.sol";
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
 import { IReservoir } from "../../reservoir/IReservoir.sol";
 import { Reservoir } from "../../reservoir/Reservoir.sol";
-import { IL2Reservoir } from "./IL2Reservoir.sol";
 import { L2ReservoirV2Storage } from "./L2ReservoirStorage.sol";
+import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
 
 /**
  * @dev ArbRetryableTx with additional interface to query the current redeemer.
@@ -34,7 +34,7 @@ interface IArbTxWithRedeemer is ArbRetryableTx {
  * It receives tokens for rewards from L1, and provides functions to compute accumulated and new
  * total rewards at a particular block number.
  */
-contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
+contract L2Reservoir is L2ReservoirV2Storage, Reservoir, ICallhookReceiver {
     using SafeMath for uint256;
 
     // Address for the ArbRetryableTx interface provided by Arbitrum
@@ -116,12 +116,7 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * @param _blocknum Block number at which to calculate rewards
      * @return New total rewards on L2 since the last drip
      */
-    function getNewRewards(uint256 _blocknum)
-        public
-        view
-        override(Reservoir, IReservoir)
-        returns (uint256)
-    {
+    function getNewRewards(uint256 _blocknum) public view override returns (uint256) {
         uint256 t0 = lastRewardsUpdateBlock;
         if (issuanceRate <= MIN_ISSUANCE_RATE || _blocknum == t0) {
             return 0;
@@ -131,6 +126,27 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
                 .mul(_pow(issuanceRate, _blocknum.sub(t0), FIXED_POINT_SCALING_FACTOR))
                 .div(FIXED_POINT_SCALING_FACTOR)
                 .sub(issuanceBase);
+    }
+
+    /**
+     * @dev Receive tokens with a callhook from the bridge
+     * @param _from Token sender in L1
+     * @param _data ABI-encoded callhook data
+     */
+    function onTokenTransfer(
+        address _from,
+        uint256, // _amount, unused here
+        bytes calldata _data
+    ) external override onlyL2Gateway {
+        require(_from == l1ReservoirAddress, "INVALID_L1_SENDER");
+        (
+            uint256 _issuanceBase,
+            uint256 _issuanceRate,
+            uint256 _nonce,
+            uint256 _keeperReward,
+            address _l1Keeper
+        ) = abi.decode(_data, (uint256, uint256, uint256, uint256, address));
+        _receiveDrip(_issuanceBase, _issuanceRate, _nonce, _keeperReward, _l1Keeper);
     }
 
     /**
@@ -152,13 +168,13 @@ contract L2Reservoir is L2ReservoirV2Storage, Reservoir, IL2Reservoir {
      * @param _keeperReward Keeper reward to distribute between keeper that called drip and keeper that redeemed the retryable tx
      * @param _l1Keeper Address of the keeper that called drip in L1
      */
-    function receiveDrip(
+    function _receiveDrip(
         uint256 _issuanceBase,
         uint256 _issuanceRate,
         uint256 _nonce,
         uint256 _keeperReward,
         address _l1Keeper
-    ) external override onlyL2Gateway {
+    ) internal {
         require(_nonce == nextDripNonce, "INVALID_NONCE");
         nextDripNonce = nextDripNonce.add(1);
         if (_issuanceRate != issuanceRate) {
