@@ -17,6 +17,10 @@ import path from 'path'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { Wallet } from 'ethers'
 
+// Export GRE convenience task creator
+import { graphTask } from './tasks'
+export { graphTask }
+
 // Graph Runtime Environment (GRE) extensions for the HRE
 
 extendConfig((config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {

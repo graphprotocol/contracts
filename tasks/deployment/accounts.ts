@@ -1,11 +1,8 @@
-import { task } from 'hardhat/config'
-
-import { cliOpts } from '../../cli/defaults'
+import { graphTask } from '../../gre/gre'
 import { updateItemValue, writeConfig } from '../../cli/config'
 
-task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
-  .setAction(async (taskArgs, hre) => {
+graphTask('migrate:accounts', 'Creates protocol accounts and saves them in graph config').setAction(
+  async (taskArgs, hre) => {
     const { graphConfig, getDeployer } = hre.graph(taskArgs)
 
     console.log('> Generating addresses')
@@ -37,4 +34,5 @@ task('migrate:accounts', 'Creates protocol accounts and saves them in graph conf
     updateItemValue(graphConfig, 'general/allocationExchangeOwner', allocationExchangeOwner.address)
 
     writeConfig(taskArgs.graphConfig, graphConfig.toString())
-  })
+  },
+)

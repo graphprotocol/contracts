@@ -8,6 +8,7 @@ GRE is a hardhat plugin that extends hardhat's runtime environment to inject add
 - Exposes protocol configuration via graph config file and address book
 - Provides account management methods for convenience
 - Multichain! Supports both L1 and L2 layers of the protocol simultaneously
+- Convenience method to create tasks that use GRE
 
 ### Usage
 
@@ -121,6 +122,42 @@ The path to the graph config and the address book can be set in multiple ways. T
 The priority for the address book is:
 1) `hre.graph({ ... })` init parameter `addressBook`
 2) `graph.addressBook` graph config parameter `addressBook` in hardhat config file
+
+### Graph task convenience method
+
+GRE accepts a few parameters when being initialized. When using GRE in the context of a hardhat task these parameters would typically be configured as task options. 
+
+In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `graphTask`. By using this instead of hardhat's `task` you avoid having to define GRE's options on all of your tasks.
+
+Here is an example of a task using this convenience method:
+
+```ts
+import { graphTask } from '../../gre/gre'
+
+graphTask('hello-world', 'Say hi!', async (args, hre) => {
+  console.log('hello world')
+  const graph = hre.graph(args)
+})
+```
+
+```bash
+✗ npx hardhat hello-world --help
+Hardhat version 2.10.1
+
+Usage: hardhat [GLOBAL OPTIONS] test-graph [--address-book <STRING>] [--disable-secure-accounts] [--graph-config <STRING>] [--l1-graph-config <STRING>] [--l2-graph-config <STRING>]
+
+OPTIONS:
+
+  --address-book                Path to the address book file.
+  --disable-secure-accounts     Disable secure accounts.
+  --graph-config                Path to the graph config file for the network specified using --network.
+  --l1-graph-config             Path to the graph config file for the L1 network.
+  --l2-graph-config             Path to the graph config file for the L2 network.
+
+hello-world: Say hi!
+
+For global options help run: hardhat help
+```
 
 ### API
 

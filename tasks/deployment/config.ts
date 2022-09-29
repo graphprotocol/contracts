@@ -1,4 +1,4 @@
-import { task } from 'hardhat/config'
+import { graphTask } from '../../gre/gre'
 import { cliOpts } from '../../cli/defaults'
 import { updateItemValue, writeConfig } from '../../cli/config'
 import YAML from 'yaml'
@@ -87,8 +87,7 @@ const generalParams: GeneralParam[] = [
   },
 ]
 
-task('update-config', 'Update graph config parameters with onchain data')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+graphTask('update-config', 'Update graph config parameters with onchain data')
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
   .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
   .setAction(async (taskArgs, hre) => {
