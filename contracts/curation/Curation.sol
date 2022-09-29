@@ -13,6 +13,7 @@ import "../utils/TokenUtils.sol";
 import "./CurationStorage.sol";
 import "./ICuration.sol";
 import "./GraphCurationToken.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 
 /**
  * @title Curation contract

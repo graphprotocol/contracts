@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { MathUtils } from "../staking/libs/solidity-0.8/MathUtils.sol";
 
-import "../upgrades/GraphUpgradeable.sol";
-import "../staking/libs/MathUtils.sol";
-
-import "./RewardsManagerStorage.sol";
-import "./IRewardsManager.sol";
+import { RewardsManagerV4Storage } from "./RewardsManagerStorage.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
+import { Managed } from "../governance/solidity-0.8/Managed.sol";
+import { IGraphToken } from "../token/solidity-0.8/IGraphToken.sol";
+import { IStaking } from "../staking/IStaking.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -29,8 +29,6 @@ import "./IRewardsManager.sol";
  * until the actual takeRewards function is called.
  */
 contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
-    using SafeMath for uint256;
-
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
 
     // -- Events --
@@ -196,7 +194,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      */
     function getNewRewardsPerSignal() public view override returns (uint256) {
         // Calculate time steps
-        uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
+        uint256 t = block.number - accRewardsPerSignalLastBlockUpdated;
         // Optimization to skip calculations if zero time steps elapsed
         if (t == 0) {
             return 0;
@@ -213,11 +211,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        uint256 x = issuancePerBlock.mul(t);
+        uint256 x = issuancePerBlock * t;
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
-        return x.mul(FIXED_POINT_SCALING_FACTOR).div(signalledTokens);
+        return (x * FIXED_POINT_SCALING_FACTOR) / signalledTokens;
     }
 
     /**
@@ -225,7 +223,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @return Currently accumulated rewards per signal
      */
     function getAccRewardsPerSignal() public view override returns (uint256) {
-        return accRewardsPerSignal.add(getNewRewardsPerSignal());
+        return accRewardsPerSignal + getNewRewardsPerSignal();
     }
 
     /**
@@ -246,12 +244,10 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
         // Only accrue rewards if over a threshold
         uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
-            ? getAccRewardsPerSignal()
-                .sub(subgraph.accRewardsPerSignalSnapshot)
-                .mul(subgraphSignalledTokens)
-                .div(FIXED_POINT_SCALING_FACTOR)
+            ? (((getAccRewardsPerSignal() - subgraph.accRewardsPerSignalSnapshot) *
+                subgraphSignalledTokens) / FIXED_POINT_SCALING_FACTOR)
             : 0;
-        return subgraph.accRewardsForSubgraph.add(newRewards);
+        return subgraph.accRewardsForSubgraph + newRewards;
     }
 
     /**
@@ -281,11 +277,10 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             return (0, accRewardsForSubgraph);
         }
 
-        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph
-            .mul(FIXED_POINT_SCALING_FACTOR)
-            .div(subgraphAllocatedTokens);
+        uint256 newRewardsPerAllocatedToken = (newRewardsForSubgraph * FIXED_POINT_SCALING_FACTOR) /
+            subgraphAllocatedTokens;
         return (
-            subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken),
+            subgraph.accRewardsPerAllocatedToken + newRewardsPerAllocatedToken,
             accRewardsForSubgraph
         );
     }
@@ -380,8 +375,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         uint256 _startAccRewardsPerAllocatedToken,
         uint256 _endAccRewardsPerAllocatedToken
     ) private pure returns (uint256) {
-        uint256 newAccrued = _endAccRewardsPerAllocatedToken.sub(_startAccRewardsPerAllocatedToken);
-        return newAccrued.mul(_tokens).div(FIXED_POINT_SCALING_FACTOR);
+        uint256 newAccrued = _endAccRewardsPerAllocatedToken - _startAccRewardsPerAllocatedToken;
+        return (newAccrued * _tokens) / FIXED_POINT_SCALING_FACTOR;
     }
 
     /**

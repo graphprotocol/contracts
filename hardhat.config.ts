@@ -126,6 +126,23 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      {
+        version: '0.8.16',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          metadata: {
+            useLiteralContent: true,
+          },
+          outputSelection: {
+            '*': {
+              '*': ['storageLayout', 'metadata'],
+            },
+          },
+        },
+      },
     ],
   },
   defaultNetwork: 'hardhat',
@@ -186,6 +203,7 @@ const config: HardhatUserConfig = {
     clear: true,
     flat: true,
     runOnCompile: true,
+    except: ['/solidity-0.8/', '/contracts-0.8/', '/contracts-upgradeable-0.8/'],
   },
   tenderly: {
     project: 'graph-network',

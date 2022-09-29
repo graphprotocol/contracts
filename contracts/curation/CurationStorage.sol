@@ -2,7 +2,9 @@
 
 pragma solidity ^0.7.6;
 
-import "../governance/Managed.sol";
+import { Managed } from "../governance/Managed.sol";
+import { ICuration } from "./ICuration.sol";
+import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 
 abstract contract CurationV1Storage is Managed, ICuration {
     // -- Pool --

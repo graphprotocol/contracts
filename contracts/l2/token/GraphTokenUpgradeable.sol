@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable-0.8/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import { ECDSAUpgradeable } from "@openzeppelin/contracts-upgradeable-0.8/utils/cryptography/ECDSAUpgradeable.sol";
 
-import "../../upgrades/GraphUpgradeable.sol";
-import "../../governance/Governed.sol";
+import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
+import { Governed } from "../../governance/Governed.sol";
 
 /**
  * @title GraphTokenUpgradeable contract
@@ -26,8 +25,6 @@ import "../../governance/Governed.sol";
  * the original's constructor + non-upgradeable approach.
  */
 contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
-    using SafeMath for uint256;
-
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
@@ -90,11 +87,11 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
             )
         );
 
-        address recoveredAddress = ECDSA.recover(digest, _v, _r, _s);
+        address recoveredAddress = ECDSAUpgradeable.recover(digest, _v, _r, _s);
         require(_owner == recoveredAddress, "GRT: invalid permit");
         require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
-        nonces[_owner] = nonces[_owner].add(1);
+        nonces[_owner] = nonces[_owner] + 1;
         _approve(_owner, _spender, _value);
     }
 
@@ -192,12 +189,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
      * @dev Get the running network chain ID.
      * @return The chain ID
      */
-    function _getChainID() private pure returns (uint256) {
-        uint256 id;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            id := chainid()
-        }
-        return id;
+    function _getChainID() private view returns (uint256) {
+        return block.chainid;
     }
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "./IRewardsManager.sol";
-import "../governance/Managed.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
+import { Managed } from "../governance/solidity-0.8/Managed.sol";
 
 contract RewardsManagerV1Storage is Managed {
     // -- State --

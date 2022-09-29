@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../upgrades/GraphUpgradeable.sol";
-import "../arbitrum/ITokenGateway.sol";
-import "../governance/Pausable.sol";
-import "../governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { Pausable } from "../governance/Pausable.sol";
+import { Managed } from "../governance/solidity-0.8/Managed.sol";
 
 /**
  * @title L1/L2 Graph Token Gateway

@@ -19,7 +19,7 @@
  * https://github.com/OffchainLabs/arbitrum/tree/e3a6307ad8a2dc2cad35728a2a9908cfd8dd8ef9/packages/arb-bridge-peripherals
  *
  * MODIFIED from Offchain Labs' implementation:
- * - Changed solidity version to 0.7.6 (pablo@edgeandnode.com)
+ * - Changed solidity version to >=0.7.0 <0.9.0 (pablo@edgeandnode.com)
  *
  */
 
@@ -27,7 +27,7 @@
  * @title Minimum expected interface for L2 token that interacts with the L2 token bridge (this is the interface necessary
  * for a custom token that interacts with the bridge, see TestArbCustomToken.sol for an example implementation).
  */
-pragma solidity ^0.7.6;
+pragma solidity >=0.7.0 <0.9.0;
 
 interface IArbToken {
     /**

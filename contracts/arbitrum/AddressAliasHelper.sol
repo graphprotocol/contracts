@@ -19,11 +19,11 @@
  * https://github.com/OffchainLabs/arbitrum/tree/84e64dee6ee82adbf8ec34fd4b86c207a61d9007/packages/arb-bridge-eth
  *
  * MODIFIED from Offchain Labs' implementation:
- * - Changed solidity version to 0.7.6 (pablo@edgeandnode.com)
+ * - Changed solidity version to >=0.7.0 <0.9.0  (pablo@edgeandnode.com)
  *
  */
 
-pragma solidity ^0.7.6;
+pragma solidity >=0.7.0 <0.9.0;
 
 library AddressAliasHelper {
     uint160 constant offset = uint160(0x1111000000000000000000000000000000001111);

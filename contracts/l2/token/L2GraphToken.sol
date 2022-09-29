@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-
-import "./GraphTokenUpgradeable.sol";
-import "../../arbitrum/IArbToken.sol";
+import { GraphTokenUpgradeable } from "./GraphTokenUpgradeable.sol";
+import { IArbToken } from "../../arbitrum/IArbToken.sol";
 
 /**
  * @title L2 Graph Token Contract
@@ -13,8 +11,6 @@ import "../../arbitrum/IArbToken.sol";
  * through the L2GraphTokenGateway.
  */
 contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
-    using SafeMath for uint256;
-
     // Address of the gateway (on L2) that is allowed to mint tokens
     address public gateway;
     // Address of the corresponding Graph Token contract on L1

@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { Address } from "@openzeppelin/contracts-0.8/utils/Address.sol";
 
-import "../arbitrum/L1ArbitrumMessenger.sol";
-import "./GraphTokenGateway.sol";
+import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
+import { IBridge } from "../arbitrum/IBridge.sol";
+import { IInbox } from "../arbitrum/IInbox.sol";
+import { IOutbox } from "../arbitrum/IOutbox.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { GraphTokenGateway } from "./GraphTokenGateway.sol";
+import { Managed } from "../governance/solidity-0.8/Managed.sol";
+import { IGraphToken } from "../token/solidity-0.8/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract
@@ -19,8 +23,6 @@ import "./GraphTokenGateway.sol";
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
 contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
-    using SafeMath for uint256;
-
     // Address of the Graph Token contract on L2
     address public l2GRT;
     // Address of the Arbitrum Inbox
@@ -286,7 +288,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     // makes sure only sufficient ETH is supplied as required for successful redemption on L2
                     // if a user does not desire immediate redemption they should provide
                     // a msg.value of AT LEAST maxSubmissionCost
-                    uint256 expectedEth = maxSubmissionCost.add(_maxGas.mul(_gasPriceBid));
+                    uint256 expectedEth = maxSubmissionCost + (_maxGas * _gasPriceBid);
                     require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
                 }
                 outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
@@ -339,7 +341,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         uint256 escrowBalance = token.balanceOf(escrow);
         if (_amount > escrowBalance) {
             // This will revert if trying to mint more than allowed
-            _mintFromL2(_amount.sub(escrowBalance));
+            _mintFromL2(_amount - escrowBalance);
         }
         token.transferFrom(escrow, _to, _amount);
 
@@ -433,9 +435,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     function accumulatedL2MintAllowanceAtBlock(uint256 _blockNum) public view returns (uint256) {
         require(_blockNum >= lastL2MintAllowanceUpdateBlock, "INVALID_BLOCK_FOR_MINT_ALLOWANCE");
         return
-            accumulatedL2MintAllowanceSnapshot.add(
-                l2MintAllowancePerBlock.mul(_blockNum.sub(lastL2MintAllowanceUpdateBlock))
-            );
+            accumulatedL2MintAllowanceSnapshot +
+            (l2MintAllowancePerBlock * (_blockNum - lastL2MintAllowanceUpdateBlock));
     }
 
     /**
@@ -449,7 +450,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         // If we're trying to mint more than allowed, something's gone terribly wrong
         // (either the L2 issuance is wrong, or the Arbitrum bridge has been compromised)
         require(_l2MintAmountAllowed(_amount), "INVALID_L2_MINT_AMOUNT");
-        totalMintedFromL2 = totalMintedFromL2.add(_amount);
+        totalMintedFromL2 = totalMintedFromL2 + _amount;
         graphToken().mint(escrow, _amount);
         emit TokensMintedFromL2(_amount);
     }
@@ -460,6 +461,6 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @return true if minting those tokens is allowed, or false if it would be over allowance
      */
     function _l2MintAmountAllowed(uint256 _amount) internal view returns (bool) {
-        return (totalMintedFromL2.add(_amount) <= accumulatedL2MintAllowanceAtBlock(block.number));
+        return (totalMintedFromL2 + _amount <= accumulatedL2MintAllowanceAtBlock(block.number));
     }
 }

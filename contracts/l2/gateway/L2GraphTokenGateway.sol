@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable-0.8/security/ReentrancyGuardUpgradeable.sol";
 
-import "../../arbitrum/L2ArbitrumMessenger.sol";
-import "../../arbitrum/AddressAliasHelper.sol";
-import "../../gateway/GraphTokenGateway.sol";
-import "../../gateway/ICallhookReceiver.sol";
-import "../token/L2GraphToken.sol";
+import { L2ArbitrumMessenger } from "../../arbitrum/L2ArbitrumMessenger.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { ITokenGateway } from "../../arbitrum/ITokenGateway.sol";
+import { GraphTokenGateway } from "../../gateway/GraphTokenGateway.sol";
+import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
+import { L2GraphToken } from "../token/L2GraphToken.sol";
+import { Managed } from "../../governance/solidity-0.8/Managed.sol";
 
 /**
  * @title L2 Graph Token Gateway Contract
@@ -21,8 +21,6 @@ import "../token/L2GraphToken.sol";
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
 contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, ReentrancyGuardUpgradeable {
-    using SafeMath for uint256;
-
     // Address of the Graph Token contract on L1
     address public l1GRT;
     // Address of the L1GraphTokenGateway that is the counterpart of this gateway on L1
