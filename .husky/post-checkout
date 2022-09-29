@@ -1,0 +1,18 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Args passed to this are:
+# $1 - Previous HEAD
+# $2 - New HEAD
+# $3 - 1 if checking out a branch, 0 if checking out something else, such as a file (rollbacks)
+
+# Only run on branch checkout and if we are changing the HEAD
+if [[ "$3" == '1' ]] && [[ "$1" != "$2" ]]; then
+  echo 'Branch checkout detected. Re-building project...'
+  echo $1
+  echo $2
+  yarn clean:all
+  yarn install
+  yarn build
+fi
+

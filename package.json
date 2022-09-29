@@ -83,6 +83,7 @@
     "prepublishOnly": "scripts/prepublish",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
+    "clean:all": "yarn clean && rm -rf node_modules/",
     "compile": "hardhat compile",
     "deploy": "yarn build && yarn predeploy && hardhat migrate",
     "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
