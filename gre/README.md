@@ -127,7 +127,9 @@ The priority for the address book is:
 
 GRE accepts a few parameters when being initialized. When using GRE in the context of a hardhat task these parameters would typically be configured as task options. 
 
-In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `graphTask`. By using this instead of hardhat's `task` you avoid having to define GRE's options on all of your tasks.
+In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `graphTask`. This is a drop in replacement for hardhat's `task` that includes GRE related boilerplate, you can still customize the task as you would do with `task`.
+
+ you avoid having to define GRE's options on all of your tasks.
 
 Here is an example of a task using this convenience method:
 
