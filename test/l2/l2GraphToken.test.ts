@@ -82,7 +82,7 @@ describe('L2GraphToken', () => {
         it('requires approval for burning', async function () {
           await grt.connect(mockL2Gateway.signer).bridgeMint(user.address, toGRT('100'))
           const tx = grt.connect(mockL2Gateway.signer).bridgeBurn(user.address, toGRT('20'))
-          await expect(tx).revertedWith('ERC20: burn amount exceeds allowance')
+          await expect(tx).revertedWith('ERC20: insufficient allowance')
         })
         it('fails if the user does not have enough funds', async function () {
           await grt.connect(mockL2Gateway.signer).bridgeMint(user.address, toGRT('10'))

@@ -82,7 +82,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * - pauseGuardian using setPauseGuardian
      * @param _controller Address of the Controller that manages this contract
      */
-    function initialize(address _controller) external onlyImpl {
+    function initialize(address _controller) external onlyImpl initializer {
         Managed._initialize(_controller);
         _paused = true;
         __ReentrancyGuard_init();

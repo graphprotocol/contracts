@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/utils/Address.sol";
+import { Address } from "@openzeppelin/contracts-0.8/utils/Address.sol";
 
-import "./GraphProxyStorage.sol";
+import { GraphProxyStorage } from "./GraphProxyStorage.sol";
 
 /**
  * @title Graph Proxy
