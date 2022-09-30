@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../governance/Managed.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
-import "./DisputeManagerStorage.sol";
-import "./IDisputeManager.sol";
+import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
+import { IDisputeManager } from "./IDisputeManager.sol";
+import { IStaking } from "../staking/IStaking.sol";
 
 /*
  * @title DisputeManager
@@ -37,8 +36,6 @@ import "./IDisputeManager.sol";
  * to a EOA or DAO.
  */
 contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeManager {
-    using SafeMath for uint256;
-
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH =
@@ -186,7 +183,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
-                _getChainID(),
+                block.chainid,
                 address(this),
                 DOMAIN_SALT
             )
@@ -582,7 +579,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             _disputeID,
             dispute.indexer,
             dispute.fisherman,
-            dispute.deposit.add(tokensToReward)
+            dispute.deposit + tokensToReward
         );
     }
 
@@ -694,13 +691,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         uint256 slashableAmount = staking.getIndexerStakedTokens(_indexer); // slashable tokens
 
         // Get slash amount
-        slashAmount = _getSlashingPercentageForDisputeType(_disputeType).mul(slashableAmount).div(
-            MAX_PPM
-        );
+        slashAmount =
+            (_getSlashingPercentageForDisputeType(_disputeType) * slashableAmount) /
+            MAX_PPM;
+
         require(slashAmount > 0, "Dispute has zero tokens to slash");
 
         // Get rewards amount
-        rewardsAmount = uint256(fishermanRewardPercentage).mul(slashAmount).div(MAX_PPM);
+        rewardsAmount = (uint256(fishermanRewardPercentage) * slashAmount) / MAX_PPM;
 
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
@@ -747,18 +745,6 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
                 messageHash,
                 abi.encodePacked(_attestation.r, _attestation.s, _attestation.v)
             );
-    }
-
-    /**
-     * @dev Get the running network chain ID
-     * @return The chain ID
-     */
-    function _getChainID() private pure returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 
     /**

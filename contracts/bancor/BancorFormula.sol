@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.7.6;
-
-import "@openzeppelin/contracts/math/SafeMath.sol";
+pragma solidity ^0.8.16;
 
 contract BancorFormula {
-    using SafeMath for uint256;
-
     uint16 public constant version = 6;
 
     uint256 private constant ONE = 1;
@@ -199,13 +195,13 @@ contract BancorFormula {
         if (_depositAmount == 0) return 0;
 
         // special case if the ratio = 100%
-        if (_reserveRatio == MAX_RATIO) return _supply.mul(_depositAmount) / _reserveBalance;
+        if (_reserveRatio == MAX_RATIO) return (_supply * _depositAmount) / _reserveBalance;
 
         uint256 result;
         uint8 precision;
-        uint256 baseN = _depositAmount.add(_reserveBalance);
+        uint256 baseN = _depositAmount + _reserveBalance;
         (result, precision) = power(baseN, _reserveBalance, _reserveRatio, MAX_RATIO);
-        uint256 temp = _supply.mul(result) >> precision;
+        uint256 temp = (_supply * result) >> precision;
         return temp - _supply;
     }
 
@@ -246,13 +242,13 @@ contract BancorFormula {
         if (_sellAmount == _supply) return _reserveBalance;
 
         // special case if the ratio = 100%
-        if (_reserveRatio == MAX_RATIO) return _reserveBalance.mul(_sellAmount) / _supply;
+        if (_reserveRatio == MAX_RATIO) return (_reserveBalance * _sellAmount) / _supply;
 
         uint256 result;
         uint8 precision;
         uint256 baseD = _supply - _sellAmount;
         (result, precision) = power(_supply, baseD, MAX_RATIO, _reserveRatio);
-        uint256 temp1 = _reserveBalance.mul(result);
+        uint256 temp1 = _reserveBalance * result;
         uint256 temp2 = _reserveBalance << precision;
         return (temp1 - temp2) / result;
     }
@@ -292,13 +288,13 @@ contract BancorFormula {
 
         // special case for equal ratios
         if (_fromReserveRatio == _toReserveRatio)
-            return _toReserveBalance.mul(_amount) / _fromReserveBalance.add(_amount);
+            return (_toReserveBalance * _amount) / (_fromReserveBalance + _amount);
 
         uint256 result;
         uint8 precision;
-        uint256 baseN = _fromReserveBalance.add(_amount);
+        uint256 baseN = _fromReserveBalance + _amount;
         (result, precision) = power(baseN, _fromReserveBalance, _fromReserveRatio, _toReserveRatio);
-        uint256 temp1 = _toReserveBalance.mul(result);
+        uint256 temp1 = _toReserveBalance * result;
         uint256 temp2 = _toReserveBalance << precision;
         return (temp1 - temp2) / result;
     }
@@ -332,13 +328,13 @@ contract BancorFormula {
         if (_amount == 0) return 0;
 
         // special case if the total ratio = 100%
-        if (_totalRatio == MAX_RATIO) return (_amount.mul(_reserveBalance) - 1) / _supply + 1;
+        if (_totalRatio == MAX_RATIO) return ((_amount * _reserveBalance) - 1) / _supply + 1;
 
         uint256 result;
         uint8 precision;
-        uint256 baseN = _supply.add(_amount);
+        uint256 baseN = _supply + _amount;
         (result, precision) = power(baseN, _supply, MAX_RATIO, _totalRatio);
-        uint256 temp = ((_reserveBalance.mul(result) - 1) >> precision) + 1;
+        uint256 temp = (((_reserveBalance * result) - 1) >> precision) + 1;
         return temp - _reserveBalance;
     }
 
@@ -378,13 +374,13 @@ contract BancorFormula {
         if (_amount == _supply) return _reserveBalance;
 
         // special case if the total ratio = 100%
-        if (_totalRatio == MAX_RATIO) return _amount.mul(_reserveBalance) / _supply;
+        if (_totalRatio == MAX_RATIO) return (_amount * _reserveBalance) / _supply;
 
         uint256 result;
         uint8 precision;
         uint256 baseD = _supply - _amount;
         (result, precision) = power(_supply, baseD, MAX_RATIO, _totalRatio);
-        uint256 temp1 = _reserveBalance.mul(result);
+        uint256 temp1 = _reserveBalance * result;
         uint256 temp2 = _reserveBalance << precision;
         return (temp1 - temp2) / result;
     }

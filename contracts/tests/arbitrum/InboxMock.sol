@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../../arbitrum/IInbox.sol";
-import "../../arbitrum/AddressAliasHelper.sol";
+import { IInbox } from "../../arbitrum/IInbox.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { IBridge } from "../../arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Inbox mock contract

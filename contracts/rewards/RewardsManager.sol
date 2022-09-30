@@ -3,12 +3,12 @@
 pragma solidity ^0.8.16;
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { MathUtils } from "../staking/libs/solidity-0.8/MathUtils.sol";
+import { MathUtils } from "../staking/libs/MathUtils.sol";
 
 import { RewardsManagerV4Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "./IRewardsManager.sol";
-import { Managed } from "../governance/solidity-0.8/Managed.sol";
-import { IGraphToken } from "../token/solidity-0.8/IGraphToken.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 import { IStaking } from "../staking/IStaking.sol";
 
 /**

@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-
-import "./Cobbs.sol";
+import { LibCobbDouglas } from "./Cobbs.sol";
 
 /**
  * @title A collection of data structures and functions to manage Rebates
@@ -13,7 +10,6 @@ import "./Cobbs.sol";
  *        at the caller function scope.
  */
 library Rebates {
-    using SafeMath for uint256;
     using Rebates for Rebates.Pool;
 
     // Tracks stats for allocations closed on a particular epoch for claiming
@@ -53,7 +49,7 @@ library Rebates {
      * @dev Return the amount of unclaimed fees.
      */
     function unclaimedFees(Rebates.Pool storage pool) internal view returns (uint256) {
-        return pool.fees.sub(pool.claimedRewards);
+        return pool.fees - pool.claimedRewards;
     }
 
     /**
@@ -66,10 +62,10 @@ library Rebates {
         uint256 _indexerFees,
         uint256 _indexerEffectiveAllocatedStake
     ) internal {
-        pool.fees = pool.fees.add(_indexerFees);
-        pool.effectiveAllocatedStake = pool.effectiveAllocatedStake.add(
-            _indexerEffectiveAllocatedStake
-        );
+        pool.fees = pool.fees + _indexerFees;
+        pool.effectiveAllocatedStake =
+            pool.effectiveAllocatedStake +
+            _indexerEffectiveAllocatedStake;
         pool.unclaimedAllocationsCount += 1;
     }
 
@@ -107,7 +103,7 @@ library Rebates {
 
         // Update pool state
         pool.unclaimedAllocationsCount -= 1;
-        pool.claimedRewards = pool.claimedRewards.add(rebateReward);
+        pool.claimedRewards = pool.claimedRewards + rebateReward;
 
         return rebateReward;
     }

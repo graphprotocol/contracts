@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "./IMulticall.sol";
+import { IMulticall } from "./IMulticall.sol";
 
 // Inspired by https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/base/Multicall.sol
 // Note: Removed payable from the multicall

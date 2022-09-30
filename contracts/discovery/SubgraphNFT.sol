@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "../governance/Governed.sol";
-import "../libraries/HexStrings.sol";
-import "./ISubgraphNFT.sol";
-import "./ISubgraphNFTDescriptor.sol";
+import { Governed } from "../governance/Governed.sol";
+import { HexStrings } from "../libraries/HexStrings.sol";
+import { ISubgraphNFT } from "./ISubgraphNFT.sol";
+import { ISubgraphNFTDescriptor } from "./ISubgraphNFTDescriptor.sol";
 
 /// @title NFT that represents ownership of a Subgraph
 contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
@@ -17,6 +17,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     address public minter;
     ISubgraphNFTDescriptor public tokenDescriptor;
     mapping(uint256 => bytes32) private _subgraphMetadataHashes;
+    string public baseURI;
 
     // -- Events --
 
@@ -142,7 +143,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
                 tokenDescriptor.tokenURI(
                     minter,
                     _tokenId,
-                    baseURI(),
+                    baseURI,
                     _subgraphMetadataHashes[_tokenId]
                 );
         }
@@ -151,7 +152,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
         uint256 metadata = uint256(_subgraphMetadataHashes[_tokenId]);
 
         string memory _subgraphURI = metadata > 0 ? HexStrings.toString(metadata) : "";
-        string memory base = baseURI();
+        string memory base = baseURI;
 
         // If there is no base URI, return the token URI.
         if (bytes(base).length == 0) {
@@ -163,5 +164,14 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
         }
         // If there is a baseURI but no tokenURI, concatenate the tokenID to the baseURI.
         return string(abi.encodePacked(base, HexStrings.toString(_tokenId)));
+    }
+
+    /**
+     * @notice Set the base URI.
+     * @dev Can be set to empty.
+     * @param _baseURI Base URI to use to build the token URI
+     */
+    function _setBaseURI(string memory _baseURI) internal {
+        baseURI = _baseURI;
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
 // Needed for abi and typechain in the npm package
 interface IPublicResolver {

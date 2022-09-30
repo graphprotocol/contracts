@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.16;
 
-import { Address } from "@openzeppelin/contracts-0.8/utils/Address.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
 import { IBridge } from "../arbitrum/IBridge.sol";
@@ -10,8 +10,8 @@ import { IInbox } from "../arbitrum/IInbox.sol";
 import { IOutbox } from "../arbitrum/IOutbox.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { GraphTokenGateway } from "./GraphTokenGateway.sol";
-import { Managed } from "../governance/solidity-0.8/Managed.sol";
-import { IGraphToken } from "../token/solidity-0.8/IGraphToken.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract

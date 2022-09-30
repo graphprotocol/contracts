@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "./Governed.sol";
-import "./IGraphGovernance.sol";
+import { Governed } from "./Governed.sol";
+import { IGraphGovernance } from "./IGraphGovernance.sol";
 
 contract GraphGovernanceV1Storage is Governed {
     // Graph Governance Proposal storage struct (GGP)

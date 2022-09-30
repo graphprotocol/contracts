@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "../governance/Managed.sol";
-import "../upgrades/GraphUpgradeable.sol";
+import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 
-import "./ServiceRegistryStorage.sol";
-import "./IServiceRegistry.sol";
+import { ServiceRegistryV1Storage } from "./ServiceRegistryStorage.sol";
+import { IServiceRegistry } from "./IServiceRegistry.sol";
 
 /**
  * @title ServiceRegistry contract

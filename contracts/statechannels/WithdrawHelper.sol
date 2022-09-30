@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "./ICMCWithdraw.sol";
+import { WithdrawData } from "./ICMCWithdraw.sol";
 
 interface WithdrawHelper {
     function execute(WithdrawData calldata wd, uint256 actualAmount) external;

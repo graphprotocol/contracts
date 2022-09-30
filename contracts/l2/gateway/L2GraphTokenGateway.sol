@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.16;
 
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable-0.8/security/ReentrancyGuardUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import { L2ArbitrumMessenger } from "../../arbitrum/L2ArbitrumMessenger.sol";
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
@@ -10,7 +10,7 @@ import { ITokenGateway } from "../../arbitrum/ITokenGateway.sol";
 import { GraphTokenGateway } from "../../gateway/GraphTokenGateway.sol";
 import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
 import { L2GraphToken } from "../token/L2GraphToken.sol";
-import { Managed } from "../../governance/solidity-0.8/Managed.sol";
+import { Managed } from "../../governance/Managed.sol";
 
 /**
  * @title L2 Graph Token Gateway Contract

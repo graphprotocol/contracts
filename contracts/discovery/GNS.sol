@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "../base/Multicall.sol";
-import "../bancor/BancorFormula.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { Multicall } from "../base/Multicall.sol";
+import { BancorFormula } from "../bancor/BancorFormula.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
-import "./IGNS.sol";
-import "./GNSStorage.sol";
+import { IGNS } from "./IGNS.sol";
+import { GNSV2Storage } from "./GNSStorage.sol";
+import { Managed } from "../governance/Managed.sol";
+import { ISubgraphNFT } from "./ISubgraphNFT.sol";
+import { ICuration } from "../curation/ICuration.sol";
 
 /**
  * @title GNS
@@ -24,8 +25,6 @@ import "./GNSStorage.sol";
  * transaction.
  */
 contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
-    using SafeMath for uint256;
-
     // -- Constants --
 
     uint256 private constant MAX_UINT256 = 2**256 - 1;
@@ -420,9 +419,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
 
         // Update pools
-        subgraphData.vSignal = subgraphData.vSignal.add(vSignal);
-        subgraphData.nSignal = subgraphData.nSignal.add(nSignal);
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].add(nSignal);
+        subgraphData.vSignal = subgraphData.vSignal + vSignal;
+        subgraphData.nSignal = subgraphData.nSignal + nSignal;
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] + nSignal;
 
         emit SignalMinted(_subgraphID, curator, nSignal, vSignal, _tokensIn);
     }
@@ -454,9 +453,9 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 tokens = curation().burn(subgraphData.subgraphDeploymentID, vSignal, _tokensOutMin);
 
         // Update pools
-        subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
-        subgraphData.nSignal = subgraphData.nSignal.sub(_nSignal);
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_nSignal);
+        subgraphData.vSignal = subgraphData.vSignal - vSignal;
+        subgraphData.nSignal = subgraphData.nSignal - _nSignal;
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] - _nSignal;
 
         // Return the tokens to the nameCurator
         require(graphToken().transfer(curator, tokens), "GNS: Error sending tokens");
@@ -486,10 +485,8 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         require(curatorBalance >= _amount, "GNS: Curator transfer amount exceeds balance");
 
         // Move the signal
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_amount);
-        subgraphData.curatorNSignal[_recipient] = subgraphData.curatorNSignal[_recipient].add(
-            _amount
-        );
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] - _amount;
+        subgraphData.curatorNSignal[_recipient] = subgraphData.curatorNSignal[_recipient] + _amount;
 
         emit SignalTransferred(_subgraphID, curator, _recipient, _amount);
     }
@@ -512,12 +509,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         require(curatorNSignal > 0, "GNS: No signal to withdraw GRT");
 
         // Get curator share of tokens to be withdrawn
-        uint256 tokensOut = curatorNSignal.mul(subgraphData.withdrawableGRT).div(
-            subgraphData.nSignal
-        );
+        uint256 tokensOut = (curatorNSignal * subgraphData.withdrawableGRT) / subgraphData.nSignal;
         subgraphData.curatorNSignal[curator] = 0;
-        subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
-        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT.sub(tokensOut);
+        subgraphData.nSignal = subgraphData.nSignal - curatorNSignal;
+        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT - tokensOut;
 
         // Return tokens to the curator
         TokenUtils.pushTokens(graphToken(), curator, tokensOut);
@@ -542,24 +537,23 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         }
 
         // Tax on the total bonding curve funds
-        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        uint256 taxOnOriginal = (_tokens * _curationTaxPercentage) / MAX_PPM;
         // Total after the tax
-        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
+        uint256 totalWithoutOwnerTax = _tokens - taxOnOriginal;
         // The portion of tax that the owner will pay
-        uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
+        uint256 ownerTax = (taxOnOriginal * ownerTaxPercentage) / MAX_PPM;
 
-        uint256 totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax);
+        uint256 totalWithOwnerTax = totalWithoutOwnerTax + ownerTax;
 
         // The total after tax, plus owner partial repay, divided by
         // the tax, to adjust it slightly upwards. ex:
         // 100 GRT, 5 GRT Tax, owner pays 100% --> 5 GRT
         // To get 100 in the protocol after tax, Owner deposits
         // ~5.26, as ~105.26 * .95 = 100
-        uint256 totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(
-            uint256(MAX_PPM).sub(uint256(_curationTaxPercentage))
-        );
+        uint256 totalAdjustedUp = (totalWithOwnerTax * MAX_PPM) /
+            (uint256(MAX_PPM) - uint256(_curationTaxPercentage));
 
-        uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
+        uint256 ownerTaxAdjustedUp = totalAdjustedUp - _tokens;
 
         // Get the owner of the subgraph to reimburse the curation tax
         TokenUtils.pullTokens(graphToken(), _owner, ownerTaxAdjustedUp);
@@ -775,7 +769,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function _nextAccountSeqID(address _account) internal returns (uint256) {
         uint256 seqID = nextAccountSeqID[_account];
-        nextAccountSeqID[_account] = nextAccountSeqID[_account].add(1);
+        nextAccountSeqID[_account] = nextAccountSeqID[_account] + 1;
         return seqID;
     }
 

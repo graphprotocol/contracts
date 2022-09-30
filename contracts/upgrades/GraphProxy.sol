@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.16;
 
-import { Address } from "@openzeppelin/contracts-0.8/utils/Address.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import { GraphProxyStorage } from "./GraphProxyStorage.sol";
 

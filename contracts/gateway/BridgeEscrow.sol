@@ -3,8 +3,8 @@
 pragma solidity ^0.8.16;
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { Managed } from "../governance/solidity-0.8/Managed.sol";
-import { IGraphToken } from "../token/solidity-0.8/IGraphToken.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Bridge Escrow

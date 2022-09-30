@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../libraries/Base58Encoder.sol";
-import "./ISubgraphNFTDescriptor.sol";
+import { Base58Encoder } from "../libraries/Base58Encoder.sol";
+import { ISubgraphNFTDescriptor } from "./ISubgraphNFTDescriptor.sol";
 
 /// @title Describes subgraph NFT tokens via URI
 contract SubgraphNFTDescriptor is ISubgraphNFTDescriptor {

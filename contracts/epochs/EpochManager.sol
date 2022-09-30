@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 
-import "../upgrades/GraphUpgradeable.sol";
-
-import "./EpochManagerStorage.sol";
-import "./IEpochManager.sol";
+import { EpochManagerV1Storage } from "./EpochManagerStorage.sol";
+import { IEpochManager } from "./IEpochManager.sol";
+import { Managed } from "../governance/Managed.sol";
 
 /**
  * @title EpochManager contract
  * @dev Produce epochs based on a number of blocks to coordinate contracts in the protocol.
  */
 contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager {
-    using SafeMath for uint256;
-
     // -- Events --
 
     event EpochRun(uint256 indexed epoch, address caller);
@@ -106,7 +103,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @return The current epoch based on epoch length
      */
     function currentEpoch() public view override returns (uint256) {
-        return lastLengthUpdateEpoch.add(epochsSinceUpdate());
+        return lastLengthUpdateEpoch + epochsSinceUpdate();
     }
 
     /**
@@ -114,7 +111,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @return The block number when the current epoch started
      */
     function currentEpochBlock() public view override returns (uint256) {
-        return lastLengthUpdateBlock.add(epochsSinceUpdate().mul(epochLength));
+        return lastLengthUpdateBlock + (epochsSinceUpdate() * epochLength);
     }
 
     /**
@@ -132,7 +129,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      */
     function epochsSince(uint256 _epoch) external view override returns (uint256) {
         uint256 epoch = currentEpoch();
-        return _epoch < epoch ? epoch.sub(_epoch) : 0;
+        return _epoch < epoch ? (epoch - _epoch) : 0;
     }
 
     /**
@@ -140,6 +137,6 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
      * @return The number of epoch that passed since last epoch length update
      */
     function epochsSinceUpdate() public view override returns (uint256) {
-        return blockNum().sub(lastLengthUpdateBlock).div(epochLength);
+        return (blockNum() - lastLengthUpdateBlock) / epochLength;
     }
 }

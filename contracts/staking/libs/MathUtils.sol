@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-
-import "@openzeppelin/contracts/math/SafeMath.sol";
+pragma solidity ^0.8.16;
 
 /**
  * @title MathUtils Library
  * @notice A collection of functions to perform math operations
  */
 library MathUtils {
-    using SafeMath for uint256;
-
     /**
      * @dev Calculates the weighted average of two values pondering each of these
      * values based on configured weights. The contribution of each value N is
@@ -26,7 +22,7 @@ library MathUtils {
         uint256 valueB,
         uint256 weightB
     ) internal pure returns (uint256) {
-        return valueA.mul(weightA).add(valueB.mul(weightB)).div(weightA.add(weightB));
+        return ((valueA * weightA) + (valueB * weightB)) / (weightA + weightB);
     }
 
     /**
@@ -40,6 +36,6 @@ library MathUtils {
      * @dev Returns the difference between two numbers or zero if negative.
      */
     function diffOrZero(uint256 x, uint256 y) internal pure returns (uint256) {
-        return (x > y) ? x.sub(y) : 0;
+        return (x > y) ? (x - y) : 0;
     }
 }

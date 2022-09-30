@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "../token/IGraphToken.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
-import "./WithdrawHelper.sol";
+import { WithdrawData } from "./ICMCWithdraw.sol";
+import { WithdrawHelper } from "./WithdrawHelper.sol";
 
 /**
  * @title WithdrawHelper contract for GRT tokens

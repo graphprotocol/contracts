@@ -1,5 +1,4 @@
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
 // Mock contract used for testing rewards
 contract RewardsManagerMock {

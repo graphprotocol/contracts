@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../../arbitrum/IOutbox.sol";
-import "../../arbitrum/IBridge.sol";
+import { IOutbox } from "../../arbitrum/IOutbox.sol";
+import { IBridge } from "../../arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Outbox mock contract

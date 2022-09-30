@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../gateway/ICallhookReceiver.sol";
+import { ICallhookReceiver } from "../gateway/ICallhookReceiver.sol";
 
 /**
  * @title GovernedMock contract

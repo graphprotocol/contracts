@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../../arbitrum/IBridge.sol";
+import { IBridge } from "../../arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Bridge mock contract

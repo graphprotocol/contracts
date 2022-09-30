@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../base/Multicall.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { Multicall } from "../base/Multicall.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
-import "./IStaking.sol";
-import "./StakingStorage.sol";
-import "./libs/MathUtils.sol";
-import "./libs/Rebates.sol";
-import "./libs/Stakes.sol";
+import { IStaking } from "./IStaking.sol";
+import { StakingV2Storage } from "./StakingStorage.sol";
+import { MathUtils } from "./libs/MathUtils.sol";
+import { Rebates } from "./libs/Rebates.sol";
+import { Stakes } from "./libs/Stakes.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
+import { Managed } from "../governance/Managed.sol";
+import { ICuration } from "../curation/ICuration.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 
 /**
  * @title Staking contract
@@ -22,7 +25,6 @@ import "./libs/Stakes.sol";
  * contract also has the slashing functionality.
  */
 contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
-    using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
 
@@ -431,7 +433,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         DelegationPool storage pool = delegationPools[_indexer];
         require(
             pool.updatedAtBlock == 0 ||
-                pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
+                (pool.updatedAtBlock + uint256(pool.cooldownBlocks)) <= block.number,
             "!cooldown"
         );
 
@@ -633,7 +635,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         Stakes.Indexer memory indexerStake = stakes[_indexer];
         uint256 tokensDelegated = delegationPools[_indexer].tokens;
 
-        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(delegationRatio));
+        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake() * uint256(delegationRatio);
         uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
 
         return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
@@ -695,7 +697,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Ensure minimum stake
         require(
-            stakes[_indexer].tokensSecureStake().add(_tokens) >= minimumIndexerStake,
+            (stakes[_indexer].tokensSecureStake() + _tokens) >= minimumIndexerStake,
             "!minimumIndexerStake"
         );
 
@@ -725,7 +727,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         require(tokensToLock > 0, "!stake-avail");
 
         // Ensure minimum stake
-        uint256 newStake = indexerStake.tokensSecureStake().sub(tokensToLock);
+        uint256 newStake = indexerStake.tokensSecureStake() - tokensToLock;
         require(newStake == 0 || newStake >= minimumIndexerStake, "!minimumIndexerStake");
 
         // Before locking more tokens, withdraw any unlocked ones if possible
@@ -788,7 +790,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
         if (_tokens > indexerStake.tokensAvailable() && indexerStake.tokensLocked > 0) {
-            uint256 tokensOverAllocated = _tokens.sub(indexerStake.tokensAvailable());
+            uint256 tokensOverAllocated = _tokens - indexerStake.tokensAvailable();
             uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.tokensLocked);
             indexerStake.unlockTokens(tokensToUnlock);
         }
@@ -801,7 +803,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         IGraphToken graphToken = graphToken();
 
         // Set apart the reward for the beneficiary and burn remaining slashed stake
-        TokenUtils.burnTokens(graphToken, _tokens.sub(_reward));
+        TokenUtils.burnTokens(graphToken, _tokens - _reward);
 
         // Give the beneficiary a reward for slashing
         TokenUtils.pushTokens(graphToken, _beneficiary, _reward);
@@ -921,8 +923,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         override
         notPaused
     {
-        for (uint256 i = 0; i < _requests.length; i++) {
+        for (uint256 i = 0; i < _requests.length; ) {
             _closeAllocation(_requests[i].allocationID, _requests[i].poi);
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -992,7 +997,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
                 ? protocolPercentage
                 : MAX_PPM;
             uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
-            queryFees = queryFees.sub(protocolTax);
+            queryFees = queryFees - protocolTax;
 
             // -- Collect curation fees --
             // Only if the subgraph deployment is curated
@@ -1002,17 +1007,17 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
                 queryFees,
                 curationPercentage
             );
-            queryFees = queryFees.sub(curationFees);
+            queryFees = queryFees - curationFees;
 
             // Add funds to the allocation
-            alloc.collectedFees = alloc.collectedFees.add(queryFees);
+            alloc.collectedFees = alloc.collectedFees + queryFees;
 
             // When allocation is closed redirect funds to the rebate pool
             // This way we can keep collecting tokens even after the allocation is closed and
             // before it gets to the finalized state.
             if (allocState == AllocationState.Closed) {
                 Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-                rebatePool.fees = rebatePool.fees.add(queryFees);
+                rebatePool.fees = rebatePool.fees + queryFees;
             }
         }
 
@@ -1047,8 +1052,11 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         override
         notPaused
     {
-        for (uint256 i = 0; i < _allocationID.length; i++) {
+        for (uint256 i = 0; i < _allocationID.length; ) {
             _claim(_allocationID[i], _restake);
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -1151,9 +1159,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
-                alloc.subgraphDeploymentID
-            ].add(alloc.tokens);
+            subgraphAllocations[alloc.subgraphDeploymentID] =
+                subgraphAllocations[alloc.subgraphDeploymentID] +
+                alloc.tokens;
         }
 
         emit AllocationCreated(
@@ -1230,9 +1238,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            subgraphAllocations[alloc.subgraphDeploymentID] = subgraphAllocations[
-                alloc.subgraphDeploymentID
-            ].sub(alloc.tokens);
+            subgraphAllocations[alloc.subgraphDeploymentID] =
+                subgraphAllocations[alloc.subgraphDeploymentID] -
+                alloc.tokens;
         }
 
         emit AllocationClosed(
@@ -1270,7 +1278,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Add delegation rewards to the delegation pool
         uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
-        tokensToClaim = tokensToClaim.sub(delegationRewards);
+        tokensToClaim = tokensToClaim - delegationRewards;
 
         // Purge allocation data except for:
         // - indexer: used in disputes and to avoid reusing an allocationID
@@ -1332,20 +1340,20 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Collect delegation tax
         uint256 delegationTax = _collectTax(graphToken(), _tokens, delegationTaxPercentage);
-        uint256 delegatedTokens = _tokens.sub(delegationTax);
+        uint256 delegatedTokens = _tokens - delegationTax;
 
         // Calculate shares to issue
         uint256 shares = (pool.tokens == 0)
             ? delegatedTokens
-            : delegatedTokens.mul(pool.shares).div(pool.tokens);
+            : ((delegatedTokens * pool.shares) / pool.tokens);
         require(shares > 0, "!shares");
 
         // Update the delegation pool
-        pool.tokens = pool.tokens.add(delegatedTokens);
-        pool.shares = pool.shares.add(shares);
+        pool.tokens = pool.tokens + delegatedTokens;
+        pool.shares = pool.shares + shares;
 
         // Update the individual delegation
-        delegation.shares = delegation.shares.add(shares);
+        delegation.shares = delegation.shares + shares;
 
         emit StakeDelegated(_indexer, _delegator, delegatedTokens, shares);
 
@@ -1380,16 +1388,16 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         }
 
         // Calculate tokens to get in exchange for the shares
-        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
+        uint256 tokens = (_shares * pool.tokens) / pool.shares;
 
         // Update the delegation pool
-        pool.tokens = pool.tokens.sub(tokens);
-        pool.shares = pool.shares.sub(_shares);
+        pool.tokens = pool.tokens - tokens;
+        pool.shares = pool.shares - _shares;
 
         // Update the delegation
-        delegation.shares = delegation.shares.sub(_shares);
-        delegation.tokensLocked = delegation.tokensLocked.add(tokens);
-        delegation.tokensLockedUntil = epochManager().currentEpoch().add(delegationUnbondingPeriod);
+        delegation.shares = delegation.shares - _shares;
+        delegation.tokensLocked = delegation.tokensLocked + tokens;
+        delegation.tokensLockedUntil = epochManager().currentEpoch() + delegationUnbondingPeriod;
 
         emit StakeDelegatedLocked(
             _indexer,
@@ -1454,9 +1462,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = delegationPools[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.queryFeeCut).mul(_tokens).div(MAX_PPM);
-            delegationRewards = _tokens.sub(indexerCut);
-            pool.tokens = pool.tokens.add(delegationRewards);
+            uint256 indexerCut = (uint256(pool.queryFeeCut) * _tokens) / MAX_PPM;
+            delegationRewards = _tokens - indexerCut;
+            pool.tokens = pool.tokens + delegationRewards;
         }
         return delegationRewards;
     }
@@ -1475,9 +1483,9 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = delegationPools[_indexer];
         if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.indexingRewardCut).mul(_tokens).div(MAX_PPM);
-            delegationRewards = _tokens.sub(indexerCut);
-            pool.tokens = pool.tokens.add(delegationRewards);
+            uint256 indexerCut = (uint256(pool.indexingRewardCut) * _tokens) / MAX_PPM;
+            delegationRewards = _tokens - indexerCut;
+            pool.tokens = pool.tokens + delegationRewards;
         }
         return delegationRewards;
     }
@@ -1505,7 +1513,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            uint256 curationFees = uint256(_curationPercentage).mul(_tokens).div(MAX_PPM);
+            uint256 curationFees = (uint256(_curationPercentage) * _tokens) / MAX_PPM;
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
@@ -1530,7 +1538,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 _tokens,
         uint256 _percentage
     ) private returns (uint256) {
-        uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
+        uint256 tax = (uint256(_percentage) * _tokens) / MAX_PPM;
         TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;
     }
@@ -1575,7 +1583,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 _numEpochs
     ) private pure returns (uint256) {
         bool shouldCap = _maxAllocationEpochs > 0 && _numEpochs > _maxAllocationEpochs;
-        return _tokens.mul((shouldCap) ? _maxAllocationEpochs : _numEpochs);
+        return _tokens * ((shouldCap) ? _maxAllocationEpochs : _numEpochs);
     }
 
     /**
@@ -1610,7 +1618,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Calculate delegation rewards and add them to the delegation pool
         uint256 delegationRewards = _collectDelegationIndexingRewards(_indexer, totalRewards);
-        uint256 indexerRewards = totalRewards.sub(delegationRewards);
+        uint256 indexerRewards = totalRewards - delegationRewards;
 
         // Send the indexer rewards
         _sendRewards(

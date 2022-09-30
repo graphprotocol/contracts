@@ -110,23 +110,6 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.7.6',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          metadata: {
-            useLiteralContent: true,
-          },
-          outputSelection: {
-            '*': {
-              '*': ['storageLayout', 'metadata'],
-            },
-          },
-        },
-      },
-      {
         version: '0.8.16',
         settings: {
           optimizer: {
@@ -203,7 +186,6 @@ const config: HardhatUserConfig = {
     clear: true,
     flat: true,
     runOnCompile: true,
-    except: ['/solidity-0.8/', '/contracts-0.8/', '/contracts-upgradeable-0.8/'],
   },
   tenderly: {
     project: 'graph-network',

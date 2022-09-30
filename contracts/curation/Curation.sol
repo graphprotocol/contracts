@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import "../bancor/BancorFormula.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { BancorFormula } from "../bancor/BancorFormula.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
-import "./CurationStorage.sol";
-import "./ICuration.sol";
-import "./GraphCurationToken.sol";
+import { CurationV1Storage } from "./CurationStorage.sol";
+import { ICuration } from "./ICuration.sol";
+import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Curation contract
@@ -28,8 +29,6 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
  * bonding curve.
  */
 contract Curation is CurationV1Storage, GraphUpgradeable {
-    using SafeMath for uint256;
-
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
@@ -203,7 +202,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
         // Collect new funds into reserve
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.add(_tokens);
+        curationPool.tokens = curationPool.tokens + _tokens;
 
         emit Collected(_subgraphDeploymentID, _tokens);
     }
@@ -257,7 +256,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         TokenUtils.burnTokens(_graphToken, curationTax);
 
         // Update curation pool
-        curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
+        curationPool.tokens = curationPool.tokens + (_tokensIn - curationTax);
         curationPool.gcs.mint(curator, signalOut);
 
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
@@ -298,7 +297,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
         // Update curation pool
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.sub(tokensOut);
+        curationPool.tokens = curationPool.tokens - tokensOut;
         curationPool.gcs.burnFrom(curator, _signalIn);
 
         // If all signal burnt delete the curation pool except for the
@@ -383,8 +382,8 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         override
         returns (uint256, uint256)
     {
-        uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
-        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
+        uint256 curationTax = (_tokensIn * uint256(curationTaxPercentage)) / MAX_PPM;
+        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn - curationTax);
         return (signalOut, curationTax);
     }
 
@@ -409,14 +408,12 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
                 "Curation deposit is below minimum required"
             );
             return
-                BancorFormula(bondingCurve)
-                    .calculatePurchaseReturn(
-                        SIGNAL_PER_MINIMUM_DEPOSIT,
-                        minimumCurationDeposit,
-                        defaultReserveRatio,
-                        _tokensIn.sub(minimumCurationDeposit)
-                    )
-                    .add(SIGNAL_PER_MINIMUM_DEPOSIT);
+                BancorFormula(bondingCurve).calculatePurchaseReturn(
+                    SIGNAL_PER_MINIMUM_DEPOSIT,
+                    minimumCurationDeposit,
+                    defaultReserveRatio,
+                    _tokensIn - minimumCurationDeposit
+                ) + SIGNAL_PER_MINIMUM_DEPOSIT;
         }
 
         return

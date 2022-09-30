@@ -18,10 +18,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "./LibFixedMath.sol";
+import { LibFixedMath } from "./LibFixedMath.sol";
 
 library LibCobbDouglas {
     /// @dev The cobb-douglas function used to compute fee-based rewards for
@@ -74,8 +73,8 @@ library LibCobbDouglas {
         n = LibFixedMath.exp(
             LibFixedMath.mulDiv(
                 LibFixedMath.ln(n),
-                int256(alphaNumerator),
-                int256(alphaDenominator)
+                int256(uint256(alphaNumerator)),
+                int256(uint256(alphaDenominator))
             )
         );
         // Compute

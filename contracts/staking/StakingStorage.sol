@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "../governance/Managed.sol";
+import { Managed } from "../governance/Managed.sol";
 
-import "./IStakingData.sol";
-import "./libs/Rebates.sol";
-import "./libs/Stakes.sol";
+import { IStakingData } from "./IStakingData.sol";
+import { Rebates } from "./libs/Rebates.sol";
+import { Stakes } from "./libs/Stakes.sol";
 
 contract StakingV1Storage is Managed {
     // -- Staking --

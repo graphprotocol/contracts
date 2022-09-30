@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "../governance/Governed.sol";
-import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
+import { Governed } from "../governance/Governed.sol";
+import { IStaking } from "../staking/IStaking.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Allocation Exchange
@@ -133,8 +132,11 @@ contract AllocationExchange is Governed {
      * @param _vouchers An array of vouchers
      */
     function redeemMany(AllocationVoucher[] memory _vouchers) external {
-        for (uint256 i = 0; i < _vouchers.length; i++) {
+        for (uint256 i = 0; i < _vouchers.length; ) {
             _redeem(_vouchers[i]);
+            unchecked {
+                i++;
+            }
         }
     }
 

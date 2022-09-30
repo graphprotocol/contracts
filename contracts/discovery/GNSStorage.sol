@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "../governance/Managed.sol";
+import { Managed } from "../governance/Managed.sol";
 
-import "./erc1056/IEthereumDIDRegistry.sol";
-import "./IGNS.sol";
-import "./ISubgraphNFT.sol";
+import { IEthereumDIDRegistry } from "./erc1056/IEthereumDIDRegistry.sol";
+import { IGNS } from "./IGNS.sol";
+import { ISubgraphNFT } from "./ISubgraphNFT.sol";
 
 abstract contract GNSV1Storage is Managed {
     // -- State --

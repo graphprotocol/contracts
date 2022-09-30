@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../governance/Governed.sol";
+import { Governed } from "../governance/Governed.sol";
 
 /**
  * @title GraphToken contract
@@ -23,8 +22,6 @@ import "../governance/Governed.sol";
  *
  */
 contract GraphToken is Governed, ERC20, ERC20Burnable {
-    using SafeMath for uint256;
-
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
@@ -76,7 +73,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
-                _getChainID(),
+                block.chainid,
                 address(this),
                 DOMAIN_SALT
             )
@@ -111,7 +108,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
                 )
             )
         );
-        nonces[_owner] = nonces[_owner].add(1);
+        nonces[_owner] = nonces[_owner] + 1;
 
         address recoveredAddress = ECDSA.recover(digest, abi.encodePacked(_r, _s, _v));
         require(_owner == recoveredAddress, "GRT: invalid permit");
@@ -177,17 +174,5 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     function _removeMinter(address _account) private {
         _minters[_account] = false;
         emit MinterRemoved(_account);
-    }
-
-    /**
-     * @dev Get the running network chain ID.
-     * @return The chain ID
-     */
-    function _getChainID() private pure returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 }

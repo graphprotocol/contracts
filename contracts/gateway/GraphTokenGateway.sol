@@ -5,7 +5,7 @@ pragma solidity ^0.8.16;
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Pausable } from "../governance/Pausable.sol";
-import { Managed } from "../governance/solidity-0.8/Managed.sol";
+import { Managed } from "../governance/Managed.sol";
 
 /**
  * @title L1/L2 Graph Token Gateway

@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-
-import "./MathUtils.sol";
+import { MathUtils } from "./MathUtils.sol";
 
 /**
  * @title A collection of data structures and functions to manage the Indexer Stake state.
@@ -13,7 +10,6 @@ import "./MathUtils.sol";
  *        at the caller function scope.
  */
 library Stakes {
-    using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
     struct Indexer {
@@ -29,7 +25,7 @@ library Stakes {
      * @param _tokens Amount of tokens to deposit
      */
     function deposit(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensStaked = stake.tokensStaked.add(_tokens);
+        stake.tokensStaked = stake.tokensStaked + _tokens;
     }
 
     /**
@@ -38,7 +34,7 @@ library Stakes {
      * @param _tokens Amount of tokens to release
      */
     function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensStaked = stake.tokensStaked.sub(_tokens);
+        stake.tokensStaked = stake.tokensStaked - _tokens;
     }
 
     /**
@@ -47,7 +43,7 @@ library Stakes {
      * @param _tokens Amount of tokens to allocate
      */
     function allocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensAllocated = stake.tokensAllocated.add(_tokens);
+        stake.tokensAllocated = stake.tokensAllocated + _tokens;
     }
 
     /**
@@ -56,7 +52,7 @@ library Stakes {
      * @param _tokens Amount of tokens to unallocate
      */
     function unallocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensAllocated = stake.tokensAllocated.sub(_tokens);
+        stake.tokensAllocated = stake.tokensAllocated - _tokens;
     }
 
     /**
@@ -82,8 +78,8 @@ library Stakes {
         }
 
         // Update balances
-        stake.tokensLocked = stake.tokensLocked.add(_tokens);
-        stake.tokensLockedUntil = block.number.add(lockingPeriod);
+        stake.tokensLocked = stake.tokensLocked + _tokens;
+        stake.tokensLockedUntil = block.number + lockingPeriod;
     }
 
     /**
@@ -92,7 +88,7 @@ library Stakes {
      * @param _tokens Amount of tokens to unkock
      */
     function unlockTokens(Stakes.Indexer storage stake, uint256 _tokens) internal {
-        stake.tokensLocked = stake.tokensLocked.sub(_tokens);
+        stake.tokensLocked = stake.tokensLocked - _tokens;
         if (stake.tokensLocked == 0) {
             stake.tokensLockedUntil = 0;
         }
@@ -124,7 +120,7 @@ library Stakes {
      * @return Token amount
      */
     function tokensUsed(Stakes.Indexer memory stake) internal pure returns (uint256) {
-        return stake.tokensAllocated.add(stake.tokensLocked);
+        return stake.tokensAllocated + stake.tokensLocked;
     }
 
     /**
@@ -135,7 +131,7 @@ library Stakes {
      * @return Token amount
      */
     function tokensSecureStake(Stakes.Indexer memory stake) internal pure returns (uint256) {
-        return stake.tokensStaked.sub(stake.tokensLocked);
+        return stake.tokensStaked - stake.tokensLocked;
     }
 
     /**
@@ -163,7 +159,7 @@ library Stakes {
         pure
         returns (uint256)
     {
-        uint256 tokensCapacity = stake.tokensStaked.add(_delegatedCapacity);
+        uint256 tokensCapacity = stake.tokensStaked + _delegatedCapacity;
         uint256 _tokensUsed = stake.tokensUsed();
         // If more tokens are used than the current capacity, the indexer is overallocated.
         // This means the indexer doesn't have available capacity to create new allocations.
@@ -178,7 +174,7 @@ library Stakes {
             // or using more delegated funds
             return 0;
         }
-        return tokensCapacity.sub(_tokensUsed);
+        return tokensCapacity - _tokensUsed;
     }
 
     /**

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.16;
 
-import "./IController.sol";
-import "./IManaged.sol";
-import "./Governed.sol";
-import "./Pausable.sol";
+import { IController } from "./IController.sol";
+import { IManaged } from "./IManaged.sol";
+import { Governed } from "./Governed.sol";
+import { Pausable } from "./Pausable.sol";
 
 /**
  * @title Graph Controller contract

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
-import "../staking/libs/Rebates.sol";
-import "../staking/libs/Cobbs.sol";
+import { Rebates } from "../staking/libs/Rebates.sol";
+import { LibCobbDouglas } from "../staking/libs/Cobbs.sol";
 
 // Mock contract used for testing rebates
 contract RebatePoolMock {
