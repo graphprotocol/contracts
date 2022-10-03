@@ -59,8 +59,8 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
-  { network: 'rinkeby', chainId: 4 },
-  { network: 'goerli', chainId: 5 },
+  { network: 'rinkeby', chainId: 4, graphConfig: 'config/graph.rinkeby.yml' },
+  { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
   { network: 'kovan', chainId: 42 },
 ]
 
@@ -138,17 +138,19 @@ const config: HardhatUserConfig = {
         interval: 13000,
       },
       hardfork: 'london',
+      graphConfig: 'config/graph.localhost.yml',
     },
     localhost: {
       chainId: 1337,
       url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
     },
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
-    l1GraphConfig: process.env.GRAPH_CONFIG ?? 'config/graph.localhost.yml',
+    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
     l2GraphConfig: process.env.L2_GRAPH_CONFIG,
   },
   etherscan: {
