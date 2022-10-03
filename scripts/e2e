@@ -8,15 +8,22 @@ source $(pwd)/scripts/evm
 ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses-local.json"}
 ARBITRUM_ADDRESS_BOOK=${ARBITRUM_ADDRESS_BOOK:-"arbitrum-addresses-local.json"}
 ARBITRUM_DEPLOYMENT_FILE=${ARBITRUM_DEPLOYMENT_FILE:-"localNetwork.json"}
-L1_NETWORK=${L1_NETWORK:-"localhost"}
-L2_NETWORK=${L2_NETWORK}   # By default run only L1 tests on localhost network
+
+L1_NETWORK=${L1_NETWORK}
+L2_NETWORK=${L2_NETWORK}
+
 L1_GRAPH_CONFIG=${L1_GRAPH_CONFIG:-"config/graph.localhost.yml"}
 L2_GRAPH_CONFIG=${L2_GRAPH_CONFIG:-"config/graph.arbitrum-localhost.yml"}
 
 echo "Running e2e tests"
 echo "- Using address book: $ADDRESS_BOOK"
-echo "- Using L1 network: $L1_NETWORK"
-echo "- Using L1 config: $L1_GRAPH_CONFIG"
+
+if [[ -n "$L1_NETWORK" ]]; then
+  echo "- Using L1 network: $L1_NETWORK"
+  echo "- Using L1 config: $L1_GRAPH_CONFIG"
+else 
+  echo "- No L1_NETWORK provided, skipping L1 tests"
+fi
 
 if [[ -n "$L2_NETWORK" ]]; then
   echo "- Using L2 network: $L2_NETWORK"
@@ -24,7 +31,17 @@ if [[ -n "$L2_NETWORK" ]]; then
   echo "- Using arbitrum address book: $ARBITRUM_ADDRESS_BOOK"
   echo "- Using arbitrum deployment file: $ARBITRUM_DEPLOYMENT_FILE"
 else 
-  echo "- Skipping L2 tests"
+  echo "- No L2_NETWORK provided, skipping L2 tests"
+fi
+
+if [[ -z "$L1_NETWORK" ]] && [[ -z "$L2_NETWORK" ]]; then
+  echo "Must specify one of L1_NETWORK or L2_NETWORK!"
+  exit 0
+fi
+
+if [[ "$L1_NETWORK" == "$L2_NETWORK" ]]; then
+  echo "L1_NETWORK and L2_NETWORK must be different networks!"
+  exit 0
 fi
 
 ### > SCRIPT AUX FUNCTIONS <
@@ -106,9 +123,9 @@ function test_e2e () {
   local NETWORK=$1
   local GRAPH_CONFIG=$2
   local ADDRESS_BOOK=$3
-  local SKIP_BRIDGE_TESTS=$4
+  local COUNTERPART_NETWORK=$4
 
-  if [[ -z "$SKIP_BRIDGE_TESTS" ]]; then
+  if [[ -n "$COUNTERPART_NETWORK" ]]; then
     npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
   else
     npx hardhat e2e --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge
@@ -146,7 +163,7 @@ function test_e2e_scenarios_bridge () {
 yarn build
 
 # Start evm
-if [[ "$L1_NETWORK" == "localhost" ]]; then
+if [[ "$L1_NETWORK" == "localhost" || "$L2_NETWORK" == "localhost" ]]; then
   evm_kill
   evm_start
 fi
@@ -163,10 +180,12 @@ fi
 
 ## DEPLOY
 # Deploy L1
-echo "Deploying L1 protocol"
-pre_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG"
-deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
-post_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+if [[ -n "$L1_NETWORK" ]]; then
+  echo "Deploying L1 protocol"
+  pre_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG"
+  deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+  post_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+fi
 
 # Deploy L2
 if [[ -n "$L2_NETWORK" ]]; then
@@ -177,30 +196,37 @@ if [[ -n "$L2_NETWORK" ]]; then
 fi
 
 # Configure bridge
-if [[ -n "$L2_NETWORK" ]]; then
+if [[ -n "$L1_NETWORK" ]] && [[ -n "$L2_NETWORK" ]]; then
   configure_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK" "$ARBITRUM_ADDRESS_BOOK" "$ARBITRUM_DEPLOYMENT_FILE"
 fi
 
 
 ## TEST
 # Run e2e tests
-if [[ -z "$L2_NETWORK" ]]; then
-  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK" true
-else
-  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
-  test_e2e "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+if [[ -n "$L1_NETWORK" ]]; then
+  test_e2e "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK" "$L2_NETWORK"
+fi
+
+if [[ -n "$L2_NETWORK" ]]; then
+  test_e2e "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK" "$L1_NETWORK"
 fi
 
 # Run scenario tests
-test_e2e_scenarios "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
-if [[ -n "$L2_NETWORK" ]]; then
+if [[ -n "$L1_NETWORK" ]]; then
+  test_e2e_scenarios "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
+fi
+
+if [[ -n "$L1_NETWORK" ]] && [[ -n "$L2_NETWORK" ]]; then
   test_e2e_scenarios_bridge "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
+fi
+
+if [[ -n "$L2_NETWORK" ]]; then
   test_e2e_scenarios "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 fi
 
 ## Cleanup
 # Exit error mode so the evm instance always gets killed
-if [[ "$L1_NETWORK" == "localhost" ]]; then
+if [[ "$L1_NETWORK" == "localhost" || "$L2_NETWORK" == "localhost" ]]; then
   set +e
   result=0
 
