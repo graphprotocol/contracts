@@ -1,6 +1,14 @@
-import { Contract, ContractFunction, ContractTransaction, providers, Signer } from 'ethers'
+import {
+  Contract,
+  ContractFunction,
+  ContractReceipt,
+  ContractTransaction,
+  providers,
+  Signer,
+} from 'ethers'
 import { Provider } from '@ethersproject/providers'
 import lodash from 'lodash'
+import fs from 'fs'
 
 import { AddressBook } from './address-book'
 import { logger } from './logging'
@@ -87,24 +95,17 @@ function getWrappedConnect(
 // The wrapper will run the tx, wait for confirmation and log the details
 function wrapCalls(contract: Contract, contractName: string): Contract {
   const wrappedContract = lodash.cloneDeep(contract)
-  console.log(contract)
 
   for (const fn of Object.keys(contract.functions)) {
     const call: ContractFunction<ContractTransaction> = contract.functions[fn]
     const override = async (...args: Array<any>): Promise<ContractTransaction> => {
       // Make the call
       const tx = await call(...args)
-      console.log(`> Sent transaction ${contractName}.${fn}`)
-      console.log(`   sender: ${tx.from}`)
-      console.log(`   contract: ${contract.address}`)
-      console.log(`   params: [ ${args} ]`)
-      console.log(`   txHash: ${tx.hash}`)
+      logContractCall(tx, contractName, fn, args)
 
       // Wait for confirmation
       const receipt = await contract.provider.waitForTransaction(tx.hash)
-      receipt.status
-        ? console.log(`✔ Transaction succeeded: ${tx.hash}`)
-        : console.log(`✖ Transaction failed: ${tx.hash}`)
+      logContractReceipt(tx, receipt)
       return tx
     }
 
@@ -113,4 +114,39 @@ function wrapCalls(contract: Contract, contractName: string): Contract {
   }
 
   return wrappedContract
+}
+
+function logContractCall(
+  tx: ContractTransaction,
+  contractName: string,
+  fn: string,
+  args: Array<any>,
+) {
+  const msg = []
+  msg.push(`> Sent transaction ${contractName}.${fn}`)
+  msg.push(`   sender: ${tx.from}`)
+  msg.push(`   contract: ${tx.to}`)
+  msg.push(`   params: [ ${args} ]`)
+  msg.push(`   txHash: ${tx.hash}`)
+
+  logToConsoleAndFile(msg)
+}
+
+function logContractReceipt(tx: ContractTransaction, receipt: ContractReceipt) {
+  const msg = []
+  msg.push(
+    receipt.status ? `✔ Transaction succeeded: ${tx.hash}` : `✖ Transaction failed: ${tx.hash}`,
+  )
+
+  logToConsoleAndFile(msg)
+}
+
+function logToConsoleAndFile(msg: string[]) {
+  const isoDate = new Date().toISOString()
+  const fileName = `tx-${isoDate.substring(0, 10)}.log`
+
+  msg.map((line) => {
+    console.log(line)
+    fs.appendFileSync(fileName, `[${isoDate}] ${line}\n`)
+  })
 }
