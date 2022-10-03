@@ -55,8 +55,8 @@ export const loadContracts = (
     try {
       let contract = getContractAt(contractName, contractEntry.address)
       if (enableTXLogging) {
-        contract.connect = getWrappedConnect(contract)
-        contract = wrapCalls(contract)
+        contract.connect = getWrappedConnect(contract, contractName)
+        contract = wrapCalls(contract, contractName)
       }
       contracts[contractName] = contract
       if (signerOrProvider) {
@@ -72,35 +72,39 @@ export const loadContracts = (
 // Returns a contract connect function that wrapps contract calls with wrapCalls
 function getWrappedConnect(
   contract: Contract,
+  contractName: string,
 ): (signerOrProvider: string | Provider | Signer) => Contract {
   const call = contract.connect.bind(contract)
   const override = (signerOrProvider: string | Provider | Signer): Contract => {
     const connectedContract = call(signerOrProvider)
-    connectedContract.connect = getWrappedConnect(connectedContract)
-    return wrapCalls(connectedContract)
+    connectedContract.connect = getWrappedConnect(connectedContract, contractName)
+    return wrapCalls(connectedContract, contractName)
   }
   return override
 }
 
 // Returns a contract with wrapped calls
 // The wrapper will run the tx, wait for confirmation and log the details
-function wrapCalls(contract: Contract): Contract {
+function wrapCalls(contract: Contract, contractName: string): Contract {
   const wrappedContract = lodash.cloneDeep(contract)
+  console.log(contract)
 
   for (const fn of Object.keys(contract.functions)) {
     const call: ContractFunction<ContractTransaction> = contract.functions[fn]
     const override = async (...args: Array<any>): Promise<ContractTransaction> => {
       // Make the call
       const tx = await call(...args)
-      console.log(
-        `> Sent transaction ${fn}: [${args}] \n  contract: ${contract.address}\n  txHash: ${tx.hash}`,
-      )
+      console.log(`> Sent transaction ${contractName}.${fn}`)
+      console.log(`   sender: ${tx.from}`)
+      console.log(`   contract: ${contract.address}`)
+      console.log(`   params: [ ${args} ]`)
+      console.log(`   txHash: ${tx.hash}`)
 
       // Wait for confirmation
       const receipt = await contract.provider.waitForTransaction(tx.hash)
       receipt.status
-        ? console.log(`Transaction succeeded: ${tx.hash}`)
-        : console.log(`Transaction failed: ${tx.hash}`)
+        ? console.log(`✔ Transaction succeeded: ${tx.hash}`)
+        : console.log(`✖ Transaction failed: ${tx.hash}`)
       return tx
     }
 
