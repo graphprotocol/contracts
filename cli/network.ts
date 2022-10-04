@@ -25,10 +25,6 @@ export const toGRT = (value: string | number): BigNumber => {
 export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
   new providers.JsonRpcProvider(providerUrl, network)
 
-export const getChainID = (): number => {
-  return 4 // Only works for rinkeby right now
-}
-
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
 type ContractParam = string | BigNumber | number
@@ -89,7 +85,7 @@ export const waitTransaction = async (
 ): Promise<providers.TransactionReceipt> => {
   const receipt = await sender.provider.waitForTransaction(tx.hash)
   const networkName = (await sender.provider.getNetwork()).name
-  if (networkName === 'kovan' || networkName === 'rinkeby') {
+  if (networkName === 'goerli') {
     receipt.status // 1 = success, 0 = failure
       ? logger.info(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
       : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
