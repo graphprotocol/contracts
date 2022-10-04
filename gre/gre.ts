@@ -43,6 +43,9 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
 
+    const enableTxLogging = opts.enableTxLogging ?? false
+    logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
+
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)
     const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId, isHHL1)
     const addressBookPath = getAddressBookPath(hre, opts)
@@ -69,6 +72,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       l1GraphConfigPath,
       addressBookPath,
       isHHL1,
+      enableTxLogging,
       l1GetWallets,
       l1GetWallet,
     )
@@ -79,6 +83,7 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       l2GraphConfigPath,
       addressBookPath,
       isHHL1,
+      enableTxLogging,
       l2GetWallets,
       l2GetWallet,
     )
@@ -102,6 +107,7 @@ function buildGraphNetworkEnvironment(
   graphConfigPath: string | undefined,
   addressBookPath: string,
   isHHL1: boolean,
+  enableTxLogging: boolean,
   getWallets: () => Promise<Wallet[]>,
   getWallet: (address: string) => Promise<Wallet>,
 ): GraphNetworkEnvironment | null {
@@ -127,7 +133,7 @@ function buildGraphNetworkEnvironment(
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
     contracts: lazyObject(() =>
-      loadContracts(getAddressBook(addressBookPath, chainId.toString()), provider),
+      loadContracts(getAddressBook(addressBookPath, chainId.toString()), provider, enableTxLogging),
     ),
     getDeployer: lazyFunction(() => () => getDeployer(provider)),
     getNamedAccounts: lazyFunction(() => () => getNamedAccounts(provider, graphConfigPath)),
