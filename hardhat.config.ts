@@ -59,15 +59,21 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
-  { network: 'rinkeby', chainId: 4 },
-  { network: 'goerli', chainId: 5 },
+  { network: 'rinkeby', chainId: 4, graphConfig: 'config/graph.rinkeby.yml' },
+  { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
   { network: 'kovan', chainId: 42 },
   { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
-  { network: 'arbitrum-one', chainId: 42161, url: 'https://arb1.arbitrum.io/rpc' },
+  {
+    network: 'arbitrum-one',
+    chainId: 42161,
+    url: 'https://arb1.arbitrum.io/rpc',
+    graphConfig: 'config/graph.arbitrum-one.yml',
+  },
   {
     network: 'arbitrum-goerli',
     chainId: 421613,
     url: 'https://goerli-rollup.arbitrum.io/rpc',
+    graphConfig: 'config/graph.arbitrum-goerli.yml',
   },
 ]
 
@@ -145,28 +151,32 @@ const config: HardhatUserConfig = {
         interval: 13000,
       },
       hardfork: 'london',
+      graphConfig: 'config/graph.localhost.yml',
     },
     localhost: {
       chainId: 1337,
       url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
     },
     localnitrol1: {
       chainId: 1337,
       url: 'http://localhost:8545',
       accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
     },
     localnitrol2: {
       chainId: 412346,
       url: 'http://localhost:8547',
       accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.arbitrum-localhost.yml',
     },
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
-    l1GraphConfig: process.env.GRAPH_CONFIG ?? 'config/graph.localhost.yml',
-    l2GraphConfig: process.env.L2_GRAPH_CONFIG,
+    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
