@@ -59,9 +59,7 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
-  { network: 'rinkeby', chainId: 4, graphConfig: 'config/graph.rinkeby.yml' },
   { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
-  { network: 'kovan', chainId: 42 },
 ]
 
 function getAccountsKeys() {
