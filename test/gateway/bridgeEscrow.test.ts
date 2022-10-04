@@ -41,17 +41,17 @@ describe('BridgeEscrow', () => {
   describe('approveAll', function () {
     it('cannot be called by someone other than the governor', async function () {
       const tx = bridgeEscrow.connect(tokenReceiver.signer).approveAll(spender.address)
-      expect(tx).to.be.revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
     it('allows a spender to transfer GRT held by the contract', async function () {
       expect(await grt.allowance(bridgeEscrow.address, spender.address)).eq(0)
       const tx = grt
         .connect(spender.signer)
         .transferFrom(bridgeEscrow.address, tokenReceiver.address, nTokens)
-      expect(tx).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+      await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
       await bridgeEscrow.connect(governor.signer).approveAll(spender.address)
-      expect(
-        await grt
+      await expect(
+        grt
           .connect(spender.signer)
           .transferFrom(bridgeEscrow.address, tokenReceiver.address, nTokens),
       ).to.emit(grt, 'Transfer')
@@ -62,7 +62,7 @@ describe('BridgeEscrow', () => {
   describe('revokeAll', function () {
     it('cannot be called by someone other than the governor', async function () {
       const tx = bridgeEscrow.connect(tokenReceiver.signer).revokeAll(spender.address)
-      expect(tx).to.be.revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Caller must be Controller governor')
     })
     it("revokes a spender's permission to transfer GRT held by the contract", async function () {
       await bridgeEscrow.connect(governor.signer).approveAll(spender.address)
@@ -71,7 +71,7 @@ describe('BridgeEscrow', () => {
       const tx = grt
         .connect(spender.signer)
         .transferFrom(bridgeEscrow.address, tokenReceiver.address, BigNumber.from('1'))
-      expect(tx).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+      await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
     })
   })
 })
