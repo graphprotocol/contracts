@@ -27,7 +27,7 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
     logger.warn('Funds were deposited on L2 but the retryable ticket was not redeemed')
     logAutoRedeemReason(autoRedeemRec)
     logger.info('Attempting to redeem...')
-    await l1ToL2Message.redeem()
+    await l1ToL2Message.redeem(process.env.CI ? { gasLimit: 2_000_000 } : {})
     const redeemAttempt = await l1ToL2Message.getSuccessfulRedeem()
     if (redeemAttempt.status == L1ToL2MessageStatus.REDEEMED) {
       l2TxHash = redeemAttempt.l2TxReceipt ? redeemAttempt.l2TxReceipt.transactionHash : 'null'
