@@ -172,7 +172,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
             // if a user does not desire immediate redemption they should provide
             // a msg.value of AT LEAST maxSubmissionCost
             uint256 expectedEth = _maxSubmissionCost + (_maxGas * _gasPriceBid);
-            require(msg.value == expectedEth, "WRONG_ETH_VALUE");
+            require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
         }
         L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
 
