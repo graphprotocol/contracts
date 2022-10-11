@@ -277,6 +277,7 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL1GRTAddress: string,
     mockL1GatewayAddress: string,
+    mockL1GNSAddress: string,
   ): Promise<any> {
     // Configure the L2 GRT
     // Configure the gateway
@@ -292,6 +293,7 @@ export class NetworkFixture {
     await l2FixtureContracts.l2GraphTokenGateway
       .connect(deployer)
       .setL1CounterpartAddress(mockL1GatewayAddress)
+    await l2FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
     await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 

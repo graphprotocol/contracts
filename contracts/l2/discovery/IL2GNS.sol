@@ -2,17 +2,9 @@
 
 pragma solidity ^0.7.6;
 
-interface IL2GNS {
-    function receiveSubgraphFromL1(
-        uint256 _subgraphID,
-        address _subgraphOwner,
-        uint256 _tokens,
-        bytes32 _lockedAtBlockHash,
-        uint256 _nSignal,
-        uint32 _reserveRatio,
-        bytes32 _subgraphMetadata
-    ) external;
+import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
 
+interface IL2GNS is ICallhookReceiver {
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
