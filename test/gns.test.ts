@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { Interface } from 'ethers/lib/utils'
+import { defaultAbiCoder, Interface } from 'ethers/lib/utils'
 import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
 
 import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
@@ -1222,15 +1222,17 @@ describe('L1GNS', () => {
         expect(migrationData.lockedAtBlock).eq((await latestBlock()).sub(1))
         expect(migrationData.l1Done).eq(true)
 
-        const expectedCallhookData = l2GNSIface.encodeFunctionData('receiveSubgraphFromL1', [
-          subgraph0.id,
-          me.address,
-          curatedTokens,
-          lockBlockhash,
-          subgraphBefore.nSignal,
-          subgraphBefore.reserveRatio,
-          newSubgraph0.subgraphMetadata,
-        ])
+        const expectedCallhookData = defaultAbiCoder.encode(
+          ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+          [
+            subgraph0.id,
+            me.address,
+            lockBlockhash,
+            subgraphBefore.nSignal,
+            subgraphBefore.reserveRatio,
+            newSubgraph0.subgraphMetadata,
+          ],
+        )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
@@ -1274,15 +1276,17 @@ describe('L1GNS', () => {
         expect(migrationData.lockedAtBlock).eq((await latestBlock()).sub(1))
         expect(migrationData.l1Done).eq(true)
 
-        const expectedCallhookData = l2GNSIface.encodeFunctionData('receiveSubgraphFromL1', [
-          subgraphID,
-          me.address,
-          curatedTokens,
-          lockBlockhash,
-          subgraphBefore.nSignal,
-          subgraphBefore.reserveRatio,
-          newSubgraph0.subgraphMetadata,
-        ])
+        const expectedCallhookData = defaultAbiCoder.encode(
+          ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+          [
+            subgraphID,
+            me.address,
+            lockBlockhash,
+            subgraphBefore.nSignal,
+            subgraphBefore.reserveRatio,
+            newSubgraph0.subgraphMetadata,
+          ],
+        )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,

@@ -84,28 +84,39 @@ describe('L2GNS', () => {
       mockRouter.address,
       mockL1GRT.address,
       mockL1Gateway.address,
+      mockL1GNS.address,
     )
   })
 
-  describe('receiving a subgraph from L1', function () {
+  describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
       const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
       const curatedTokens = toGRT('1337')
       const lockBlockhash = randomHexBytes(32)
       const metadata = randomHexBytes()
       const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
       const tx = gns
         .connect(me.signer)
-        .receiveSubgraphFromL1(
-          l1SubgraphId,
-          me.address,
-          curatedTokens,
-          lockBlockhash,
-          nSignal,
-          DEFAULT_RESERVE_RATIO,
-          metadata,
-        )
+        .onTokenTransfer(mockL1GNS.address, curatedTokens, callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
+    })
+    it('rejects calls if the L1 sender is not the L1GNS', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const curatedTokens = toGRT('1337')
+      const lockBlockhash = randomHexBytes(32)
+      const metadata = randomHexBytes()
+      const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
+      const tx = gatewayFinalizeTransfer(me.address, gns.address, curatedTokens, callhookData)
+
+      await expect(tx).revertedWith('ONLY_L1_GNS_THROUGH_BRIDGE')
     })
     it('creates a subgraph in a disabled state', async function () {
       const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
@@ -113,15 +124,10 @@ describe('L2GNS', () => {
       const lockBlockhash = randomHexBytes(32)
       const metadata = randomHexBytes()
       const nSignal = toBN('4567')
-      const callhookData = gns.interface.encodeFunctionData('receiveSubgraphFromL1', [
-        l1SubgraphId,
-        me.address,
-        curatedTokens,
-        lockBlockhash,
-        nSignal,
-        DEFAULT_RESERVE_RATIO,
-        metadata,
-      ])
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
         gns.address,
@@ -162,15 +168,10 @@ describe('L2GNS', () => {
       const lockBlockhash = randomHexBytes(32)
       const metadata = randomHexBytes()
       const nSignal = toBN('4567')
-      const callhookData = gns.interface.encodeFunctionData('receiveSubgraphFromL1', [
-        l1SubgraphId,
-        me.address,
-        curatedTokens,
-        lockBlockhash,
-        nSignal,
-        DEFAULT_RESERVE_RATIO,
-        metadata,
-      ])
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
         gns.address,

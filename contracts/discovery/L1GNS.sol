@@ -119,11 +119,9 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
         SubgraphData storage subgraphData
     ) internal view returns (bytes memory) {
         return
-            abi.encodeWithSelector(
-                IL2GNS.receiveSubgraphFromL1.selector,
+            abi.encode(
                 _subgraphID,
                 ownerOf(_subgraphID),
-                migrationData.tokens,
                 blockhash(migrationData.lockedAtBlock),
                 subgraphData.nSignal,
                 subgraphData.reserveRatio,

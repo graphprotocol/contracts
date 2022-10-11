@@ -63,34 +63,37 @@ contract L2GNS is GNS, IL2GNS {
         _;
     }
 
-    function receiveSubgraphFromL1(
-        uint256 _subgraphID,
-        address _subgraphOwner,
-        uint256 _tokens,
-        bytes32 _lockedAtBlockHash,
-        uint256 _nSignal,
-        uint32 _reserveRatio,
-        bytes32 _subgraphMetadata
+    /**
+     * @dev Receive tokens with a callhook from the bridge.
+     * The callhook will receive a subgraph from L1
+     * @param _from Token sender in L1 (must be the L1GNS)
+     * @param _amount Amount of tokens that were transferred
+     * @param _data ABI-encoded callhook data
+     */
+    function onTokenTransfer(
+        address _from,
+        uint256 _amount,
+        bytes calldata _data
     ) external override notPartialPaused onlyL2Gateway {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        require(_from == counterpartGNSAddress, "ONLY_L1_GNS_THROUGH_BRIDGE");
+        (
+            uint256 subgraphID,
+            address subgraphOwner,
+            bytes32 lockedAtBlockHash,
+            uint256 nSignal,
+            uint32 reserveRatio,
+            bytes32 subgraphMetadata
+        ) = abi.decode(_data, (uint256, address, bytes32, uint256, uint32, bytes32));
 
-        subgraphData.reserveRatio = _reserveRatio;
-        // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
-        subgraphData.disabled = true;
-        subgraphData.nSignal = _nSignal;
-
-        migratedData.tokens = _tokens;
-        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
-        migratedData.l1Done = true;
-
-        // Mint the NFT. Use the subgraphID as tokenID.
-        // This function will check the if tokenID already exists.
-        _mintNFT(_subgraphOwner, _subgraphID);
-
-        // Set the token metadata
-        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
-        emit SubgraphReceivedFromL1(_subgraphID);
+        _receiveSubgraphFromL1(
+            subgraphID,
+            subgraphOwner,
+            _amount,
+            lockedAtBlockHash,
+            nSignal,
+            reserveRatio,
+            subgraphMetadata
+        );
     }
 
     function finishSubgraphMigrationFromL1(
@@ -263,6 +266,36 @@ contract L2GNS is GNS, IL2GNS {
             _balance
         );
         migratedData.curatorBalanceClaimed[_curator] = true;
+    }
+
+    function _receiveSubgraphFromL1(
+        uint256 _subgraphID,
+        address _subgraphOwner,
+        uint256 _tokens,
+        bytes32 _lockedAtBlockHash,
+        uint256 _nSignal,
+        uint32 _reserveRatio,
+        bytes32 _subgraphMetadata
+    ) internal {
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+
+        subgraphData.reserveRatio = _reserveRatio;
+        // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
+        subgraphData.disabled = true;
+        subgraphData.nSignal = _nSignal;
+
+        migratedData.tokens = _tokens;
+        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
+        migratedData.l1Done = true;
+
+        // Mint the NFT. Use the subgraphID as tokenID.
+        // This function will check the if tokenID already exists.
+        _mintNFT(_subgraphOwner, _subgraphID);
+
+        // Set the token metadata
+        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
+        emit SubgraphReceivedFromL1(_subgraphID);
     }
 
     function _getCuratorSlot(address _curator, uint256 _subgraphID)
