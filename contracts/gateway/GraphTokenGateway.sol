@@ -45,6 +45,9 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
      * @param _newPaused New value for the pause state (true means the transfers will be paused)
      */
     function setPaused(bool _newPaused) external onlyGovernorOrGuardian {
+        if (!_newPaused) {
+            _checksBeforeUnpause();
+        }
         _setPaused(_newPaused);
     }
 
@@ -54,4 +57,10 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
     function paused() external view returns (bool) {
         return _paused;
     }
+
+    /**
+     * @dev Runs state validation before unpausing, reverts if
+     * something is not set properly
+     */
+    function _checksBeforeUnpause() internal view virtual;
 }

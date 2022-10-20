@@ -356,4 +356,15 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         }
         return l2GRT;
     }
+
+    /**
+     * @dev Runs state validation before unpausing, reverts if
+     * something is not set properly
+     */
+    function _checksBeforeUnpause() internal view override {
+        require(inbox != address(0), "INBOX_NOT_SET");
+        require(l1Router != address(0), "ROUTER_NOT_SET");
+        require(l2Counterpart != address(0), "L2_COUNTERPART_NOT_SET");
+        require(escrow != address(0), "ESCROW_NOT_SET");
+    }
 }

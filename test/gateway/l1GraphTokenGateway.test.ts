@@ -237,13 +237,35 @@ describe('L1GraphTokenGateway', () => {
         tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(true)
         await expect(tx).revertedWith('Only Governor or Guardian can call')
       })
-      it('can be paused and unpaused by the governor', async function () {
+      it('cannot be unpaused if some state variables are not set', async function () {
         let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
-        await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-        await expect(await l1GraphTokenGateway.paused()).eq(false)
-        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
+        await expect(tx).revertedWith('INBOX_NOT_SET')
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .setArbitrumAddresses(arbitrumMocks.inboxMock.address, mockRouter.address)
+        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).revertedWith('L2_COUNTERPART_NOT_SET')
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2CounterpartAddress(mockL2Gateway.address)
+        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).revertedWith('ESCROW_NOT_SET')
+      })
+      it('can be paused and unpaused by the governor', async function () {
+        await fixture.configureL1Bridge(
+          governor.signer,
+          arbitrumMocks,
+          fixtureContracts,
+          mockRouter.address,
+          mockL2GRT.address,
+          mockL2Gateway.address,
+        )
+        let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
         await expect(await l1GraphTokenGateway.paused()).eq(true)
+        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
+        await expect(await l1GraphTokenGateway.paused()).eq(false)
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
@@ -261,13 +283,21 @@ describe('L1GraphTokenGateway', () => {
             .withArgs(AddressZero, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
+          await fixture.configureL1Bridge(
+            governor.signer,
+            arbitrumMocks,
+            fixtureContracts,
+            mockRouter.address,
+            mockL2GRT.address,
+            mockL2Gateway.address,
+          )
           await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
-          let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
-          await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-          await expect(await l1GraphTokenGateway.paused()).eq(false)
-          tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
+          let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
           await expect(await l1GraphTokenGateway.paused()).eq(true)
+          tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
+          await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
+          await expect(await l1GraphTokenGateway.paused()).eq(false)
         })
       })
     })
