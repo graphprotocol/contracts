@@ -109,6 +109,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     function setArbitrumAddresses(address _inbox, address _l1Router) external onlyGovernor {
         require(_inbox != address(0), "INVALID_INBOX");
         require(_l1Router != address(0), "INVALID_L1_ROUTER");
+        require(Address.isContract(_inbox), "INBOX_MUST_BE_CONTRACT");
+        require(Address.isContract(_l1Router), "ROUTER_MUST_BE_CONTRACT");
         inbox = _inbox;
         l1Router = _l1Router;
         emit ArbitrumAddressesSet(_inbox, _l1Router);
@@ -151,6 +153,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      */
     function addToCallhookWhitelist(address _newWhitelisted) external onlyGovernor {
         require(_newWhitelisted != address(0), "INVALID_ADDRESS");
+        require(Address.isContract(_newWhitelisted), "MUST_BE_CONTRACT");
         require(!callhookWhitelist[_newWhitelisted], "ALREADY_WHITELISTED");
         callhookWhitelist[_newWhitelisted] = true;
         emit AddedToCallhookWhitelist(_newWhitelisted);
