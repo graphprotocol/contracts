@@ -84,7 +84,7 @@ describe('GRE usage > account management', function () {
   })
 })
 
-describe('GRE usage > account management secure accounts', function () {
+describe('GRE usage > secure accounts', function () {
   useEnvironment('graph-config', 'hardhat')
 
   let graph: GraphRuntimeEnvironment
@@ -104,81 +104,79 @@ describe('GRE usage > account management secure accounts', function () {
     })
   })
 
-  describe('Using secure accounts', function () {
-    describe('getDeployer', function () {
-      it('should return different accounts', async function () {
-        const deployer = await graph.l1.getDeployer()
-        const deployerSecureAccount = await graphSecureAccounts.l1.getDeployer()
+  describe('getDeployer', function () {
+    it('should return different accounts', async function () {
+      const deployer = await graph.l1.getDeployer()
+      const deployerSecureAccount = await graphSecureAccounts.l1.getDeployer()
 
-        expect(deployer.address).not.to.equal(deployerSecureAccount.address)
-        expect(deployer.address).to.equal('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')
-        expect(deployerSecureAccount.address).to.equal('0xC108fda1b5b2903751594298769Efd4904b146bD')
-      })
-
-      it('should return accounts capable of signing messages', async function () {
-        const deployer = await graph.l1.getDeployer()
-        const deployerSecureAccount = await graphSecureAccounts.l1.getDeployer()
-
-        expect(deployer.signMessage('test')).to.eventually.be.fulfilled
-        expect(deployerSecureAccount.signMessage('test')).to.eventually.be.fulfilled
-      })
+      expect(deployer.address).not.to.equal(deployerSecureAccount.address)
+      expect(deployer.address).to.equal('0x2770fb12b368a9aBf4A02DB34B0F6057fC03BD0d')
+      expect(deployerSecureAccount.address).to.equal('0xC108fda1b5b2903751594298769Efd4904b146bD')
     })
 
-    describe('getNamedAccounts', function () {
-      it('should return the same accounts', async function () {
-        const accounts = await graph.l1.getNamedAccounts()
-        const secureAccounts = await graphSecureAccounts.l1.getNamedAccounts()
+    it('should return accounts capable of signing messages', async function () {
+      const deployer = await graph.l1.getDeployer()
+      const deployerSecureAccount = await graphSecureAccounts.l1.getDeployer()
 
-        const accountNames = Object.keys(accounts)
-        const secureAccountNames = Object.keys(secureAccounts)
+      expect(deployer.signMessage('test')).to.eventually.be.fulfilled
+      expect(deployerSecureAccount.signMessage('test')).to.eventually.be.fulfilled
+    })
+  })
 
-        expect(accountNames.length).to.equal(secureAccountNames.length)
+  describe('getNamedAccounts', function () {
+    it('should return the same accounts', async function () {
+      const accounts = await graph.l1.getNamedAccounts()
+      const secureAccounts = await graphSecureAccounts.l1.getNamedAccounts()
 
-        for (const name of accountNames) {
-          const account = accounts[name]
-          const secureAccount = secureAccounts[name]
+      const accountNames = Object.keys(accounts)
+      const secureAccountNames = Object.keys(secureAccounts)
 
-          expect(account.address).to.equal(secureAccount.address)
-        }
-      })
+      expect(accountNames.length).to.equal(secureAccountNames.length)
 
-      it('should return accounts incapable of signing messages', async function () {
-        const accounts = await graph.l1.getNamedAccounts()
-        const secureAccounts = await graphSecureAccounts.l1.getNamedAccounts()
+      for (const name of accountNames) {
+        const account = accounts[name]
+        const secureAccount = secureAccounts[name]
 
-        const accountNames = Object.keys(accounts)
-
-        for (const name of accountNames) {
-          const account = accounts[name]
-          const secureAccount = secureAccounts[name]
-
-          expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
-          expect(secureAccount.signMessage('test')).to.eventually.be.rejected
-        }
-      })
+        expect(account.address).to.equal(secureAccount.address)
+      }
     })
 
-    describe('getTestAccounts', function () {
-      it('should return different accounts', async function () {
-        const accounts = await graph.l1.getTestAccounts()
-        const secureAccounts = await graphSecureAccounts.l1.getTestAccounts()
+    it('should return accounts incapable of signing messages', async function () {
+      const accounts = await graph.l1.getNamedAccounts()
+      const secureAccounts = await graphSecureAccounts.l1.getNamedAccounts()
 
-        expect(accounts.length).to.equal(secureAccounts.length)
+      const accountNames = Object.keys(accounts)
 
-        for (let i = 0; i < accounts.length; i++) {
-          expect(accounts[i].address).not.to.equal(secureAccounts[i].address)
-        }
-      })
+      for (const name of accountNames) {
+        const account = accounts[name]
+        const secureAccount = secureAccounts[name]
 
-      it('should return accounts capable of signing messages', async function () {
-        const accounts = await graph.l1.getTestAccounts()
-        const secureAccounts = await graphSecureAccounts.l1.getTestAccounts()
+        expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
+        expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+      }
+    })
+  })
 
-        for (let i = 0; i < accounts.length; i++) {
-          expect(accounts[i].signMessage('test')).to.eventually.be.fulfilled
-          expect(secureAccounts[i].signMessage('test')).to.eventually.be.fulfilled
-        }
-      })
+  describe('getTestAccounts', function () {
+    it('should return different accounts', async function () {
+      const accounts = await graph.l1.getTestAccounts()
+      const secureAccounts = await graphSecureAccounts.l1.getTestAccounts()
+
+      expect(accounts.length).to.equal(secureAccounts.length)
+
+      for (let i = 0; i < accounts.length; i++) {
+        expect(accounts[i].address).not.to.equal(secureAccounts[i].address)
+      }
+    })
+
+    it('should return accounts capable of signing messages', async function () {
+      const accounts = await graph.l1.getTestAccounts()
+      const secureAccounts = await graphSecureAccounts.l1.getTestAccounts()
+
+      for (let i = 0; i < accounts.length; i++) {
+        expect(accounts[i].signMessage('test')).to.eventually.be.fulfilled
+        expect(secureAccounts[i].signMessage('test')).to.eventually.be.fulfilled
+      }
     })
   })
 })
