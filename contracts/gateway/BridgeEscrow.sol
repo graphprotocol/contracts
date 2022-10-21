@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+
 import "../upgrades/GraphUpgradeable.sol";
 import "../governance/Managed.sol";
 import "../token/IGraphToken.sol";
@@ -12,12 +14,12 @@ import "../token/IGraphToken.sol";
  * a set of spenders that can transfer the tokens; the L1 side of each L2 bridge has to be
  * approved as a spender.
  */
-contract BridgeEscrow is GraphUpgradeable, Managed {
+contract BridgeEscrow is Initializable, GraphUpgradeable, Managed {
     /**
      * @dev Initialize this contract.
      * @param _controller Address of the Controller that manages this contract
      */
-    function initialize(address _controller) external onlyImpl {
+    function initialize(address _controller) external onlyImpl initializer {
         Managed._initialize(_controller);
     }
 

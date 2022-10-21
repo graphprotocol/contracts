@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -18,7 +19,7 @@ import "./GraphTokenGateway.sol";
  * (See: https://github.com/OffchainLabs/arbitrum/tree/master/packages/arb-bridge-peripherals/contracts/tokenbridge
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
-contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
+contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMessenger {
     using SafeMath for uint256;
 
     // Address of the Graph Token contract on L2
@@ -97,7 +98,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * - pauseGuardian using setPauseGuardian
      * @param _controller Address of the Controller that manages this contract
      */
-    function initialize(address _controller) external onlyImpl {
+    function initialize(address _controller) external onlyImpl initializer {
         Managed._initialize(_controller);
         _paused = true;
     }

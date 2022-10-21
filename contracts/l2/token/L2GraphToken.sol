@@ -45,7 +45,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
      * - l1Address using setL1Address
      * @param _owner Governance address that owns this contract
      */
-    function initialize(address _owner) external onlyImpl {
+    function initialize(address _owner) external onlyImpl initializer {
         require(_owner != address(0), "Owner must be set");
         // Initial supply hard coded to 0 as tokens are only supposed
         // to be minted through the bridge.
