@@ -12,6 +12,9 @@ import "../governance/Managed.sol";
  * @dev This includes everything that's shared between the L1 and L2 sides of the bridge.
  */
 abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITokenGateway {
+    // Storage gap added in case we need to add state variables to this contract
+    uint256[50] private __gap;
+
     /**
      * @dev Check if the caller is the Controller's governor or this contract's pause guardian.
      */

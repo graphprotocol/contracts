@@ -50,6 +50,8 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     bytes32 private DOMAIN_SEPARATOR;
     mapping(address => bool) private _minters;
     mapping(address => uint256) public nonces;
+    // Storage gap added in case we need to add state variables to this contract
+    uint256[47] private __gap;
 
     // -- Events --
 
