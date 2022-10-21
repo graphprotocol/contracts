@@ -143,6 +143,7 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
     await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)
     await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
+    await controller.setContractProxy(utils.id('GNS'), gns.address)
     if (isL2) {
       await controller.setContractProxy(utils.id('GraphTokenGateway'), l2GraphTokenGateway.address)
     } else {

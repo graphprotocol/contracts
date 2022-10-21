@@ -16,6 +16,7 @@ import {
   publishNewSubgraph,
   PublishSubgraph,
 } from '../lib/gnsUtils'
+import { Curation } from '../../build/types/Curation'
 
 const { HashZero } = ethers.constants
 
@@ -36,6 +37,7 @@ describe('L2GNS', () => {
   let fixtureContracts: L2FixtureContracts
   let l2GraphTokenGateway: L2GraphTokenGateway
   let gns: L2GNS
+  let curation: Curation
 
   let newSubgraph0: PublishSubgraph
 
@@ -76,7 +78,7 @@ describe('L2GNS', () => {
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.loadL2(governor.signer)
-    ;({ l2GraphTokenGateway, gns } = fixtureContracts)
+    ;({ l2GraphTokenGateway, gns, curation } = fixtureContracts)
 
     await fixture.configureL2Bridge(
       governor.signer,
@@ -86,6 +88,14 @@ describe('L2GNS', () => {
       mockL1Gateway.address,
       mockL1GNS.address,
     )
+  })
+
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
   })
 
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
@@ -216,7 +226,37 @@ describe('L2GNS', () => {
   })
 
   describe('finishing a subgraph migration from L1', function () {
-    it('publishes the migrated subgraph and mints signal with no tax')
+    it('publishes the migrated subgraph and mints signal with no tax', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const curatedTokens = toGRT('1337')
+      const lockBlockhash = randomHexBytes(32)
+      const metadata = randomHexBytes()
+      const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      // Calculate expected signal before minting, which changes the price
+      const expectedSignal = await curation.tokensToSignalNoTax(
+        newSubgraph0.subgraphDeploymentID,
+        curatedTokens,
+      )
+
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+      await expect(tx)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(l1SubgraphId, newSubgraph0.subgraphDeploymentID, DEFAULT_RESERVE_RATIO)
+
+      const subgraphAfter = await gns.subgraphs(l1SubgraphId)
+      const migrationDataAfter = await gns.subgraphL2MigrationData(l1SubgraphId)
+      expect(subgraphAfter.vSignal).eq(expectedSignal)
+      expect(migrationDataAfter.l2Done).eq(true)
+      expect(migrationDataAfter.deprecated).eq(false)
+      expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
+    })
     it('cannot be called by someone other than the subgraph owner')
     it('rejects calls for a subgraph that was not migrated')
     it('rejects calls to a pre-curated subgraph deployment')
