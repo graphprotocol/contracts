@@ -382,18 +382,23 @@ describe('L1GraphTokenGateway', () => {
           .updateL2MintAllowance(toGRT('1'), await latestBlock())
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
-      it('does not allow using a future block number', async function () {
+      it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
         let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
         const tx1 = l1GraphTokenGateway
           .connect(governor.signer)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
-        await expect(tx1).revertedWith('BLOCK_CANT_BE_FUTURE')
+        await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
         issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
           .connect(governor.signer)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
-        await expect(tx2)
+        await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        const tx3 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx3)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
       })
@@ -474,18 +479,23 @@ describe('L1GraphTokenGateway', () => {
           .setL2MintAllowanceParametersManual(toGRT('0'), toGRT('1'), await latestBlock())
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
-      it('does not allow using a future block number', async function () {
+      it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
         let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
         const tx1 = l1GraphTokenGateway
           .connect(governor.signer)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
-        await expect(tx1).revertedWith('BLOCK_CANT_BE_FUTURE')
+        await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
         issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
           .connect(governor.signer)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
-        await expect(tx2)
+        await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        const tx3 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx3)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
       })

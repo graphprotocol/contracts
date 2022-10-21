@@ -197,7 +197,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         external
         onlyGovernor
     {
-        require(_updateBlockNum <= block.number, "BLOCK_CANT_BE_FUTURE");
+        require(_updateBlockNum < block.number, "BLOCK_MUST_BE_PAST");
         require(_updateBlockNum > lastL2MintAllowanceUpdateBlock, "BLOCK_MUST_BE_INCREMENTING");
         accumulatedL2MintAllowanceSnapshot = accumulatedL2MintAllowanceAtBlock(_updateBlockNum);
         lastL2MintAllowanceUpdateBlock = _updateBlockNum;
@@ -223,7 +223,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         uint256 _l2MintAllowancePerBlock,
         uint256 _lastL2MintAllowanceUpdateBlock
     ) external onlyGovernor {
-        require(_lastL2MintAllowanceUpdateBlock <= block.number, "BLOCK_CANT_BE_FUTURE");
+        require(_lastL2MintAllowanceUpdateBlock < block.number, "BLOCK_MUST_BE_PAST");
         accumulatedL2MintAllowanceSnapshot = _accumulatedL2MintAllowanceSnapshot;
         l2MintAllowancePerBlock = _l2MintAllowancePerBlock;
         lastL2MintAllowanceUpdateBlock = _lastL2MintAllowanceUpdateBlock;
