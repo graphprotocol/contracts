@@ -168,11 +168,7 @@ export function grtTests(isL2: boolean): void {
       // Should not transfer more than approved
       const tooManyTokens = toGRT('1001')
       const tx = grt.connect(other.signer).transferFrom(me.address, other.address, tooManyTokens)
-      if (isL2) {
-        await expect(tx).revertedWith('ERC20: insufficient allowance')
-      } else {
-        await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
-      }
+      await expect(tx).revertedWith('ERC20: insufficient allowance')
 
       // Should transfer up to the approved amount
       await grt.connect(other.signer).transferFrom(me.address, other.address, tokensToApprove)
@@ -216,11 +212,7 @@ export function grtTests(isL2: boolean): void {
       // Try to transfer without permit should fail
       const tokens = toGRT('100')
       const tx = grt.connect(other.signer).transferFrom(me.address, other.address, tokens)
-      if (isL2) {
-        await expect(tx).revertedWith('ERC20: insufficient allowance')
-      } else {
-        await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
-      }
+      await expect(tx).revertedWith('ERC20: insufficient allowance')
     })
   })
 

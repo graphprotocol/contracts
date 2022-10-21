@@ -48,7 +48,7 @@ describe('BridgeEscrow', () => {
       const tx = grt
         .connect(spender.signer)
         .transferFrom(bridgeEscrow.address, tokenReceiver.address, nTokens)
-      expect(tx).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+      expect(tx).to.be.revertedWith('ERC20: insufficient allowance')
       await bridgeEscrow.connect(governor.signer).approveAll(spender.address)
       expect(
         await grt
@@ -71,7 +71,7 @@ describe('BridgeEscrow', () => {
       const tx = grt
         .connect(spender.signer)
         .transferFrom(bridgeEscrow.address, tokenReceiver.address, BigNumber.from('1'))
-      expect(tx).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+      expect(tx).to.be.revertedWith('ERC20: insufficient allowance')
     })
   })
 })

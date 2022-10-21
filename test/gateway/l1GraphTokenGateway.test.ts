@@ -752,7 +752,7 @@ describe('L1GraphTokenGateway', () => {
             toBN('0'),
             encodedCalldata,
           )
-        await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
+        await expect(tx).revertedWith('ERC20: insufficient allowance')
       })
       it('sends tokens out of escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))

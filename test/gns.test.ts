@@ -293,7 +293,7 @@ describe('GNS', () => {
     expect(ownerBalanceBefore.eq(ownerBalanceAfter))
 
     // Check NFT was burned
-    await expect(gns.ownerOf(subgraphID)).revertedWith('ERC721: owner query for nonexistent token')
+    await expect(gns.ownerOf(subgraphID)).revertedWith('ERC721: invalid token ID')
 
     return tx
   }
@@ -679,7 +679,7 @@ describe('GNS', () => {
             newSubgraph1.subgraphDeploymentID,
             newSubgraph1.versionMetadata,
           )
-        await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        await expect(tx).revertedWith('ERC721: invalid token ID')
       })
 
       it('reject if not the owner', async function () {
@@ -734,7 +734,7 @@ describe('GNS', () => {
             newSubgraph1.versionMetadata,
           )
         // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
-        await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        await expect(tx).revertedWith('ERC721: invalid token ID')
       })
     })
 
@@ -760,13 +760,13 @@ describe('GNS', () => {
             newSubgraph1.versionMetadata,
           )
         // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
-        await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        await expect(tx).revertedWith('ERC721: invalid token ID')
       })
 
       it('reject if the subgraph does not exist', async function () {
         const subgraphID = randomHexBytes(32)
         const tx = gns.connect(me.signer).deprecateSubgraph(subgraphID)
-        await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+        await expect(tx).revertedWith('ERC721: invalid token ID')
       })
 
       it('reject deprecate if not the owner', async function () {
