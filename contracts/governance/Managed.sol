@@ -10,6 +10,7 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { IStaking } from "../staking/IStaking.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { IGNS } from "../discovery/IGNS.sol";
 
 import { IManaged } from "./IManaged.sol";
 
@@ -190,7 +191,15 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Resolve a contract address from the cache or the Controller if not found
+     * @dev Return GNS (L1 or L2) interface.
+     * @return Address of the GNS contract registered with Controller, as an IGNS interface.
+     */
+    function gns() internal view returns (IGNS) {
+        return IGNS(_resolveContract(keccak256("GNS")));
+    }
+
+    /**
+     * @dev Resolve a contract address from the cache or the Controller if not found.
      * @param _nameHash keccak256 hash of the contract name
      * @return Address of the contract
      */
