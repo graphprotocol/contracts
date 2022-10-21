@@ -9,7 +9,6 @@ import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { RewardsManagerMock } from '../../build/types/RewardsManagerMock'
 import { Staking } from '../../build/types/Staking'
 
 import {
@@ -48,7 +47,6 @@ describe('Rewards', () => {
   let epochManager: EpochManager
   let staking: Staking
   let rewardsManager: RewardsManager
-  let rewardsManagerMock: RewardsManagerMock
 
   // Derive some channel keys for each indexer used to sign attestations
   const channelKey1 = deriveChannelKey()
@@ -139,11 +137,6 @@ describe('Rewards', () => {
     ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
       governor.signer,
     ))
-
-    rewardsManagerMock = (await deployContract(
-      'RewardsManagerMock',
-      governor.signer,
-    )) as unknown as RewardsManagerMock
 
     // 200 GRT per block
     await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
@@ -828,18 +821,6 @@ describe('Rewards', () => {
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch())
       })
-    })
-  })
-
-  describe('pow', function () {
-    it('exponentiation works under normal boundaries (annual rate from 1% to 700%, 90 days period)', async function () {
-      const baseRatio = toGRT('0.000000004641377923') // 1% annual rate
-      const timePeriods = (60 * 60 * 24 * 10) / 15 // 90 days in blocks
-      for (let i = 0; i < 50; i = i + 4) {
-        const r = baseRatio.mul(i * 4).add(toGRT('1'))
-        const h = await rewardsManagerMock.pow(r, timePeriods, toGRT('1'))
-        console.log('\tr:', formatGRT(r), '=> c:', formatGRT(h))
-      }
     })
   })
 
