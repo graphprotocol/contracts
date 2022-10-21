@@ -52,6 +52,10 @@ describe('L1GraphTokenGateway', () => {
     ['uint256', 'bytes'],
     [maxSubmissionCost, emptyCallHookData],
   )
+  const defaultDataNoSubmissionCost = utils.defaultAbiCoder.encode(
+    ['uint256', 'bytes'],
+    [toBN(0), emptyCallHookData],
+  )
   const notEmptyCallHookData = '0x12'
   const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['uint256', 'bytes'],
@@ -471,7 +475,7 @@ describe('L1GraphTokenGateway', () => {
         )
         await testValidOutboundTransfer(mockRouter.signer, routerEncodedData, emptyCallHookData)
       })
-      it('reverts when called with the wrong value', async function () {
+      it('reverts when called with no submission cost', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
@@ -481,12 +485,12 @@ describe('L1GraphTokenGateway', () => {
             toGRT('10'),
             maxGas,
             gasPriceBid,
-            defaultData,
+            defaultDataNoSubmissionCost,
             {
-              value: defaultEthValue.sub(1),
+              value: defaultEthValue,
             },
           )
-        await expect(tx).revertedWith('WRONG_ETH_VALUE')
+        await expect(tx).revertedWith('NO_SUBMISSION_COST')
       })
       it('reverts when called with nonempty calldata, if the sender is not whitelisted', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))

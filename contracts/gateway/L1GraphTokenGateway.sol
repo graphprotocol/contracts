@@ -217,15 +217,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     extraData.length == 0 || callhookWhitelist[msg.sender] == true,
                     "CALL_HOOK_DATA_NOT_ALLOWED"
                 );
-                require(maxSubmissionCost > 0, "NO_SUBMISSION_COST");
-
-                {
-                    // makes sure only sufficient ETH is supplied as required for successful redemption on L2
-                    // if a user does not desire immediate redemption they should provide
-                    // a msg.value of AT LEAST maxSubmissionCost
-                    uint256 expectedEth = maxSubmissionCost.add(_maxGas.mul(_gasPriceBid));
-                    require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
-                }
+                require(maxSubmissionCost != 0, "NO_SUBMISSION_COST");
                 outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
             }
             {
