@@ -4,7 +4,6 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../upgrades/GraphUpgradeable.sol";
 import "../../governance/Governed.sol";
@@ -26,7 +25,6 @@ import "../../governance/Governed.sol";
  * the original's constructor + non-upgradeable approach.
  */
 contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
-    using SafeMath for uint256;
 
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
@@ -96,7 +94,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
         require(_owner == recoveredAddress, "GRT: invalid permit");
         require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
-        nonces[_owner] = nonces[_owner].add(1);
+        nonces[_owner] = nonces[_owner] + 1;
         _approve(_owner, _spender, _value);
     }
 
