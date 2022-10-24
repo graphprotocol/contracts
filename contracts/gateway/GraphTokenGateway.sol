@@ -36,14 +36,6 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
     }
 
     /**
-     * @dev Override the default pausing from Managed to allow pausing this
-     * particular contract instead of pausing from the Controller.
-     */
-    function _notPaused() internal view override {
-        require(!_paused, "Paused (contract)");
-    }
-
-    /**
      * @notice Change the paused state of the contract
      * @param _newPaused New value for the pause state (true means the transfers will be paused)
      */
@@ -60,6 +52,14 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
      */
     function paused() external view returns (bool) {
         return _paused;
+    }
+
+    /**
+     * @dev Override the default pausing from Managed to allow pausing this
+     * particular contract instead of pausing from the Controller.
+     */
+    function _notPaused() internal view override {
+        require(!_paused, "Paused (contract)");
     }
 
     /**

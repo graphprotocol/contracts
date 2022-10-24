@@ -60,6 +60,22 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
     }
 
     /**
+     * @notice Fallback function that delegates calls to implementation. Will run if call data
+     * is empty.
+     */
+    receive() external payable {
+        _fallback();
+    }
+
+    /**
+     * @notice Fallback function that delegates calls to implementation. Will run if no other
+     * function in the contract matches the call data.
+     */
+    fallback() external payable {
+        _fallback();
+    }
+
+    /**
      * @notice Get the current admin
      *
      * @dev NOTE: Only the admin and implementation can call this function.
@@ -192,21 +208,5 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
                 return(ptr, size)
             }
         }
-    }
-
-    /**
-     * @notice Fallback function that delegates calls to implementation. Will run if no other
-     * function in the contract matches the call data.
-     */
-    fallback() external payable {
-        _fallback();
-    }
-
-    /**
-     * @notice Fallback function that delegates calls to implementation. Will run if call data
-     * is empty.
-     */
-    receive() external payable {
-        _fallback();
     }
 }

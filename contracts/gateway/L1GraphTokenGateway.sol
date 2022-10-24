@@ -223,7 +223,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
             bytes memory outboundCalldata;
             {
                 bytes memory extraData;
-                (from, maxSubmissionCost, extraData) = parseOutboundData(_data);
+                (from, maxSubmissionCost, extraData) = _parseOutboundData(_data);
                 require(
                     extraData.length == 0 || callhookAllowlist[msg.sender] == true,
                     "CALL_HOOK_DATA_NOT_ALLOWED"
@@ -285,37 +285,17 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Decodes calldata required for migration of tokens
-     * @dev Data must include maxSubmissionCost, extraData can be left empty. When the router
-     * sends an outbound message, data also contains the from address.
-     * @param _data encoded callhook data
-     * @return Sender of the tx
-     * @return Base ether value required to keep retryable ticket alive
-     * @return Additional data sent to L2
+     * @notice Calculate the L2 address of a bridged token
+     * @dev In our case, this would only work for GRT.
+     * @param _l1ERC20 address of L1 GRT contract
+     * @return L2 address of the bridged GRT token
      */
-    function parseOutboundData(bytes calldata _data)
-        private
-        view
-        returns (
-            address,
-            uint256,
-            bytes memory
-        )
-    {
-        address from;
-        uint256 maxSubmissionCost;
-        bytes memory extraData;
-        if (msg.sender == l1Router) {
-            // Data encoded by the Gateway Router includes the sender address
-            (from, extraData) = abi.decode(_data, (address, bytes));
-        } else {
-            from = msg.sender;
-            extraData = _data;
+    function calculateL2TokenAddress(address _l1ERC20) external view override returns (address) {
+        IGraphToken token = graphToken();
+        if (_l1ERC20 != address(token)) {
+            return address(0);
         }
-        // User-encoded data contains the max retryable ticket submission cost
-        // and additional L2 calldata
-        (maxSubmissionCost, extraData) = abi.decode(extraData, (uint256, bytes));
-        return (from, maxSubmissionCost, extraData);
+        return l2GRT;
     }
 
     /**
@@ -350,20 +330,6 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Calculate the L2 address of a bridged token
-     * @dev In our case, this would only work for GRT.
-     * @param _l1ERC20 address of L1 GRT contract
-     * @return L2 address of the bridged GRT token
-     */
-    function calculateL2TokenAddress(address _l1ERC20) external view override returns (address) {
-        IGraphToken token = graphToken();
-        if (_l1ERC20 != address(token)) {
-            return address(0);
-        }
-        return l2GRT;
-    }
-
-    /**
      * @dev Runs state validation before unpausing, reverts if
      * something is not set properly
      */
@@ -372,5 +338,39 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         require(l1Router != address(0), "ROUTER_NOT_SET");
         require(l2Counterpart != address(0), "L2_COUNTERPART_NOT_SET");
         require(escrow != address(0), "ESCROW_NOT_SET");
+    }
+
+    /**
+     * @notice Decodes calldata required for migration of tokens
+     * @dev Data must include maxSubmissionCost, extraData can be left empty. When the router
+     * sends an outbound message, data also contains the from address.
+     * @param _data encoded callhook data
+     * @return Sender of the tx
+     * @return Base ether value required to keep retryable ticket alive
+     * @return Additional data sent to L2
+     */
+    function _parseOutboundData(bytes calldata _data)
+        private
+        view
+        returns (
+            address,
+            uint256,
+            bytes memory
+        )
+    {
+        address from;
+        uint256 maxSubmissionCost;
+        bytes memory extraData;
+        if (msg.sender == l1Router) {
+            // Data encoded by the Gateway Router includes the sender address
+            (from, extraData) = abi.decode(_data, (address, bytes));
+        } else {
+            from = msg.sender;
+            extraData = _data;
+        }
+        // User-encoded data contains the max retryable ticket submission cost
+        // and additional L2 calldata
+        (maxSubmissionCost, extraData) = abi.decode(extraData, (uint256, bytes));
+        return (from, maxSubmissionCost, extraData);
     }
 }

@@ -124,60 +124,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
 
     /**
      * @notice Burns L2 tokens and initiates a transfer to L1.
-     * The tokens will be available on L1 only after the wait period (7 days) is over,
-     * and will require an Outbox.executeTransaction to finalize.
-     * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
-     * @dev no additional callhook data is allowed. The two unused params are needed
-     * for compatibility with Arbitrum's gateway router.
-     * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
-     * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)
-     * @param _to Recipient address on L1
-     * @param _amount Amount of tokens to burn
-     * @param _data Contains sender and additional data (always empty) to send to L1
-     * @return ID of the withdraw transaction
-     */
-    function outboundTransfer(
-        address _l1Token,
-        address _to,
-        uint256 _amount,
-        uint256, // unused on L2
-        uint256, // unused on L2
-        bytes calldata _data
-    ) public payable override nonReentrant notPaused returns (bytes memory) {
-        require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
-        require(_amount != 0, "INVALID_ZERO_AMOUNT");
-        require(msg.value == 0, "INVALID_NONZERO_VALUE");
-        require(_to != address(0), "INVALID_DESTINATION");
-
-        OutboundCalldata memory outboundCalldata;
-
-        (outboundCalldata.from, outboundCalldata.extraData) = parseOutboundData(_data);
-        require(outboundCalldata.extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
-
-        // from needs to approve this contract to burn the amount first
-        L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeBurn(outboundCalldata.from, _amount);
-
-        uint256 id = sendTxToL1(
-            0,
-            outboundCalldata.from,
-            l1Counterpart,
-            getOutboundCalldata(
-                _l1Token,
-                outboundCalldata.from,
-                _to,
-                _amount,
-                outboundCalldata.extraData
-            )
-        );
-
-        // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
-        emit WithdrawalInitiated(_l1Token, outboundCalldata.from, _to, id, 0, _amount);
-
-        return abi.encode(id);
-    }
-
-    /**
-     * @notice Burns L2 tokens and initiates a transfer to L1.
      * The tokens will be received on L1 only after the wait period (7 days) is over,
      * and will require an Outbox.executeTransaction to finalize.
      * @dev no additional callhook data is allowed
@@ -194,19 +140,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         bytes calldata _data
     ) external returns (bytes memory) {
         return outboundTransfer(_l1Token, _to, _amount, 0, 0, _data);
-    }
-
-    /**
-     * @notice Calculate the L2 address of a bridged token
-     * @dev In our case, this would only work for GRT.
-     * @param l1ERC20 address of L1 GRT contract
-     * @return L2 address of the bridged GRT token
-     */
-    function calculateL2TokenAddress(address l1ERC20) public view override returns (address) {
-        if (l1ERC20 != l1GRT) {
-            return address(0);
-        }
-        return address(graphToken());
     }
 
     /**
@@ -249,6 +182,73 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
+     * @notice Burns L2 tokens and initiates a transfer to L1.
+     * The tokens will be available on L1 only after the wait period (7 days) is over,
+     * and will require an Outbox.executeTransaction to finalize.
+     * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
+     * @dev no additional callhook data is allowed. The two unused params are needed
+     * for compatibility with Arbitrum's gateway router.
+     * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
+     * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)
+     * @param _to Recipient address on L1
+     * @param _amount Amount of tokens to burn
+     * @param _data Contains sender and additional data (always empty) to send to L1
+     * @return ID of the withdraw transaction
+     */
+    function outboundTransfer(
+        address _l1Token,
+        address _to,
+        uint256 _amount,
+        uint256, // unused on L2
+        uint256, // unused on L2
+        bytes calldata _data
+    ) public payable override nonReentrant notPaused returns (bytes memory) {
+        require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
+        require(_amount != 0, "INVALID_ZERO_AMOUNT");
+        require(msg.value == 0, "INVALID_NONZERO_VALUE");
+        require(_to != address(0), "INVALID_DESTINATION");
+
+        OutboundCalldata memory outboundCalldata;
+
+        (outboundCalldata.from, outboundCalldata.extraData) = _parseOutboundData(_data);
+        require(outboundCalldata.extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
+
+        // from needs to approve this contract to burn the amount first
+        L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeBurn(outboundCalldata.from, _amount);
+
+        uint256 id = sendTxToL1(
+            0,
+            outboundCalldata.from,
+            l1Counterpart,
+            getOutboundCalldata(
+                _l1Token,
+                outboundCalldata.from,
+                _to,
+                _amount,
+                outboundCalldata.extraData
+            )
+        );
+
+        // we don't need to track exitNums (b/c we have no fast exits) so we always use 0
+        emit WithdrawalInitiated(_l1Token, outboundCalldata.from, _to, id, 0, _amount);
+
+        return abi.encode(id);
+    }
+
+    /**
+     * @notice Calculate the L2 address of a bridged token
+     * @dev In our case, this would only work for GRT.
+     * @param l1ERC20 address of L1 GRT contract
+     * @return L2 address of the bridged GRT token
+     */
+    function calculateL2TokenAddress(address l1ERC20) public view override returns (address) {
+        if (l1ERC20 != l1GRT) {
+            return address(0);
+        }
+        return address(graphToken());
+    }
+
+    /**
      * @notice Creates calldata required to send tx to L1
      * @dev encodes the target function with its params which
      * will be called on L1 when the message is received on L1
@@ -278,13 +278,23 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
+     * @dev Runs state validation before unpausing, reverts if
+     * something is not set properly
+     */
+    function _checksBeforeUnpause() internal view override {
+        require(l2Router != address(0), "ROUTER_NOT_SET");
+        require(l1Counterpart != address(0), "L1_COUNTERPART_NOT_SET");
+        require(l1GRT != address(0), "L1GRT_NOT_SET");
+    }
+
+    /**
      * @notice Decodes calldata required for migration of tokens
      * @dev extraData can be left empty
      * @param _data Encoded callhook data
      * @return Sender of the tx
      * @return Any other data sent to L1
      */
-    function parseOutboundData(bytes calldata _data) private view returns (address, bytes memory) {
+    function _parseOutboundData(bytes calldata _data) private view returns (address, bytes memory) {
         address from;
         bytes memory extraData;
         if (msg.sender == l2Router) {
@@ -294,15 +304,5 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
             extraData = _data;
         }
         return (from, extraData);
-    }
-
-    /**
-     * @dev Runs state validation before unpausing, reverts if
-     * something is not set properly
-     */
-    function _checksBeforeUnpause() internal view override {
-        require(l2Router != address(0), "ROUTER_NOT_SET");
-        require(l1Counterpart != address(0), "L1_COUNTERPART_NOT_SET");
-        require(l1GRT != address(0), "L1GRT_NOT_SET");
     }
 }
