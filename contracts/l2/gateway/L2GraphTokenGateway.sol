@@ -141,7 +141,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         uint256, // unused on L2
         uint256, // unused on L2
         bytes calldata _data
-    ) public payable override notPaused nonReentrant returns (bytes memory) {
+    ) public payable override nonReentrant notPaused returns (bytes memory) {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(_amount != 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
@@ -229,7 +229,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         address _to,
         uint256 _amount,
         bytes calldata _data
-    ) external payable override notPaused onlyL1Counterpart nonReentrant {
+    ) external payable override nonReentrant notPaused onlyL1Counterpart {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
 
