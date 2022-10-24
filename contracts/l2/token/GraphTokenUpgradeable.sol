@@ -89,6 +89,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
         bytes32 _r,
         bytes32 _s
     ) external {
+        require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -101,7 +102,6 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
 
         address recoveredAddress = ECDSA.recover(digest, _v, _r, _s);
         require(_owner == recoveredAddress, "GRT: invalid permit");
-        require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
         nonces[_owner] = nonces[_owner] + 1;
         _approve(_owner, _spender, _value);
