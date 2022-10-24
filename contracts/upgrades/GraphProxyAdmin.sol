@@ -32,7 +32,7 @@ contract GraphProxyAdmin is Governed {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("implementation()")) == 0x5c60da1b
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"5c60da1b");
-        require(success);
+        require(success, "Proxy impl call failed");
         return abi.decode(returndata, (address));
     }
 
@@ -46,7 +46,7 @@ contract GraphProxyAdmin is Governed {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("pendingImplementation()")) == 0x396f7b23
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"396f7b23");
-        require(success);
+        require(success, "Proxy pendingImpl call failed");
         return abi.decode(returndata, (address));
     }
 
@@ -59,7 +59,7 @@ contract GraphProxyAdmin is Governed {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("admin()")) == 0xf851a440
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"f851a440");
-        require(success);
+        require(success, "Proxy admin call failed");
         return abi.decode(returndata, (address));
     }
 

@@ -141,7 +141,7 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
         _acceptUpgrade();
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _getImplementation().delegatecall(data);
-        require(success);
+        require(success, "Impl call failed");
     }
 
     /**
