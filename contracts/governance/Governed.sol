@@ -9,12 +9,16 @@ pragma solidity ^0.7.6;
 contract Governed {
     // -- State --
 
+    /// Address of the governor
     address public governor;
+    /// Address of the new governor that is pending acceptance
     address public pendingGovernor;
 
     // -- Events --
 
+    /// Emitted when a new owner/governor has been set, but is pending acceptance
     event NewPendingOwnership(address indexed from, address indexed to);
+    /// Emitted when a new owner/governor has accepted their role
     event NewOwnership(address indexed from, address indexed to);
 
     /**
@@ -26,14 +30,15 @@ contract Governed {
     }
 
     /**
-     * @dev Initialize the governor to the contract caller.
+     * @dev Initialize the governor for this contract
+     * @param _initGovernor Address of the governor
      */
     function _initialize(address _initGovernor) internal {
         governor = _initGovernor;
     }
 
     /**
-     * @dev Admin function to begin change of governor. The `_newGovernor` must call
+     * @notice Admin function to begin change of governor. The `_newGovernor` must call
      * `acceptOwnership` to finalize the transfer.
      * @param _newGovernor Address of new `governor`
      */
@@ -47,7 +52,7 @@ contract Governed {
     }
 
     /**
-     * @dev Admin function for pending governor to accept role and update governor.
+     * @notice Admin function for pending governor to accept role and update governor.
      * This function must called by the pending governor.
      */
     function acceptOwnership() external {

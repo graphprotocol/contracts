@@ -13,13 +13,14 @@ import "./Pausable.sol";
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 contract Controller is Governed, Pausable, IController {
-    // Track contract ids to contract proxy address
+    /// @dev Track contract ids to contract proxy address
     mapping(bytes32 => address) private registry;
 
+    /// Emitted when the proxy address for a protocol contract has been set
     event SetContractProxy(bytes32 indexed id, address contractAddress);
 
     /**
-     * @dev Contract constructor.
+     * @notice Controller contract constructor.
      */
     constructor() {
         Governed._initialize(msg.sender);
@@ -74,6 +75,7 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Get contract proxy address by its id
      * @param _id Contract id
+     * @return Address of the proxy contract for the provided id
      */
     function getContractProxy(bytes32 _id) public view override returns (address) {
         return registry[_id];
@@ -120,6 +122,7 @@ contract Controller is Governed, Pausable, IController {
 
     /**
      * @notice Getter to access paused
+     * @return True if the contracts are paused, false otherwise
      */
     function paused() external view override returns (bool) {
         return _paused;
@@ -127,6 +130,7 @@ contract Controller is Governed, Pausable, IController {
 
     /**
      * @notice Getter to access partial pause status
+     * @return True if the contracts are partially paused, false otherwise
      */
     function partialPaused() external view override returns (bool) {
         return _partialPaused;

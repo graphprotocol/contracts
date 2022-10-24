@@ -39,22 +39,26 @@ contract GraphUpgradeable {
      */
     function _implementation() internal view returns (address impl) {
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             impl := sload(slot)
         }
     }
 
     /**
-     * @dev Accept to be an implementation of proxy.
+     * @notice Accept to be an implementation of proxy.
+     * @param _proxy Proxy to accept
      */
     function acceptProxy(IGraphProxy _proxy) external onlyProxyAdmin(_proxy) {
         _proxy.acceptUpgrade();
     }
 
     /**
-     * @dev Accept to be an implementation of proxy and then call a function from the new
+     * @notice Accept to be an implementation of proxy and then call a function from the new
      * implementation as specified by `_data`, which should be an encoded function call. This is
      * useful to initialize new storage variables in the proxied contract.
+     * @param _proxy Proxy to accept
+     * @param _data Calldata for the initialization function call (including selector)
      */
     function acceptProxyAndCall(IGraphProxy _proxy, bytes calldata _data)
         external

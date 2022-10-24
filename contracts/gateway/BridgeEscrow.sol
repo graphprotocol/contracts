@@ -16,7 +16,7 @@ import "../token/IGraphToken.sol";
  */
 contract BridgeEscrow is Initializable, GraphUpgradeable, Managed {
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize the BridgeEscrow contract.
      * @param _controller Address of the Controller that manages this contract
      */
     function initialize(address _controller) external onlyImpl initializer {
@@ -24,7 +24,7 @@ contract BridgeEscrow is Initializable, GraphUpgradeable, Managed {
     }
 
     /**
-     * @dev Approve a spender (i.e. a bridge that manages the GRT funds held by the escrow)
+     * @notice Approve a spender (i.e. a bridge that manages the GRT funds held by the escrow)
      * @param _spender Address of the spender that will be approved
      */
     function approveAll(address _spender) external onlyGovernor {
@@ -32,7 +32,7 @@ contract BridgeEscrow is Initializable, GraphUpgradeable, Managed {
     }
 
     /**
-     * @dev Revoke a spender (i.e. a bridge that will no longer manage the GRT funds held by the escrow)
+     * @notice Revoke a spender (i.e. a bridge that will no longer manage the GRT funds held by the escrow)
      * @param _spender Address of the spender that will be revoked
      */
     function revokeAll(address _spender) external onlyGovernor {

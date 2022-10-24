@@ -28,14 +28,19 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
+    /// @dev Hash of the EIP-712 Domain type
     bytes32 private immutable DOMAIN_TYPE_HASH =
         keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
         );
+    /// @dev Hash of the EIP-712 Domain name
     bytes32 private immutable DOMAIN_NAME_HASH = keccak256("Graph Token");
+    /// @dev Hash of the EIP-712 Domain version
     bytes32 private immutable DOMAIN_VERSION_HASH = keccak256("0");
+    /// @dev EIP-712 Domain salt
     bytes32 private immutable DOMAIN_SALT =
         0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591; // Randomly generated salt
+    /// @dev Hash of the EIP-712 permit type
     bytes32 private immutable PERMIT_TYPEHASH =
         keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
@@ -43,25 +48,30 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
 
     // -- State --
 
-    // solhint-disable-next-line var-name-mixedcase
-    bytes32 private DOMAIN_SEPARATOR;
+    /// @dev EIP-712 Domain separator
+    bytes32 private DOMAIN_SEPARATOR; // solhint-disable-line var-name-mixedcase
+    /// @dev Addresses for which this mapping is true are allowed to mint tokens
     mapping(address => bool) private _minters;
+    /// Nonces for permit signatures for each token holder
     mapping(address => uint256) public nonces;
-    // Storage gap added in case we need to add state variables to this contract
+    /// @dev Storage gap added in case we need to add state variables to this contract
     uint256[47] private __gap;
 
     // -- Events --
 
+    /// Emitted when a new minter is added
     event MinterAdded(address indexed account);
+    /// Emitted when a minter is removed
     event MinterRemoved(address indexed account);
 
+    /// @dev Reverts if the caller is not an authorized minter
     modifier onlyMinter() {
         require(isMinter(msg.sender), "Only minter can call");
         _;
     }
 
     /**
-     * @dev Approve token allowance by validating a message signed by the holder.
+     * @notice Approve token allowance by validating a message signed by the holder.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
@@ -98,7 +108,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Add a new minter.
+     * @notice Add a new minter.
      * @param _account Address of the minter
      */
     function addMinter(address _account) external onlyGovernor {
@@ -107,7 +117,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Remove a minter.
+     * @notice Remove a minter.
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
@@ -116,7 +126,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Renounce to be a minter.
+     * @notice Renounce being a minter.
      */
     function renounceMinter() external {
         require(isMinter(msg.sender), "NOT_A_MINTER");
@@ -124,7 +134,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Mint new tokens.
+     * @notice Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
      */
@@ -133,7 +143,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Return if the `_account` is a minter or not.
+     * @notice Return if the `_account` is a minter or not.
      * @param _account Address to check
      * @return True if the `_account` is minter
      */

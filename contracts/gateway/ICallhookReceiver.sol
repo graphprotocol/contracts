@@ -10,7 +10,7 @@ pragma solidity ^0.7.6;
 
 interface ICallhookReceiver {
     /**
-     * @dev Receive tokens with a callhook from the bridge
+     * @notice Receive tokens with a callhook from the bridge
      * @param _from Token sender in L1
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data

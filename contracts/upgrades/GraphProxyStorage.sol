@@ -68,6 +68,7 @@ contract GraphProxyStorage {
      */
     function _getAdmin() internal view returns (address adm) {
         bytes32 slot = ADMIN_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             adm := sload(slot)
         }
@@ -79,6 +80,7 @@ contract GraphProxyStorage {
      */
     function _setAdmin(address _newAdmin) internal {
         bytes32 slot = ADMIN_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newAdmin)
         }
@@ -92,6 +94,7 @@ contract GraphProxyStorage {
      */
     function _getImplementation() internal view returns (address impl) {
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             impl := sload(slot)
         }
@@ -103,6 +106,7 @@ contract GraphProxyStorage {
      */
     function _getPendingImplementation() internal view returns (address impl) {
         bytes32 slot = PENDING_IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             impl := sload(slot)
         }
@@ -116,6 +120,7 @@ contract GraphProxyStorage {
         address oldImplementation = _getImplementation();
 
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newImplementation)
         }
@@ -131,6 +136,7 @@ contract GraphProxyStorage {
         address oldPendingImplementation = _getPendingImplementation();
 
         bytes32 slot = PENDING_IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newImplementation)
         }

@@ -23,20 +23,20 @@ import "../token/L2GraphToken.sol";
 contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, ReentrancyGuardUpgradeable {
     using SafeMath for uint256;
 
-    // Address of the Graph Token contract on L1
+    /// Address of the Graph Token contract on L1
     address public l1GRT;
-    // Address of the L1GraphTokenGateway that is the counterpart of this gateway on L1
+    /// Address of the L1GraphTokenGateway that is the counterpart of this gateway on L1
     address public l1Counterpart;
-    // Address of the Arbitrum Gateway Router on L2
+    /// Address of the Arbitrum Gateway Router on L2
     address public l2Router;
 
-    // Calldata included in an outbound transfer, stored as a structure for convenience and stack depth
+    /// @dev Calldata included in an outbound transfer, stored as a structure for convenience and stack depth
     struct OutboundCalldata {
         address from;
         bytes extraData;
     }
 
-    // Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
+    /// Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
     event DepositFinalized(
         address indexed l1Token,
         address indexed from,
@@ -44,7 +44,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         uint256 amount
     );
 
-    // Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
+    /// Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
     event WithdrawalInitiated(
         address l1Token,
         address indexed from,
@@ -54,11 +54,11 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         uint256 amount
     );
 
-    // Emitted when the Arbitrum Gateway Router address on L2 has been updated
+    /// Emitted when the Arbitrum Gateway Router address on L2 has been updated
     event L2RouterSet(address l2Router);
-    // Emitted when the L1 Graph Token address has been updated
+    /// Emitted when the L1 Graph Token address has been updated
     event L1TokenAddressSet(address l1GRT);
-    // Emitted when the address of the counterpart gateway on L1 has been updated
+    /// Emitted when the address of the counterpart gateway on L1 has been updated
     event L1CounterpartAddressSet(address l1Counterpart);
 
     /**
@@ -74,8 +74,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @dev Initialize this contract.
-     * The contract will be paused.
+     * @notice Initialize the L2GraphTokenGateway contract.
+     * @dev The contract will be paused.
      * Note some parameters have to be set separately as they are generally
      * not expected to be available at initialization time:
      * - l2Router using setL2Router
@@ -91,7 +91,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @dev Sets the address of the Arbitrum Gateway Router on L2
+     * @notice Sets the address of the Arbitrum Gateway Router on L2
      * @param _l2Router Address of the L2 Router (provided by Arbitrum)
      */
     function setL2Router(address _l2Router) external onlyGovernor {
@@ -101,7 +101,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @dev Sets the address of the Graph Token on L1
+     * @notice Sets the address of the Graph Token on L1
      * @param _l1GRT L1 address of the Graph Token contract
      */
     function setL1TokenAddress(address _l1GRT) external onlyGovernor {
@@ -111,7 +111,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @dev Sets the address of the counterpart gateway on L1
+     * @notice Sets the address of the counterpart gateway on L1
      * @param _l1Counterpart Address of the L1GraphTokenGateway on L1
      */
     function setL1CounterpartAddress(address _l1Counterpart) external onlyGovernor {

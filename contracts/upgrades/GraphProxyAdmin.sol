@@ -16,15 +16,16 @@ import "./GraphUpgradeable.sol";
  */
 contract GraphProxyAdmin is Governed {
     /**
-     * @dev Contract constructor.
+     * @notice Contract constructor.
      */
     constructor() {
         Governed._initialize(msg.sender);
     }
 
     /**
-     * @dev Returns the current implementation of a proxy.
-     * This is needed because only the proxy admin can query it.
+     * @notice Returns the current implementation of a proxy.
+     * @dev This is needed because only the proxy admin can query it.
+     * @param _proxy Address of the proxy for which to get the implementation.
      * @return The address of the current implementation of the proxy.
      */
     function getProxyImplementation(IGraphProxy _proxy) public view returns (address) {
@@ -36,8 +37,9 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Returns the pending implementation of a proxy.
-     * This is needed because only the proxy admin can query it.
+     * @notice Returns the pending implementation of a proxy.
+     * @dev This is needed because only the proxy admin can query it.
+     * @param _proxy Address of the proxy for which to get the pending implementation.
      * @return The address of the pending implementation of the proxy.
      */
     function getProxyPendingImplementation(IGraphProxy _proxy) public view returns (address) {
@@ -49,7 +51,8 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Returns the admin of a proxy. Only the admin can query it.
+     * @notice Returns the admin of a proxy. Only the admin can query it.
+     * @param _proxy Address of the proxy for which to get the admin.
      * @return The address of the current admin of the proxy.
      */
     function getProxyAdmin(IGraphProxy _proxy) public view returns (address) {
@@ -61,7 +64,7 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Changes the admin of a proxy.
+     * @notice Changes the admin of a proxy.
      * @param _proxy Proxy to change admin.
      * @param _newAdmin Address to transfer proxy administration to.
      */
@@ -70,7 +73,7 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Upgrades a proxy to the newest implementation of a contract.
+     * @notice Upgrades a proxy to the newest implementation of a contract.
      * @param _proxy Proxy to be upgraded.
      * @param _implementation the address of the Implementation.
      */
@@ -79,7 +82,7 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Accepts a proxy.
+     * @notice Accepts a proxy.
      * @param _implementation Address of the implementation accepting the proxy.
      * @param _proxy Address of the proxy being accepted.
      */
@@ -88,7 +91,7 @@ contract GraphProxyAdmin is Governed {
     }
 
     /**
-     * @dev Accepts a proxy and call a function on the implementation.
+     * @notice Accepts a proxy and call a function on the implementation.
      * @param _implementation Address of the implementation accepting the proxy.
      * @param _proxy Address of the proxy being accepted.
      * @param _data Encoded function to call on the implementation after accepting the proxy.

@@ -12,7 +12,7 @@ import "../governance/Managed.sol";
  * @dev This includes everything that's shared between the L1 and L2 sides of the bridge.
  */
 abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITokenGateway {
-    // Storage gap added in case we need to add state variables to this contract
+    /// @dev Storage gap added in case we need to add state variables to this contract
     uint256[50] private __gap;
 
     /**
@@ -56,6 +56,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
 
     /**
      * @notice Getter to access paused state of this contract
+     * @return True if the contract is paused, false otherwise
      */
     function paused() external view returns (bool) {
         return _paused;

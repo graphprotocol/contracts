@@ -22,20 +22,20 @@ import "./GraphTokenGateway.sol";
 contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMessenger {
     using SafeMath for uint256;
 
-    // Address of the Graph Token contract on L2
+    /// Address of the Graph Token contract on L2
     address public l2GRT;
-    // Address of the Arbitrum Inbox
+    /// Address of the Arbitrum Inbox
     address public inbox;
-    // Address of the Arbitrum Gateway Router on L1
+    /// Address of the Arbitrum Gateway Router on L1
     address public l1Router;
-    // Address of the L2GraphTokenGateway on L2 that is the counterpart of this gateway
+    /// Address of the L2GraphTokenGateway on L2 that is the counterpart of this gateway
     address public l2Counterpart;
-    // Address of the BridgeEscrow contract that holds the GRT in the bridge
+    /// Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
-    // Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
+    /// Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
     mapping(address => bool) public callhookWhitelist;
 
-    // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
+    /// Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
         address l1Token,
         address indexed from,
@@ -44,7 +44,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         uint256 amount
     );
 
-    // Emitted when an incoming transfer is finalized, i.e tokens are withdrawn from L2 to L1
+    /// Emitted when an incoming transfer is finalized, i.e tokens are withdrawn from L2 to L1
     event WithdrawalFinalized(
         address l1Token,
         address indexed from,
@@ -53,17 +53,17 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         uint256 amount
     );
 
-    // Emitted when the Arbitrum Inbox and Gateway Router addresses have been updated
+    /// Emitted when the Arbitrum Inbox and Gateway Router addresses have been updated
     event ArbitrumAddressesSet(address inbox, address l1Router);
-    // Emitted when the L2 GRT address has been updated
+    /// Emitted when the L2 GRT address has been updated
     event L2TokenAddressSet(address l2GRT);
-    // Emitted when the counterpart L2GraphTokenGateway address has been updated
+    /// Emitted when the counterpart L2GraphTokenGateway address has been updated
     event L2CounterpartAddressSet(address l2Counterpart);
-    // Emitted when the escrow address has been updated
+    /// Emitted when the escrow address has been updated
     event EscrowAddressSet(address escrow);
-    // Emitted when an address is added to the callhook whitelist
+    /// Emitted when an address is added to the callhook whitelist
     event AddedToCallhookWhitelist(address newWhitelisted);
-    // Emitted when an address is removed from the callhook whitelist
+    /// Emitted when an address is removed from the callhook whitelist
     event RemovedFromCallhookWhitelist(address notWhitelisted);
 
     /**
@@ -86,8 +86,8 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Initialize this contract.
-     * The contract will be paused.
+     * @notice Initialize the L1GraphTokenGateway contract.
+     * @dev The contract will be paused.
      * Note some parameters have to be set separately as they are generally
      * not expected to be available at initialization time:
      * - inbox  and l1Router using setArbitrumAddresses
@@ -104,7 +104,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Sets the addresses for L1 contracts provided by Arbitrum
+     * @notice Sets the addresses for L1 contracts provided by Arbitrum
      * @param _inbox Address of the Inbox that is part of the Arbitrum Bridge
      * @param _l1Router Address of the Gateway Router
      */
@@ -119,7 +119,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Sets the address of the L2 Graph Token
+     * @notice Sets the address of the L2 Graph Token
      * @param _l2GRT Address of the GRT contract on L2
      */
     function setL2TokenAddress(address _l2GRT) external onlyGovernor {
@@ -129,7 +129,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Sets the address of the counterpart gateway on L2
+     * @notice Sets the address of the counterpart gateway on L2
      * @param _l2Counterpart Address of the corresponding L2GraphTokenGateway on Arbitrum
      */
     function setL2CounterpartAddress(address _l2Counterpart) external onlyGovernor {
@@ -139,7 +139,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Sets the address of the escrow contract on L1
+     * @notice Sets the address of the escrow contract on L1
      * @param _escrow Address of the BridgeEscrow
      */
     function setEscrowAddress(address _escrow) external onlyGovernor {
@@ -150,7 +150,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Adds an address to the callhook whitelist.
+     * @notice Adds an address to the callhook whitelist.
      * This address will be allowed to include callhooks when transferring tokens.
      * @param _newWhitelisted Address to add to the whitelist
      */
@@ -163,7 +163,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Removes an address from the callhook whitelist.
+     * @notice Removes an address from the callhook whitelist.
      * This address will no longer be allowed to include callhooks when transferring tokens.
      * @param _notWhitelisted Address to remove from the whitelist
      */
