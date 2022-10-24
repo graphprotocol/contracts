@@ -283,7 +283,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * @return Sender of the tx
      * @return Any other data sent to L1
      */
-    function parseOutboundData(bytes memory _data) private view returns (address, bytes memory) {
+    function parseOutboundData(bytes calldata _data) private view returns (address, bytes memory) {
         address from;
         bytes memory extraData;
         if (msg.sender == l2Router) {

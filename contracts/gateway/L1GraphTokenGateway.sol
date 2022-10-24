@@ -285,7 +285,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * @return Base ether value required to keep retryable ticket alive
      * @return Additional data sent to L2
      */
-    function parseOutboundData(bytes memory _data)
+    function parseOutboundData(bytes calldata _data)
         private
         view
         returns (
