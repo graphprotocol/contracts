@@ -14,7 +14,7 @@ import "./Pausable.sol";
  */
 contract Controller is Governed, Pausable, IController {
     /// @dev Track contract ids to contract proxy address
-    mapping(bytes32 => address) private registry;
+    mapping(bytes32 => address) private _registry;
 
     /// Emitted when the proxy address for a protocol contract has been set
     event SetContractProxy(bytes32 indexed id, address contractAddress);
@@ -59,7 +59,7 @@ contract Controller is Governed, Pausable, IController {
         onlyGovernor
     {
         require(_contractAddress != address(0), "Contract address must be set");
-        registry[_id] = _contractAddress;
+        _registry[_id] = _contractAddress;
         emit SetContractProxy(_id, _contractAddress);
     }
 
@@ -68,7 +68,7 @@ contract Controller is Governed, Pausable, IController {
      * @param _id Contract id (keccak256 hash of contract name)
      */
     function unsetContractProxy(bytes32 _id) external override onlyGovernor {
-        registry[_id] = address(0);
+        _registry[_id] = address(0);
         emit SetContractProxy(_id, address(0));
     }
 
@@ -78,7 +78,7 @@ contract Controller is Governed, Pausable, IController {
      * @return Address of the proxy contract for the provided id
      */
     function getContractProxy(bytes32 _id) public view override returns (address) {
-        return registry[_id];
+        return _registry[_id];
     }
 
     /**
@@ -88,7 +88,7 @@ contract Controller is Governed, Pausable, IController {
      */
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
         require(_controller != address(0), "Controller must be set");
-        return IManaged(registry[_id]).setController(_controller);
+        return IManaged(_registry[_id]).setController(_controller);
     }
 
     // -- Pausing --

@@ -28,7 +28,7 @@ contract Managed is IManaged {
     /// Controller that contract is registered with
     IController public controller;
     /// @dev Cache for the addresses of the contracts retrieved from the controller
-    mapping(bytes32 => address) private addressCache;
+    mapping(bytes32 => address) private _addressCache;
     /// @dev Gap for future storage variables
     uint256[10] private __gap;
 
@@ -195,7 +195,7 @@ contract Managed is IManaged {
      * @return Address of the contract
      */
     function _resolveContract(bytes32 _nameHash) internal view returns (address) {
-        address contractAddress = addressCache[_nameHash];
+        address contractAddress = _addressCache[_nameHash];
         if (contractAddress == address(0)) {
             contractAddress = controller.getContractProxy(_nameHash);
         }
@@ -209,8 +209,8 @@ contract Managed is IManaged {
     function _syncContract(string memory _name) internal {
         bytes32 nameHash = keccak256(abi.encodePacked(_name));
         address contractAddress = controller.getContractProxy(nameHash);
-        if (addressCache[nameHash] != contractAddress) {
-            addressCache[nameHash] = contractAddress;
+        if (_addressCache[nameHash] != contractAddress) {
+            _addressCache[nameHash] = contractAddress;
             emit ContractSynced(nameHash, contractAddress);
         }
     }
