@@ -114,7 +114,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
-        require(_minters[_account], "NOT_A_MINTER");
+        require(isMinter(_account), "NOT_A_MINTER");
         _removeMinter(_account);
     }
 
@@ -122,7 +122,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
      * @dev Renounce to be a minter.
      */
     function renounceMinter() external {
-        require(_minters[msg.sender], "NOT_A_MINTER");
+        require(isMinter(msg.sender), "NOT_A_MINTER");
         _removeMinter(msg.sender);
     }
 
