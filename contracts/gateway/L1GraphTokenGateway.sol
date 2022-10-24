@@ -143,7 +143,8 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * @param _escrow Address of the BridgeEscrow
      */
     function setEscrowAddress(address _escrow) external onlyGovernor {
-        require(_escrow != address(0) && Address.isContract(_escrow), "INVALID_ESCROW");
+        require(_escrow != address(0), "INVALID_ESCROW");
+        require(Address.isContract(_escrow), "MUST_BE_CONTRACT");
         escrow = _escrow;
         emit EscrowAddressSet(_escrow);
     }
