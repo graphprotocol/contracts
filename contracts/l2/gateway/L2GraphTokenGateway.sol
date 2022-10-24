@@ -143,7 +143,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         bytes calldata _data
     ) public payable override notPaused nonReentrant returns (bytes memory) {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
-        require(_amount > 0, "INVALID_ZERO_AMOUNT");
+        require(_amount != 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
         require(_to != address(0), "INVALID_DESTINATION");
 

@@ -203,7 +203,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     ) external payable override notPaused returns (bytes memory) {
         IGraphToken token = graphToken();
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
-        require(_amount > 0, "INVALID_ZERO_AMOUNT");
+        require(_amount != 0, "INVALID_ZERO_AMOUNT");
         require(_to != address(0), "INVALID_DESTINATION");
 
         // nested scopes to avoid stack too deep errors
