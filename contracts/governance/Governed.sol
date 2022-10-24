@@ -51,15 +51,16 @@ contract Governed {
      * This function must called by the pending governor.
      */
     function acceptOwnership() external {
+        address _pendingGovernor = pendingGovernor;
         require(
-            pendingGovernor != address(0) && msg.sender == pendingGovernor,
+            _pendingGovernor != address(0) && msg.sender == _pendingGovernor,
             "Caller must be pending governor"
         );
 
         address oldGovernor = governor;
-        address oldPendingGovernor = pendingGovernor;
+        address oldPendingGovernor = _pendingGovernor;
 
-        governor = pendingGovernor;
+        governor = _pendingGovernor;
         pendingGovernor = address(0);
 
         emit NewOwnership(oldGovernor, governor);
