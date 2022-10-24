@@ -77,7 +77,7 @@ contract Controller is Governed, Pausable, IController {
      * @param _id Contract id
      * @return Address of the proxy contract for the provided id
      */
-    function getContractProxy(bytes32 _id) public view override returns (address) {
+    function getContractProxy(bytes32 _id) external view override returns (address) {
         return _registry[_id];
     }
 
