@@ -8,7 +8,7 @@ import "./IGraphProxy.sol";
  * @title Graph Upgradeable
  * @dev This contract is intended to be inherited from upgradeable contracts.
  */
-contract GraphUpgradeable {
+abstract contract GraphUpgradeable {
     /**
      * @dev Storage slot with the address of the current implementation.
      * This is the keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1, and is

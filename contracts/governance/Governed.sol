@@ -6,7 +6,7 @@ pragma solidity ^0.7.6;
  * @title Graph Governance contract
  * @dev All contracts that will be owned by a Governor entity should extend this contract.
  */
-contract Governed {
+abstract contract Governed {
     // -- State --
 
     /// Address of the governor

@@ -22,7 +22,7 @@ import "./IManaged.sol";
  * Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-contract Managed is IManaged {
+abstract contract Managed is IManaged {
     // -- State --
 
     /// Controller that contract is registered with

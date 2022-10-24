@@ -8,7 +8,7 @@ pragma solidity ^0.7.6;
  * This contract does not actually define state variables managed by the compiler
  * but uses fixed slot locations.
  */
-contract GraphProxyStorage {
+abstract contract GraphProxyStorage {
     /**
      * @dev Storage slot with the address of the current implementation.
      * This is the keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1, and is

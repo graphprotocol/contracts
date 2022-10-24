@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-contract Pausable {
+abstract contract Pausable {
     /**
      * @dev "Partial paused" pauses exit and enter functions for GRT, but not internal
      * functions, such as allocating
