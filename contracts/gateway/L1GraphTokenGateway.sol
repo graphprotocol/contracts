@@ -111,6 +111,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     function setArbitrumAddresses(address _inbox, address _l1Router) external onlyGovernor {
         require(_inbox != address(0), "INVALID_INBOX");
         require(_l1Router != address(0), "INVALID_L1_ROUTER");
+        require(!callhookAllowlist[_l1Router], "ROUTER_CANT_BE_ALLOWLISTED");
         require(Address.isContract(_inbox), "INBOX_MUST_BE_CONTRACT");
         require(Address.isContract(_l1Router), "ROUTER_MUST_BE_CONTRACT");
         inbox = _inbox;
@@ -156,6 +157,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      */
     function addToCallhookAllowlist(address _newAllowlisted) external onlyGovernor {
         require(_newAllowlisted != address(0), "INVALID_ADDRESS");
+        require(_newAllowlisted != l1Router, "CANT_ALLOW_ROUTER");
         require(Address.isContract(_newAllowlisted), "MUST_BE_CONTRACT");
         require(!callhookAllowlist[_newAllowlisted], "ALREADY_ALLOWLISTED");
         callhookAllowlist[_newAllowlisted] = true;
