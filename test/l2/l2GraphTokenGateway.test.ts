@@ -126,7 +126,7 @@ describe('L2GraphTokenGateway', () => {
     describe('setL2Router', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l2GraphTokenGateway.connect(tokenSender.signer).setL2Router(mockRouter.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets router address', async function () {
         const tx = l2GraphTokenGateway.connect(governor.signer).setL2Router(mockRouter.address)
@@ -140,7 +140,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           .setL1TokenAddress(mockL1GRT.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2GRT', async function () {
         const tx = l2GraphTokenGateway.connect(governor.signer).setL1TokenAddress(mockL1GRT.address)
@@ -154,7 +154,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           .setL1CounterpartAddress(mockL1Gateway.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets L1Counterpart', async function () {
         const tx = l2GraphTokenGateway
@@ -169,9 +169,9 @@ describe('L2GraphTokenGateway', () => {
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
         let tx = l2GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
         tx = l2GraphTokenGateway.connect(tokenSender.signer).setPaused(true)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
       })
       it('cannot be paused if some state variables are not set', async function () {
         let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
@@ -205,7 +205,7 @@ describe('L2GraphTokenGateway', () => {
           const tx = l2GraphTokenGateway
             .connect(tokenSender.signer)
             .setPauseGuardian(pauseGuardian.address)
-          await expect(tx).revertedWith('Caller must be Controller governor')
+          await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
           const tx = l2GraphTokenGateway

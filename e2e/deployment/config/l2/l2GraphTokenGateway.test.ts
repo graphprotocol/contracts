@@ -31,19 +31,19 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
 
     it('setL2Router should revert', async function () {
       const tx = L2GraphTokenGateway.connect(unauthorized).setL2Router(unauthorized.address)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('setL1TokenAddress should revert', async function () {
       const tx = L2GraphTokenGateway.connect(unauthorized).setL1TokenAddress(unauthorized.address)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('setL1CounterpartAddress should revert', async function () {
       const tx = L2GraphTokenGateway.connect(unauthorized).setL1CounterpartAddress(
         unauthorized.address,
       )
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('finalizeInboundTransfer should revert', async function () {

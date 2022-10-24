@@ -21,7 +21,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
     modifier onlyGovernorOrGuardian() {
         require(
             msg.sender == controller.getGovernor() || msg.sender == pauseGuardian,
-            "Only Governor or Guardian can call"
+            "Only Governor or Guardian"
         );
         _;
     }

@@ -133,7 +133,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .setArbitrumAddresses(inboxMock.address, mockRouter.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('rejects setting an EOA as router or inbox', async function () {
         let tx = l1GraphTokenGateway
@@ -162,7 +162,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .setL2TokenAddress(mockL2GRT.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2GRT', async function () {
         const tx = l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(mockL2GRT.address)
@@ -176,7 +176,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .setL2CounterpartAddress(mockL2Gateway.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets L2Counterpart', async function () {
         const tx = l1GraphTokenGateway
@@ -193,7 +193,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .setEscrowAddress(bridgeEscrow.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets escrow', async function () {
         const tx = l1GraphTokenGateway
@@ -210,7 +210,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .addToCallhookWhitelist(fixtureContracts.rewardsManager.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
         expect(
           await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
         ).eq(false)
@@ -241,7 +241,7 @@ describe('L1GraphTokenGateway', () => {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
           .removeFromCallhookWhitelist(fixtureContracts.rewardsManager.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
         expect(
           await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
         ).eq(true)
@@ -264,9 +264,9 @@ describe('L1GraphTokenGateway', () => {
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
         let tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
         tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(true)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
       })
       it('cannot be unpaused if some state variables are not set', async function () {
         let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
@@ -303,7 +303,7 @@ describe('L1GraphTokenGateway', () => {
           const tx = l1GraphTokenGateway
             .connect(tokenSender.signer)
             .setPauseGuardian(pauseGuardian.address)
-          await expect(tx).revertedWith('Caller must be Controller governor')
+          await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
           const tx = l1GraphTokenGateway

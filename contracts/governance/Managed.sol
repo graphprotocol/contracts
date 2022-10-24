@@ -50,7 +50,7 @@ contract Managed {
     }
 
     function _onlyGovernor() internal view {
-        require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
+        require(msg.sender == controller.getGovernor(), "Only Controller governor");
     }
 
     function _onlyController() internal view {

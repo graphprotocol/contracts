@@ -34,38 +34,38 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
         unauthorized.address,
         unauthorized.address,
       )
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('setL2TokenAddress should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).setL2TokenAddress(unauthorized.address)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('setL2CounterpartAddress should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).setL2CounterpartAddress(
         unauthorized.address,
       )
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('setEscrowAddress should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).setEscrowAddress(unauthorized.address)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('addToCallhookWhitelist should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).addToCallhookWhitelist(
         unauthorized.address,
       )
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('removeFromCallhookWhitelist should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).removeFromCallhookWhitelist(
         unauthorized.address,
       )
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('finalizeInboundTransfer should revert', async function () {

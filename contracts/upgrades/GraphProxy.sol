@@ -102,7 +102,7 @@ contract GraphProxy is GraphProxyStorage {
      * NOTE: Only the admin can call this function.
      */
     function setAdmin(address _newAdmin) external ifAdmin {
-        require(_newAdmin != address(0), "Cannot change the admin of a proxy to the zero address");
+        require(_newAdmin != address(0), "Admin cant be the zero address");
         _setAdmin(_newAdmin);
     }
 
@@ -138,10 +138,10 @@ contract GraphProxy is GraphProxyStorage {
      */
     function _acceptUpgrade() internal {
         address _pendingImplementation = _pendingImplementation();
-        require(Address.isContract(_pendingImplementation), "Implementation must be a contract");
+        require(Address.isContract(_pendingImplementation), "Impl must be a contract");
         require(
             _pendingImplementation != address(0) && msg.sender == _pendingImplementation,
-            "Caller must be the pending implementation"
+            "Only pending implementation"
         );
 
         _setImplementation(_pendingImplementation);

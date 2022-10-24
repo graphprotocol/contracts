@@ -29,7 +29,7 @@ contract GraphUpgradeable {
      * @dev Check if the caller is the implementation.
      */
     modifier onlyImpl() {
-        require(msg.sender == _implementation(), "Caller must be the implementation");
+        require(msg.sender == _implementation(), "Only implementation");
         _;
     }
 

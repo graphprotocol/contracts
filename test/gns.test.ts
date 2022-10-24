@@ -546,7 +546,7 @@ describe('GNS', () => {
 
       it('reject set `ownerTaxPercentage` if not allowed', async function () {
         const tx = gns.connect(me.signer).setOwnerTaxPercentage(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -1034,7 +1034,7 @@ describe('GNS', () => {
 
       // Batch send transaction
       const tx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('should revert if batching a call to initialize', async function () {
@@ -1050,7 +1050,7 @@ describe('GNS', () => {
 
       // Batch send transaction
       const tx = gns.connect(me.signer).multicall([tx1.data, tx2.data])
-      await expect(tx).revertedWith('Caller must be the implementation')
+      await expect(tx).revertedWith('Only implementation')
     })
 
     it('should revert if trying to call a private function', async function () {
