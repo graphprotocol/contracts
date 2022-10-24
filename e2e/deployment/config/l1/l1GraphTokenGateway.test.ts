@@ -26,7 +26,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
   describe('calls with unauthorized user', () => {
     it('initialize should revert', async function () {
       const tx = L1GraphTokenGateway.connect(unauthorized).initialize(unauthorized.address)
-      await expect(tx).revertedWith('Caller must be the implementation')
+      await expect(tx).revertedWith('Only implementation')
     })
 
     it('setArbitrumAddresses should revert', async function () {
