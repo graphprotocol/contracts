@@ -3,14 +3,16 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "../../arbitrum/L2ArbitrumMessenger.sol";
-import "../../arbitrum/AddressAliasHelper.sol";
-import "../../gateway/GraphTokenGateway.sol";
-import "../../gateway/ICallhookReceiver.sol";
-import "../token/L2GraphToken.sol";
+import { L2ArbitrumMessenger } from "../../arbitrum/L2ArbitrumMessenger.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { ITokenGateway } from "../../arbitrum/ITokenGateway.sol";
+import { Managed } from "../../governance/Managed.sol";
+import { GraphTokenGateway } from "../../gateway/GraphTokenGateway.sol";
+import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
+import { L2GraphToken } from "../token/L2GraphToken.sol";
 
 /**
  * @title L2 Graph Token Gateway Contract
@@ -21,7 +23,7 @@ import "../token/L2GraphToken.sol";
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
 contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, ReentrancyGuardUpgradeable {
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
 
     /// Address of the Graph Token contract on L1
     address public l1GRT;

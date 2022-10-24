@@ -2,11 +2,11 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
+import { ECDSAUpgradeable } from "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 
-import "../../upgrades/GraphUpgradeable.sol";
-import "../../governance/Governed.sol";
+import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
+import { Governed } from "../../governance/Governed.sol";
 
 /**
  * @title GraphTokenUpgradeable contract
@@ -100,7 +100,7 @@ abstract contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Burn
             )
         );
 
-        address recoveredAddress = ECDSA.recover(digest, _v, _r, _s);
+        address recoveredAddress = ECDSAUpgradeable.recover(digest, _v, _r, _s);
         require(_owner == recoveredAddress, "GRT: invalid permit");
 
         nonces[_owner] = nonces[_owner] + 1;

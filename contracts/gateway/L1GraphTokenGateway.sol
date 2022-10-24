@@ -4,11 +4,17 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "../arbitrum/L1ArbitrumMessenger.sol";
-import "./GraphTokenGateway.sol";
+import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
+import { IBridge } from "../arbitrum/IBridge.sol";
+import { IInbox } from "../arbitrum/IInbox.sol";
+import { IOutbox } from "../arbitrum/IOutbox.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { Managed } from "../governance/Managed.sol";
+import { GraphTokenGateway } from "./GraphTokenGateway.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract
@@ -20,7 +26,7 @@ import "./GraphTokenGateway.sol";
  * and https://github.com/livepeer/arbitrum-lpt-bridge)
  */
 contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMessenger {
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
 
     /// Address of the Graph Token contract on L2
     address public l2GRT;
@@ -112,8 +118,8 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         require(_inbox != address(0), "INVALID_INBOX");
         require(_l1Router != address(0), "INVALID_L1_ROUTER");
         require(!callhookAllowlist[_l1Router], "ROUTER_CANT_BE_ALLOWLISTED");
-        require(Address.isContract(_inbox), "INBOX_MUST_BE_CONTRACT");
-        require(Address.isContract(_l1Router), "ROUTER_MUST_BE_CONTRACT");
+        require(AddressUpgradeable.isContract(_inbox), "INBOX_MUST_BE_CONTRACT");
+        require(AddressUpgradeable.isContract(_l1Router), "ROUTER_MUST_BE_CONTRACT");
         inbox = _inbox;
         l1Router = _l1Router;
         emit ArbitrumAddressesSet(_inbox, _l1Router);
@@ -145,7 +151,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      */
     function setEscrowAddress(address _escrow) external onlyGovernor {
         require(_escrow != address(0), "INVALID_ESCROW");
-        require(Address.isContract(_escrow), "MUST_BE_CONTRACT");
+        require(AddressUpgradeable.isContract(_escrow), "MUST_BE_CONTRACT");
         escrow = _escrow;
         emit EscrowAddressSet(_escrow);
     }
@@ -158,7 +164,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     function addToCallhookAllowlist(address _newAllowlisted) external onlyGovernor {
         require(_newAllowlisted != address(0), "INVALID_ADDRESS");
         require(_newAllowlisted != l1Router, "CANT_ALLOW_ROUTER");
-        require(Address.isContract(_newAllowlisted), "MUST_BE_CONTRACT");
+        require(AddressUpgradeable.isContract(_newAllowlisted), "MUST_BE_CONTRACT");
         require(!callhookAllowlist[_newAllowlisted], "ALREADY_ALLOWLISTED");
         callhookAllowlist[_newAllowlisted] = true;
         emit AddedToCallhookAllowlist(_newAllowlisted);
