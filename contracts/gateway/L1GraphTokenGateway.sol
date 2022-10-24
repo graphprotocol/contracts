@@ -33,7 +33,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     /// Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
     /// Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
-    mapping(address => bool) public callhookWhitelist;
+    mapping(address => bool) public callhookAllowlist;
 
     /// Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
@@ -61,10 +61,10 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     event L2CounterpartAddressSet(address l2Counterpart);
     /// Emitted when the escrow address has been updated
     event EscrowAddressSet(address escrow);
-    /// Emitted when an address is added to the callhook whitelist
-    event AddedToCallhookWhitelist(address newWhitelisted);
-    /// Emitted when an address is removed from the callhook whitelist
-    event RemovedFromCallhookWhitelist(address notWhitelisted);
+    /// Emitted when an address is added to the callhook allowlist
+    event AddedToCallhookAllowlist(address newAllowlisted);
+    /// Emitted when an address is removed from the callhook allowlist
+    event RemovedFromCallhookAllowlist(address notAllowlisted);
 
     /**
      * @dev Allows a function to be called only by the gateway's L2 counterpart.
@@ -94,7 +94,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * - l2GRT using setL2TokenAddress
      * - l2Counterpart using setL2CounterpartAddress
      * - escrow using setEscrowAddress
-     * - whitelisted callhook callers using addToCallhookWhitelist
+     * - allowlisted callhook callers using addToCallhookAllowlist
      * - pauseGuardian using setPauseGuardian
      * @param _controller Address of the Controller that manages this contract
      */
@@ -150,28 +150,28 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Adds an address to the callhook whitelist.
+     * @notice Adds an address to the callhook allowlist.
      * This address will be allowed to include callhooks when transferring tokens.
-     * @param _newWhitelisted Address to add to the whitelist
+     * @param _newAllowlisted Address to add to the allowlist
      */
-    function addToCallhookWhitelist(address _newWhitelisted) external onlyGovernor {
-        require(_newWhitelisted != address(0), "INVALID_ADDRESS");
-        require(Address.isContract(_newWhitelisted), "MUST_BE_CONTRACT");
-        require(!callhookWhitelist[_newWhitelisted], "ALREADY_WHITELISTED");
-        callhookWhitelist[_newWhitelisted] = true;
-        emit AddedToCallhookWhitelist(_newWhitelisted);
+    function addToCallhookAllowlist(address _newAllowlisted) external onlyGovernor {
+        require(_newAllowlisted != address(0), "INVALID_ADDRESS");
+        require(Address.isContract(_newAllowlisted), "MUST_BE_CONTRACT");
+        require(!callhookAllowlist[_newAllowlisted], "ALREADY_ALLOWLISTED");
+        callhookAllowlist[_newAllowlisted] = true;
+        emit AddedToCallhookAllowlist(_newAllowlisted);
     }
 
     /**
-     * @notice Removes an address from the callhook whitelist.
+     * @notice Removes an address from the callhook allowlist.
      * This address will no longer be allowed to include callhooks when transferring tokens.
-     * @param _notWhitelisted Address to remove from the whitelist
+     * @param _notAllowlisted Address to remove from the allowlist
      */
-    function removeFromCallhookWhitelist(address _notWhitelisted) external onlyGovernor {
-        require(_notWhitelisted != address(0), "INVALID_ADDRESS");
-        require(callhookWhitelist[_notWhitelisted], "NOT_WHITELISTED");
-        callhookWhitelist[_notWhitelisted] = false;
-        emit RemovedFromCallhookWhitelist(_notWhitelisted);
+    function removeFromCallhookAllowlist(address _notAllowlisted) external onlyGovernor {
+        require(_notAllowlisted != address(0), "INVALID_ADDRESS");
+        require(callhookAllowlist[_notAllowlisted], "NOT_ALLOWLISTED");
+        callhookAllowlist[_notAllowlisted] = false;
+        emit RemovedFromCallhookAllowlist(_notAllowlisted);
     }
 
     /**
@@ -180,10 +180,10 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * The ticket must be redeemed on L2 to receive tokens at the specified address.
      * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
      * @dev maxGas and gasPriceBid must be set using Arbitrum's NodeInterface.estimateRetryableTicket method.
-     * Also note that whitelisted senders (some protocol contracts) can include additional calldata
+     * Also note that allowlisted senders (some protocol contracts) can include additional calldata
      * for a callhook to be executed on the L2 side when the tokens are received. In this case, the L2 transaction
      * can revert if the callhook reverts, potentially locking the tokens on the bridge if the callhook
-     * never succeeds. This requires extra care when adding contracts to the whitelist, but is necessary to ensure that
+     * never succeeds. This requires extra care when adding contracts to the allowlist, but is necessary to ensure that
      * the tickets can be retried in the case of a temporary failure, and to ensure the atomicity of callhooks
      * with token transfers.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
@@ -217,7 +217,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
                 bytes memory extraData;
                 (from, maxSubmissionCost, extraData) = parseOutboundData(_data);
                 require(
-                    extraData.length == 0 || callhookWhitelist[msg.sender] == true,
+                    extraData.length == 0 || callhookAllowlist[msg.sender] == true,
                     "CALL_HOOK_DATA_NOT_ALLOWED"
                 );
                 require(maxSubmissionCost != 0, "NO_SUBMISSION_COST");
@@ -318,7 +318,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * @param _from Address on L1 from which we're transferring tokens
      * @param _to Address on L2 to which we're transferring tokens
      * @param _amount Amount of GRT to transfer
-     * @param _data Additional call data for the L2 transaction, which must be empty unless the caller is whitelisted
+     * @param _data Additional call data for the L2 transaction, which must be empty unless the caller is allowlisted
      * @return Encoded calldata (including function selector) for the L2 transaction
      */
     function getOutboundCalldata(

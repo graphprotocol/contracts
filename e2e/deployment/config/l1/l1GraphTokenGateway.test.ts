@@ -54,15 +54,15 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
       await expect(tx).revertedWith('Only Controller governor')
     })
 
-    it('addToCallhookWhitelist should revert', async function () {
-      const tx = L1GraphTokenGateway.connect(unauthorized).addToCallhookWhitelist(
+    it('addToCallhookAllowlist should revert', async function () {
+      const tx = L1GraphTokenGateway.connect(unauthorized).addToCallhookAllowlist(
         unauthorized.address,
       )
       await expect(tx).revertedWith('Only Controller governor')
     })
 
-    it('removeFromCallhookWhitelist should revert', async function () {
-      const tx = L1GraphTokenGateway.connect(unauthorized).removeFromCallhookWhitelist(
+    it('removeFromCallhookAllowlist should revert', async function () {
+      const tx = L1GraphTokenGateway.connect(unauthorized).removeFromCallhookAllowlist(
         unauthorized.address,
       )
       await expect(tx).revertedWith('Only Controller governor')

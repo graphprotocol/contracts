@@ -205,59 +205,59 @@ describe('L1GraphTokenGateway', () => {
         expect(await l1GraphTokenGateway.escrow()).eq(bridgeEscrow.address)
       })
     })
-    describe('addToCallhookWhitelist', function () {
+    describe('addToCallhookAllowlist', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
-          .addToCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
-          await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
         ).eq(false)
       })
-      it('rejects adding an EOA to the callhook whitelist', async function () {
+      it('rejects adding an EOA to the callhook allowlist', async function () {
         const tx = l1GraphTokenGateway
           .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
+          .addToCallhookAllowlist(tokenSender.address)
         await expect(tx).revertedWith('MUST_BE_CONTRACT')
       })
-      it('adds an address to the callhook whitelist', async function () {
+      it('adds an address to the callhook allowlist', async function () {
         const tx = l1GraphTokenGateway
           .connect(governor.signer)
-          .addToCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx)
-          .emit(l1GraphTokenGateway, 'AddedToCallhookWhitelist')
+          .emit(l1GraphTokenGateway, 'AddedToCallhookAllowlist')
           .withArgs(fixtureContracts.rewardsManager.address)
         expect(
-          await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
         ).eq(true)
       })
     })
-    describe('removeFromCallhookWhitelist', function () {
+    describe('removeFromCallhookAllowlist', function () {
       it('is not callable by addreses that are not the governor', async function () {
         await l1GraphTokenGateway
           .connect(governor.signer)
-          .addToCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
-          .removeFromCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
-          await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
         ).eq(true)
       })
-      it('removes an address from the callhook whitelist', async function () {
+      it('removes an address from the callhook allowlist', async function () {
         await l1GraphTokenGateway
           .connect(governor.signer)
-          .addToCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         const tx = l1GraphTokenGateway
           .connect(governor.signer)
-          .removeFromCallhookWhitelist(fixtureContracts.rewardsManager.address)
+          .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx)
-          .emit(l1GraphTokenGateway, 'RemovedFromCallhookWhitelist')
+          .emit(l1GraphTokenGateway, 'RemovedFromCallhookAllowlist')
           .withArgs(fixtureContracts.rewardsManager.address)
         expect(
-          await l1GraphTokenGateway.callhookWhitelist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
         ).eq(false)
       })
     })
@@ -492,7 +492,7 @@ describe('L1GraphTokenGateway', () => {
           )
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
       })
-      it('reverts when called with nonempty calldata, if the sender is not whitelisted', async function () {
+      it('reverts when called with nonempty calldata, if the sender is not allowlisted', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         const tx = l1GraphTokenGateway
           .connect(tokenSender.signer)
@@ -509,12 +509,12 @@ describe('L1GraphTokenGateway', () => {
           )
         await expect(tx).revertedWith('CALL_HOOK_DATA_NOT_ALLOWED')
       })
-      it('allows sending nonempty calldata, if the sender is whitelisted', async function () {
+      it('allows sending nonempty calldata, if the sender is allowlisted', async function () {
         // Make the sender a contract so that it can be allowed to send callhooks
         await provider().send('hardhat_setCode', [tokenSender.address, '0x1234'])
         await l1GraphTokenGateway
           .connect(governor.signer)
-          .addToCallhookWhitelist(tokenSender.address)
+          .addToCallhookAllowlist(tokenSender.address)
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(
           tokenSender.signer,

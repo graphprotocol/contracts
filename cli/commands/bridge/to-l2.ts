@@ -163,7 +163,7 @@ export const sendToL2Command = {
         description: 'Receiving address in L2. Same to L1 address if empty',
       })
       .positional('calldata', {
-        description: 'Calldata to pass to the recipient. Must be whitelisted in the bridge',
+        description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
       })
       .coerce({
         maxGas: toBN,
