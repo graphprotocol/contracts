@@ -19,7 +19,7 @@ contract GraphProxy is GraphProxyStorage {
      * the sender is the admin.
      */
     modifier ifAdmin() {
-        if (msg.sender == _admin()) {
+        if (msg.sender == _getAdmin()) {
             _;
         } else {
             _fallback();
@@ -31,7 +31,7 @@ contract GraphProxy is GraphProxyStorage {
      * the sender is the admin or pending implementation.
      */
     modifier ifAdminOrPendingImpl() {
-        if (msg.sender == _admin() || msg.sender == _pendingImplementation()) {
+        if (msg.sender == _getAdmin() || msg.sender == _getPendingImplementation()) {
             _;
         } else {
             _fallback();
@@ -67,7 +67,7 @@ contract GraphProxy is GraphProxyStorage {
      * `0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`
      */
     function admin() external ifAdminOrPendingImpl returns (address) {
-        return _admin();
+        return _getAdmin();
     }
 
     /**
@@ -80,7 +80,7 @@ contract GraphProxy is GraphProxyStorage {
      * `0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc`
      */
     function implementation() external ifAdminOrPendingImpl returns (address) {
-        return _implementation();
+        return _getImplementation();
     }
 
     /**
@@ -93,7 +93,7 @@ contract GraphProxy is GraphProxyStorage {
      * `0x9e5eddc59e0b171f57125ab86bee043d9128098c3a6b9adb4f2e86333c2f6f8c`
      */
     function pendingImplementation() external ifAdminOrPendingImpl returns (address) {
-        return _pendingImplementation();
+        return _getPendingImplementation();
     }
 
     /**
@@ -129,7 +129,7 @@ contract GraphProxy is GraphProxyStorage {
     function acceptUpgradeAndCall(bytes calldata data) external ifAdminOrPendingImpl {
         _acceptUpgrade();
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, ) = _implementation().delegatecall(data);
+        (bool success, ) = _getImplementation().delegatecall(data);
         require(success);
     }
 
@@ -137,7 +137,7 @@ contract GraphProxy is GraphProxyStorage {
      * @dev Admin function for new implementation to accept its role as implementation.
      */
     function _acceptUpgrade() internal {
-        address _pendingImplementation = _pendingImplementation();
+        address _pendingImplementation = _getPendingImplementation();
         require(Address.isContract(_pendingImplementation), "Impl must be a contract");
         require(_pendingImplementation != address(0), "Impl cannot be zero address");
         require(msg.sender == _pendingImplementation, "Only pending implementation");
@@ -152,7 +152,7 @@ contract GraphProxy is GraphProxyStorage {
      * external caller.
      */
     function _fallback() internal {
-        require(msg.sender != _admin(), "Cannot fallback to proxy target");
+        require(msg.sender != _getAdmin(), "Cannot fallback to proxy target");
 
         assembly {
             // (a) get free memory pointer

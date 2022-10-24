@@ -94,17 +94,19 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Change the partial paused state of the contract
      * Partial pause is intended as a partial pause of the protocol
+     * @param _toPause True if the contracts should be (partially) paused, false otherwise
      */
-    function setPartialPaused(bool _partialPaused) external override onlyGovernorOrGuardian {
-        _setPartialPaused(_partialPaused);
+    function setPartialPaused(bool _toPause) external override onlyGovernorOrGuardian {
+        _setPartialPaused(_toPause);
     }
 
     /**
      * @notice Change the paused state of the contract
      * Full pause most of protocol functions
+     * @param _toPause True if the contracts should be paused, false otherwise
      */
-    function setPaused(bool _paused) external override onlyGovernorOrGuardian {
-        _setPaused(_paused);
+    function setPaused(bool _toPause) external override onlyGovernorOrGuardian {
+        _setPaused(_toPause);
     }
 
     /**
