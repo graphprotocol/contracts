@@ -31,15 +31,15 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
-    bytes32 private constant DOMAIN_TYPE_HASH =
+    bytes32 private immutable DOMAIN_TYPE_HASH =
         keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
         );
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Token");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT =
+    bytes32 private immutable DOMAIN_NAME_HASH = keccak256("Graph Token");
+    bytes32 private immutable DOMAIN_VERSION_HASH = keccak256("0");
+    bytes32 private immutable DOMAIN_SALT =
         0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591; // Randomly generated salt
-    bytes32 private constant PERMIT_TYPEHASH =
+    bytes32 private immutable PERMIT_TYPEHASH =
         keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
