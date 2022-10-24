@@ -36,7 +36,6 @@ contract BridgeEscrow is Initializable, GraphUpgradeable, Managed {
      * @param _spender Address of the spender that will be revoked
      */
     function revokeAll(address _spender) external onlyGovernor {
-        IGraphToken grt = graphToken();
-        grt.decreaseAllowance(_spender, grt.allowance(address(this), _spender));
+        graphToken().approve(_spender, 0);
     }
 }
