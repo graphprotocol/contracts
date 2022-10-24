@@ -59,7 +59,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
     function setGateway(address _gw) external onlyGovernor {
         require(_gw != address(0), "INVALID_GATEWAY");
         gateway = _gw;
-        emit GatewaySet(gateway);
+        emit GatewaySet(_gw);
     }
 
     /**
