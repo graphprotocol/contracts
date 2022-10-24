@@ -2,16 +2,16 @@
 
 pragma solidity ^0.7.6;
 
-import "./IController.sol";
+import { IController } from "./IController.sol";
 
-import "../curation/ICuration.sol";
-import "../epochs/IEpochManager.sol";
-import "../rewards/IRewardsManager.sol";
-import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
-import "../arbitrum/ITokenGateway.sol";
+import { ICuration } from "../curation/ICuration.sol";
+import { IEpochManager } from "../epochs/IEpochManager.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { IStaking } from "../staking/IStaking.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 
-import "./IManaged.sol";
+import { IManaged } from "./IManaged.sol";
 
 /**
  * @title Graph Managed contract

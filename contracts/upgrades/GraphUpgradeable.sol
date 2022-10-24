@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import "./IGraphProxy.sol";
+import { IGraphProxy } from "./IGraphProxy.sol";
 
 /**
  * @title Graph Upgradeable

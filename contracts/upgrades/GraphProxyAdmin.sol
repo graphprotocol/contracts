@@ -2,10 +2,10 @@
 
 pragma solidity ^0.7.6;
 
-import "../governance/Governed.sol";
+import { Governed } from "../governance/Governed.sol";
 
-import "./IGraphProxy.sol";
-import "./GraphUpgradeable.sol";
+import { IGraphProxy } from "./IGraphProxy.sol";
+import { GraphUpgradeable } from "./GraphUpgradeable.sol";
 
 /**
  * @title GraphProxyAdmin

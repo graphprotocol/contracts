@@ -2,10 +2,10 @@
 
 pragma solidity ^0.7.6;
 
-import "./IController.sol";
-import "./IManaged.sol";
-import "./Governed.sol";
-import "./Pausable.sol";
+import { IController } from "./IController.sol";
+import { IManaged } from "./IManaged.sol";
+import { Governed } from "./Governed.sol";
+import { Pausable } from "./Pausable.sol";
 
 /**
  * @title Graph Controller contract
