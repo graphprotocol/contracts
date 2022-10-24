@@ -28,7 +28,7 @@ contract GraphProxyAdmin is Governed {
      * @param _proxy Address of the proxy for which to get the implementation.
      * @return The address of the current implementation of the proxy.
      */
-    function getProxyImplementation(IGraphProxy _proxy) public view returns (address) {
+    function getProxyImplementation(IGraphProxy _proxy) external view returns (address) {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("implementation()")) == 0x5c60da1b
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"5c60da1b");
@@ -42,7 +42,7 @@ contract GraphProxyAdmin is Governed {
      * @param _proxy Address of the proxy for which to get the pending implementation.
      * @return The address of the pending implementation of the proxy.
      */
-    function getProxyPendingImplementation(IGraphProxy _proxy) public view returns (address) {
+    function getProxyPendingImplementation(IGraphProxy _proxy) external view returns (address) {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("pendingImplementation()")) == 0x396f7b23
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"396f7b23");
@@ -55,7 +55,7 @@ contract GraphProxyAdmin is Governed {
      * @param _proxy Address of the proxy for which to get the admin.
      * @return The address of the current admin of the proxy.
      */
-    function getProxyAdmin(IGraphProxy _proxy) public view returns (address) {
+    function getProxyAdmin(IGraphProxy _proxy) external view returns (address) {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("admin()")) == 0xf851a440
         (bool success, bytes memory returndata) = address(_proxy).staticcall(hex"f851a440");
@@ -68,7 +68,7 @@ contract GraphProxyAdmin is Governed {
      * @param _proxy Proxy to change admin.
      * @param _newAdmin Address to transfer proxy administration to.
      */
-    function changeProxyAdmin(IGraphProxy _proxy, address _newAdmin) public onlyGovernor {
+    function changeProxyAdmin(IGraphProxy _proxy, address _newAdmin) external onlyGovernor {
         _proxy.setAdmin(_newAdmin);
     }
 
@@ -77,7 +77,7 @@ contract GraphProxyAdmin is Governed {
      * @param _proxy Proxy to be upgraded.
      * @param _implementation the address of the Implementation.
      */
-    function upgrade(IGraphProxy _proxy, address _implementation) public onlyGovernor {
+    function upgrade(IGraphProxy _proxy, address _implementation) external onlyGovernor {
         _proxy.upgradeTo(_implementation);
     }
 
@@ -86,7 +86,10 @@ contract GraphProxyAdmin is Governed {
      * @param _implementation Address of the implementation accepting the proxy.
      * @param _proxy Address of the proxy being accepted.
      */
-    function acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy) public onlyGovernor {
+    function acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy)
+        external
+        onlyGovernor
+    {
         _implementation.acceptProxy(_proxy);
     }
 
