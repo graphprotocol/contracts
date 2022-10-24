@@ -25,7 +25,6 @@ import "../../governance/Governed.sol";
  * the original's constructor + non-upgradeable approach.
  */
 contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
-
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
