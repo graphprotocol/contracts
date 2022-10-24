@@ -29,12 +29,12 @@ contract Managed {
     uint256[10] private __gap;
 
     // Immutables
-    bytes32 immutable CURATION = keccak256("Curation");
-    bytes32 immutable EPOCH_MANAGER = keccak256("EpochManager");
-    bytes32 immutable REWARDS_MANAGER = keccak256("RewardsManager");
-    bytes32 immutable STAKING = keccak256("Staking");
-    bytes32 immutable GRAPH_TOKEN = keccak256("GraphToken");
-    bytes32 immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
+    bytes32 private immutable CURATION = keccak256("Curation");
+    bytes32 private immutable EPOCH_MANAGER = keccak256("EpochManager");
+    bytes32 private immutable REWARDS_MANAGER = keccak256("RewardsManager");
+    bytes32 private immutable STAKING = keccak256("Staking");
+    bytes32 private immutable GRAPH_TOKEN = keccak256("GraphToken");
+    bytes32 private immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
 
     // -- Events --
 
