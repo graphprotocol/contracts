@@ -28,6 +28,14 @@ contract Managed {
     mapping(bytes32 => address) private addressCache;
     uint256[10] private __gap;
 
+    // Immutables
+    bytes32 immutable CURATION = keccak256("Curation");
+    bytes32 immutable EPOCH_MANAGER = keccak256("EpochManager");
+    bytes32 immutable REWARDS_MANAGER = keccak256("RewardsManager");
+    bytes32 immutable STAKING = keccak256("Staking");
+    bytes32 immutable GRAPH_TOKEN = keccak256("GraphToken");
+    bytes32 immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
+
     // -- Events --
 
     event ParameterUpdated(string param);
@@ -111,7 +119,7 @@ contract Managed {
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(_resolveContract(keccak256("Curation")));
+        return ICuration(_resolveContract(CURATION));
     }
 
     /**
@@ -119,7 +127,7 @@ contract Managed {
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(_resolveContract(keccak256("EpochManager")));
+        return IEpochManager(_resolveContract(EPOCH_MANAGER));
     }
 
     /**
@@ -127,7 +135,7 @@ contract Managed {
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(_resolveContract(keccak256("RewardsManager")));
+        return IRewardsManager(_resolveContract(REWARDS_MANAGER));
     }
 
     /**
@@ -135,7 +143,7 @@ contract Managed {
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(_resolveContract(keccak256("Staking")));
+        return IStaking(_resolveContract(STAKING));
     }
 
     /**
@@ -143,7 +151,7 @@ contract Managed {
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(_resolveContract(keccak256("GraphToken")));
+        return IGraphToken(_resolveContract(GRAPH_TOKEN));
     }
 
     /**
@@ -151,7 +159,7 @@ contract Managed {
      * @return Graph token gateway contract registered with Controller
      */
     function graphTokenGateway() internal view returns (ITokenGateway) {
-        return ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
+        return ITokenGateway(_resolveContract(GRAPH_TOKEN_GATEWAY));
     }
 
     /**
