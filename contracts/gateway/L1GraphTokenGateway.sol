@@ -188,7 +188,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * with token transfers.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L2
-     * @param _amount Amount of tokens to tranfer
+     * @param _amount Amount of tokens to transfer
      * @param _maxGas Gas limit for L2 execution of the ticket
      * @param _gasPriceBid Price per gas on L2
      * @param _data Encoded maxSubmissionCost and sender address along with additional calldata
@@ -255,7 +255,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * and the encoded exitNum is assumed to be 0.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _from Address of the sender
-     * @param _to Recepient address on L1
+     * @param _to Recipient address on L1
      * @param _amount Amount of tokens transferred
      */
     function finalizeInboundTransfer(
