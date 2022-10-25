@@ -175,7 +175,7 @@ describe('L2GraphTokenGateway', () => {
       })
       it('cannot be paused if some state variables are not set', async function () {
         let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
-        await expect(tx).revertedWith('ROUTER_NOT_SET')
+        await expect(tx).revertedWith('L2_ROUTER_NOT_SET')
         await l2GraphTokenGateway.connect(governor.signer).setL2Router(mockRouter.address)
         tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
         await expect(tx).revertedWith('L1_COUNTERPART_NOT_SET')
@@ -183,7 +183,7 @@ describe('L2GraphTokenGateway', () => {
           .connect(governor.signer)
           .setL1CounterpartAddress(mockL1Gateway.address)
         tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
-        await expect(tx).revertedWith('L1GRT_NOT_SET')
+        await expect(tx).revertedWith('L1_GRT_NOT_SET')
       })
       it('can be paused and unpaused by the governor', async function () {
         await fixture.configureL2Bridge(
