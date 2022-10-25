@@ -282,9 +282,9 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * something is not set properly
      */
     function _checksBeforeUnpause() internal view override {
-        require(l2Router != address(0), "ROUTER_NOT_SET");
+        require(l2Router != address(0), "L2_ROUTER_NOT_SET");
         require(l1Counterpart != address(0), "L1_COUNTERPART_NOT_SET");
-        require(l1GRT != address(0), "L1GRT_NOT_SET");
+        require(l1GRT != address(0), "L1_GRT_NOT_SET");
     }
 
     /**
