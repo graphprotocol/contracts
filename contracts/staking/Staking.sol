@@ -1010,9 +1010,21 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
             // When allocation is closed redirect funds to the rebate pool
             // This way we can keep collecting tokens even after the allocation is closed and
             // before it gets to the finalized state.
+            // If the allocation didn't collect anything before, also add
+            // effectiveAllocation to the rebatePool
             if (allocState == AllocationState.Closed) {
                 Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-                rebatePool.fees = rebatePool.fees.add(queryFees);
+                if (queryFees == alloc.collectedFees) {
+                    // Account collected fees and effective allocation in rebate pool for the epoch
+                    // Might need to initialize the rebatePool since it could not have been
+                    // initialized during close since collectedFees was 0
+                    if (!rebatePool.exists()) {
+                        rebatePool.init(alphaNumerator, alphaDenominator);
+                    }
+                    rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
+                } else {
+                    rebatePool.fees = rebatePool.fees.add(queryFees);
+                }
             }
         }
 
@@ -1207,12 +1219,15 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         );
         allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
 
-        // Account collected fees and effective allocation in rebate pool for the epoch
-        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-        if (!rebatePool.exists()) {
-            rebatePool.init(alphaNumerator, alphaDenominator);
+        // Only add to rebate pools if it has some fees collected
+        if (alloc.collectedFees > 0) {
+            // Account collected fees and effective allocation in rebate pool for the epoch
+            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+            if (!rebatePool.exists()) {
+                rebatePool.init(alphaNumerator, alphaDenominator);
+            }
+            rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
         }
-        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // -- Rewards Distribution --
 
