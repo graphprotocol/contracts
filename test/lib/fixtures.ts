@@ -268,7 +268,7 @@ export class NetworkFixture {
     await l1FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
     await l1FixtureContracts.l1GraphTokenGateway
       .connect(deployer)
-      .addToCallhookWhitelist(l1FixtureContracts.gns.address)
+      .addToCallhookAllowlist(l1FixtureContracts.gns.address)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 

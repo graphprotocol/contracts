@@ -109,15 +109,12 @@ contract L2GNS is GNS, IL2GNS {
         migratedData.l2Done = true;
 
         // New subgraph deployment must be non-empty
-        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0");
+        require(_subgraphDeploymentID != 0, "GNS: deploymentID != 0");
 
         // This is to prevent the owner from front running its name curators signal by posting
         // its own signal ahead, bringing the name curators in, and dumping on them
         ICuration curation = curation();
-        require(
-            !curation.isCurated(_subgraphDeploymentID),
-            "GNS: Owner cannot point to a subgraphID that has been pre-curated"
-        );
+        require(!curation.isCurated(_subgraphDeploymentID), "GNS: Deployment pre-curated");
 
         // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
         // Buy all signal from the new deployment
