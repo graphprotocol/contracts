@@ -15,6 +15,7 @@ import {
   toGRT,
   latestBlock,
   advanceBlocks,
+  provider,
 } from './lib/testHelpers'
 import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
@@ -332,13 +333,15 @@ describe('L1GNS', () => {
     await subgraphNFT.connect(governor.signer).setTokenDescriptor(subgraphDescriptor.address)
     await legacyGNSMock.connect(governor.signer).syncAllContracts()
     await legacyGNSMock.connect(governor.signer).approveAll()
-    await l1GraphTokenGateway.connect(governor.signer).addToCallhookWhitelist(legacyGNSMock.address)
+    await l1GraphTokenGateway.connect(governor.signer).addToCallhookAllowlist(legacyGNSMock.address)
     await legacyGNSMock.connect(governor.signer).setCounterpartGNSAddress(mockL2GNS.address)
   }
 
   before(async function () {
     ;[me, other, governor, another, mockRouter, mockL2GRT, mockL2Gateway, mockL2GNS] =
       await getAccounts()
+    // Dummy code on the mock router so that it appears as a contract
+    await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
     fixture = new NetworkFixture()
     const fixtureContracts = await fixture.load(governor.signer)
     ;({ grt, curation, gns, controller, proxyAdmin, l1GraphTokenGateway } = fixtureContracts)
@@ -412,7 +415,7 @@ describe('L1GNS', () => {
       it('reject set `counterpartGNSAddress` if not allowed', async function () {
         const newValue = other.address
         const tx = gns.connect(me.signer).setCounterpartGNSAddress(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -428,7 +431,7 @@ describe('L1GNS', () => {
       it('reject set `arbitrumInboxAddress` if not allowed', async function () {
         const newValue = other.address
         const tx = gns.connect(me.signer).setArbitrumInboxAddress(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 

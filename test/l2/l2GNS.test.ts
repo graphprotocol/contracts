@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { defaultAbiCoder, parseUnits } from 'ethers/lib/utils'
+import { arrayify, defaultAbiCoder, hexlify, parseUnits } from 'ethers/lib/utils'
 
 import { getAccounts, randomHexBytes, Account, toGRT, getL2SignerFromL1 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
@@ -17,6 +17,7 @@ import {
   PublishSubgraph,
 } from '../lib/gnsUtils'
 import { Curation } from '../../build/types/Curation'
+import { GraphToken } from '../../build/types/GraphToken'
 
 const { HashZero } = ethers.constants
 
@@ -38,6 +39,7 @@ describe('L2GNS', () => {
   let l2GraphTokenGateway: L2GraphTokenGateway
   let gns: L2GNS
   let curation: Curation
+  let grt: GraphToken
 
   let newSubgraph0: PublishSubgraph
 
@@ -78,8 +80,9 @@ describe('L2GNS', () => {
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.loadL2(governor.signer)
-    ;({ l2GraphTokenGateway, gns, curation } = fixtureContracts)
+    ;({ l2GraphTokenGateway, gns, curation, grt } = fixtureContracts)
 
+    await grt.connect(governor.signer).mint(me.address, toGRT('10000'))
     await fixture.configureL2Bridge(
       governor.signer,
       fixtureContracts,
@@ -257,10 +260,79 @@ describe('L2GNS', () => {
       expect(migrationDataAfter.deprecated).eq(false)
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
     })
-    it('cannot be called by someone other than the subgraph owner')
-    it('rejects calls for a subgraph that was not migrated')
-    it('rejects calls to a pre-curated subgraph deployment')
-    it('rejects calls if the subgraph deployment ID is zero')
+    it('cannot be called by someone other than the subgraph owner', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const curatedTokens = toGRT('1337')
+      const lockBlockhash = randomHexBytes(32)
+      const metadata = randomHexBytes()
+      const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      const tx = gns
+        .connect(other.signer)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+      await expect(tx).revertedWith('GNS: Must be authorized')
+    })
+    it('rejects calls for a subgraph that does not exist', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const metadata = randomHexBytes()
+
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+      await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+    })
+    it('rejects calls for a subgraph that was not migrated', async function () {
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      const metadata = randomHexBytes()
+
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(l2Subgraph.id, newSubgraph0.subgraphDeploymentID, metadata)
+      await expect(tx).revertedWith('INVALID_SUBGRAPH')
+    })
+    it('rejects calls to a pre-curated subgraph deployment', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const curatedTokens = toGRT('1337')
+      const lockBlockhash = randomHexBytes(32)
+      const metadata = randomHexBytes()
+      const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      await grt.connect(me.signer).approve(curation.address, toGRT('100'))
+      await curation
+        .connect(me.signer)
+        .mint(newSubgraph0.subgraphDeploymentID, toGRT('100'), toBN('0'))
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+      await expect(tx).revertedWith('GNS: Deployment pre-curated')
+    })
+    it('rejects calls if the subgraph deployment ID is zero', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const curatedTokens = toGRT('1337')
+      const lockBlockhash = randomHexBytes(32)
+      const metadata = randomHexBytes()
+      const nSignal = toBN('4567')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, HashZero, metadata)
+      await expect(tx).revertedWith('GNS: deploymentID != 0')
+    })
   })
 
   describe('claiming a curator balance using a proof', function () {
