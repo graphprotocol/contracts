@@ -11,6 +11,13 @@ export interface GraphRuntimeEnvironmentOptions {
   l2GraphConfig?: string
   graphConfig?: string
   enableTxLogging?: boolean
+  disableSecureAccounts?: boolean
+
+  // These are mostly for testing purposes
+  l1AccountName?: string
+  l2AccountName?: string
+  l1AccountPassword?: string
+  l2AccountPassword?: string
 }
 
 export type AccountNames =

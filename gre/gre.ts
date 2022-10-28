@@ -10,12 +10,15 @@ import {
   GraphRuntimeEnvironment,
   GraphRuntimeEnvironmentOptions,
 } from './type-extensions'
-import { getChains, getProviders, getAddressBookPath, getGraphConfigPaths } from './config'
+import { getChains, getDefaultProviders, getAddressBookPath, getGraphConfigPaths } from './config'
 import { getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
-import { logDebug, logWarn } from './logger'
+import { logDebug, logWarn } from './helpers/logger'
 import path from 'path'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { Wallet } from 'ethers'
+
+import 'hardhat-secure-accounts'
+import { getSecureAccountsProvider } from './providers'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 
@@ -46,8 +49,43 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     const enableTxLogging = opts.enableTxLogging ?? false
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
+    const secureAccounts = !(
+      opts.disableSecureAccounts ??
+      hre.config.graph.disableSecureAccounts ??
+      false
+    )
+    logDebug(`Secure accounts: ${secureAccounts ? 'enabled' : 'disabled'}`)
+
     const { l1ChainId, l2ChainId, isHHL1 } = getChains(hre.network.config.chainId)
-    const { l1Provider, l2Provider } = getProviders(hre, l1ChainId, l2ChainId, isHHL1)
+
+    // Default providers for L1 and L2
+    const { l1Provider, l2Provider } = getDefaultProviders(hre, l1ChainId, l2ChainId, isHHL1)
+
+    // Getters to unlock secure account providers for L1 and L2
+    const l1UnlockProvider = () =>
+      getSecureAccountsProvider(
+        hre.accounts,
+        hre.config.networks,
+        l1ChainId,
+        hre.network.name,
+        isHHL1,
+        'L1',
+        opts.l1AccountName,
+        opts.l1AccountPassword,
+      )
+
+    const l2UnlockProvider = () =>
+      getSecureAccountsProvider(
+        hre.accounts,
+        hre.config.networks,
+        l2ChainId,
+        hre.network.name,
+        !isHHL1,
+        'L2',
+        opts.l2AccountName,
+        opts.l2AccountPassword,
+      )
+
     const addressBookPath = getAddressBookPath(hre, opts)
     const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
       hre,
@@ -73,8 +111,10 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       addressBookPath,
       isHHL1,
       enableTxLogging,
+      secureAccounts,
       l1GetWallets,
       l1GetWallet,
+      l1UnlockProvider,
     )
 
     const l2Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
@@ -84,8 +124,10 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
       addressBookPath,
       isHHL1,
       enableTxLogging,
+      secureAccounts,
       l2GetWallets,
       l2GetWallet,
+      l2UnlockProvider,
     )
 
     const gre: GraphRuntimeEnvironment = {
@@ -108,8 +150,10 @@ function buildGraphNetworkEnvironment(
   addressBookPath: string,
   isHHL1: boolean,
   enableTxLogging: boolean,
+  secureAccounts: boolean,
   getWallets: () => Promise<Wallet[]>,
   getWallet: (address: string) => Promise<Wallet>,
+  unlockProvider: () => Promise<EthersProviderWrapper | undefined>,
 ): GraphNetworkEnvironment | null {
   if (graphConfigPath === undefined) {
     logWarn(
@@ -127,6 +171,9 @@ function buildGraphNetworkEnvironment(
     return null
   }
 
+  // Upgrade provider to secure accounts if feature is enabled
+  const getUpdatedProvider = async () => (secureAccounts ? await unlockProvider() : provider)
+
   return {
     chainId: chainId,
     provider: provider,
@@ -135,10 +182,14 @@ function buildGraphNetworkEnvironment(
     contracts: lazyObject(() =>
       loadContracts(getAddressBook(addressBookPath, chainId.toString()), provider, enableTxLogging),
     ),
-    getDeployer: lazyFunction(() => () => getDeployer(provider)),
-    getNamedAccounts: lazyFunction(() => () => getNamedAccounts(provider, graphConfigPath)),
-    getTestAccounts: lazyFunction(() => () => getTestAccounts(provider, graphConfigPath)),
     getWallets: lazyFunction(() => () => getWallets()),
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),
+    getDeployer: lazyFunction(() => async () => getDeployer(await getUpdatedProvider())),
+    getNamedAccounts: lazyFunction(
+      () => async () => getNamedAccounts(await getUpdatedProvider(), graphConfigPath),
+    ),
+    getTestAccounts: lazyFunction(
+      () => async () => getTestAccounts(await getUpdatedProvider(), graphConfigPath),
+    ),
   }
 }

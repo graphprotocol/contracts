@@ -58,6 +58,7 @@
     "hardhat-abi-exporter": "^2.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
+    "hardhat-secure-accounts": "0.0.5",
     "hardhat-storage-layout": "0.1.6",
     "hardhat-tracer": "^1.0.0-alpha.6",
     "husky": "^7.0.4",
