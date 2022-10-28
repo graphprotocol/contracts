@@ -6355,10 +6355,10 @@ hardhat-gas-reporter@^1.0.4:
     eth-gas-reporter "^0.2.24"
     sha1 "^1.1.1"
 
-hardhat-secure-accounts@0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/hardhat-secure-accounts/-/hardhat-secure-accounts-0.0.4.tgz#bfee8bacd5df4c59b2dcebf1a92ac75522bee15e"
-  integrity sha512-urywWMEwTR0mZJXv+HkaefwoaRB+EpBd1O2j/kz2qyqOdanvuekU7ei6qoDwqbQg5ljPwBQzCvSn12UozuLtiA==
+hardhat-secure-accounts@0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/hardhat-secure-accounts/-/hardhat-secure-accounts-0.0.5.tgz#753889ad43ae1bfa2df6839ffc556ed3a25d9668"
+  integrity sha512-ma/UOYV8fROMucLifflUEvYdtchcK4JB2tCV6etAg8PB66OlBo7MwmofnWnN4ABMR8Qt7zGgedFBkGdmBrmxRA==
   dependencies:
     debug "^4.3.4"
     enquirer "^2.3.6"
