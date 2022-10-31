@@ -300,6 +300,7 @@ describe('L1GraphTokenGateway', () => {
           mockRouter.address,
           mockL2GRT.address,
           mockL2Gateway.address,
+          mockL2GNS.address,
         )
         let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
@@ -331,6 +332,7 @@ describe('L1GraphTokenGateway', () => {
             mockRouter.address,
             mockL2GRT.address,
             mockL2Gateway.address,
+            mockL2GNS.address,
           )
           await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
           let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)

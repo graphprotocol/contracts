@@ -138,6 +138,10 @@ export async function impersonateAccount(address: string): Promise<Signer> {
   return hre.ethers.getSigner(address)
 }
 
+export async function setAccountBalance(address: string, newBalance: BigNumber): Promise<void> {
+  await provider().send('hardhat_setBalance', [address, hexValue(newBalance)])
+}
+
 // Adapted from:
 // https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/test/utils/messaging.ts#L5
 export async function getL2SignerFromL1(l1Address: string): Promise<Signer> {

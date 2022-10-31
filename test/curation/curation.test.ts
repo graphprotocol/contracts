@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { utils, BigNumber, Event } from 'ethers'
+import { utils, BigNumber, Event, Signer } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
@@ -14,7 +14,10 @@ import {
   formatGRT,
   Account,
   impersonateAccount,
+  setAccountBalance,
 } from '../lib/testHelpers'
+import { GNS } from '../../build/types/GNS'
+import { parseEther } from 'ethers/lib/utils'
 
 const MAX_PPM = 1000000
 
@@ -42,13 +45,14 @@ describe('Curation', () => {
   let governor: Account
   let curator: Account
   let stakingMock: Account
-  let gnsImpersonator: Account
+  let gnsImpersonator: Signer
 
   let fixture: NetworkFixture
 
   let curation: Curation
   let grt: GraphToken
   let controller: Controller
+  let gns: GNS
 
   // Test values
   const signalAmountFor1000Tokens = toGRT('3.162277660168379331')
@@ -136,30 +140,24 @@ describe('Curation', () => {
   const shouldMintTaxFree = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
     // Before state
     const beforeTokenTotalSupply = await grt.totalSupply()
-    const beforeCuratorTokens = await grt.balanceOf(gnsImpersonator.address)
-    const beforeCuratorSignal = await curation.getCuratorSignal(
-      gnsImpersonator.address,
-      subgraphDeploymentID,
-    )
+    const beforeCuratorTokens = await grt.balanceOf(gns.address)
+    const beforeCuratorSignal = await curation.getCuratorSignal(gns.address, subgraphDeploymentID)
     const beforePool = await curation.pools(subgraphDeploymentID)
     const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Curate
     const tx = curation
-      .connect(gnsImpersonator.signer)
+      .connect(gnsImpersonator)
       .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
     await expect(tx)
       .emit(curation, 'Signalled')
-      .withArgs(gnsImpersonator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, 0)
+      .withArgs(gns.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, 0)
 
     // After state
     const afterTokenTotalSupply = await grt.totalSupply()
-    const afterCuratorTokens = await grt.balanceOf(gnsImpersonator.address)
-    const afterCuratorSignal = await curation.getCuratorSignal(
-      gnsImpersonator.address,
-      subgraphDeploymentID,
-    )
+    const afterCuratorTokens = await grt.balanceOf(gns.address)
+    const afterCuratorSignal = await curation.getCuratorSignal(gns.address, subgraphDeploymentID)
     const afterPool = await curation.pools(subgraphDeploymentID)
     const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
     const afterTotalTokens = await grt.balanceOf(curation.address)
@@ -239,16 +237,18 @@ describe('Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, governor, curator, stakingMock, gnsImpersonator] = await getAccounts()
+    ;[me, governor, curator, stakingMock] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ controller, curation, grt } = await fixture.load(governor.signer))
+    ;({ controller, curation, grt, gns } = await fixture.load(governor.signer))
 
+    gnsImpersonator = await impersonateAccount(gns.address)
+    await setAccountBalance(gns.address, parseEther('1'))
     // Give some funds to the curator and GNS impersonator and approve the curation contract
     await grt.connect(governor.signer).mint(curator.address, curatorTokens)
     await grt.connect(curator.signer).approve(curation.address, curatorTokens)
-    await grt.connect(governor.signer).mint(gnsImpersonator.address, curatorTokens)
-    await grt.connect(gnsImpersonator.signer).approve(curation.address, curatorTokens)
+    await grt.connect(governor.signer).mint(gns.address, curatorTokens)
+    await grt.connect(gnsImpersonator).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
     await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
@@ -360,9 +360,6 @@ describe('Curation', () => {
   })
 
   describe('curate tax free (from GNS)', async function () {
-    beforeEach(async function () {
-      await controller.setContractProxy(utils.id('GNS'), gnsImpersonator.address)
-    })
     it('can not be called by anyone other than GNS', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
       const tx = curation
@@ -374,7 +371,7 @@ describe('Curation', () => {
     it('reject deposit below minimum tokens required', async function () {
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation
-        .connect(gnsImpersonator.signer)
+        .connect(gnsImpersonator)
         .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
     })
@@ -408,7 +405,7 @@ describe('Curation', () => {
       const tokensToDeposit = toGRT('1000')
       const expectedSignal = signalAmountFor1000Tokens
       const tx = curation
-        .connect(gnsImpersonator.signer)
+        .connect(gnsImpersonator)
         .mintTaxFree(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
