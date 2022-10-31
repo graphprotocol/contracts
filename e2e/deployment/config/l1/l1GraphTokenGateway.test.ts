@@ -14,9 +14,9 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
     unauthorized = (await graph.getTestAccounts())[0]
   })
 
-  it('bridge should be paused', async function () {
+  it('bridge should not be paused', async function () {
     const paused = await L1GraphTokenGateway.paused()
-    expect(paused).eq(true)
+    expect(paused).eq(false)
   })
 
   it('should be controlled by Controller', async function () {
@@ -114,7 +114,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
         '100',
         '0x00',
       )
-      await expect(tx).revertedWith('Paused (contract)')
+      await expect(tx).revertedWith('NOT_FROM_BRIDGE')
     })
   })
 })
