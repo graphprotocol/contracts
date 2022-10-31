@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
 import { NamedAccounts } from '../../../gre/type-extensions'
-import GraphChain from '../../../gre/helpers/network'
+import GraphChain from '../../../gre/helpers/chain'
 
 describe('Controller configuration', () => {
   const graph = hre.graph()

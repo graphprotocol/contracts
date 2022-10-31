@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/network'
+import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L1] GraphToken', () => {
   const graph = hre.graph()

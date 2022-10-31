@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
-import GraphChain from '../../gre/helpers/network'
+import GraphChain from '../../gre/helpers/chain'
 
 task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')

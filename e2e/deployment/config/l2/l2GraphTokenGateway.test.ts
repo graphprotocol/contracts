@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getAddressBook } from '../../../../cli/address-book'
-import GraphChain from '../../../../gre/helpers/network'
+import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
