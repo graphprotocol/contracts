@@ -22,5 +22,5 @@ coverage.json
 
 # Local test files
 addresses-local.json
-arbitrum-addresses-local.json
 localNetwork.json
+arbitrum-addresses-local.json
