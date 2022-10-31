@@ -339,13 +339,7 @@ describe('L1GraphTokenGateway', () => {
       const selector = l1GraphTokenGateway.interface.getSighash('finalizeInboundTransfer')
       const params = utils.defaultAbiCoder.encode(
         ['address', 'address', 'address', 'uint256', 'bytes'],
-        [
-          grt.address,
-          tokenSender.address,
-          l2Receiver.address,
-          toGRT('10'),
-          utils.defaultAbiCoder.encode(['bytes', 'bytes'], [emptyCallHookData, callHookData]),
-        ],
+        [grt.address, tokenSender.address, l2Receiver.address, toGRT('10'), callHookData],
       )
       const outboundData = utils.hexlify(utils.concat([selector, params]))
 

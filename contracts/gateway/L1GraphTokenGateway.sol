@@ -316,8 +316,6 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         uint256 _amount,
         bytes memory _data
     ) public pure returns (bytes memory) {
-        bytes memory emptyBytes;
-
         return
             abi.encodeWithSelector(
                 ITokenGateway.finalizeInboundTransfer.selector,
@@ -325,7 +323,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
                 _from,
                 _to,
                 _amount,
-                abi.encode(emptyBytes, _data)
+                _data
             );
     }
 

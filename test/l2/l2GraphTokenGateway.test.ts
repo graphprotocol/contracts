@@ -39,13 +39,9 @@ describe('L2GraphTokenGateway', () => {
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const notEmptyCallHookData = utils.defaultAbiCoder.encode(
+  const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['uint256', 'uint256'],
     [toBN('1337'), toBN('42')],
-  )
-  const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
-    ['bytes', 'bytes'],
-    ['0x', notEmptyCallHookData],
   )
 
   before(async function () {
@@ -419,7 +415,6 @@ describe('L2GraphTokenGateway', () => {
           ['uint256', 'uint256'],
           [toBN('0'), toBN('42')],
         )
-        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -432,13 +427,12 @@ describe('L2GraphTokenGateway', () => {
             tokenSender.address,
             callhookReceiverMock.address,
             toGRT('10'),
-            data,
+            callHookData,
           )
         await expect(tx).revertedWith('FOO_IS_ZERO')
       })
       it('reverts if trying to call a callhook in a contract that does not implement onTokenTransfer', async function () {
         const callHookData = utils.defaultAbiCoder.encode(['uint256'], [toBN('0')])
-        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -452,7 +446,7 @@ describe('L2GraphTokenGateway', () => {
             tokenSender.address,
             rewardsManager.address,
             toGRT('10'),
-            data,
+            callHookData,
           )
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",

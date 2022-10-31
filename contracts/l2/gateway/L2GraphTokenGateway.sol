@@ -171,11 +171,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
 
         if (_data.length > 0) {
-            bytes memory callhookData;
-            {
-                (, callhookData) = abi.decode(_data, (bytes, bytes));
-            }
-            ICallhookReceiver(_to).onTokenTransfer(_from, _amount, callhookData);
+            ICallhookReceiver(_to).onTokenTransfer(_from, _amount, _data);
         }
 
         emit DepositFinalized(_l1Token, _from, _to, _amount);
