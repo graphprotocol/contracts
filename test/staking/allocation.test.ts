@@ -582,6 +582,7 @@ describe('Staking:Allocation', () => {
     for (const tokensToAllocate of [toBN(100), toBN(0)]) {
       context(`> with ${tokensToAllocate} allocated tokens`, async function () {
         beforeEach(async function () {
+          await advanceToNextEpoch(epochManager)
           await allocate(tokensToAllocate)
         })
 
