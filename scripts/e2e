@@ -107,7 +107,7 @@ function configure_bridge () {
 
   # Copy required arbitrum contract addresses to the local arbitrum address book
   if [[ "$L1_NETWORK" == *"localnitro"* ]]; then
-    npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
+    npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
   fi
 
   # Configure the bridge

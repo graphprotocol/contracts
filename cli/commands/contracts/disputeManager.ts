@@ -3,8 +3,9 @@ import { constants, utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { logger } from '../../logging'
-import { sendTransaction, getChainID, getProvider, toGRT, randomHexBytes } from '../../network'
+import { sendTransaction, getProvider, toGRT, randomHexBytes } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { getChainID } from '../../../test/lib/testHelpers'
 
 const { HashZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify } = utils
@@ -18,7 +19,7 @@ interface ChannelKey {
 async function buildAttestation(receipt: Receipt, signer: string, disputeManagerAddress: string) {
   const attestation = await createAttestation(
     signer,
-    getChainID(),
+    await getChainID(),
     disputeManagerAddress,
     receipt,
     '0',

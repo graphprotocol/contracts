@@ -11,6 +11,7 @@ export const TASK_NITRO_SETUP_ADDRESS_BOOK = 'nitro:address-book-setup'
 export const TASK_NITRO_FETCH_DEPLOYMENT_FILE = 'nitro:fetch-deployment-file'
 
 task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testnodes')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('privateKey', 'The private key for Arbitrum testnode genesis account')
   .addOptionalParam('amount', 'The amount to fund each account with')
