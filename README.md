@@ -63,7 +63,7 @@ yarn add @graphprotocol/contracts
 
 # Contract Addresses
 
-The testnet runs on Rinkeby, while mainnet is on Ethereum Mainnet. The addresses for both of these can be found in `./addresses.json`.
+The testnet runs on Goerli, while mainnet is on Ethereum Mainnet. The addresses for both of these can be found in `./addresses.json`.
 
 # Local Setup
 
@@ -92,7 +92,7 @@ The most straightforward way to interact with the contracts is through the hardh
 
 ```
 # A console to interact with testnet contracts
-npx hardhat console --network rinkeby
+npx hardhat console --network goerli
 ```
 
 ### Hardhat Tasks

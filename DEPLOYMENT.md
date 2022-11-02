@@ -40,7 +40,7 @@ To deploy to a different network execute:
 yarn deploy -- --network {networkName}
 
 # Example
-yarn deploy -- --network kovan
+yarn deploy -- --network goerli
 ```
 
 The network must be configured in the `hardhat.config.ts` as explained in https://hardhat.org/config.
@@ -100,7 +100,7 @@ Some contracts require the address from previously deployed contracts. For that 
 ### Deploying a new testnet
 
 1. Make sure contracts are up to date as you please.
-2. `yarn deploy-rinkeby` to deploy to Rinkeby. This will create new contracts with new addresses in `addresses.json`.
+2. `yarn deploy-goerli` to deploy to Goerli. This will create new contracts with new addresses in `addresses.json`.
 3. Update the `package.json` and `package-lock.json` files with the new package version and publish a new npm package with `npm publish`. You can dry-run the files to be uploaded by running `npm publish --dry-run`.
 4. Merge this update into master, branch off and save for whatever version of the testnet is going on, and then tag this on the github repo, pointing to your branch (ex. at `testnet-phase-1` branch). This way we can always get the contract code for testnet, while continuing to do work on mainnet.
 5. Pull the updated package into the subgraph, and other apps that depend on the package.json.

@@ -50,11 +50,11 @@ function pre_deploy() {
   local GRAPH_CONFIG=$2
 
   # Create named accounts
-  npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+  npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
 
   # Fund accounts if using nitro test nodes
   if [[ "$NETWORK" == *"localnitro"* ]]; then
-    npx hardhat nitro:fund-accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG"
+    npx hardhat nitro:fund-accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
   fi
 }
 
@@ -79,10 +79,10 @@ function post_deploy () {
   local ADDRESS_BOOK=$3
 
   # Governor to accept contracts ownership 
-  npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
   
   # Unpause the protocol
-  npx hardhat migrate:unpause:protocol --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat migrate:unpause:protocol --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 }
 
 function configure_bridge () {
@@ -107,7 +107,7 @@ function configure_bridge () {
 
   # Copy required arbitrum contract addresses to the local arbitrum address book
   if [[ "$L1_NETWORK" == *"localnitro"* ]]; then
-    npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
+    npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
   fi
 
   # Configure the bridge
@@ -115,8 +115,8 @@ function configure_bridge () {
   ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L1_RPC" -m "$L1_MNEMONIC" -n 2 -r "$ARBITRUM_ADDRESS_BOOK" protocol configure-l1-bridge "$L2_CHAIN_ID"
 
   # Unpause the bridge
-  npx hardhat migrate:unpause:bridge --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-  npx hardhat migrate:unpause:bridge --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat migrate:unpause:bridge --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+  npx hardhat migrate:unpause:bridge --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 }
 
 function test_e2e () {
@@ -127,9 +127,9 @@ function test_e2e () {
   local SKIP_BRIDGE_TESTS=$5
 
   if [[ -z "$SKIP_BRIDGE_TESTS" ]]; then
-    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
   else
-    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge
+    npx hardhat e2e --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --skip-bridge --disable-secure-accounts
   fi
 }
 
@@ -139,12 +139,12 @@ function test_e2e_scenarios () {
   local L2_GRAPH_CONFIG=$3
   local ADDRESS_BOOK=$4
 
-  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
-  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario create-subgraphs --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+  npx hardhat e2e:scenario open-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 
   # skip close-allocations for arbitrum testnodes as we can't advance epoch
   if [[ "$NETWORK" != *"localnitro"* ]]; then
-    npx hardhat e2e:scenario close-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+    npx hardhat e2e:scenario close-allocations --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
   fi
 }
 
@@ -154,7 +154,7 @@ function test_e2e_scenarios_bridge () {
   local L2_GRAPH_CONFIG=$3
   local ADDRESS_BOOK=$4
 
-  npx hardhat e2e:scenario send-grt-to-l2 --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK"
+  npx hardhat e2e:scenario send-grt-to-l2 --network "$NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
 }
 
 

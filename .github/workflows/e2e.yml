@@ -3,6 +3,14 @@ name: Run E2E tests
 on:
   push:
     branches: [dev]
+    paths:
+      - contracts/**
+      - config/**
+      - e2e/**
+      - cli/**
+      - tasks/**
+      - scripts/**
+      - hardhat.config.ts
   pull_request: {}
 
 jobs:

@@ -4,6 +4,7 @@ import { cliOpts } from '../../cli/defaults'
 import { updateItemValue, writeConfig } from '../../cli/config'
 
 task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
     const { graphConfig, getDeployer } = hre.graph(taskArgs)

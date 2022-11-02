@@ -24,3 +24,7 @@ coverage.json
 addresses-local.json
 localNetwork.json
 arbitrum-addresses-local.json
+tx-*.log
+
+# Keys
+.keystore

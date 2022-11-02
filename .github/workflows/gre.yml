@@ -3,6 +3,8 @@ name: Run GRE tests
 on:
   push:
     branches: [dev]
+    paths:
+      - gre/**
   pull_request: {}
 
 jobs:
