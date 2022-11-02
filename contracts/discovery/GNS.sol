@@ -36,6 +36,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // Equates to Connector weight on bancor formula to be CW = 1
     uint32 private constant defaultReserveRatio = 1000000;
 
+    // Storage slot where the subgraphs mapping is stored on L1GNS
+    uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
+
+    // Storage slot where the legacy subgraphs mapping is stored on L1GNS
+    uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 15;
+
     // -- Events --
 
     event SubgraphNFTUpdated(address subgraphNFT);
@@ -789,6 +795,46 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         account = legacySubgraphKey.account;
         seqID = legacySubgraphKey.accountSeqID;
+    }
+
+    // TODO add NatSpec
+    function getCuratorSlot(address _curator, uint256 _subgraphID) public pure returns (uint256) {
+        // subgraphs mapping is stored at slot SUBGRAPH_MAPPING_SLOT.
+        // So our subgraph is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(SUBGRAPH_MAPPING_SLOT)))
+        // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
+        // So the mapping is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(SUBGRAPH_MAPPING_SLOT))) + 2
+        // Therefore the nSignal value for msg.sender should be at slot:
+        return
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        uint256(_curator),
+                        uint256(keccak256(abi.encodePacked(_subgraphID, SUBGRAPH_MAPPING_SLOT)))
+                            .add(2)
+                    )
+                )
+            );
+    }
+
+    // TODO add NatSpec
+    function getLegacyCuratorSlot(
+        address _curator,
+        address _subgraphCreatorAccount,
+        uint256 _seqID
+    ) public pure returns (uint256) {
+        // legacy subgraphs mapping is stored at slot LEGACY_SUBGRAPH_MAPPING_SLOT.
+        // So the subgraphs for the account are at slot keccak256(abi.encodePacked(uint256(_subgraphCreatorAccount), uint256(SUBGRAPH_MAPPING_SLOT)))
+        uint256 accountSlot = uint256(
+            keccak256(
+                abi.encodePacked(uint256(_subgraphCreatorAccount), LEGACY_SUBGRAPH_MAPPING_SLOT)
+            )
+        );
+        // Then the subgraph for this _seqID should be at:
+        uint256 subgraphSlot = uint256(keccak256(abi.encodePacked(_seqID, accountSlot)));
+        // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
+        // So the mapping is at slot subgraphSlot + 2
+        // Therefore the nSignal value for msg.sender should be at slot:
+        return uint256(keccak256(abi.encodePacked(uint256(_curator), subgraphSlot.add(2))));
     }
 
     /**
