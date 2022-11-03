@@ -114,6 +114,7 @@ contract L2GNS is GNS, IL2GNS {
         // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
         // Buy all signal from the new deployment
         subgraphData.vSignal = curation.mintTaxFree(_subgraphDeploymentID, migratedData.tokens, 0);
+        subgraphData.disabled = false;
 
         emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, subgraphData.reserveRatio);
         emit SubgraphUpgraded(

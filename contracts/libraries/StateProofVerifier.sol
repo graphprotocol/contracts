@@ -8,6 +8,7 @@
  * - Changed solidity version to 0.7.6 (pablo@edgeandnode.com)
  * - Using local copy of the RLPReader library instead of using the package
  * - Explicitly marked visibility of constants
+ * - Added revert messages
  */
 
 pragma solidity 0.7.6;
@@ -57,7 +58,7 @@ library StateProofVerifier {
     {
         BlockHeader memory header = parseBlockHeader(_headerRlpBytes);
         // ensure that the block is actually in the blockchain
-        require(header.hash == blockhash(header.number), "blockhash mismatch");
+        require(header.hash == blockhash(header.number), "SPV: blockhash mismatch");
         return header;
     }
 
@@ -73,7 +74,7 @@ library StateProofVerifier {
         BlockHeader memory result;
         RLPReader.RLPItem[] memory headerFields = _headerRlpBytes.toRlpItem().toList();
 
-        require(headerFields.length > HEADER_TIMESTAMP_INDEX);
+        require(headerFields.length > HEADER_TIMESTAMP_INDEX, "SPV: invalid header length");
 
         result.stateRootHash = bytes32(headerFields[HEADER_STATE_ROOT_INDEX].toUint());
         result.number = headerFields[HEADER_NUMBER_INDEX].toUint();
@@ -107,7 +108,7 @@ library StateProofVerifier {
         }
 
         RLPReader.RLPItem[] memory acctFields = acctRlpBytes.toRlpItem().toList();
-        require(acctFields.length == 4);
+        require(acctFields.length == 4, "SPV: invalid accFields length");
 
         account.exists = true;
         account.nonce = acctFields[0].toUint();
