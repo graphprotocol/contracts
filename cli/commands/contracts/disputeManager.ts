@@ -5,7 +5,7 @@ import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-t
 import { logger } from '../../logging'
 import { sendTransaction, getProvider, toGRT, randomHexBytes } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
-import { getChainID } from '../../../test/lib/testHelpers'
+import { getChainID } from '../../network'
 
 const { HashZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify } = utils
@@ -19,7 +19,7 @@ interface ChannelKey {
 async function buildAttestation(receipt: Receipt, signer: string, disputeManagerAddress: string) {
   const attestation = await createAttestation(
     signer,
-    await getChainID(),
+    getChainID(),
     disputeManagerAddress,
     receipt,
     '0',

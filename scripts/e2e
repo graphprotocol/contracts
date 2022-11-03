@@ -174,9 +174,15 @@ if [[ ! -f "$ADDRESS_BOOK" ]]; then
   echo '{}' > "$ADDRESS_BOOK"
 fi
 
-# Create arbitrum address book if needed
-if [[ ! -f "$ARBITRUM_ADDRESS_BOOK" ]]; then
-    echo '{}' > "$ARBITRUM_ADDRESS_BOOK"
+# Reset arbitrum address book (just in case the deployment changed)
+if [[ -f "$ARBITRUM_ADDRESS_BOOK" ]]; then
+  rm "$ARBITRUM_ADDRESS_BOOK"
+fi
+echo '{}' > "$ARBITRUM_ADDRESS_BOOK"
+
+# Reset arbitrum address book (just in case the deployment changed)
+if [[ -f "$ARBITRUM_DEPLOYMENT_FILE" ]]; then
+  rm "$ARBITRUM_DEPLOYMENT_FILE"
 fi
 
 ## DEPLOY

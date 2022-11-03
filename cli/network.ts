@@ -29,6 +29,10 @@ export const toGRT = (value: string | number): BigNumber => {
 export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
   new providers.JsonRpcProvider(providerUrl, network)
 
+export const getChainID = (): number => {
+  return 4 // Only works for rinkeby right now
+}
+
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
 type ContractParam = string | BigNumber | number

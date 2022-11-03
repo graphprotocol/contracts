@@ -19,6 +19,7 @@ task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
   })
 
 task('migrate:unpause:bridge', 'Unpause bridge')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
