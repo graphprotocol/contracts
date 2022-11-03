@@ -9,6 +9,7 @@
  * - Using local copy of the RLPReader library instead of using the package
  * - Silenced linter warnings about inline assembly
  * - Renamed a variable for mixedCase consistency
+ * - Added clearer revert messages
  */
 
 /**
@@ -50,7 +51,10 @@ library MerklePatriciaProofVerifier {
 
         if (stack.length == 0) {
             // Root hash of empty Merkle-Patricia-Trie
-            require(rootHash == 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421);
+            require(
+                rootHash == 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421,
+                "MPT: invalid empty tree root"
+            );
             return new bytes(0);
         }
 
@@ -62,12 +66,12 @@ library MerklePatriciaProofVerifier {
 
             // The root node is hashed with Keccak-256 ...
             if (i == 0 && rootHash != stack[i].rlpBytesKeccak256()) {
-                revert();
+                revert("MPT: invalid root hash");
             }
             // ... whereas all other nodes are hashed with the MPT
             // hash function.
             if (i != 0 && nodeHashHash != _mptHashHash(stack[i])) {
-                revert();
+                revert("MPT: invalid node hash");
             }
             // We verified that stack[i] has the correct hash, so we
             // may safely decode it.
@@ -98,7 +102,7 @@ library MerklePatriciaProofVerifier {
                     // Sanity check
                     if (i < stack.length - 1) {
                         // divergent node must come last in proof
-                        revert();
+                        revert("MPT: divergent node not last");
                     }
 
                     return new bytes(0);
@@ -108,7 +112,7 @@ library MerklePatriciaProofVerifier {
                     // Sanity check
                     if (i < stack.length - 1) {
                         // leaf node must come last in proof
-                        revert();
+                        revert("MPT: leaf node not last");
                     }
 
                     if (mptKeyOffset < mptKey.length) {
@@ -122,7 +126,7 @@ library MerklePatriciaProofVerifier {
                     // Sanity check
                     if (i == stack.length - 1) {
                         // shouldn't be at last level
-                        revert();
+                        revert("MPT: non-leaf node last");
                     }
 
                     if (!node[1].isList()) {
@@ -144,14 +148,14 @@ library MerklePatriciaProofVerifier {
                     mptKeyOffset += 1;
                     if (nibble >= 16) {
                         // each element of the path has to be a nibble
-                        revert();
+                        revert("MPT: element not nibble");
                     }
 
                     if (_isEmptyBytesequence(node[nibble])) {
                         // Sanity
                         if (i != stack.length - 1) {
                             // leaf node should be at last level
-                            revert();
+                            revert("MPT: leaf not last");
                         }
 
                         return new bytes(0);
@@ -166,7 +170,7 @@ library MerklePatriciaProofVerifier {
                     // Sanity
                     if (i != stack.length - 1) {
                         // should be at last level
-                        revert();
+                        revert("MPT: end not last");
                     }
 
                     return node[16].toBytes();
@@ -210,7 +214,7 @@ library MerklePatriciaProofVerifier {
         pure
         returns (bool isLeaf, bytes memory nibbles)
     {
-        require(compact.length > 0);
+        require(compact.length > 0, "MPT: invalid compact length");
         uint256 firstNibble = (uint8(compact[0]) >> 4) & 0xF;
         uint256 skipNibbles;
         if (firstNibble == 0) {
@@ -227,7 +231,7 @@ library MerklePatriciaProofVerifier {
             isLeaf = true;
         } else {
             // Not supposed to happen!
-            revert();
+            revert("MPT: invalid first nibble");
         }
         return (isLeaf, _decodeNibbles(compact, skipNibbles));
     }
@@ -237,10 +241,10 @@ library MerklePatriciaProofVerifier {
         pure
         returns (bytes memory nibbles)
     {
-        require(compact.length > 0);
+        require(compact.length > 0, "MPT: _dN invalid compact length");
 
         uint256 length = compact.length * 2;
-        require(skipNibbles <= length);
+        require(skipNibbles <= length, "MPT: _dN invalid skipNibbles");
         length -= skipNibbles;
 
         nibbles = new bytes(length);

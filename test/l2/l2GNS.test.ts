@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { arrayify, defaultAbiCoder, hexlify, parseUnits } from 'ethers/lib/utils'
+import { arrayify, defaultAbiCoder, hexlify, parseEther, parseUnits } from 'ethers/lib/utils'
 
 import {
   getAccounts,
@@ -9,6 +9,8 @@ import {
   toGRT,
   getL2SignerFromL1,
   provider,
+  impersonateAccount,
+  setAccountBalance,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 import { toBN } from '../lib/testHelpers'
@@ -25,6 +27,7 @@ import {
 } from '../lib/gnsUtils'
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
+import { encodeMPTProofRLP, getBlockHeaderRLP } from '../lib/mptProofUtils'
 
 const { HashZero } = ethers.constants
 
@@ -83,6 +86,38 @@ const mainnetSubgraphWithProof = {
   },
 }
 
+const mainnetProofForDifferentBlock = {
+  accountProof: [
+    '0xf90211a008ba162be4a831acbdfe628aa1867ea899e724b78570d2e2e6a3389c4f51e7aaa0901aa8bef1925917994c6abcb439808bbfae39aae8623b255c3529a898c14e5ca05b3ff03602e8561e2f4fdaccf0daff0afd6c59dd6314a7d5754a8d3658f48864a06ea25db38ef4149ea9716d73996cc67806a9db5a244fbaedb353388b39cd31bfa0bfef765e7fe1f80cc810235ac303c4490fed198b7b7fff3923d1d0004d98a840a0e00f852dd111d919df6f03fa88815797b13909ead7175f731e8f58f8756c0105a0aafce80dc97c6059a771e475e4076e6abd5c447f7e04104fc9d0d6a6dfd0932da0e6b2f28ff41158e14d6b410e99511f6f7554e74f7762629dfb4ad179714b5ac7a0e83694d3f79b52db460b9cf1aba33cc008cd1e12de9bedb08308c260250555f4a0c9436bde76cf5e9712b2d9e03d394e9f779ab45b0f771c79f087d6b289887adca0bf80398498ecfbd534a5771cfc1f79ae5d494aab3faa83b4b7d5858ff0e58580a095118ba475cfd1c776b02ac34716a9bc1d52a00c56721d4ba725d3f876f5f315a0f0ea8039d2ccf1651fb7eb75134367d1ab2f1849b9ac702a924642a230c5bb51a038aaf7f55c78bb4933bd6cfb030e274a459e1fda0431d142505a4e6f6e3a5123a009c2d3201fd7d93a686677076fa92557a47c35bad888d856d9d7849a8ea01b61a0c10c88e88b8d77bcaa5e8f183fb0558ca98a38cebb60184c48645ddd4b38092c80',
+    '0xf90211a0a42a0ef19c23b780e03a3b5f9de863786af2169fa15b85d393fbae2052c07d57a0dfd8f4a92f62a08a297e2525f297a2a730a8edc8aa81cfa92a01dbecdfd16a79a00cfd319d602d6a17eaa69ac1ac48efb56867fc71fb55c24a17dc758492ef510aa01d8c4d2a39257a0f22c164e26504685a6d223a8482fa21f01168a8663573ce62a07f4c2fdf5f1b961b5762ce9d2bd729c33e0dfdc47a89127f61ec6589bf45d675a0c898c361c0affc958650814701aab3746a46e70379035783d95c159db1c09266a00f734e2c6cfca74f7946a5973f773d2ef50019619e5106608e304d5e6746a61ca03ca7b92c054c934f5a321784778475f3cf4356ebfe298a1b0633864c6e8f4c4ea0303e606e88bc5a64911e3fd2366c394cd95a0f7821b635c9dc1675aadd90b338a0fdc3d4895ccae7d5e643e2a556d4d0761756559ba6823e5b579e0eb0f7fab581a0724c78e570600ed9b63ef27f37c833dafff499b020e1ac8dcbe638bf400c0968a0baf64f7207dc9f24b0d6baf69cd2712ed11f5ca94c1b7f3d6a00e2b6e40c1d02a0074b2ce83ab279776f145d98420e421a7db0058a36cf901b7a2ec6b21bb740e4a07a6f49435408d90fca807ede88d4f980a55e9879b902139be8a0b7b4478a6a29a06fd16bc6196aec8f3a236551709c5d375c49b7185e1f98dedbb0ab49794659c6a0c442b425ea1bb4f4b1841468be4a1fd080fb67138439d68b91d235a7d0d8542c80',
+    '0xf90211a0efd2613d0a804f4fa546e7a064da4267b1b5ee413cc0eac950fa068d44d66d58a0ddbe7e522df08d935405a051f6a5ac4ece17b713078279a47c4cda03aa00a1e4a085f48e639de7e35a5929fc18a5283bd886f1db1daa111a2037f191642f813ff3a01b600c46499d6720e691006359324d39ec9dabdf285dd703cc1ac4c5d54eb33fa08f1e1bd5560548120655491e5184d090095a92f778db5884f984d822d0df587ea01f49ad2a577f00dd0e7eba492836f22a38e91acf463a0151d72f3018e1063fd9a09a1f1d77d752cf64d4a9808b881e7308dbd1cd9db6d5f43b5bf861ab23107ee1a0da17e1f1ee4f2d0ba1e86fae61f56fa6973512d3e67d2be803b87b0a708340ffa0d953d5d71f1da9bdf3b639eccdddcebb0b3f279e7a5c8b5a4c623ea9f64afb96a077c6c029a1bd6ae13e57204ad02435c9d16ac08991936b793bfa3a25c9bc6a22a0cb9737b08c26b3b367d27e25c89625a131833ffb6fb32752cede3774e65f0d15a0a41fbe982ce84f9a8c815c1b2624daf2dfee2722dc0e165499ac4715ab0ad6a0a038b116b0c61672e61e5245671ab797a9c5755100081782631a09a0ab7677e5a5a0ff94af9e2b34b8ae9f2bb0851800a8d79409f71ef92dd5ac76bb387fdc4bca17a03bf35ce5cd3f63e84b36e75ff858aaaa824ddb29c4d49e9caeaea9c5aff38d0ba03802c963326159a902c71e5627c44a4435831d126ea13c4457c980f8b456022f80',
+    '0xf90211a0750f9a5ef0d6aef805bc3542ea9e45dd1c1688e676bcfb962604e2f05a935afba0c974aae944f91467b5678fc1f39889b5a52d9013517aa79d1296a0f98d3608eea076670c0ae12a32aba44db37dd7f46015419ac8d4dcb5e7f11dfd0883c6a9a27ba04539dac694cf59b90c7146850d0e21ded661e02673d0066042281b935c83d166a0ddb0213975d2fe1d4266edbf9e5567fe9af3eb32a943dc6de60ab14fc62896e1a0a36ef0befab6acb3465e84e1424ebd0255fa7885765bfc82ebacb13b4c3f4bf2a0909850012d77c57ad74720c0944edcec60fd77cc91e1bf79cfbb8c278e73ca6ca0b843bb94c7543757b3818e585139cdff16e3dc3815943c08eda53c8d9e8153faa052da49f83ce02065944aad3b0df9b026cec65f1622a35e5162cc4f44e50f3da6a0c6d0966eb43a9d33ea326a8d6a1762efc886072e9314bfb93e6d9a81594ea852a0189167569b2e7eb59cae48e74f0b358c129d504c007eec2fda6f4b716149e1aea0d835433ad49cd8106ef8d03eb79a2e6bd9459da70411fe37983ef026c8236471a023e6a589a587d624703575127dbb3865f157fca76190fdc33f2a3f73c39105f0a0c998aa53170787e29bdc444989965032d4258da718175163368a306c04229431a0abb958a4cf70d39472163e1b2309888d510cc3e0445748bb127eb69e5d7c35aea09592f1f09c59b2289749038535defffa1b98bcf7344ad05b9d3cccd75110844a80',
+    '0xf90211a0e7efc1ad587fb9ecc0c343d94c894146f9ac499ad3b250368c11d6f531354b8fa07237f64ded7d0941d59656e5b590d3e6fc61093cc1740ad209dd300ee9f0ca12a042ac0a64ac87b16ec296edb580ce0910083690d9d1ace367369351a6fbfe0882a05533447ef90d3623bceccef86860a029ea394aa8783ee6cf3e982bd47ff12c03a0df248d8095d09d69e25381eb1ee6a90407fba3fe1baae6fbd56c2660986573bfa0622e8063b57c51b19747bc851ae0d828d1cde0bbf46f8a5180102dd94459c802a0e800b6c40184f7b7fa683ae191bb4aac1ce585bb6791b99eb4244e351d02f1cba03104783681ab55e0f05486fcdc8e2fcf784d5a52c78c32832d7ce4794524b824a0833a530c25ed992d20626c55af19c9abe4d1c7a07d5a058dde29907fe65fbcd1a0e133c4cd151948b47d986b93c3572b04098c5da3435c27a9c847c7d5f990bc9ea0f3d3855ffbcc3c26adbeb526fae48536f4dbc39b9bf24f7a17b76335f6b000eea0c7a4d3135faba63cd89f64b0fabf4d726f0543fa347e8cf44db30bfe6ea9e11da0c2e15f8f776d1e3d9cfd29ef9b1e1c5ee5d6334152f587d72ecb9eed5fc3193ea05606f5dc9f0d6d58473595cca2a3bfe3a58cfd9f6f530f52a40dfcf477428f22a0a9ba4206ef4055b28d1126bd21afd4ab26898267d7334191a6cc7f8b07a54122a0715b72d6ed83a6da4e9d376f86690caf329adbc5dcda4cfd0839e3f02066e20a80',
+    '0xf90211a00cad8552ddac3a1aa1c598c4d43a80d5a6cac7e58b543c86d5920a78d5b0f0dea0dd59269713fe63d6391c36afe5676c00a2077bd60482e391360af5c3771248eca0c5925754c6c72a7b07512ee07acdae077ee70e9d3ab04065360fdc4bebdb155fa045f1e4df1025988aa9d0ce23c03f4b366a99286de59d82f1eafdf9a3890905a3a082f4d71cb736ffdf729a683152c26b2f99c8dda4b28693dccd9853c58982a2c4a08e202445f7c2fa69da1f1492a1b0e46d8b66b0b7024c7cff23ed5c07191da66fa0b3c179e3f3b9b216e4b35174e4e4d119526af446fdf757ad95e02e49cac28565a0fd74d0a8922342560f6dd820cfa373ec7353c6c66d74bd43351ebb7d103d5ceaa04a8689c3cb5396ee5a99469957f1f0670b0024b2ea3b75e0455797a5175c72a3a085270faec5854bff806bb9951261092745f657e062ae1499d3c5fde81fe14713a07dd8daf759fa359c36c7afc9f7963a557088f5483a8c5d7a0866237fb5f055c5a0d3ec4525a4f0d209a566b07f46a91c609b9c7acbc427db1390485cf4b5105557a005983a192b1f780b095661d92ef4d4102ffd03aad9adb6f3084ba26a11cd0daaa0afd710661f91421da1ece5ea87acc4f76e8af3dad5fa14f0a4ba1ac1a7276449a0ba0374b7981b92f55525b830723b32dce4ebd3c6a13fd06f61b465728ca077c7a0349075b6ff5265073d6ec6676f9b82991159e0bd8170596bcd80573f95576b7380',
+    '0xf90131a000e3833f5535c6eae67533a61520c8a99ec1d617d8230498ea57aaac1080ebf880a0432d16911e0f89bb5b6faff16255b203ee2e80db68098f75aee4673d327346b680a0241e5caf848b74ce5efbaa4f83b7df94d3bf5ae87d8fa7f97aff4094b05459bb80a09dec563e0a5682d43213c9a511e954705231ebaee0c72f0aa4f95792823ca0e280a01560fe4a9d9af402122701cccc9d3a13f77747b965d5efe09d0dfce95f807dcca08b5cd207548549e40fd1658e38b5b4227f7f03d8dd112541461c50f3c3ff38a180a0fbf6596703d7037eb2cc332d54fdfcda8e95c23e7478cfe31f6c1da43e7222f78080a0a67c5dda3bd39b79b00911abebf9c976950393b186cb5377ea09536dc48a1ff7a016a9123689ca894c201645726ead95406839cf2f8004461c0bd529321165857180',
+    '0xf851808080808080808080a0600efc8e5996c533afd640c3448c198e1101fa32e5bd246f71dd99c7201575308080808080a02a55c146621228f2dcddd1135d942971c0ee296df5055f5dee8e92b9ab462c6380',
+    '0xf8669d2004b4599193722f03c0e529c8aab049a7fe5ed19ea9c3fed8c9365470b846f8440180a0a32e5d12226001f1f5f4a3d574ebf9487af319b24eb0f98f02e26dec3944c3f1a0db307489fd9a4a438b5b48909e12020b209280ad777561c0a7451655db097e75',
+  ],
+  address: '0xadca0dd4729c8ba3acf3e99f3a9f471ef37b6825',
+  balance: '0x0',
+  codeHash: '0xdb307489fd9a4a438b5b48909e12020b209280ad777561c0a7451655db097e75',
+  nonce: '0x1',
+  storageHash: '0xa32e5d12226001f1f5f4a3d574ebf9487af319b24eb0f98f02e26dec3944c3f1',
+  storageProof: [
+    {
+      key: '0x2757396e3ce68a9104b5d84b5b0988e37067e780df1ad018184da3616033f432',
+      proof: [
+        '0xf90211a0a8e75f540571eb3c42baaac34fc6cbf805bab88fc9b56a89d2f34cdb24501870a0a71f668d3dba2a9f242174738ff3596c68a84eb9088fffb307f48e061fbdc667a0885ca4c629f3924e02c8e45cf078e484257af19e1a4b58aee012147ae3a92b95a0bedf16b76516325a66ac35545179a8dd15ee1c6cd11b2e4357d533b19acb4b26a0582f96c7d74fe3db5e03f6bec8bd270851854184c0fe603818618cde931dd9f0a02cd0952b4eeac88968ee221063915ef781eaeabb03de5aa1004b793a4f718cf6a0fbef9a34532cfe338a73ccedd177eaf1499f4a2e64095f055ac7908290baf4f9a0eeba7e56f3973a00a3ff5539d81ffb84df02f3798aee2561c315a00ee4b47489a0daf1b46b0f454e044a2a79454f900e02846f7a83f68f9a24680cbea8b9f78890a0ca9205467afc9ca2b2e12de01bbd97271e34bd39df54319c1efa35fee3e5344ba0958fd01948214784c18bdca21ef8419f04e108ea09f06eaea285f64812b98bada045d19971e0a4e566bd5d8fcdfb0c0fd243e9efa3733fb4f80d77438bd1698577a00fac3ae214e57a589a3dc3d5e5249cb2ab1966f73d35fac13b448270827d1effa0c785693d9760e93b431bf4b1d5933373a2ef1fe20599a38f3ce7c9643c2e9f23a0bdbe251449087722a740e7bdc0801bf55f3849e23e63d9dda2a8409d5163cd01a00f6e4f80e267fafdd75194ca49ac0eb7144bb6dcbbe0d50e810c9386b876524580',
+        '0xf90211a0b719adad765af02b76641e4ac0a5eb918f5c52e9cf0f38f0f507e4e8d4bb1456a0488e936d22182c75c0ec64be2e1e5f0b2066890719376ea408560a182988425da06ee266499e1f3d0c3d3c82e2085fa76c42324298736566ed40059de26880e7a9a09fa4124da658c059955c51944334a7891d0c8805f114d0a857079e920cbe6f6ca074271a2e9c903cb19f1b1cd3ef7c2f8260968be6aaac50cc6d7f8370c225f390a05457b729e133026647b6d98180bbbc56076f454fb291879a0c16b22da2a335c5a072031df309f78657aee2acb7b43a486effb4ecd68707d8a438c113bfaf6f1913a0dc0fba7acc1c0a48fc5c978af68fb20c9acaafc7c7515040b1448f324da6050aa0295ff43c4950ab5dee47b2f9e8a04d6a80180643e96488b152ddbd71e25c3b45a0b435feea8e8a46b90fc0156339bce6a210a314694925976b5c82892e1befaaada087dbef5907ae3f99cbe9de597444d7cd15388ccbe88c1b36406f1dad4b0e10eca0f2f0da32846e51736baa70f8bb7922b9fe74002df69ae9d6af48115264b959e9a0462ec92782e4c8f04061daa351713be998149398a2934b4c816b2b9c54e7968da069d20640c46c43d8c5feb541fb0327481d985b623e4f91bea6109d66f486798ea0104e278ae371a220a0d56a72e70ee9657e333baae96329cc862d96eab978804fa06ad2bac3206493db0c51b790f25ecb10ac634112c188c12f5e65496fc14061d180',
+        '0xf901f1a01bce8a1cac817f9bd318953b01214d46d0c2ffcffe3f22c81901d9fb8aa55009a0b4880ebbfa94b50526e3de8b46ac96ea60dda4f4edcb1e0316b0299a5d30b04ca0e0d4603a3cd66de5abbe1bb435ed7c317b9edfdad08a0afe84eba49b9fcf088da0c78be3a18158fcef5f88ecd1044da21d03b37d91b906f1abf1ae4cc753088122a008bb32eda0081f564b3426a9ffdd06d9e2856b498b47315622058f176626ed1280a05f6af6349189ad63f9a3af757da563c33e42ffffe1f69a9d4855957920c583fca09c3789f507808280b4a7c4e6234d6582337a2aae5d394111efb07e55e3c1c448a0b7234c0127f2d87aa64f17f09d7d1d72f5701d5410459309da5d15979b6c8c9aa066aabcac035cc9a5fd651bd52328a36a37d4762a6491eb2808af5267acb3f775a0b2d7d676b32bcfd5e8df9cd7f95a9bb91eac071a5b881d9fbc4d9cee0fafedf6a0102c6f1a447995d714d64ab2729b4261df1226374c2f4844f29b2edc69a8b46ca0d03a7b0103fbcba49b8573b566d50d117b00b2c69c048148ef8795fa0a63c7efa0cf6ad8ab9618d75f6d00f49e7b496c77f4591869bc2d0a3ff65d503b2383cfa9a06488cd46027de9ede4d7a7e10327e673234273533310addef6dc3a969aad0bdea0225875ae810220c85166fe921555be9efacceae0aa4654e9fdc2df25cbd1642380',
+        '0xf891a01cc2e5507a5150448fe06d254adc104702198a9f8eb5afb15567e80282229e2f80808080808080a04ad7cdbaba63f4b3b9c397858d06888424b7a9aa49d59f9c24fe54211b11d1e68080a09af52c684dd75b985f4aed07ea00ca7ac18201d717064f657fb86f9427aded33808080a03e61dcabfaf134b2b84b92607a7d7abf5b7950f05129a63e77c1d97d7c5e411580',
+        '0xeb9f20cb3e0c7eaed59eb82ba9e6f55fbf77c28472e242e7bfa15f1e2c3305ef528a8901523b25a875df6c79',
+      ],
+      value: '0x1523b25a875df6c79',
+    },
+  ],
+}
+
 // Data for the block we used to get the mainnet subgraph proof.
 // This was obtained using eth_getBlockByNumber, and we only kept
 // the fields we needed to reconstruct the block header.
@@ -103,6 +138,7 @@ const mainnetSubgraphBlockData = {
   extraData: '0x6265617665726275696c642e6f7267',
   mixHash: '0x1751b7bb3547c7f27cc383bd35dcbf06a24f9a7629a3c963f75029828fe0c67e',
   nonce: '0x0000000000000000',
+  baseFeePerGas: '0x431ed95bc',
 }
 
 describe('L2GNS', () => {
@@ -359,6 +395,7 @@ describe('L2GNS', () => {
       expect(subgraphAfter.vSignal).eq(expectedSignal)
       expect(migrationDataAfter.l2Done).eq(true)
       expect(migrationDataAfter.deprecated).eq(false)
+      expect(subgraphAfter.disabled).eq(false)
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
@@ -431,7 +468,7 @@ describe('L2GNS', () => {
   })
 
   describe('claiming a curator balance using a proof', function () {
-    it('verifies a proof and assigns a curator balance (WIP)', async function () {
+    it('verifies a proof and assigns a curator balance', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
 
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
@@ -448,18 +485,210 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
-      // TODO:
-      // We need to construct the block header RLP
-      // Then we encode the proof into an RLP list as well
-      // And finally we verify the proof
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(
+          l1Subgraph.subgraphId,
+          l1Subgraph.curator,
+          l1Subgraph.curator,
+          l1Subgraph.getProofResponse.storageProof[0].value,
+        )
+      const curatorBalance = await gns.getCuratorSignal(l1Subgraph.subgraphId, l1Subgraph.curator)
+      expect(curatorBalance).eq(l1Subgraph.getProofResponse.storageProof[0].value)
     })
-    it('adds the balance to any existing balance for the curator')
-    it('rejects calls with an invalid proof')
-    it('rejects calls for a subgraph that was not migrated')
-    it('rejects calls if the balance was already claimed')
-    it('rejects calls with proof from a different curator')
-    it('rejects calls with proof from a different contract')
-    it('rejects calls with a proof from a different block')
+    it('adds the balance to any existing balance for the curator', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+
+      // We add some pre-existing balance on L2 to the curator:
+      await grt.connect(governor.signer).mint(l1Subgraph.curator, toGRT('100'))
+      await grt.connect(curatorSigner).approve(gns.address, toGRT('100'))
+      await gns.connect(curatorSigner).mintSignal(l1Subgraph.subgraphId, toGRT('100'), toBN('0'))
+      const prevSignal = await gns.getCuratorSignal(l1Subgraph.subgraphId, l1Subgraph.curator)
+      expect(prevSignal).not.eq(toBN(0))
+
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      const expectedClaimedSignal = l1Subgraph.getProofResponse.storageProof[0].value
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(
+          l1Subgraph.subgraphId,
+          l1Subgraph.curator,
+          l1Subgraph.curator,
+          expectedClaimedSignal,
+        )
+      const curatorBalance = await gns.getCuratorSignal(l1Subgraph.subgraphId, l1Subgraph.curator)
+      expect(curatorBalance).eq(prevSignal.add(expectedClaimedSignal))
+    })
+    it('rejects calls with an invalid proof (e.g. from a different L1GNS address)', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We haven't updated the L1 counterpart address, so GNS will not accept the account proof as valid
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      // The key for the L1 counterpart is not present in the proof,
+      // so the verifier will not be able to find a node for the expected path
+      await expect(tx).revertedWith('MPT: invalid node hash')
+    })
+    it('rejects calls with an invalid proof (e.g. from a different curator)', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const tx = gns
+        .connect(me.signer)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      // The curator slot we're looking for isn't present in the proof,
+      // so the verifier will fail when looking for it
+      await expect(tx).revertedWith('MPT: invalid node hash')
+    })
+    it('rejects calls for a subgraph that was not migrated', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const tx = gns
+        .connect(me.signer)
+        .claimL1CuratorBalance(l2Subgraph.id!, blockHeaderRLP, proofRLP)
+      await expect(tx).revertedWith('!MIGRATED')
+    })
+    it('rejects calls if the balance was already claimed', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(
+          l1Subgraph.subgraphId,
+          l1Subgraph.curator,
+          l1Subgraph.curator,
+          l1Subgraph.getProofResponse.storageProof[0].value,
+        )
+      const curatorBalance = await gns.getCuratorSignal(l1Subgraph.subgraphId, l1Subgraph.curator)
+      expect(curatorBalance).eq(l1Subgraph.getProofResponse.storageProof[0].value)
+
+      // Now we try to double-claim
+      const tx2 = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      await expect(tx2).revertedWith('ALREADY_CLAIMED')
+    })
+    it('rejects calls with a proof from a different block', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTProofRLP(mainnetProofForDifferentBlock)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      // The root hash from the block header won't match the root hash from the proof
+      await expect(tx).revertedWith('MPT: invalid root hash')
+    })
   })
   describe('claiming a curator balance with a message from L1', function () {
     it('assigns a curator balance to a beneficiary')
