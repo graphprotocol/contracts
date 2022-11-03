@@ -101,8 +101,7 @@ subtask(TASK_NITRO_FETCH_DEPLOYMENT_FILE, 'Fetches nitro deployment file from a 
   .setAction(async (taskArgs) => {
     console.log(`Attempting to fetch deployment file from testnode...`)
 
-    const command =
-      'docker exec $(docker ps -qf "name=sequencer") cat /deployment/localNetwork.json > localNetwork.json'
+    const command = `docker exec $(docker ps -qf "name=sequencer") cat /workspace/localNetwork.json > ${taskArgs.deploymentFile}`
     const stdOut = execSync(command)
     console.log(stdOut.toString())
 
