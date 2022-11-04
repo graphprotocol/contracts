@@ -797,8 +797,15 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         seqID = legacySubgraphKey.accountSeqID;
     }
 
-    // TODO add NatSpec
-    function getCuratorSlot(address _curator, uint256 _subgraphID) public pure returns (uint256) {
+    /**
+     * @notice Get the storage slot that corresponds to a curator's signal within a subgraph
+     * @dev This can be useful to produce proofs to claim balances in L2, as implemented
+     * in L2GNS. Note this only works with non-legacy subgraphs.
+     * @param _subgraphID Subgraph ID
+     * @param _curator Curator address
+     * @return Storage slot for the curator's signal in the specified subgraph
+     */
+    function getCuratorSlot(uint256 _subgraphID, address _curator) public pure returns (uint256) {
         // subgraphs mapping is stored at slot SUBGRAPH_MAPPING_SLOT.
         // So our subgraph is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(SUBGRAPH_MAPPING_SLOT)))
         // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
@@ -816,11 +823,19 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
             );
     }
 
-    // TODO add NatSpec
+    /**
+     * @notice Get the storage slot that corresponds to a curator's signal within a legacy subgraph
+     * @dev This can be useful to produce proofs to claim balances in L2, as implemented
+     * in L2GNS. Note this only works with legacy subgraphs.
+     * @param _subgraphCreatorAccount Address of the account that created the account
+     * @param _seqID Sequence number for the subgraph
+     * @param _curator Curator address
+     * @return Storage slot for the curator's signal in the specified legacy subgraph
+     */
     function getLegacyCuratorSlot(
-        address _curator,
         address _subgraphCreatorAccount,
-        uint256 _seqID
+        uint256 _seqID,
+        address _curator
     ) public pure returns (uint256) {
         // legacy subgraphs mapping is stored at slot LEGACY_SUBGRAPH_MAPPING_SLOT.
         // So the subgraphs for the account are at slot keccak256(abi.encodePacked(uint256(_subgraphCreatorAccount), uint256(SUBGRAPH_MAPPING_SLOT)))

@@ -44,7 +44,7 @@ interface L1SubgraphParams {
 // await provider.send('eth_getProof', [ g.contracts.GNS.address, [ '0x2757396e3ce68a9104b5d84b5b0988e37067e780df1ad018184da3616033f432' ], '0x82e59e8ef5e6c4352d363fc5b6ea64d6f605d47ff0c454ea1133be6bacaff487'])
 // Where the curator slot is 0x2757396e3ce68a9104b5d84b5b0988e37067e780df1ad018184da3616033f432,
 // which was obtained by calling this in a localhost hardhat console:
-// await g.contracts.GNS.getCuratorSlot('0xE99bD186DBdA4Dc0A499b158E9E8eA7a628EDD14', '0x715f5c54c9a35783823650c340586f43acede4a907726e4e6499abde90331184')
+// await g.contracts.GNS.getCuratorSlot('0x715f5c54c9a35783823650c340586f43acede4a907726e4e6499abde90331184', '0xE99bD186DBdA4Dc0A499b158E9E8eA7a628EDD14')
 const mainnetSubgraphWithProof = {
   subgraphId: '0x715f5c54c9a35783823650c340586f43acede4a907726e4e6499abde90331184',
   curator: '0xE99bD186DBdA4Dc0A499b158E9E8eA7a628EDD14',
@@ -87,7 +87,7 @@ const mainnetSubgraphWithProof = {
 }
 
 // Same but using the following slot for the getProof call:
-// getLegacyCuratorSlot(curator, account, accountSeqId) => '0xbda2ea2df35ed9dad1726e4b7b20512302d0f12693c5cf63a4d778d0945b456b'
+// getLegacyCuratorSlot(account, accountSeqId, curator) => '0xbda2ea2df35ed9dad1726e4b7b20512302d0f12693c5cf63a4d778d0945b456b'
 const mainnetLegacySubgraphWithProof = {
   subgraphId: '0xb3424eb47c56b1cd4e82ab42f8a614d7fdc97c88a6887e0b51998968da8bca12',
   account: '0x9EfbEA665B79F366fCBB390a55C617257E0C678c',
