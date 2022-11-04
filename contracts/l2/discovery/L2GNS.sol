@@ -259,6 +259,7 @@ contract L2GNS is GNS, IL2GNS {
             _balance
         );
         migratedData.curatorBalanceClaimed[_curator] = true;
+        emit CuratorBalanceClaimed(_subgraphID, _curator, _beneficiary, _balance);
     }
 
     // TODO add NatSpec
