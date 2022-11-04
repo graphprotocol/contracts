@@ -14,7 +14,7 @@ contracts:
         contractAddress: "${{Curation.address}}"
       - fn: "setContractProxy"
         id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
-        contractAddress: "${{GNS.address}}"
+        contractAddress: "${{L2GNS.address}}"
       - fn: "setContractProxy"
         id: "0xf942813d07d17b56de9a9afc8de0ced6e8c053bbfdcc87b7badea4ddcf27c307" # keccak256('DisputeManager')
         contractAddress: "${{DisputeManager.address}}"
@@ -82,7 +82,7 @@ contracts:
       qrySlashingPercentage: 25000 # in parts per million
     calls:
       - fn: "syncAllContracts"
-  GNS:
+  L2GNS:
     proxy: true
     init:
       controller: "${{Controller.address}}"
@@ -98,7 +98,7 @@ contracts:
       - fn: "setTokenDescriptor"
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
       - fn: "setMinter"
-        minter: "${{GNS.address}}"
+        minter: "${{L2GNS.address}}"
       - fn: "transferOwnership"
         owner: *governor
   Staking:
