@@ -69,6 +69,7 @@
     "ipfs-http-client": "47.0.1",
     "isomorphic-fetch": "^3.0.0",
     "lint-staged": "^10.5.4",
+    "merkle-patricia-tree": "^4.2.4",
     "p-queue": "^6.6.1",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.9",

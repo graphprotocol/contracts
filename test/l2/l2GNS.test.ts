@@ -27,7 +27,7 @@ import {
 } from '../lib/gnsUtils'
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
-import { encodeMPTProofRLP, getBlockHeaderRLP } from '../lib/mptProofUtils'
+import { encodeMPTStorageProofRLP, getBlockHeaderRLP } from '../lib/mptProofUtils'
 
 const { HashZero } = ethers.constants
 
@@ -529,7 +529,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -565,7 +565,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -607,7 +607,7 @@ describe('L2GNS', () => {
       // We haven't updated the L1 counterpart address, so GNS will not accept the account proof as valid
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -636,7 +636,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const tx = gns
         .connect(me.signer)
@@ -655,7 +655,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const tx = gns
         .connect(me.signer)
@@ -680,7 +680,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -722,7 +722,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(mainnetProofForDifferentBlock)
+      const proofRLP = encodeMPTStorageProofRLP(mainnetProofForDifferentBlock)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -750,7 +750,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -780,7 +780,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -821,7 +821,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -867,7 +867,7 @@ describe('L2GNS', () => {
       // We haven't updated the L1 counterpart address, so GNS will not accept the account proof as valid
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -901,7 +901,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const tx = gns
         .connect(me.signer)
@@ -925,7 +925,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const tx = gns
         .connect(me.signer)
@@ -950,7 +950,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
@@ -1002,7 +1002,7 @@ describe('L2GNS', () => {
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
-      const proofRLP = encodeMPTProofRLP(l1Subgraph.getProofResponse)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
       const curatorSigner = await impersonateAccount(l1Subgraph.curator)
       await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
