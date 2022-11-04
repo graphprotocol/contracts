@@ -69,7 +69,7 @@ export const getBlockHeaderRLP = (block: GetBlockResponse): string => {
   return RLP.encode(header)
 }
 
-export const encodeMPTProofRLP = (proof: GetProofResponse): string => {
+export const encodeMPTStorageProofRLP = (proof: GetProofResponse): string => {
   if (proof.storageProof.length !== 1) {
     throw new Error('Expected exactly one storage slot proof')
   }
