@@ -160,7 +160,7 @@ contract L2GNS is GNS, IL2GNS {
 
         require(l1GNSAccount.exists, "!ACCOUNT");
 
-        uint256 curatorSlot = getCuratorSlot(msg.sender, _subgraphID);
+        uint256 curatorSlot = getCuratorSlot(_subgraphID, msg.sender);
 
         Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
             keccak256(abi.encodePacked(curatorSlot)),
@@ -215,7 +215,7 @@ contract L2GNS is GNS, IL2GNS {
 
         require(l1GNSAccount.exists, "!ACCOUNT");
 
-        uint256 curatorSlot = getLegacyCuratorSlot(msg.sender, _subgraphCreatorAccount, _seqID);
+        uint256 curatorSlot = getLegacyCuratorSlot(_subgraphCreatorAccount, _seqID, msg.sender);
 
         Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
             keccak256(abi.encodePacked(curatorSlot)),

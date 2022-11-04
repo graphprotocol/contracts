@@ -1062,6 +1062,42 @@ describe('L1GNS', () => {
       await expect(tx).revertedWith('GNS: Subgraph was already claimed')
     })
   })
+  describe('Legacy subgraph view functions', function () {
+    it('isLegacySubgraph returns whether a subgraph is legacy or not', async function () {
+      const seqID = toBN('2')
+      const subgraphId = buildLegacySubgraphID(me.address, seqID)
+      await legacyGNSMock
+        .connect(me.signer)
+        .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+      await legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+
+      expect(await legacyGNSMock.isLegacySubgraph(subgraphId)).eq(true)
+
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock)
+      expect(await legacyGNSMock.isLegacySubgraph(subgraph0.id)).eq(false)
+    })
+    it('getLegacySubgraphKey returns the account and seqID for a legacy subgraph', async function () {
+      const seqID = toBN('2')
+      const subgraphId = buildLegacySubgraphID(me.address, seqID)
+      await legacyGNSMock
+        .connect(me.signer)
+        .createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
+      await legacyGNSMock
+        .connect(me.signer)
+        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      const [account, id] = await legacyGNSMock.getLegacySubgraphKey(subgraphId)
+      expect(account).eq(me.address)
+      expect(id).eq(seqID)
+    })
+    it('getLegacySubgraphKey returns zero values for a non-legacy subgraph', async function () {
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock)
+      const [account, id] = await legacyGNSMock.getLegacySubgraphKey(subgraph0.id)
+      expect(account).eq(AddressZero)
+      expect(id).eq(toBN('0'))
+    })
+  })
   describe('Subgraph migration to L2', function () {
     const publishAndCurateOnSubgraph = async function (): Promise<Subgraph> {
       // Publish a named subgraph-0 -> subgraphDeployment0
