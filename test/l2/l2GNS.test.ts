@@ -171,10 +171,8 @@ describe('L2GNS', () => {
   ): Promise<ContractTransaction> {
     const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
     // Eth for gas:
-    await me.signer.sendTransaction({
-      to: await mockL1GatewayL2Alias.getAddress(),
-      value: parseUnits('1', 'ether'),
-    })
+    await setAccountBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
       .finalizeInboundTransfer(mockL1GRT.address, from, to, amount, callhookData)
@@ -690,11 +688,130 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('MPT: invalid root hash')
     })
   })
-  describe('claiming a curator balance with a message from L1', function () {
-    it('assigns a curator balance to a beneficiary')
-    it('adds the balance to any existing balance for the beneficiary')
-    it('can only be called from the gateway')
+  describe('claiming a curator balance for a legacy subgraph using a proof', function () {
+    it('verifies a proof and assigns a curator balance')
+    it('adds the balance to any existing balance for the curator')
+    it('rejects calls with an invalid proof (e.g. from a different L1GNS address)')
+    it('rejects calls with an invalid proof (e.g. from a different curator)')
     it('rejects calls for a subgraph that was not migrated')
     it('rejects calls if the balance was already claimed')
+    it('rejects calls with a proof from a different block')
+  })
+  describe('claiming a curator balance with a message from L1', function () {
+    it('assigns a curator balance to a beneficiary', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+
+      const tx = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
+      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
+      const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
+      expect(l1CuratorBalance).eq(0)
+      expect(l2CuratorBalance).eq(toGRT('10'))
+    })
+    it('adds the balance to any existing balance for the beneficiary', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+
+      await grt.connect(governor.signer).mint(other.address, toGRT('10'))
+      await grt.connect(other.signer).approve(gns.address, toGRT('10'))
+      await gns.connect(other.signer).mintSignal(l1SubgraphId, toGRT('10'), toBN(0))
+      const prevSignal = await gns.getCuratorSignal(l1SubgraphId, other.address)
+
+      const tx = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
+      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
+      const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
+      expect(l1CuratorBalance).eq(0)
+      expect(l2CuratorBalance).eq(prevSignal.add(toGRT('10')))
+    })
+    it('can only be called from the counterpart GNS L2 alias', async function () {
+      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+
+      const tx = gns
+        .connect(governor.signer)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx).revertedWith('ONLY_COUNTERPART_GNS')
+
+      const tx2 = gns
+        .connect(me.signer)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx2).revertedWith('ONLY_COUNTERPART_GNS')
+
+      const tx3 = gns
+        .connect(mockL1GNS.signer)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx3).revertedWith('ONLY_COUNTERPART_GNS')
+    })
+    it('rejects calls for a subgraph that does not exist', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId } = await defaultL1SubgraphParams()
+
+      const tx = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx).revertedWith('!MIGRATED')
+    })
+    it('rejects calls for an L2-native subgraph', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+
+      const tx = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l2Subgraph.id!, me.address, toGRT('10'), other.address)
+      await expect(tx).revertedWith('!MIGRATED')
+    })
+    it('rejects calls if the balance was already claimed', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+
+      const tx = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceClaimed')
+        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
+      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
+      const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
+      expect(l1CuratorBalance).eq(0)
+      expect(l2CuratorBalance).eq(toGRT('10'))
+
+      // Now trying again should revert
+      const tx2 = gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      await expect(tx2).revertedWith('ALREADY_CLAIMED')
+    })
   })
 })
