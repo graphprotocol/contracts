@@ -38,7 +38,7 @@ There are several types of e2e tests which can be run separately:
 It can be useful to run E2E tests against a fresh protocol deployment on L1, this can be done with the following:
 
 ```bash
-yarn test:e2e
+L1_NETWORK=localhost yarn test:e2e
 ```
 
 The command will:
@@ -72,13 +72,13 @@ To run tests against a live testnet or even mainnet run:
 
 ```bash
 # All e2e tests
-npx hardhat e2e --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only deployment config tests
-npx hardhat e2e:config --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e:config --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only deployment init tests
-npx hardhat e2e:init --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e:init --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only a specific scenario
 npx hardhat e2e:scenario <scenario> --network <network> --graph-config config/graph.<network>.yml
