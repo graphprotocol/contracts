@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 import { RLP } from 'ethers/lib/utils'
-import { BaseTrie } from 'merkle-patricia-tree'
+import { Trie } from '@ethereumjs/trie'
 
 import { MerklePatriciaProofVerifierMock } from '../build/types/MerklePatriciaProofVerifierMock'
 import { deployContract } from './lib/deployment'
@@ -29,7 +29,7 @@ describe('MerklePatriciaProofVerifier', () => {
   })
 
   it('verifies a valid proof of inclusion', async function () {
-    const trie = new BaseTrie()
+    const trie = new Trie()
     const key = Buffer.from('foo')
     const value = Buffer.from('bar')
     await trie.put(key, value)
@@ -39,15 +39,19 @@ describe('MerklePatriciaProofVerifier', () => {
     await trie.put(Buffer.from('fob'), Buffer.from('bat'))
     await trie.put(Buffer.from('zort'), Buffer.from('narf'))
 
-    const proof = await BaseTrie.createProof(trie, key)
+    const proof = await trie.createProof(key)
 
     const encodedProof = encodeProofRLP(proof)
 
-    const val = await mpt.extractProofValue(bufferToHex(trie.root), bufferToHex(key), encodedProof)
+    const val = await mpt.extractProofValue(
+      bufferToHex(trie.root()),
+      bufferToHex(key),
+      encodedProof,
+    )
     expect(val).to.equal(bufferToHex(value))
   })
   it('verifies a valid proof of exclusion', async function () {
-    const trie = new BaseTrie()
+    const trie = new Trie()
     const key = Buffer.from('foo')
 
     // We add a few more random values
@@ -55,11 +59,15 @@ describe('MerklePatriciaProofVerifier', () => {
     await trie.put(Buffer.from('fob'), Buffer.from('bat'))
     await trie.put(Buffer.from('zort'), Buffer.from('narf'))
 
-    const proof = await BaseTrie.createProof(trie, key)
+    const proof = await trie.createProof(key)
 
     const encodedProof = encodeProofRLP(proof)
 
-    const val = await mpt.extractProofValue(bufferToHex(trie.root), bufferToHex(key), encodedProof)
+    const val = await mpt.extractProofValue(
+      bufferToHex(trie.root()),
+      bufferToHex(key),
+      encodedProof,
+    )
     expect(val).to.equal('0x')
   })
 })
