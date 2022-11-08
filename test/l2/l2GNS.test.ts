@@ -35,7 +35,8 @@ interface L1SubgraphParams {
   l1SubgraphId: string
   curatedTokens: BigNumber
   lockBlockhash: string
-  metadata: string
+  subgraphMetadata: string
+  versionMetadata: string
   nSignal: BigNumber
 }
 
@@ -229,7 +230,8 @@ describe('L2GNS', () => {
       l1SubgraphId: await buildSubgraphID(me.address, toBN('1'), 1),
       curatedTokens: toGRT('1337'),
       lockBlockhash: randomHexBytes(32),
-      metadata: randomHexBytes(),
+      subgraphMetadata: randomHexBytes(),
+      versionMetadata: randomHexBytes(),
       nSignal: toBN('4567'),
     }
   }
@@ -237,18 +239,24 @@ describe('L2GNS', () => {
     l1SubgraphId: string,
     curatedTokens: BigNumber,
     lockBlockhash: string,
-    metadata: string,
+    subgraphMetadata: string,
+    versionMetadata: string,
     nSignal: BigNumber,
   ) {
     const callhookData = defaultAbiCoder.encode(
-      ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-      [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+      ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+      [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
     )
     await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
     await gns
       .connect(me.signer)
-      .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+      .finishSubgraphMigrationFromL1(
+        l1SubgraphId,
+        newSubgraph0.subgraphDeploymentID,
+        subgraphMetadata,
+        versionMetadata,
+      )
   }
 
   before(async function () {
@@ -292,11 +300,11 @@ describe('L2GNS', () => {
 
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, lockBlockhash, nSignal } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       const tx = gns
         .connect(me.signer)
@@ -304,11 +312,11 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, lockBlockhash, nSignal } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       const tx = gatewayFinalizeTransfer(me.address, gns.address, curatedTokens, callhookData)
 
@@ -318,11 +326,10 @@ describe('L2GNS', () => {
       const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
       const curatedTokens = toGRT('1337')
       const lockBlockhash = randomHexBytes(32)
-      const metadata = randomHexBytes()
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -335,7 +342,6 @@ describe('L2GNS', () => {
         .emit(l2GraphTokenGateway, 'DepositFinalized')
         .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
       await expect(tx).emit(gns, 'SubgraphReceivedFromL1').withArgs(l1SubgraphId)
-      await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(l1SubgraphId, metadata)
 
       const migrationData = await gns.subgraphL2MigrationData(l1SubgraphId)
       const subgraphData = await gns.subgraphs(l1SubgraphId)
@@ -362,11 +368,10 @@ describe('L2GNS', () => {
       const l1SubgraphId = await buildSubgraphID(me.address, toBN('0'), 1)
       const curatedTokens = toGRT('1337')
       const lockBlockhash = randomHexBytes(32)
-      const metadata = randomHexBytes()
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -379,7 +384,6 @@ describe('L2GNS', () => {
         .emit(l2GraphTokenGateway, 'DepositFinalized')
         .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
       await expect(tx).emit(gns, 'SubgraphReceivedFromL1').withArgs(l1SubgraphId)
-      await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(l1SubgraphId, metadata)
 
       const migrationData = await gns.subgraphL2MigrationData(l1SubgraphId)
       const subgraphData = await gns.subgraphs(l1SubgraphId)
@@ -413,11 +417,17 @@ describe('L2GNS', () => {
 
   describe('finishing a subgraph migration from L1', function () {
     it('publishes the migrated subgraph and mints signal with no tax', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       // Calculate expected signal before minting, which changes the price
@@ -428,10 +438,23 @@ describe('L2GNS', () => {
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          subgraphMetadata,
+          versionMetadata,
+        )
       await expect(tx)
         .emit(gns, 'SubgraphPublished')
         .withArgs(l1SubgraphId, newSubgraph0.subgraphDeploymentID, DEFAULT_RESERVE_RATIO)
+      await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(l1SubgraphId, subgraphMetadata)
+      await expect(tx)
+        .emit(gns, 'SubgraphUpgraded')
+        .withArgs(l1SubgraphId, expectedSignal, curatedTokens, newSubgraph0.subgraphDeploymentID)
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(l1SubgraphId, newSubgraph0.subgraphDeploymentID, versionMetadata)
+      await expect(tx).emit(gns, 'SubgraphMigrationFinalized').withArgs(l1SubgraphId)
 
       const subgraphAfter = await gns.subgraphs(l1SubgraphId)
       const migrationDataAfter = await gns.subgraphL2MigrationData(l1SubgraphId)
@@ -442,17 +465,28 @@ describe('L2GNS', () => {
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
       const tx = gns
         .connect(other.signer)
-        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          subgraphMetadata,
+          versionMetadata,
+        )
       await expect(tx).revertedWith('GNS: Must be authorized')
     })
     it('rejects calls for a subgraph that does not exist', async function () {
@@ -461,7 +495,12 @@ describe('L2GNS', () => {
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          metadata,
+          metadata,
+        )
       await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
     })
     it('rejects calls for a subgraph that was not migrated', async function () {
@@ -470,15 +509,26 @@ describe('L2GNS', () => {
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l2Subgraph.id, newSubgraph0.subgraphDeploymentID, metadata)
+        .finishSubgraphMigrationFromL1(
+          l2Subgraph.id,
+          newSubgraph0.subgraphDeploymentID,
+          metadata,
+          metadata,
+        )
       await expect(tx).revertedWith('INVALID_SUBGRAPH')
     })
     it('rejects calls to a pre-curated subgraph deployment', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -488,7 +538,12 @@ describe('L2GNS', () => {
         .mint(newSubgraph0.subgraphDeploymentID, toGRT('100'), toBN('0'))
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l1SubgraphId, newSubgraph0.subgraphDeploymentID, metadata)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          subgraphMetadata,
+          versionMetadata,
+        )
       await expect(tx).revertedWith('GNS: Deployment pre-curated')
     })
     it('rejects calls if the subgraph deployment ID is zero', async function () {
@@ -498,14 +553,14 @@ describe('L2GNS', () => {
       const metadata = randomHexBytes()
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32', 'bytes32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO, metadata],
+        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l1SubgraphId, HashZero, metadata)
+        .finishSubgraphMigrationFromL1(l1SubgraphId, HashZero, metadata, metadata)
       await expect(tx).revertedWith('GNS: deploymentID != 0')
     })
   })
@@ -513,13 +568,14 @@ describe('L2GNS', () => {
   describe('claiming a curator balance using a proof', function () {
     it('verifies a proof and assigns a curator balance', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes() // Dummy value
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -549,6 +605,7 @@ describe('L2GNS', () => {
     })
     it('adds the balance to any existing balance for the curator', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
+      const versionMetadata = randomHexBytes()
 
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
@@ -556,6 +613,7 @@ describe('L2GNS', () => {
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -594,13 +652,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with an invalid proof (e.g. from a different L1GNS address)', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -620,13 +679,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with an invalid proof (e.g. from a different curator)', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -664,13 +724,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls if the balance was already claimed', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -706,13 +767,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with a proof from a different block', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -734,13 +796,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with a proof from a legacy subgraph', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -764,13 +827,14 @@ describe('L2GNS', () => {
   describe('claiming a curator balance for a legacy subgraph using a proof', function () {
     it('verifies a proof and assigns a curator balance', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -805,13 +869,14 @@ describe('L2GNS', () => {
     })
     it('adds the balance to any existing balance for the curator', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -854,13 +919,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with an invalid proof (e.g. from a different L1GNS address)', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -885,13 +951,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with an invalid proof (e.g. from a different curator)', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -934,13 +1001,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls if the balance was already claimed', async function () {
       const l1Subgraph = mainnetLegacySubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -986,13 +1054,14 @@ describe('L2GNS', () => {
     })
     it('rejects calls with a proof from a non-legacy subgraph', async function () {
       const l1Subgraph = mainnetSubgraphWithProof
-
+      const versionMetadata = randomHexBytes()
       // Now we pretend the L1 subgraph was locked and migrated at the specified block
       await migrateMockSubgraphFromL1(
         l1Subgraph.subgraphId,
         l1Subgraph.curatedTokens,
         l1Subgraph.blockhash,
         l1Subgraph.metadata,
+        versionMetadata,
         l1Subgraph.nSignal,
       )
 
@@ -1026,9 +1095,22 @@ describe('L2GNS', () => {
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      )
 
       const tx = gns
         .connect(mockL1GNSL2Alias)
@@ -1046,9 +1128,22 @@ describe('L2GNS', () => {
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      )
 
       await grt.connect(governor.signer).mint(other.address, toGRT('10'))
       await grt.connect(other.signer).approve(gns.address, toGRT('10'))
@@ -1067,9 +1162,22 @@ describe('L2GNS', () => {
       expect(l2CuratorBalance).eq(prevSignal.add(toGRT('10')))
     })
     it('can only be called from the counterpart GNS L2 alias', async function () {
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      )
 
       const tx = gns
         .connect(governor.signer)
@@ -1115,9 +1223,22 @@ describe('L2GNS', () => {
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal } =
-        await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(l1SubgraphId, curatedTokens, lockBlockhash, metadata, nSignal)
+      const {
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      } = await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        lockBlockhash,
+        subgraphMetadata,
+        versionMetadata,
+        nSignal,
+      )
 
       const tx = gns
         .connect(mockL1GNSL2Alias)

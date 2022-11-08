@@ -89,11 +89,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         migrationData.l1Done = true;
 
-        bytes memory extraData = encodeSubgraphMetadataForL2(
-            _subgraphID,
-            migrationData,
-            subgraphData
-        );
+        bytes memory extraData = encodeSubgraphDataForL2(_subgraphID, migrationData, subgraphData);
 
         bytes memory data = abi.encode(maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
@@ -113,7 +109,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
         emit SubgraphSentToL2(_subgraphID);
     }
 
-    function encodeSubgraphMetadataForL2(
+    function encodeSubgraphDataForL2(
         uint256 _subgraphID,
         SubgraphL2MigrationData storage migrationData,
         SubgraphData storage subgraphData
@@ -124,8 +120,7 @@ contract L1GNS is GNS, L1ArbitrumMessenger {
                 ownerOf(_subgraphID),
                 blockhash(migrationData.lockedAtBlock),
                 subgraphData.nSignal,
-                subgraphData.reserveRatio,
-                subgraphNFT.getSubgraphMetadata(_subgraphID)
+                subgraphData.reserveRatio
             );
     }
 

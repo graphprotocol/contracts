@@ -8,6 +8,7 @@ interface IL2GNS is ICallhookReceiver {
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
+        bytes32 _subgraphMetadata,
         bytes32 _versionMetadata
     ) external;
 
