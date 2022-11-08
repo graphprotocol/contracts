@@ -11,12 +11,13 @@ import { GNS } from "../../discovery/GNS.sol";
 import { IGNS } from "../../discovery/IGNS.sol";
 import { ICuration } from "../../curation/ICuration.sol";
 import { IL2GNS } from "./IL2GNS.sol";
+import { L2GNSV1Storage } from "./L2GNSStorage.sol";
 
 import { RLPReader } from "../../libraries/RLPReader.sol";
 import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
 
 /**
- * @title GNS
+ * @title L2GNS
  * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
  * used in the scope of the Graph Network. It translates Subgraphs into Subgraph Versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
@@ -24,11 +25,12 @@ import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifi
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L2GNS is GNS, IL2GNS {
+contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
     using SafeMath for uint256;
 
+    /// Emitted when a subgraph is received from L1 through the bridge
     event SubgraphReceivedFromL1(uint256 _subgraphID);
     event SubgraphMigrationFinalized(uint256 _subgraphID);
     event CuratorBalanceClaimed(
@@ -37,12 +39,22 @@ contract L2GNS is GNS, IL2GNS {
         address _l2Curator,
         uint256 _nSignalClaimed
     );
+    event MPTClaimingEnabled();
+    event MPTClaimingDisabled();
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */
     modifier onlyL2Gateway() {
         require(msg.sender == _resolveContract(keccak256("GraphTokenGateway")), "ONLY_GATEWAY");
+        _;
+    }
+
+    /**
+     * @dev Checks that claiming balances using Merkle Patricia proofs is enabled.
+     */
+    modifier ifMPTClaimingEnabled() {
+        require(mptClaimingEnabled, "MPT_CLAIMING_DISABLED");
         _;
     }
 
@@ -56,6 +68,19 @@ contract L2GNS is GNS, IL2GNS {
             "ONLY_COUNTERPART_GNS"
         );
         _;
+    }
+
+    /**
+     * @notice Enables or disables claiming L1 balances using Merkle Patricia proofs
+     * @param _enabled If true, claiming MPT proofs will be enabled; if false, they will be disabled
+     */
+    function setMPTClaimingEnabled(bool _enabled) external onlyGovernor {
+        mptClaimingEnabled = _enabled;
+        if (_enabled) {
+            emit MPTClaimingEnabled();
+        } else {
+            emit MPTClaimingDisabled();
+        }
     }
 
     /**
@@ -143,7 +168,7 @@ contract L2GNS is GNS, IL2GNS {
         uint256 _subgraphID,
         bytes memory _blockHeaderRlpBytes,
         bytes memory _proofRlpBytes
-    ) external override notPartialPaused {
+    ) external override notPartialPaused ifMPTClaimingEnabled {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         require(migratedData.l2Done, "!MIGRATED");
         require(!migratedData.curatorBalanceClaimed[msg.sender], "ALREADY_CLAIMED");
@@ -196,7 +221,7 @@ contract L2GNS is GNS, IL2GNS {
         uint256 _seqID,
         bytes memory _blockHeaderRlpBytes,
         bytes memory _proofRlpBytes
-    ) external override notPartialPaused {
+    ) external override notPartialPaused ifMPTClaimingEnabled {
         uint256 _subgraphID = _buildLegacySubgraphID(_subgraphCreatorAccount, _seqID);
 
         Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);

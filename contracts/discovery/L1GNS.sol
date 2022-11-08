@@ -12,6 +12,7 @@ import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
 import { IL2GNS } from "../l2/discovery/IL2GNS.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
+import { L1GNSV1Storage } from "./L1GNSStorage.sol";
 
 /**
  * @title GNS
@@ -22,7 +23,7 @@ import { IGraphToken } from "../token/IGraphToken.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract L1GNS is GNS, L1ArbitrumMessenger {
+contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     using SafeMath for uint256;
 
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
