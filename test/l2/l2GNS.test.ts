@@ -298,6 +298,22 @@ describe('L2GNS', () => {
     await fixture.tearDown()
   })
 
+  describe('enabling and disabling claiming through proofs', function () {
+    it('enables and disables mptClaimingEnabled and emits an event', async function () {
+      expect(await gns.mptClaimingEnabled()).eq(false)
+      const tx = gns.connect(governor.signer).setMPTClaimingEnabled(true)
+      await expect(tx).emit(gns, 'MPTClaimingEnabled')
+      expect(await gns.mptClaimingEnabled()).eq(true)
+
+      const tx2 = gns.connect(governor.signer).setMPTClaimingEnabled(false)
+      await expect(tx2).emit(gns, 'MPTClaimingDisabled')
+      expect(await gns.mptClaimingEnabled()).eq(false)
+    })
+    it('can only be called by the governor', async function () {
+      const tx = gns.connect(me.signer).setMPTClaimingEnabled(true)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+  })
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
       const { l1SubgraphId, curatedTokens, lockBlockhash, nSignal } =
@@ -584,6 +600,8 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
+
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -621,6 +639,8 @@ describe('L2GNS', () => {
       await gns
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
@@ -663,6 +683,7 @@ describe('L2GNS', () => {
         l1Subgraph.nSignal,
       )
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       // We haven't updated the L1 counterpart address, so GNS will not accept the account proof as valid
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
@@ -695,6 +716,8 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
+
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -714,6 +737,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -740,6 +764,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -783,6 +808,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(mainnetProofForDifferentBlock)
 
@@ -812,6 +838,8 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
+
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -822,6 +850,34 @@ describe('L2GNS', () => {
         .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
 
       await expect(tx).revertedWith('MPT: invalid node hash')
+    })
+    it('rejects calls if MPT claiming is not enabled', async function () {
+      const l1Subgraph = mainnetSubgraphWithProof
+      const versionMetadata = randomHexBytes()
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        versionMetadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalance(l1Subgraph.subgraphId, blockHeaderRLP, proofRLP)
+      await expect(tx).revertedWith('MPT_CLAIMING_DISABLED')
     })
   })
   describe('claiming a curator balance for a legacy subgraph using a proof', function () {
@@ -843,6 +899,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -885,6 +942,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -930,6 +988,7 @@ describe('L2GNS', () => {
         l1Subgraph.nSignal,
       )
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       // We haven't updated the L1 counterpart address, so GNS will not accept the account proof as valid
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
@@ -967,6 +1026,7 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -990,6 +1050,8 @@ describe('L2GNS', () => {
       await gns
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
@@ -1016,6 +1078,8 @@ describe('L2GNS', () => {
       await gns
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
 
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
@@ -1070,6 +1134,8 @@ describe('L2GNS', () => {
         .connect(governor.signer)
         .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
 
+      await gns.connect(governor.signer).setMPTClaimingEnabled(true)
+
       const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
       const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
 
@@ -1087,6 +1153,39 @@ describe('L2GNS', () => {
         )
 
       await expect(tx).revertedWith('MPT: invalid node hash')
+    })
+    it('rejects calls if MPT claiming is not enabled', async function () {
+      const l1Subgraph = mainnetLegacySubgraphWithProof
+      const versionMetadata = randomHexBytes()
+      // Now we pretend the L1 subgraph was locked and migrated at the specified block
+      await migrateMockSubgraphFromL1(
+        l1Subgraph.subgraphId,
+        l1Subgraph.curatedTokens,
+        l1Subgraph.blockhash,
+        l1Subgraph.metadata,
+        versionMetadata,
+        l1Subgraph.nSignal,
+      )
+
+      // We need L2GNS to think the mainnet GNS is its counterpart for the proof to be valid
+      await gns
+        .connect(governor.signer)
+        .setCounterpartGNSAddress(l1Subgraph.getProofResponse.address)
+
+      const blockHeaderRLP = getBlockHeaderRLP(mainnetSubgraphBlockData)
+      const proofRLP = encodeMPTStorageProofRLP(l1Subgraph.getProofResponse)
+
+      const curatorSigner = await impersonateAccount(l1Subgraph.curator)
+      await setAccountBalance(l1Subgraph.curator, parseEther('1000'))
+      const tx = gns
+        .connect(curatorSigner)
+        .claimL1CuratorBalanceForLegacySubgraph(
+          l1Subgraph.account,
+          l1Subgraph.accountSeqId,
+          blockHeaderRLP,
+          proofRLP,
+        )
+      await expect(tx).revertedWith('MPT_CLAIMING_DISABLED')
     })
   })
   describe('claiming a curator balance with a message from L1', function () {

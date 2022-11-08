@@ -3,16 +3,19 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import "../base/Multicall.sol";
-import "../bancor/BancorFormula.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { Multicall } from "../base/Multicall.sol";
+import { BancorFormula } from "../bancor/BancorFormula.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
+import { ICuration } from "../curation/ICuration.sol";
+import { Managed } from "../governance/Managed.sol";
+import { ISubgraphNFT } from "./ISubgraphNFT.sol";
 
-import "./IGNS.sol";
-import "./GNSStorage.sol";
+import { IGNS } from "./IGNS.sol";
+import { GNSV3Storage } from "./GNSStorage.sol";
 
 /**
  * @title GNS
