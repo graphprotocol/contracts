@@ -76,9 +76,8 @@ contract L2GNS is GNS, IL2GNS {
             address subgraphOwner,
             bytes32 lockedAtBlockHash,
             uint256 nSignal,
-            uint32 reserveRatio,
-            bytes32 subgraphMetadata
-        ) = abi.decode(_data, (uint256, address, bytes32, uint256, uint32, bytes32));
+            uint32 reserveRatio
+        ) = abi.decode(_data, (uint256, address, bytes32, uint256, uint32));
 
         _receiveSubgraphFromL1(
             subgraphID,
@@ -86,14 +85,14 @@ contract L2GNS is GNS, IL2GNS {
             _amount,
             lockedAtBlockHash,
             nSignal,
-            reserveRatio,
-            subgraphMetadata
+            reserveRatio
         );
     }
 
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
+        bytes32 _subgraphMetadata,
         bytes32 _versionMetadata
     ) external override notPartialPaused onlySubgraphAuth(_subgraphID) {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
@@ -115,6 +114,9 @@ contract L2GNS is GNS, IL2GNS {
         // Buy all signal from the new deployment
         subgraphData.vSignal = curation.mintTaxFree(_subgraphDeploymentID, migratedData.tokens, 0);
         subgraphData.disabled = false;
+
+        // Set the token metadata
+        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
 
         emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, subgraphData.reserveRatio);
         emit SubgraphUpgraded(
@@ -269,8 +271,7 @@ contract L2GNS is GNS, IL2GNS {
         uint256 _tokens,
         bytes32 _lockedAtBlockHash,
         uint256 _nSignal,
-        uint32 _reserveRatio,
-        bytes32 _subgraphMetadata
+        uint32 _reserveRatio
     ) internal {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
@@ -288,8 +289,6 @@ contract L2GNS is GNS, IL2GNS {
         // This function will check the if tokenID already exists.
         _mintNFT(_subgraphOwner, _subgraphID);
 
-        // Set the token metadata
-        _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
         emit SubgraphReceivedFromL1(_subgraphID);
     }
 }
