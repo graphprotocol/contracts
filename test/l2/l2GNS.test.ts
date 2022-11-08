@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { arrayify, defaultAbiCoder, hexlify, parseEther, parseUnits } from 'ethers/lib/utils'
+import { ethers, ContractTransaction, BigNumber } from 'ethers'
+import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import {
   getAccounts,
@@ -16,7 +16,6 @@ import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 import { toBN } from '../lib/testHelpers'
 
 import { L2GNS } from '../../build/types/L2GNS'
-import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import {
   buildSubgraph,
