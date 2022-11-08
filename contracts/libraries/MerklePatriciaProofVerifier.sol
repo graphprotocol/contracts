@@ -10,6 +10,8 @@
  * - Silenced linter warnings about inline assembly
  * - Renamed a variable for mixedCase consistency
  * - Added clearer revert messages
+ * - Use assert when checking for a condition that should be impossible (nibble >= 16)
+ * - Other minor QA changes
  */
 
 /**
@@ -42,7 +44,7 @@ library MerklePatriciaProofVerifier {
         RLPReader.RLPItem[] memory stack
     ) internal pure returns (bytes memory value) {
         bytes memory mptKey = _decodeNibbles(path, 0);
-        uint256 mptKeyOffset = 0;
+        uint256 mptKeyOffset;
 
         bytes32 nodeHashHash;
         RLPReader.RLPItem[] memory node;
@@ -59,7 +61,7 @@ library MerklePatriciaProofVerifier {
         }
 
         // Traverse stack of nodes starting at root.
-        for (uint256 i = 0; i < stack.length; i++) {
+        for (uint256 i; i < stack.length; ++i) {
             // We use the fact that an rlp encoded list consists of some
             // encoding of its length plus the concatenation of its
             // *rlp-encoded* items.
@@ -146,16 +148,18 @@ library MerklePatriciaProofVerifier {
                     // we haven't consumed the entire path, so we need to look at a child
                     uint8 nibble = uint8(mptKey[mptKeyOffset]);
                     mptKeyOffset += 1;
-                    if (nibble >= 16) {
-                        // each element of the path has to be a nibble
-                        revert("MPT: element not nibble");
-                    }
 
-                    if (_isEmptyBytesequence(node[nibble])) {
+                    // mptKey comes from _decodeNibbles which should never
+                    // return a nibble >= 16, which is why we should never
+                    // ever have a nibble >= 16 here. (This is a sanity check
+                    // which is why we use assert and not require.)
+                    assert(nibble < 16);
+
+                    if (_isEmptyByteSequence(node[nibble])) {
                         // Sanity
                         if (i != stack.length - 1) {
                             // leaf node should be at last level
-                            revert("MPT: leaf not last");
+                            revert("MPT: empty leaf not last");
                         }
 
                         return new bytes(0);
@@ -196,7 +200,7 @@ library MerklePatriciaProofVerifier {
         }
     }
 
-    function _isEmptyBytesequence(RLPReader.RLPItem memory item) private pure returns (bool) {
+    function _isEmptyByteSequence(RLPReader.RLPItem memory item) private pure returns (bool) {
         if (item.len != 1) {
             return false;
         }
@@ -241,20 +245,20 @@ library MerklePatriciaProofVerifier {
         pure
         returns (bytes memory nibbles)
     {
-        require(compact.length > 0, "MPT: _dN invalid compact length");
+        require(compact.length != 0, "MPT: _dN invalid compact length");
 
         uint256 length = compact.length * 2;
         require(skipNibbles <= length, "MPT: _dN invalid skipNibbles");
         length -= skipNibbles;
 
         nibbles = new bytes(length);
-        uint256 nibblesLength = 0;
+        uint256 nibblesLength;
 
         for (uint256 i = skipNibbles; i < skipNibbles + length; i += 1) {
             if (i % 2 == 0) {
                 nibbles[nibblesLength] = bytes1((uint8(compact[i / 2]) >> 4) & 0xF);
             } else {
-                nibbles[nibblesLength] = bytes1((uint8(compact[i / 2]) >> 0) & 0xF);
+                nibbles[nibblesLength] = bytes1((uint8(compact[i / 2])) & 0xF);
             }
             nibblesLength += 1;
         }
@@ -268,7 +272,7 @@ library MerklePatriciaProofVerifier {
         bytes memory ys
     ) private pure returns (uint256) {
         uint256 i;
-        for (i = 0; i + xsOffset < xs.length && i < ys.length; i++) {
+        for (; i + xsOffset < xs.length && i < ys.length; ++i) {
             if (xs[i + xsOffset] != ys[i]) {
                 return i;
             }
