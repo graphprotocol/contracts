@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { RLP } from 'ethers/lib/utils'
+import { keccak256, RLP } from 'ethers/lib/utils'
 import { Trie } from '@ethereumjs/trie'
 
 import { MerklePatriciaProofVerifierMock } from '../build/types/MerklePatriciaProofVerifierMock'
@@ -258,5 +258,37 @@ describe('MerklePatriciaProofVerifier', () => {
 
     const call = mpt.extractProofValue(bufferToHex(trie.root()), bufferToHex(key), encodedProof)
     await expect(call).revertedWith('MPT: empty leaf not last')
+  })
+  it('verifies an inclusion proof for a trie that uses hashed keys', async function () {
+    const trie = new Trie({ useKeyHashing: true })
+    const key = Buffer.from('something')
+    const value = Buffer.from('a value')
+    await trie.put(key, value)
+
+    // We add a few more random values
+    await trie.put(Buffer.from('something else'), Buffer.from('baz'))
+    await trie.put(Buffer.from('more stuff'), Buffer.from('bat'))
+    await trie.put(Buffer.from('zort'), Buffer.from('narf'))
+
+    const proof = await trie.createProof(key)
+
+    const encodedProof = encodeProofRLP(proof)
+    const val = await mpt.extractProofValue(bufferToHex(trie.root()), keccak256(key), encodedProof)
+    await expect(val).eq(bufferToHex(value))
+  })
+  it('verifies an exclusion proof for a trie that uses hashed keys', async function () {
+    const trie = new Trie({ useKeyHashing: true })
+    const key = Buffer.from('something')
+
+    // We add a few more random values
+    await trie.put(Buffer.from('something else'), Buffer.from('baz'))
+    await trie.put(Buffer.from('more stuff'), Buffer.from('bat'))
+    await trie.put(Buffer.from('zort'), Buffer.from('narf'))
+
+    const proof = await trie.createProof(key)
+
+    const encodedProof = encodeProofRLP(proof)
+    const val = await mpt.extractProofValue(bufferToHex(trie.root()), keccak256(key), encodedProof)
+    await expect(val).eq('0x')
   })
 })
