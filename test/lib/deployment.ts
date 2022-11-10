@@ -129,7 +129,6 @@ export async function deployL2Curation(
   proxyAdmin: GraphProxyAdmin,
 ): Promise<L2Curation> {
   // Dependency
-  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
   const curationTokenMaster = await deployContract('GraphCurationToken', deployer)
 
   // Deploy
@@ -138,7 +137,6 @@ export async function deployL2Curation(
     'L2Curation',
     [
       controller,
-      bondingCurve.address,
       curationTokenMaster.address,
       defaults.curation.curationTaxPercentage,
       defaults.curation.minimumCurationDeposit,

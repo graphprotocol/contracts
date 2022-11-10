@@ -39,9 +39,10 @@ abstract contract CurationV1Storage is Managed, ICuration {
     uint256 public minimumCurationDeposit;
 
     /// Bonding curve library
+    /// Unused in L2.
     address public bondingCurve;
 
-    /// Mapping of subgraphDeploymentID => CurationPool
-    /// @dev There is only one CurationPool per SubgraphDeploymentID
-    mapping(bytes32 => CurationPool) public pools;
+    /// @dev Mapping of subgraphDeploymentID => CurationPool
+    /// There is only one CurationPool per SubgraphDeploymentID
+    mapping(bytes32 => CurationPool) internal _pools;
 }
