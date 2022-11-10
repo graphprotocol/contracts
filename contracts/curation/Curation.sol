@@ -71,11 +71,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
-    modifier onlyGNS() {
-        require(msg.sender == address(gns()), "Only the GNS can call this");
-        _;
-    }
-
     /**
      * @dev Initialize this contract.
      */
