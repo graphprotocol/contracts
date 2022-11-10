@@ -21,7 +21,6 @@ import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
 import { toBN, formatGRT } from './lib/testHelpers'
 import { getContractAt } from '../cli/network'
 import { deployContract } from './lib/deployment'
-import { BancorFormula } from '../build/types/BancorFormula'
 import { network } from '../cli'
 import { Controller } from '../build/types/Controller'
 import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
@@ -309,10 +308,6 @@ describe('L1GNS', () => {
   }
 
   const deployLegacyGNSMock = async (): Promise<any> => {
-    const bondingCurve = (await deployContract(
-      'BancorFormula',
-      governor.signer,
-    )) as unknown as BancorFormula
     const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', governor.signer)
     const subgraphNFT = (await deployContract(
       'SubgraphNFT',
@@ -324,7 +319,7 @@ describe('L1GNS', () => {
     legacyGNSMock = (await network.deployContractWithProxy(
       proxyAdmin,
       'LegacyGNSMock',
-      [controller.address, bondingCurve.address, subgraphNFT.address],
+      [controller.address, subgraphNFT.address],
       governor.signer,
     )) as unknown as LegacyGNSMock
 
@@ -924,7 +919,7 @@ describe('L1GNS', () => {
 
     it('should revert if batching a call to initialize', async function () {
       // Call a forbidden function
-      const tx1 = await gns.populateTransaction.initialize(me.address, me.address, me.address)
+      const tx1 = await gns.populateTransaction.initialize(me.address, me.address)
 
       // Create a subgraph
       const tx2 = await gns.populateTransaction.publishNewSubgraph(
