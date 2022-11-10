@@ -86,8 +86,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @dev Receive tokens with a callhook from the bridge.
-     * The callhook will receive a subgraph from L1
+     * @notice Receive tokens with a callhook from the bridge.
+     * The callhook will receive a subgraph from L1.
      * @param _from Token sender in L1 (must be the L1GNS)
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data
@@ -102,20 +102,21 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             uint256 subgraphID,
             address subgraphOwner,
             bytes32 lockedAtBlockHash,
-            uint256 nSignal,
-            uint32 reserveRatio
-        ) = abi.decode(_data, (uint256, address, bytes32, uint256, uint32));
+            uint256 nSignal
+        ) = abi.decode(_data, (uint256, address, bytes32, uint256));
 
-        _receiveSubgraphFromL1(
-            subgraphID,
-            subgraphOwner,
-            _amount,
-            lockedAtBlockHash,
-            nSignal,
-            reserveRatio
-        );
+        _receiveSubgraphFromL1(subgraphID, subgraphOwner, _amount, lockedAtBlockHash, nSignal);
     }
 
+    /**
+     * @notice Finish a subgraph migration from L1.
+     * The subgraph must have been previously sent through the bridge
+     * using the sendSubgraphToL2 function on L1GNS.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
+     * @param _subgraphMetadata IPFS hash of the subgraph metadata
+     * @param _versionMetadata IPFS hash of the version metadata
+     */
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
@@ -141,7 +142,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         // Set the token metadata
         _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
 
-        emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, subgraphData.reserveRatio);
+        emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, FIXED_RESERVE_RATIO);
         emit SubgraphUpgraded(
             _subgraphID,
             subgraphData.vSignal,
@@ -155,7 +156,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1.
+     * @notice Claim curator balance belonging to a curator from L1.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
      * @param _subgraphID Subgraph for which to claim a balance
@@ -205,7 +206,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1 on a legacy subgraph.
+     * @notice Claim curator balance belonging to a curator from L1 on a legacy subgraph.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
      * Users can query getLegacySubgraphKey on L1 to get the _subgraphCreatorAccount and _seqID.
@@ -260,7 +261,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1.
+     * @notice Claim curator balance belonging to a curator from L1.
      * This will be credited to the a beneficiary on L2, and can only be called
      * from the GNS on L1 through a retryable ticket.
      * @param _subgraphID Subgraph on which to claim the balance
@@ -285,34 +286,6 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         );
         migratedData.curatorBalanceClaimed[_curator] = true;
         emit CuratorBalanceClaimed(_subgraphID, _curator, _beneficiary, _balance);
-    }
-
-    // TODO add NatSpec
-    function _receiveSubgraphFromL1(
-        uint256 _subgraphID,
-        address _subgraphOwner,
-        uint256 _tokens,
-        bytes32 _lockedAtBlockHash,
-        uint256 _nSignal,
-        uint32 _reserveRatio
-    ) internal {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-
-        subgraphData.reserveRatio = _reserveRatio;
-        // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
-        subgraphData.disabled = true;
-        subgraphData.nSignal = _nSignal;
-
-        migratedData.tokens = _tokens;
-        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
-        migratedData.l1Done = true;
-
-        // Mint the NFT. Use the subgraphID as tokenID.
-        // This function will check the if tokenID already exists.
-        _mintNFT(_subgraphOwner, _subgraphID);
-
-        emit SubgraphReceivedFromL1(_subgraphID);
     }
 
     /**
@@ -384,6 +357,42 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
 
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
+    }
+
+    /**
+     * @dev Receive a subgraph from L1.
+     * This function will initialize a subgraph received through the bridge,
+     * and store the migration data so that it's finalized later using finishSubgraphMigrationFromL1.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphOwner Owner of the subgraph
+     * @param _tokens Tokens to be deposited in the subgraph
+     * @param _lockedAtBlockHash Blockhash of the block at which the subgraph was locked in L1
+     * @param _nSignal Name signal for the subgraph in L1
+     */
+    function _receiveSubgraphFromL1(
+        uint256 _subgraphID,
+        address _subgraphOwner,
+        uint256 _tokens,
+        bytes32 _lockedAtBlockHash,
+        uint256 _nSignal
+    ) internal {
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+
+        subgraphData.reserveRatio = FIXED_RESERVE_RATIO;
+        // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
+        subgraphData.disabled = true;
+        subgraphData.nSignal = _nSignal;
+
+        migratedData.tokens = _tokens;
+        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
+        migratedData.l1Done = true;
+
+        // Mint the NFT. Use the subgraphID as tokenID.
+        // This function will check the if tokenID already exists.
+        _mintNFT(_subgraphOwner, _subgraphID);
+
+        emit SubgraphReceivedFromL1(_subgraphID);
     }
 
     /**

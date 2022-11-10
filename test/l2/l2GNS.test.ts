@@ -243,8 +243,8 @@ describe('L2GNS', () => {
     nSignal: BigNumber,
   ) {
     const callhookData = defaultAbiCoder.encode(
-      ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-      [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+      ['uint256', 'address', 'bytes32', 'uint256'],
+      [l1SubgraphId, me.address, lockBlockhash, nSignal],
     )
     await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -318,8 +318,8 @@ describe('L2GNS', () => {
       const { l1SubgraphId, curatedTokens, lockBlockhash, nSignal } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       const tx = gns
         .connect(me.signer)
@@ -330,8 +330,8 @@ describe('L2GNS', () => {
       const { l1SubgraphId, curatedTokens, lockBlockhash, nSignal } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       const tx = gatewayFinalizeTransfer(me.address, gns.address, curatedTokens, callhookData)
 
@@ -343,8 +343,8 @@ describe('L2GNS', () => {
       const lockBlockhash = randomHexBytes(32)
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -385,8 +385,8 @@ describe('L2GNS', () => {
       const lockBlockhash = randomHexBytes(32)
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -441,8 +441,8 @@ describe('L2GNS', () => {
         nSignal,
       } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       // Calculate expected signal before minting
@@ -489,8 +489,8 @@ describe('L2GNS', () => {
         nSignal,
       } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -542,8 +542,8 @@ describe('L2GNS', () => {
         nSignal,
       } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -598,8 +598,8 @@ describe('L2GNS', () => {
       const metadata = randomHexBytes()
       const nSignal = toBN('4567')
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-        [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
+        ['uint256', 'address', 'bytes32', 'uint256'],
+        [l1SubgraphId, me.address, lockBlockhash, nSignal],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 

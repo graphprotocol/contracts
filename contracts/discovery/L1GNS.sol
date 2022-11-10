@@ -120,8 +120,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
                 _subgraphID,
                 ownerOf(_subgraphID),
                 blockhash(migrationData.lockedAtBlock),
-                subgraphData.nSignal,
-                subgraphData.reserveRatio
+                subgraphData.nSignal
             );
     }
 

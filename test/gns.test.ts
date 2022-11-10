@@ -1257,14 +1257,8 @@ describe('L1GNS', () => {
         expect(migrationData.l1Done).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
-          ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-          [
-            subgraph0.id,
-            me.address,
-            lockBlockhash,
-            subgraphBefore.nSignal,
-            subgraphBefore.reserveRatio,
-          ],
+          ['uint256', 'address', 'bytes32', 'uint256'],
+          [subgraph0.id, me.address, lockBlockhash, subgraphBefore.nSignal],
         )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
@@ -1310,14 +1304,8 @@ describe('L1GNS', () => {
         expect(migrationData.l1Done).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
-          ['uint256', 'address', 'bytes32', 'uint256', 'uint32'],
-          [
-            subgraphID,
-            me.address,
-            lockBlockhash,
-            subgraphBefore.nSignal,
-            subgraphBefore.reserveRatio,
-          ],
+          ['uint256', 'address', 'bytes32', 'uint256'],
+          [subgraphID, me.address, lockBlockhash, subgraphBefore.nSignal],
         )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
