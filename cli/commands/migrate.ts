@@ -46,7 +46,7 @@ const l2Contracts = [
   'L2GraphToken',
   'GraphCurationToken',
   'ServiceRegistry',
-  'Curation',
+  'L2Curation',
   'SubgraphNFTDescriptor',
   'SubgraphNFT',
   'L2GNS',

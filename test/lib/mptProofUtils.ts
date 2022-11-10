@@ -74,10 +74,6 @@ export const encodeMPTStorageProofRLP = (proof: GetProofResponse): string => {
     throw new Error('Expected exactly one storage slot proof')
   }
   const accountProof = proof.accountProof.map((node) => RLP.decode(hexlify(node)))
-  console.log('Account proof:')
-  console.log(accountProof)
   const storageProof = proof.storageProof[0].proof.map((node) => RLP.decode(hexlify(node)))
-  console.log('Storage proof:')
-  console.log(storageProof)
   return RLP.encode([accountProof, storageProof])
 }

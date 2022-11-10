@@ -9,6 +9,7 @@ import { BancorFormula } from '../../build/types/BancorFormula'
 import { Controller } from '../../build/types/Controller'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { Curation } from '../../build/types/Curation'
+import { L2Curation } from '../../build/types/L2Curation'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GNS } from '../../build/types/GNS'
@@ -120,6 +121,30 @@ export async function deployCuration(
     ],
     deployer,
   ) as unknown as Curation
+}
+
+export async function deployL2Curation(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2Curation> {
+  // Dependency
+  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
+  const curationTokenMaster = await deployContract('GraphCurationToken', deployer)
+
+  // Deploy
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L2Curation',
+    [
+      controller,
+      bondingCurve.address,
+      curationTokenMaster.address,
+      defaults.curation.curationTaxPercentage,
+      defaults.curation.minimumCurationDeposit,
+    ],
+    deployer,
+  ) as unknown as L2Curation
 }
 
 export async function deployDisputeManager(
