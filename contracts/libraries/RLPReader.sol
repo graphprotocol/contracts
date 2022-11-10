@@ -264,7 +264,7 @@ library RLPReader {
      * @return The uint value.
      */
     function toUint(RLPItem memory item) internal pure returns (uint256) {
-        require(item.len > 0 && item.len <= 33, "RLP: invalid uint length");
+        require(item.len != 0 && item.len <= 33, "RLP: invalid uint length");
 
         (uint256 memPtr, uint256 len) = payloadLocation(item);
 
@@ -306,7 +306,7 @@ library RLPReader {
      * @return The bytes value.
      */
     function toBytes(RLPItem memory item) internal pure returns (bytes memory) {
-        require(item.len > 0, "RLP: invalid zero length bytes");
+        require(item.len != 0, "RLP: invalid zero length bytes");
 
         (uint256 memPtr, uint256 len) = payloadLocation(item);
         bytes memory result = new bytes(len);
@@ -425,7 +425,7 @@ library RLPReader {
             dest += WORD_SIZE;
         }
 
-        if (len > 0) {
+        if (len != 0) {
             // left over bytes. Mask is used to remove unwanted bytes from the word
             uint256 mask = 256**(WORD_SIZE - len) - 1;
             assembly {

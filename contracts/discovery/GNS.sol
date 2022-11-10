@@ -315,7 +315,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Move all signal from previous version to new version
         // NOTE: We will only do this as long as there is signal on the subgraph
-        if (subgraphData.nSignal > 0) {
+        if (subgraphData.nSignal != 0) {
             // Burn all version signal in the name pool for tokens (w/no slippage protection)
             // Sell all signal from the old deployment
             uint256 tokens = curation.burn(
@@ -367,7 +367,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
         // Burn signal only if it has any available
-        if (subgraphData.nSignal > 0) {
+        if (subgraphData.nSignal != 0) {
             subgraphData.withdrawableGRT = curation().burn(
                 subgraphData.subgraphDeploymentID,
                 subgraphData.vSignal,
@@ -498,12 +498,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Subgraph validations
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         require(subgraphData.disabled == true, "GNS: Must be disabled first");
-        require(subgraphData.withdrawableGRT > 0, "GNS: No more GRT to withdraw");
+        require(subgraphData.withdrawableGRT != 0, "GNS: No more GRT to withdraw");
 
         // Curator validations
         address curator = msg.sender;
         uint256 curatorNSignal = subgraphData.curatorNSignal[curator];
-        require(curatorNSignal > 0, "GNS: No signal to withdraw GRT");
+        require(curatorNSignal != 0, "GNS: No signal to withdraw GRT");
 
         // Get curator share of tokens to be withdrawn
         uint256 tokensOut = curatorNSignal.mul(subgraphData.withdrawableGRT).div(
@@ -576,7 +576,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function subgraphTokens(uint256 _subgraphID) external view override returns (uint256) {
         uint256 signal = _getSubgraphData(_subgraphID).nSignal;
-        if (signal > 0) {
+        if (signal != 0) {
             (, uint256 tokens) = nSignalToTokens(_subgraphID, signal);
             return tokens;
         }

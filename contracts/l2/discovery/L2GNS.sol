@@ -326,7 +326,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
         // Move all signal from previous version to new version
         // NOTE: We will only do this as long as there is signal on the subgraph
-        if (subgraphData.nSignal > 0) {
+        if (subgraphData.nSignal != 0) {
             // Burn all version signal in the name pool for tokens (w/no slippage protection)
             // Sell all signal from the old deployment
             uint256 tokens = curation.burn(

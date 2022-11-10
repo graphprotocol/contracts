@@ -98,7 +98,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
         require(
-            migrationData.lockedAtBlock > 0 && migrationData.lockedAtBlock < block.number,
+            migrationData.lockedAtBlock != 0 && migrationData.lockedAtBlock < block.number,
             "!LOCKED"
         );
         require(migrationData.lockedAtBlock.add(255) >= block.number, "TOO_LATE");
@@ -137,7 +137,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     function deprecateLockedSubgraph(uint256 _subgraphID) external notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
-        require(migrationData.lockedAtBlock > 0, "!LOCKED");
+        require(migrationData.lockedAtBlock != 0, "!LOCKED");
         require(migrationData.lockedAtBlock.add(256) < block.number, "TOO_EARLY");
         require(!migrationData.l1Done, "ALREADY_DONE");
         migrationData.l1Done = true;
@@ -175,7 +175,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         require(migrationData.l1Done, "!MIGRATED");
         require(!migrationData.deprecated, "SUBGRAPH_DEPRECATED");
 
-        require(_maxSubmissionCost > 0, "NO_SUBMISSION_COST");
+        require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 
         {
             // makes sure only sufficient ETH is supplied required for successful redemption on L2

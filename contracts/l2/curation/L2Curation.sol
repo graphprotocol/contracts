@@ -179,7 +179,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         uint256 _signalOutMin
     ) external override notPartialPaused returns (uint256, uint256) {
         // Need to deposit some funds
-        require(_tokensIn > 0, "Cannot deposit zero tokens");
+        require(_tokensIn != 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool
         (uint256 signalOut, uint256 curationTax) = tokensToSignal(_subgraphDeploymentID, _tokensIn);
@@ -241,7 +241,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         uint256 _signalOutMin
     ) external override notPartialPaused onlyGNS returns (uint256) {
         // Need to deposit some funds
-        require(_tokensIn > 0, "Cannot deposit zero tokens");
+        require(_tokensIn != 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool (no tax)
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
@@ -302,7 +302,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         address curator = msg.sender;
 
         // Validations
-        require(_signalIn > 0, "Cannot burn zero signal");
+        require(_signalIn != 0, "Cannot burn zero signal");
         require(
             getCuratorSignal(curator, _subgraphDeploymentID) >= _signalIn,
             "Cannot burn more signal than you own"
@@ -369,7 +369,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @return True if curated
      */
     function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
-        return _pools[_subgraphDeploymentID].tokens > 0;
+        return _pools[_subgraphDeploymentID].tokens != 0;
     }
 
     /**
@@ -452,7 +452,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         CurationPool memory curationPool = _pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
-            curationPool.tokens > 0,
+            curationPool.tokens != 0,
             "Subgraph deployment must be curated to perform calculations"
         );
         require(
@@ -469,7 +469,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _minimumCurationDeposit Minimum amount of tokens required deposit
      */
     function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
-        require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
+        require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
 
         minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");

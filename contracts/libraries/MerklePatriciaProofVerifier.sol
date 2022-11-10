@@ -235,7 +235,7 @@ library MerklePatriciaProofVerifier {
         pure
         returns (bool isLeaf, bytes memory nibbles)
     {
-        require(compact.length > 0, "MPT: invalid compact length");
+        require(compact.length != 0, "MPT: invalid compact length");
         uint256 firstNibble = (uint8(compact[0]) >> 4) & 0xF;
         uint256 skipNibbles;
         if (firstNibble == 0) {

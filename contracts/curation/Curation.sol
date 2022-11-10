@@ -169,7 +169,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         uint256 _signalOutMin
     ) external override notPartialPaused returns (uint256, uint256) {
         // Need to deposit some funds
-        require(_tokensIn > 0, "Cannot deposit zero tokens");
+        require(_tokensIn != 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool
         (uint256 signalOut, uint256 curationTax) = tokensToSignal(_subgraphDeploymentID, _tokensIn);
@@ -231,7 +231,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         address curator = msg.sender;
 
         // Validations
-        require(_signalIn > 0, "Cannot burn zero signal");
+        require(_signalIn != 0, "Cannot burn zero signal");
         require(
             getCuratorSignal(curator, _subgraphDeploymentID) >= _signalIn,
             "Cannot burn more signal than you own"
@@ -297,7 +297,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @return True if curated
      */
     function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
-        return _pools[_subgraphDeploymentID].tokens > 0;
+        return _pools[_subgraphDeploymentID].tokens != 0;
     }
 
     /**
@@ -404,7 +404,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         CurationPool memory curationPool = _pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
-            curationPool.tokens > 0,
+            curationPool.tokens != 0,
             "Subgraph deployment must be curated to perform calculations"
         );
         require(
@@ -428,7 +428,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      */
     function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
         // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
-        require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
+        require(_defaultReserveRatio != 0, "Default reserve ratio must be > 0");
         require(
             _defaultReserveRatio <= MAX_PPM,
             "Default reserve ratio cannot be higher than MAX_PPM"
@@ -444,7 +444,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _minimumCurationDeposit Minimum amount of tokens required deposit
      */
     function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
-        require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
+        require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
 
         minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");
