@@ -3,8 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { GNS } from "./GNS.sol";
 
@@ -24,10 +23,13 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
  * transaction.
  */
 contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
 
+    /// @dev Emitted when a subgraph was locked as preparation to migrating it to L2
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
+    /// @dev Emitted when a subgraph was sent to L2 through the bridge
     event SubgraphSentToL2(uint256 _subgraphID);
+    /// @dev Emitted when the address of the Arbitrum Inbox was updated
     event ArbitrumInboxAddressUpdated(address _inbox);
 
     /**
@@ -39,6 +41,17 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         emit ArbitrumInboxAddressUpdated(_inbox);
     }
 
+    /**
+     * @notice Lock a subgraph for migration to L2.
+     * This will lock the subgraph's curator balance and prevent any further
+     * changes to the subgraph.
+     * WARNING: After calling this function, the subgraph owner has 255 blocks
+     * to call sendSubgraphToL2 to complete the migration; otherwise, the
+     * subgraph will have to be deprecated using deprecateLockedSubgraph,
+     * and the deployment to L2 will have to be manual (and curators will
+     * have to manually move the signal over too).
+     * @param _subgraphID Subgraph ID
+     */
     function lockSubgraphForMigrationToL2(uint256 _subgraphID)
         external
         payable
@@ -67,15 +80,20 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     }
 
     /**
-     * @dev Send a subgraph's data and tokens to L2.
+     * @notice Send a subgraph's data and tokens to L2.
      * The subgraph must be locked using lockSubgraphForMigrationToL2 in a previous block
-     * (less than 256 blocks ago).
+     * (less than 255 blocks ago).
+     * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
+     * @param _subgraphID Subgraph ID
+     * @param _maxGas Max gas to use for the L2 retryable ticket
+     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function sendSubgraphToL2(
         uint256 _subgraphID,
-        uint256 maxGas,
-        uint256 gasPriceBid,
-        uint256 maxSubmissionCost
+        uint256 _maxGas,
+        uint256 _gasPriceBid,
+        uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
@@ -90,9 +108,9 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         migrationData.l1Done = true;
 
-        bytes memory extraData = encodeSubgraphDataForL2(_subgraphID, migrationData, subgraphData);
+        bytes memory extraData = _encodeSubgraphDataForL2(_subgraphID, migrationData, subgraphData);
 
-        bytes memory data = abi.encode(maxSubmissionCost, extraData);
+        bytes memory data = abi.encode(_maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
         ITokenGateway gateway = ITokenGateway(_resolveContract(keccak256("GraphTokenGateway")));
         grt.approve(address(gateway), migrationData.tokens);
@@ -100,8 +118,8 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
             address(grt),
             counterpartGNSAddress,
             migrationData.tokens,
-            maxGas,
-            gasPriceBid,
+            _maxGas,
+            _gasPriceBid,
             data
         );
 
@@ -110,24 +128,11 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         emit SubgraphSentToL2(_subgraphID);
     }
 
-    function encodeSubgraphDataForL2(
-        uint256 _subgraphID,
-        SubgraphL2MigrationData storage migrationData,
-        SubgraphData storage subgraphData
-    ) internal view returns (bytes memory) {
-        return
-            abi.encode(
-                _subgraphID,
-                ownerOf(_subgraphID),
-                blockhash(migrationData.lockedAtBlock),
-                subgraphData.nSignal
-            );
-    }
-
     /**
-     * @dev Deprecate a subgraph locked more than 256 blocks ago.
+     * @notice Deprecate a subgraph locked more than 256 blocks ago.
      * This allows curators to recover their funds if the subgraph was locked
      * for a migration to L2 but the subgraph was never actually sent to L2.
+     * @param _subgraphID Subgraph ID
      */
     function deprecateLockedSubgraph(uint256 _subgraphID) external notPartialPaused {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
@@ -146,6 +151,18 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         emit SubgraphDeprecated(_subgraphID, subgraphData.withdrawableGRT);
     }
 
+    /**
+     * @notice Claim the balance for a curator's signal in a subgraph that was
+     * migrated to L2, by sending a retryable ticket to the L2GNS.
+     * The balance will be claimed for a beneficiary address, as this method can be
+     * used by curators that use a contract address in L1 that may not exist in L2.
+     * @param _subgraphID Subgraph ID
+     * @param _beneficiary Address that will receive the tokens in L2
+     * @param _maxGas Max gas to use for the L2 retryable ticket
+     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * @return The sequence ID for the retryable ticket, as returned by the Arbitrum inbox.
+     */
     function claimCuratorBalanceToBeneficiaryOnL2(
         uint256 _subgraphID,
         address _beneficiary,
@@ -163,7 +180,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         {
             // makes sure only sufficient ETH is supplied required for successful redemption on L2
             // if a user does not desire immediate redemption they should provide
-            // a msg.value of AT LEAST maxSubmissionCost
+            // a msg.value of AT LEAST _maxSubmissionCost
             uint256 expectedEth = _maxSubmissionCost + (_maxGas * _gasPriceBid);
             require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
         }
@@ -188,5 +205,26 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         );
 
         return abi.encode(seqNum);
+    }
+
+    /**
+     * @dev Encodes the subgraph data as callhook parameters
+     * for the L2 migration.
+     * @param _subgraphID Subgraph ID
+     * @param _migrationData Subgraph L2 migration data
+     * @param _subgraphData Subgraph data
+     */
+    function _encodeSubgraphDataForL2(
+        uint256 _subgraphID,
+        SubgraphL2MigrationData storage _migrationData,
+        SubgraphData storage _subgraphData
+    ) internal view returns (bytes memory) {
+        return
+            abi.encode(
+                _subgraphID,
+                ownerOf(_subgraphID),
+                blockhash(_migrationData.lockedAtBlock),
+                _subgraphData.nSignal
+            );
     }
 }

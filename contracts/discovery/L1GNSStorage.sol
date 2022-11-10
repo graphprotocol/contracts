@@ -6,7 +6,8 @@ pragma abicoder v2;
 /**
  * @title L1GNSV1Storage
  * @notice This contract holds all the L1-specific storage variables for the L1GNS contract, version 1
- * @dev
+ * @dev When adding new versions, make sure to move the gap to the new version and
+ * reduce the size of the gap accordingly.
  */
 abstract contract L1GNSV1Storage {
     /// Address of the Arbitrum DelayedInbox

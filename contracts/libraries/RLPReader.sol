@@ -10,33 +10,46 @@
  * MODIFIED from hamdiallam's implementation:
  * - Explicitly marked visibility of constants
  * - Silenced linter warnings about inline assembly
+ * - Other minor QA improvements
  */
 
-/*
+/**
  * @author Hamdi Allam hamdi.allam97@gmail.com
  * Please reach out with any questions or concerns
  */
 pragma solidity >=0.5.0 <0.9.0;
 
 // solhint-disable no-inline-assembly
+
+/**
+ * @title RLPReader library
+ * @notice This library is used to decode RLP-encoded lists and strings
+ */
 library RLPReader {
+    /// Minimum value that encodes a short string
     uint8 public constant STRING_SHORT_START = 0x80;
+    /// Minimum value that encodes a long string
     uint8 public constant STRING_LONG_START = 0xb8;
+    /// Minimum value that encodes a short list
     uint8 public constant LIST_SHORT_START = 0xc0;
+    /// Minimum value that encodes a long list
     uint8 public constant LIST_LONG_START = 0xf8;
+    /// Size of each EVM word, used to copy strings in less steps
     uint8 public constant WORD_SIZE = 32;
 
+    /// @dev Structure to represent an RLP-encoded item
     struct RLPItem {
         uint256 len;
         uint256 memPtr;
     }
 
+    /// @dev Iterator structure to iterate over an RLP-encoded list
     struct Iterator {
         RLPItem item; // Item that's being iterated over.
         uint256 nextPtr; // Position of the next item in the list.
     }
 
-    /*
+    /**
      * @dev Returns the next element in the iteration. Reverts if it has not next element.
      * @param self The iterator.
      * @return The next element in the iteration.
@@ -51,18 +64,20 @@ library RLPReader {
         return RLPItem(itemLength, ptr);
     }
 
-    /*
+    /**
      * @dev Returns true if the iteration has more elements.
      * @param self The iterator.
-     * @return true if the iteration has more elements.
+     * @return True if the iteration has more elements, false otherwise.
      */
     function hasNext(Iterator memory self) internal pure returns (bool) {
         RLPItem memory item = self.item;
         return self.nextPtr < item.memPtr + item.len;
     }
 
-    /*
+    /**
+     * @dev Concerts an RLP-encoded bytes array to an RLPItem.
      * @param item RLP encoded bytes
+     * @return The RLP item with a pointer to the payload within the bytes array
      */
     function toRlpItem(bytes memory item) internal pure returns (RLPItem memory) {
         uint256 memPtr;
@@ -73,7 +88,7 @@ library RLPReader {
         return RLPItem(item.length, memPtr);
     }
 
-    /*
+    /**
      * @dev Create an iterator. Reverts if item is not a list.
      * @param self The RLP item.
      * @return An 'Iterator' over the item.
@@ -85,16 +100,20 @@ library RLPReader {
         return Iterator(self, ptr);
     }
 
-    /*
-     * @param the RLP item.
+    /**
+     * @dev Returns the length of an RLP item
+     * @param item The RLP item.
+     * @return The length of the RLP item.
      */
     function rlpLen(RLPItem memory item) internal pure returns (uint256) {
         return item.len;
     }
 
-    /*
-     * @param the RLP item.
-     * @return (memPtr, len) pair: location of the item's payload in memory.
+    /**
+     * @dev Returns the location of the payload of an RLP item
+     * @param item The RLP item.
+     * @return Pointer to the payload within the RLP encoded bytes in memory
+     * @return Length of the payload
      */
     function payloadLocation(RLPItem memory item) internal pure returns (uint256, uint256) {
         uint256 offset = _payloadOffset(item.memPtr);
@@ -103,16 +122,20 @@ library RLPReader {
         return (memPtr, len);
     }
 
-    /*
-     * @param the RLP item.
+    /**
+     * @dev Returns the size of the payload in an RLP encoded item
+     * @param item The RLP item.
+     * @return The size of the payload
      */
     function payloadLen(RLPItem memory item) internal pure returns (uint256) {
         (, uint256 len) = payloadLocation(item);
         return len;
     }
 
-    /*
-     * @param the RLP item containing the encoded list.
+    /**
+     * @dev Decode an RLP item that represents a list into an array of RLP items
+     * @param item The RLP item containing the encoded list.
+     * @return The list of RLP-encoded items contained by the input item
      */
     function toList(RLPItem memory item) internal pure returns (RLPItem[] memory) {
         require(isList(item), "RLP: not list (toList)");
@@ -131,7 +154,11 @@ library RLPReader {
         return result;
     }
 
-    // @return indicator whether encoded payload is a list. negate this function call for isData.
+    /**
+     * @dev Check if an RLP item is a list
+     * @param item The RLP item.
+     * @return True if the item is a list, false otherwise (in which case it's a string / raw data)
+     */
     function isList(RLPItem memory item) internal pure returns (bool) {
         if (item.len == 0) return false;
 
@@ -145,9 +172,10 @@ library RLPReader {
         return true;
     }
 
-    /*
+    /**
      * @dev A cheaper version of keccak256(toRlpBytes(item)) that avoids copying memory.
-     * @return keccak256 hash of RLP encoded bytes.
+     * @param item The RLP item.
+     * @return The keccak256 hash of RLP encoded bytes.
      */
     function rlpBytesKeccak256(RLPItem memory item) internal pure returns (bytes32) {
         uint256 ptr = item.memPtr;
@@ -159,9 +187,10 @@ library RLPReader {
         return result;
     }
 
-    /*
+    /**
      * @dev A cheaper version of keccak256(toBytes(item)) that avoids copying memory.
-     * @return keccak256 hash of the item payload.
+     * @param item The RLP item.
+     * @return The keccak256 hash of the item's payload.
      */
     function payloadKeccak256(RLPItem memory item) internal pure returns (bytes32) {
         (uint256 memPtr, uint256 len) = payloadLocation(item);
@@ -172,9 +201,13 @@ library RLPReader {
         return result;
     }
 
-    /** RLPItem conversions into data types **/
+    /* RLPItem conversions into data types */
 
-    // @returns raw rlp encoding in bytes
+    /**
+     * @dev Get the raw RLP encoded item in bytes
+     * @param item The RLP item.
+     * @return Raw RLP encoded item.
+     */
     function toRlpBytes(RLPItem memory item) internal pure returns (bytes memory) {
         bytes memory result = new bytes(item.len);
         if (result.length == 0) return result;
@@ -188,7 +221,12 @@ library RLPReader {
         return result;
     }
 
-    // any non-zero byte except "0x80" is considered true
+    /**
+     * @dev Interpret an RLP encoded item as a boolean.
+     * Any non-zero byte except "0x80" is considered true.
+     * @param item The RLP item.
+     * @return The boolean value.
+     */
     function toBoolean(RLPItem memory item) internal pure returns (bool) {
         require(item.len == 1, "RLP: invalid boolean length");
         uint256 result;
@@ -208,6 +246,11 @@ library RLPReader {
         }
     }
 
+    /**
+     * @dev Interpret an RLP encoded item as an address.
+     * @param item The RLP item.
+     * @return The address value.
+     */
     function toAddress(RLPItem memory item) internal pure returns (address) {
         // 1 byte for the length prefix
         require(item.len == 21, "RLP: invalid addr length");
@@ -215,6 +258,11 @@ library RLPReader {
         return address(uint160(toUint(item)));
     }
 
+    /**
+     * @dev Interpret an RLP encoded item as a uint.
+     * @param item The RLP item.
+     * @return The uint value.
+     */
     function toUint(RLPItem memory item) internal pure returns (uint256) {
         require(item.len > 0 && item.len <= 33, "RLP: invalid uint length");
 
@@ -233,7 +281,12 @@ library RLPReader {
         return result;
     }
 
-    // enforces 32 byte length
+    /**
+     * @dev Interpret an RLP encoded item as an uint, ensuring the payload
+     * is 32 bytes in size.
+     * @param item The RLP item.
+     * @return The uint256 value.
+     */
     function toUintStrict(RLPItem memory item) internal pure returns (uint256) {
         // one byte prefix
         require(item.len == 33, "RLP: invalid uint strict length");
@@ -247,6 +300,11 @@ library RLPReader {
         return result;
     }
 
+    /**
+     * @dev Interpret an RLP encoded item as a bytes array.
+     * @param item The RLP item.
+     * @return The bytes value.
+     */
     function toBytes(RLPItem memory item) internal pure returns (bytes memory) {
         require(item.len > 0, "RLP: invalid zero length bytes");
 
@@ -266,7 +324,11 @@ library RLPReader {
      * Private Helpers
      */
 
-    // @return number of payload items inside an encoded list.
+    /**
+     * @dev Get the number of items in an RLP encoded list.
+     * @param item The RLP item.
+     * @return The number of items in the list.
+     */
     function numItems(RLPItem memory item) private pure returns (uint256) {
         if (item.len == 0) return 0;
 
@@ -281,7 +343,11 @@ library RLPReader {
         return count;
     }
 
-    // @return entire rlp item byte length
+    /**
+     * @dev Get the entire length of an RLP item.
+     * @param memPtr The memory pointer to the start of the item.
+     * @return The length of the item.
+     */
     function _itemLength(uint256 memPtr) private pure returns (uint256) {
         uint256 itemLen;
         uint256 byte0;
@@ -315,7 +381,11 @@ library RLPReader {
         return itemLen;
     }
 
-    // @return number of bytes until the data
+    /**
+     * @dev Get the location of the payload for an RLP item.
+     * @param memPtr The memory pointer to the start of the item.
+     * @return The offset of the payload from the start of the item
+     */
     function _payloadOffset(uint256 memPtr) private pure returns (uint256) {
         uint256 byte0;
         assembly {
@@ -332,7 +402,8 @@ library RLPReader {
         else return byte0 - (LIST_LONG_START - 1) + 1;
     }
 
-    /*
+    /**
+     * @dev Copy two areas of memory
      * @param src Pointer to source
      * @param dest Pointer to destination
      * @param len Amount of memory to copy from the source

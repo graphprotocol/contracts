@@ -9,6 +9,7 @@
  * - Using local copy of the RLPReader library instead of using the package
  * - Explicitly marked visibility of constants
  * - Added revert messages
+ * - A few other QA improvements, e.g. NatSpec
  */
 
 pragma solidity 0.7.6;
@@ -23,8 +24,11 @@ library StateProofVerifier {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for bytes;
 
+    /// Index within a block header for the state root hash
     uint256 public constant HEADER_STATE_ROOT_INDEX = 3;
+    /// Index within a block header for the block number
     uint256 public constant HEADER_NUMBER_INDEX = 8;
+    /// Index within a block header for the timestamp
     uint256 public constant HEADER_TIMESTAMP_INDEX = 11;
 
     struct BlockHeader {
@@ -50,6 +54,7 @@ library StateProofVerifier {
     /**
      * @notice Parses block header and verifies its presence onchain within the latest 256 blocks.
      * @param _headerRlpBytes RLP-encoded block header.
+     * @return The block header as a BlockHeader struct.
      */
     function verifyBlockHeader(bytes memory _headerRlpBytes)
         internal
@@ -65,6 +70,7 @@ library StateProofVerifier {
     /**
      * @notice Parses RLP-encoded block header.
      * @param _headerRlpBytes RLP-encoded block header.
+     * @return The block header as a BlockHeader struct.
      */
     function parseBlockHeader(bytes memory _headerRlpBytes)
         internal
@@ -85,10 +91,11 @@ library StateProofVerifier {
     }
 
     /**
-     * @notice Verifies Merkle Patricia proof of an account and extracts the account fields.
-     *
+     * @dev Verifies Merkle Patricia proof of an account and extracts the account fields.
      * @param _addressHash Keccak256 hash of the address corresponding to the account.
      * @param _stateRootHash MPT root hash of the Ethereum state trie.
+     * @param _proof RLP-encoded Merkle Patricia proof for the account.
+     * @return The account as an Account struct, if the proof shows it exists, or an empty struct otherwise.
      */
     function extractAccountFromProof(
         bytes32 _addressHash, // keccak256(abi.encodePacked(address))
@@ -120,10 +127,11 @@ library StateProofVerifier {
     }
 
     /**
-     * @notice Verifies Merkle Patricia proof of a slot and extracts the slot's value.
-     *
+     * @dev Verifies Merkle Patricia proof of a slot and extracts the slot's value.
      * @param _slotHash Keccak256 hash of the slot position.
      * @param _storageRootHash MPT root hash of the account's storage trie.
+     * @param _proof RLP-encoded Merkle Patricia proof for the slot.
+     * @return The slot's value as a SlotValue struct, if the proof shows it exists, or an empty struct otherwise.
      */
     function extractSlotValueFromProof(
         bytes32 _slotHash,

@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+
 import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 import { Managed } from "../governance/Managed.sol";
@@ -21,7 +23,7 @@ abstract contract CurationV1Storage is Managed, ICuration {
 
     // -- State --
 
-    /// Tax charged when curatos deposit funds.
+    /// Tax charged when curators deposit funds.
     /// Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
     uint32 public override curationTaxPercentage;
 
@@ -45,4 +47,8 @@ abstract contract CurationV1Storage is Managed, ICuration {
     /// @dev Mapping of subgraphDeploymentID => CurationPool
     /// There is only one CurationPool per SubgraphDeploymentID
     mapping(bytes32 => CurationPool) internal _pools;
+}
+
+abstract contract CurationV2Storage is CurationV1Storage, Initializable {
+    // Nothing here, just adding Initializable
 }

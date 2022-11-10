@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import { Managed } from "../governance/Managed.sol";
 
 import { IEthereumDIDRegistry } from "./erc1056/IEthereumDIDRegistry.sol";
@@ -64,9 +65,9 @@ abstract contract GNSV2Storage is GNSV1Storage {
  * @notice This contract holds all the storage variables for the base GNS contract, version 3.
  * @dev Note that this is the first version that includes a storage gap - if adding
  * future versions, make sure to move the gap to the new version and
- *  reduce the size of the gap accordingly.
+ * reduce the size of the gap accordingly.
  */
-abstract contract GNSV3Storage is GNSV2Storage {
+abstract contract GNSV3Storage is GNSV2Storage, Initializable {
     /// Data for subgraph migration from L1 to L2, some fields will be empty or set differently on each layer
     mapping(uint256 => IGNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
     /// Address of the counterpart GNS contract (L1GNS/L2GNS)
