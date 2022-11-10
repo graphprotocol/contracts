@@ -10,7 +10,7 @@ interface IGNS {
         uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
-        uint32 reserveRatio;
+        uint32 reserveRatio; // Ratio for the bonding curve, always 1 in PPM, kept only for backwards compatibility
         bool disabled;
         uint256 withdrawableGRT;
     }

@@ -4,7 +4,19 @@ pragma solidity ^0.7.6;
 
 import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
 
+/**
+ * @title Interface for the L2GNS contract.
+ */
 interface IL2GNS is ICallhookReceiver {
+    /**
+     * @notice Finish a subgraph migration from L1.
+     * The subgraph must have been previously sent through the bridge
+     * using the sendSubgraphToL2 function on L1GNS.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
+     * @param _subgraphMetadata IPFS hash of the subgraph metadata
+     * @param _versionMetadata IPFS hash of the version metadata
+     */
     function finishSubgraphMigrationFromL1(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
@@ -13,7 +25,7 @@ interface IL2GNS is ICallhookReceiver {
     ) external;
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1.
+     * @notice Claim curator balance belonging to a curator from L1.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
      * @param _subgraphID Subgraph for which to claim a balance
@@ -27,7 +39,7 @@ interface IL2GNS is ICallhookReceiver {
     ) external;
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1 on a legacy subgraph.
+     * @notice Claim curator balance belonging to a curator from L1 on a legacy subgraph.
      * This will be credited to the same curator's balance on L2.
      * This can only be called by the corresponding curator.
      * Users can query getLegacySubgraphKey on L1 to get the _subgraphCreatorAccount and _seqID.
@@ -44,7 +56,7 @@ interface IL2GNS is ICallhookReceiver {
     ) external;
 
     /**
-     * @dev Claim curator balance belonging to a curator from L1.
+     * @notice Claim curator balance belonging to a curator from L1.
      * This will be credited to the a beneficiary on L2, and can only be called
      * from the GNS on L1 through a retryable ticket.
      * @param _subgraphID Subgraph on which to claim the balance
