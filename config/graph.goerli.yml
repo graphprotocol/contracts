@@ -87,7 +87,6 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      bondingCurve: "${{BancorFormula.address}}"
       subgraphNFT: "${{SubgraphNFT.address}}"
     calls:
       - fn: "approveAll"

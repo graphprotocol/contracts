@@ -34,6 +34,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
 }
 
 task('e2e', 'Run all e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
@@ -49,9 +50,6 @@ task('e2e', 'Run all e2e tests')
       testFiles = testFiles.filter((file) => !['l1', 'l2'].includes(file.split('/')[3]))
     }
 
-    // Disable secure accounts, we don't need them for this task
-    hre.config.graph.disableSecureAccounts = true
-
     setGraphConfig(args, hre)
     await hre.run(TASK_TEST, {
       testFiles: testFiles,
@@ -59,15 +57,13 @@ task('e2e', 'Run all e2e tests')
   })
 
 task('e2e:config', 'Run deployment configuration e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(CONFIG_TESTS).found
-
-    // Disable secure accounts, we don't need them for this task
-    hre.config.graph.disableSecureAccounts = true
 
     setGraphConfig(args, hre)
     await hre.run(TASK_TEST, {
@@ -76,15 +72,13 @@ task('e2e:config', 'Run deployment configuration e2e tests')
   })
 
 task('e2e:init', 'Run deployment initialization e2e tests')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
   .addOptionalParam('addressBook', cliOpts.addressBook.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(INIT_TESTS).found
-
-    // Disable secure accounts, we don't need them for this task
-    hre.config.graph.disableSecureAccounts = true
 
     setGraphConfig(args, hre)
     await hre.run(TASK_TEST, {

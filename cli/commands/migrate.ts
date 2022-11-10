@@ -40,7 +40,6 @@ let allContracts = [
 
 const l2Contracts = [
   'GraphProxyAdmin',
-  'BancorFormula',
   'Controller',
   'EpochManager',
   'L2GraphToken',

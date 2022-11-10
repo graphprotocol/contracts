@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -209,7 +210,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         );
 
         // Collect new funds into reserve
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
         curationPool.tokens = curationPool.tokens.add(_tokens);
 
         emit Collected(_subgraphDeploymentID, _tokens);
@@ -237,7 +238,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         require(signalOut >= _signalOutMin, "Slippage protection");
 
         address curator = msg.sender;
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
@@ -304,7 +305,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         _updateRewards(_subgraphDeploymentID);
 
         // Update curation pool
-        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
         curationPool.tokens = curationPool.tokens.sub(tokensOut);
         curationPool.gcs.burnFrom(curator, _signalIn);
 
@@ -329,7 +330,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
      * @return True if curated
      */
     function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
-        return pools[_subgraphDeploymentID].tokens > 0;
+        return _pools[_subgraphDeploymentID].tokens > 0;
     }
 
     /**
@@ -344,7 +345,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         override
         returns (uint256)
     {
-        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
+        IGraphCurationToken gcs = _pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.balanceOf(_curator);
     }
 
@@ -359,7 +360,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         override
         returns (uint256)
     {
-        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
+        IGraphCurationToken gcs = _pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.totalSupply();
     }
 
@@ -374,7 +375,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         override
         returns (uint256)
     {
-        return pools[_subgraphDeploymentID].tokens;
+        return _pools[_subgraphDeploymentID].tokens;
     }
 
     /**
@@ -396,6 +397,17 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
     }
 
     /**
+     * @notice Get a curation pool for a subgraph deployment
+     * @dev We add this when making the pools variable internal, to keep
+     * backwards compatibility.
+     * @param _subgraphDeploymentID Subgraph deployment for which to get the curation pool
+     * @return Curation pool for the subgraph deployment
+     */
+    function pools(bytes32 _subgraphDeploymentID) external view returns (CurationPool memory) {
+        return _pools[_subgraphDeploymentID];
+    }
+
+    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
      * @param _tokensIn Amount of tokens used to mint signal
@@ -407,7 +419,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         returns (uint256)
     {
         // Get curation pool tokens and signal
-        CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        CurationPool memory curationPool = _pools[_subgraphDeploymentID];
 
         // Init curation pool
         if (curationPool.tokens == 0) {
@@ -447,7 +459,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         override
         returns (uint256)
     {
-        CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        CurationPool memory curationPool = _pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
             curationPool.tokens > 0,

@@ -19,14 +19,9 @@ describe('[L2] L2Curation configuration', () => {
     expect(controller).eq(Controller.address)
   })
 
-  it('bondingCurve should match the BancorFormula deployment address', async function () {
-    const bondingCurve = await L2Curation.bondingCurve()
-    expect(bondingCurve).eq(BancorFormula.address)
-  })
-
   it('curationTokenMaster should match the GraphCurationToken deployment address', async function () {
-    const bondingCurve = await L2Curation.curationTokenMaster()
-    expect(bondingCurve).eq(GraphCurationToken.address)
+    const gct = await L2Curation.curationTokenMaster()
+    expect(gct).eq(GraphCurationToken.address)
   })
 
   it('defaultReserveRatio should be a constant 1000000', async function () {

@@ -64,7 +64,6 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
@@ -85,7 +84,6 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      bondingCurve: "${{BancorFormula.address}}"
       subgraphNFT: "${{SubgraphNFT.address}}"
     calls:
       - fn: "approveAll"
