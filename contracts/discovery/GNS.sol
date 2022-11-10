@@ -34,15 +34,14 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // Equates to Connector weight on bancor formula to be CW = 1
-    uint32 private constant defaultReserveRatio = 1000000;
-
     // Storage slot where the subgraphs mapping is stored on L1GNS
     uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
 
     // Storage slot where the legacy subgraphs mapping is stored on L1GNS
     uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 15;
 
+    // Equates to Connector weight on bancor formula to be CW = 1
+    uint32 internal immutable FIXED_RESERVE_RATIO = MAX_PPM;
     // -- Events --
 
     event SubgraphNFTUpdated(address subgraphNFT);
@@ -164,15 +163,8 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     /**
      * @dev Initialize this contract.
      */
-    function initialize(
-        address _controller,
-        address _bondingCurve,
-        address _subgraphNFT
-    ) external onlyImpl {
+    function initialize(address _controller, address _subgraphNFT) external onlyImpl {
         Managed._initialize(_controller);
-
-        // Dependencies
-        bondingCurve = _bondingCurve;
 
         // Settings
         _setOwnerTaxPercentage(500000);
@@ -291,12 +283,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 subgraphID = _nextSubgraphID(subgraphOwner);
         SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
-        subgraphData.reserveRatio = defaultReserveRatio;
+        subgraphData.reserveRatio = FIXED_RESERVE_RATIO;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
         _mintNFT(subgraphOwner, subgraphID);
-        emit SubgraphPublished(subgraphID, _subgraphDeploymentID, defaultReserveRatio);
+        emit SubgraphPublished(subgraphID, _subgraphDeploymentID, FIXED_RESERVE_RATIO);
 
         // Set the token metadata
         _setSubgraphMetadata(subgraphID, _subgraphMetadata);
@@ -652,13 +644,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
             return _vSignalIn;
         }
 
-        return
-            BancorFormula(bondingCurve).calculatePurchaseReturn(
-                subgraphData.nSignal,
-                subgraphData.vSignal,
-                subgraphData.reserveRatio,
-                _vSignalIn
-            );
+        return subgraphData.nSignal.mul(_vSignalIn).div(subgraphData.vSignal);
     }
 
     /**
@@ -674,13 +660,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         returns (uint256)
     {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        return
-            BancorFormula(bondingCurve).calculateSaleReturn(
-                subgraphData.nSignal,
-                subgraphData.vSignal,
-                subgraphData.reserveRatio,
-                _nSignalIn
-            );
+        return subgraphData.vSignal.mul(_nSignalIn).div(subgraphData.nSignal);
     }
 
     /**

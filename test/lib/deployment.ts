@@ -189,7 +189,6 @@ async function deployL1OrL2GNS(
   isL2: boolean,
 ): Promise<L1GNS | L2GNS> {
   // Dependency
-  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
   const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
   const subgraphNFT = (await deployContract(
     'SubgraphNFT',
@@ -207,7 +206,7 @@ async function deployL1OrL2GNS(
   const proxy = (await network.deployContractWithProxy(
     proxyAdmin,
     name,
-    [controller, bondingCurve.address, subgraphNFT.address],
+    [controller, subgraphNFT.address],
     deployer,
   )) as unknown as GNS
 

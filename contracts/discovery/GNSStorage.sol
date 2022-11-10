@@ -19,8 +19,8 @@ abstract contract GNSV1Storage is Managed {
     /// Percentage of curation tax that must be paid by the owner, in parts per hundred.
     uint32 public ownerTaxPercentage;
 
-    /// Bonding curve formula.
-    address public bondingCurve;
+    /// [DEPRECATED] Bonding curve formula.
+    address public __DEPRECATED_bondingCurve;
 
     /// @dev Stores what subgraph deployment a particular legacy subgraph targets.
     /// A subgraph is defined by (graphAccountID, subgraphNumber).
