@@ -3,8 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
 import { GNS } from "../../discovery/GNS.sol";
@@ -30,18 +29,22 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
 
-    /// Emitted when a subgraph is received from L1 through the bridge
+    /// @dev Emitted when a subgraph is received from L1 through the bridge
     event SubgraphReceivedFromL1(uint256 _subgraphID);
+    /// @dev Emitted when a subgraph migration from L1 is finalized, so the subgraph is published
     event SubgraphMigrationFinalized(uint256 _subgraphID);
+    /// @dev Emitted when the L1 balance for a curator has been claimed
     event CuratorBalanceClaimed(
         uint256 _subgraphID,
         address _l1Curator,
         address _l2Curator,
         uint256 _nSignalClaimed
     );
+    /// @dev Emitted when claiming L1 balances using MPT proofs is enabled
     event MPTClaimingEnabled();
+    /// @dev Emitted when claiming L1 balances using MPT proofs is disabled
     event MPTClaimingDisabled();
 
     /**

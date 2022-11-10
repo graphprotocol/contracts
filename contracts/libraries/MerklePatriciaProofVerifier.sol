@@ -22,6 +22,11 @@ pragma solidity 0.7.6;
 
 import { RLPReader } from "./RLPReader.sol";
 
+/**
+ * @title MerklePatriciaProofVerifier
+ * @notice This contract verifies proofs of inclusion or exclusion
+ * for Merkle Patricia tries.
+ */
 library MerklePatriciaProofVerifier {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for bytes;
@@ -200,6 +205,11 @@ library MerklePatriciaProofVerifier {
         }
     }
 
+    /**
+     * @dev Checks if an RLP item corresponds to an empty byte sequence, encoded as 0x80.
+     * @param item The RLP item to be checked.
+     * @return True if the item is an empty byte string, false otherwise.
+     */
     function _isEmptyByteSequence(RLPReader.RLPItem memory item) private pure returns (bool) {
         if (item.len != 1) {
             return false;
@@ -213,6 +223,13 @@ library MerklePatriciaProofVerifier {
         return b == 0x80; /* empty byte string */
     }
 
+    /**
+     * @dev Decode a compact-encoded Merkle-Patricia proof node,
+     * which must be a leaf or extension node
+     * @param compact The compact-encoded node
+     * @return isLeaf True if the node is a leaf node, false if it is an extension node.
+     * @return nibbles The decoded path of the node split into nibbles.
+     */
     function _merklePatriciaCompactDecode(bytes memory compact)
         private
         pure
@@ -240,6 +257,12 @@ library MerklePatriciaProofVerifier {
         return (isLeaf, _decodeNibbles(compact, skipNibbles));
     }
 
+    /**
+     * @dev Decode the nibbles of a compact-encoded Merkle-Patricia proof node.
+     * @param compact The compact-encoded node
+     * @param skipNibbles The number of nibbles to skip at the beginning of the node.
+     * @return nibbles The decoded path of the node split into nibbles.
+     */
     function _decodeNibbles(bytes memory compact, uint256 skipNibbles)
         private
         pure
@@ -266,6 +289,14 @@ library MerklePatriciaProofVerifier {
         assert(nibblesLength == nibbles.length);
     }
 
+    /**
+     * @dev Compute the length of the shared prefix between two byte sequences.
+     * This will be the count of how many bytes (representing path nibbles) are the same at the beginning of the sequences.
+     * @param xsOffset The offset to skip on the first sequence
+     * @param xs The first sequence
+     * @param ys The second sequence
+     * @return The length of the shared prefix.
+     */
     function _sharedPrefixLength(
         uint256 xsOffset,
         bytes memory xs,

@@ -3,8 +3,8 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import { Multicall } from "../base/Multicall.sol";
 import { BancorFormula } from "../bancor/BancorFormula.sol";
@@ -27,23 +27,25 @@ import { GNSV3Storage } from "./GNSStorage.sol";
  * transaction.
  */
 contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
 
     // -- Constants --
 
-    // 100% in parts per million
+    /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    // Storage slot where the subgraphs mapping is stored on L1GNS
+    /// @dev Storage slot where the subgraphs mapping is stored on L1GNS
     uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
 
-    // Storage slot where the legacy subgraphs mapping is stored on L1GNS
+    /// @dev Storage slot where the legacy subgraphs mapping is stored on L1GNS
     uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 15;
 
-    // Equates to Connector weight on bancor formula to be CW = 1
+    /// @dev Equates to Connector weight on bancor formula to be CW = 1
     uint32 internal immutable FIXED_RESERVE_RATIO = MAX_PPM;
+
     // -- Events --
 
+    /// @dev Emitted when the subgraph NFT contract is updated
     event SubgraphNFTUpdated(address subgraphNFT);
 
     /**
@@ -161,9 +163,11 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Functions --
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize the GNS contract.
+     * @param _controller Address of the Controller contract that manages this contract
+     * @param _subgraphNFT Address of the Subgraph NFT contract
      */
-    function initialize(address _controller, address _subgraphNFT) external onlyImpl {
+    function initialize(address _controller, address _subgraphNFT) external onlyImpl initializer {
         Managed._initialize(_controller);
 
         // Settings
@@ -172,7 +176,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Approve curation contract to pull funds.
+     * @notice Approve curation contract to pull funds.
      */
     function approveAll() external override {
         graphToken().approve(address(curation()), type(uint256).max);
@@ -181,7 +185,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Config --
 
     /**
-     * @dev Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
+     * @notice Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
      * @param _ownerTaxPercentage Owner tax percentage
      */
@@ -190,41 +194,18 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
-     * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
-     * @param _ownerTaxPercentage Owner tax percentage
-     */
-    function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
-        require(_ownerTaxPercentage <= MAX_PPM, "Owner tax must be MAX_PPM or less");
-        ownerTaxPercentage = _ownerTaxPercentage;
-        emit ParameterUpdated("ownerTaxPercentage");
-    }
-
-    /**
-     * @dev Set the NFT registry contract
+     * @notice Set the NFT registry contract
      * NOTE: Calling this function will break the ownership model unless
      * it is replaced with a fully migrated version of the NFT contract state
      * Use with care.
      * @param _subgraphNFT Address of the ERC721 contract
      */
-    function setSubgraphNFT(address _subgraphNFT) public onlyGovernor {
+    function setSubgraphNFT(address _subgraphNFT) external onlyGovernor {
         _setSubgraphNFT(_subgraphNFT);
     }
 
     /**
-     * @dev Internal: Set the NFT registry contract
-     * @param _subgraphNFT Address of the ERC721 contract
-     */
-    function _setSubgraphNFT(address _subgraphNFT) private {
-        require(_subgraphNFT != address(0), "NFT address cant be zero");
-        require(Address.isContract(_subgraphNFT), "NFT must be valid");
-
-        subgraphNFT = ISubgraphNFT(_subgraphNFT);
-        emit SubgraphNFTUpdated(_subgraphNFT);
-    }
-
-    /**
-     * @dev Set the counterpart (L1/L2) GNS address
+     * @notice Set the counterpart (L1/L2) GNS address
      * @param _counterpart Owner tax percentage
      */
     function setCounterpartGNSAddress(address _counterpart) external onlyGovernor {
@@ -235,7 +216,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Actions --
 
     /**
-     * @dev Allows a graph account to set a default name
+     * @notice Allows a graph account to set a default name
      * @param _graphAccount Account that is setting its name
      * @param _nameSystem Name system account already has ownership of a name in
      * @param _nameIdentifier The unique identifier that is used to identify the name in the system
@@ -252,12 +233,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Allows a subgraph owner to update the metadata of a subgraph they have published
+     * @notice Allows a subgraph owner to update the metadata of a subgraph they have published
      * @param _subgraphID Subgraph ID
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
     function updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata)
-        public
+        external
         override
         onlySubgraphAuth(_subgraphID)
     {
@@ -265,7 +246,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Publish a new subgraph.
+     * @notice Publish a new subgraph.
      * @param _subgraphDeploymentID Subgraph deployment for the subgraph
      * @param _versionMetadata IPFS hash for the subgraph version metadata
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
@@ -297,7 +278,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Publish a new version of an existing subgraph.
+     * @notice Publish a new version of an existing subgraph.
      * @param _subgraphID Subgraph ID
      * @param _subgraphDeploymentID Subgraph deployment ID of the new version
      * @param _versionMetadata IPFS hash for the subgraph version metadata
@@ -371,7 +352,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Deprecate a subgraph. The bonding curve is destroyed, the vSignal is burned, and the GNS
+     * @notice Deprecate a subgraph. The bonding curve is destroyed, the vSignal is burned, and the GNS
      * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
      * Can only be done by the subgraph owner.
      * @param _subgraphID Subgraph ID
@@ -408,7 +389,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Deposit GRT into a subgraph and mint signal.
+     * @notice Deposit GRT into a subgraph and mint signal.
      * @param _subgraphID Subgraph ID
      * @param _tokensIn The amount of tokens the nameCurator wants to deposit
      * @param _nSignalOutMin Expected minimum amount of name signal to receive
@@ -441,7 +422,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Burn signal for a subgraph and return the GRT.
+     * @notice Burn signal for a subgraph and return the GRT.
      * @param _subgraphID Subgraph ID
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
      * @param _tokensOutMin Expected minimum amount of tokens to receive
@@ -478,7 +459,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Move subgraph signal from sender to `_recipient`
+     * @notice Move subgraph signal from sender to `_recipient`
      * @param _subgraphID Subgraph ID
      * @param _recipient Address to send the signal to
      * @param _amount The amount of nSignal to transfer
@@ -508,7 +489,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Withdraw tokens from a deprecated subgraph.
+     * @notice Withdraw tokens from a deprecated subgraph.
      * When the subgraph is deprecated, any curator can call this function and
      * withdraw the GRT they are entitled for its original deposit
      * @param _subgraphID Subgraph ID
@@ -539,170 +520,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Calculate tax that owner will have to cover for upgrading or deprecating.
-     * @param _tokens Tokens that were received from deprecating the old subgraph
-     * @param _owner Subgraph owner
-     * @param _curationTaxPercentage Tax percentage on curation deposits from Curation contract
-     * @return Total tokens that will be sent to curation, _tokens + ownerTax
-     */
-    function _chargeOwnerTax(
-        uint256 _tokens,
-        address _owner,
-        uint32 _curationTaxPercentage
-    ) internal returns (uint256) {
-        if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
-            return 0;
-        }
-
-        // Tax on the total bonding curve funds
-        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
-        // Total after the tax
-        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
-        // The portion of tax that the owner will pay
-        uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
-
-        uint256 totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax);
-
-        // The total after tax, plus owner partial repay, divided by
-        // the tax, to adjust it slightly upwards. ex:
-        // 100 GRT, 5 GRT Tax, owner pays 100% --> 5 GRT
-        // To get 100 in the protocol after tax, Owner deposits
-        // ~5.26, as ~105.26 * .95 = 100
-        uint256 totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(
-            uint256(MAX_PPM).sub(uint256(_curationTaxPercentage))
-        );
-
-        uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
-
-        // Get the owner of the subgraph to reimburse the curation tax
-        TokenUtils.pullTokens(graphToken(), _owner, ownerTaxAdjustedUp);
-
-        return totalAdjustedUp;
-    }
-
-    /**
-     * @dev Calculate subgraph signal to be returned for an amount of tokens.
-     * @param _subgraphID Subgraph ID
-     * @param _tokensIn Tokens being exchanged for subgraph signal
-     * @return Amount of subgraph signal and curation tax
-     */
-    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
-        public
-        view
-        override
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
-            subgraphData.subgraphDeploymentID,
-            _tokensIn
-        );
-        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
-        return (vSignal, nSignal, curationTax);
-    }
-
-    /**
-     * @dev Calculate tokens returned for an amount of subgraph signal.
-     * @param _subgraphID Subgraph ID
-     * @param _nSignalIn Subgraph signal being exchanged for tokens
-     * @return Amount of tokens returned for an amount of subgraph signal
-     */
-    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
-        public
-        view
-        override
-        returns (uint256, uint256)
-    {
-        // Get subgraph or revert if not published
-        // It does not make sense to convert signal from a disabled or non-existing one
-        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
-        uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
-        uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal);
-        return (vSignal, tokensOut);
-    }
-
-    /**
-     * @dev Calculate subgraph signal to be returned for an amount of subgraph deployment signal.
-     * @param _subgraphID Subgraph ID
-     * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
-     * @return Amount of subgraph signal that can be bought
-     */
-    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-
-        // Handle initialization by using 1:1 version to name signal
-        if (subgraphData.vSignal == 0) {
-            return _vSignalIn;
-        }
-
-        return subgraphData.nSignal.mul(_vSignalIn).div(subgraphData.vSignal);
-    }
-
-    /**
-     * @dev Calculate subgraph deployment signal to be returned for an amount of subgraph signal.
-     * @param _subgraphID Subgraph ID
-     * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
-     * @return Amount of subgraph deployment signal that can be returned
-     */
-    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        return subgraphData.vSignal.mul(_nSignalIn).div(subgraphData.nSignal);
-    }
-
-    /**
-     * @dev Get the amount of subgraph signal a curator has.
-     * @param _subgraphID Subgraph ID
-     * @param _curator Curator address
-     * @return Amount of subgraph signal owned by a curator
-     */
-    function getCuratorSignal(uint256 _subgraphID, address _curator)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
-    }
-
-    /**
-     * @dev Return the total signal on the subgraph.
-     * @param _subgraphID Subgraph ID
-     * @return Total signal on the subgraph
-     */
-    function subgraphSignal(uint256 _subgraphID) external view override returns (uint256) {
-        return _getSubgraphData(_subgraphID).nSignal;
-    }
-
-    /**
-     * @dev Return the total tokens on the subgraph at current value.
-     * @param _subgraphID Subgraph ID
-     * @return Total tokens on the subgraph
-     */
-    function subgraphTokens(uint256 _subgraphID) external view override returns (uint256) {
-        uint256 signal = _getSubgraphData(_subgraphID).nSignal;
-        if (signal > 0) {
-            (, uint256 tokens) = nSignalToTokens(_subgraphID, signal);
-            return tokens;
-        }
-        return 0;
-    }
-
-    /**
-     * @dev Create subgraphID for legacy subgraph and mint ownership NFT.
+     * @notice Create subgraphID for legacy subgraph and mint ownership NFT.
      * @param _graphAccount Account that created the subgraph
      * @param _subgraphNumber The sequence number of the created subgraph
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
@@ -743,7 +561,128 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return whether a subgraph is published.
+     * @notice Return the total signal on the subgraph.
+     * @param _subgraphID Subgraph ID
+     * @return Total signal on the subgraph
+     */
+    function subgraphSignal(uint256 _subgraphID) external view override returns (uint256) {
+        return _getSubgraphData(_subgraphID).nSignal;
+    }
+
+    /**
+     * @notice Return the total tokens on the subgraph at current value.
+     * @param _subgraphID Subgraph ID
+     * @return Total tokens on the subgraph
+     */
+    function subgraphTokens(uint256 _subgraphID) external view override returns (uint256) {
+        uint256 signal = _getSubgraphData(_subgraphID).nSignal;
+        if (signal > 0) {
+            (, uint256 tokens) = nSignalToTokens(_subgraphID, signal);
+            return tokens;
+        }
+        return 0;
+    }
+
+    /**
+     * @notice Calculate subgraph signal to be returned for an amount of tokens.
+     * @param _subgraphID Subgraph ID
+     * @param _tokensIn Tokens being exchanged for subgraph signal
+     * @return Amount of subgraph signal and curation tax
+     */
+    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
+        public
+        view
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
+            subgraphData.subgraphDeploymentID,
+            _tokensIn
+        );
+        uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
+        return (vSignal, nSignal, curationTax);
+    }
+
+    /**
+     * @notice Calculate tokens returned for an amount of subgraph signal.
+     * @param _subgraphID Subgraph ID
+     * @param _nSignalIn Subgraph signal being exchanged for tokens
+     * @return Amount of tokens returned for an amount of subgraph signal
+     */
+    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
+        // Get subgraph or revert if not published
+        // It does not make sense to convert signal from a disabled or non-existing one
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
+        uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
+        uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal);
+        return (vSignal, tokensOut);
+    }
+
+    /**
+     * @notice Calculate subgraph signal to be returned for an amount of subgraph deployment signal.
+     * @param _subgraphID Subgraph ID
+     * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
+     * @return Amount of subgraph signal that can be bought
+     */
+    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+
+        // Handle initialization by using 1:1 version to name signal
+        if (subgraphData.vSignal == 0) {
+            return _vSignalIn;
+        }
+
+        return subgraphData.nSignal.mul(_vSignalIn).div(subgraphData.vSignal);
+    }
+
+    /**
+     * @notice Calculate subgraph deployment signal to be returned for an amount of subgraph signal.
+     * @param _subgraphID Subgraph ID
+     * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
+     * @return Amount of subgraph deployment signal that can be returned
+     */
+    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        return subgraphData.vSignal.mul(_nSignalIn).div(subgraphData.nSignal);
+    }
+
+    /**
+     * @notice Get the amount of subgraph signal a curator has.
+     * @param _subgraphID Subgraph ID
+     * @param _curator Curator address
+     * @return Amount of subgraph signal owned by a curator
+     */
+    function getCuratorSignal(uint256 _subgraphID, address _curator)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
+    }
+
+    /**
+     * @notice Return whether a subgraph is published.
      * @param _subgraphID Subgraph ID
      * @return Return true if subgraph is currently published
      */
@@ -752,7 +691,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return whether a subgraph is a legacy subgraph (created before subgraph NFTs).
+     * @notice Return whether a subgraph is a legacy subgraph (created before subgraph NFTs).
      * @param _subgraphID Subgraph ID
      * @return Return true if subgraph is a legacy subgraph
      */
@@ -762,7 +701,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Returns account and sequence ID for a legacy subgraph (created before subgraph NFTs).
+     * @notice Returns account and sequence ID for a legacy subgraph (created before subgraph NFTs).
      * @param _subgraphID Subgraph ID
      * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
      * @return seqID Sequence number for the subgraph
@@ -776,6 +715,15 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         account = legacySubgraphKey.account;
         seqID = legacySubgraphKey.accountSeqID;
+    }
+
+    /**
+     * @notice Return the owner of a subgraph.
+     * @param _tokenID Subgraph ID
+     * @return Owner address
+     */
+    function ownerOf(uint256 _tokenID) public view override returns (address) {
+        return subgraphNFT.ownerOf(_tokenID);
     }
 
     /**
@@ -834,32 +782,45 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
-     * Only used for legacy subgraphs being migrated, as new ones will also use the chainid.
-     * Subgraph ID is the keccak hash of account+seqID
-     * @return Subgraph ID
+     * @dev Calculate tax that owner will have to cover for upgrading or deprecating.
+     * @param _tokens Tokens that were received from deprecating the old subgraph
+     * @param _owner Subgraph owner
+     * @param _curationTaxPercentage Tax percentage on curation deposits from Curation contract
+     * @return Total tokens that will be sent to curation, _tokens + ownerTax
      */
-    function _buildLegacySubgraphID(address _account, uint256 _seqID)
-        internal
-        pure
-        returns (uint256)
-    {
-        return uint256(keccak256(abi.encodePacked(_account, _seqID)));
-    }
-
-    /**
-     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
-     * Subgraph ID is the keccak hash of account+seqID
-     * @return Subgraph ID
-     */
-    function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
-        uint256 chainId;
-        // Too bad solidity 0.7.6 still doesn't have block.chainid
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            chainId := chainid()
+    function _chargeOwnerTax(
+        uint256 _tokens,
+        address _owner,
+        uint32 _curationTaxPercentage
+    ) internal returns (uint256) {
+        if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
+            return 0;
         }
-        return uint256(keccak256(abi.encodePacked(_account, _seqID, chainId)));
+
+        // Tax on the total bonding curve funds
+        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        // Total after the tax
+        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
+        // The portion of tax that the owner will pay
+        uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
+
+        uint256 totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax);
+
+        // The total after tax, plus owner partial repay, divided by
+        // the tax, to adjust it slightly upwards. ex:
+        // 100 GRT, 5 GRT Tax, owner pays 100% --> 5 GRT
+        // To get 100 in the protocol after tax, Owner deposits
+        // ~5.26, as ~105.26 * .95 = 100
+        uint256 totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(
+            uint256(MAX_PPM).sub(uint256(_curationTaxPercentage))
+        );
+
+        uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
+
+        // Get the owner of the subgraph to reimburse the curation tax
+        TokenUtils.pullTokens(graphToken(), _owner, ownerTaxAdjustedUp);
+
+        return totalAdjustedUp;
     }
 
     /**
@@ -880,6 +841,36 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 seqID = nextAccountSeqID[_account];
         nextAccountSeqID[_account] = nextAccountSeqID[_account].add(1);
         return seqID;
+    }
+
+    /**
+     * @dev Mint the NFT for the subgraph.
+     * @param _owner Owner address
+     * @param _tokenID Subgraph ID
+     */
+    function _mintNFT(address _owner, uint256 _tokenID) internal {
+        subgraphNFT.mint(_owner, _tokenID);
+    }
+
+    /**
+     * @dev Burn the NFT for the subgraph.
+     * @param _tokenID Subgraph ID
+     */
+    function _burnNFT(uint256 _tokenID) internal {
+        subgraphNFT.burn(_tokenID);
+    }
+
+    /**
+     * @dev Set the subgraph metadata.
+     * @param _tokenID Subgraph ID
+     * @param _subgraphMetadata IPFS hash of the subgraph metadata
+     */
+    function _setSubgraphMetadata(uint256 _tokenID, bytes32 _subgraphMetadata) internal {
+        subgraphNFT.setSubgraphMetadata(_tokenID, _subgraphMetadata);
+
+        // Even if the following event is emitted in the NFT we emit it here to facilitate
+        // subgraph indexing
+        emit SubgraphMetadataUpdated(_tokenID, _subgraphMetadata);
     }
 
     /**
@@ -927,44 +918,55 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         return subgraphData;
     }
 
-    // -- NFT --
-
     /**
-     * @dev Return the owner of a subgraph.
-     * @param _tokenID Subgraph ID
-     * @return Owner address
+     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * Only used for legacy subgraphs being migrated, as new ones will also use the chainid.
+     * Subgraph ID is the keccak hash of account+seqID
+     * @return Subgraph ID
      */
-    function ownerOf(uint256 _tokenID) public view override returns (address) {
-        return subgraphNFT.ownerOf(_tokenID);
+    function _buildLegacySubgraphID(address _account, uint256 _seqID)
+        internal
+        pure
+        returns (uint256)
+    {
+        return uint256(keccak256(abi.encodePacked(_account, _seqID)));
     }
 
     /**
-     * @dev Mint the NFT for the subgraph.
-     * @param _owner Owner address
-     * @param _tokenID Subgraph ID
+     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * Subgraph ID is the keccak hash of account+seqID
+     * @return Subgraph ID
      */
-    function _mintNFT(address _owner, uint256 _tokenID) internal {
-        subgraphNFT.mint(_owner, _tokenID);
+    function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
+        uint256 chainId;
+        // Too bad solidity 0.7.6 still doesn't have block.chainid
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            chainId := chainid()
+        }
+        return uint256(keccak256(abi.encodePacked(_account, _seqID, chainId)));
     }
 
     /**
-     * @dev Burn the NFT for the subgraph.
-     * @param _tokenID Subgraph ID
+     * @dev Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
+     * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
+     * @param _ownerTaxPercentage Owner tax percentage
      */
-    function _burnNFT(uint256 _tokenID) internal {
-        subgraphNFT.burn(_tokenID);
+    function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
+        require(_ownerTaxPercentage <= MAX_PPM, "Owner tax must be MAX_PPM or less");
+        ownerTaxPercentage = _ownerTaxPercentage;
+        emit ParameterUpdated("ownerTaxPercentage");
     }
 
     /**
-     * @dev Set the subgraph metadata.
-     * @param _tokenID Subgraph ID
-     * @param _subgraphMetadata IPFS hash of the subgraph metadata
+     * @dev Internal: Set the NFT registry contract
+     * @param _subgraphNFT Address of the ERC721 contract
      */
-    function _setSubgraphMetadata(uint256 _tokenID, bytes32 _subgraphMetadata) internal {
-        subgraphNFT.setSubgraphMetadata(_tokenID, _subgraphMetadata);
+    function _setSubgraphNFT(address _subgraphNFT) private {
+        require(_subgraphNFT != address(0), "NFT address cant be zero");
+        require(AddressUpgradeable.isContract(_subgraphNFT), "NFT must be valid");
 
-        // Even if the following event is emitted in the NFT we emit it here to facilitate
-        // subgraph indexing
-        emit SubgraphMetadataUpdated(_tokenID, _subgraphMetadata);
+        subgraphNFT = ISubgraphNFT(_subgraphNFT);
+        emit SubgraphNFTUpdated(_subgraphNFT);
     }
 }

@@ -3,9 +3,9 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import { BancorFormula } from "../../bancor/BancorFormula.sol";
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
@@ -13,7 +13,7 @@ import { TokenUtils } from "../../utils/TokenUtils.sol";
 import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
 import { IGraphToken } from "../../token/IGraphToken.sol";
-import { CurationV1Storage } from "../../curation/CurationStorage.sol";
+import { CurationV2Storage } from "../../curation/CurationStorage.sol";
 import { ICuration } from "../../curation/ICuration.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
 import { GraphCurationToken } from "../../curation/GraphCurationToken.sol";
@@ -31,8 +31,8 @@ import { IL2Curation } from "./IL2Curation.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
-    using SafeMath for uint256;
+contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
+    using SafeMathUpgradeable for uint256;
 
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
@@ -95,7 +95,7 @@ contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
         address _curationTokenMaster,
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit
-    ) external onlyImpl {
+    ) external onlyImpl initializer {
         Managed._initialize(_controller);
 
         // For backwards compatibility:
@@ -198,7 +198,9 @@ contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
-                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
+                IGraphCurationToken gcs = IGraphCurationToken(
+                    ClonesUpgradeable.clone(curationTokenMaster)
+                );
                 gcs.initialize(address(this));
                 curationPool.gcs = gcs;
             }
@@ -258,7 +260,9 @@ contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
-                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
+                IGraphCurationToken gcs = IGraphCurationToken(
+                    ClonesUpgradeable.clone(curationTokenMaster)
+                );
                 gcs.initialize(address(this));
                 curationPool.gcs = gcs;
             }
@@ -491,7 +495,10 @@ contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
      */
     function _setCurationTokenMaster(address _curationTokenMaster) private {
         require(_curationTokenMaster != address(0), "Token master must be non-empty");
-        require(Address.isContract(_curationTokenMaster), "Token master must be a contract");
+        require(
+            AddressUpgradeable.isContract(_curationTokenMaster),
+            "Token master must be a contract"
+        );
 
         curationTokenMaster = _curationTokenMaster;
         emit ParameterUpdated("curationTokenMaster");
