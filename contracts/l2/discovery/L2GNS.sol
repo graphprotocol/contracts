@@ -16,6 +16,8 @@ import { L2GNSV1Storage } from "./L2GNSStorage.sol";
 import { RLPReader } from "../../libraries/RLPReader.sol";
 import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
 
+import { IL2Curation } from "../curation/IL2Curation.sol";
+
 /**
  * @title L2GNS
  * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
@@ -130,11 +132,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         // New subgraph deployment must be non-empty
         require(_subgraphDeploymentID != 0, "GNS: deploymentID != 0");
 
-        // This is to prevent the owner from front running its name curators signal by posting
-        // its own signal ahead, bringing the name curators in, and dumping on them
-        ICuration curation = curation();
-        require(!curation.isCurated(_subgraphDeploymentID), "GNS: Deployment pre-curated");
-
+        IL2Curation curation = IL2Curation(address(curation()));
         // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
         // Buy all signal from the new deployment
         subgraphData.vSignal = curation.mintTaxFree(_subgraphDeploymentID, migratedData.tokens, 0);
@@ -315,5 +313,93 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         _mintNFT(_subgraphOwner, _subgraphID);
 
         emit SubgraphReceivedFromL1(_subgraphID);
+    }
+
+    /**
+     * @notice Publish a new version of an existing subgraph.
+     * @dev This is the same as the one in the base GNS, but skips the check for
+     * a subgraph to not be pre-curated, as the reserve ration in L2 is set to 1,
+     * which prevents the risk of rug-pulling.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphDeploymentID Subgraph deployment ID of the new version
+     * @param _versionMetadata IPFS hash for the subgraph version metadata
+     */
+    function publishNewVersion(
+        uint256 _subgraphID,
+        bytes32 _subgraphDeploymentID,
+        bytes32 _versionMetadata
+    ) external override notPaused onlySubgraphAuth(_subgraphID) {
+        // Perform the upgrade from the current subgraph deployment to the new one.
+        // This involves burning all signal from the old deployment and using the funds to buy
+        // from the new deployment.
+        // This will also make the change to target to the new deployment.
+
+        // Subgraph check
+        SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
+
+        // New subgraph deployment must be non-empty
+        require(_subgraphDeploymentID != 0, "GNS: Cannot set deploymentID to 0 in publish");
+
+        // New subgraph deployment must be different than current
+        require(
+            _subgraphDeploymentID != subgraphData.subgraphDeploymentID,
+            "GNS: Cannot publish a new version with the same subgraph deployment ID"
+        );
+
+        ICuration curation = curation();
+
+        // Move all signal from previous version to new version
+        // NOTE: We will only do this as long as there is signal on the subgraph
+        if (subgraphData.nSignal > 0) {
+            // Burn all version signal in the name pool for tokens (w/no slippage protection)
+            // Sell all signal from the old deployment
+            uint256 tokens = curation.burn(
+                subgraphData.subgraphDeploymentID,
+                subgraphData.vSignal,
+                0
+            );
+
+            // Take the owner cut of the curation tax, add it to the total
+            // Upgrade is only callable by the owner, we assume then that msg.sender = owner
+            address subgraphOwner = msg.sender;
+            uint256 tokensWithTax = _chargeOwnerTax(
+                tokens,
+                subgraphOwner,
+                curation.curationTaxPercentage()
+            );
+
+            // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
+            // Buy all signal from the new deployment
+            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
+
+            emit SubgraphUpgraded(
+                _subgraphID,
+                subgraphData.vSignal,
+                tokensWithTax,
+                _subgraphDeploymentID
+            );
+        }
+
+        // Update target deployment
+        subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
+
+        emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
+    }
+
+    /**
+     * @dev Get subgraph data.
+     * Since there are no legacy subgraphs in L2, we override the base
+     * GNS method to save us the step of checking for legacy subgraphs.
+     * @param _subgraphID Subgraph ID
+     * @return Subgraph Data
+     */
+    function _getSubgraphData(uint256 _subgraphID)
+        internal
+        view
+        override
+        returns (SubgraphData storage)
+    {
+        // Return new subgraph type
+        return subgraphs[_subgraphID];
     }
 }

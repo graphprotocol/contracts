@@ -1,9 +1,10 @@
 import { expect } from 'chai'
-import { utils, BigNumber, Event, Signer } from 'ethers'
+import { utils, BigNumber, Event, Signer, constants } from 'ethers'
 
-import { Curation } from '../../build/types/Curation'
+import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
+import { defaults } from '../lib/deployment'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -15,9 +16,12 @@ import {
   Account,
   impersonateAccount,
   setAccountBalance,
+  randomAddress,
 } from '../lib/testHelpers'
 import { GNS } from '../../build/types/GNS'
-import { parseEther } from 'ethers/lib/utils'
+import { parseEther, toUtf8String } from 'ethers/lib/utils'
+
+const { AddressZero } = constants
 
 const MAX_PPM = 1000000
 
@@ -40,7 +44,107 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: number) => n.toFixed(12)
 
-describe('Curation', () => {
+describe('L2Curation:Config', () => {
+  let me: Account
+  let governor: Account
+
+  let fixture: NetworkFixture
+
+  let curation: L2Curation
+
+  before(async function () {
+    ;[me, governor] = await getAccounts()
+
+    fixture = new NetworkFixture()
+    ;({ curation } = await fixture.loadL2(governor.signer))
+  })
+
+  beforeEach(async function () {
+    await fixture.setUp()
+  })
+
+  afterEach(async function () {
+    await fixture.tearDown()
+  })
+
+  describe('defaultReserveRatio', function () {
+    it('should be fixed to MAX_PPM', async function () {
+      // Set right in the constructor
+      expect(await curation.defaultReserveRatio()).eq(MAX_PPM)
+    })
+  })
+
+  describe('minimumCurationDeposit', function () {
+    it('should set `minimumCurationDeposit`', async function () {
+      // Set right in the constructor
+      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.minimumCurationDeposit)
+
+      // Can set if allowed
+      const newValue = toBN('100')
+      await curation.connect(governor.signer).setMinimumCurationDeposit(newValue)
+      expect(await curation.minimumCurationDeposit()).eq(newValue)
+    })
+
+    it('reject set `minimumCurationDeposit` if out of bounds', async function () {
+      const tx = curation.connect(governor.signer).setMinimumCurationDeposit(0)
+      await expect(tx).revertedWith('Minimum curation deposit cannot be 0')
+    })
+
+    it('reject set `minimumCurationDeposit` if not allowed', async function () {
+      const tx = curation
+        .connect(me.signer)
+        .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+  })
+
+  describe('curationTaxPercentage', function () {
+    it('should set `curationTaxPercentage`', async function () {
+      const curationTaxPercentage = defaults.curation.curationTaxPercentage
+
+      // Set new value
+      await curation.connect(governor.signer).setCurationTaxPercentage(0)
+      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+    })
+
+    it('reject set `curationTaxPercentage` if out of bounds', async function () {
+      const tx = curation.connect(governor.signer).setCurationTaxPercentage(MAX_PPM + 1)
+      await expect(tx).revertedWith('Curation tax percentage must be below or equal to MAX_PPM')
+    })
+
+    it('reject set `curationTaxPercentage` if not allowed', async function () {
+      const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+  })
+
+  describe('curationTokenMaster', function () {
+    it('should set `curationTokenMaster`', async function () {
+      const newCurationTokenMaster = curation.address
+      await curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+    })
+
+    it('reject set `curationTokenMaster` to empty value', async function () {
+      const newCurationTokenMaster = AddressZero
+      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await expect(tx).revertedWith('Token master must be non-empty')
+    })
+
+    it('reject set `curationTokenMaster` to non-contract', async function () {
+      const newCurationTokenMaster = randomAddress()
+      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await expect(tx).revertedWith('Token master must be a contract')
+    })
+
+    it('reject set `curationTokenMaster` if not allowed', async function () {
+      const newCurationTokenMaster = curation.address
+      const tx = curation.connect(me.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+  })
+})
+
+describe('L2Curation', () => {
   let me: Account
   let governor: Account
   let curator: Account
@@ -49,13 +153,13 @@ describe('Curation', () => {
 
   let fixture: NetworkFixture
 
-  let curation: Curation
+  let curation: L2Curation
   let grt: GraphToken
   let controller: Controller
   let gns: GNS
 
   // Test values
-  const signalAmountFor1000Tokens = toGRT('3.162277660168379331')
+  const signalAmountFor1000Tokens = toGRT('10.0')
   const subgraphDeploymentID = randomHexBytes()
   const curatorTokens = toGRT('1000000000')
   const tokensToDeposit = toGRT('1000')
@@ -66,7 +170,7 @@ describe('Curation', () => {
     reserveBalance: BigNumber,
     reserveRatio: number,
     depositAmount: BigNumber,
-  ) {
+  ): Promise<number> {
     // Handle the initialization of the bonding curve
     if (supply.eq(0)) {
       const minDeposit = await curation.minimumCurationDeposit()
@@ -137,6 +241,44 @@ describe('Curation', () => {
     expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply.sub(curationTax))
   }
 
+  const shouldMintTaxFree = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
+    // Before state
+    const beforeTokenTotalSupply = await grt.totalSupply()
+    const beforeCuratorTokens = await grt.balanceOf(gns.address)
+    const beforeCuratorSignal = await curation.getCuratorSignal(gns.address, subgraphDeploymentID)
+    const beforePool = await curation.pools(subgraphDeploymentID)
+    const beforePoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const beforeTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curate
+    const tx = curation
+      .connect(gnsImpersonator)
+      .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+    await expect(tx)
+      .emit(curation, 'Signalled')
+      .withArgs(gns.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, 0)
+
+    // After state
+    const afterTokenTotalSupply = await grt.totalSupply()
+    const afterCuratorTokens = await grt.balanceOf(gns.address)
+    const afterCuratorSignal = await curation.getCuratorSignal(gns.address, subgraphDeploymentID)
+    const afterPool = await curation.pools(subgraphDeploymentID)
+    const afterPoolSignal = await curation.getCurationPoolSignal(subgraphDeploymentID)
+    const afterTotalTokens = await grt.balanceOf(curation.address)
+
+    // Curator balance updated
+    expect(afterCuratorTokens).eq(beforeCuratorTokens.sub(tokensToDeposit))
+    expect(afterCuratorSignal).eq(beforeCuratorSignal.add(expectedSignal))
+    // Allocated and balance updated
+    expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit))
+    expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
+    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    // Contract balance updated
+    expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit))
+    // Total supply is reduced to curation tax burning
+    expect(afterTokenTotalSupply).eq(beforeTokenTotalSupply)
+  }
+
   const shouldBurn = async (signalToRedeem: BigNumber, expectedTokens: BigNumber) => {
     // Before balances
     const beforeTokenTotalSupply = await grt.totalSupply()
@@ -202,7 +344,7 @@ describe('Curation', () => {
     ;[me, governor, curator, stakingMock] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ controller, curation, grt, gns } = await fixture.load(governor.signer))
+    ;({ controller, curation, grt, gns } = await fixture.loadL2(governor.signer))
 
     gnsImpersonator = await impersonateAccount(gns.address)
     await setAccountBalance(gns.address, parseEther('1'))
@@ -321,6 +463,58 @@ describe('Curation', () => {
     })
   })
 
+  describe('curate tax free (from GNS)', async function () {
+    it('can not be called by anyone other than GNS', async function () {
+      const tokensToDeposit = await curation.minimumCurationDeposit()
+      const tx = curation
+        .connect(curator.signer)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+      await expect(tx).revertedWith('Only the GNS can call this')
+    })
+
+    it('reject deposit below minimum tokens required', async function () {
+      const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
+      const tx = curation
+        .connect(gnsImpersonator)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+      await expect(tx).revertedWith('Curation deposit is below minimum required')
+    })
+
+    it('should deposit on a subgraph deployment', async function () {
+      const tokensToDeposit = await curation.minimumCurationDeposit()
+      const expectedSignal = toGRT('1')
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should get signal according to bonding curve', async function () {
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = signalAmountFor1000Tokens
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should get signal according to bonding curve (and with zero tax)', async function () {
+      // Set curation tax
+      await curation.connect(governor.signer).setCurationTaxPercentage(50000) // 5%
+
+      // Mint
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = await curation.tokensToSignalNoTax(
+        subgraphDeploymentID,
+        tokensToDeposit,
+      )
+      await shouldMintTaxFree(tokensToDeposit, expectedSignal)
+    })
+
+    it('should revert curate if over slippage', async function () {
+      const tokensToDeposit = toGRT('1000')
+      const expectedSignal = signalAmountFor1000Tokens
+      const tx = curation
+        .connect(gnsImpersonator)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
+      await expect(tx).revertedWith('Slippage protection')
+    })
+  })
+
   describe('collect', async function () {
     context('> not curated', async function () {
       it('reject collect tokens distributed to the curation pool', async function () {
@@ -433,7 +627,7 @@ describe('Curation', () => {
     it('should allow to redeem *partially*', async function () {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
-      const expectedTokens = toGRT('532.455532033675866536')
+      const expectedTokens = toGRT('100')
       await shouldBurn(signalToRedeem, expectedTokens)
     })
 
@@ -533,10 +727,10 @@ describe('Curation', () => {
   })
 
   describe('multiple minting', async function () {
-    it('should mint less signal every time due to the bonding curve', async function () {
+    it('should mint the same signal every time due to the linear bonding curve', async function () {
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit
-        toGRT('1000'), // every time it should mint less GCS due to bonding curve...
+        toGRT('1000'), // every time it should mint the same GCS due to bonding curve!
         toGRT('1000'),
         toGRT('1000'),
         toGRT('2000'),
@@ -551,6 +745,8 @@ describe('Curation', () => {
           await curation.defaultReserveRatio(),
           tokensToDeposit,
         )
+        // SIGNAL_PER_MINIMUM_DEPOSIT should always give the same ratio
+        expect(tokensToDeposit.div(toGRT(expectedSignal))).eq(100)
 
         const tx = await curation
           .connect(curator.signer)
@@ -562,12 +758,11 @@ describe('Curation', () => {
       }
     })
 
-    it('should mint when using the edge case of linear function', async function () {
+    it('should mint when using the edge case of a 1:1 linear function', async function () {
       this.timeout(60000) // increase timeout for test runner
 
       // Setup edge case like linear function: 1 GRT = 1 GCS
       await curation.setMinimumCurationDeposit(toGRT('1'))
-      await curation.setDefaultReserveRatio(1000000)
 
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit

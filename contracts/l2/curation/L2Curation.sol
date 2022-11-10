@@ -6,16 +6,17 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import { BancorFormula } from "../bancor/BancorFormula.sol";
-import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IRewardsManager } from "../rewards/IRewardsManager.sol";
-import { Managed } from "../governance/Managed.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
-import { CurationV1Storage } from "./CurationStorage.sol";
-import { ICuration } from "./ICuration.sol";
-import { IGraphCurationToken } from "./IGraphCurationToken.sol";
-import { GraphCurationToken } from "./GraphCurationToken.sol";
+import { BancorFormula } from "../../bancor/BancorFormula.sol";
+import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../../utils/TokenUtils.sol";
+import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
+import { Managed } from "../../governance/Managed.sol";
+import { IGraphToken } from "../../token/IGraphToken.sol";
+import { CurationV1Storage } from "../../curation/CurationStorage.sol";
+import { ICuration } from "../../curation/ICuration.sol";
+import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
+import { GraphCurationToken } from "../../curation/GraphCurationToken.sol";
+import { IL2Curation } from "./IL2Curation.sol";
 
 /**
  * @title Curation contract
@@ -29,7 +30,7 @@ import { GraphCurationToken } from "./GraphCurationToken.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV1Storage, GraphUpgradeable {
+contract L2Curation is CurationV1Storage, GraphUpgradeable, IL2Curation {
     using SafeMath for uint256;
 
     // 100% in parts per million
@@ -37,6 +38,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
     // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
+
+    // Reserve ratio for all subgraphs set to 100% for a flat bonding curve
+    uint32 private immutable FIXED_RESERVE_RATIO = MAX_PPM;
 
     // -- Events --
 
@@ -82,7 +86,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         address _controller,
         address _bondingCurve,
         address _curationTokenMaster,
-        uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit
     ) external onlyImpl {
@@ -91,37 +94,19 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         require(_bondingCurve != address(0), "Bonding curve must be set");
         bondingCurve = _bondingCurve;
 
-        // Settings
-        _setDefaultReserveRatio(_defaultReserveRatio);
+        // For backwards compatibility:
+        defaultReserveRatio = FIXED_RESERVE_RATIO;
+        emit ParameterUpdated("defaultReserveRatio");
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
         _setCurationTokenMaster(_curationTokenMaster);
     }
 
     /**
-     * @dev Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserver ratio to `_defaultReserveRatio`
-     * @param _defaultReserveRatio Reserve ratio (in PPM)
+     * @notice Set the default reserve ratio - not implemented in L2
      */
-    function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
-        _setDefaultReserveRatio(_defaultReserveRatio);
-    }
-
-    /**
-     * @dev Internal: Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserver ratio to `_defaultReserveRatio`
-     * @param _defaultReserveRatio Reserve ratio (in PPM)
-     */
-    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
-        // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
-        require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
-        require(
-            _defaultReserveRatio <= MAX_PPM,
-            "Default reserve ratio cannot be higher than MAX_PPM"
-        );
-
-        defaultReserveRatio = _defaultReserveRatio;
-        emit ParameterUpdated("defaultReserveRatio");
+    function setDefaultReserveRatio(uint32) external override onlyGovernor {
+        revert("Not implemented in L2");
     }
 
     /**
@@ -241,7 +226,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
-            curationPool.reserveRatio = defaultReserveRatio;
+            curationPool.reserveRatio = FIXED_RESERVE_RATIO;
 
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
@@ -270,6 +255,63 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
 
         return (signalOut, curationTax);
+    }
+
+    /**
+     * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
+     * This function charges no tax and can only be called by GNS in specific scenarios (for now
+     * only during an L1-L2 migration).
+     * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
+     * @param _tokensIn Amount of Graph Tokens to deposit
+     * @param _signalOutMin Expected minimum amount of signal to receive
+     * @return Signal minted
+     */
+    function mintTaxFree(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn,
+        uint256 _signalOutMin
+    ) external override notPartialPaused onlyGNS returns (uint256) {
+        // Need to deposit some funds
+        require(_tokensIn > 0, "Cannot deposit zero tokens");
+
+        // Exchange GRT tokens for GCS of the subgraph pool (no tax)
+        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+
+        // Slippage protection
+        require(signalOut >= _signalOutMin, "Slippage protection");
+
+        address curator = msg.sender;
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
+
+        // If it hasn't been curated before then initialize the curve
+        if (!isCurated(_subgraphDeploymentID)) {
+            curationPool.reserveRatio = FIXED_RESERVE_RATIO;
+
+            // If no signal token for the pool - create one
+            if (address(curationPool.gcs) == address(0)) {
+                // Use a minimal proxy to reduce gas cost
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
+                gcs.initialize(address(this));
+                curationPool.gcs = gcs;
+            }
+        }
+
+        // Trigger update rewards calculation snapshot
+        _updateRewards(_subgraphDeploymentID);
+
+        // Transfer tokens from the curator to this contract
+        // NOTE: This needs to happen after _updateRewards snapshot as that function
+        // is using balanceOf(curation)
+        IGraphToken _graphToken = graphToken();
+        TokenUtils.pullTokens(_graphToken, curator, _tokensIn);
+
+        // Update curation pool
+        curationPool.tokens = curationPool.tokens.add(_tokensIn);
+        curationPool.gcs.mint(curator, signalOut);
+
+        emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, 0);
+
+        return signalOut;
     }
 
     /**
@@ -312,7 +354,6 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         // curation token contract to avoid recreating it on a new mint
         if (getCurationPoolSignal(_subgraphDeploymentID) == 0) {
             curationPool.tokens = 0;
-            curationPool.reserveRatio = 0;
         }
 
         // Return the tokens to the curator
@@ -396,6 +437,22 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
     }
 
     /**
+     * @dev Calculate amount of signal that can be bought with tokens in a curation pool,
+     * without accounting for curation tax.
+     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of signal that can be bought and tokens subtracted for the tax
+     */
+    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+    }
+
+    /**
      * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
      * @param _tokensIn Amount of tokens used to mint signal
@@ -420,7 +477,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
                     .calculatePurchaseReturn(
                         SIGNAL_PER_MINIMUM_DEPOSIT,
                         minimumCurationDeposit,
-                        defaultReserveRatio,
+                        FIXED_RESERVE_RATIO,
                         _tokensIn.sub(minimumCurationDeposit)
                     )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
@@ -430,7 +487,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
             BancorFormula(bondingCurve).calculatePurchaseReturn(
                 getCurationPoolSignal(_subgraphDeploymentID),
                 curationPool.tokens,
-                curationPool.reserveRatio,
+                FIXED_RESERVE_RATIO,
                 _tokensIn
             );
     }
@@ -462,7 +519,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
             BancorFormula(bondingCurve).calculateSaleReturn(
                 curationPoolSignal,
                 curationPool.tokens,
-                curationPool.reserveRatio,
+                FIXED_RESERVE_RATIO,
                 _signalIn
             );
     }

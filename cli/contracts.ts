@@ -39,13 +39,15 @@ import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
 import { BridgeEscrow } from '../build/types/BridgeEscrow'
+import { L2Curation } from '../build/types/L2Curation'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
   DisputeManager: DisputeManager
   Staking: Staking
   ServiceRegistry: ServiceRegistry
-  Curation: Curation
+  Curation: Curation | L2Curation
+  L2Curation: L2Curation
   RewardsManager: RewardsManager
   GNS: GNS | L1GNS | L2GNS
   GraphProxyAdmin: GraphProxyAdmin
@@ -107,6 +109,9 @@ export const loadContracts = (
       }
       if (signerOrProvider && chainIdIsL2(chainId) && contractName == 'L2GNS') {
         contracts['GNS'] = contracts[contractName]
+      }
+      if (signerOrProvider && chainIdIsL2(chainId) && contractName == 'L2Curation') {
+        contracts['Curation'] = contracts[contractName]
       }
       if (signerOrProvider && !chainIdIsL2(chainId) && contractName == 'L1GNS') {
         contracts['GNS'] = contracts[contractName]

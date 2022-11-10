@@ -24,7 +24,7 @@ import {
   publishNewSubgraph,
   PublishSubgraph,
 } from '../lib/gnsUtils'
-import { Curation } from '../../build/types/Curation'
+import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { encodeMPTStorageProofRLP, getBlockHeaderRLP } from '../lib/mptProofUtils'
 
@@ -203,7 +203,7 @@ describe('L2GNS', () => {
   let fixtureContracts: L2FixtureContracts
   let l2GraphTokenGateway: L2GraphTokenGateway
   let gns: L2GNS
-  let curation: Curation
+  let curation: L2Curation
   let grt: GraphToken
 
   let newSubgraph0: PublishSubgraph
@@ -445,7 +445,7 @@ describe('L2GNS', () => {
         [l1SubgraphId, me.address, lockBlockhash, nSignal, DEFAULT_RESERVE_RATIO],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
-      // Calculate expected signal before minting, which changes the price
+      // Calculate expected signal before minting
       const expectedSignal = await curation.tokensToSignalNoTax(
         newSubgraph0.subgraphDeploymentID,
         curatedTokens,
@@ -532,7 +532,7 @@ describe('L2GNS', () => {
         )
       await expect(tx).revertedWith('INVALID_SUBGRAPH')
     })
-    it('rejects calls to a pre-curated subgraph deployment', async function () {
+    it('accepts calls to a pre-curated subgraph deployment', async function () {
       const {
         l1SubgraphId,
         curatedTokens,
@@ -547,10 +547,19 @@ describe('L2GNS', () => {
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
+      // Calculate expected signal before minting
+      const expectedSignal = await curation.tokensToSignalNoTax(
+        newSubgraph0.subgraphDeploymentID,
+        curatedTokens,
+      )
       await grt.connect(me.signer).approve(curation.address, toGRT('100'))
       await curation
         .connect(me.signer)
         .mint(newSubgraph0.subgraphDeploymentID, toGRT('100'), toBN('0'))
+
+      expect(await curation.getCurationPoolTokens(newSubgraph0.subgraphDeploymentID)).eq(
+        toGRT('100'),
+      )
       const tx = gns
         .connect(me.signer)
         .finishSubgraphMigrationFromL1(
@@ -559,7 +568,28 @@ describe('L2GNS', () => {
           subgraphMetadata,
           versionMetadata,
         )
-      await expect(tx).revertedWith('GNS: Deployment pre-curated')
+      await expect(tx)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(l1SubgraphId, newSubgraph0.subgraphDeploymentID, DEFAULT_RESERVE_RATIO)
+      await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(l1SubgraphId, subgraphMetadata)
+      await expect(tx)
+        .emit(gns, 'SubgraphUpgraded')
+        .withArgs(l1SubgraphId, expectedSignal, curatedTokens, newSubgraph0.subgraphDeploymentID)
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(l1SubgraphId, newSubgraph0.subgraphDeploymentID, versionMetadata)
+      await expect(tx).emit(gns, 'SubgraphMigrationFinalized').withArgs(l1SubgraphId)
+
+      const subgraphAfter = await gns.subgraphs(l1SubgraphId)
+      const migrationDataAfter = await gns.subgraphL2MigrationData(l1SubgraphId)
+      expect(subgraphAfter.vSignal).eq(expectedSignal)
+      expect(migrationDataAfter.l2Done).eq(true)
+      expect(migrationDataAfter.deprecated).eq(false)
+      expect(subgraphAfter.disabled).eq(false)
+      expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
+      expect(await curation.getCurationPoolTokens(newSubgraph0.subgraphDeploymentID)).eq(
+        toGRT('100').add(curatedTokens),
+      )
     })
     it('rejects calls if the subgraph deployment ID is zero', async function () {
       const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)

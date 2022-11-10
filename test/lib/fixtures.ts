@@ -12,6 +12,7 @@ import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Curation } from '../../build/types/Curation'
+import { L2Curation } from '../../build/types/L2Curation'
 import { L1GNS } from '../../build/types/L1GNS'
 import { L2GNS } from '../../build/types/L2GNS'
 import { Staking } from '../../build/types/Staking'
@@ -43,7 +44,7 @@ export interface L2FixtureContracts {
   disputeManager: DisputeManager
   epochManager: EpochManager
   grt: L2GraphToken
-  curation: Curation
+  curation: L2Curation
   gns: L2GNS
   staking: Staking
   rewardsManager: RewardsManager
@@ -92,7 +93,12 @@ export class NetworkFixture {
       grt = await deployment.deployGRT(deployer)
     }
 
-    const curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
+    let curation: Curation | L2Curation
+    if (isL2) {
+      curation = await deployment.deployL2Curation(deployer, controller.address, proxyAdmin)
+    } else {
+      curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
+    }
     let gns: L1GNS | L2GNS
     if (isL2) {
       gns = await deployment.deployL2GNS(deployer, controller.address, proxyAdmin)

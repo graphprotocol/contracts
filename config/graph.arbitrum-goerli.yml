@@ -11,7 +11,7 @@ contracts:
     calls:
       - fn: "setContractProxy"
         id: "0xe6876326c1291dfcbbd3864a6816d698cd591defc7aa2153d7f9c4c04016c89f" # keccak256('Curation')
-        contractAddress: "${{Curation.address}}"
+        contractAddress: "${{L2Curation.address}}"
       - fn: "setContractProxy"
         id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
         contractAddress: "${{L2GNS.address}}"
@@ -60,13 +60,12 @@ contracts:
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
-  Curation:
+  L2Curation:
     proxy: true
     init:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
-      reserveRatio: 1000000 # in parts per million
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
     calls:

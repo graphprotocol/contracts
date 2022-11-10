@@ -31,8 +31,6 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
     // -- Constants --
 
-    uint256 private constant MAX_UINT256 = 2**256 - 1;
-
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
@@ -185,7 +183,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @dev Approve curation contract to pull funds.
      */
     function approveAll() external override {
-        graphToken().approve(address(curation()), MAX_UINT256);
+        graphToken().approve(address(curation()), type(uint256).max);
     }
 
     // -- Config --
@@ -316,7 +314,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _versionMetadata
-    ) external override notPaused onlySubgraphAuth(_subgraphID) {
+    ) external virtual override notPaused onlySubgraphAuth(_subgraphID) {
         // Perform the upgrade from the current subgraph deployment to the new one.
         // This involves burning all signal from the old deployment and using the funds to buy
         // from the new deployment.
@@ -559,7 +557,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 _tokens,
         address _owner,
         uint32 _curationTaxPercentage
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
             return 0;
         }
@@ -910,7 +908,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(uint256 _subgraphID) internal view returns (SubgraphData storage) {
+    function _getSubgraphData(uint256 _subgraphID)
+        internal
+        view
+        virtual
+        returns (SubgraphData storage)
+    {
         // If there is a legacy subgraph created return it
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         if (legacySubgraphKey.account != address(0)) {
