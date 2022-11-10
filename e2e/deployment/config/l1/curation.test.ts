@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
-import GraphChain from '../../../../gre/helpers/network'
+import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L1] Curation configuration', () => {
   const graph = hre.graph()
