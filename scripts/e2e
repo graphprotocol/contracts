@@ -71,6 +71,7 @@ function deploy() {
     --force \
     --graph-config "$GRAPH_CONFIG" \
     --address-book "$ADDRESS_BOOK"
+    --disable-secure-accounts
 }
 
 function post_deploy () {

@@ -6,6 +6,7 @@ import { cliOpts } from '../../cli/defaults'
 import { migrate } from '../../cli/commands/migrate'
 
 task('migrate', 'Migrate contracts')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
   .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
   .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
