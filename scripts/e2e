@@ -70,7 +70,7 @@ function deploy() {
     --auto-mine \
     --force \
     --graph-config "$GRAPH_CONFIG" \
-    --address-book "$ADDRESS_BOOK"
+    --address-book "$ADDRESS_BOOK" \
     --disable-secure-accounts
 }
 
