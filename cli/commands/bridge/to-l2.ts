@@ -18,6 +18,7 @@ const logAutoRedeemReason = (autoRedeemRec) => {
 const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
   logger.info(`Waiting for status of ${l1ToL2Message.retryableCreationId}`)
   const res = await l1ToL2Message.waitForStatus()
+
   logger.info('Getting auto redeem attempt')
   const autoRedeemRec = await l1ToL2Message.getAutoRedeemAttempt()
   const l2TxReceipt = res.status === L1ToL2MessageStatus.REDEEMED ? res.l2TxReceipt : autoRedeemRec
@@ -45,10 +46,11 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
 
   // parse provider
   const l1Provider = cli.wallet.provider
-  // TODO: fix this hack for usage with hardhat
-  const l2Provider = cliArgs.l2Provider ? cliArgs.l2Provider : getProvider(cliArgs.l2ProviderUrl)
+  const l2Provider = cliArgs.l2Provider ? cliArgs.l2Provider : getProvider(cliArgs.l2ProviderUrl) // TODO: fix this hack for usage with hardhat
   const l1ChainId = cli.chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  // ensure we are connecting to correct chains
   if (chainIdIsL2(l1ChainId) || !chainIdIsL2(l2ChainId)) {
     throw new Error(
       'Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url',
@@ -58,14 +60,14 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   // parse params
   const { L1GraphTokenGateway: l1Gateway, GraphToken: l1GRT } = cli.contracts
   const amount = toGRT(cliArgs.amount)
-  const recipient = cliArgs.recipient ?? cli.wallet.address
+  const recipient = cliArgs.recipient ?? cli.wallet.address // if empty recipient use sender address
   const l1GatewayAddress = l1Gateway.address
   const l2GatewayAddress = await l1Gateway.l2Counterpart()
   const calldata = cliArgs.calldata ?? '0x'
 
   // transport tokens
   logger.info(`Will send ${cliArgs.amount} GRT to ${recipient}`)
-  logger.info(`Using L1 gateway ${l1GatewayAddress} and L2 gateway ${l2GatewayAddress}`)
+  logger.info(`From L1Gateway(${l1GatewayAddress}) -> L2Gateway(${l2GatewayAddress})`)
   await ensureAllowance(cli.wallet, l1GatewayAddress, l1GRT, amount)
 
   // estimate L2 ticket
@@ -107,7 +109,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
     logger.info('Waiting for message to propagate to L2...')
     const l1Receipt = new L1TransactionReceipt(txReceipt)
     const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
-    const l1ToL2Message = l1ToL2Messages[0]
+    const l1ToL2Message = l1ToL2Messages[0] // we are doing a 1:1 tx
     try {
       await checkAndRedeemMessage(l1ToL2Message)
     } catch (e) {
@@ -147,20 +149,19 @@ export const sendToL2Command = {
     return yargs
       .option('max-gas', {
         description: 'Max gas for the L2 redemption attempt',
-        requiresArg: true,
         type: 'string',
       })
       .option('gas-price-bid', {
         description: 'Gas price for the L2 redemption attempt',
-        requiresArg: true,
         type: 'string',
       })
       .option('max-submission-cost', {
         description: 'Max submission cost for the retryable ticket',
-        requiresArg: true,
         type: 'string',
       })
-      .positional('amount', { description: 'Amount to send (will be converted to wei)' })
+      .positional('amount', {
+        description: 'Amount to send (will be converted to wei)',
+      })
       .positional('recipient', {
         description: 'Receiving address in L2. Same to L1 address if empty',
       })
@@ -168,9 +169,9 @@ export const sendToL2Command = {
         description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
       })
       .coerce({
-        maxGas: toBN,
-        gasPriceBid: toBN,
-        maxSubmissionCost: toBN,
+        maxGas: (value) => value && toBN(value),
+        gasPriceBid: (value) => value && toBN(value),
+        maxSubmissionCost: (value) => value && toBN(value),
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {

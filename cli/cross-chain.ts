@@ -36,7 +36,8 @@ export const estimateRetryableTxGas = async (
   depositCalldata: string,
   opts: L2GasParams,
 ): Promise<L2GasParams> => {
-  const autoEstimate = opts && (!opts.maxGas || !opts.gasPriceBid || !opts.maxSubmissionCost)
+  // Skip autoestimation if all values are set
+  const autoEstimate = !opts.maxGas || !opts.gasPriceBid || !opts.maxSubmissionCost
   if (!autoEstimate) {
     return opts
   }
@@ -44,7 +45,7 @@ export const estimateRetryableTxGas = async (
   // Comment from Offchain Labs' implementation:
   // we add a 0.05 ether "deposit" buffer to pay for execution in the gas estimation
   logger.info('Estimating retryable ticket gas:')
-  const baseFee = (await l1Provider.getBlock('latest')).baseFeePerGas
+  const l1BaseFee = (await l1Provider.getBlock('latest')).baseFeePerGas
   const gasEstimator = new L1ToL2MessageGasEstimator(l2Provider)
   const retryableEstimateData: L1ToL2MessageNoGasParams = {
     from: gatewayAddress,
@@ -62,7 +63,7 @@ export const estimateRetryableTxGas = async (
 
   const gasParams = await gasEstimator.estimateAll(
     retryableEstimateData,
-    baseFee as BigNumber,
+    l1BaseFee as BigNumber,
     l1Provider,
     estimateOpts,
   )
