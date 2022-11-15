@@ -79,8 +79,8 @@ contract StakingV1Storage is Managed {
 
     // -- Asset Holders --
 
-    // Allowed AssetHolders: assetHolder => is allowed
-    mapping(address => bool) public assetHolders;
+    // DEPRECATED: Allowed AssetHolders: assetHolder => is allowed
+    mapping(address => bool) public __DEPRECATED_assetHolders;
 }
 
 contract StakingV2Storage is StakingV1Storage {

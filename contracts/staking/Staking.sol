@@ -519,17 +519,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Set an address as allowed asset holder.
-     * @param _assetHolder Address of allowed source for state channel funds
-     * @param _allowed True if asset holder is allowed
-     */
-    function setAssetHolder(address _assetHolder, bool _allowed) external override onlyGovernor {
-        require(_assetHolder != address(0), "!assetHolder");
-        assetHolders[_assetHolder] = _allowed;
-        emit AssetHolderUpdate(msg.sender, _assetHolder, _allowed);
-    }
-
-    /**
      * @dev Return if allocationID is used.
      * @param _allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
@@ -965,9 +954,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     function collect(uint256 _tokens, address _allocationID) external override {
         // Allocation identifier validation
         require(_allocationID != address(0), "!alloc");
-
-        // The contract caller must be an authorized asset holder
-        require(assetHolders[msg.sender] == true, "!assetHolder");
 
         // Allocation must exist
         AllocationState allocState = _getAllocationState(_allocationID);

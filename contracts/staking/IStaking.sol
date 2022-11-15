@@ -57,8 +57,6 @@ interface IStaking is IStakingData {
 
     function setSlasher(address _slasher, bool _allowed) external;
 
-    function setAssetHolder(address _assetHolder, bool _allowed) external;
-
     // -- Operation --
 
     function setOperator(address _operator, bool _allowed) external;

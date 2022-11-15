@@ -18,11 +18,6 @@ describe('Staking configuration', () => {
     expect(isSlasher).eq(true)
   })
 
-  it('should allow AllocationExchange to collect query fees', async function () {
-    const allowed = await Staking.assetHolders(AllocationExchange.address)
-    expect(allowed).eq(true)
-  })
-
   it('minimumIndexerStake should match "minimumIndexerStake" in the config file', async function () {
     const value = await Staking.minimumIndexerStake()
     const expected = getItemValue(graphConfig, 'contracts/Staking/init/minimumIndexerStake')
