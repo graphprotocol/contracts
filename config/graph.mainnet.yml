@@ -122,9 +122,6 @@ contracts:
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
-      - fn: "setAssetHolder"
-        assetHolder: "${{AllocationExchange.address}}"
-        allowed: true
       - fn: "syncAllContracts"
   RewardsManager:
     proxy: true
