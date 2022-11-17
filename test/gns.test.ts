@@ -1122,10 +1122,10 @@ describe('L1GNS', () => {
       const gasPriceBid = toBN('20')
       const tx = gns
         .connect(me.signer)
-        .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+        .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
           value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
         })
-      await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
+      await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
       return subgraph0
     }
     const publishAndCurateOnLegacySubgraph = async function (seqID: BigNumber): Promise<string> {
@@ -1227,7 +1227,7 @@ describe('L1GNS', () => {
       })
     })
     describe('sendSubgraphToL2', function () {
-      it('sends tokens and calldata to L2 through the GRT bridge', async function () {
+      it('sends tokens and calldata to L2 through the GRT bridge, for a desired L2 owner', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
         const curatedTokens = await grt.balanceOf(curation.address)
@@ -1241,10 +1241,10 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = gns
           .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, other.address)
 
         const subgraphAfter = await gns.subgraphs(subgraph0.id)
         expect(subgraphAfter.vSignal).eq(0)
@@ -1258,7 +1258,7 @@ describe('L1GNS', () => {
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint256', 'address', 'bytes32', 'uint256'],
-          [subgraph0.id, me.address, lockBlockhash, subgraphBefore.nSignal],
+          [subgraph0.id, other.address, lockBlockhash, subgraphBefore.nSignal],
         )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
@@ -1288,10 +1288,10 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = legacyGNSMock
           .connect(me.signer)
-          .sendSubgraphToL2(subgraphID, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraphID, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID)
+        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID, other.address)
 
         const subgraphAfter = await legacyGNSMock.legacySubgraphData(me.address, seqID)
         expect(subgraphAfter.vSignal).eq(0)
@@ -1305,7 +1305,7 @@ describe('L1GNS', () => {
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint256', 'address', 'bytes32', 'uint256'],
-          [subgraphID, me.address, lockBlockhash, subgraphBefore.nSignal],
+          [subgraphID, other.address, lockBlockhash, subgraphBefore.nSignal],
         )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
@@ -1327,7 +1327,7 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = gns
           .connect(other.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
         await expect(tx).revertedWith('GNS: Must be authorized')
@@ -1340,7 +1340,7 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = gns
           .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
         await expect(tx).revertedWith('!LOCKED')
@@ -1353,14 +1353,14 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = gns
           .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id)
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
 
         const tx2 = gns
           .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
         await expect(tx2).revertedWith('ALREADY_DONE')
@@ -1375,7 +1375,7 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = gns
           .connect(me.signer)
-          .sendSubgraphToL2(subgraph0.id, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
         await expect(tx).revertedWith('TOO_LATE')
@@ -1500,10 +1500,10 @@ describe('L1GNS', () => {
         const gasPriceBid = toBN('20')
         const tx = legacyGNSMock
           .connect(me.signer)
-          .sendSubgraphToL2(subgraphID, maxGas, gasPriceBid, maxSubmissionCost, {
+          .sendSubgraphToL2(subgraphID, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID)
+        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID, me.address)
 
         const expectedCalldata = l2GNSIface.encodeFunctionData(
           'claimL1CuratorBalanceToBeneficiary',

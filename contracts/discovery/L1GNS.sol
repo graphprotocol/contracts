@@ -28,7 +28,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     /// @dev Emitted when a subgraph was locked as preparation to migrating it to L2
     event SubgraphLockedForMigrationToL2(uint256 _subgraphID);
     /// @dev Emitted when a subgraph was sent to L2 through the bridge
-    event SubgraphSentToL2(uint256 _subgraphID);
+    event SubgraphSentToL2(uint256 _subgraphID, address _l2Owner);
     /// @dev Emitted when the address of the Arbitrum Inbox was updated
     event ArbitrumInboxAddressUpdated(address _inbox);
 
@@ -85,12 +85,14 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      * (less than 255 blocks ago).
      * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
+     * @param _l2Owner Address that will own the subgraph in L2 (could be the L1 owner, but could be different if the L1 owner is an L1 contract)
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function sendSubgraphToL2(
         uint256 _subgraphID,
+        address _l2Owner,
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
@@ -108,7 +110,12 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         migrationData.l1Done = true;
 
-        bytes memory extraData = _encodeSubgraphDataForL2(_subgraphID, migrationData, subgraphData);
+        bytes memory extraData = _encodeSubgraphDataForL2(
+            _subgraphID,
+            _l2Owner,
+            migrationData,
+            subgraphData
+        );
 
         bytes memory data = abi.encode(_maxSubmissionCost, extraData);
         IGraphToken grt = graphToken();
@@ -125,7 +132,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
         subgraphData.reserveRatio = 0;
         _burnNFT(_subgraphID);
-        emit SubgraphSentToL2(_subgraphID);
+        emit SubgraphSentToL2(_subgraphID, _l2Owner);
     }
 
     /**
@@ -211,18 +218,20 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      * @dev Encodes the subgraph data as callhook parameters
      * for the L2 migration.
      * @param _subgraphID Subgraph ID
+     * @param _l2Owner Owner of the subgraph on L2
      * @param _migrationData Subgraph L2 migration data
      * @param _subgraphData Subgraph data
      */
     function _encodeSubgraphDataForL2(
         uint256 _subgraphID,
+        address _l2Owner,
         SubgraphL2MigrationData storage _migrationData,
         SubgraphData storage _subgraphData
     ) internal view returns (bytes memory) {
         return
             abi.encode(
                 _subgraphID,
-                ownerOf(_subgraphID),
+                _l2Owner,
                 blockhash(_migrationData.lockedAtBlock),
                 _subgraphData.nSignal
             );
