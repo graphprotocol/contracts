@@ -30,13 +30,10 @@ interface IGNS {
      * the L2GNS.
      */
     struct SubgraphL2MigrationData {
-        uint256 lockedAtBlock; // Block at which the subgraph was locked for migration. L1 only
         uint256 tokens; // GRT that will be sent to L2 to mint signal
-        bool l1Done; // Migration finished on L1 side (or subgraph deprecated)
-        bytes32 lockedAtBlockHash; // Blockhash from block at which the subgraph was locked for migration
+        bool l1Done; // Migration finished on L1 side
         mapping(address => bool) curatorBalanceClaimed; // True for curators whose balance has been claimed in L2
         bool l2Done; // Migration finished on L2 side
-        bool deprecated; // Subgraph was deprecated instead of sent. L1 only
     }
 
     /**

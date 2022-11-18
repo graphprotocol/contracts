@@ -9,8 +9,6 @@ pragma abicoder v2;
  * @dev
  */
 abstract contract L2GNSV1Storage {
-    /// Specifies whether claiming L1 balances using Merkle Patricia proofs is enabled
-    bool public mptClaimingEnabled;
     /// @dev Storage gap to keep storage slots fixed in future versions
     uint256[50] private __gap;
 }

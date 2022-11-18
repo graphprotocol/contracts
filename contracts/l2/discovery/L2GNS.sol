@@ -12,9 +12,6 @@ import { ICuration } from "../../curation/ICuration.sol";
 import { IL2GNS } from "./IL2GNS.sol";
 import { L2GNSV1Storage } from "./L2GNSStorage.sol";
 
-import { RLPReader } from "../../libraries/RLPReader.sol";
-import { StateProofVerifier as Verifier } from "../../libraries/StateProofVerifier.sol";
-
 import { IL2Curation } from "../curation/IL2Curation.sol";
 
 /**
@@ -27,8 +24,6 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
  * transaction.
  */
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
-    using RLPReader for bytes;
-    using RLPReader for RLPReader.RLPItem;
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph is received from L1 through the bridge
@@ -42,24 +37,12 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         address _l2Curator,
         uint256 _nSignalClaimed
     );
-    /// @dev Emitted when claiming L1 balances using MPT proofs is enabled
-    event MPTClaimingEnabled();
-    /// @dev Emitted when claiming L1 balances using MPT proofs is disabled
-    event MPTClaimingDisabled();
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */
     modifier onlyL2Gateway() {
-        require(msg.sender == _resolveContract(keccak256("GraphTokenGateway")), "ONLY_GATEWAY");
-        _;
-    }
-
-    /**
-     * @dev Checks that claiming balances using Merkle Patricia proofs is enabled.
-     */
-    modifier ifMPTClaimingEnabled() {
-        require(mptClaimingEnabled, "MPT_CLAIMING_DISABLED");
+        require(msg.sender == address(graphTokenGateway()), "ONLY_GATEWAY");
         _;
     }
 
@@ -76,19 +59,6 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @notice Enables or disables claiming L1 balances using Merkle Patricia proofs
-     * @param _enabled If true, claiming MPT proofs will be enabled; if false, they will be disabled
-     */
-    function setMPTClaimingEnabled(bool _enabled) external onlyGovernor {
-        mptClaimingEnabled = _enabled;
-        if (_enabled) {
-            emit MPTClaimingEnabled();
-        } else {
-            emit MPTClaimingDisabled();
-        }
-    }
-
-    /**
      * @notice Receive tokens with a callhook from the bridge.
      * The callhook will receive a subgraph from L1.
      * @param _from Token sender in L1 (must be the L1GNS)
@@ -101,14 +71,12 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         bytes calldata _data
     ) external override notPartialPaused onlyL2Gateway {
         require(_from == counterpartGNSAddress, "ONLY_L1_GNS_THROUGH_BRIDGE");
-        (
-            uint256 subgraphID,
-            address subgraphOwner,
-            bytes32 lockedAtBlockHash,
-            uint256 nSignal
-        ) = abi.decode(_data, (uint256, address, bytes32, uint256));
+        (uint256 subgraphID, address subgraphOwner, uint256 nSignal) = abi.decode(
+            _data,
+            (uint256, address, uint256)
+        );
 
-        _receiveSubgraphFromL1(subgraphID, subgraphOwner, _amount, lockedAtBlockHash, nSignal);
+        _receiveSubgraphFromL1(subgraphID, subgraphOwner, _amount, nSignal);
     }
 
     /**
@@ -156,111 +124,6 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
         emit SubgraphMigrationFinalized(_subgraphID);
-    }
-
-    /**
-     * @notice Claim curator balance belonging to a curator from L1.
-     * This will be credited to the same curator's balance on L2.
-     * This can only be called by the corresponding curator.
-     * @param _subgraphID Subgraph for which to claim a balance
-     * @param _blockHeaderRlpBytes RLP-encoded block header from the block when the subgraph was locked on L1
-     * @param _proofRlpBytes RLP-encoded list of proofs: first proof of the L1 GNS account, then proof of the slot for the curator's balance
-     */
-    function claimL1CuratorBalance(
-        uint256 _subgraphID,
-        bytes memory _blockHeaderRlpBytes,
-        bytes memory _proofRlpBytes
-    ) external override notPartialPaused ifMPTClaimingEnabled {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
-        require(migratedData.l2Done, "!MIGRATED");
-        require(!migratedData.curatorBalanceClaimed[msg.sender], "ALREADY_CLAIMED");
-
-        Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
-        require(blockHeader.hash == migratedData.lockedAtBlockHash, "!BLOCKHASH");
-
-        RLPReader.RLPItem[] memory proofs = _proofRlpBytes.toRlpItem().toList();
-        require(proofs.length == 2, "!N_PROOFS");
-
-        Verifier.Account memory l1GNSAccount = Verifier.extractAccountFromProof(
-            keccak256(abi.encodePacked(counterpartGNSAddress)),
-            blockHeader.stateRootHash,
-            proofs[0].toList()
-        );
-
-        require(l1GNSAccount.exists, "!ACCOUNT");
-
-        uint256 curatorSlot = getCuratorSlot(_subgraphID, msg.sender);
-
-        Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
-            keccak256(abi.encodePacked(curatorSlot)),
-            l1GNSAccount.storageRoot,
-            proofs[1].toList()
-        );
-
-        require(curatorNSignalSlot.exists, "!CURATOR_SLOT");
-
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        subgraphData.curatorNSignal[msg.sender] = subgraphData.curatorNSignal[msg.sender].add(
-            curatorNSignalSlot.value
-        );
-        migratedData.curatorBalanceClaimed[msg.sender] = true;
-
-        emit CuratorBalanceClaimed(_subgraphID, msg.sender, msg.sender, curatorNSignalSlot.value);
-    }
-
-    /**
-     * @notice Claim curator balance belonging to a curator from L1 on a legacy subgraph.
-     * This will be credited to the same curator's balance on L2.
-     * This can only be called by the corresponding curator.
-     * Users can query getLegacySubgraphKey on L1 to get the _subgraphCreatorAccount and _seqID.
-     * @param _subgraphCreatorAccount Account that created the subgraph in L1
-     * @param _seqID Sequence number for the subgraph
-     * @param _blockHeaderRlpBytes RLP-encoded block header from the block when the subgraph was locked on L1
-     * @param _proofRlpBytes RLP-encoded list of proofs: first proof of the L1 GNS account, then proof of the slot for the curator's balance
-     */
-    function claimL1CuratorBalanceForLegacySubgraph(
-        address _subgraphCreatorAccount,
-        uint256 _seqID,
-        bytes memory _blockHeaderRlpBytes,
-        bytes memory _proofRlpBytes
-    ) external override notPartialPaused ifMPTClaimingEnabled {
-        uint256 _subgraphID = _buildLegacySubgraphID(_subgraphCreatorAccount, _seqID);
-
-        Verifier.BlockHeader memory blockHeader = Verifier.parseBlockHeader(_blockHeaderRlpBytes);
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
-
-        require(migratedData.l2Done, "!MIGRATED");
-        require(blockHeader.hash == migratedData.lockedAtBlockHash, "!BLOCKHASH");
-        require(!migratedData.curatorBalanceClaimed[msg.sender], "ALREADY_CLAIMED");
-
-        RLPReader.RLPItem[] memory proofs = _proofRlpBytes.toRlpItem().toList();
-        require(proofs.length == 2, "!N_PROOFS");
-
-        Verifier.Account memory l1GNSAccount = Verifier.extractAccountFromProof(
-            keccak256(abi.encodePacked(counterpartGNSAddress)),
-            blockHeader.stateRootHash,
-            proofs[0].toList()
-        );
-
-        require(l1GNSAccount.exists, "!ACCOUNT");
-
-        uint256 curatorSlot = getLegacyCuratorSlot(_subgraphCreatorAccount, _seqID, msg.sender);
-
-        Verifier.SlotValue memory curatorNSignalSlot = Verifier.extractSlotValueFromProof(
-            keccak256(abi.encodePacked(curatorSlot)),
-            l1GNSAccount.storageRoot,
-            proofs[1].toList()
-        );
-
-        require(curatorNSignalSlot.exists, "!CURATOR_SLOT");
-
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        subgraphData.curatorNSignal[msg.sender] = subgraphData.curatorNSignal[msg.sender].add(
-            curatorNSignalSlot.value
-        );
-        migratedData.curatorBalanceClaimed[msg.sender] = true;
-
-        emit CuratorBalanceClaimed(_subgraphID, msg.sender, msg.sender, curatorNSignalSlot.value);
     }
 
     /**
@@ -369,14 +232,12 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphID Subgraph ID
      * @param _subgraphOwner Owner of the subgraph
      * @param _tokens Tokens to be deposited in the subgraph
-     * @param _lockedAtBlockHash Blockhash of the block at which the subgraph was locked in L1
      * @param _nSignal Name signal for the subgraph in L1
      */
     function _receiveSubgraphFromL1(
         uint256 _subgraphID,
         address _subgraphOwner,
         uint256 _tokens,
-        bytes32 _lockedAtBlockHash,
         uint256 _nSignal
     ) internal {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
@@ -388,7 +249,6 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.nSignal = _nSignal;
 
         migratedData.tokens = _tokens;
-        migratedData.lockedAtBlockHash = _lockedAtBlockHash;
         migratedData.l1Done = true;
 
         // Mint the NFT. Use the subgraphID as tokenID.

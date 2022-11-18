@@ -34,12 +34,6 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    /// @dev Storage slot where the subgraphs mapping is stored on L1GNS
-    uint256 internal constant SUBGRAPH_MAPPING_SLOT = 18;
-
-    /// @dev Storage slot where the legacy subgraphs mapping is stored on L1GNS
-    uint256 internal constant LEGACY_SUBGRAPH_MAPPING_SLOT = 15;
-
     /// @dev Equates to Connector weight on bancor formula to be CW = 1
     uint32 internal immutable FIXED_RESERVE_RATIO = MAX_PPM;
 
@@ -584,6 +578,16 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
+     * @notice Return whether a subgraph is a legacy subgraph (created before subgraph NFTs).
+     * @param _subgraphID Subgraph ID
+     * @return Return true if subgraph is a legacy subgraph
+     */
+    function isLegacySubgraph(uint256 _subgraphID) external view override returns (bool) {
+        (address account, ) = getLegacySubgraphKey(_subgraphID);
+        return account != address(0);
+    }
+
+    /**
      * @notice Calculate subgraph signal to be returned for an amount of tokens.
      * @param _subgraphID Subgraph ID
      * @param _tokensIn Tokens being exchanged for subgraph signal
@@ -691,16 +695,6 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Return whether a subgraph is a legacy subgraph (created before subgraph NFTs).
-     * @param _subgraphID Subgraph ID
-     * @return Return true if subgraph is a legacy subgraph
-     */
-    function isLegacySubgraph(uint256 _subgraphID) public view override returns (bool) {
-        (address account, ) = getLegacySubgraphKey(_subgraphID);
-        return account != address(0);
-    }
-
-    /**
      * @notice Returns account and sequence ID for a legacy subgraph (created before subgraph NFTs).
      * @param _subgraphID Subgraph ID
      * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
@@ -724,61 +718,6 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function ownerOf(uint256 _tokenID) public view override returns (address) {
         return subgraphNFT.ownerOf(_tokenID);
-    }
-
-    /**
-     * @notice Get the storage slot that corresponds to a curator's signal within a subgraph
-     * @dev This can be useful to produce proofs to claim balances in L2, as implemented
-     * in L2GNS. Note this only works with non-legacy subgraphs.
-     * @param _subgraphID Subgraph ID
-     * @param _curator Curator address
-     * @return Storage slot for the curator's signal in the specified subgraph
-     */
-    function getCuratorSlot(uint256 _subgraphID, address _curator) public pure returns (uint256) {
-        // subgraphs mapping is stored at slot SUBGRAPH_MAPPING_SLOT.
-        // So our subgraph is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(SUBGRAPH_MAPPING_SLOT)))
-        // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
-        // So the mapping is at slot keccak256(abi.encodePacked(uint256(subgraphID), uint256(SUBGRAPH_MAPPING_SLOT))) + 2
-        // Therefore the nSignal value for msg.sender should be at slot:
-        return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        uint256(_curator),
-                        uint256(keccak256(abi.encodePacked(_subgraphID, SUBGRAPH_MAPPING_SLOT)))
-                            .add(2)
-                    )
-                )
-            );
-    }
-
-    /**
-     * @notice Get the storage slot that corresponds to a curator's signal within a legacy subgraph
-     * @dev This can be useful to produce proofs to claim balances in L2, as implemented
-     * in L2GNS. Note this only works with legacy subgraphs.
-     * @param _subgraphCreatorAccount Address of the account that created the account
-     * @param _seqID Sequence number for the subgraph
-     * @param _curator Curator address
-     * @return Storage slot for the curator's signal in the specified legacy subgraph
-     */
-    function getLegacyCuratorSlot(
-        address _subgraphCreatorAccount,
-        uint256 _seqID,
-        address _curator
-    ) public pure returns (uint256) {
-        // legacy subgraphs mapping is stored at slot LEGACY_SUBGRAPH_MAPPING_SLOT.
-        // So the subgraphs for the account are at slot keccak256(abi.encodePacked(uint256(_subgraphCreatorAccount), uint256(SUBGRAPH_MAPPING_SLOT)))
-        uint256 accountSlot = uint256(
-            keccak256(
-                abi.encodePacked(uint256(_subgraphCreatorAccount), LEGACY_SUBGRAPH_MAPPING_SLOT)
-            )
-        );
-        // Then the subgraph for this _seqID should be at:
-        uint256 subgraphSlot = uint256(keccak256(abi.encodePacked(_seqID, accountSlot)));
-        // The curatorNSignal mapping is at slot 2 within the SubgraphData struct,
-        // So the mapping is at slot subgraphSlot + 2
-        // Therefore the nSignal value for msg.sender should be at slot:
-        return uint256(keccak256(abi.encodePacked(uint256(_curator), subgraphSlot.add(2))));
     }
 
     /**
