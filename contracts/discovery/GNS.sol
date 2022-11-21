@@ -35,7 +35,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     uint32 private constant MAX_PPM = 1000000;
 
     /// @dev Equates to Connector weight on bancor formula to be CW = 1
-    uint32 internal immutable FIXED_RESERVE_RATIO = MAX_PPM;
+    uint32 internal immutable fixedReserveRatio = MAX_PPM;
 
     // -- Events --
 
@@ -258,12 +258,12 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 subgraphID = _nextSubgraphID(subgraphOwner);
         SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
-        subgraphData.reserveRatio = FIXED_RESERVE_RATIO;
+        subgraphData.reserveRatio = fixedReserveRatio;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
         _mintNFT(subgraphOwner, subgraphID);
-        emit SubgraphPublished(subgraphID, _subgraphDeploymentID, FIXED_RESERVE_RATIO);
+        emit SubgraphPublished(subgraphID, _subgraphDeploymentID, fixedReserveRatio);
 
         // Set the token metadata
         _setSubgraphMetadata(subgraphID, _subgraphMetadata);

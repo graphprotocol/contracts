@@ -21,7 +21,7 @@ abstract contract GNSV1Storage is Managed {
     uint32 public ownerTaxPercentage;
 
     /// [DEPRECATED] Bonding curve formula.
-    address public __DEPRECATED_bondingCurve;
+    address public __DEPRECATED_bondingCurve; // solhint-disable-line var-name-mixedcase
 
     /// @dev Stores what subgraph deployment a particular legacy subgraph targets.
     /// A subgraph is defined by (graphAccountID, subgraphNumber).
@@ -39,7 +39,7 @@ abstract contract GNSV1Storage is Managed {
 
     /// @dev [DEPRECATED] ERC-1056 contract reference.
     ///  This contract was used for managing identities.
-    IEthereumDIDRegistry private __DEPRECATED_erc1056Registry;
+    IEthereumDIDRegistry private __DEPRECATED_erc1056Registry; // solhint-disable-line var-name-mixedcase
 }
 
 /**

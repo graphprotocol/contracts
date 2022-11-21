@@ -20,7 +20,8 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
  * The contract implements a multicall behaviour to support batching multiple calls in a single
- * transaction. This L1GNS variant includes some functions to allow migrating subgraphs to L2.
+ * transaction.
+ * This L1GNS variant includes some functions to allow migrating subgraphs to L2.
  */
 contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     using SafeMathUpgradeable for uint256;
@@ -41,8 +42,6 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
     /**
      * @notice Send a subgraph's data and tokens to L2.
-     * The subgraph must be locked using lockSubgraphForMigrationToL2 in a previous block
-     * (less than 255 blocks ago).
      * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
      * @param _l2Owner Address that will own the subgraph in L2 (could be the L1 owner, but could be different if the L1 owner is an L1 contract)
@@ -118,15 +117,9 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
         require(migrationData.l1Done, "!MIGRATED");
 
+        // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 
-        {
-            // makes sure only sufficient ETH is supplied required for successful redemption on L2
-            // if a user does not desire immediate redemption they should provide
-            // a msg.value of AT LEAST _maxSubmissionCost
-            uint256 expectedEth = _maxSubmissionCost + (_maxGas * _gasPriceBid);
-            require(msg.value >= expectedEth, "WRONG_ETH_VALUE");
-        }
         L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
 
         bytes memory outboundCalldata = abi.encodeWithSelector(

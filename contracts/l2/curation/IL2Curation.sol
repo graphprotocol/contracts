@@ -24,9 +24,9 @@ interface IL2Curation {
     /**
      * @notice Calculate amount of signal that can be bought with tokens in a curation pool,
      * without accounting for curation tax.
-     * @param _subgraphDeploymentID Subgraph deployment to mint signal
+     * @param _subgraphDeploymentID Subgraph deployment for which to mint signal
      * @param _tokensIn Amount of tokens used to mint signal
-     * @return Amount of signal that can be bought and tokens subtracted for the tax
+     * @return Amount of signal that can be bought
      */
     function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         external

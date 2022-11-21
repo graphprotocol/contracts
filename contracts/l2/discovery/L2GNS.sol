@@ -22,6 +22,8 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
  * human-readable names. All human readable names emitted in events.
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
+ * This particular contract is meant to be deployed in L2, and includes helper functions to
+ * receive subgraphs that are migrated from L1.
  */
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
