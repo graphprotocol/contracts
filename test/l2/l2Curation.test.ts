@@ -727,7 +727,7 @@ describe('L2Curation', () => {
   })
 
   describe('multiple minting', async function () {
-    it('should mint the same signal every time due to the linear bonding curve', async function () {
+    it('should mint the same signal every time due to the flat bonding curve', async function () {
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit
         toGRT('1000'), // every time it should mint the same GCS due to bonding curve!

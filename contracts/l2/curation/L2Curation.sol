@@ -26,7 +26,7 @@ import { IL2Curation } from "./IL2Curation.sol";
  * subgraph deployment they curate.
  * A curators deposit goes to a curation pool along with the deposits of other curators,
  * only one such pool exists for each subgraph deployment.
- * The contract mints Graph Curation Shares (GCS) according to a (linear) bonding curve for each individual
+ * The contract mints Graph Curation Shares (GCS) according to a (flat) bonding curve for each individual
  * curation pool where GRT is deposited.
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
