@@ -115,7 +115,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         // Set the token metadata
         _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
 
-        emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, FIXED_RESERVE_RATIO);
+        emit SubgraphPublished(_subgraphID, _subgraphDeploymentID, fixedReserveRatio);
         emit SubgraphUpgraded(
             _subgraphID,
             subgraphData.vSignal,
@@ -245,7 +245,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
-        subgraphData.reserveRatio = FIXED_RESERVE_RATIO;
+        subgraphData.reserveRatio = fixedReserveRatio;
         // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
         subgraphData.disabled = true;
         subgraphData.nSignal = _nSignal;
