@@ -90,8 +90,6 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   }
 
   const params = [l1GRTAddress, recipient, amount, '0x']
-  logger.info('Approving token transfer')
-  await sendTransaction(l2Wallet, l2GRT, 'approve', [gateway.address, amount])
   logger.info('Sending outbound transfer transaction')
   const receipt = await sendTransaction(
     l2Wallet,
