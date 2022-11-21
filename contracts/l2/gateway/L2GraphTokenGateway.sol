@@ -126,7 +126,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * @notice Burns L2 tokens and initiates a transfer to L1.
      * The tokens will be received on L1 only after the wait period (7 days) is over,
      * and will require an Outbox.executeTransaction to finalize.
-     * @dev no additional callhook data is allowed
+     * @dev No additional callhook data is allowed. Note this function does not require
+     * giving the gateway allowance for the tokens that will be transferred.
      * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L1
      * @param _amount Amount of tokens to burn
@@ -181,8 +182,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * @notice Burns L2 tokens and initiates a transfer to L1.
      * The tokens will be available on L1 only after the wait period (7 days) is over,
      * and will require an Outbox.executeTransaction to finalize.
-     * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
-     * @dev no additional callhook data is allowed. The two unused params are needed
+     * @dev No additional callhook data is allowed. Note this function does not require
+     * giving the gateway allowance for the tokens that will be transferred. The two unused params are needed
      * for compatibility with Arbitrum's gateway router.
      * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
      * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)

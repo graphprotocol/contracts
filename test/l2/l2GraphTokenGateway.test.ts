@@ -307,11 +307,9 @@ describe('L2GraphTokenGateway', () => {
         await expect(tx).revertedWith('TOKEN_NOT_GRT')
       })
       it('burns tokens and triggers an L1 call', async function () {
-        await grt.connect(tokenSender.signer).approve(l2GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(tokenSender.signer, defaultData)
       })
       it('decodes the sender address from messages sent by the router', async function () {
-        await grt.connect(tokenSender.signer).approve(l2GraphTokenGateway.address, toGRT('10'))
         const routerEncodedData = utils.defaultAbiCoder.encode(
           ['address', 'bytes'],
           [tokenSender.address, defaultData],
@@ -319,7 +317,6 @@ describe('L2GraphTokenGateway', () => {
         await testValidOutboundTransfer(mockRouter.signer, routerEncodedData)
       })
       it('reverts when called with nonempty calldata', async function () {
-        await grt.connect(tokenSender.signer).approve(l2GraphTokenGateway.address, toGRT('10'))
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           ['outboundTransfer(address,address,uint256,bytes)'](
@@ -331,7 +328,6 @@ describe('L2GraphTokenGateway', () => {
         await expect(tx).revertedWith('CALL_HOOK_DATA_NOT_ALLOWED')
       })
       it('reverts when the sender does not have enough GRT', async function () {
-        await grt.connect(tokenSender.signer).approve(l2GraphTokenGateway.address, toGRT('1001'))
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           ['outboundTransfer(address,address,uint256,bytes)'](

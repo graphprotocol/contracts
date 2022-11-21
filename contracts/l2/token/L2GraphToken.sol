@@ -84,7 +84,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
      * @param _amount Number of tokens to burn
      */
     function bridgeBurn(address _account, uint256 _amount) external override onlyGateway {
-        burnFrom(_account, _amount);
+        _burn(_account, _amount);
         emit BridgeBurned(_account, _amount);
     }
 }

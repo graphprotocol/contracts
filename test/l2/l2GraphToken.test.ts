@@ -79,20 +79,13 @@ describe('L2GraphToken', () => {
           const tx = grt.connect(governor.signer).bridgeBurn(user.address, toGRT('100'))
           await expect(tx).revertedWith('NOT_GATEWAY')
         })
-        it('requires approval for burning', async function () {
-          await grt.connect(mockL2Gateway.signer).bridgeMint(user.address, toGRT('100'))
-          const tx = grt.connect(mockL2Gateway.signer).bridgeBurn(user.address, toGRT('20'))
-          await expect(tx).revertedWith('ERC20: burn amount exceeds allowance')
-        })
         it('fails if the user does not have enough funds', async function () {
           await grt.connect(mockL2Gateway.signer).bridgeMint(user.address, toGRT('10'))
-          await grt.connect(user.signer).approve(mockL2Gateway.address, toGRT('20'))
           const tx = grt.connect(mockL2Gateway.signer).bridgeBurn(user.address, toGRT('20'))
           await expect(tx).revertedWith('ERC20: burn amount exceeds balance')
         })
-        it('burns GRT from an account when approved', async function () {
+        it('burns GRT from an account without requiring approval', async function () {
           await grt.connect(mockL2Gateway.signer).bridgeMint(user.address, toGRT('100'))
-          await grt.connect(user.signer).approve(mockL2Gateway.address, toGRT('20'))
           const tx = grt.connect(mockL2Gateway.signer).bridgeBurn(user.address, toGRT('20'))
           await expect(tx).emit(grt, 'BridgeBurned').withArgs(user.address, toGRT('20'))
           await expect(await grt.balanceOf(user.address)).eq(toGRT('80'))
@@ -101,6 +94,10 @@ describe('L2GraphToken', () => {
       it('does not allow the bridge to mint as a regular minter', async function () {
         const tx = grt.connect(mockL2Gateway.signer).mint(user.address, toGRT('100'))
         await expect(tx).revertedWith('Only minter can call')
+      })
+      it('does not allow the bridge to burn as a regular user without approval', async function () {
+        const tx = grt.connect(mockL2Gateway.signer).burnFrom(user.address, toGRT('100'))
+        await expect(tx).revertedWith('ERC20: burn amount exceeds allowance')
       })
     })
   })
