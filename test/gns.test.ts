@@ -1412,28 +1412,6 @@ describe('L1GNS', () => {
 
         await expect(tx).revertedWith('!MIGRATED')
       })
-      it('rejects calls with an incorrect eth value', async function () {
-        const subgraph0 = await publishCurateAndSendSubgraph()
-
-        const maxSubmissionCost = toBN('100')
-        const maxGas = toBN('10')
-        const gasPriceBid = toBN('20')
-
-        const tx = gns
-          .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).sub(1),
-            },
-          )
-
-        await expect(tx).revertedWith('WRONG_ETH_VALUE')
-      })
       it('rejects calls with zero maxSubmissionCost', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()
 
