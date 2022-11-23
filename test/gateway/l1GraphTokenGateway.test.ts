@@ -178,7 +178,7 @@ describe('L1GraphTokenGateway', () => {
           .setL2CounterpartAddress(mockL2Gateway.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
-      it('sets L2Counterpart', async function () {
+      it('sets l2Counterpart which can be queried with counterpartGateway()', async function () {
         const tx = l1GraphTokenGateway
           .connect(governor.signer)
           .setL2CounterpartAddress(mockL2Gateway.address)
@@ -186,6 +186,7 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2CounterpartAddressSet')
           .withArgs(mockL2Gateway.address)
         expect(await l1GraphTokenGateway.l2Counterpart()).eq(mockL2Gateway.address)
+        expect(await l1GraphTokenGateway.counterpartGateway()).eq(mockL2Gateway.address)
       })
     })
     describe('setEscrowAddress', function () {

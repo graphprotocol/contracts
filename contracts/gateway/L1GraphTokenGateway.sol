@@ -299,6 +299,16 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
+     * @notice Get the address of the L2GraphTokenGateway
+     * @dev This is added for compatibility with the Arbitrum Router's
+     * gateway registration process.
+     * @return Address of the L2 gateway connected to this gateway
+     */
+    function counterpartGateway() external view returns (address) {
+        return l2Counterpart;
+    }
+
+    /**
      * @notice Creates calldata required to create a retryable ticket
      * @dev encodes the target function with its params which
      * will be called on L2 when the retryable ticket is redeemed
