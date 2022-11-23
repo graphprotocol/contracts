@@ -106,17 +106,16 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
       await expect(tx).revertedWith('Only Controller governor')
     })
 
-    // TODO: why is this not working
-    // it('finalizeInboundTransfer should revert', async function () {
-    //   const tx = L1GraphTokenGateway.connect(unauthorized).finalizeInboundTransfer(
-    //     unauthorized.address,
-    //     unauthorized.address,
-    //     unauthorized.address,
-    //     '100',
-    //     '0x00',
-    //   )
+    it('finalizeInboundTransfer should revert', async function () {
+      const tx = L1GraphTokenGateway.connect(unauthorized).finalizeInboundTransfer(
+        unauthorized.address,
+        unauthorized.address,
+        unauthorized.address,
+        '100',
+        '0x00',
+      )
 
-    //   await expect(tx).revertedWith('NOT_FROM_BRIDGE')
-    // })
+      await expect(tx).revertedWith('NOT_FROM_BRIDGE')
+    })
   })
 })
