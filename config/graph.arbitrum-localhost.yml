@@ -66,7 +66,7 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
-      reserveRatio: 500000 # in parts per million
+      reserveRatio: 1000000 # in parts per million
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
     calls:
