@@ -15,7 +15,7 @@
     "ethers": "^5.6.0"
   },
   "devDependencies": {
-    "@arbitrum/sdk": "3.0.0-rc.1",
+    "@arbitrum/sdk": "^3.0.0",
     "@commitlint/cli": "^13.2.1",
     "@commitlint/config-conventional": "^13.2.0",
     "@defi-wonderland/smock": "^2.0.7",
