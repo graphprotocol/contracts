@@ -180,7 +180,7 @@ function buildGraphNetworkEnvironment(
     addressBook: lazyObject(() => getAddressBook(addressBookPath, chainId.toString())),
     graphConfig: lazyObject(() => readConfig(graphConfigPath, true)),
     contracts: lazyObject(() =>
-      loadContracts(getAddressBook(addressBookPath, chainId.toString()), provider, enableTxLogging),
+      loadContracts(getAddressBook(addressBookPath, chainId.toString()), chainId, provider),
     ),
     getWallets: lazyFunction(() => () => getWallets()),
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),

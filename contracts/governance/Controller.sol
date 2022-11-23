@@ -2,10 +2,10 @@
 
 pragma solidity ^0.7.6;
 
-import "./IController.sol";
-import "./IManaged.sol";
-import "./Governed.sol";
-import "./Pausable.sol";
+import { IController } from "./IController.sol";
+import { IManaged } from "./IManaged.sol";
+import { Governed } from "./Governed.sol";
+import { Pausable } from "./Pausable.sol";
 
 /**
  * @title Graph Controller contract
@@ -13,13 +13,14 @@ import "./Pausable.sol";
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 contract Controller is Governed, Pausable, IController {
-    // Track contract ids to contract proxy address
-    mapping(bytes32 => address) private registry;
+    /// @dev Track contract ids to contract proxy address
+    mapping(bytes32 => address) private _registry;
 
+    /// Emitted when the proxy address for a protocol contract has been set
     event SetContractProxy(bytes32 indexed id, address contractAddress);
 
     /**
-     * @dev Contract constructor.
+     * @notice Controller contract constructor.
      */
     constructor() {
         Governed._initialize(msg.sender);
@@ -58,7 +59,7 @@ contract Controller is Governed, Pausable, IController {
         onlyGovernor
     {
         require(_contractAddress != address(0), "Contract address must be set");
-        registry[_id] = _contractAddress;
+        _registry[_id] = _contractAddress;
         emit SetContractProxy(_id, _contractAddress);
     }
 
@@ -67,16 +68,17 @@ contract Controller is Governed, Pausable, IController {
      * @param _id Contract id (keccak256 hash of contract name)
      */
     function unsetContractProxy(bytes32 _id) external override onlyGovernor {
-        registry[_id] = address(0);
+        _registry[_id] = address(0);
         emit SetContractProxy(_id, address(0));
     }
 
     /**
      * @notice Get contract proxy address by its id
      * @param _id Contract id
+     * @return Address of the proxy contract for the provided id
      */
-    function getContractProxy(bytes32 _id) public view override returns (address) {
-        return registry[_id];
+    function getContractProxy(bytes32 _id) external view override returns (address) {
+        return _registry[_id];
     }
 
     /**
@@ -86,7 +88,7 @@ contract Controller is Governed, Pausable, IController {
      */
     function updateController(bytes32 _id, address _controller) external override onlyGovernor {
         require(_controller != address(0), "Controller must be set");
-        return IManaged(registry[_id]).setController(_controller);
+        return IManaged(_registry[_id]).setController(_controller);
     }
 
     // -- Pausing --
@@ -94,17 +96,19 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Change the partial paused state of the contract
      * Partial pause is intended as a partial pause of the protocol
+     * @param _toPause True if the contracts should be (partially) paused, false otherwise
      */
-    function setPartialPaused(bool _partialPaused) external override onlyGovernorOrGuardian {
-        _setPartialPaused(_partialPaused);
+    function setPartialPaused(bool _toPause) external override onlyGovernorOrGuardian {
+        _setPartialPaused(_toPause);
     }
 
     /**
      * @notice Change the paused state of the contract
      * Full pause most of protocol functions
+     * @param _toPause True if the contracts should be paused, false otherwise
      */
-    function setPaused(bool _paused) external override onlyGovernorOrGuardian {
-        _setPaused(_paused);
+    function setPaused(bool _toPause) external override onlyGovernorOrGuardian {
+        _setPaused(_toPause);
     }
 
     /**
@@ -118,6 +122,7 @@ contract Controller is Governed, Pausable, IController {
 
     /**
      * @notice Getter to access paused
+     * @return True if the contracts are paused, false otherwise
      */
     function paused() external view override returns (bool) {
         return _paused;
@@ -125,6 +130,7 @@ contract Controller is Governed, Pausable, IController {
 
     /**
      * @notice Getter to access partial pause status
+     * @return True if the contracts are partially paused, false otherwise
      */
     function partialPaused() external view override returns (bool) {
         return _partialPaused;

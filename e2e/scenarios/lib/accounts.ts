@@ -12,7 +12,9 @@ const checkBalance = async (
   const balance = await getBalanceFn(address)
   if (balance.lt(amount)) {
     throw new Error(
-      `Sender does not have enough funds to distribute! Required ${amount} - Balance ${balance}`,
+      `Sender does not have enough funds to distribute! Required ${amount} - Balance ${ethers.utils.formatEther(
+        balance,
+      )}`,
     )
   }
 }
@@ -20,6 +22,7 @@ const checkBalance = async (
 const ensureBalance = async (
   beneficiary: string,
   amount: BigNumberish,
+  symbol: string,
   getBalanceFn: (address: string) => Promise<BigNumber>,
   transferFn: (
     address: string,
@@ -30,7 +33,7 @@ const ensureBalance = async (
   const balanceDif = BigNumber.from(amount).sub(balance)
 
   if (balanceDif.gt(0)) {
-    console.log(`Funding ${beneficiary} with ${balanceDif}...`)
+    console.log(`Funding ${beneficiary} with ${ethers.utils.formatEther(balanceDif)} ${symbol}...`)
     const tx = await transferFn(beneficiary, balanceDif)
     await tx.wait()
   }
@@ -48,6 +51,7 @@ export const ensureETHBalance = async (
     await ensureBalance(
       beneficiaries[index],
       amounts[index],
+      'ETH',
       ethers.provider.getBalance,
       (address: string, amount: BigNumber) => {
         return sender.sendTransaction({ to: address, value: amount })
@@ -66,9 +70,12 @@ export const ensureGRTAllowance = async (
   const allowTokens = BigNumber.from(amount).sub(allowance)
   if (allowTokens.gt(0)) {
     console.log(
-      `\nApproving ${spender} to spend ${allowTokens} tokens on ${owner.address} behalf...`,
+      `\nApproving ${spender} to spend ${ethers.utils.formatEther(allowTokens)} GRT on ${
+        owner.address
+      } behalf...`,
     )
-    await grt.connect(owner).approve(spender, amount)
+    const tx = await grt.connect(owner).approve(spender, amount)
+    await tx.wait()
   }
 }
 
@@ -112,6 +119,7 @@ export const fundAccountsGRT = async (
     await ensureBalance(
       beneficiaries[index],
       amounts[index],
+      'GRT',
       grt.balanceOf,
       grt.connect(sender).transfer,
     )

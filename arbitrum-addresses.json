@@ -1,0 +1,42 @@
+{
+  "source": "https://developer.offchainlabs.com/docs/useful_addresses",
+  "1": {
+    "L1GatewayRouter": {
+      "address": "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef"
+    },
+    "IInbox": {
+      "address": "0x4Dbd4fc535Ac27206064B68FfCf827b0A60BAB3f"
+    }
+  },
+  "4": {
+    "L1GatewayRouter": {
+      "address": "0x70C143928eCfFaf9F5b406f7f4fC28Dc43d68380"
+    },
+    "IInbox": {
+      "address": "0x578BAde599406A8fE3d24Fd7f7211c0911F5B29e"
+    }
+  },
+  "5": {
+    "L1GatewayRouter": {
+      "address": "0x4c7708168395aEa569453Fc36862D2ffcDaC588c"
+    },
+    "IInbox": {
+      "address": "0x6BEbC4925716945D46F0Ec336D5C2564F419682C"
+    }
+  },
+  "42161": {
+    "L2GatewayRouter": {
+      "address": "0x5288c571Fd7aD117beA99bF60FE0846C4E84F933"
+    }
+  },
+  "421611": {
+    "L2GatewayRouter": {
+      "address": "0x9413AD42910c1eA60c737dB5f58d1C504498a3cD"
+    }
+  },
+  "421613": {
+    "L2GatewayRouter": {
+      "address": "0xE5B9d8d42d656d1DcB8065A6c012FE3780246041"
+    }
+  }
+}

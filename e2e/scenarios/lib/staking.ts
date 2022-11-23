@@ -11,9 +11,11 @@ export const stake = async (
 ): Promise<void> => {
   // Approve
   await ensureGRTAllowance(indexer, contracts.Staking.address, amount, contracts.GraphToken)
+  const allowance = await contracts.GraphToken.allowance(indexer.address, contracts.Staking.address)
+  console.log(`Allowance: ${ethers.utils.formatEther(allowance)}`)
 
   // Stake
-  console.log(`\nStaking ${amount} tokens...`)
+  console.log(`\nStaking ${ethers.utils.formatEther(amount)} tokens...`)
   await sendTransaction(indexer, contracts.Staking, 'stake', [amount])
 }
 
@@ -40,7 +42,7 @@ export const allocateFrom = async (
     'allocateFrom',
     [indexer.address, subgraphDeploymentID, amount, allocationId, metadata, proof],
     {
-      gasLimit: 2000000,
+      gasLimit: 4_000_000,
     },
   )
 }
@@ -54,6 +56,6 @@ export const closeAllocation = async (
 
   console.log(`\nClosing ${allocationId}...`)
   await sendTransaction(indexer, contracts.Staking, 'closeAllocation', [allocationId, poi], {
-    gasLimit: 2000000,
+    gasLimit: 4_000_000,
   })
 }

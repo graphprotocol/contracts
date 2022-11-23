@@ -2,17 +2,20 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import "../bancor/BancorFormula.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
-
-import "./CurationStorage.sol";
-import "./ICuration.sol";
-import "./GraphCurationToken.sol";
+import { BancorFormula } from "../bancor/BancorFormula.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { Managed } from "../governance/Managed.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
+import { CurationV1Storage } from "./CurationStorage.sol";
+import { ICuration } from "./ICuration.sol";
+import { IGraphCurationToken } from "./IGraphCurationToken.sol";
+import { GraphCurationToken } from "./GraphCurationToken.sol";
 
 /**
  * @title Curation contract

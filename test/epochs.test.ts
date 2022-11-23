@@ -12,6 +12,7 @@ import {
   getAccounts,
   toBN,
   Account,
+  initNetwork,
 } from './lib/testHelpers'
 
 describe('EpochManager', () => {
@@ -23,6 +24,7 @@ describe('EpochManager', () => {
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
+    await initNetwork()
     ;[me, governor] = await getAccounts()
   })
 

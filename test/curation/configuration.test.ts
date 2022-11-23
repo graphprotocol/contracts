@@ -55,7 +55,7 @@ describe('Curation:Config', () => {
 
     it('reject set `defaultReserveRatio` if not allowed', async function () {
       const tx = curation.connect(me.signer).setDefaultReserveRatio(defaults.curation.reserveRatio)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -79,7 +79,7 @@ describe('Curation:Config', () => {
       const tx = curation
         .connect(me.signer)
         .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -99,7 +99,7 @@ describe('Curation:Config', () => {
 
     it('reject set `curationTaxPercentage` if not allowed', async function () {
       const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -124,7 +124,7 @@ describe('Curation:Config', () => {
     it('reject set `curationTokenMaster` if not allowed', async function () {
       const newCurationTokenMaster = curation.address
       const tx = curation.connect(me.signer).setCurationTokenMaster(newCurationTokenMaster)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 })

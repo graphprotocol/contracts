@@ -2,13 +2,16 @@
 
 pragma solidity ^0.7.6;
 
-import "./IController.sol";
+import { IController } from "./IController.sol";
 
-import "../curation/ICuration.sol";
-import "../epochs/IEpochManager.sol";
-import "../rewards/IRewardsManager.sol";
-import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
+import { ICuration } from "../curation/ICuration.sol";
+import { IEpochManager } from "../epochs/IEpochManager.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { IStaking } from "../staking/IStaking.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
+import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+
+import { IManaged } from "./IManaged.sol";
 
 /**
  * @title Graph Managed contract
@@ -19,60 +22,92 @@ import "../token/IGraphToken.sol";
  * Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-contract Managed {
+abstract contract Managed is IManaged {
     // -- State --
 
-    // Controller that contract is registered with
+    /// Controller that contract is registered with
     IController public controller;
-    mapping(bytes32 => address) private addressCache;
+    /// @dev Cache for the addresses of the contracts retrieved from the controller
+    mapping(bytes32 => address) private _addressCache;
+    /// @dev Gap for future storage variables
     uint256[10] private __gap;
+
+    // Immutables
+    bytes32 private immutable CURATION = keccak256("Curation");
+    bytes32 private immutable EPOCH_MANAGER = keccak256("EpochManager");
+    bytes32 private immutable REWARDS_MANAGER = keccak256("RewardsManager");
+    bytes32 private immutable STAKING = keccak256("Staking");
+    bytes32 private immutable GRAPH_TOKEN = keccak256("GraphToken");
+    bytes32 private immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
 
     // -- Events --
 
+    /// Emitted when a contract parameter has been updated
     event ParameterUpdated(string param);
+    /// Emitted when the controller address has been set
     event SetController(address controller);
 
-    /**
-     * @dev Emitted when contract with `nameHash` is synced to `contractAddress`.
-     */
+    /// Emitted when contract with `nameHash` is synced to `contractAddress`.
     event ContractSynced(bytes32 indexed nameHash, address contractAddress);
 
     // -- Modifiers --
 
+    /**
+     * @dev Revert if the controller is paused or partially paused
+     */
     function _notPartialPaused() internal view {
         require(!controller.paused(), "Paused");
         require(!controller.partialPaused(), "Partial-paused");
     }
 
-    function _notPaused() internal view {
+    /**
+     * @dev Revert if the controller is paused
+     */
+    function _notPaused() internal view virtual {
         require(!controller.paused(), "Paused");
     }
 
+    /**
+     * @dev Revert if the caller is not the governor
+     */
     function _onlyGovernor() internal view {
-        require(msg.sender == controller.getGovernor(), "Caller must be Controller governor");
+        require(msg.sender == controller.getGovernor(), "Only Controller governor");
     }
 
+    /**
+     * @dev Revert if the caller is not the Controller
+     */
     function _onlyController() internal view {
         require(msg.sender == address(controller), "Caller must be Controller");
     }
 
+    /**
+     * @dev Revert if the controller is paused or partially paused
+     */
     modifier notPartialPaused() {
         _notPartialPaused();
         _;
     }
 
+    /**
+     * @dev Revert if the controller is paused
+     */
     modifier notPaused() {
         _notPaused();
         _;
     }
 
-    // Check if sender is controller.
+    /**
+     * @dev Revert if the caller is not the Controller
+     */
     modifier onlyController() {
         _onlyController();
         _;
     }
 
-    // Check if sender is the governor.
+    /**
+     * @dev Revert if the caller is not the governor
+     */
     modifier onlyGovernor() {
         _onlyGovernor();
         _;
@@ -81,7 +116,8 @@ contract Managed {
     // -- Functions --
 
     /**
-     * @dev Initialize the controller.
+     * @dev Initialize a Managed contract
+     * @param _controller Address for the Controller that manages this contract
      */
     function _initialize(address _controller) internal {
         _setController(_controller);
@@ -91,7 +127,7 @@ contract Managed {
      * @notice Set Controller. Only callable by current controller.
      * @param _controller Controller contract address
      */
-    function setController(address _controller) external onlyController {
+    function setController(address _controller) external override onlyController {
         _setController(_controller);
     }
 
@@ -106,51 +142,60 @@ contract Managed {
     }
 
     /**
-     * @dev Return Curation interface.
+     * @dev Return Curation interface
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
-        return ICuration(_resolveContract(keccak256("Curation")));
+        return ICuration(_resolveContract(CURATION));
     }
 
     /**
-     * @dev Return EpochManager interface.
+     * @dev Return EpochManager interface
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(_resolveContract(keccak256("EpochManager")));
+        return IEpochManager(_resolveContract(EPOCH_MANAGER));
     }
 
     /**
-     * @dev Return RewardsManager interface.
+     * @dev Return RewardsManager interface
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(_resolveContract(keccak256("RewardsManager")));
+        return IRewardsManager(_resolveContract(REWARDS_MANAGER));
     }
 
     /**
-     * @dev Return Staking interface.
+     * @dev Return Staking interface
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
-        return IStaking(_resolveContract(keccak256("Staking")));
+        return IStaking(_resolveContract(STAKING));
     }
 
     /**
-     * @dev Return GraphToken interface.
+     * @dev Return GraphToken interface
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(_resolveContract(keccak256("GraphToken")));
+        return IGraphToken(_resolveContract(GRAPH_TOKEN));
     }
 
     /**
-     * @dev Resolve a contract address from the cache or the Controller if not found.
+     * @dev Return GraphTokenGateway (L1 or L2) interface
+     * @return Graph token gateway contract registered with Controller
+     */
+    function graphTokenGateway() internal view returns (ITokenGateway) {
+        return ITokenGateway(_resolveContract(GRAPH_TOKEN_GATEWAY));
+    }
+
+    /**
+     * @dev Resolve a contract address from the cache or the Controller if not found
+     * @param _nameHash keccak256 hash of the contract name
      * @return Address of the contract
      */
     function _resolveContract(bytes32 _nameHash) internal view returns (address) {
-        address contractAddress = addressCache[_nameHash];
+        address contractAddress = _addressCache[_nameHash];
         if (contractAddress == address(0)) {
             contractAddress = controller.getContractProxy(_nameHash);
         }
@@ -164,15 +209,15 @@ contract Managed {
     function _syncContract(string memory _name) internal {
         bytes32 nameHash = keccak256(abi.encodePacked(_name));
         address contractAddress = controller.getContractProxy(nameHash);
-        if (addressCache[nameHash] != contractAddress) {
-            addressCache[nameHash] = contractAddress;
+        if (_addressCache[nameHash] != contractAddress) {
+            _addressCache[nameHash] = contractAddress;
             emit ContractSynced(nameHash, contractAddress);
         }
     }
 
     /**
-     * @dev Sync protocol contract addresses from the Controller registry.
-     * This function will cache all the contracts using the latest addresses
+     * @notice Sync protocol contract addresses from the Controller registry
+     * @dev This function will cache all the contracts using the latest addresses
      * Anyone can call the function whenever a Proxy contract change in the
      * controller to ensure the protocol is using the latest version
      */
@@ -182,5 +227,6 @@ contract Managed {
         _syncContract("RewardsManager");
         _syncContract("Staking");
         _syncContract("GraphToken");
+        _syncContract("GraphTokenGateway");
     }
 }

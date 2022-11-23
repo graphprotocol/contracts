@@ -11,13 +11,14 @@ import {
   sendTransaction,
 } from '../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../env'
+import { chainIdIsL2 } from '../cross-chain'
 import { confirm } from '../helpers'
 
 const { EtherSymbol } = constants
 const { formatEther } = utils
 
 // Contracts are deployed in the order defined in this list
-const allContracts = [
+let allContracts = [
   'GraphProxyAdmin',
   'BancorFormula',
   'Controller',
@@ -33,6 +34,27 @@ const allContracts = [
   'RewardsManager',
   'DisputeManager',
   'AllocationExchange',
+  'L1GraphTokenGateway',
+  'BridgeEscrow',
+]
+
+const l2Contracts = [
+  'GraphProxyAdmin',
+  'BancorFormula',
+  'Controller',
+  'EpochManager',
+  'L2GraphToken',
+  'GraphCurationToken',
+  'ServiceRegistry',
+  'Curation',
+  'SubgraphNFTDescriptor',
+  'SubgraphNFT',
+  'GNS',
+  'Staking',
+  'RewardsManager',
+  'DisputeManager',
+  'AllocationExchange',
+  'L2GraphTokenGateway',
 ]
 
 export const migrate = async (
@@ -51,7 +73,10 @@ export const migrate = async (
   if (!sure) return
 
   if (chainId == 1337) {
-    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [true])
+    allContracts = ['EthereumDIDRegistry', ...allContracts]
+    await setAutoMine(cli.wallet.provider as providers.JsonRpcProvider, true)
+  } else if (chainIdIsL2(chainId)) {
+    allContracts = l2Contracts
   }
 
   logger.info(`>>> Migrating contracts <<<\n`)
@@ -144,7 +169,15 @@ export const migrate = async (
   logger.info(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${EtherSymbol} ${spent}`)
 
   if (chainId == 1337) {
-    await (cli.wallet.provider as providers.JsonRpcProvider).send('evm_setAutomine', [autoMine])
+    await setAutoMine(cli.wallet.provider as providers.JsonRpcProvider, autoMine)
+  }
+}
+
+const setAutoMine = async (provider: providers.JsonRpcProvider, automine: boolean) => {
+  try {
+    await provider.send('evm_setAutomine', [automine])
+  } catch (error) {
+    logger.warn('The method evm_setAutomine does not exist/is not available!')
   }
 }
 

@@ -2,7 +2,8 @@ import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import { providers, utils, BigNumber, Signer, Wallet } from 'ethers'
-import { formatUnits, getAddress } from 'ethers/lib/utils'
+import { formatUnits, getAddress, hexValue } from 'ethers/lib/utils'
+import { BigNumber as BN } from 'bignumber.js'
 
 import { EpochManager } from '../../build/types/EpochManager'
 
@@ -24,6 +25,14 @@ export interface Account {
 }
 
 export const provider = (): providers.JsonRpcProvider => hre.waffle.provider
+
+// Enable automining with each transaction, and disable
+// the mining interval. Individual tests may modify this
+// behavior as needed.
+export async function initNetwork(): Promise<void> {
+  await provider().send('evm_setIntervalMining', [0])
+  await provider().send('evm_setAutomine', [true])
+}
 
 export const getAccounts = async (): Promise<Account[]> => {
   const accounts = []
@@ -57,24 +66,17 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
       ? toBN(blockNumber)
       : blockNumber
   const currentBlock = await latestBlock()
-  const start = Date.now()
-  let notified
-  if (target.lt(currentBlock))
+  if (target.lt(currentBlock)) {
     throw Error(`Target block #(${target}) is lower than current block #(${currentBlock})`)
-  while ((await latestBlock()).lt(target)) {
-    if (!notified && Date.now() - start >= 5000) {
-      notified = true
-      console.log(`advanceBlockTo: Advancing too ` + 'many blocks is causing this test to be slow.')
-    }
-    await advanceBlock()
+  } else if (target.eq(currentBlock)) {
+    return
+  } else {
+    await advanceBlocks(target.sub(currentBlock))
   }
 }
 
 export const advanceBlocks = async (blocks: string | number | BigNumber): Promise<void> => {
-  const steps = typeof blocks === 'number' || typeof blocks === 'string' ? toBN(blocks) : blocks
-  const currentBlock = await latestBlock()
-  const toBlock = currentBlock.add(steps)
-  return advanceBlockTo(toBlock)
+  await provider().send('hardhat_mine', [hexValue(BigNumber.from(blocks))])
 }
 
 export const advanceToNextEpoch = async (epochManager: EpochManager): Promise<void> => {
@@ -118,4 +120,25 @@ export const deriveChannelKey = (): ChannelKey => {
       return w.signMessage(messageHashBytes)
     },
   }
+}
+
+// Adapted from:
+// https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/utils/arbitrum/messaging.ts#L118
+export const applyL1ToL2Alias = (l1Address: string): string => {
+  const offset = toBN('0x1111000000000000000000000000000000001111')
+  const l1AddressAsNumber = toBN(l1Address)
+  const l2AddressAsNumber = l1AddressAsNumber.add(offset)
+
+  const mask = toBN(2).pow(160)
+  return l2AddressAsNumber.mod(mask).toHexString()
+}
+
+// Adapted from:
+// https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/test/utils/messaging.ts#L5
+export async function getL2SignerFromL1(l1Address: string): Promise<Signer> {
+  const l2Address = applyL1ToL2Alias(l1Address)
+  await provider().send('hardhat_impersonateAccount', [l2Address])
+  const l2Signer = await hre.ethers.getSigner(l2Address)
+
+  return l2Signer
 }

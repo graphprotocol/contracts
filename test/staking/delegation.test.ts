@@ -217,7 +217,7 @@ describe('Staking::Delegation', () => {
 
       it('reject set `delegationRatio` if not allowed', async function () {
         const tx = staking.connect(me.signer).setDelegationRatio(delegationRatio)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -231,7 +231,7 @@ describe('Staking::Delegation', () => {
 
       it('reject set `delegationParametersCooldown` if not allowed', async function () {
         const tx = staking.connect(me.signer).setDelegationParametersCooldown(cooldown)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -251,7 +251,7 @@ describe('Staking::Delegation', () => {
 
       it('reject set `delegationTaxPercentage` if not allowed', async function () {
         const tx = staking.connect(me.signer).setDelegationTaxPercentage(50)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 

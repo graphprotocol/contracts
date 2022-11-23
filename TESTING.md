@@ -33,23 +33,38 @@ There are several types of e2e tests which can be run separately:
   - Read and write interactions with the blockchain. _Requires an account with sufficient balance!_
   - Example: a test validating that a user can add signal to a subgraph.
 
-### Hardhat local node
+### Hardhat local node (L1)
 
-To run all e2e tests against a hardhat local node run:
+It can be useful to run E2E tests against a fresh protocol deployment on L1, this can be done with the following:
 
 ```bash
-yarn test:e2e
+L1_NETWORK=localhost yarn test:e2e
 ```
 
-The command will perform the following actions:
+The command will:
+- start a hardhat local node
+- deploy the L1 protocol
+- configure the new L1 deployment
+- Run all L1 e2e tests
 
-- Start a hardhat node (localhost)
-- Run `migrate:accounts` hardhat task to create keys for all protocol roles (deployer, governor, arbiter, etc). This currently doesn't support multisig accounts.
-- Run `migrate` hardhat task to deploy the protocol
-- Run `migrate:ownership` hardhat task to transfer ownership of governed contracts to the governor
-- Run `migrate:unpause` to unpause the protocol
-- Run `e2e` hardhat task to run all deployment tests (config and init)
-- Run `e2e:scenario` hardhat task to run a scenario
+### Arbitrum Nitro testnodes (L1/L2)
+
+If you want to test the protocol on an L1/L2 setup, you can run:
+
+```bash
+L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e
+```
+
+In this case the command will:
+- deploy the L1 protocol
+- configure the new L1 deployment
+- deploy the L2 protocol
+- configure the new L2 deployment
+- configure the L1/L2 bridge
+- Run all L1 e2e tests
+- Run all L2 e2e tests
+
+Note that you'll need to setup the testnodes before running the tests. See [Quick Setup](https://github.com/edgeandnode/nitro#quick-setup) for details on how to do this.
 
 ### Other networks
 
@@ -57,13 +72,13 @@ To run tests against a live testnet or even mainnet run:
 
 ```bash
 # All e2e tests
-npx hardhat e2e --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only deployment config tests
-npx hardhat e2e:config --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e:config --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only deployment init tests
-npx hardhat e2e:init --network <network> --graph-config config/graph.<network>.yml
+ARBITRUM_ADDRESS_BOOK=<arbitrum-address-book> npx hardhat e2e:init --network <network> --l1-graph-config config/graph.<l1-network>.yml --l2-graph-config config/graph.<l2-network>.yml
 
 # Only a specific scenario
 npx hardhat e2e:scenario <scenario> --network <network> --graph-config config/graph.<network>.yml

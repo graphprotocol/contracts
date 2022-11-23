@@ -30,6 +30,9 @@ contracts:
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L1GraphTokenGateway.address}}"
       - fn: "setPauseGuardian"
         pauseGuardian: *pauseGuardian
       - fn: "transferOwnership"
@@ -42,6 +45,8 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
   EpochManager:
     proxy: true
     init:
@@ -65,6 +70,8 @@ contracts:
       reserveRatio: 500000 # in parts per million
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
+    calls:
+      - fn: "syncAllContracts"
   DisputeManager:
     proxy: true
     init:
@@ -74,6 +81,8 @@ contracts:
       fishermanRewardPercentage: 500000 # in parts per million
       idxSlashingPercentage: 25000 # in parts per million
       qrySlashingPercentage: 25000 # in parts per million
+    calls:
+      - fn: "syncAllContracts"
   GNS:
     proxy: true
     init:
@@ -82,6 +91,7 @@ contracts:
       subgraphNFT: "${{SubgraphNFT.address}}"
     calls:
       - fn: "approveAll"
+      - fn: "syncAllContracts"
   SubgraphNFT:
     init:
       governor: "${{Env.deployer}}"
@@ -115,6 +125,7 @@ contracts:
       - fn: "setAssetHolder"
         assetHolder: "${{AllocationExchange.address}}"
         allowed: true
+      - fn: "syncAllContracts"
   RewardsManager:
     proxy: true
     init:
@@ -124,6 +135,7 @@ contracts:
         issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
+      - fn: "syncAllContracts"
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
@@ -132,3 +144,17 @@ contracts:
       authority: *authority
     calls:
       - fn: "approveAll"
+  L1GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
+  BridgeEscrow:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"

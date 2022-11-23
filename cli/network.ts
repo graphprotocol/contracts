@@ -9,21 +9,29 @@ import {
   Signer,
   Overrides,
   BigNumber,
+  PayableOverrides,
+  Wallet,
 } from 'ethers'
 
 import { logger } from './logging'
 import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
 import { defaultOverrides } from './defaults'
+import { GraphToken } from '../build/types/GraphToken'
 
 const { keccak256, randomBytes, parseUnits, hexlify } = utils
 
 export const randomHexBytes = (n = 32): string => hexlify(randomBytes(n))
+export const toBN = (value: string | number | BigNumber): BigNumber => BigNumber.from(value)
 export const toGRT = (value: string | number): BigNumber => {
   return parseUnits(typeof value === 'number' ? value.toString() : value, '18')
 }
 export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
   new providers.JsonRpcProvider(providerUrl, network)
+
+export const getChainID = (): number => {
+  return 4 // Only works for rinkeby right now
+}
 
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
@@ -103,7 +111,7 @@ export const sendTransaction = async (
   fn: string,
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   params?: Array<any>,
-  overrides?: Overrides,
+  overrides?: PayableOverrides,
 ): Promise<providers.TransactionReceipt> => {
   // Setup overrides
   if (overrides) {
@@ -362,4 +370,27 @@ export const linkLibraries = (
     }
   }
   return bytecode
+}
+
+export const ensureAllowance = async (
+  sender: Wallet,
+  spenderAddress: string,
+  token: GraphToken,
+  amount: BigNumber,
+) => {
+  // check balance
+  const senderBalance = await token.balanceOf(sender.address)
+  if (senderBalance.lt(amount)) {
+    throw new Error('Sender balance is insufficient for the transfer')
+  }
+
+  // check allowance
+  const allowance = await token.allowance(sender.address, spenderAddress)
+  if (allowance.gte(amount)) {
+    return
+  }
+
+  // approve
+  logger.info('Approving token transfer')
+  return sendTransaction(sender, token, 'approve', [spenderAddress, amount])
 }

@@ -1,12 +1,13 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
 import { NamedAccounts } from '../../../gre/type-extensions'
+import GraphChain from '../../../gre/helpers/chain'
 
 describe('Controller configuration', () => {
-  const { contracts, getNamedAccounts } = hre.graph()
-  const { Controller } = contracts
+  const graph = hre.graph()
+  const { Controller } = graph.contracts
 
-  const proxyContracts = [
+  const l1ProxyContracts = [
     'Curation',
     'GNS',
     'DisputeManager',
@@ -14,20 +15,40 @@ describe('Controller configuration', () => {
     'RewardsManager',
     'Staking',
     'GraphToken',
+    'L1GraphTokenGateway',
+  ]
+
+  const l2ProxyContracts = [
+    'Curation',
+    'GNS',
+    'DisputeManager',
+    'EpochManager',
+    'RewardsManager',
+    'Staking',
+    'L2GraphToken',
+    'L2GraphTokenGateway',
   ]
 
   let namedAccounts: NamedAccounts
 
   before(async () => {
-    namedAccounts = await getNamedAccounts()
+    namedAccounts = await graph.getNamedAccounts()
   })
 
   const proxyShouldMatchDeployed = async (contractName: string) => {
-    const curationAddress = await Controller.getContractProxy(
-      ethers.utils.solidityKeccak256(['string'], [contractName]),
+    // remove L1/L2 prefix, contracts are not registered as L1/L2 on controller
+    const name = contractName.replace(/(^L1|L2)/gi, '')
+
+    const address = await Controller.getContractProxy(
+      ethers.utils.solidityKeccak256(['string'], [name]),
     )
-    expect(curationAddress).eq(contracts[contractName].address)
+    expect(address).eq(graph.contracts[contractName].address)
   }
+
+  it('protocol should be unpaused', async function () {
+    const paused = await Controller.paused()
+    expect(paused).eq(false)
+  })
 
   it('should be owned by governor', async function () {
     const owner = await Controller.governor()
@@ -40,6 +61,7 @@ describe('Controller configuration', () => {
   })
 
   describe('proxy contract', async function () {
+    const proxyContracts = GraphChain.isL1(graph.chainId) ? l1ProxyContracts : l2ProxyContracts
     for (const contract of proxyContracts) {
       it(`${contract} should match deployed`, async function () {
         await proxyShouldMatchDeployed(contract)

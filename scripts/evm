@@ -1,14 +1,36 @@
 #!/bin/bash
 
 TESTRPC_PORT=${TESTRPC_PORT:-8545}
+MAX_RETRIES=120
 
 evm_running() {
-  nc -z localhost "$TESTRPC_PORT" > /dev/null
+  lsof -i:$TESTRPC_PORT -t > /dev/null
+}
+
+evm_ping() {
+  PORT=$1
+  curl --location --request POST "localhost:$PORT/" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "jsonrpc":"2.0",
+      "method":"web3_clientVersion",
+      "params":[],
+      "id":1
+    }'
 }
 
 evm_start() {
   echo "Starting our own evm instance at port $TESTRPC_PORT"
   npx hardhat node --port "$TESTRPC_PORT" > /dev/null &
+  retries=0
+  while ! evm_ping $TESTRPC_PORT; do
+    ((retries=retries+1))
+    if [ $retries -gt $MAX_RETRIES ]; then
+      echo "Timeout waiting for evm instance"
+      exit 1
+    fi
+    sleep 1
+  done
 }
 
 evm_kill() {

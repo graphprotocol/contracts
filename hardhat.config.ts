@@ -29,7 +29,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('./gre/gre')
-  ;['contracts', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
+  ;['contracts', 'bridge', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
@@ -59,7 +59,22 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
+  { network: 'rinkeby', chainId: 4, graphConfig: 'config/graph.rinkeby.yml' },
   { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
+  { network: 'kovan', chainId: 42 },
+  { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
+  {
+    network: 'arbitrum-one',
+    chainId: 42161,
+    url: 'https://arb1.arbitrum.io/rpc',
+    graphConfig: 'config/graph.arbitrum-one.yml',
+  },
+  {
+    network: 'arbitrum-goerli',
+    chainId: 421613,
+    url: 'https://goerli-rollup.arbitrum.io/rpc',
+    graphConfig: 'config/graph.arbitrum-goerli.yml',
+  },
 ]
 
 function getAccountsKeys() {
@@ -91,6 +106,9 @@ function setupNetworkProviders(hardhatConfig) {
 
 const DEFAULT_TEST_MNEMONIC =
   'myth like bonus scare over problem client lizard pioneer submit female collect'
+
+const DEFAULT_L2_TEST_MNEMONIC =
+  'urge never interest human any economy gentle canvas anxiety pave unlock find'
 
 const config: HardhatUserConfig = {
   paths: {
@@ -145,11 +163,23 @@ const config: HardhatUserConfig = {
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
       graphConfig: 'config/graph.localhost.yml',
     },
+    localnitrol1: {
+      chainId: 1337,
+      url: 'http://localhost:8545',
+      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
+    },
+    localnitrol2: {
+      chainId: 412346,
+      url: 'http://localhost:8547',
+      accounts: { mnemonic: DEFAULT_L2_TEST_MNEMONIC },
+      graphConfig: 'config/graph.arbitrum-localhost.yml',
+    },
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
     l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
-    l2GraphConfig: process.env.L2_GRAPH_CONFIG,
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,

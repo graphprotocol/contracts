@@ -1,0 +1,151 @@
+general:
+  arbitrator: &arbitrator "0xF89688d5d44d73cc4dE880857A3940487076e5A4" # Arbitration Council (TODO: update)
+  governor: &governor "0x5CeeeE16F30357d49c50bcd7F520ca6527cf388a" # Graph Council (TODO: update)
+  authority: &authority "0xD06f366678AE139a94b2AaC2913608De568F1D03" # Authority that signs payment vouchers (TODO: update)
+  availabilityOracle: &availabilityOracle "0xA99A56fA38a6B9553853c84E11458AeCcdad509B" # Subgraph Availability Oracle (TODO: update)
+  pauseGuardian: &pauseGuardian "0x4B6C90B9fE29dfa521188B6547989C23d613b79B" # Protocol pause guardian (TODO: update)
+  allocationExchangeOwner: &allocationExchangeOwner "0x05F359b1319f1Ca9b799CB6386F31421c2c49dBA" # Allocation Exchange owner (TODO: update)
+
+contracts:
+  Controller:
+    calls:
+      - fn: "setContractProxy"
+        id: "0xe6876326c1291dfcbbd3864a6816d698cd591defc7aa2153d7f9c4c04016c89f" # keccak256('Curation')
+        contractAddress: "${{Curation.address}}"
+      - fn: "setContractProxy"
+        id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
+        contractAddress: "${{GNS.address}}"
+      - fn: "setContractProxy"
+        id: "0xf942813d07d17b56de9a9afc8de0ced6e8c053bbfdcc87b7badea4ddcf27c307" # keccak256('DisputeManager')
+        contractAddress: "${{DisputeManager.address}}"
+      - fn: "setContractProxy"
+        id: "0xc713c3df6d14cdf946460395d09af88993ee2b948b1a808161494e32c5f67063" # keccak256('EpochManager')
+        contractAddress: "${{EpochManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x966f1e8d8d8014e05f6ec4a57138da9be1f7c5a7f802928a18072f7c53180761" # keccak256('RewardsManager')
+        contractAddress: "${{RewardsManager.address}}"
+      - fn: "setContractProxy"
+        id: "0x1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034" # keccak256('Staking')
+        contractAddress: "${{Staking.address}}"
+      - fn: "setContractProxy"
+        id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
+        contractAddress: "${{L2GraphToken.address}}"
+      - fn: "setContractProxy"
+        id: "0xd362cac9cb75c10d67bcc0b7eeb0b1ef48bb5420b556c092d4fd7f758816fcf0" # keccak256('GraphTokenGateway')
+        contractAddress: "${{L2GraphTokenGateway.address}}"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian
+      - fn: "transferOwnership"
+        owner: *governor
+  GraphProxyAdmin:
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
+  ServiceRegistry:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
+  EpochManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+  L2GraphToken:
+    proxy: true
+    init:
+      owner: "${{Env.deployer}}"
+    calls:
+      - fn: "renounceMinter"
+      - fn: "transferOwnership"
+        owner: *governor
+  Curation:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      bondingCurve: "${{BancorFormula.address}}"
+      curationTokenMaster: "${{GraphCurationToken.address}}"
+      reserveRatio: 1000000 # in parts per million
+      curationTaxPercentage: 10000 # in parts per million
+      minimumCurationDeposit: "1000000000000000000" # in wei
+    calls:
+      - fn: "syncAllContracts"
+  DisputeManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      arbitrator: *arbitrator
+      minimumDeposit: "10000000000000000000000" # in wei
+      fishermanRewardPercentage: 500000 # in parts per million
+      idxSlashingPercentage: 25000 # in parts per million
+      qrySlashingPercentage: 25000 # in parts per million
+    calls:
+      - fn: "syncAllContracts"
+  GNS:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      bondingCurve: "${{BancorFormula.address}}"
+      subgraphNFT: "${{SubgraphNFT.address}}"
+    calls:
+      - fn: "approveAll"
+      - fn: "syncAllContracts"
+  SubgraphNFT:
+    init:
+      governor: "${{Env.deployer}}"
+    calls:
+      - fn: "setTokenDescriptor"
+        tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
+      - fn: "setMinter"
+        minter: "${{GNS.address}}"
+      - fn: "transferOwnership"
+        owner: *governor
+  Staking:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+      minimumIndexerStake: "100000000000000000000000" # in wei
+      thawingPeriod: 6646 # in blocks
+      protocolPercentage: 10000 # in parts per million
+      curationPercentage: 100000 # in parts per million
+      channelDisputeEpochs: 2 # in epochs
+      maxAllocationEpochs: 4 # in epochs
+      delegationUnbondingPeriod: 12 # in epochs
+      delegationRatio: 16 # delegated stake to indexer stake multiplier
+      rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
+      rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+    calls:
+      - fn: "setDelegationTaxPercentage"
+        delegationTaxPercentage: 5000 # parts per million
+      - fn: "setSlasher"
+        slasher: "${{DisputeManager.address}}"
+        allowed: true
+      - fn: "setAssetHolder"
+        assetHolder: "${{AllocationExchange.address}}"
+        allowed: true
+      - fn: "syncAllContracts"
+  RewardsManager:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "setSubgraphAvailabilityOracle"
+        subgraphAvailabilityOracle: *availabilityOracle
+      - fn: "syncAllContracts"
+  AllocationExchange:
+    init:
+      graphToken: "${{L2GraphToken.address}}"
+      staking: "${{Staking.address}}"
+      governor: *allocationExchangeOwner
+      authority: *authority
+    calls:
+      - fn: "approveAll"
+  L2GraphTokenGateway:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"
+    calls:
+      - fn: "syncAllContracts"
+      - fn: "setPauseGuardian"
+        pauseGuardian: *pauseGuardian

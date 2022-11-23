@@ -30,4 +30,10 @@ jobs:
       - name: Install packages
         run: yarn install --non-interactive --frozen-lockfile
       - name: Run e2e tests
-        run: ADDRESS_BOOK=addresses.json yarn test:e2e
+        run: |
+          git clone https://github.com/edgeandnode/nitro
+          pushd nitro
+          git submodule update --init --recursive
+          ./test-node.bash --init --no-blockscout --detach
+          popd
+          L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e

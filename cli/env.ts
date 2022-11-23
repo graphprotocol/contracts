@@ -4,7 +4,7 @@ import { Argv } from 'yargs'
 import { logger } from './logging'
 import { getAddressBook, AddressBook } from './address-book'
 import { defaultOverrides } from './defaults'
-import { getProvider } from './utils'
+import { getProvider } from './network'
 import { loadContracts, NetworkContracts } from './contracts'
 
 const { formatEther } = utils
@@ -43,7 +43,7 @@ export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnviro
   const nonce = await wallet.getTransactionCount()
   const walletAddress = await wallet.getAddress()
   const addressBook = getAddressBook(argv.addressBook, chainId.toString())
-  const contracts = loadContracts(addressBook, wallet)
+  const contracts = loadContracts(addressBook, chainId, wallet)
 
   logger.info(`Preparing contracts on chain id: ${chainId}`)
   logger.info(
