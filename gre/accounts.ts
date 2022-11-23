@@ -4,7 +4,7 @@ import { derivePrivateKeys } from 'hardhat/internal/core/providers/util'
 import { Wallet } from 'ethers'
 import { getItemValue, readConfig } from '../cli/config'
 import { AccountNames, NamedAccounts } from './type-extensions'
-import { getNetworkName } from './config'
+import { getNetworkName } from './helpers/network'
 import { HttpNetworkHDAccountsConfig, NetworksConfig } from 'hardhat/types'
 
 const namedAccountList: AccountNames[] = [

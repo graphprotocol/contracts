@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "1.16.0",
+  "version": "2.0.0",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -15,7 +15,7 @@
     "ethers": "^5.6.0"
   },
   "devDependencies": {
-    "@arbitrum/sdk": "^3.0.0-beta.6",
+    "@arbitrum/sdk": "^3.0.0",
     "@commitlint/cli": "^13.2.1",
     "@commitlint/config-conventional": "^13.2.0",
     "@defi-wonderland/smock": "^2.0.7",
@@ -61,6 +61,7 @@
     "hardhat-abi-exporter": "^2.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
+    "hardhat-secure-accounts": "0.0.5",
     "hardhat-storage-layout": "0.1.6",
     "hardhat-tracer": "^1.0.0-alpha.6",
     "husky": "^7.0.4",
@@ -89,7 +90,6 @@
     "compile": "hardhat compile",
     "deploy": "yarn build && yarn predeploy && hardhat migrate",
     "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
-    "deploy-rinkeby": "yarn deploy --force --network rinkeby --graph-config config/graph.rinkeby.yml",
     "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
     "deploy-arbitrum-goerli": "yarn deploy --force --network arbitrum-goerli --graph-config config/graph.arbitrum-goerli.yml",
     "predeploy": "scripts/predeploy",

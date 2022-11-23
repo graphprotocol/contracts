@@ -19,3 +19,12 @@ bin/
 # Coverage and other reports
 /reports
 coverage.json
+
+# Local test files
+addresses-local.json
+localNetwork.json
+arbitrum-addresses-local.json
+tx-*.log
+
+# Keys
+.keystore

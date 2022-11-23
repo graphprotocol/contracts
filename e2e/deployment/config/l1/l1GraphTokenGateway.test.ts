@@ -1,7 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/network'
+import GraphChain from '../../../../gre/helpers/chain'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { getAddressBook } from '../../../../cli/address-book'
 
 describe('[L1] L1GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -13,14 +14,51 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
     unauthorized = (await graph.getTestAccounts())[0]
   })
 
-  it('bridge should be paused', async function () {
+  it('bridge should not be paused', async function () {
     const paused = await L1GraphTokenGateway.paused()
-    expect(paused).eq(true)
+    expect(paused).eq(false)
   })
 
   it('should be controlled by Controller', async function () {
     const controller = await L1GraphTokenGateway.controller()
     expect(controller).eq(Controller.address)
+  })
+
+  it('l2GRT should match the L2 GraphToken deployed address', async function () {
+    const l2GRT = await L1GraphTokenGateway.l2GRT()
+    expect(l2GRT).eq(graph.l2.contracts.GraphToken.address)
+  })
+
+  it('l2Counterpart should match the deployed L2 GraphTokenGateway address', async function () {
+    const l2Counterpart = await L1GraphTokenGateway.l2Counterpart()
+    expect(l2Counterpart).eq(graph.l2.contracts.L2GraphTokenGateway.address)
+  })
+
+  it('escrow should match the deployed L1 BridgeEscrow address', async function () {
+    const escrow = await L1GraphTokenGateway.escrow()
+    expect(escrow).eq(graph.l1.contracts.BridgeEscrow.address)
+  })
+
+  it("inbox should match Arbitrum's Inbox address", async function () {
+    const inbox = await L1GraphTokenGateway.inbox()
+
+    // TODO: is there a cleaner way to get the router address?
+    const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
+    const arbAddressBook = getAddressBook(arbitrumAddressBook, graph.l1.chainId.toString())
+    const arbIInbox = arbAddressBook.getEntry('IInbox')
+
+    expect(inbox.toLowerCase()).eq(arbIInbox.address.toLowerCase())
+  })
+
+  it("l1Router should match Arbitrum's router address", async function () {
+    const l1Router = await L1GraphTokenGateway.l1Router()
+
+    // TODO: is there a cleaner way to get the router address?
+    const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
+    const arbAddressBook = getAddressBook(arbitrumAddressBook, graph.l1.chainId.toString())
+    const arbL2Router = arbAddressBook.getEntry('L1GatewayRouter')
+
+    expect(l1Router).eq(arbL2Router.address)
   })
 
   describe('calls with unauthorized user', () => {
@@ -77,7 +115,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
         '0x00',
       )
 
-      await expect(tx).revertedWith('Paused (contract)')
+      await expect(tx).revertedWith('NOT_FROM_BRIDGE')
     })
   })
 })

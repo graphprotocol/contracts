@@ -1,7 +1,8 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/network'
+import { getAddressBook } from '../../../../cli/address-book'
+import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -13,14 +14,35 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
     unauthorized = (await graph.getTestAccounts())[0]
   })
 
-  it('bridge should be paused', async function () {
+  it('bridge should not be paused', async function () {
     const paused = await L2GraphTokenGateway.paused()
-    expect(paused).eq(true)
+    expect(paused).eq(false)
   })
 
   it('should be controlled by Controller', async function () {
     const controller = await L2GraphTokenGateway.controller()
     expect(controller).eq(Controller.address)
+  })
+
+  it('l1GRT should match the L1 GraphToken deployed address', async function () {
+    const l1GRT = await L2GraphTokenGateway.l1GRT()
+    expect(l1GRT).eq(graph.l1.contracts.GraphToken.address)
+  })
+
+  it('l1Counterpart should match the deployed L1 GraphTokenGateway address', async function () {
+    const l1Counterpart = await L2GraphTokenGateway.l1Counterpart()
+    expect(l1Counterpart).eq(graph.l1.contracts.L1GraphTokenGateway.address)
+  })
+
+  it("l2Router should match Arbitrum's router address", async function () {
+    const l2Router = await L2GraphTokenGateway.l2Router()
+
+    // TODO: is there a cleaner way to get the router address?
+    const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
+    const arbAddressBook = getAddressBook(arbitrumAddressBook, graph.l2.chainId.toString())
+    const arbL2Router = arbAddressBook.getEntry('L2GatewayRouter')
+
+    expect(l2Router).eq(arbL2Router.address)
   })
 
   describe('calls with unauthorized user', () => {
@@ -55,7 +77,7 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
         '0x00',
       )
 
-      await expect(tx).revertedWith('Paused (contract)')
+      await expect(tx).revertedWith('ONLY_COUNTERPART_GATEWAY')
     })
   })
 })

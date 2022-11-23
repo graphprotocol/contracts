@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/network'
+import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L2] GraphToken initialization', () => {
   const graph = hre.graph()

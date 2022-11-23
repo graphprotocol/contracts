@@ -42,7 +42,7 @@ export const allocateFrom = async (
     'allocateFrom',
     [indexer.address, subgraphDeploymentID, amount, allocationId, metadata, proof],
     {
-      gasLimit: 2000000,
+      gasLimit: 4_000_000,
     },
   )
 }
@@ -56,6 +56,6 @@ export const closeAllocation = async (
 
   console.log(`\nClosing ${allocationId}...`)
   await sendTransaction(indexer, contracts.Staking, 'closeAllocation', [allocationId, poi], {
-    gasLimit: 2000000,
+    gasLimit: 4_000_000,
   })
 }
