@@ -80,7 +80,7 @@ contract StakingV1Storage is Managed {
     // -- Asset Holders --
 
     // DEPRECATED: Allowed AssetHolders: assetHolder => is allowed
-    mapping(address => bool) public __DEPRECATED_assetHolders;
+    mapping(address => bool) private __DEPRECATED_assetHolders; // solhint-disable-line var-name-mixedcase
 }
 
 contract StakingV2Storage is StakingV1Storage {

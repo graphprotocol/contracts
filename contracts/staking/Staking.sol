@@ -172,12 +172,6 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     event SlasherUpdate(address indexed caller, address indexed slasher, bool allowed);
 
     /**
-     * @dev Emitted when `caller` set `assetHolder` address as `allowed` to send funds
-     * to staking contract.
-     */
-    event AssetHolderUpdate(address indexed caller, address indexed assetHolder, bool allowed);
-
-    /**
      * @dev Emitted when `indexer` set `operator` access.
      */
     event SetOperator(address indexed indexer, address indexed operator, bool allowed);
@@ -1115,7 +1109,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Creates an allocation
         // Allocation identifiers are not reused
-        // The assetHolder address can send collected funds to the allocation
+        // Anyone can send collected funds to the allocation using collect()
         Allocation memory alloc = Allocation(
             _indexer,
             _subgraphDeploymentID,
