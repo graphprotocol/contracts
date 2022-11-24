@@ -49,7 +49,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `arbitrator` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setArbitrator(arbitrator.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
 
       it('reject set `arbitrator` to address zero', async function () {
@@ -74,7 +74,7 @@ describe('DisputeManager:Config', () => {
       it('reject set `minimumDeposit` if not allowed', async function () {
         const newValue = toBN('1')
         const tx = disputeManager.connect(me.signer).setMinimumDeposit(newValue)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -97,7 +97,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `fishermanRewardPercentage` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setFishermanRewardPercentage(50)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -127,7 +127,7 @@ describe('DisputeManager:Config', () => {
 
       it('reject set `slashingPercentage` if not allowed', async function () {
         const tx = disputeManager.connect(me.signer).setSlashingPercentage(50, 50)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
   })

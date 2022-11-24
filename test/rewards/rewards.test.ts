@@ -161,7 +161,7 @@ describe('Rewards', () => {
     describe('issuance per block update', function () {
       it('reject set issuance per block if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1.signer).setIssuancePerBlock(toGRT('1.025'))
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
 
       it('should set issuance rate to minimum allowed (0)', async function () {
@@ -183,7 +183,7 @@ describe('Rewards', () => {
         const tx = rewardsManager
           .connect(indexer1.signer)
           .setSubgraphAvailabilityOracle(oracle.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
 
       it('should set subgraph oracle if governor', async function () {

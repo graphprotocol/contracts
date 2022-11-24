@@ -3,8 +3,9 @@ import { constants, utils, Wallet } from 'ethers'
 import { createAttestation, Attestation, Receipt } from '@graphprotocol/common-ts'
 
 import { logger } from '../../logging'
-import { sendTransaction, getChainID, getProvider, toGRT, randomHexBytes } from '../../network'
+import { sendTransaction, getProvider, toGRT, randomHexBytes } from '../../network'
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
+import { getChainID } from '../../network'
 
 const { HashZero } = constants
 const { defaultAbiCoder: abi, arrayify, concat, hexlify } = utils

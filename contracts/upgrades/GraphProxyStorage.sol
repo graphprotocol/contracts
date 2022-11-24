@@ -8,7 +8,7 @@ pragma solidity ^0.7.6;
  * This contract does not actually define state variables managed by the compiler
  * but uses fixed slot locations.
  */
-contract GraphProxyStorage {
+abstract contract GraphProxyStorage {
     /**
      * @dev Storage slot with the address of the current implementation.
      * This is the keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1, and is
@@ -59,15 +59,16 @@ contract GraphProxyStorage {
      * @dev Modifier to check whether the `msg.sender` is the admin.
      */
     modifier onlyAdmin() {
-        require(msg.sender == _admin(), "Caller must be admin");
+        require(msg.sender == _getAdmin(), "Caller must be admin");
         _;
     }
 
     /**
      * @return adm The admin slot.
      */
-    function _admin() internal view returns (address adm) {
+    function _getAdmin() internal view returns (address adm) {
         bytes32 slot = ADMIN_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             adm := sload(slot)
         }
@@ -78,20 +79,23 @@ contract GraphProxyStorage {
      * @param _newAdmin Address of the new proxy admin
      */
     function _setAdmin(address _newAdmin) internal {
+        address oldAdmin = _getAdmin();
         bytes32 slot = ADMIN_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newAdmin)
         }
 
-        emit AdminUpdated(_admin(), _newAdmin);
+        emit AdminUpdated(oldAdmin, _newAdmin);
     }
 
     /**
      * @dev Returns the current implementation.
      * @return impl Address of the current implementation
      */
-    function _implementation() internal view returns (address impl) {
+    function _getImplementation() internal view returns (address impl) {
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             impl := sload(slot)
         }
@@ -101,8 +105,9 @@ contract GraphProxyStorage {
      * @dev Returns the current pending implementation.
      * @return impl Address of the current pending implementation
      */
-    function _pendingImplementation() internal view returns (address impl) {
+    function _getPendingImplementation() internal view returns (address impl) {
         bytes32 slot = PENDING_IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             impl := sload(slot)
         }
@@ -113,9 +118,10 @@ contract GraphProxyStorage {
      * @param _newImplementation Address of the new implementation
      */
     function _setImplementation(address _newImplementation) internal {
-        address oldImplementation = _implementation();
+        address oldImplementation = _getImplementation();
 
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newImplementation)
         }
@@ -128,9 +134,10 @@ contract GraphProxyStorage {
      * @param _newImplementation Address of the new pending implementation
      */
     function _setPendingImplementation(address _newImplementation) internal {
-        address oldPendingImplementation = _pendingImplementation();
+        address oldPendingImplementation = _getPendingImplementation();
 
         bytes32 slot = PENDING_IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _newImplementation)
         }

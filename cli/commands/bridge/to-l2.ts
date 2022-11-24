@@ -27,7 +27,7 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
     logger.warn('Funds were deposited on L2 but the retryable ticket was not redeemed')
     logAutoRedeemReason(autoRedeemRec)
     logger.info('Attempting to redeem...')
-    await l1ToL2Message.redeem()
+    await l1ToL2Message.redeem(process.env.CI ? { gasLimit: 2_000_000 } : {})
     const redeemAttempt = await l1ToL2Message.getSuccessfulRedeem()
     if (redeemAttempt.status == L1ToL2MessageStatus.REDEEMED) {
       l2TxHash = redeemAttempt.l2TxReceipt ? redeemAttempt.l2TxReceipt.transactionHash : 'null'
@@ -45,7 +45,8 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
 
   // parse provider
   const l1Provider = cli.wallet.provider
-  const l2Provider = getProvider(cliArgs.l2ProviderUrl)
+  // TODO: fix this hack for usage with hardhat
+  const l2Provider = cliArgs.l2Provider ? cliArgs.l2Provider : getProvider(cliArgs.l2ProviderUrl)
   const l1ChainId = cli.chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
   if (chainIdIsL2(l1ChainId) || !chainIdIsL2(l2ChainId)) {
@@ -100,6 +101,7 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   const txReceipt = await sendTransaction(cli.wallet, l1Gateway, 'outboundTransfer', txParams, {
     value: ethValue,
   })
+
   // get l2 ticket status
   if (txReceipt.status == 1) {
     logger.info('Waiting for message to propagate to L2...')
@@ -163,7 +165,7 @@ export const sendToL2Command = {
         description: 'Receiving address in L2. Same to L1 address if empty',
       })
       .positional('calldata', {
-        description: 'Calldata to pass to the recipient. Must be whitelisted in the bridge',
+        description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
       })
       .coerce({
         maxGas: toBN,

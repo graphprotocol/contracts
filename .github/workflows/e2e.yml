@@ -3,6 +3,14 @@ name: Run E2E tests
 on:
   push:
     branches: [dev]
+    paths:
+      - contracts/**
+      - config/**
+      - e2e/**
+      - cli/**
+      - tasks/**
+      - scripts/**
+      - hardhat.config.ts
   pull_request: {}
 
 jobs:
@@ -25,9 +33,7 @@ jobs:
         run: |
           git clone https://github.com/edgeandnode/nitro
           pushd nitro
-          git checkout ci
           git submodule update --init --recursive
           ./test-node.bash --init --no-blockscout --detach
           popd
-          NETWORK=localnitrol1 ADDRESS_BOOK=addresses.json GRAPH_CONFIG=config/graph.localhost.yml yarn test:e2e
-          NETWORK=localnitrol2 ADDRESS_BOOK=addresses.json GRAPH_CONFIG=config/graph.arbitrum-localhost.yml yarn test:e2e
+          L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e

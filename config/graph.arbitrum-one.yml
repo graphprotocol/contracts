@@ -1,10 +1,10 @@
 general:
   arbitrator: &arbitrator "0x113DC95e796836b8F0Fa71eE7fB42f221740c3B0" # Arbitration Council
-  governor: &governor "0x3e43EF77fAAd296F65eF172E8eF06F8231c9DeAd" # Graph Council
-  authority: &authority "0x79fd74da4c906509862c8fe93e87a9602e370bc4" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle (TODO: update)
-  pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian (TODO: update)
-  allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner (TODO: update)
+  governor: &governor "0x8C6de8F8D562f3382417340A6994601eE08D3809" # Graph Council
+  authority: &authority "0x79f2212de27912bCb25a452fC102C85c142E3eE3" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0xbCAEE36Ce38Ec534c7078db1f90118E72173645B" # Subgraph Availability Oracle
+  pauseGuardian: &pauseGuardian "0xB0aD33a21b98bCA1761729A105e2E34e27153aAE" # Protocol pause guardian
+  allocationExchangeOwner: &allocationExchangeOwner "0x270Ea4ea9e8A699f8fE54515E3Bb2c418952623b" # Allocation Exchange owner
 
 contracts:
   Controller:
@@ -68,7 +68,7 @@ contracts:
       controller: "${{Controller.address}}"
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
-      reserveRatio: 500000 # in parts per million
+      reserveRatio: 1000000 # in parts per million
       curationTaxPercentage: 10000 # in parts per million
       minimumCurationDeposit: "1000000000000000000" # in wei
     calls:

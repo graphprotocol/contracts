@@ -39,13 +39,9 @@ describe('L2GraphTokenGateway', () => {
 
   const senderTokens = toGRT('1000')
   const defaultData = '0x'
-  const notEmptyCallHookData = utils.defaultAbiCoder.encode(
+  const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
     ['uint256', 'uint256'],
     [toBN('1337'), toBN('42')],
-  )
-  const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
-    ['bytes', 'bytes'],
-    ['0x', notEmptyCallHookData],
   )
 
   before(async function () {
@@ -126,7 +122,7 @@ describe('L2GraphTokenGateway', () => {
     describe('setL2Router', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l2GraphTokenGateway.connect(tokenSender.signer).setL2Router(mockRouter.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets router address', async function () {
         const tx = l2GraphTokenGateway.connect(governor.signer).setL2Router(mockRouter.address)
@@ -140,7 +136,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           .setL1TokenAddress(mockL1GRT.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2GRT', async function () {
         const tx = l2GraphTokenGateway.connect(governor.signer).setL1TokenAddress(mockL1GRT.address)
@@ -154,7 +150,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender.signer)
           .setL1CounterpartAddress(mockL1Gateway.address)
-        await expect(tx).revertedWith('Caller must be Controller governor')
+        await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets L1Counterpart', async function () {
         const tx = l2GraphTokenGateway
@@ -169,24 +165,43 @@ describe('L2GraphTokenGateway', () => {
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
         let tx = l2GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
         tx = l2GraphTokenGateway.connect(tokenSender.signer).setPaused(true)
-        await expect(tx).revertedWith('Only Governor or Guardian can call')
+        await expect(tx).revertedWith('Only Governor or Guardian')
+      })
+      it('cannot be paused if some state variables are not set', async function () {
+        let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).revertedWith('L2_ROUTER_NOT_SET')
+        await l2GraphTokenGateway.connect(governor.signer).setL2Router(mockRouter.address)
+        tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).revertedWith('L1_COUNTERPART_NOT_SET')
+        await l2GraphTokenGateway
+          .connect(governor.signer)
+          .setL1CounterpartAddress(mockL1Gateway.address)
+        tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).revertedWith('L1_GRT_NOT_SET')
       })
       it('can be paused and unpaused by the governor', async function () {
-        let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
-        await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(false)
-        await expect(await l2GraphTokenGateway.paused()).eq(false)
-        tx = l2GraphTokenGateway.connect(governor.signer).setPaused(true)
+        await fixture.configureL2Bridge(
+          governor.signer,
+          fixtureContracts,
+          mockRouter.address,
+          mockL1GRT.address,
+          mockL1Gateway.address,
+        )
+        let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(true)
         await expect(await l2GraphTokenGateway.paused()).eq(true)
+        tx = l2GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(false)
+        await expect(await l2GraphTokenGateway.paused()).eq(false)
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
           const tx = l2GraphTokenGateway
             .connect(tokenSender.signer)
             .setPauseGuardian(pauseGuardian.address)
-          await expect(tx).revertedWith('Caller must be Controller governor')
+          await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
           const tx = l2GraphTokenGateway
@@ -197,13 +212,20 @@ describe('L2GraphTokenGateway', () => {
             .withArgs(AddressZero, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
+          await fixture.configureL2Bridge(
+            governor.signer,
+            fixtureContracts,
+            mockRouter.address,
+            mockL1GRT.address,
+            mockL1Gateway.address,
+          )
           await l2GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
-          let tx = l2GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
-          await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(false)
-          await expect(await l2GraphTokenGateway.paused()).eq(false)
-          tx = l2GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
+          let tx = l2GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
           await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(true)
           await expect(await l2GraphTokenGateway.paused()).eq(true)
+          tx = l2GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
+          await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(false)
+          await expect(await l2GraphTokenGateway.paused()).eq(false)
         })
       })
     })
@@ -393,7 +415,6 @@ describe('L2GraphTokenGateway', () => {
           ['uint256', 'uint256'],
           [toBN('0'), toBN('42')],
         )
-        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -406,13 +427,12 @@ describe('L2GraphTokenGateway', () => {
             tokenSender.address,
             callhookReceiverMock.address,
             toGRT('10'),
-            data,
+            callHookData,
           )
         await expect(tx).revertedWith('FOO_IS_ZERO')
       })
       it('reverts if trying to call a callhook in a contract that does not implement onTokenTransfer', async function () {
         const callHookData = utils.defaultAbiCoder.encode(['uint256'], [toBN('0')])
-        const data = utils.defaultAbiCoder.encode(['bytes', 'bytes'], ['0x', callHookData])
         const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
         await me.signer.sendTransaction({
           to: await mockL1GatewayL2Alias.getAddress(),
@@ -426,7 +446,7 @@ describe('L2GraphTokenGateway', () => {
             tokenSender.address,
             rewardsManager.address,
             toGRT('10'),
-            data,
+            callHookData,
           )
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",

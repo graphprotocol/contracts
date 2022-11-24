@@ -1,7 +1,8 @@
 import fs from 'fs'
+import path from 'path'
 import * as dotenv from 'dotenv'
 
-import { utils, providers, Wallet } from 'ethers'
+import { utils, BigNumber, BigNumberish, Signer } from 'ethers'
 import ipfsHttpClient from 'ipfs-http-client'
 import inquirer from 'inquirer'
 
@@ -15,6 +16,8 @@ import {
   jsonToSubgraphMetadata,
   jsonToVersionMetadata,
 } from './metadata'
+import { solidityKeccak256 } from 'ethers/lib/utils'
+import { GraphToken } from '../build/types/GraphToken'
 
 dotenv.config()
 
@@ -46,12 +49,14 @@ export class IPFS {
 export const pinMetadataToIPFS = async (
   ipfs: string,
   type: string,
-  path?: string, // Only pass path or metadata, not both
+  filepath?: string, // Only pass path or metadata, not both
   metadata?: SubgraphMetadata | VersionMetadata,
 ): Promise<string> => {
-  if (metadata == undefined && path != undefined) {
+  if (metadata == undefined && filepath != undefined) {
     if (type == 'subgraph') {
-      metadata = jsonToSubgraphMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
+      metadata = jsonToSubgraphMetadata(
+        JSON.parse(fs.readFileSync(path.join(__dirname, filepath)).toString()),
+      )
       logger.info('Meta data:')
       logger.info(`  Subgraph Description:     ${metadata.description}`)
       logger.info(`Subgraph Display Name:    ${metadata.displayName}`)
@@ -59,7 +64,9 @@ export const pinMetadataToIPFS = async (
       logger.info(`  Subgraph Code Repository: ${metadata.codeRepository}`)
       logger.info(`  Subgraph Website:         ${metadata.website}`)
     } else if (type == 'version') {
-      metadata = jsonToVersionMetadata(JSON.parse(fs.readFileSync(__dirname + path).toString()))
+      metadata = jsonToVersionMetadata(
+        JSON.parse(fs.readFileSync(path.join(__dirname, filepath)).toString()),
+      )
       logger.info('Meta data:')
       logger.info(`  Version Description:      ${metadata.description}`)
       logger.info(`  Version Label:            ${metadata.label}`)
@@ -103,4 +110,24 @@ export const confirm = async (message: string, skip: boolean): Promise<boolean> 
     return false
   }
   return true
+}
+
+export const buildSubgraphID = (account: string, seqID: BigNumber): string =>
+  solidityKeccak256(['address', 'uint256'], [account, seqID])
+
+export const ensureGRTAllowance = async (
+  owner: Signer,
+  spender: string,
+  amount: BigNumberish,
+  grt: GraphToken,
+): Promise<void> => {
+  const ownerAddress = await owner.getAddress()
+  const allowance = await grt.allowance(ownerAddress, spender)
+  const allowTokens = BigNumber.from(amount).sub(allowance)
+  if (allowTokens.gt(0)) {
+    console.log(
+      `\nApproving ${spender} to spend ${allowTokens} tokens on ${ownerAddress} behalf...`,
+    )
+    await grt.connect(owner).approve(spender, amount)
+  }
 }

@@ -3,14 +3,14 @@
 /**
  * @title Interface for contracts that can receive callhooks through the Arbitrum GRT bridge
  * @dev Any contract that can receive a callhook on L2, sent through the bridge from L1, must
- * be whitelisted by the governor, but also implement this interface that contains
+ * be allowlisted by the governor, but also implement this interface that contains
  * the function that will actually be called by the L2GraphTokenGateway.
  */
 pragma solidity ^0.7.6;
 
 interface ICallhookReceiver {
     /**
-     * @dev Receive tokens with a callhook from the bridge
+     * @notice Receive tokens with a callhook from the bridge
      * @param _from Token sender in L1
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data

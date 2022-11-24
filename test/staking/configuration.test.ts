@@ -52,7 +52,7 @@ describe('Staking:Config', () => {
     it('reject set `minimumIndexerStake` if not allowed', async function () {
       const newValue = toGRT('100')
       const tx = staking.connect(me.signer).setMinimumIndexerStake(newValue)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('reject set `minimumIndexerStake` to zero', async function () {
@@ -74,7 +74,7 @@ describe('Staking:Config', () => {
 
     it('reject set `slasher` if not allowed', async function () {
       const tx = staking.connect(other.signer).setSlasher(me.address, true)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('reject set `slasher` for zero', async function () {
@@ -103,7 +103,7 @@ describe('Staking:Config', () => {
 
     it('reject set `assetHolder` if not allowed', async function () {
       const tx = staking.connect(other.signer).setAssetHolder(me.address, true)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('reject set `assetHolder` to address zero', async function () {
@@ -122,7 +122,7 @@ describe('Staking:Config', () => {
     it('reject set `channelDisputeEpochs` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setChannelDisputeEpochs(newValue)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('reject set `channelDisputeEpochs` to zero', async function () {
@@ -146,7 +146,7 @@ describe('Staking:Config', () => {
 
     it('reject set `curationPercentage` if not allowed', async function () {
       const tx = staking.connect(other.signer).setCurationPercentage(50)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -166,7 +166,7 @@ describe('Staking:Config', () => {
 
     it('reject set `protocolPercentage` if not allowed', async function () {
       const tx = staking.connect(other.signer).setProtocolPercentage(50)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -180,7 +180,7 @@ describe('Staking:Config', () => {
     it('reject set `maxAllocationEpochs` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setMaxAllocationEpochs(newValue)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 
@@ -194,7 +194,7 @@ describe('Staking:Config', () => {
     it('reject set `thawingPeriod` if not allowed', async function () {
       const newValue = toBN('5')
       const tx = staking.connect(other.signer).setThawingPeriod(newValue)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
 
     it('reject set `thawingPeriod` to zero', async function () {
@@ -225,7 +225,7 @@ describe('Staking:Config', () => {
 
     it('reject set `rebateRatio` if not allowed', async function () {
       const tx = staking.connect(other.signer).setRebateRatio(1, 1)
-      await expect(tx).revertedWith('Caller must be Controller governor')
+      await expect(tx).revertedWith('Only Controller governor')
     })
   })
 })

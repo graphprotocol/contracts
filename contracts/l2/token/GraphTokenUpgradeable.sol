@@ -2,12 +2,11 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
+import { ECDSAUpgradeable } from "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 
-import "../../upgrades/GraphUpgradeable.sol";
-import "../../governance/Governed.sol";
+import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
+import { Governed } from "../../governance/Governed.sol";
 
 /**
  * @title GraphTokenUpgradeable contract
@@ -25,44 +24,54 @@ import "../../governance/Governed.sol";
  * initializer functions and upgradeable OpenZeppelin contracts instead of
  * the original's constructor + non-upgradeable approach.
  */
-contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
-    using SafeMath for uint256;
-
+abstract contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgradeable {
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
-    bytes32 private constant DOMAIN_TYPE_HASH =
+    /// @dev Hash of the EIP-712 Domain type
+    bytes32 private immutable DOMAIN_TYPE_HASH =
         keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
         );
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Token");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT =
+    /// @dev Hash of the EIP-712 Domain name
+    bytes32 private immutable DOMAIN_NAME_HASH = keccak256("Graph Token");
+    /// @dev Hash of the EIP-712 Domain version
+    bytes32 private immutable DOMAIN_VERSION_HASH = keccak256("0");
+    /// @dev EIP-712 Domain salt
+    bytes32 private immutable DOMAIN_SALT =
         0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591; // Randomly generated salt
-    bytes32 private constant PERMIT_TYPEHASH =
+    /// @dev Hash of the EIP-712 permit type
+    bytes32 private immutable PERMIT_TYPEHASH =
         keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
 
     // -- State --
 
-    // solhint-disable-next-line var-name-mixedcase
-    bytes32 private DOMAIN_SEPARATOR;
+    /// @dev EIP-712 Domain separator
+    bytes32 private DOMAIN_SEPARATOR; // solhint-disable-line var-name-mixedcase
+    /// @dev Addresses for which this mapping is true are allowed to mint tokens
     mapping(address => bool) private _minters;
+    /// Nonces for permit signatures for each token holder
     mapping(address => uint256) public nonces;
+    /// @dev Storage gap added in case we need to add state variables to this contract
+    uint256[47] private __gap;
 
     // -- Events --
 
+    /// Emitted when a new minter is added
     event MinterAdded(address indexed account);
+    /// Emitted when a minter is removed
     event MinterRemoved(address indexed account);
 
+    /// @dev Reverts if the caller is not an authorized minter
     modifier onlyMinter() {
         require(isMinter(msg.sender), "Only minter can call");
         _;
     }
 
     /**
-     * @dev Approve token allowance by validating a message signed by the holder.
+     * @notice Approve token allowance by validating a message signed by the holder.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
@@ -80,6 +89,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
         bytes32 _r,
         bytes32 _s
     ) external {
+        require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -90,16 +100,15 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
             )
         );
 
-        address recoveredAddress = ECDSA.recover(digest, _v, _r, _s);
+        address recoveredAddress = ECDSAUpgradeable.recover(digest, _v, _r, _s);
         require(_owner == recoveredAddress, "GRT: invalid permit");
-        require(_deadline == 0 || block.timestamp <= _deadline, "GRT: expired permit");
 
-        nonces[_owner] = nonces[_owner].add(1);
+        nonces[_owner] = nonces[_owner] + 1;
         _approve(_owner, _spender, _value);
     }
 
     /**
-     * @dev Add a new minter.
+     * @notice Add a new minter.
      * @param _account Address of the minter
      */
     function addMinter(address _account) external onlyGovernor {
@@ -108,24 +117,24 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Remove a minter.
+     * @notice Remove a minter.
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
-        require(_minters[_account], "NOT_A_MINTER");
+        require(isMinter(_account), "NOT_A_MINTER");
         _removeMinter(_account);
     }
 
     /**
-     * @dev Renounce to be a minter.
+     * @notice Renounce being a minter.
      */
     function renounceMinter() external {
-        require(_minters[msg.sender], "NOT_A_MINTER");
+        require(isMinter(msg.sender), "NOT_A_MINTER");
         _removeMinter(msg.sender);
     }
 
     /**
-     * @dev Mint new tokens.
+     * @notice Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
      */
@@ -134,7 +143,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20BurnableUpgra
     }
 
     /**
-     * @dev Return if the `_account` is a minter or not.
+     * @notice Return if the `_account` is a minter or not.
      * @param _account Address to check
      * @return True if the `_account` is minter
      */

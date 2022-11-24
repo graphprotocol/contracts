@@ -4,7 +4,7 @@ TESTRPC_PORT=${TESTRPC_PORT:-8545}
 MAX_RETRIES=120
 
 evm_running() {
-  nc -z localhost "$TESTRPC_PORT" > /dev/null
+  lsof -i:$TESTRPC_PORT -t > /dev/null
 }
 
 evm_ping() {
