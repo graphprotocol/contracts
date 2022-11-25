@@ -122,11 +122,9 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
         L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
 
-        bytes memory outboundCalldata = abi.encodeWithSelector(
-            IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
+        bytes memory outboundCalldata = getClaimCuratorBalanceOutboundCalldata(
             _subgraphID,
             msg.sender,
-            getCuratorSignal(_subgraphID, msg.sender),
             _beneficiary
         );
 
@@ -141,6 +139,29 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         );
 
         return abi.encode(seqNum);
+    }
+
+    /**
+     * @notice Get the outbound calldata that will be sent to L2
+     * when calling claimCuratorBalanceToBeneficiaryOnL2.
+     * This can be useful to estimate the L2 retryable ticket parameters.
+     * @param _subgraphID Subgraph ID
+     * @param _curator Curator address
+     * @param _beneficiary Address that will own the signal in L2
+     */
+    function getClaimCuratorBalanceOutboundCalldata(
+        uint256 _subgraphID,
+        address _curator,
+        address _beneficiary
+    ) public view returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
+                _subgraphID,
+                _curator,
+                getCuratorSignal(_subgraphID, _curator),
+                _beneficiary
+            );
     }
 
     /**
