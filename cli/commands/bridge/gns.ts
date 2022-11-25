@@ -156,33 +156,24 @@ export const claimCuratorBalanceOnL2 = async (
   }
 
   // parse params
-  const { L1GraphTokenGateway: l1Gateway, GraphToken: l1GRT, L1GNS: l1GNS } = cli.contracts
+  const { GraphToken: l1GRT, L1GNS: l1GNS } = cli.contracts
 
   const recipient = await l1GNS.counterpartGNSAddress()
-  const l1GatewayAddress = l1Gateway.address
-  const l2GatewayAddress = await l1Gateway.l2Counterpart()
-  const l2Owner = cliArgs.l2Owner ?? cli.wallet.address
-  const nSignal = await l1GNS.subgraphSignal(cliArgs.subgraphId)
-  const tokens = await l1GNS.subgraphTokens(cliArgs.subgraphId)
-  const calldata = defaultAbiCoder.encode(
-    ['uint256', 'address', 'uint256'],
-    [cliArgs.subgraphId, l2Owner, nSignal],
-  )
+  const l2Beneficiary = cliArgs.l2Beneficiary ?? cli.wallet.address
 
   // estimate L2 ticket
   // See https://github.com/OffchainLabs/arbitrum/blob/master/packages/arb-ts/src/lib/bridge.ts
-  const depositCalldata = await l1Gateway.getOutboundCalldata(
-    l1GRT.address,
-    l1GNS.address,
-    recipient,
-    tokens,
-    calldata,
+  const depositCalldata = await l1GNS.getClaimCuratorBalanceOutboundCalldata(
+    cliArgs.subgraphId,
+    cli.wallet.address,
+    l2Beneficiary,
   )
+  console.log(depositCalldata)
   const { maxGas, gasPriceBid, maxSubmissionCost } = await estimateRetryableTxGas(
     l1Provider,
     l2Provider,
-    l1GatewayAddress,
-    l2GatewayAddress,
+    l1GNS.address,
+    recipient,
     depositCalldata,
     {
       maxGas: cliArgs.maxGas,
@@ -198,10 +189,16 @@ export const claimCuratorBalanceOnL2 = async (
   // build transaction
   logger.info('Sending outbound transfer transaction')
 
-  const txParams = [cliArgs.subgraphId, l2Owner, maxGas, gasPriceBid, maxSubmissionCost]
-  const txReceipt = await sendTransaction(cli.wallet, l1GNS, 'sendSubgraphToL2', txParams, {
-    value: ethValue,
-  })
+  const txParams = [cliArgs.subgraphId, l2Beneficiary, maxGas, gasPriceBid, maxSubmissionCost]
+  const txReceipt = await sendTransaction(
+    cli.wallet,
+    l1GNS,
+    'claimCuratorBalanceToBeneficiaryOnL2',
+    txParams,
+    {
+      value: ethValue,
+    },
+  )
 
   // get l2 ticket status
   if (txReceipt.status == 1) {
@@ -211,11 +208,10 @@ export const claimCuratorBalanceOnL2 = async (
     const l1ToL2Message = l1ToL2Messages[0]
     try {
       await checkAndRedeemMessage(l1ToL2Message)
-      logger.info(afterRedeemMsg)
     } catch (e) {
       logger.error('Auto redeem failed')
       logger.error(e)
-      logger.error('You can re-attempt using redeem-send-subgraph-to-l2 with the following txHash:')
+      logger.error('You can re-attempt using redeem-send-to-l2 with the following txHash:')
       logger.error(txReceipt.transactionHash)
     }
   }
