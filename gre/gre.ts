@@ -96,13 +96,37 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
     )
 
     // Wallet functions
-    const l1GetWallets = () => getWallets(hre.config.networks, l1ChainId, hre.network.name)
-    const l1GetWallet = (address: string) =>
-      getWallet(hre.config.networks, l1ChainId, hre.network.name, address)
-    const l2GetWallets = () => getWallets(hre.config.networks, l2ChainId, hre.network.name)
-    const l2GetWallet = (address: string) =>
-      getWallet(hre.config.networks, l2ChainId, hre.network.name, address)
+    const l1GetWallets = () => {
+      if (secureAccounts) {
+        return hre.accounts.getWallets()
+      } else {
+        return getWallets(hre.config.networks, l1ChainId, hre.network.name)
+      }
+    }
+    const l1GetWallet = async (address: string) => {
+      if (secureAccounts) {
+        const wallets = await hre.accounts.getWallets()
+        return wallets.find((w) => w.address === address)
+      } else {
+        return getWallet(hre.config.networks, l1ChainId, hre.network.name, address)
+      }
+    }
 
+    const l2GetWallets = () => {
+      if (secureAccounts) {
+        return hre.accounts.getWallets()
+      } else {
+        return getWallets(hre.config.networks, l2ChainId, hre.network.name)
+      }
+    }
+    const l2GetWallet = async (address: string) => {
+      if (secureAccounts) {
+        const wallets = await hre.accounts.getWallets()
+        return wallets.find((w) => w.address === address)
+      } else {
+        return getWallet(hre.config.networks, l2ChainId, hre.network.name, address)
+      }
+    }
     // Build the Graph Runtime Environment (GRE)
     const l1Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
       l1ChainId,
