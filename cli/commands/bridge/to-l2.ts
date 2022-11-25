@@ -1,44 +1,12 @@
 import { Argv } from 'yargs'
 import { utils } from 'ethers'
-import { L1TransactionReceipt, L1ToL2MessageStatus, L1ToL2MessageWriter } from '@arbitrum/sdk'
+import { L1TransactionReceipt } from '@arbitrum/sdk'
 
 import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getProvider, sendTransaction, toGRT, ensureAllowance, toBN } from '../../network'
 import { chainIdIsL2, estimateRetryableTxGas } from '../../cross-chain'
-
-const logAutoRedeemReason = (autoRedeemRec) => {
-  if (autoRedeemRec == null) {
-    logger.info(`Auto redeem was not attempted.`)
-    return
-  }
-  logger.info(`Auto redeem reverted.`)
-}
-
-const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
-  logger.info(`Waiting for status of ${l1ToL2Message.retryableCreationId}`)
-  const res = await l1ToL2Message.waitForStatus()
-  logger.info('Getting auto redeem attempt')
-  const autoRedeemRec = await l1ToL2Message.getAutoRedeemAttempt()
-  const l2TxReceipt = res.status === L1ToL2MessageStatus.REDEEMED ? res.l2TxReceipt : autoRedeemRec
-  let l2TxHash = l2TxReceipt ? l2TxReceipt.transactionHash : 'null'
-  if (res.status === L1ToL2MessageStatus.FUNDS_DEPOSITED_ON_L2) {
-    /** Message wasn't auto-redeemed! */
-    logger.warn('Funds were deposited on L2 but the retryable ticket was not redeemed')
-    logAutoRedeemReason(autoRedeemRec)
-    logger.info('Attempting to redeem...')
-    await l1ToL2Message.redeem(process.env.CI ? { gasLimit: 2_000_000 } : {})
-    const redeemAttempt = await l1ToL2Message.getSuccessfulRedeem()
-    if (redeemAttempt.status == L1ToL2MessageStatus.REDEEMED) {
-      l2TxHash = redeemAttempt.l2TxReceipt ? redeemAttempt.l2TxReceipt.transactionHash : 'null'
-    } else {
-      throw new Error(`Unexpected L1ToL2MessageStatus after redeem attempt: ${res.status}`)
-    }
-  } else if (res.status != L1ToL2MessageStatus.REDEEMED) {
-    throw new Error(`Unexpected L1ToL2MessageStatus ${res.status}`)
-  }
-  logger.info(`Transfer successful: ${l2TxHash}`)
-}
+import { checkAndRedeemMessage } from './common'
 
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
@@ -162,7 +130,7 @@ export const sendToL2Command = {
       })
       .positional('amount', { description: 'Amount to send (will be converted to wei)' })
       .positional('recipient', {
-        description: 'Receiving address in L2. Same to L1 address if empty',
+        description: 'Receiving address in L2. Same as L1 address if empty',
       })
       .positional('calldata', {
         description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
