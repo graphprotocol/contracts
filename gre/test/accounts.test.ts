@@ -17,7 +17,7 @@ describe('GRE usage > account management', function () {
   let graph: GraphRuntimeEnvironment
 
   beforeEach(function () {
-    graph = this.hre.graph()
+    graph = this.hre.graph({ disableSecureAccounts: true })
   })
 
   describe('getWallets', function () {

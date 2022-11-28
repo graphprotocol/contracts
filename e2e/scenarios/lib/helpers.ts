@@ -15,6 +15,6 @@ export function getGraphOptsFromArgv(): {
     graphConfig: getArgv(1),
     l1GraphConfig: getArgv(2),
     l2GraphConfig: getArgv(3),
-    disableSecureAccounts: getArgv(4),
+    disableSecureAccounts: getArgv(4) == 'true',
   }
 }
