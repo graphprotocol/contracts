@@ -202,7 +202,7 @@ const config: HardhatUserConfig = {
   },
   tenderly: {
     project: 'graph-network',
-    username: 'abarmat',
+    username: 'graphprotocol',
   },
   contractSizer: {
     alphaSort: true,
