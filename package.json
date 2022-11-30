@@ -12,6 +12,7 @@
     "addresses.json"
   ],
   "dependencies": {
+    "console-table-printer": "^2.11.1",
     "ethers": "^5.6.0"
   },
   "devDependencies": {
