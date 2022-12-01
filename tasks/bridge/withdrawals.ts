@@ -37,6 +37,14 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
       amount: ethers.utils.formatEther(e.args.amount),
     }))
 
+    const total = events.reduce(
+      (acc, e) => acc.add(ethers.utils.parseEther(e.amount)),
+      ethers.BigNumber.from(0),
+    )
+    console.log(
+      `Found ${events.length} withdrawals for a total of ${ethers.utils.formatEther(total)} GRT`,
+    )
+
     printEvents(events)
   })
 
