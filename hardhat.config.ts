@@ -19,6 +19,7 @@ import 'hardhat-contract-sizer'
 import 'hardhat-tracer'
 import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
+import '@openzeppelin/hardhat-defender'
 import '@typechain/hardhat'
 import 'solidity-coverage'
 import 'hardhat-storage-layout'
@@ -208,6 +209,10 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: false,
     disambiguatePaths: false,
+  },
+  defender: {
+    apiKey: process.env.DEFENDER_API_KEY!,
+    apiSecret: process.env.DEFENDER_API_SECRET!,
   },
 }
 
