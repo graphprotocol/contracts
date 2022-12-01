@@ -25,7 +25,7 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
 
     const startBlock = taskArgs.startBlock ? parseInt(taskArgs.startBlock) : 0
     const endBlock = taskArgs.endBlock ? parseInt(taskArgs.endBlock) : 'latest'
-    console.log(`Searching blocks from ${startBlock} to ${endBlock}`)
+    console.log(`Searching blocks from block ${startBlock} to block ${endBlock}`)
 
     const events = (
       await gateway.queryFilter(gateway.filters.WithdrawalInitiated(), startBlock, endBlock)
@@ -36,6 +36,14 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
       to: e.args.to,
       amount: ethers.utils.formatEther(e.args.amount),
     }))
+
+    const total = events.reduce(
+      (acc, e) => acc.add(ethers.utils.parseEther(e.amount)),
+      ethers.BigNumber.from(0),
+    )
+    console.log(
+      `Found ${events.length} withdrawals for a total of ${ethers.utils.formatEther(total)} GRT`,
+    )
 
     printEvents(events)
   })
