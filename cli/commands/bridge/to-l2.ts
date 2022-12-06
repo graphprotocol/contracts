@@ -40,6 +40,8 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
   logger.info(`Transfer successful: ${l2TxHash}`)
 }
 
+const ifNotNullToBN = (val: string | null) => (val == null ? val : toBN(val))
+
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
 
@@ -168,9 +170,9 @@ export const sendToL2Command = {
         description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
       })
       .coerce({
-        maxGas: toBN,
-        gasPriceBid: toBN,
-        maxSubmissionCost: toBN,
+        maxGas: ifNotNullToBN,
+        gasPriceBid: ifNotNullToBN,
+        maxSubmissionCost: ifNotNullToBN,
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {
