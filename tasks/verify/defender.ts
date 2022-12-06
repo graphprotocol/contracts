@@ -72,6 +72,10 @@ function etherscanLink(network: string, address: string): string {
       return `[\`${address}\`](https://etherscan.io/address/${address})`
     case 'arbitrum-one':
       return `[\`${address}\`](https://arbiscan.io/address/${address})`
+    case 'goerli':
+      return `[\`${address}\`](https://goerli.etherscan.io/address/${address})`
+    case 'arbitrum-goerli':
+      return `[\`${address}\`](https://goerli.arbiscan.io/address/${address})`
     default:
       return `\`${address}\``
   }
