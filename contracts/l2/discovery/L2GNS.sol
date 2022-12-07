@@ -28,6 +28,10 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
 
+    /// The amount of time (in blocks) that a subgraph owner has to finish the migration
+    /// from L1 before the subgraph can be deprecated: 1 week
+    uint256 public constant FINISH_MIGRATION_TIMEOUT = 50400;
+
     /// @dev Emitted when a subgraph is received from L1 through the bridge
     event SubgraphReceivedFromL1(uint256 _subgraphID);
     /// @dev Emitted when a subgraph migration from L1 is finalized, so the subgraph is published
@@ -99,7 +103,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         // A subgraph
-        require(migratedData.l1Done, "INVALID_SUBGRAPH");
+        require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
         require(!migratedData.l2Done, "ALREADY_DONE");
         migratedData.l2Done = true;
 
@@ -126,6 +130,35 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
         emit SubgraphMigrationFinalized(_subgraphID);
+    }
+
+    /**
+     * @notice Deprecate a subgraph that was migrated from L1, but for which
+     * the migration was never finished. Anyone can call this function after 50400 blocks
+     * (one day) have passed since the subgraph was migrated, if the subgraph owner didn't
+     * call finishSubgraphMigrationFromL1.
+     * @param _subgraphID Subgraph ID
+     */
+    function deprecateSubgraphMigratedFromL1(uint256 _subgraphID)
+        external
+        override
+        notPartialPaused
+    {
+        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
+        require(!migratedData.l2Done, "ALREADY_FINISHED");
+        require(
+            block.number > migratedData.subgraphReceivedOnL2BlockNumber + FINISH_MIGRATION_TIMEOUT,
+            "TOO_EARLY"
+        );
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+
+        migratedData.l2Done = true;
+        uint256 withdrawableGRT = migratedData.tokens;
+        subgraphData.withdrawableGRT = withdrawableGRT;
+        subgraphData.reserveRatio = 0;
+        _burnNFT(_subgraphID);
+        emit SubgraphDeprecated(_subgraphID, withdrawableGRT);
     }
 
     /**
@@ -251,7 +284,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.nSignal = _nSignal;
 
         migratedData.tokens = _tokens;
-        migratedData.l1Done = true;
+        migratedData.subgraphReceivedOnL2BlockNumber = block.number;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.

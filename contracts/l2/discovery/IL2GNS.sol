@@ -25,6 +25,15 @@ interface IL2GNS is ICallhookReceiver {
     ) external;
 
     /**
+     * @notice Deprecate a subgraph that was migrated from L1, but for which
+     * the migration was never finished. Anyone can call this function after 50400 blocks
+     * (one day) have passed since the subgraph was migrated, if the subgraph owner didn't
+     * call finishSubgraphMigrationFromL1.
+     * @param _subgraphID Subgraph ID
+     */
+    function deprecateSubgraphMigratedFromL1(uint256 _subgraphID) external;
+
+    /**
      * @notice Claim curator balance belonging to a curator from L1.
      * This will be credited to the a beneficiary on L2, and can only be called
      * from the GNS on L1 through a retryable ticket.

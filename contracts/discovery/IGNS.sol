@@ -34,6 +34,7 @@ interface IGNS {
         bool l1Done; // Migration finished on L1 side
         mapping(address => bool) curatorBalanceClaimed; // True for curators whose balance has been claimed in L2
         bool l2Done; // Migration finished on L2 side
+        uint256 subgraphReceivedOnL2BlockNumber; // Block number when the subgraph was received on L2
     }
 
     /**

@@ -9,6 +9,8 @@ import {
   toGRT,
   getL2SignerFromL1,
   setAccountBalance,
+  latestBlock,
+  advanceBlocks,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 import { toBN } from '../lib/testHelpers'
@@ -75,7 +77,7 @@ describe('L2GNS', () => {
       curatedTokens: toGRT('1337'),
       subgraphMetadata: randomHexBytes(),
       versionMetadata: randomHexBytes(),
-      nSignal: toBN('4567'),
+      nSignal: toGRT('45670'),
     }
   }
   const migrateMockSubgraphFromL1 = async function (
@@ -174,8 +176,9 @@ describe('L2GNS', () => {
       const subgraphData = await gns.subgraphs(l1SubgraphId)
 
       expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l1Done).eq(true)
+      expect(migrationData.l1Done).eq(false)
       expect(migrationData.l2Done).eq(false)
+      expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(nSignal)
@@ -212,8 +215,9 @@ describe('L2GNS', () => {
       const subgraphData = await gns.subgraphs(l1SubgraphId)
 
       expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l1Done).eq(true)
+      expect(migrationData.l1Done).eq(false)
       expect(migrationData.l2Done).eq(false)
+      expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(nSignal)
@@ -391,6 +395,99 @@ describe('L2GNS', () => {
         .connect(me.signer)
         .finishSubgraphMigrationFromL1(l1SubgraphId, HashZero, metadata, metadata)
       await expect(tx).revertedWith('GNS: deploymentID != 0')
+    })
+  })
+  describe('deprecating a subgraph with an unfinished migration from L1', function () {
+    it('deprecates the subgraph and sets the withdrawableGRT', async function () {
+      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint256'],
+        [l1SubgraphId, me.address, nSignal],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      await advanceBlocks(50400)
+
+      const tx = gns
+        .connect(other.signer) // Can be called by anyone
+        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
+      await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(l1SubgraphId, curatedTokens)
+
+      const subgraphAfter = await gns.subgraphs(l1SubgraphId)
+      const migrationDataAfter = await gns.subgraphL2MigrationData(l1SubgraphId)
+      expect(subgraphAfter.vSignal).eq(0)
+      expect(migrationDataAfter.l2Done).eq(true)
+      expect(subgraphAfter.disabled).eq(true)
+      expect(subgraphAfter.subgraphDeploymentID).eq(HashZero)
+      expect(subgraphAfter.withdrawableGRT).eq(curatedTokens)
+
+      // Check that the curator can withdraw the GRT
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      // Note the signal is assigned to other.address as beneficiary
+      await gns
+        .connect(mockL1GNSL2Alias)
+        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      const curatorBalanceBefore = await grt.balanceOf(other.address)
+      const expectedTokensOut = curatedTokens.mul(toGRT('10')).div(nSignal)
+      const withdrawTx = await gns.connect(other.signer).withdraw(l1SubgraphId)
+      await expect(withdrawTx)
+        .emit(gns, 'GRTWithdrawn')
+        .withArgs(l1SubgraphId, other.address, toGRT('10'), expectedTokensOut)
+      const curatorBalanceAfter = await grt.balanceOf(other.address)
+      expect(curatorBalanceAfter.sub(curatorBalanceBefore)).eq(expectedTokensOut)
+    })
+    it('rejects calls if not enough time has passed', async function () {
+      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint256'],
+        [l1SubgraphId, me.address, nSignal],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      await advanceBlocks(50399)
+
+      const tx = gns
+        .connect(other.signer) // Can be called by anyone
+        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
+      await expect(tx).revertedWith('TOO_EARLY')
+    })
+    it('rejects calls if the subgraph migration was finished', async function () {
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+        await defaultL1SubgraphParams()
+      const callhookData = defaultAbiCoder.encode(
+        ['uint256', 'address', 'uint256'],
+        [l1SubgraphId, me.address, nSignal],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      await advanceBlocks(50400)
+
+      await gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          subgraphMetadata,
+          versionMetadata,
+        )
+
+      const tx = gns
+        .connect(other.signer) // Can be called by anyone
+        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
+      await expect(tx).revertedWith('ALREADY_FINISHED')
+    })
+    it('rejects calls for a subgraph that does not exist', async function () {
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+
+      const tx = gns.connect(me.signer).deprecateSubgraphMigratedFromL1(l1SubgraphId)
+      await expect(tx).revertedWith('INVALID_SUBGRAPH')
+    })
+    it('rejects calls for a subgraph that was not migrated', async function () {
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+
+      const tx = gns.connect(me.signer).deprecateSubgraphMigratedFromL1(l2Subgraph.id)
+      await expect(tx).revertedWith('INVALID_SUBGRAPH')
     })
   })
   describe('claiming a curator balance with a message from L1', function () {
