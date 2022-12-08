@@ -10,7 +10,6 @@ import {
   getL2SignerFromL1,
   setAccountBalance,
   latestBlock,
-  advanceBlocks,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 import { toBN } from '../lib/testHelpers'
@@ -23,7 +22,6 @@ import {
   burnSignal,
   DEFAULT_RESERVE_RATIO,
   deprecateSubgraph,
-  getTokensAndVSignal,
   mintSignal,
   publishNewSubgraph,
   publishNewVersion,
@@ -40,7 +38,6 @@ interface L1SubgraphParams {
   curatedTokens: BigNumber
   subgraphMetadata: string
   versionMetadata: string
-  nSignal: BigNumber
 }
 
 describe('L2GNS', () => {
@@ -89,7 +86,6 @@ describe('L2GNS', () => {
       curatedTokens: toGRT('1337'),
       subgraphMetadata: randomHexBytes(),
       versionMetadata: randomHexBytes(),
-      nSignal: toGRT('45670'),
     }
   }
   const migrateMockSubgraphFromL1 = async function (
@@ -97,11 +93,10 @@ describe('L2GNS', () => {
     curatedTokens: BigNumber,
     subgraphMetadata: string,
     versionMetadata: string,
-    nSignal: BigNumber,
   ) {
     const callhookData = defaultAbiCoder.encode(
-      ['uint256', 'address', 'uint256'],
-      [l1SubgraphId, me.address, nSignal],
+      ['uint8', 'uint256', 'address'],
+      [toBN(0), l1SubgraphId, me.address],
     )
     await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -243,10 +238,10 @@ describe('L2GNS', () => {
 
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
-      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gns
         .connect(me.signer)
@@ -254,22 +249,20 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
-      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gatewayFinalizeTransfer(me.address, gns.address, curatedTokens, callhookData)
 
       await expect(tx).revertedWith('ONLY_L1_GNS_THROUGH_BRIDGE')
     })
     it('creates a subgraph in a disabled state', async function () {
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
-      const curatedTokens = toGRT('1337')
-      const nSignal = toBN('4567')
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -291,7 +284,7 @@ describe('L2GNS', () => {
       expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
-      expect(subgraphData.nSignal).eq(nSignal)
+      expect(subgraphData.nSignal).eq(0)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
       expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
@@ -302,12 +295,10 @@ describe('L2GNS', () => {
     it('does not conflict with a locally created subgraph', async function () {
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
 
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('0'), 1)
-      const curatedTokens = toGRT('1337')
-      const nSignal = toBN('4567')
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gatewayFinalizeTransfer(
         mockL1GNS.address,
@@ -329,7 +320,7 @@ describe('L2GNS', () => {
       expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
-      expect(subgraphData.nSignal).eq(nSignal)
+      expect(subgraphData.nSignal).eq(0)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
       expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
@@ -350,11 +341,11 @@ describe('L2GNS', () => {
 
   describe('finishing a subgraph migration from L1', function () {
     it('publishes the migrated subgraph and mints signal with no tax', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       // Calculate expected signal before minting
@@ -389,13 +380,15 @@ describe('L2GNS', () => {
       expect(migrationDataAfter.l2Done).eq(true)
       expect(subgraphAfter.disabled).eq(false)
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
+      const expectedNSignal = await gns.vSignalToNSignal(l1SubgraphId, expectedSignal)
+      expect(await gns.getCuratorSignal(l1SubgraphId, me.address)).eq(expectedNSignal)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -438,11 +431,11 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('INVALID_SUBGRAPH')
     })
     it('accepts calls to a pre-curated subgraph deployment', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -490,13 +483,11 @@ describe('L2GNS', () => {
       )
     })
     it('rejects calls if the subgraph deployment ID is zero', async function () {
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
-      const curatedTokens = toGRT('1337')
       const metadata = randomHexBytes()
-      const nSignal = toBN('4567')
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
 
@@ -506,139 +497,60 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('GNS: deploymentID != 0')
     })
   })
-  describe('deprecating a subgraph with an unfinished migration from L1', function () {
-    it('deprecates the subgraph and sets the withdrawableGRT', async function () {
-      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
-      const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
-      )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
-
-      await advanceBlocks(50400)
-
-      const tx = gns
-        .connect(other.signer) // Can be called by anyone
-        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
-      await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(l1SubgraphId, curatedTokens)
-
-      const subgraphAfter = await gns.subgraphs(l1SubgraphId)
-      const migrationDataAfter = await gns.subgraphL2MigrationData(l1SubgraphId)
-      expect(subgraphAfter.vSignal).eq(0)
-      expect(migrationDataAfter.l2Done).eq(true)
-      expect(subgraphAfter.disabled).eq(true)
-      expect(subgraphAfter.subgraphDeploymentID).eq(HashZero)
-      expect(subgraphAfter.withdrawableGRT).eq(curatedTokens)
-
-      // Check that the curator can withdraw the GRT
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
-      // Note the signal is assigned to other.address as beneficiary
-      await gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      const curatorBalanceBefore = await grt.balanceOf(other.address)
-      const expectedTokensOut = curatedTokens.mul(toGRT('10')).div(nSignal)
-      const withdrawTx = await gns.connect(other.signer).withdraw(l1SubgraphId)
-      await expect(withdrawTx)
-        .emit(gns, 'GRTWithdrawn')
-        .withArgs(l1SubgraphId, other.address, toGRT('10'), expectedTokensOut)
-      const curatorBalanceAfter = await grt.balanceOf(other.address)
-      expect(curatorBalanceAfter.sub(curatorBalanceBefore)).eq(expectedTokensOut)
-    })
-    it('rejects calls if not enough time has passed', async function () {
-      const { l1SubgraphId, curatedTokens, nSignal } = await defaultL1SubgraphParams()
-      const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
-      )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
-
-      await advanceBlocks(50399)
-
-      const tx = gns
-        .connect(other.signer) // Can be called by anyone
-        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
-      await expect(tx).revertedWith('TOO_EARLY')
-    })
-    it('rejects calls if the subgraph migration was finished', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
-        await defaultL1SubgraphParams()
-      const callhookData = defaultAbiCoder.encode(
-        ['uint256', 'address', 'uint256'],
-        [l1SubgraphId, me.address, nSignal],
-      )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
-
-      await advanceBlocks(50400)
-
-      await gns
-        .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
-          l1SubgraphId,
-          newSubgraph0.subgraphDeploymentID,
-          subgraphMetadata,
-          versionMetadata,
-        )
-
-      const tx = gns
-        .connect(other.signer) // Can be called by anyone
-        .deprecateSubgraphMigratedFromL1(l1SubgraphId)
-      await expect(tx).revertedWith('ALREADY_FINISHED')
-    })
-    it('rejects calls for a subgraph that does not exist', async function () {
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
-
-      const tx = gns.connect(me.signer).deprecateSubgraphMigratedFromL1(l1SubgraphId)
-      await expect(tx).revertedWith('INVALID_SUBGRAPH')
-    })
-    it('rejects calls for a subgraph that was not migrated', async function () {
-      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
-
-      const tx = gns.connect(me.signer).deprecateSubgraphMigratedFromL1(l2Subgraph.id)
-      await expect(tx).revertedWith('INVALID_SUBGRAPH')
-    })
-  })
-  describe('claiming a curator balance with a message from L1', function () {
+  describe('claiming a curator balance with a message from L1 (onTokenTransfer)', function () {
     it('assigns a curator balance to a beneficiary', async function () {
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       await migrateMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
         versionMetadata,
-        nSignal,
       )
 
-      const tx = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      const l2OwnerSignalBefore = await gns.getCuratorSignal(l1SubgraphId, me.address)
+
+      const newCuratorTokens = toGRT('10')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, other.address],
+      )
+      const tx = await gatewayFinalizeTransfer(
+        mockL1GNS.address,
+        gns.address,
+        newCuratorTokens,
+        callhookData,
+      )
+
       await expect(tx)
-        .emit(gns, 'CuratorBalanceClaimed')
-        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
-      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
-      const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
-      expect(l1CuratorBalance).eq(0)
-      expect(l2CuratorBalance).eq(toGRT('10'))
+        .emit(gns, 'CuratorBalanceReceived')
+        .withArgs(l1SubgraphId, other.address, newCuratorTokens)
+
+      const l2NewCuratorSignal = await gns.getCuratorSignal(l1SubgraphId, other.address)
+      const expectedNewCuratorSignal = await gns.vSignalToNSignal(
+        l1SubgraphId,
+        await curation.tokensToSignalNoTax(newSubgraph0.subgraphDeploymentID, newCuratorTokens),
+      )
+      const l2OwnerSignalAfter = await gns.getCuratorSignal(l1SubgraphId, me.address)
+      expect(l2OwnerSignalAfter).eq(l2OwnerSignalBefore)
+      expect(l2NewCuratorSignal).eq(expectedNewCuratorSignal)
     })
-    it('adds the balance to any existing balance for the beneficiary', async function () {
+    it('adds the signal to any existing signal for the beneficiary', async function () {
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       await migrateMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
         versionMetadata,
-        nSignal,
       )
 
       await grt.connect(governor.signer).mint(other.address, toGRT('10'))
@@ -646,98 +558,124 @@ describe('L2GNS', () => {
       await gns.connect(other.signer).mintSignal(l1SubgraphId, toGRT('10'), toBN(0))
       const prevSignal = await gns.getCuratorSignal(l1SubgraphId, other.address)
 
-      const tx = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      const newCuratorTokens = toGRT('10')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, other.address],
+      )
+      const tx = await gatewayFinalizeTransfer(
+        mockL1GNS.address,
+        gns.address,
+        newCuratorTokens,
+        callhookData,
+      )
+
       await expect(tx)
-        .emit(gns, 'CuratorBalanceClaimed')
-        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
-      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
+        .emit(gns, 'CuratorBalanceReceived')
+        .withArgs(l1SubgraphId, other.address, newCuratorTokens)
+
+      const expectedNewCuratorSignal = await gns.vSignalToNSignal(
+        l1SubgraphId,
+        await curation.tokensToSignalNoTax(newSubgraph0.subgraphDeploymentID, newCuratorTokens),
+      )
       const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
-      expect(l1CuratorBalance).eq(0)
-      expect(l2CuratorBalance).eq(prevSignal.add(toGRT('10')))
+      expect(l2CuratorBalance).eq(prevSignal.add(expectedNewCuratorSignal))
     })
-    it('can only be called from the counterpart GNS L2 alias', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
+    it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       await migrateMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
         versionMetadata,
-        nSignal,
       )
-
-      const tx = gns
-        .connect(governor.signer)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      await expect(tx).revertedWith('ONLY_COUNTERPART_GNS')
-
-      const tx2 = gns
-        .connect(me.signer)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      await expect(tx2).revertedWith('ONLY_COUNTERPART_GNS')
-
-      const tx3 = gns
-        .connect(mockL1GNS.signer)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      await expect(tx3).revertedWith('ONLY_COUNTERPART_GNS')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const tx = gns.connect(me.signer).onTokenTransfer(mockL1GNS.address, toGRT('1'), callhookData)
+      await expect(tx).revertedWith('ONLY_GATEWAY')
     })
-    it('rejects calls for a subgraph that does not exist', async function () {
+    it('rejects calls if the L1 sender is not the L1GNS', async function () {
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        subgraphMetadata,
+        versionMetadata,
+      )
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const tx = gatewayFinalizeTransfer(me.address, gns.address, toGRT('1'), callhookData)
+
+      await expect(tx).revertedWith('ONLY_L1_GNS_THROUGH_BRIDGE')
+    })
+    it('if a subgraph does not exist, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId } = await defaultL1SubgraphParams()
 
-      const tx = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      await expect(tx).revertedWith('!MIGRATED')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, toGRT('1'))
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
-    it('rejects calls for an L2-native subgraph', async function () {
+    it('for an L2-native subgraph, it sends the tokens to the beneficiary', async function () {
+      // This should never really happen unless there's a clash in subgraph IDs (which should
+      // also never happen), but we test it anyway to ensure it's a well-defined behavior
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
 
-      const tx = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l2Subgraph.id!, me.address, toGRT('10'), other.address)
-      await expect(tx).revertedWith('!MIGRATED')
-    })
-    it('rejects calls if the balance was already claimed', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
-      // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
-
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata, nSignal } =
-        await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
-        l1SubgraphId,
-        curatedTokens,
-        subgraphMetadata,
-        versionMetadata,
-        nSignal,
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l2Subgraph.id!, me.address],
       )
-
-      const tx = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
-        .emit(gns, 'CuratorBalanceClaimed')
-        .withArgs(l1SubgraphId, me.address, other.address, toGRT('10'))
-      const l1CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, me.address)
-      const l2CuratorBalance = await gns.getCuratorSignal(l1SubgraphId, other.address)
-      expect(l1CuratorBalance).eq(0)
-      expect(l2CuratorBalance).eq(toGRT('10'))
-
-      // Now trying again should revert
-      const tx2 = gns
-        .connect(mockL1GNSL2Alias)
-        .claimL1CuratorBalanceToBeneficiary(l1SubgraphId, me.address, toGRT('10'), other.address)
-      await expect(tx2).revertedWith('ALREADY_CLAIMED')
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l2Subgraph.id!, me.address, toGRT('1'))
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
+    })
+  })
+  describe('onTokenTransfer with invalid codes', function () {
+    it('reverts', async function () {
+      // This should never really happen unless the Arbitrum bridge is compromised,
+      // so we test it anyway to ensure it's a well-defined behavior.
+      // code 2 does not exist:
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(2), toBN(1337), me.address],
+      )
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      await expect(tx).revertedWith('INVALID_CODE')
     })
   })
 })

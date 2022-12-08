@@ -12,14 +12,11 @@ interface IL2Curation {
      * only during an L1-L2 migration).
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokensIn Amount of Graph Tokens to deposit
-     * @param _signalOutMin Expected minimum amount of signal to receive
      * @return Signal minted
      */
-    function mintTaxFree(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokensIn,
-        uint256 _signalOutMin
-    ) external returns (uint256);
+    function mintTaxFree(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        returns (uint256);
 
     /**
      * @notice Calculate amount of signal that can be bought with tokens in a curation pool,

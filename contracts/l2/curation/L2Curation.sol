@@ -231,22 +231,20 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * only during an L1-L2 migration).
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokensIn Amount of Graph Tokens to deposit
-     * @param _signalOutMin Expected minimum amount of signal to receive
      * @return Signal minted
      */
-    function mintTaxFree(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokensIn,
-        uint256 _signalOutMin
-    ) external override notPartialPaused onlyGNS returns (uint256) {
+    function mintTaxFree(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        override
+        notPartialPaused
+        onlyGNS
+        returns (uint256)
+    {
         // Need to deposit some funds
         require(_tokensIn != 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool (no tax)
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
-
-        // Slippage protection
-        require(signalOut >= _signalOutMin, "Slippage protection");
 
         address curator = msg.sender;
         CurationPool storage curationPool = pools[_subgraphDeploymentID];

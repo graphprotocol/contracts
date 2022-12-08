@@ -23,22 +23,18 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
  * transaction.
  * This L1GNS variant includes some functions to allow migrating subgraphs to L2.
  */
-contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
+contract L1GNS is GNS, L1GNSV1Storage {
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph was sent to L2 through the bridge
     event SubgraphSentToL2(uint256 indexed _subgraphID, address indexed _l2Owner);
-    /// @dev Emitted when the address of the Arbitrum Inbox was updated
-    event ArbitrumInboxAddressUpdated(address _inbox);
 
-    /**
-     * @dev sets the addresses for L1 inbox provided by Arbitrum
-     * @param _inbox Address of the Inbox that is part of the Arbitrum Bridge
-     */
-    function setArbitrumInboxAddress(address _inbox) external onlyGovernor {
-        arbitrumInboxAddress = _inbox;
-        emit ArbitrumInboxAddressUpdated(_inbox);
-    }
+    /// @dev Emitted when a curator's balance for a subgraph was sent to L2
+    event CuratorBalanceSentToL2(
+        uint256 indexed _subgraphID,
+        address indexed _curator,
+        uint256 _tokens
+    );
 
     /**
      * @notice Send a subgraph's data and tokens to L2.
@@ -72,20 +68,33 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
 
-        bytes memory extraData = _encodeSubgraphDataForL2(_subgraphID, _l2Owner, subgraphData);
+        // We send only the subgraph owner's tokens and nsignal to L2,
+        // and for everyone else we set the withdrawableGRT so that they can choose
+        // to withdraw or migrate their signal.
+        uint256 ownerNSignal = subgraphData.curatorNSignal[msg.sender];
+        uint256 totalSignal = subgraphData.nSignal;
 
-        bytes memory data = abi.encode(_maxSubmissionCost, extraData);
-        IGraphToken grt = graphToken();
-        ITokenGateway gateway = graphTokenGateway();
-        grt.approve(address(gateway), curationTokens);
-        gateway.outboundTransfer{ value: msg.value }({
-            _token: address(grt),
-            _to: counterpartGNSAddress,
-            _amount: curationTokens,
-            _maxGas: _maxGas,
-            _gasPriceBid: _gasPriceBid,
-            _data: data
-        });
+        // Get owner share of tokens to be sent to L2
+        uint256 tokensForL2 = ownerNSignal.mul(curationTokens).div(totalSignal);
+        // This leaves the subgraph as if it was deprecated,
+        // so other curators can withdraw:
+        subgraphData.curatorNSignal[msg.sender] = 0;
+        subgraphData.nSignal = totalSignal.sub(ownerNSignal);
+        subgraphData.withdrawableGRT = curationTokens.sub(tokensForL2);
+
+        bytes memory extraData = abi.encode(
+            uint8(IL2GNS.L1MessageCodes.RECEIVE_SUBGRAPH_CODE),
+            _subgraphID,
+            _l2Owner
+        );
+
+        _sendTokensAndMessageToL2GNS(
+            tokensForL2,
+            _maxGas,
+            _gasPriceBid,
+            _maxSubmissionCost,
+            extraData
+        );
 
         subgraphData.reserveRatioDeprecated = 0;
         _burnNFT(_subgraphID);
@@ -93,99 +102,88 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     }
 
     /**
-     * @notice Claim the balance for a curator's signal in a subgraph that was
-     * migrated to L2, by sending a retryable ticket to the L2GNS.
+     * @notice Send the balance for a curator's signal in a subgraph that was
+     * migrated to L2, using the L1GraphTokenGateway.
      * The balance will be claimed for a beneficiary address, as this method can be
      * used by curators that use a contract address in L1 that may not exist in L2.
      * This will set the curator's signal on L1 to zero, so the caller must ensure
      * that the retryable ticket is redeemed before expiration, or the signal will be lost.
+     * It is up to the caller to verify that the subgraph migration was finished in L2,
+     * but if it wasn't, the tokens will be sent to the beneficiary in L2.
      * @dev Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
      * @param _beneficiary Address that will receive the tokens in L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
-     * @return The sequence ID for the retryable ticket, as returned by the Arbitrum inbox.
      */
-    function claimCuratorBalanceToBeneficiaryOnL2(
+    function sendCuratorBalanceToBeneficiaryOnL2(
         uint256 _subgraphID,
         address _beneficiary,
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external payable notPartialPaused returns (bytes memory) {
+    ) external payable notPartialPaused {
         require(subgraphMigratedToL2[_subgraphID], "!MIGRATED");
 
         // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 
-        L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
-
-        uint256 curatorNSignal = getCuratorSignal(_subgraphID, msg.sender);
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        uint256 curatorNSignal = subgraphData.curatorNSignal[msg.sender];
         require(curatorNSignal != 0, "NO_SIGNAL");
-        bytes memory outboundCalldata = getClaimCuratorBalanceOutboundCalldata(
+        uint256 subgraphNSignal = subgraphData.nSignal;
+        require(subgraphNSignal != 0, "NO_SUBGRAPH_SIGNAL");
+
+        uint256 tokensForL2 = curatorNSignal.mul(subgraphData.withdrawableGRT).div(subgraphNSignal);
+        bytes memory extraData = abi.encode(
+            uint8(IL2GNS.L1MessageCodes.RECEIVE_CURATOR_BALANCE_CODE),
             _subgraphID,
-            curatorNSignal,
-            msg.sender,
             _beneficiary
         );
 
-        // Similarly to withdrawing from a deprecated subgraph,
-        // we remove the curator's signal from the subgraph.
-        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        // Set the subgraph as if the curator had withdrawn their tokens
         subgraphData.curatorNSignal[msg.sender] = 0;
-        subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
+        subgraphData.nSignal = subgraphNSignal.sub(curatorNSignal);
+        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT.sub(tokensForL2);
 
-        uint256 seqNum = sendTxToL2({
-            _inbox: arbitrumInboxAddress,
-            _to: counterpartGNSAddress,
-            _user: msg.sender,
-            _l1CallValue: msg.value,
-            _l2CallValue: 0,
-            _l2GasParams: gasParams,
-            _data: outboundCalldata
-        });
-
-        return abi.encode(seqNum);
+        // Send the tokens and data to L2 using the L1GraphTokenGateway
+        _sendTokensAndMessageToL2GNS(
+            tokensForL2,
+            _maxGas,
+            _gasPriceBid,
+            _maxSubmissionCost,
+            extraData
+        );
     }
 
     /**
-     * @notice Get the outbound calldata that will be sent to L2
-     * when calling claimCuratorBalanceToBeneficiaryOnL2.
-     * This can be useful to estimate the L2 retryable ticket parameters.
-     * @param _subgraphID Subgraph ID
-     * @param _curatorNSignal Curator's signal in the subgraph
-     * @param _curator Curator address
-     * @param _beneficiary Address that will own the signal in L2
+     * @notice Sends a message to the L2GNS with some extra data,
+     * also sending some tokens, using the L1GraphTokenGateway.
+     * @param _tokens Amount of tokens to send to L2
+     * @param _maxGas Max gas to use for the L2 retryable ticket
+     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * @param _extraData Extra data for the callhook on L2GNS
      */
-    function getClaimCuratorBalanceOutboundCalldata(
-        uint256 _subgraphID,
-        uint256 _curatorNSignal,
-        address _curator,
-        address _beneficiary
-    ) public pure returns (bytes memory) {
-        return
-            abi.encodeWithSelector(
-                IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
-                _subgraphID,
-                _curator,
-                _curatorNSignal,
-                _beneficiary
-            );
-    }
-
-    /**
-     * @dev Encodes the subgraph data as callhook parameters
-     * for the L2 migration.
-     * @param _subgraphID Subgraph ID
-     * @param _l2Owner Owner of the subgraph on L2
-     * @param _subgraphData Subgraph data
-     */
-    function _encodeSubgraphDataForL2(
-        uint256 _subgraphID,
-        address _l2Owner,
-        SubgraphData storage _subgraphData
-    ) internal view returns (bytes memory) {
-        return abi.encode(_subgraphID, _l2Owner, _subgraphData.nSignal);
+    function _sendTokensAndMessageToL2GNS(
+        uint256 _tokens,
+        uint256 _maxGas,
+        uint256 _gasPriceBid,
+        uint256 _maxSubmissionCost,
+        bytes memory _extraData
+    ) internal {
+        bytes memory data = abi.encode(_maxSubmissionCost, _extraData);
+        IGraphToken grt = graphToken();
+        ITokenGateway gateway = graphTokenGateway();
+        grt.approve(address(gateway), _tokens);
+        gateway.outboundTransfer{ value: msg.value }(
+            address(grt),
+            counterpartGNSAddress,
+            _tokens,
+            _maxGas,
+            _gasPriceBid,
+            data
+        );
     }
 }

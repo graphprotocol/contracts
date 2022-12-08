@@ -10,8 +10,6 @@ pragma abicoder v2;
  * reduce the size of the gap accordingly.
  */
 abstract contract L1GNSV1Storage {
-    /// Address of the Arbitrum DelayedInbox
-    address public arbitrumInboxAddress;
     /// True for subgraph IDs that have been migrated to L2
     mapping(uint256 => bool) public subgraphMigratedToL2;
     /// @dev Storage gap to keep storage slots fixed in future versions

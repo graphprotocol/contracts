@@ -256,9 +256,7 @@ describe('L2Curation', () => {
     const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Curate
-    const tx = curation
-      .connect(gnsImpersonator)
-      .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+    const tx = curation.connect(gnsImpersonator).mintTaxFree(subgraphDeploymentID, tokensToDeposit)
     await expect(tx)
       .emit(curation, 'Signalled')
       .withArgs(gns.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, 0)
@@ -472,9 +470,7 @@ describe('L2Curation', () => {
   describe('curate tax free (from GNS)', async function () {
     it('can not be called by anyone other than GNS', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
-      const tx = curation
-        .connect(curator.signer)
-        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+      const tx = curation.connect(curator.signer).mintTaxFree(subgraphDeploymentID, tokensToDeposit)
       await expect(tx).revertedWith('Only the GNS can call this')
     })
 
@@ -482,7 +478,7 @@ describe('L2Curation', () => {
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation
         .connect(gnsImpersonator)
-        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, 0)
+        .mintTaxFree(subgraphDeploymentID, tokensToDeposit)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
     })
 
@@ -509,15 +505,6 @@ describe('L2Curation', () => {
         tokensToDeposit,
       )
       await shouldMintTaxFree(tokensToDeposit, expectedSignal)
-    })
-
-    it('should revert curate if over slippage', async function () {
-      const tokensToDeposit = toGRT('1000')
-      const expectedSignal = signalAmountFor1000Tokens
-      const tx = curation
-        .connect(gnsImpersonator)
-        .mintTaxFree(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
-      await expect(tx).revertedWith('Slippage protection')
     })
   })
 

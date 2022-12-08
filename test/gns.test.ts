@@ -235,10 +235,13 @@ describe('L1GNS', () => {
     // Give some funds to the signers and approve gns contract to use funds on signers behalf
     await grt.connect(governor.signer).mint(me.address, tokens100000)
     await grt.connect(governor.signer).mint(other.address, tokens100000)
+    await grt.connect(governor.signer).mint(another.address, tokens100000)
     await grt.connect(me.signer).approve(gns.address, tokens100000)
     await grt.connect(me.signer).approve(curation.address, tokens100000)
     await grt.connect(other.signer).approve(gns.address, tokens100000)
     await grt.connect(other.signer).approve(curation.address, tokens100000)
+    await grt.connect(another.signer).approve(gns.address, tokens100000)
+    await grt.connect(another.signer).approve(curation.address, tokens100000)
     // Update curation tax to test the functionality of it in disableNameSignal()
     await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
 
@@ -299,22 +302,6 @@ describe('L1GNS', () => {
       it('reject set `counterpartGNSAddress` if not allowed', async function () {
         const newValue = other.address
         const tx = gns.connect(me.signer).setCounterpartGNSAddress(newValue)
-        await expect(tx).revertedWith('Only Controller governor')
-      })
-    })
-
-    describe('setArbitrumInboxAddress', function () {
-      it('should set `arbitrumInboxAddress`', async function () {
-        // Can set if allowed
-        const newValue = other.address
-        const tx = gns.connect(governor.signer).setArbitrumInboxAddress(newValue)
-        await expect(tx).emit(gns, 'ArbitrumInboxAddressUpdated').withArgs(newValue)
-        expect(await gns.arbitrumInboxAddress()).eq(newValue)
-      })
-
-      it('reject set `arbitrumInboxAddress` if not allowed', async function () {
-        const newValue = other.address
-        const tx = gns.connect(me.signer).setArbitrumInboxAddress(newValue)
         await expect(tx).revertedWith('Only Controller governor')
       })
     })
@@ -1032,7 +1019,8 @@ describe('L1GNS', () => {
       const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
       // Curate on the subgraph
       await gns.connect(me.signer).mintSignal(subgraph0.id, toGRT('90000'), 0)
-
+      // Add an additional curator that is not the owner
+      await gns.connect(other.signer).mintSignal(subgraph0.id, toGRT('10000'), 0)
       return subgraph0
     }
 
@@ -1082,6 +1070,8 @@ describe('L1GNS', () => {
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await gns.subgraphs(subgraph0.id)
 
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1092,25 +1082,26 @@ describe('L1GNS', () => {
           })
         await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, other.address)
 
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+        const expectedRemainingTokens = curatedTokens.sub(expectedSentToL2)
         const subgraphAfter = await gns.subgraphs(subgraph0.id)
         expect(subgraphAfter.vSignal).eq(0)
-        expect(await grt.balanceOf(gns.address)).eq(0)
+        expect(await grt.balanceOf(gns.address)).eq(expectedRemainingTokens)
         expect(subgraphAfter.disabled).eq(true)
-        expect(subgraphAfter.withdrawableGRT).eq(0)
+        expect(subgraphAfter.withdrawableGRT).eq(expectedRemainingTokens)
 
         const migrated = await gns.subgraphMigratedToL2(subgraph0.id)
         expect(migrated).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
-          ['uint256', 'address', 'uint256'],
-          [subgraph0.id, other.address, subgraphBefore.nSignal],
+          ['uint8', 'uint256', 'address'],
+          [toBN(0), subgraph0.id, other.address], // code = 0 means RECEIVE_SUBGRAPH_CODE
         )
-
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
           mockL2GNS.address,
-          curatedTokens,
+          expectedSentToL2,
           expectedCallhookData,
         )
         await expect(tx)
@@ -1123,6 +1114,8 @@ describe('L1GNS', () => {
         const curatedTokens = await grt.balanceOf(curation.address)
         const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
 
+        const beforeOwnerSignal = await legacyGNSMock.getCuratorSignal(subgraphID, me.address)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1133,25 +1126,27 @@ describe('L1GNS', () => {
           })
         await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID, other.address)
 
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+        const expectedRemainingTokens = curatedTokens.sub(expectedSentToL2)
         const subgraphAfter = await legacyGNSMock.legacySubgraphData(me.address, seqID)
         expect(subgraphAfter.vSignal).eq(0)
-        expect(await grt.balanceOf(legacyGNSMock.address)).eq(0)
+        expect(await grt.balanceOf(legacyGNSMock.address)).eq(expectedRemainingTokens)
         expect(subgraphAfter.disabled).eq(true)
-        expect(subgraphAfter.withdrawableGRT).eq(0)
+        expect(subgraphAfter.withdrawableGRT).eq(expectedRemainingTokens)
 
         const migrated = await legacyGNSMock.subgraphMigratedToL2(subgraphID)
         expect(migrated).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
-          ['uint256', 'address', 'uint256'],
-          [subgraphID, other.address, subgraphBefore.nSignal],
+          ['uint8', 'uint256', 'address'],
+          [toBN(0), subgraphID, other.address], // code = 0 means RECEIVE_SUBGRAPH_CODE
         )
 
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           legacyGNSMock.address,
           mockL2GNS.address,
-          curatedTokens,
+          expectedSentToL2,
           expectedCallhookData,
         )
         await expect(tx)
@@ -1236,6 +1231,8 @@ describe('L1GNS', () => {
 
         const tx2 = gns.connect(me.signer).burnSignal(subgraph0.id, toBN(1), toGRT('0'))
         await expect(tx2).revertedWith('GNS: Must be active')
+        const tx3 = gns.connect(other.signer).burnSignal(subgraph0.id, toBN(1), toGRT('0'))
+        await expect(tx3).revertedWith('GNS: Must be active')
       })
       it('does not allow curators to transfer signal after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
@@ -1252,8 +1249,10 @@ describe('L1GNS', () => {
 
         const tx2 = gns.connect(me.signer).transferSignal(subgraph0.id, other.address, toBN(1))
         await expect(tx2).revertedWith('GNS: Must be active')
+        const tx3 = gns.connect(other.signer).transferSignal(subgraph0.id, me.address, toBN(1))
+        await expect(tx3).revertedWith('GNS: Must be active')
       })
-      it('does not allow curators to withdraw GRT after sending', async function () {
+      it('does not allow the owner to withdraw GRT after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
         const maxSubmissionCost = toBN('100')
@@ -1267,33 +1266,55 @@ describe('L1GNS', () => {
         await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
 
         const tx2 = gns.connect(me.signer).withdraw(subgraph0.id)
-        await expect(tx2).revertedWith('GNS: No more GRT to withdraw')
+        await expect(tx2).revertedWith('GNS: No signal to withdraw GRT')
+      })
+      it('allows a curator that is not the owner to withdraw GRT after sending', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const beforeOtherSignal = await gns.getCuratorSignal(subgraph0.id, other.address)
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+
+        const remainingTokens = (await gns.subgraphs(subgraph0.id)).withdrawableGRT
+        const tx2 = gns.connect(other.signer).withdraw(subgraph0.id)
+        await expect(tx2)
+          .emit(gns, 'GRTWithdrawn')
+          .withArgs(subgraph0.id, other.address, beforeOtherSignal, remainingTokens)
       })
     })
-    describe('claimCuratorBalanceToBeneficiaryOnL2', function () {
-      beforeEach(async function () {
-        await gns.connect(governor.signer).setArbitrumInboxAddress(arbitrumMocks.inboxMock.address)
-        await legacyGNSMock
-          .connect(governor.signer)
-          .setArbitrumInboxAddress(arbitrumMocks.inboxMock.address)
-      })
-      it('sends a transaction with a curator balance to the L2GNS using the Arbitrum inbox', async function () {
-        let beforeCuratorNSignal: BigNumber
-        const subgraph0 = await publishCurateAndSendSubgraph(async (subgraphID) => {
-          beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, me.address)
-        })
+    describe('sendCuratorBalanceToBeneficiaryOnL2', function () {
+      it('sends a transaction with a curator balance to the L2GNS using the L1 gateway', async function () {
+        const subgraph0 = await publishCurateAndSendSubgraph()
+        const afterSubgraph = await gns.subgraphs(subgraph0.id)
+        const curatorTokens = afterSubgraph.withdrawableGRT
 
-        const expectedCalldata = l2GNSIface.encodeFunctionData(
-          'claimL1CuratorBalanceToBeneficiary',
-          [subgraph0.id, me.address, beforeCuratorNSignal, other.address],
+        const expectedCallhookData = defaultAbiCoder.encode(
+          ['uint8', 'uint256', 'address'],
+          [toBN(1), subgraph0.id, other.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
         )
+        const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          gns.address,
+          mockL2GNS.address,
+          curatorTokens,
+          expectedCallhookData,
+        )
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
 
         const tx = gns
-          .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
@@ -1306,26 +1327,33 @@ describe('L1GNS', () => {
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
-          .emit(gns, 'TxToL2')
-          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data)
       })
       it('sets the curator signal to zero so it cannot be called twice', async function () {
-        let beforeCuratorNSignal: BigNumber
-        const subgraph0 = await publishCurateAndSendSubgraph(async (subgraphID) => {
-          beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, me.address)
-        })
+        const subgraph0 = await publishCurateAndSendSubgraph()
+        const afterSubgraph = await gns.subgraphs(subgraph0.id)
+        const curatorTokens = afterSubgraph.withdrawableGRT
 
-        const expectedCalldata = l2GNSIface.encodeFunctionData(
-          'claimL1CuratorBalanceToBeneficiary',
-          [subgraph0.id, me.address, beforeCuratorNSignal, other.address],
+        const expectedCallhookData = defaultAbiCoder.encode(
+          ['uint8', 'uint256', 'address'],
+          [toBN(1), subgraph0.id, other.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
         )
+        const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          gns.address,
+          mockL2GNS.address,
+          curatorTokens,
+          expectedCallhookData,
+        )
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
 
         const tx = gns
-          .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
@@ -1338,13 +1366,12 @@ describe('L1GNS', () => {
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
-          .emit(gns, 'TxToL2')
-          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
-        expect(await gns.getCuratorSignal(subgraph0.id, me.address)).to.equal(toBN(0))
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data)
 
         const tx2 = gns
-          .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
@@ -1356,30 +1383,48 @@ describe('L1GNS', () => {
           )
         await expect(tx2).revertedWith('NO_SIGNAL')
       })
-      it('sends a transaction with a curator balance from a legacy subgraph to the L2GNS', async function () {
-        const subgraphID = await publishAndCurateOnLegacySubgraph(toBN('2'))
+      it('gives each curator an amount of tokens proportional to their nSignal', async function () {
+        let beforeOtherNSignal: BigNumber
+        let beforeAnotherNSignal: BigNumber
+        const subgraph0 = await publishCurateAndSendSubgraph(async (subgraphID) => {
+          beforeOtherNSignal = await gns.getCuratorSignal(subgraphID, other.address)
+          await gns.connect(another.signer).mintSignal(subgraphID, toGRT('10000'), 0)
+          beforeAnotherNSignal = await gns.getCuratorSignal(subgraphID, another.address)
+        })
+        const afterSubgraph = await gns.subgraphs(subgraph0.id)
 
-        const beforeCuratorNSignal = await legacyGNSMock.getCuratorSignal(subgraphID, me.address)
+        // Compute how much is owed to each curator
+        const curator1Tokens = beforeOtherNSignal
+          .mul(afterSubgraph.withdrawableGRT)
+          .div(afterSubgraph.nSignal)
+        const curator2Tokens = beforeAnotherNSignal
+          .mul(afterSubgraph.withdrawableGRT)
+          .div(afterSubgraph.nSignal)
+
+        const expectedCallhookData1 = defaultAbiCoder.encode(
+          ['uint8', 'uint256', 'address'],
+          [toBN(1), subgraph0.id, other.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
+        )
+        const expectedCallhookData2 = defaultAbiCoder.encode(
+          ['uint8', 'uint256', 'address'],
+          [toBN(1), subgraph0.id, another.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
+        )
+        const expectedL2Data1 = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          gns.address,
+          mockL2GNS.address,
+          curator1Tokens,
+          expectedCallhookData1,
+        )
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = legacyGNSMock
-          .connect(me.signer)
-          .sendSubgraphToL2(subgraphID, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID, me.address)
 
-        const expectedCalldata = l2GNSIface.encodeFunctionData(
-          'claimL1CuratorBalanceToBeneficiary',
-          [subgraphID, me.address, beforeCuratorNSignal, other.address],
-        )
-
-        const tx2 = legacyGNSMock
-          .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
-            subgraphID,
+        const tx = gns
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
             other.address,
             maxGas,
             gasPriceBid,
@@ -1390,9 +1435,36 @@ describe('L1GNS', () => {
           )
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data1)
+
+        // Accept slight numerical errors given how we compute the amount of tokens to send
+        const curator2TokensUpdated = (await gns.subgraphs(subgraph0.id)).withdrawableGRT
+        expect(toRound(toFloat(curator2TokensUpdated))).to.equal(toRound(toFloat(curator2Tokens)))
+        const expectedL2Data2 = await l1GraphTokenGateway.getOutboundCalldata(
+          grt.address,
+          gns.address,
+          mockL2GNS.address,
+          curator2TokensUpdated,
+          expectedCallhookData2,
+        )
+        const tx2 = gns
+          .connect(another.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            another.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+        // seqNum (third argument in the event) is 3 now
         await expect(tx2)
-          .emit(legacyGNSMock, 'TxToL2')
-          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
+          .emit(l1GraphTokenGateway, 'TxToL2')
+          .withArgs(gns.address, mockL2Gateway.address, toBN('3'), expectedL2Data2)
       })
       it('rejects calls for a subgraph that was not sent to L2', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
@@ -1403,7 +1475,7 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
@@ -1429,7 +1501,7 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
@@ -1451,7 +1523,7 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me.signer)
-          .claimCuratorBalanceToBeneficiaryOnL2(
+          .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
             other.address,
             maxGas,
