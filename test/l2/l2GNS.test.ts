@@ -20,9 +20,15 @@ import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import {
   buildSubgraph,
   buildSubgraphID,
+  burnSignal,
   DEFAULT_RESERVE_RATIO,
+  deprecateSubgraph,
+  getTokensAndVSignal,
+  mintSignal,
   publishNewSubgraph,
+  publishNewVersion,
   PublishSubgraph,
+  Subgraph,
 } from '../lib/gnsUtils'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
@@ -54,6 +60,12 @@ describe('L2GNS', () => {
   let grt: GraphToken
 
   let newSubgraph0: PublishSubgraph
+  let newSubgraph1: PublishSubgraph
+
+  const tokens1000 = toGRT('1000')
+  const tokens10000 = toGRT('10000')
+  const tokens100000 = toGRT('100000')
+  const curationTaxPercentage = 50000
 
   const gatewayFinalizeTransfer = async function (
     from: string,
@@ -128,6 +140,105 @@ describe('L2GNS', () => {
 
   afterEach(async function () {
     await fixture.tearDown()
+  })
+
+  // Adapted from the L1 GNS tests but allowing curating to a pre-curated subgraph deployment
+  describe('publishNewVersion', async function () {
+    let subgraph: Subgraph
+
+    beforeEach(async () => {
+      newSubgraph0 = buildSubgraph()
+      newSubgraph1 = buildSubgraph()
+      // Give some funds to the signers and approve gns contract to use funds on signers behalf
+      await grt.connect(governor.signer).mint(me.address, tokens100000)
+      await grt.connect(governor.signer).mint(other.address, tokens100000)
+      await grt.connect(me.signer).approve(gns.address, tokens100000)
+      await grt.connect(me.signer).approve(curation.address, tokens100000)
+      await grt.connect(other.signer).approve(gns.address, tokens100000)
+      await grt.connect(other.signer).approve(curation.address, tokens100000)
+      // Update curation tax to test the functionality of it in disableNameSignal()
+      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+      subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      await mintSignal(me, subgraph.id, tokens10000, gns, curation)
+    })
+
+    it('should publish a new version on an existing subgraph', async function () {
+      await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
+    })
+
+    it('should publish a new version on an existing subgraph with no current signal', async function () {
+      const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph(), gns)
+      await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1, gns, curation)
+    })
+
+    it('should reject a new version with the same subgraph deployment ID', async function () {
+      const tx = gns
+        .connect(me.signer)
+        .publishNewVersion(
+          subgraph.id,
+          newSubgraph0.subgraphDeploymentID,
+          newSubgraph0.versionMetadata,
+        )
+      await expect(tx).revertedWith(
+        'GNS: Cannot publish a new version with the same subgraph deployment ID',
+      )
+    })
+
+    it('should reject publishing a version to a subgraph that does not exist', async function () {
+      const tx = gns
+        .connect(me.signer)
+        .publishNewVersion(
+          randomHexBytes(32),
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+    })
+
+    it('reject if not the owner', async function () {
+      const tx = gns
+        .connect(other.signer)
+        .publishNewVersion(
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx).revertedWith('GNS: Must be authorized')
+    })
+
+    it('should NOT fail when upgrade tries to point to a pre-curated', async function () {
+      // Curate directly to the deployment
+      await curation.connect(me.signer).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+
+      await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
+    })
+
+    it('should upgrade version when there is no signal with no signal migration', async function () {
+      await burnSignal(me, subgraph.id, gns, curation)
+      const tx = gns
+        .connect(me.signer)
+        .publishNewVersion(
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+    })
+
+    it('should fail when subgraph is deprecated', async function () {
+      await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
+      const tx = gns
+        .connect(me.signer)
+        .publishNewVersion(
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
+      await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+    })
   })
 
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
