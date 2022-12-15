@@ -1286,6 +1286,54 @@ describe('L1GNS', () => {
 
         await expect(tx).revertedWith('GNS: Must be active')
       })
+      it('does not allow curators to burn signal after sending', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+
+        const tx2 = gns.connect(me.signer).burnSignal(subgraph0.id, toBN(1), toGRT('0'))
+        await expect(tx2).revertedWith('GNS: Must be active')
+      })
+      it('does not allow curators to transfer signal after sending', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+
+        const tx2 = gns.connect(me.signer).transferSignal(subgraph0.id, other.address, toBN(1))
+        await expect(tx2).revertedWith('GNS: Must be active')
+      })
+      it('does not allow curators to withdraw GRT after sending', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+
+        const tx2 = gns.connect(me.signer).withdraw(subgraph0.id)
+        await expect(tx2).revertedWith('GNS: No more GRT to withdraw')
+      })
     })
     describe('claimCuratorBalanceToBeneficiaryOnL2', function () {
       beforeEach(async function () {
