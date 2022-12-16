@@ -507,7 +507,40 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
       })
     })
-
+    describe('subgraphTokens', function () {
+      it('should return the correct number of tokens for a subgraph', async function () {
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const taxForMe = (
+          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
+        )[1]
+        await mintSignal(me, subgraph.id, tokens10000, gns, curation)
+        const taxForOther = (
+          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000)
+        )[1]
+        await mintSignal(other, subgraph.id, tokens1000, gns, curation)
+        expect(await gns.subgraphTokens(subgraph.id)).eq(
+          tokens10000.add(tokens1000).sub(taxForMe).sub(taxForOther),
+        )
+      })
+    })
+    describe('subgraphSignal', function () {
+      it('should return the correct amount of signal for a subgraph', async function () {
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const vSignalForMe = (
+          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
+        )[0]
+        await mintSignal(me, subgraph.id, tokens10000, gns, curation)
+        const vSignalForOther = (
+          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000)
+        )[0]
+        await mintSignal(other, subgraph.id, tokens1000, gns, curation)
+        const expectedSignal = await gns.vSignalToNSignal(
+          subgraph.id,
+          vSignalForMe.add(vSignalForOther),
+        )
+        expect(await gns.subgraphSignal(subgraph.id)).eq(expectedSignal)
+      })
+    })
     describe('deprecateSubgraph', async function () {
       let subgraph: Subgraph
 
