@@ -879,6 +879,18 @@ describe('L1GNS', () => {
   })
 
   describe('NFT descriptor', function () {
+    it('cannot be minted by an account that is not the minter (i.e. GNS)', async function () {
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      const tx = subgraphNFT.connect(me.signer).mint(me.address, 1)
+      await expect(tx).revertedWith('Must be a minter')
+    })
+    it('cannot be burned by an account that is not the minter (i.e. GNS)', async function () {
+      const subgraphNFTAddress = await gns.subgraphNFT()
+      const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
+      const tx = subgraphNFT.connect(me.signer).burn(1)
+      await expect(tx).revertedWith('Must be a minter')
+    })
     it('with token descriptor', async function () {
       const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
 
