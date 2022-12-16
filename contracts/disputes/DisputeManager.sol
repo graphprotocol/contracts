@@ -563,7 +563,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _disputeID ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute = _resolveDispute(_disputeID);
+        Dispute memory dispute = disputes[_disputeID];
 
         // Slash
         (, uint256 tokensToReward) = _slashIndexer(
