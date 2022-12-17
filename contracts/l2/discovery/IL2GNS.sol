@@ -26,9 +26,9 @@ interface IL2GNS is ICallhookReceiver {
 
     /**
      * @notice Deprecate a subgraph that was migrated from L1, but for which
-     * the migration was never finished. Anyone can call this function after 50400 blocks
-     * (one day) have passed since the subgraph was migrated, if the subgraph owner didn't
-     * call finishSubgraphMigrationFromL1.
+     * the migration was never finished. Anyone can call this function after a certain amount of
+     * blocks have passed since the subgraph was migrated, if the subgraph owner didn't
+     * call finishSubgraphMigrationFromL1. In L2GNS this timeout is the FINISH_MIGRATION_TIMEOUT constant.
      * @param _subgraphID Subgraph ID
      */
     function deprecateSubgraphMigratedFromL1(uint256 _subgraphID) external;
