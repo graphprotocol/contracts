@@ -482,6 +482,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             DisputeType.QueryDispute
         );
 
+        // store the dispute status
+        disputeStatus[disputeID] = IDisputeManager.DisputeStatus.Pending;
+
         emit QueryDisputeCreated(
             disputeID,
             indexer,
@@ -549,6 +552,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             DisputeType.IndexingDispute
         );
 
+        // store dispute status
+        disputeStatus[disputeID] = IDisputeManager.DisputeStatus.Pending;
+
         emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
 
         return disputeID;
@@ -563,7 +569,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _disputeID ID of the dispute to be accepted
      */
     function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute = disputes[_disputeID];
+        Dispute memory dispute = _resolveDispute(_disputeID);
+
+        // store dispute status
+        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
         (, uint256 tokensToReward) = _slashIndexer(
@@ -594,6 +603,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     function rejectDispute(bytes32 _disputeID) external override onlyArbitrator {
         Dispute memory dispute = _resolveDispute(_disputeID);
 
+        // store dispute status
+        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Rejected;
+
         // Handle conflicting dispute if any
         require(
             !_isDisputeInConflict(dispute),
@@ -613,6 +625,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      */
     function drawDispute(bytes32 _disputeID) external override onlyArbitrator {
         Dispute memory dispute = _resolveDispute(_disputeID);
+
+        // store dispute status
+        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Drawn;
 
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);

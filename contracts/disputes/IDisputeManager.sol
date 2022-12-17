@@ -12,6 +12,13 @@ interface IDisputeManager {
         QueryDispute
     }
 
+    enum DisputeStatus {
+        Accepted,
+        Rejected,
+        Drawn,
+        Pending
+    }
+
     // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
         address indexer;

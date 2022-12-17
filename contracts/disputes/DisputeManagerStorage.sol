@@ -31,4 +31,8 @@ contract DisputeManagerV1Storage is Managed {
     // Disputes created : disputeID => Dispute
     // disputeID - check creation functions to see how disputeID is built
     mapping(bytes32 => IDisputeManager.Dispute) public disputes;
+
+    // Dispute status : disputeID => DisputeStatus
+    // disputeID - check creation functions to see how disputeID is built
+    mapping(bytes32 => IDisputeManager.DisputeStatus) public disputeStatus;
 }
