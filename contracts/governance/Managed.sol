@@ -26,8 +26,8 @@ import { IManaged } from "./IManaged.sol";
 abstract contract Managed is IManaged {
     // -- State --
 
-    /// Controller that contract is registered with
-    IController public controller;
+    /// Controller that manages this contract
+    IController public override controller;
     /// @dev Cache for the addresses of the contracts retrieved from the controller
     mapping(bytes32 => address) private _addressCache;
     /// @dev Gap for future storage variables
@@ -230,7 +230,7 @@ abstract contract Managed is IManaged {
      * Anyone can call the function whenever a Proxy contract change in the
      * controller to ensure the protocol is using the latest version
      */
-    function syncAllContracts() external {
+    function syncAllContracts() external override {
         _syncContract("Curation");
         _syncContract("EpochManager");
         _syncContract("RewardsManager");

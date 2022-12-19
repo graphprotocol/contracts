@@ -8,6 +8,13 @@ import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 import { Managed } from "../governance/Managed.sol";
 
+/**
+ * @title Curation Storage version 1
+ * @dev This contract holds the first version of the storage variables
+ * for the Curation and L2Curation contracts.
+ * When adding new variables, create a new version that inherits this and update
+ * the contracts to use the new version instead.
+ */
 abstract contract CurationV1Storage is Managed, ICuration {
     // -- Pool --
 
@@ -49,6 +56,15 @@ abstract contract CurationV1Storage is Managed, ICuration {
     mapping(bytes32 => CurationPool) public pools;
 }
 
+/**
+ * @title Curation Storage version 2
+ * @dev This contract holds the second version of the storage variables
+ * for the Curation and L2Curation contracts.
+ * It doesn't add new variables at this contract's level, but adds the Initializable
+ * contract to the inheritance chain, which includes storage variables.
+ * When adding new variables, create a new version that inherits this and update
+ * the contracts to use the new version instead.
+ */
 abstract contract CurationV2Storage is CurationV1Storage, Initializable {
     // Nothing here, just adding Initializable
 }
