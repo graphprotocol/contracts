@@ -161,7 +161,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         );
 
         // Collect new funds into reserve
-        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         curationPool.tokens = curationPool.tokens.add(_tokens);
 
         emit Collected(_subgraphDeploymentID, _tokens);
@@ -189,7 +189,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         require(signalOut >= _signalOutMin, "Slippage protection");
 
         address curator = msg.sender;
-        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
@@ -251,7 +251,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         require(signalOut >= _signalOutMin, "Slippage protection");
 
         address curator = msg.sender;
-        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
 
         // If it hasn't been curated before then initialize the curve
         if (!isCurated(_subgraphDeploymentID)) {
@@ -319,7 +319,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         _updateRewards(_subgraphDeploymentID);
 
         // Update curation pool
-        CurationPool storage curationPool = _pools[_subgraphDeploymentID];
+        CurationPool storage curationPool = pools[_subgraphDeploymentID];
         curationPool.tokens = curationPool.tokens.sub(tokensOut);
         curationPool.gcs.burnFrom(curator, _signalIn);
 
@@ -348,20 +348,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         override
         returns (uint256)
     {
-        return _pools[_subgraphDeploymentID].tokens;
-    }
-
-    /**
-     * @notice Get a curation pool for a subgraph deployment
-     * @dev We add this when making the pools variable internal, to keep
-     * backwards compatibility.
-     * @param _subgraphDeploymentID Subgraph deployment for which to get the curation pool
-     * @return Curation pool for the subgraph deployment
-     */
-    function pools(bytes32 _subgraphDeploymentID) external view returns (CurationPool memory) {
-        CurationPool memory pool = _pools[_subgraphDeploymentID];
-        pool.reserveRatio = fixedReserveRatio;
-        return pool;
+        return pools[_subgraphDeploymentID].tokens;
     }
 
     /**
@@ -370,7 +357,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @return True if curated
      */
     function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
-        return _pools[_subgraphDeploymentID].tokens != 0;
+        return pools[_subgraphDeploymentID].tokens != 0;
     }
 
     /**
@@ -385,7 +372,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         override
         returns (uint256)
     {
-        IGraphCurationToken gcs = _pools[_subgraphDeploymentID].gcs;
+        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.balanceOf(_curator);
     }
 
@@ -400,7 +387,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         override
         returns (uint256)
     {
-        IGraphCurationToken gcs = _pools[_subgraphDeploymentID].gcs;
+        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.totalSupply();
     }
 
@@ -451,7 +438,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         override
         returns (uint256)
     {
-        CurationPool memory curationPool = _pools[_subgraphDeploymentID];
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
             curationPool.tokens != 0,
@@ -529,7 +516,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         returns (uint256)
     {
         // Get curation pool tokens and signal
-        CurationPool memory curationPool = _pools[_subgraphDeploymentID];
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
         // Init curation pool
         if (curationPool.tokens == 0) {

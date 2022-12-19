@@ -17,7 +17,7 @@ abstract contract CurationV1Storage is Managed, ICuration {
      */
     struct CurationPool {
         uint256 tokens; // GRT Tokens stored as reserves for the subgraph deployment
-        uint32 reserveRatio; // Ratio for the bonding curve, unused in L2
+        uint32 reserveRatio; // Ratio for the bonding curve, unused and deprecated in L2 where it will always be 100% but appear as 0
         IGraphCurationToken gcs; // Curation token contract for this curation pool
     }
 
@@ -46,7 +46,7 @@ abstract contract CurationV1Storage is Managed, ICuration {
 
     /// @dev Mapping of subgraphDeploymentID => CurationPool
     /// There is only one CurationPool per SubgraphDeploymentID
-    mapping(bytes32 => CurationPool) internal _pools;
+    mapping(bytes32 => CurationPool) public pools;
 }
 
 abstract contract CurationV2Storage is CurationV1Storage, Initializable {

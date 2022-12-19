@@ -72,6 +72,10 @@ describe('L2Curation:Config', () => {
       // Set right in the constructor
       expect(await curation.defaultReserveRatio()).eq(MAX_PPM)
     })
+    it('cannot be changed because the setter is not implemented', async function () {
+      const tx = curation.connect(governor.signer).setDefaultReserveRatio(10)
+      await expect(tx).revertedWith('Not implemented in L2')
+    })
   })
 
   describe('minimumCurationDeposit', function () {
@@ -234,7 +238,8 @@ describe('L2Curation', () => {
     // Allocated and balance updated
     expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit.sub(curationTax)))
     expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
-    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    // Pool reserveRatio is deprecated and therefore always zero in L2
+    expect(afterPool.reserveRatio).eq(0)
     // Contract balance updated
     expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit.sub(curationTax)))
     // Total supply is reduced to curation tax burning
@@ -272,7 +277,8 @@ describe('L2Curation', () => {
     // Allocated and balance updated
     expect(afterPool.tokens).eq(beforePool.tokens.add(tokensToDeposit))
     expect(afterPoolSignal).eq(beforePoolSignal.add(expectedSignal))
-    expect(afterPool.reserveRatio).eq(await curation.defaultReserveRatio())
+    // Pool reserveRatio is deprecated and therefore always zero in L2
+    expect(afterPool.reserveRatio).eq(0)
     // Contract balance updated
     expect(afterTotalTokens).eq(beforeTotalTokens.add(tokensToDeposit))
     // Total supply is reduced to curation tax burning
