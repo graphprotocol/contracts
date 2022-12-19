@@ -156,7 +156,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         migratedData.l2Done = true;
         uint256 withdrawableGRT = migratedData.tokens;
         subgraphData.withdrawableGRT = withdrawableGRT;
-        subgraphData.reserveRatio = 0;
+        subgraphData.reserveRatioDeprecated = 0;
         _burnNFT(_subgraphID);
         emit SubgraphDeprecated(_subgraphID, withdrawableGRT);
     }
@@ -278,7 +278,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
-        subgraphData.reserveRatio = fixedReserveRatio;
+        subgraphData.reserveRatioDeprecated = fixedReserveRatio;
         // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
         subgraphData.disabled = true;
         subgraphData.nSignal = _nSignal;

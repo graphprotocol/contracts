@@ -294,7 +294,7 @@ describe('L2GNS', () => {
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(nSignal)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
-      expect(subgraphData.reserveRatio).eq(DEFAULT_RESERVE_RATIO)
+      expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
       expect(subgraphData.withdrawableGRT).eq(0) // Important so that it's not the same as a deprecated subgraph!
 
@@ -333,7 +333,7 @@ describe('L2GNS', () => {
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(nSignal)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
-      expect(subgraphData.reserveRatio).eq(DEFAULT_RESERVE_RATIO)
+      expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
       expect(subgraphData.withdrawableGRT).eq(0) // Important so that it's not the same as a deprecated subgraph!
 
@@ -344,7 +344,7 @@ describe('L2GNS', () => {
       expect(l2SubgraphData.vSignal).eq(0)
       expect(l2SubgraphData.nSignal).eq(0)
       expect(l2SubgraphData.subgraphDeploymentID).eq(l2Subgraph.subgraphDeploymentID)
-      expect(l2SubgraphData.reserveRatio).eq(DEFAULT_RESERVE_RATIO)
+      expect(l2SubgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
       expect(l2SubgraphData.disabled).eq(false)
       expect(l2SubgraphData.withdrawableGRT).eq(0)
     })

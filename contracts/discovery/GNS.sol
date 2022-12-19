@@ -258,7 +258,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 subgraphID = _nextSubgraphID(subgraphOwner);
         SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
-        subgraphData.reserveRatio = fixedReserveRatio;
+        subgraphData.reserveRatioDeprecated = fixedReserveRatio;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
@@ -372,7 +372,7 @@ contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Deprecate the subgraph and do cleanup
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
-        subgraphData.reserveRatio = 0;
+        subgraphData.reserveRatioDeprecated = 0;
         // NOTE: We don't reset the following variable as we use it to test if the Subgraph was ever created
         // subgraphData.subgraphDeploymentID = 0;
 

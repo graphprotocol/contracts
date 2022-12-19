@@ -20,7 +20,7 @@ export interface Subgraph {
   vSignal: BigNumber
   nSignal: BigNumber
   subgraphDeploymentID: string
-  reserveRatio: number
+  reserveRatioDeprecated: number
   disabled: boolean
   withdrawableGRT: BigNumber
   id?: string
@@ -102,7 +102,7 @@ export const publishNewSubgraph = async (
   expect(subgraph.vSignal).eq(0)
   expect(subgraph.nSignal).eq(0)
   expect(subgraph.subgraphDeploymentID).eq(newSubgraph.subgraphDeploymentID)
-  expect(subgraph.reserveRatio).eq(DEFAULT_RESERVE_RATIO)
+  expect(subgraph.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
   expect(subgraph.disabled).eq(false)
   expect(subgraph.withdrawableGRT).eq(0)
 
@@ -313,7 +313,7 @@ export const deprecateSubgraph = async (
   // Signal for the deployment must be all burned
   expect(afterSubgraph.vSignal.eq(toBN('0')))
   // Cleanup reserve ratio
-  expect(afterSubgraph.reserveRatio).eq(0)
+  expect(afterSubgraph.reserveRatioDeprecated).eq(0)
   // Should be equal since owner pays curation tax
   expect(afterSubgraph.withdrawableGRT).eq(beforeTokens)
 

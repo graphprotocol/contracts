@@ -87,7 +87,6 @@ describe('L1GNS', () => {
   async function calcGNSBondingCurve(
     gnsSupply: BigNumber, // nSignal
     gnsReserveBalance: BigNumber, // vSignal
-    gnsReserveRatio: number, // default reserve ratio of GNS
     depositAmount: BigNumber, // GRT deposited
     subgraphID: string,
   ): Promise<number> {
@@ -753,7 +752,6 @@ describe('L1GNS', () => {
           const expectedNSignal = await calcGNSBondingCurve(
             beforeSubgraph.nSignal,
             beforeSubgraph.vSignal,
-            beforeSubgraph.reserveRatio,
             tokensToDeposit.sub(curationTax),
             beforeSubgraph.subgraphDeploymentID,
           )
