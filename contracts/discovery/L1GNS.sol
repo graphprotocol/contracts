@@ -99,6 +99,9 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      * migrated to L2, by sending a retryable ticket to the L2GNS.
      * The balance will be claimed for a beneficiary address, as this method can be
      * used by curators that use a contract address in L1 that may not exist in L2.
+     * This will set the curator's signal on L1 to zero, so the caller must ensure
+     * that the retryable ticket is redeemed before expiration, or the signal will be lost.
+     * @dev Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
      * @param _beneficiary Address that will receive the tokens in L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
@@ -122,11 +125,20 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
 
         L2GasParams memory gasParams = L2GasParams(_maxSubmissionCost, _maxGas, _gasPriceBid);
 
+        uint256 curatorNSignal = getCuratorSignal(_subgraphID, msg.sender);
+        require(curatorNSignal != 0, "NO_SIGNAL");
         bytes memory outboundCalldata = getClaimCuratorBalanceOutboundCalldata(
             _subgraphID,
+            curatorNSignal,
             msg.sender,
             _beneficiary
         );
+
+        // Similarly to withdrawing from a deprecated subgraph,
+        // we remove the curator's signal from the subgraph.
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
+        subgraphData.curatorNSignal[msg.sender] = 0;
+        subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
 
         uint256 seqNum = sendTxToL2(
             arbitrumInboxAddress,
@@ -146,11 +158,13 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
      * when calling claimCuratorBalanceToBeneficiaryOnL2.
      * This can be useful to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
+     * @param _curatorNSignal Curator's signal in the subgraph
      * @param _curator Curator address
      * @param _beneficiary Address that will own the signal in L2
      */
     function getClaimCuratorBalanceOutboundCalldata(
         uint256 _subgraphID,
+        uint256 _curatorNSignal,
         address _curator,
         address _beneficiary
     ) public view returns (bytes memory) {
@@ -159,7 +173,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
                 IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
                 _subgraphID,
                 _curator,
-                getCuratorSignal(_subgraphID, _curator),
+                _curatorNSignal,
                 _beneficiary
             );
     }

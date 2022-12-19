@@ -1311,6 +1311,53 @@ describe('L1GNS', () => {
           .emit(gns, 'TxToL2')
           .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
       })
+      it('sets the curator signal to zero so it cannot be called twice', async function () {
+        let beforeCuratorNSignal: BigNumber
+        const subgraph0 = await publishCurateAndSendSubgraph(async (subgraphID) => {
+          beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, me.address)
+        })
+
+        const expectedCalldata = l2GNSIface.encodeFunctionData(
+          'claimL1CuratorBalanceToBeneficiary',
+          [subgraph0.id, me.address, beforeCuratorNSignal, other.address],
+        )
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx)
+          .emit(gns, 'TxToL2')
+          .withArgs(me.address, mockL2GNS.address, toBN('2'), expectedCalldata)
+        expect(await gns.getCuratorSignal(subgraph0.id, me.address)).to.equal(toBN(0))
+
+        const tx2 = gns
+          .connect(me.signer)
+          .claimCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+        await expect(tx2).revertedWith('NO_SIGNAL')
+      })
       it('sends a transaction with a curator balance from a legacy subgraph to the L2GNS', async function () {
         const subgraphID = await publishAndCurateOnLegacySubgraph(toBN('2'))
 
