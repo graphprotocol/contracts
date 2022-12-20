@@ -56,15 +56,13 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
-        SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
-
-        require(!migrationData.l1Done, "ALREADY_DONE");
+        require(!subgraphMigratedToL2[_subgraphID], "ALREADY_DONE");
 
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
-        // This is just like onlySubgraphAuth, but we want it to run after the l1Done check
+        // This is just like onlySubgraphAuth, but we want it to run after the subgraphMigratedToL2 check
         // to revert with a nicer message in that case:
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
-        migrationData.l1Done = true;
+        subgraphMigratedToL2[_subgraphID] = true;
 
         uint256 curationTokens = curation().burn(
             subgraphData.subgraphDeploymentID,
@@ -116,9 +114,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused returns (bytes memory) {
-        SubgraphL2MigrationData storage migrationData = subgraphL2MigrationData[_subgraphID];
-
-        require(migrationData.l1Done, "!MIGRATED");
+        require(subgraphMigratedToL2[_subgraphID], "!MIGRATED");
 
         // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");

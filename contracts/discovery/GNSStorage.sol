@@ -68,8 +68,6 @@ abstract contract GNSV2Storage is GNSV1Storage {
  * reduce the size of the gap accordingly.
  */
 abstract contract GNSV3Storage is GNSV2Storage, Initializable {
-    /// Data for subgraph migration from L1 to L2, some fields will be empty or set differently on each layer
-    mapping(uint256 => IGNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
     /// Address of the counterpart GNS contract (L1GNS/L2GNS)
     address public counterpartGNSAddress;
     /// @dev Gap to allow adding variables in future upgrades (since L1GNS and L2GNS have their own storage as well)

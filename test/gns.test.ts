@@ -1098,8 +1098,8 @@ describe('L1GNS', () => {
         expect(subgraphAfter.disabled).eq(true)
         expect(subgraphAfter.withdrawableGRT).eq(0)
 
-        const migrationData = await gns.subgraphL2MigrationData(subgraph0.id)
-        expect(migrationData.l1Done).eq(true)
+        const migrated = await gns.subgraphMigratedToL2(subgraph0.id)
+        expect(migrated).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint256', 'address', 'uint256'],
@@ -1139,8 +1139,8 @@ describe('L1GNS', () => {
         expect(subgraphAfter.disabled).eq(true)
         expect(subgraphAfter.withdrawableGRT).eq(0)
 
-        const migrationData = await legacyGNSMock.subgraphL2MigrationData(subgraphID)
-        expect(migrationData.l1Done).eq(true)
+        const migrated = await legacyGNSMock.subgraphMigratedToL2(subgraphID)
+        expect(migrated).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint256', 'address', 'uint256'],

@@ -100,7 +100,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         bytes32 _subgraphMetadata,
         bytes32 _versionMetadata
     ) external override notPartialPaused onlySubgraphAuth(_subgraphID) {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         // A subgraph
         require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
@@ -144,7 +144,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         override
         notPartialPaused
     {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
         require(!migratedData.l2Done, "ALREADY_FINISHED");
         require(
@@ -176,7 +176,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _balance,
         address _beneficiary
     ) external override notPartialPaused onlyL1Counterpart {
-        GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
 
         require(migratedData.l2Done, "!MIGRATED");
         require(!migratedData.curatorBalanceClaimed[_curator], "ALREADY_CLAIMED");
@@ -275,7 +275,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _tokens,
         uint256 _nSignal
     ) internal {
-        IGNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
         subgraphData.reserveRatioDeprecated = fixedReserveRatio;

@@ -24,20 +24,6 @@ interface IGNS {
     }
 
     /**
-     * @dev The SubgraphL2MigrationData struct holds information
-     * about a subgraph related to its migration from L1 to L2.
-     * Some fields of this are used by the L1GNS, and some are used by
-     * the L2GNS.
-     */
-    struct SubgraphL2MigrationData {
-        uint256 tokens; // GRT that will be sent to L2 to mint signal
-        bool l1Done; // Migration finished on L1 side
-        mapping(address => bool) curatorBalanceClaimed; // True for curators whose balance has been claimed in L2
-        bool l2Done; // Migration finished on L2 side
-        uint256 subgraphReceivedOnL2BlockNumber; // Block number when the subgraph was received on L2
-    }
-
-    /**
      * @dev The LegacySubgraphKey struct holds the account and sequence ID
      * used to generate subgraph IDs in legacy subgraphs.
      */

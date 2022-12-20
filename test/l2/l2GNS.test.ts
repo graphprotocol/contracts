@@ -287,7 +287,6 @@ describe('L2GNS', () => {
       const subgraphData = await gns.subgraphs(l1SubgraphId)
 
       expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l1Done).eq(false)
       expect(migrationData.l2Done).eq(false)
       expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
@@ -326,7 +325,6 @@ describe('L2GNS', () => {
       const subgraphData = await gns.subgraphs(l1SubgraphId)
 
       expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l1Done).eq(false)
       expect(migrationData.l2Done).eq(false)
       expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
