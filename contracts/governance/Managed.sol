@@ -40,6 +40,7 @@ abstract contract Managed is IManaged {
     bytes32 private immutable STAKING = keccak256("Staking");
     bytes32 private immutable GRAPH_TOKEN = keccak256("GraphToken");
     bytes32 private immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
+    bytes32 private immutable GNS = keccak256("GNS");
 
     // -- Events --
 
@@ -195,7 +196,7 @@ abstract contract Managed is IManaged {
      * @return Address of the GNS contract registered with Controller, as an IGNS interface.
      */
     function gns() internal view returns (IGNS) {
-        return IGNS(_resolveContract(keccak256("GNS")));
+        return IGNS(_resolveContract(GNS));
     }
 
     /**
@@ -213,14 +214,13 @@ abstract contract Managed is IManaged {
 
     /**
      * @dev Cache a contract address from the Controller registry.
-     * @param _name Name of the contract to sync into the cache
+     * @param _nameHash keccak256 hash of the name of the contract to sync into the cache
      */
-    function _syncContract(string memory _name) internal {
-        bytes32 nameHash = keccak256(abi.encodePacked(_name));
-        address contractAddress = controller.getContractProxy(nameHash);
-        if (_addressCache[nameHash] != contractAddress) {
-            _addressCache[nameHash] = contractAddress;
-            emit ContractSynced(nameHash, contractAddress);
+    function _syncContract(bytes32 _nameHash) internal {
+        address contractAddress = controller.getContractProxy(_nameHash);
+        if (_addressCache[_nameHash] != contractAddress) {
+            _addressCache[_nameHash] = contractAddress;
+            emit ContractSynced(_nameHash, contractAddress);
         }
     }
 
@@ -231,12 +231,12 @@ abstract contract Managed is IManaged {
      * controller to ensure the protocol is using the latest version
      */
     function syncAllContracts() external override {
-        _syncContract("Curation");
-        _syncContract("EpochManager");
-        _syncContract("RewardsManager");
-        _syncContract("Staking");
-        _syncContract("GraphToken");
-        _syncContract("GraphTokenGateway");
-        _syncContract("GNS");
+        _syncContract(CURATION);
+        _syncContract(EPOCH_MANAGER);
+        _syncContract(REWARDS_MANAGER);
+        _syncContract(STAKING);
+        _syncContract(GRAPH_TOKEN);
+        _syncContract(GRAPH_TOKEN_GATEWAY);
+        _syncContract(GNS);
     }
 }
