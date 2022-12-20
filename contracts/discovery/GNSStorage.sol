@@ -17,7 +17,7 @@ import { ISubgraphNFT } from "./ISubgraphNFT.sol";
 abstract contract GNSV1Storage is Managed {
     // -- State --
 
-    /// Percentage of curation tax that must be paid by the owner, in parts per hundred.
+    /// Percentage of curation tax that must be paid by the owner, in parts per million.
     uint32 public ownerTaxPercentage;
 
     /// [DEPRECATED] Bonding curve formula.
