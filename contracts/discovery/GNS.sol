@@ -7,7 +7,6 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import { Multicall } from "../base/Multicall.sol";
-import { BancorFormula } from "../bancor/BancorFormula.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 import { ICuration } from "../curation/ICuration.sol";

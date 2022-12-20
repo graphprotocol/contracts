@@ -2,8 +2,6 @@
 
 pragma solidity ^0.7.6;
 
-import "./IGraphCurationToken.sol";
-
 /**
  * @title Curation Interface
  * @dev Interface for the Curation contract (and L2Curation too)

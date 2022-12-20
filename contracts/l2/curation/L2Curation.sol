@@ -7,7 +7,6 @@ import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/Ad
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import { BancorFormula } from "../../bancor/BancorFormula.sol";
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
 import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
@@ -16,7 +15,6 @@ import { IGraphToken } from "../../token/IGraphToken.sol";
 import { CurationV2Storage } from "../../curation/CurationStorage.sol";
 import { ICuration } from "../../curation/ICuration.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
-import { GraphCurationToken } from "../../curation/GraphCurationToken.sol";
 import { IL2Curation } from "./IL2Curation.sol";
 
 /**

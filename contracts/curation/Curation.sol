@@ -16,7 +16,6 @@ import { IGraphToken } from "../token/IGraphToken.sol";
 import { CurationV2Storage } from "./CurationStorage.sol";
 import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
-import { GraphCurationToken } from "./GraphCurationToken.sol";
 
 /**
  * @title Curation contract
