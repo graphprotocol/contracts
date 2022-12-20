@@ -167,7 +167,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         uint256 _curatorNSignal,
         address _curator,
         address _beneficiary
-    ) public view returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         return
             abi.encodeWithSelector(
                 IL2GNS.claimL1CuratorBalanceToBeneficiary.selector,
