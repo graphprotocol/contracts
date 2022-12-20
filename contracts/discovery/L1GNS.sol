@@ -78,14 +78,14 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         IGraphToken grt = graphToken();
         ITokenGateway gateway = graphTokenGateway();
         grt.approve(address(gateway), curationTokens);
-        gateway.outboundTransfer{ value: msg.value }(
-            address(grt),
-            counterpartGNSAddress,
-            curationTokens,
-            _maxGas,
-            _gasPriceBid,
-            data
-        );
+        gateway.outboundTransfer{ value: msg.value }({
+            _token: address(grt),
+            _to: counterpartGNSAddress,
+            _amount: curationTokens,
+            _maxGas: _maxGas,
+            _gasPriceBid: _gasPriceBid,
+            _data: data
+        });
 
         subgraphData.reserveRatioDeprecated = 0;
         _burnNFT(_subgraphID);
@@ -136,15 +136,15 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
         subgraphData.curatorNSignal[msg.sender] = 0;
         subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
 
-        uint256 seqNum = sendTxToL2(
-            arbitrumInboxAddress,
-            counterpartGNSAddress,
-            msg.sender,
-            msg.value,
-            0,
-            gasParams,
-            outboundCalldata
-        );
+        uint256 seqNum = sendTxToL2({
+            _inbox: arbitrumInboxAddress,
+            _to: counterpartGNSAddress,
+            _user: msg.sender,
+            _l1CallValue: msg.value,
+            _l2CallValue: 0,
+            _l2GasParams: gasParams,
+            _data: outboundCalldata
+        });
 
         return abi.encode(seqNum);
     }
