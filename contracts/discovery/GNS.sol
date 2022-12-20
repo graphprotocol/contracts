@@ -25,7 +25,7 @@ import { GNSV3Storage } from "./GNSStorage.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  */
-contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
+abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     using SafeMathUpgradeable for uint256;
 
     // -- Constants --
