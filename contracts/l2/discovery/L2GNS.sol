@@ -66,7 +66,10 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
     /**
      * @notice Receive tokens with a callhook from the bridge.
-     * The callhook will receive a subgraph from L1.
+     * The callhook will receive a subgraph from L1. The _data parameter
+     * must contain the ABI encoding of:
+     * (uint256 subgraphID, address subgraphOwner, uint256 nSignal)
+     * This is encoded by _encodeSubgraphDataForL2 in L1GNS.
      * @param _from Token sender in L1 (must be the L1GNS)
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data
