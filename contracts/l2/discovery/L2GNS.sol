@@ -33,14 +33,14 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     uint256 public constant FINISH_MIGRATION_TIMEOUT = 50400;
 
     /// @dev Emitted when a subgraph is received from L1 through the bridge
-    event SubgraphReceivedFromL1(uint256 _subgraphID);
+    event SubgraphReceivedFromL1(uint256 indexed _subgraphID);
     /// @dev Emitted when a subgraph migration from L1 is finalized, so the subgraph is published
-    event SubgraphMigrationFinalized(uint256 _subgraphID);
+    event SubgraphMigrationFinalized(uint256 indexed _subgraphID);
     /// @dev Emitted when the L1 balance for a curator has been claimed
     event CuratorBalanceClaimed(
-        uint256 _subgraphID,
-        address _l1Curator,
-        address _l2Curator,
+        uint256 indexed _subgraphID,
+        address indexed _l1Curator,
+        address indexed _l2Curator,
         uint256 _nSignalClaimed
     );
 

@@ -27,7 +27,7 @@ contract L1GNS is GNS, L1GNSV1Storage, L1ArbitrumMessenger {
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph was sent to L2 through the bridge
-    event SubgraphSentToL2(uint256 _subgraphID, address _l2Owner);
+    event SubgraphSentToL2(uint256 indexed _subgraphID, address indexed _l2Owner);
     /// @dev Emitted when the address of the Arbitrum Inbox was updated
     event ArbitrumInboxAddressUpdated(address _inbox);
 
