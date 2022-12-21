@@ -26,6 +26,7 @@ interface IDisputeManager {
         uint256 deposit;
         bytes32 relatedDisputeID;
         DisputeType disputeType;
+        DisputeStatus status;
     }
 
     // -- Attestation --

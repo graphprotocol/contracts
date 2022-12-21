@@ -479,11 +479,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             _fisherman,
             _deposit,
             0, // no related dispute,
-            DisputeType.QueryDispute
+            DisputeType.QueryDispute,
+            IDisputeManager.DisputeStatus.Pending
         );
-
-        // store the dispute status
-        disputeStatus[disputeID] = IDisputeManager.DisputeStatus.Pending;
 
         emit QueryDisputeCreated(
             disputeID,
@@ -549,15 +547,22 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
             _fisherman,
             _deposit,
             0,
-            DisputeType.IndexingDispute
+            DisputeType.IndexingDispute,
+            IDisputeManager.DisputeStatus.Pending
         );
-
-        // store dispute status
-        disputeStatus[disputeID] = IDisputeManager.DisputeStatus.Pending;
 
         emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
 
         return disputeID;
+    }
+
+    modifier onlyPendingDispute(bytes32 _disputeID) {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+        require(
+            disputes[_disputeID].status == IDisputeManager.DisputeStatus.Pending,
+            "Dispute must be pending"
+        );
+        _;
     }
 
     /**
@@ -568,11 +573,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
      */
-    function acceptDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute = _resolveDispute(_disputeID);
+    function acceptDispute(bytes32 _disputeID)
+        external
+        override
+        onlyArbitrator
+        onlyPendingDispute(_disputeID)
+    {
+        Dispute storage dispute = disputes[_disputeID];
 
-        // store dispute status
-        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Accepted;
+        // store the dispute status
+        dispute.status = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
         (, uint256 tokensToReward) = _slashIndexer(
@@ -584,8 +594,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         // Give the fisherman their deposit back
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
-        // Resolve the conflicting dispute if any
-        _resolveDisputeInConflict(dispute);
+        if (_isDisputeInConflict(dispute)) {
+            rejectDispute(dispute.relatedDisputeID);
+        }
 
         emit DisputeAccepted(
             _disputeID,
@@ -600,11 +611,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Reject a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be rejected
      */
-    function rejectDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute = _resolveDispute(_disputeID);
+    function rejectDispute(bytes32 _disputeID)
+        public
+        override
+        onlyArbitrator
+        onlyPendingDispute(_disputeID)
+    {
+        Dispute storage dispute = disputes[_disputeID];
 
         // store dispute status
-        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Rejected;
+        dispute.status = IDisputeManager.DisputeStatus.Rejected;
 
         // Handle conflicting dispute if any
         require(
@@ -623,17 +639,24 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
-    function drawDispute(bytes32 _disputeID) external override onlyArbitrator {
-        Dispute memory dispute = _resolveDispute(_disputeID);
+    function drawDispute(bytes32 _disputeID)
+        public
+        override
+        onlyArbitrator
+        onlyPendingDispute(_disputeID)
+    {
+        Dispute storage dispute = disputes[_disputeID];
 
         // store dispute status
-        disputeStatus[_disputeID] = IDisputeManager.DisputeStatus.Drawn;
+        dispute.status = IDisputeManager.DisputeStatus.Drawn;
 
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
         // Resolve the conflicting dispute if any
-        _resolveDisputeInConflict(dispute);
+        if (_isDisputeInConflict(dispute)) {
+            drawDispute(dispute.relatedDisputeID);
+        }
 
         emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
@@ -643,24 +666,26 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _disputeID ID of the dispute to resolve
      * @return Dispute
      */
-    function _resolveDispute(bytes32 _disputeID) private returns (Dispute memory) {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+    // function _resolveDispute(bytes32 _disputeID) private returns (Dispute memory) {
+    //     require(isDisputeCreated(_disputeID), "Dispute does not exist");
 
-        Dispute memory dispute = disputes[_disputeID];
+    //     Dispute memory dispute = disputes[_disputeID];
 
-        // Resolve dispute
-        delete disputes[_disputeID]; // Re-entrancy
+    //     // Resolve dispute
+    //     delete disputes[_disputeID]; // Re-entrancy
 
-        return dispute;
-    }
+    //     return dispute;
+    // }
 
     /**
      * @dev Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
-    function _isDisputeInConflict(Dispute memory _dispute) private pure returns (bool) {
-        return _dispute.relatedDisputeID != 0;
+    function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
+        bytes32 relatedID = _dispute.relatedDisputeID;
+        return
+            relatedID != 0 && disputes[relatedID].status == IDisputeManager.DisputeStatus.Pending;
     }
 
     /**
@@ -668,14 +693,15 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _dispute Dispute
      * @return True if resolved
      */
-    function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
-        if (_isDisputeInConflict(_dispute)) {
-            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
-            delete disputes[relatedDisputeID];
-            return true;
-        }
-        return false;
-    }
+    // function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
+    //     if (_isDisputeInConflict(_dispute)) {
+    //         bytes32 relatedDisputeID = _dispute.relatedDisputeID;
+    //         Dispute storage relatedDispute = disputes[relatedDisputeID];
+    //         delete disputes[relatedDisputeID];
+    //         return true;
+    //     }
+    //     return false;
+    // }
 
     /**
      * @dev Pull deposit from submitter account.
