@@ -1168,14 +1168,8 @@
         "txHash": "0xf68a5e1e516ee9a646f19bbe4d58336fdfcf5fc859f84cdac5e68b00bcd3a09a"
       }
     },
-    "EthereumDIDRegistry": {
-      "address": "0x8e682A68FD23F83CDde73b87B7F9b9b9B1cafB0B",
-      "creationCodeHash": "0x20cd202f7991716a84c097da5fbd365fd27f7f35f241f82c529ad7aba18b814b",
-      "runtimeCodeHash": "0x5f396ffd54b6cd6b3faded0f366c5d7e148cc54743926061be2dfd12a75391de",
-      "txHash": "0x8d989de5024b9685b339bddeb6ba6d9efb51b489728934f93a9a91cb6bd330fd"
-    },
     "IEthereumDIDRegistry": {
-      "address": "0x8e682A68FD23F83CDde73b87B7F9b9b9B1cafB0B"
+      "address": "0x8FFfcD6a85D29E9C33517aaf60b16FE4548f517E"
     }
   }
 }
