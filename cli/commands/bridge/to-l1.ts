@@ -10,6 +10,7 @@ import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { providers } from 'ethers'
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
+import { getL2ToL1MessageReader, getL2ToL1MessageWriter } from '../../arbitrum'
 
 const FOURTEEN_DAYS_IN_SECONDS = 24 * 3600 * 14
 
@@ -99,10 +100,11 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     'outboundTransfer(address,address,uint256,bytes)',
     params,
   )
-  const l2Receipt = new L2TransactionReceipt(receipt)
-  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
 
-  const ethBlockNum = l2ToL1Message.getFirstExecutableBlock(l2Provider)
+  const l2ToL1Message = await getL2ToL1MessageReader(receipt, cli.wallet.provider, l2Provider)
+  const l2Receipt = new L2TransactionReceipt(receipt)
+
+  const ethBlockNum = await l2ToL1Message.getFirstExecutableBlock(l2Provider)
   if (ethBlockNum === null) {
     logger.info(`L2 to L1 message can or already has been executed. If not finalized call`)
   } else {
@@ -157,11 +159,12 @@ export const finishSendToL1 = async (
     txHash = allEvents[allEvents.length - 1].transactionHash
   }
   logger.info(`Getting receipt from transaction ${txHash}`)
-  const receipt = await l2Provider.getTransactionReceipt(txHash)
-
-  const l2Receipt = new L2TransactionReceipt(receipt)
-  logger.info(`Getting L2 to L1 message...`)
-  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
+  const l2ToL1Message = await getL2ToL1MessageWriter(
+    txHash,
+    cli.wallet.provider,
+    l2Provider,
+    cli.wallet,
+  )
 
   if (wait) {
     const retryDelayMs = cliArgs.retryDelaySeconds ? cliArgs.retryDelaySeconds * 1000 : 60000
