@@ -1,0 +1,66 @@
+name: Verify deployed contracts
+
+on:
+  workflow_dispatch:
+    inputs:
+      contracts:
+        description: 'List of deployed contracts to verify (space delimited)'
+        required: true
+        type: string
+      network:
+        description: 'Network where the contracts are deployed'
+        required: true
+        type: choice
+        default: mainnet
+        options:
+        - mainnet
+        - arbitrum-one
+        - goerli
+        - arbitrum-goerli
+
+jobs:
+  build:
+    name: Compile contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'yarn'
+      - run: yarn install --non-interactive --frozen-lockfile
+
+      - name: Compile contracts
+        run: yarn build
+
+      - name: Save build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: contract-artifacts
+          path: |
+            build
+            cache/*.json
+  
+  verify:
+    name: Verify deployments
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'yarn'
+      - run: yarn install --non-interactive --frozen-lockfile
+      - name: Get build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: contract-artifacts
+
+      - name: Verify contracts on Defender
+        run: yarn hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
+        env:
+          DEFENDER_API_KEY: "${{ secrets.DEFENDER_API_KEY }}"
+          DEFENDER_API_SECRET: "${{ secrets.DEFENDER_API_SECRET }}"
+          INFURA_KEY: "${{ secrets.INFURA_KEY }}"
+          WORKFLOW_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
