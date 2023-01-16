@@ -37,7 +37,7 @@ task(TASK_BRIDGE_DEPOSITS, 'List deposits initiated on L1GraphTokenGateway')
           (await graph.l1.provider.getBlock(e.blockNumber)).timestamp * 1000,
         ).toLocaleString()})`,
         tx: `${e.transactionHash} ${e.args.from} -> ${e.args.to}`,
-        amount: ethers.utils.formatEther(e.args.amount),
+        amount: prettyBigNumber(e.args.amount),
         status: emojifyRetryableStatus(
           await getL1ToL2MessageStatus(e.transactionHash, graph.l1.provider, graph.l2.provider),
         ),
@@ -48,12 +48,10 @@ task(TASK_BRIDGE_DEPOSITS, 'List deposits initiated on L1GraphTokenGateway')
       (acc, e) => acc.add(ethers.utils.parseEther(e.amount)),
       ethers.BigNumber.from(0),
     )
-    console.log(
-      `Found ${events.length} deposits with a total of ${ethers.utils.formatEther(total)} GRT`,
-    )
+    console.log(`Found ${events.length} deposits with a total of ${prettyBigNumber(total)} GRT`)
 
     console.log(
-      'L1 to L2 message status reference: 🚧 = not yet created, ❌ = creation failed, ⚠️  = funds deposited on L2, ✅ = redeemed, ⌛ = expired',
+      '\nL1 to L2 message status reference: 🚧 = not yet created, ❌ = creation failed, ⚠️  = funds deposited on L2, ✅ = redeemed, ⌛ = expired',
     )
 
     printEvents(events)
@@ -94,4 +92,9 @@ function emojifyRetryableStatus(status: L1ToL2MessageStatus): string {
     default:
       return '❌'
   }
+}
+
+// Format BigNumber to 2 decimal places
+function prettyBigNumber(amount: ethers.BigNumber): string {
+  return (+ethers.utils.formatEther(amount)).toFixed(2)
 }

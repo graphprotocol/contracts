@@ -29,31 +29,50 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
     const endBlock = taskArgs.endBlock ? parseInt(taskArgs.endBlock) : 'latest'
     console.log(`Searching blocks from block ${startBlock} to block ${endBlock}`)
 
+    let totalGRTClaimed = ethers.BigNumber.from(0)
+    let totalGRTConfirmed = ethers.BigNumber.from(0)
+    let totalGRTUnconfirmed = ethers.BigNumber.from(0)
+
     const events = await Promise.all(
       (
         await gateway.queryFilter(gateway.filters.WithdrawalInitiated(), startBlock, endBlock)
-      ).map(async (e) => ({
-        blockNumber: `${e.blockNumber} (${new Date(
-          (await graph.l2.provider.getBlock(e.blockNumber)).timestamp * 1000,
-        ).toLocaleString()})`,
-        tx: `${e.transactionHash} ${e.args.from} -> ${e.args.to}`,
-        amount: ethers.utils.formatEther(e.args.amount),
-        status: emojifyL2ToL1Status(
-          await getL2ToL1MessageStatus(e.transactionHash, graph.l1.provider, graph.l2.provider),
-        ),
-      })),
+      ).map(async (e) => {
+        const status = await getL2ToL1MessageStatus(
+          e.transactionHash,
+          graph.l1.provider,
+          graph.l2.provider,
+        )
+        if (status === L2ToL1MessageStatus.EXECUTED)
+          totalGRTClaimed = totalGRTClaimed.add(e.args.amount)
+        if (status === L2ToL1MessageStatus.CONFIRMED)
+          totalGRTConfirmed = totalGRTConfirmed.add(e.args.amount)
+        if (status === L2ToL1MessageStatus.UNCONFIRMED)
+          totalGRTUnconfirmed = totalGRTUnconfirmed.add(e.args.amount)
+
+        return {
+          blockNumber: `${e.blockNumber} (${new Date(
+            (await graph.l2.provider.getBlock(e.blockNumber)).timestamp * 1000,
+          ).toLocaleString()})`,
+          tx: `${e.transactionHash} ${e.args.from} -> ${e.args.to}`,
+          amount: prettyBigNumber(e.args.amount),
+          status: emojifyL2ToL1Status(status),
+        }
+      }),
     )
 
-    const total = events.reduce(
-      (acc, e) => acc.add(ethers.utils.parseEther(e.amount)),
-      ethers.BigNumber.from(0),
-    )
     console.log(
-      `Found ${events.length} withdrawals for a total of ${ethers.utils.formatEther(total)} GRT`,
+      `Found ${events.length} withdrawals for a total of ${prettyBigNumber(
+        totalGRTClaimed.add(totalGRTConfirmed).add(totalGRTUnconfirmed),
+      )} GRT`,
     )
+    console.log(`- Total GRT claimed on L1 (executed): ${prettyBigNumber(totalGRTClaimed)} GRT`)
+    console.log(
+      `- Total GRT claimable on L1 (confirmed): ${prettyBigNumber(totalGRTConfirmed)} GRT`,
+    )
+    console.log(`- Total GRT on transit (unconfirmed): ${prettyBigNumber(totalGRTUnconfirmed)} GRT`)
 
     console.log(
-      'L2 to L1 message status reference: 🚧 = unconfirmed, ⚠️  = confirmed, ✅ = executed',
+      '\nL2 to L1 message status reference: 🚧 = unconfirmed, ⚠️  = confirmed, ✅ = executed',
     )
 
     printEvents(events)
@@ -90,4 +109,9 @@ function emojifyL2ToL1Status(status: L2ToL1MessageStatus): string {
     default:
       return '❌'
   }
+}
+
+// Format BigNumber to 2 decimal places
+function prettyBigNumber(amount: ethers.BigNumber): string {
+  return (+ethers.utils.formatEther(amount)).toFixed(2)
 }
