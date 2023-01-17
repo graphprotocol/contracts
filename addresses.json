@@ -957,6 +957,15 @@
         "runtimeCodeHash": "0x29e47f693053f978d6b2ac0a327319591bf5b5e8a6e6c0744b8afcc0250bf667",
         "txHash": "0x0eaa9d03982b88e765262a15b95548cb688ce9337a48460f39e55f8850690cbe"
       }
+    },
+    "EthereumDIDRegistry": {
+      "address": "0xa9AEb1c6f14f4244547B9a0946C485DA99047638",
+      "creationCodeHash": "0x20cd202f7991716a84c097da5fbd365fd27f7f35f241f82c529ad7aba18b814b",
+      "runtimeCodeHash": "0x5f396ffd54b6cd6b3faded0f366c5d7e148cc54743926061be2dfd12a75391de",
+      "txHash": "0xdd23b546fa3b6be0cea2339abe3023a082153693fbc7bf1bc86d190165823b39"
+    },
+    "IEthereumDIDRegistry": {
+      "address": "0xa9AEb1c6f14f4244547B9a0946C485DA99047638"
     }
   },
   "421613": {
