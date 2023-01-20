@@ -48,6 +48,7 @@ describe('L2GNS', () => {
   let mockL1GRT: Account
   let mockL1Gateway: Account
   let mockL1GNS: Account
+  let mockL1Staking: Account
   let fixture: NetworkFixture
 
   let fixtureContracts: L2FixtureContracts
@@ -112,7 +113,8 @@ describe('L2GNS', () => {
 
   before(async function () {
     newSubgraph0 = buildSubgraph()
-    ;[me, other, governor, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS] = await getAccounts()
+    ;[me, other, governor, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.loadL2(governor.signer)
@@ -126,6 +128,7 @@ describe('L2GNS', () => {
       mockL1GRT.address,
       mockL1Gateway.address,
       mockL1GNS.address,
+      mockL1Staking.address,
     )
   })
 

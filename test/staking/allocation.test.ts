@@ -4,7 +4,7 @@ import { constants, BigNumber, PopulatedTransaction } from 'ethers'
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -51,7 +51,7 @@ describe('Staking:Allocation', () => {
   let curation: Curation
   let epochManager: EpochManager
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Test values
 
@@ -354,7 +354,7 @@ describe('Staking:Allocation', () => {
 
     it('reject allocate if no tokens staked', async function () {
       const tx = allocate(toBN('1'))
-      await expect(tx).revertedWith('!capacity')
+      await expect(tx).revertedWith('!minimumIndexerStake')
     })
 
     it('reject allocate zero tokens if no minimum stake', async function () {

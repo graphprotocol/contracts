@@ -10,7 +10,7 @@ import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { RewardsManagerMock } from '../../build/types/RewardsManagerMock'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import {
   advanceBlocks,
@@ -46,7 +46,7 @@ describe('Rewards', () => {
   let grt: GraphToken
   let curation: Curation
   let epochManager: EpochManager
-  let staking: Staking
+  let staking: IStaking
   let rewardsManager: RewardsManager
   let rewardsManagerMock: RewardsManagerMock
 
