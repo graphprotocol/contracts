@@ -124,7 +124,6 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
 
     printEvents(withdrawalInitiatedEvents)
     console.timeEnd('runtime')
-    console.timeLog('runtime')
   })
 
 function printEvents(events: any[]) {
