@@ -664,6 +664,73 @@ describe('L2GNS', () => {
       // so the GNS balance should be the same
       expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
+    it('if a subgraph migration was not finished, it returns the tokens to the beneficiary', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
+      const callhookDataSG = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookDataSG)
+
+      // At this point the SG exists, but migration is not finished
+
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, toGRT('1'))
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
+    })
+
+    it('if a subgraph was deprecated after migration, it returns the tokens to the beneficiary', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
+        await defaultL1SubgraphParams()
+      await migrateMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        subgraphMetadata,
+        versionMetadata,
+      )
+
+      await gns.connect(me.signer).deprecateSubgraph(l1SubgraphId)
+
+      // SG was migrated, but is deprecated now!
+
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, toGRT('1'))
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
+    })
   })
   describe('onTokenTransfer with invalid codes', function () {
     it('reverts', async function () {
