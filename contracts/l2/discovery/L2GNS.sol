@@ -250,13 +250,13 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _tokensIn
     ) internal {
         IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
+        SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
         // If subgraph migration wasn't finished, we should send the tokens to the curator
-        if (!migratedData.l2Done) {
+        if (!migratedData.l2Done || subgraphData.disabled) {
             graphToken().transfer(_curator, _tokensIn);
             emit CuratorBalanceReturnedToBeneficiary(_subgraphID, _curator, _tokensIn);
         } else {
-            SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
             // Get name signal to mint for tokens deposited
             IL2Curation curation = IL2Curation(address(curation()));
             uint256 vSignal = curation.mintTaxFree(subgraphData.subgraphDeploymentID, _tokensIn);
