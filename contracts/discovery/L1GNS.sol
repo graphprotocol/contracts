@@ -27,12 +27,13 @@ contract L1GNS is GNS, L1GNSV1Storage {
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph was sent to L2 through the bridge
-    event SubgraphSentToL2(uint256 indexed _subgraphID, address indexed _l2Owner);
+    event SubgraphSentToL2(uint256 indexed _subgraphID, address indexed _l1Owner, address indexed _l2Owner, uint256 _tokens);
 
     /// @dev Emitted when a curator's balance for a subgraph was sent to L2
     event CuratorBalanceSentToL2(
         uint256 indexed _subgraphID,
-        address indexed _curator,
+        address indexed _l1Curator,
+        address indexed _l2Beneficiary,
         uint256 _tokens
     );
 
