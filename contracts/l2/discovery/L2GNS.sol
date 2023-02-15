@@ -27,7 +27,11 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph is received from L1 through the bridge
-    event SubgraphReceivedFromL1(uint256 indexed _subgraphID);
+    event SubgraphReceivedFromL1(
+        uint256 indexed _subgraphID,
+        address indexed _owner,
+        uint256 _tokens
+    );
     /// @dev Emitted when a subgraph migration from L1 is finalized, so the subgraph is published
     event SubgraphMigrationFinalized(uint256 indexed _subgraphID);
     /// @dev Emitted when the L1 balance for a curator has been claimed
@@ -101,7 +105,6 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     ) external override notPartialPaused onlySubgraphAuth(_subgraphID) {
         IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[_subgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        // A subgraph
         require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
         require(!migratedData.l2Done, "ALREADY_DONE");
         migratedData.l2Done = true;
@@ -137,7 +140,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     /**
      * @notice Publish a new version of an existing subgraph.
      * @dev This is the same as the one in the base GNS, but skips the check for
-     * a subgraph to not be pre-curated, as the reserve ration in L2 is set to 1,
+     * a subgraph to not be pre-curated, as the reserve ratio in L2 is set to 1,
      * which prevents the risk of rug-pulling.
      * @param _subgraphID Subgraph ID
      * @param _subgraphDeploymentID Subgraph deployment ID of the new version
@@ -230,9 +233,11 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
+        // Note we do this here so that we can later do the onlySubgraphAuth
+        // check in finishSubgraphMigrationFromL1.
         _mintNFT(_subgraphOwner, _subgraphID);
 
-        emit SubgraphReceivedFromL1(_subgraphID);
+        emit SubgraphReceivedFromL1(_subgraphID, _subgraphOwner, _tokens);
     }
 
     /**

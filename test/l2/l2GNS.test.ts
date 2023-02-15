@@ -274,7 +274,9 @@ describe('L2GNS', () => {
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
         .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
-      await expect(tx).emit(gns, 'SubgraphReceivedFromL1').withArgs(l1SubgraphId)
+      await expect(tx)
+        .emit(gns, 'SubgraphReceivedFromL1')
+        .withArgs(l1SubgraphId, me.address, curatedTokens)
 
       const migrationData = await gns.subgraphL2MigrationData(l1SubgraphId)
       const subgraphData = await gns.subgraphs(l1SubgraphId)
@@ -310,7 +312,9 @@ describe('L2GNS', () => {
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
         .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
-      await expect(tx).emit(gns, 'SubgraphReceivedFromL1').withArgs(l1SubgraphId)
+      await expect(tx)
+        .emit(gns, 'SubgraphReceivedFromL1')
+        .withArgs(l1SubgraphId, me.address, curatedTokens)
 
       const migrationData = await gns.subgraphL2MigrationData(l1SubgraphId)
       const subgraphData = await gns.subgraphs(l1SubgraphId)
