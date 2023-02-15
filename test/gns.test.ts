@@ -1036,12 +1036,21 @@ describe('L1GNS', () => {
       const maxSubmissionCost = toBN('100')
       const maxGas = toBN('10')
       const gasPriceBid = toBN('20')
+
+      const subgraphBefore = await gns.subgraphs(subgraph0.id)
+      const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+      const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+      const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+
       const tx = gns
         .connect(me.signer)
         .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
           value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
         })
-      await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+
+      await expect(tx)
+        .emit(gns, 'SubgraphSentToL2')
+        .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
       return subgraph0
     }
     const publishAndCurateOnLegacySubgraph = async function (seqID: BigNumber): Promise<string> {
@@ -1080,9 +1089,11 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, other.address)
-
         const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, other.address, expectedSentToL2)
+
         const expectedRemainingTokens = curatedTokens.sub(expectedSentToL2)
         const subgraphAfter = await gns.subgraphs(subgraph0.id)
         expect(subgraphAfter.vSignal).eq(0)
@@ -1111,10 +1122,11 @@ describe('L1GNS', () => {
       it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge', async function () {
         const seqID = toBN('2')
         const subgraphID = await publishAndCurateOnLegacySubgraph(seqID)
-        const curatedTokens = await grt.balanceOf(curation.address)
-        const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
 
+        const subgraphBefore = await legacyGNSMock.legacySubgraphData(me.address, seqID)
+        const curatedTokens = await legacyGNSMock.subgraphTokens(subgraphID)
         const beforeOwnerSignal = await legacyGNSMock.getCuratorSignal(subgraphID, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
@@ -1124,9 +1136,10 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraphID, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(legacyGNSMock, 'SubgraphSentToL2').withArgs(subgraphID, other.address)
+        await expect(tx)
+          .emit(legacyGNSMock, 'SubgraphSentToL2')
+          .withArgs(subgraphID, me.address, other.address, expectedSentToL2)
 
-        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
         const expectedRemainingTokens = curatedTokens.sub(expectedSentToL2)
         const subgraphAfter = await legacyGNSMock.legacySubgraphData(me.address, seqID)
         expect(subgraphAfter.vSignal).eq(0)
@@ -1169,6 +1182,11 @@ describe('L1GNS', () => {
       it('rejects calls for a subgraph that was already sent', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1177,7 +1195,9 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns
           .connect(me.signer)
@@ -1219,6 +1239,11 @@ describe('L1GNS', () => {
       it('does not allow curators to burn signal after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1227,7 +1252,9 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me.signer).burnSignal(subgraph0.id, toBN(1), toGRT('0'))
         await expect(tx2).revertedWith('GNS: Must be active')
@@ -1237,6 +1264,11 @@ describe('L1GNS', () => {
       it('does not allow curators to transfer signal after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1245,7 +1277,9 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me.signer).transferSignal(subgraph0.id, other.address, toBN(1))
         await expect(tx2).revertedWith('GNS: Must be active')
@@ -1255,6 +1289,11 @@ describe('L1GNS', () => {
       it('does not allow the owner to withdraw GRT after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
+
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
@@ -1263,7 +1302,9 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me.signer).withdraw(subgraph0.id)
         await expect(tx2).revertedWith('GNS: No signal to withdraw GRT')
@@ -1271,6 +1312,10 @@ describe('L1GNS', () => {
       it('allows a curator that is not the owner to withdraw GRT after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
+        const subgraphBefore = await gns.subgraphs(subgraph0.id)
+        const curatedTokens = await gns.subgraphTokens(subgraph0.id)
+        const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
+        const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
         const beforeOtherSignal = await gns.getCuratorSignal(subgraph0.id, other.address)
 
         const maxSubmissionCost = toBN('100')
@@ -1281,7 +1326,9 @@ describe('L1GNS', () => {
           .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
           })
-        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address)
+        await expect(tx)
+          .emit(gns, 'SubgraphSentToL2')
+          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const remainingTokens = (await gns.subgraphs(subgraph0.id)).withdrawableGRT
         const tx2 = gns.connect(other.signer).withdraw(subgraph0.id)
@@ -1298,7 +1345,7 @@ describe('L1GNS', () => {
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint8', 'uint256', 'address'],
-          [toBN(1), subgraph0.id, other.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
+          [toBN(1), subgraph0.id, another.address], // code = 1 means RECEIVE_CURATOR_BALANCE_CODE
         )
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
@@ -1316,7 +1363,7 @@ describe('L1GNS', () => {
           .connect(other.signer)
           .sendCuratorBalanceToBeneficiaryOnL2(
             subgraph0.id,
-            other.address,
+            another.address,
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
@@ -1329,6 +1376,9 @@ describe('L1GNS', () => {
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
           .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data)
+        await expect(tx)
+          .emit(gns, 'CuratorBalanceSentToL2')
+          .withArgs(subgraph0.id, other.address, another.address, curatorTokens)
       })
       it('sets the curator signal to zero so it cannot be called twice', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()

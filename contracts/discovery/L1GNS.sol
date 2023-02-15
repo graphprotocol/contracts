@@ -27,7 +27,12 @@ contract L1GNS is GNS, L1GNSV1Storage {
     using SafeMathUpgradeable for uint256;
 
     /// @dev Emitted when a subgraph was sent to L2 through the bridge
-    event SubgraphSentToL2(uint256 indexed _subgraphID, address indexed _l1Owner, address indexed _l2Owner, uint256 _tokens);
+    event SubgraphSentToL2(
+        uint256 indexed _subgraphID,
+        address indexed _l1Owner,
+        address indexed _l2Owner,
+        uint256 _tokens
+    );
 
     /// @dev Emitted when a curator's balance for a subgraph was sent to L2
     event CuratorBalanceSentToL2(
@@ -99,7 +104,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
 
         subgraphData.reserveRatioDeprecated = 0;
         _burnNFT(_subgraphID);
-        emit SubgraphSentToL2(_subgraphID, _l2Owner);
+        emit SubgraphSentToL2(_subgraphID, msg.sender, _l2Owner, tokensForL2);
     }
 
     /**
@@ -156,6 +161,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
             _maxSubmissionCost,
             extraData
         );
+        emit CuratorBalanceSentToL2(_subgraphID, msg.sender, _beneficiary, tokensForL2);
     }
 
     /**
