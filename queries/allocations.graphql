@@ -1,0 +1,35 @@
+query Allocations($first: Int) {
+  allocations(where: { status: Active }, first: $first, orderBy: id) {
+    id
+    allocatedTokens
+    subgraphDeployment {
+      id
+    }
+    createdAt
+    createdAtEpoch
+    createdAtBlockNumber
+    indexer {
+      id
+      stakedTokens
+    }
+  }
+}
+
+query AllocationsAtBlock($first: Int, $block: Int) {
+  allocations(block: { number: $block }, where: { status: Active }, first: $first, orderBy: id) {
+    id
+    allocatedTokens
+    subgraphDeployment {
+      id
+    }
+    createdAt
+    createdAtEpoch
+    createdAtBlockNumber
+    indexer {
+      id
+      stakedTokens
+    }
+  }
+}
+
+

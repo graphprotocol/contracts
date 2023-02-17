@@ -1,18 +1,57 @@
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
-import { deployContract, waitTransaction } from '../cli/network'
 import { setBalance } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
+import PQueue from 'p-queue'
+import { getActiveAllocations } from './queries'
+import { deployContract, waitTransaction, toBN } from '../../cli/network'
+import { aggregate } from '../../cli/multicall'
+import { chunkify } from '../../cli/helpers'
+import { RewardsManager } from '../../build/types/RewardsManager'
 
 const { ethers } = hre
 
-async function getAllocations(blockNumber: BigNumber | number): Promise<BigNumber> {
-  // TODO: implement
-  return BigNumber.from(0)
-}
-async function getAllocationsPendingRewards(blockNumber: BigNumber | number): Promise<BigNumber> {
-  // TODO: implement
-  return BigNumber.from(0)
+// global values
+const INITIAL_ETH_BALANCE = hre.ethers.utils.parseEther('1000').toHexString()
+const L1_DEPLOYER_ADDRESS = '0xE04FcE05E9B8d21521bd1B0f069982c03BD31F76'
+const L1_COUNCIL_ADDRESS = '0x48301Fe520f72994d32eAd72E2B6A8447873CF50'
+const ISSUANCE_PER_BLOCK = 124 // TODO: estimate it better
+const RPC_CONCURRENCY = 4
+const MULTICALL_BATCH_SIZE = 500
+const NETWORK_SUBGRAPH = 'graphprotocol/graph-network-mainnet'
+
+async function getAllocationsPendingRewards(
+  rewardsManager: RewardsManager,
+  blockNumber: number,
+): Promise<BigNumber> {
+  console.log(blockNumber)
+  // Get active allocations
+  const allos = await getActiveAllocations(NETWORK_SUBGRAPH, blockNumber)
+
+  // Aggregate pending rewards
+  const queue = new PQueue({ concurrency: RPC_CONCURRENCY })
+  let totalPendingIndexingRewards = toBN(0)
+
+  for (const batchOfAllos of chunkify(allos, MULTICALL_BATCH_SIZE)) {
+    const calls = []
+    for (const allo of batchOfAllos) {
+      const target = rewardsManager.address
+      const tx = await rewardsManager.populateTransaction.getRewards(allo.id)
+      const callData = tx.data
+      calls.push({ target, callData })
+    }
+    queue.add(async () => {
+      const [_, results] = await aggregate(calls, rewardsManager.provider, blockNumber)
+      console.log(results)
+      const chunkPendingRewards = results
+        .map((pendingRewards) => toBN(pendingRewards))
+        .reduce((a: BigNumber, b: BigNumber) => a.add(b), toBN(0))
+      totalPendingIndexingRewards = totalPendingIndexingRewards.add(chunkPendingRewards)
+    })
+  }
+  await queue.onIdle()
+
+  return totalPendingIndexingRewards
 }
 
 async function main() {
@@ -22,11 +61,10 @@ async function main() {
     graphConfig: 'config/graph.mainnet.yml',
   })
 
-  // global values
-  const INITIAL_ETH_BALANCE = hre.ethers.utils.parseEther('1000').toHexString()
-  const L1_DEPLOYER_ADDRESS = '0xE04FcE05E9B8d21521bd1B0f069982c03BD31F76'
-  const L1_COUNCIL_ADDRESS = '0x48301Fe520f72994d32eAd72E2B6A8447873CF50'
-  const ISSUANCE_PER_BLOCK = 124 // TODO: estimate it better
+  console.log(
+    await getAllocationsPendingRewards(contracts.RewardsManager, await provider.getBlockNumber()),
+  )
+  return
 
   // roles
   const deployer = await ethers.getImpersonatedSigner(L1_DEPLOYER_ADDRESS)
@@ -67,7 +105,7 @@ async function main() {
 
   const blockNumber1 = await provider.getBlockNumber()
   console.log(`Getting pending rewards at block ${blockNumber1}...`)
-  const pendingRewards1 = await getAllocationsPendingRewards(blockNumber1)
+  const pendingRewards1 = await getAllocationsPendingRewards(contracts.RewardsManager, blockNumber1)
 
   // ### batch 3
   // accept L2 implementations
@@ -93,7 +131,7 @@ async function main() {
 
   const blockNumber2 = await provider.getBlockNumber()
   console.log(`Getting pending rewards at block ${blockNumber2}...`)
-  const pendingRewards2 = await getAllocationsPendingRewards(blockNumber2)
+  const pendingRewards2 = await getAllocationsPendingRewards(contracts.RewardsManager, blockNumber2)
 
   console.log(`diff is ${pendingRewards2.sub(pendingRewards1)}`)
 
