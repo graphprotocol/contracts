@@ -199,7 +199,7 @@ describe('Staking:Allocation', () => {
   }
 
   // This function tests collect with state updates
-  const shouldCollect = async (tokensToCollect: BigNumber) => {
+  const shouldCollect = async (tokensToCollect: BigNumber, expectEvent = true) => {
     // Before state
     const beforeTokenSupply = await grt.totalSupply()
     const beforePool = await curation.pools(subgraphDeploymentID)
@@ -220,18 +220,23 @@ describe('Staking:Allocation', () => {
 
     // Collect tokens from allocation
     const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
-    await expect(tx)
-      .emit(staking, 'AllocationCollected')
-      .withArgs(
-        indexer.address,
-        subgraphDeploymentID,
-        await epochManager.currentEpoch(),
-        tokensToCollect,
-        allocationID,
-        assetHolder.address,
-        curationFees,
-        rebateFees,
-      )
+    if (expectEvent) {
+      await expect(tx)
+        .emit(staking, 'AllocationCollected')
+        .withArgs(
+          indexer.address,
+          subgraphDeploymentID,
+          await epochManager.currentEpoch(),
+          tokensToCollect,
+          allocationID,
+          assetHolder.address,
+          curationFees,
+          rebateFees,
+        )
+    } else {
+      await expect(tx).to.not.be.reverted
+      await expect(tx).to.not.emit(staking, 'AllocationCollected')
+    }
 
     // After state
     const afterTokenSupply = await grt.totalSupply()
@@ -524,7 +529,7 @@ describe('Staking:Allocation', () => {
     })
 
     it('should collect zero tokens', async function () {
-      await shouldCollect(toGRT('0'))
+      await shouldCollect(toGRT('0'), false)
     })
 
     it('should collect from a settling allocation but reject after dispute period', async function () {
