@@ -936,12 +936,14 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Collect query fees from state channels and assign them to an allocation.
-     * Funds received are only accepted from a valid sender.
+     * @notice Collect query fees from state channels and assign them to an allocation.
      * To avoid reverting on the withdrawal from channel flow this function will:
-     * 1) Accept calls with zero tokens.
-     * 2) Accept calls after an allocation passed the dispute period, in that case, all
-     *    the received tokens are burned.
+     * 1) Accept calls with zero tokens (in which case no event will be emitted).
+     * 2) Accept calls after an allocation is past the dispute period.
+     *    WARNING: If this is called after the dispute period, the received tokens are burned.
+     *    Callers should ensure that this is called well before the end of the dispute window,
+     *    before the allocation is finalized, to avoid issues if the transaction is confirmed
+     *    later and this causes the tokens to be burnt.
      * @param _tokens Amount of tokens to collect
      * @param _allocationID Allocation where the tokens will be assigned
      */
@@ -953,47 +955,49 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
+        // If the query fees are zero, we don't want to revert
+        // but we also don't need to do anything, so just return
+        if (_tokens == 0) {
+            return;
+        }
         // Get allocation
         Allocation storage alloc = allocations[_allocationID];
         uint256 queryFees = _tokens;
         uint256 curationFees = 0;
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
-        // Process query fees only if non-zero amount
-        if (queryFees > 0) {
-            // Pull tokens to collect from the authorized sender
-            IGraphToken graphToken = graphToken();
-            TokenUtils.pullTokens(graphToken, msg.sender, _tokens);
+        // Pull tokens to collect from the authorized sender
+        IGraphToken graphToken = graphToken();
+        TokenUtils.pullTokens(graphToken, msg.sender, _tokens);
 
-            // -- Collect protocol tax --
-            // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-                allocState == AllocationState.Closed)
-                ? protocolPercentage
-                : MAX_PPM;
-            uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
-            queryFees = queryFees.sub(protocolTax);
+        // -- Collect protocol tax --
+        // If the Allocation is not active or closed we are going to charge a 100% protocol tax
+        uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
+            allocState == AllocationState.Closed)
+            ? protocolPercentage
+            : MAX_PPM;
+        uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
+        queryFees = queryFees.sub(protocolTax);
 
-            // -- Collect curation fees --
-            // Only if the subgraph deployment is curated
-            curationFees = _collectCurationFees(
-                graphToken,
-                subgraphDeploymentID,
-                queryFees,
-                curationPercentage
-            );
-            queryFees = queryFees.sub(curationFees);
+        // -- Collect curation fees --
+        // Only if the subgraph deployment is curated
+        curationFees = _collectCurationFees(
+            graphToken,
+            subgraphDeploymentID,
+            queryFees,
+            curationPercentage
+        );
+        queryFees = queryFees.sub(curationFees);
 
-            // Add funds to the allocation
-            alloc.collectedFees = alloc.collectedFees.add(queryFees);
+        // Add funds to the allocation
+        alloc.collectedFees = alloc.collectedFees.add(queryFees);
 
-            // When allocation is closed redirect funds to the rebate pool
-            // This way we can keep collecting tokens even after the allocation is closed and
-            // before it gets to the finalized state.
-            if (allocState == AllocationState.Closed) {
-                Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-                rebatePool.fees = rebatePool.fees.add(queryFees);
-            }
+        // When allocation is closed redirect funds to the rebate pool
+        // This way we can keep collecting tokens even after the allocation is closed and
+        // before it gets to the finalized state.
+        if (allocState == AllocationState.Closed) {
+            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+            rebatePool.fees = rebatePool.fees.add(queryFees);
         }
 
         emit AllocationCollected(
