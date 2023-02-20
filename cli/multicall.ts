@@ -1,6 +1,6 @@
-import { Contract, providers } from 'ethers'
+import { Contract, providers, Signer } from 'ethers'
 
-const MULTICALL_ADDR = '0x5ba1e12693dc8f9c48aad8770482f4739beed696'
+export const MULTICALL_ADDR = '0x5ba1e12693dc8f9c48aad8770482f4739beed696'
 
 const ABI = [
   {
@@ -94,10 +94,11 @@ export interface Call {
   callData: string
 }
 
-export const getMulticall = (provider?: providers.Provider): Contract => {
-  return new Contract(MULTICALL_ADDR, ABI, provider)
+export const getMulticall = (signerOrProvider?: Signer | providers.Provider): Contract => {
+  return new Contract(MULTICALL_ADDR, ABI, signerOrProvider)
 }
 
+// This is performing a read-only call to the multicall
 export const aggregate = async (
   calls: Call[],
   provider: providers.Provider,
@@ -105,4 +106,10 @@ export const aggregate = async (
 ) => {
   const overrides = blockNumber ? { blockTag: blockNumber } : {}
   return getMulticall(provider).aggregate(calls, overrides)
+}
+
+// This is performing a transaction (armed) call to the multicall
+export const bundle = async (calls: Call[], signer: Signer, blockNumber?: number) => {
+  const overrides = blockNumber ? { blockTag: blockNumber } : {}
+  return getMulticall(signer).aggregate(calls, overrides)
 }

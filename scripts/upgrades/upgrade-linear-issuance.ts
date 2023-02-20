@@ -1,11 +1,10 @@
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
-import { setBalance } from '@nomicfoundation/hardhat-network-helpers'
-import { BigNumber } from 'ethers'
+import { BigNumber, ContractTransaction, PopulatedTransaction } from 'ethers'
 import PQueue from 'p-queue'
 import { getActiveAllocations } from './queries'
 import { deployContract, waitTransaction, toBN } from '../../cli/network'
-import { aggregate } from '../../cli/multicall'
+import { aggregate, bundle, MULTICALL_ADDR } from '../../cli/multicall'
 import { chunkify } from '../../cli/helpers'
 import { RewardsManager } from '../../build/types/RewardsManager'
 
@@ -61,18 +60,13 @@ async function main() {
     graphConfig: 'config/graph.mainnet.yml',
   })
 
-  console.log(
-    await getAllocationsPendingRewards(contracts.RewardsManager, await provider.getBlockNumber()),
-  )
-  return
-
   // roles
   const deployer = await ethers.getImpersonatedSigner(L1_DEPLOYER_ADDRESS)
   const council = await ethers.getImpersonatedSigner(L1_COUNCIL_ADDRESS)
 
   // fund accounts
-  await setBalance(L1_DEPLOYER_ADDRESS, INITIAL_ETH_BALANCE)
-  await setBalance(L1_COUNCIL_ADDRESS, INITIAL_ETH_BALANCE)
+  // await setBalance(L1_DEPLOYER_ADDRESS, INITIAL_ETH_BALANCE)
+  // await setBalance(L1_COUNCIL_ADDRESS, INITIAL_ETH_BALANCE)
 
   console.log(`Deployer: ${L1_DEPLOYER_ADDRESS}`)
   console.log(`Council:  ${L1_COUNCIL_ADDRESS}`)
@@ -86,7 +80,8 @@ async function main() {
   const newL1GraphTokenGatewayImpl = await deployContract('L1GraphTokenGateway', [], deployer)
 
   // upgrade L1 implementations
-  const batch1 = await Promise.all([
+  console.log('Executing batch 1 (start upgrade)...')
+  const batch1: ContractTransaction[] = await Promise.all([
     contracts.GraphProxyAdmin.connect(council).upgrade(
       contracts.RewardsManager.address,
       newRewardsManagerImpl.contract.address,
@@ -96,9 +91,8 @@ async function main() {
       newL1GraphTokenGatewayImpl.contract.address,
     ),
   ])
-  console.log('Executing batch 1 (start upgrade)...')
   await provider.send('evm_mine', [])
-  await batch1.map((tx) => waitTransaction(council, tx))
+  await Promise.all(batch1.map((tx) => waitTransaction(council, tx)))
 
   // ### batch 2
   // << FILL WITH L2 actions >>
@@ -111,7 +105,7 @@ async function main() {
   // accept L2 implementations
   // accrue all signal and upgrade the rewards function
   // ensures the snapshot for rewards is updated right before the issuance formula changes.
-  const batch3 = await Promise.all([
+  const batch3: ContractTransaction[] = await Promise.all([
     contracts.GraphProxyAdmin.connect(council).acceptProxy(
       newL1GraphTokenGatewayImpl.contract.address,
       contracts.L1GraphTokenGateway.address,
@@ -125,7 +119,7 @@ async function main() {
   ])
   console.log('Executing batch 3 (upgrade implementations)...')
   await provider.send('evm_mine', [])
-  await batch3.map((tx) => waitTransaction(council, tx))
+  await Promise.all(batch3.map((tx) => waitTransaction(council, tx)))
 
   console.log(await contracts.RewardsManager.issuancePerBlock())
 
