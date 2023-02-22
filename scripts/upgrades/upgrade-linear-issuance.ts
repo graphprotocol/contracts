@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import { BigNumber, providers } from 'ethers'
 import PQueue from 'p-queue'
-import { ActiveAllocation, getActiveAllocations } from './queries'
+import { ActiveAllocation, getActiveAllocations, getSignaledSubgraphs } from './queries'
 import { deployContract, waitTransaction, toBN, toGRT } from '../../cli/network'
 import { aggregate } from '../../cli/multicall'
 import { chunkify } from '../../cli/helpers'
@@ -10,11 +10,13 @@ import { RewardsManager } from '../../build/types/RewardsManager'
 
 const { ethers } = hre
 
+// TODO: add notes about the why of certain things and caveats
+
 // global values
 const INITIAL_ETH_BALANCE = hre.ethers.utils.parseEther('1000').toHexString()
 const L1_DEPLOYER_ADDRESS = '0xE04FcE05E9B8d21521bd1B0f069982c03BD31F76'
 const L1_COUNCIL_ADDRESS = '0x48301Fe520f72994d32eAd72E2B6A8447873CF50'
-const ISSUANCE_PER_BLOCK = toGRT('124') // TODO: estimate it better
+const ISSUANCE_PER_BLOCK = toGRT('100') // '114155251141552511415' // toGRT('124') // TODO: estimate it better
 const RPC_CONCURRENCY = 10
 const MULTICALL_BATCH_SIZE = 5
 const NETWORK_SUBGRAPH = 'graphprotocol/graph-network-mainnet'
@@ -64,6 +66,17 @@ async function setAccountBalance(
   balance: string,
 ) {
   return provider.send('anvil_setBalance', [address, balance])
+}
+
+function getDarkSubgraphs(items) {
+  return items
+    .map((item) => {
+      return {
+        signalledTokens: item.signalledTokens,
+        allos: item.indexerAllocations.length,
+      }
+    })
+    .filter((item) => item.signalledTokens != '0' && item.allos === 0)
 }
 
 async function main() {
@@ -121,14 +134,18 @@ async function main() {
       newL1GraphTokenGatewayImpl.contract.address,
       contracts.L1GraphTokenGateway.address,
     )
+    console.log(tx1.hash)
     const tx2 = await contracts.RewardsManager.connect(council).updateAccRewardsPerSignal()
+    console.log(tx2.hash)
     const tx3 = await contracts.GraphProxyAdmin.connect(council).acceptProxy(
       newRewardsManagerImpl.contract.address,
       contracts.RewardsManager.address,
     )
+    console.log(tx3.hash)
     const tx4 = await contracts.RewardsManager.connect(council).setIssuancePerBlock(
       ISSUANCE_PER_BLOCK,
     )
+    console.log(tx4.hash)
     console.log('[*] Executing batch 3 (upgrade implementations)...')
     await provider.send('evm_mine', [])
     await Promise.all([tx1, tx2, tx3, tx4].map((tx) => waitTransaction(council, tx)))
@@ -137,33 +154,47 @@ async function main() {
   }
 
   // snapshot: get pending rewards before doing ops
-  console.log('(1)', await contracts.RewardsManager.getAccRewardsPerSignal())
-
   const blockNumber1 = await provider.getBlockNumber()
+  console.log(`-> We are at block ${blockNumber1}`)
+  console.log('AccRewardsPerSignal:', await contracts.RewardsManager.getAccRewardsPerSignal())
+
+  console.log(`Getting signaled subgraphs in block ${blockNumber1}...`)
+  const subgraphs = await getSignaledSubgraphs(NETWORK_SUBGRAPH, blockNumber1)
+  console.log(`Found ${subgraphs.length} signaled subgraphs in block ${blockNumber1}`)
+  const minimals = getDarkSubgraphs(subgraphs)
+  console.log('Subgraphs (len):', minimals.length)
+  console.log(
+    'Subgraphs (grt):',
+    minimals.reduce((a, b) => a + b.signalledTokens / 1e18, 0),
+  )
+  console.log(
+    'Subgraph (grt-total):',
+    subgraphs.reduce((a, b) => a + b.signalledTokens / 1e18, 0),
+  )
+
   console.log(`Getting active allocations in block ${blockNumber1}...`)
   const allos = await getActiveAllocations(NETWORK_SUBGRAPH, blockNumber1)
   console.log(`Found ${allos.length} active allocations in block ${blockNumber1}`)
+
   const pendingRewards1 = await getAllocationsPendingRewards(
     allos,
     contracts.RewardsManager,
     blockNumber1,
   )
 
-  console.log('(2)', await contracts.RewardsManager.getAccRewardsPerSignal())
-
-  await provider.send('evm_mine', [])
-  await provider.send('evm_mine', [])
-  await provider.send('evm_mine', [])
+  // move forward a few blocks
+  for (let i = 0; i < 1; i++) await provider.send('evm_mine', [])
 
   // snapshot: get pending rewards after doing ops
   const blockNumber2 = await provider.getBlockNumber()
+  console.log(`-> We are at block ${blockNumber2}`)
+  console.log('AccRewardsPerSignal:', await contracts.RewardsManager.getAccRewardsPerSignal())
+
   const pendingRewards2 = await getAllocationsPendingRewards(
     allos, // we use same subset of allocations, no new were created during the simulation
     contracts.RewardsManager,
     blockNumber2,
   )
-
-  console.log('(3)', await contracts.RewardsManager.getAccRewardsPerSignal())
 
   // get issuance difference
   const issuanceDiff = pendingRewards2.sub(pendingRewards1)

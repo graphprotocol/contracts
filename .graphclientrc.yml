@@ -9,3 +9,4 @@ sources:
 
 documents:
   - queries/allocations.graphql
+  - queries/subgraphs.graphql
