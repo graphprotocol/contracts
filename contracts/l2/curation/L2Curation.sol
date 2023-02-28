@@ -13,7 +13,6 @@ import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
 import { IGraphToken } from "../../token/IGraphToken.sol";
 import { CurationV2Storage } from "../../curation/CurationStorage.sol";
-import { ICuration } from "../../curation/ICuration.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
 import { IL2Curation } from "./IL2Curation.sol";
 
