@@ -140,7 +140,8 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 subgraphNSignal = subgraphData.nSignal;
         require(subgraphNSignal != 0, "NO_SUBGRAPH_SIGNAL");
 
-        uint256 tokensForL2 = curatorNSignal.mul(subgraphData.withdrawableGRT).div(subgraphNSignal);
+        uint256 withdrawableGRT = subgraphData.withdrawableGRT;
+        uint256 tokensForL2 = curatorNSignal.mul(withdrawableGRT).div(subgraphNSignal);
         bytes memory extraData = abi.encode(
             uint8(IL2GNS.L1MessageCodes.RECEIVE_CURATOR_BALANCE_CODE),
             _subgraphID,
@@ -150,7 +151,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
         // Set the subgraph as if the curator had withdrawn their tokens
         subgraphData.curatorNSignal[msg.sender] = 0;
         subgraphData.nSignal = subgraphNSignal.sub(curatorNSignal);
-        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT.sub(tokensForL2);
+        subgraphData.withdrawableGRT = withdrawableGRT.sub(tokensForL2);
 
         // Send the tokens and data to L2 using the L1GraphTokenGateway
         _sendTokensAndMessageToL2GNS(
