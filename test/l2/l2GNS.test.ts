@@ -500,6 +500,34 @@ describe('L2GNS', () => {
         .finishSubgraphMigrationFromL1(l1SubgraphId, HashZero, metadata, metadata)
       await expect(tx).revertedWith('GNS: deploymentID != 0')
     })
+    it('rejects calls if the subgraph migration was already finished', async function () {
+      const metadata = randomHexBytes()
+      const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      await gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          metadata,
+          metadata,
+        )
+
+      const tx = gns
+        .connect(me.signer)
+        .finishSubgraphMigrationFromL1(
+          l1SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          metadata,
+          metadata,
+        )
+      await expect(tx).revertedWith('ALREADY_DONE')
+    })
   })
   describe('claiming a curator balance with a message from L1 (onTokenTransfer)', function () {
     it('assigns a curator balance to a beneficiary', async function () {

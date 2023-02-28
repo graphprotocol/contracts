@@ -1433,6 +1433,34 @@ describe('L1GNS', () => {
           )
         await expect(tx2).revertedWith('NO_SIGNAL')
       })
+      it('sets the curator signal to zero so they cannot withdraw', async function () {
+        const subgraph0 = await publishCurateAndSendSubgraph(async (_subgraphId) => {
+          // We add another curator before migrating, so the the subgraph doesn't
+          // run out of withdrawable GRT and we can test that it denies the specific curator
+          // because they have sent their signal to L2, not because the subgraph is out of GRT.
+          await gns.connect(another.signer).mintSignal(_subgraphId, toGRT('1000'), toBN(0))
+        })
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        await gns
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        const tx = gns.connect(other.signer).withdraw(subgraph0.id)
+        await expect(tx).revertedWith('GNS: No signal to withdraw GRT')
+      })
       it('gives each curator an amount of tokens proportional to their nSignal', async function () {
         let beforeOtherNSignal: BigNumber
         let beforeAnotherNSignal: BigNumber
@@ -1585,6 +1613,32 @@ describe('L1GNS', () => {
           )
 
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
+      })
+      it('rejects calls if the curator has withdrawn the GRT', async function () {
+        const subgraph0 = await publishCurateAndSendSubgraph()
+        const afterSubgraph = await gns.subgraphs(subgraph0.id)
+
+        await gns.connect(other.signer).withdraw(subgraph0.id)
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(other.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            another.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+            },
+          )
+
+        // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
+        await expect(tx).revertedWith('NO_SIGNAL')
       })
     })
   })
