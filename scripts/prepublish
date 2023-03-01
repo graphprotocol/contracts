@@ -6,6 +6,7 @@ set -eo pipefail
 
 # Build contracts
 yarn clean
+yarn install
 yarn build
 
 # Refresh distribution folder
