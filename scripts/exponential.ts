@@ -16,6 +16,8 @@ interface ExpResult {
   gasUsed?: BigNumber
 }
 
+const MIN_TX_GAS = BigNumber.from(21000)
+
 async function main() {
   // Deploy TestLFM contract
   const TestLFMFactory = await hre.ethers.getContractFactory('TestLFM')
@@ -38,7 +40,7 @@ async function main() {
   // *** INPUT VALUES ***
   const FEES = 10e18
   const STAKE = 100e18
-  const LAMBDA_NUMERATOR = 20
+  const LAMBDA_NUMERATOR = 2
   const LAMBDA_DENOMINATOR = 10
   const expValues = [0, 1, 5, 10, 20, 40, 45, 60]
 
@@ -65,7 +67,7 @@ async function main() {
   const tx = await testLFM.LFMCalcTx()
   const receipt = await tx.wait()
   const solLFMFormulaResult: FormulaResult = {
-    gasUsed: receipt.gasUsed,
+    gasUsed: receipt.gasUsed.sub(MIN_TX_GAS),
     result: await testLFM.LFMCalc(),
   }
 
@@ -79,7 +81,7 @@ async function main() {
     solExpLFMResults.push({
       value: BigNumber.from(value),
       result: expResult,
-      gasUsed: expReceipt.gasUsed,
+      gasUsed: expReceipt.gasUsed.sub(MIN_TX_GAS),
     })
   }
 
@@ -90,7 +92,7 @@ async function main() {
   const txPRB = await testPRB.PRBCalcTx()
   const receiptPRB = await txPRB.wait()
   const solPRBFormulaResult: FormulaResult = {
-    gasUsed: receiptPRB.gasUsed,
+    gasUsed: receiptPRB.gasUsed.sub(MIN_TX_GAS),
     result: await testPRB.PRBCalc(),
   }
 
@@ -104,7 +106,7 @@ async function main() {
     solExpPRBResults.push({
       value: BigNumber.from(value),
       result: expResult,
-      gasUsed: expReceipt.gasUsed,
+      gasUsed: expReceipt.gasUsed.sub(MIN_TX_GAS),
     })
   }
 

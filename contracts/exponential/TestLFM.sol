@@ -13,7 +13,7 @@ contract TestLFM {
     uint256 constant ONE = 1e18;
     uint256 constant FEES = 10e18;
     uint256 constant STAKE = 100e18;
-    uint32 constant LAMBDA_NUMERATOR = 20;
+    uint32 constant LAMBDA_NUMERATOR = 2;
     uint32 constant LAMBDA_DENOMINATOR = 10;
 
     function LFMCalcTx() public returns (uint256) {
