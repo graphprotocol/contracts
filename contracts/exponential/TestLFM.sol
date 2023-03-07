@@ -3,19 +3,19 @@
 pragma solidity ^0.7.6;
 
 import "./LibFixedMath.sol";
-import "hardhat/console.sol";
 
-contract TestExponential {
+// *** LibFixedMath ***
+// - exp(x) with -63.875 <= x <= 0
+// - where x is λ * STAKE / FEES
+
+contract TestLFM {
     // INPUTS
     uint256 constant ONE = 1e18;
     uint256 constant FEES = 10e18;
     uint256 constant STAKE = 100e18;
-    uint32 constant LAMBDA_NUMERATOR = 2;
+    uint32 constant LAMBDA_NUMERATOR = 20;
     uint32 constant LAMBDA_DENOMINATOR = 10;
 
-    // *** LibFixedMath ***
-    // - exp(x) with -63.875 <= x <= 0
-    // - where x is λ * STAKE / FEES
     function LFMCalcTx() public returns (uint256) {
         return LFMCalc();
     }
@@ -40,6 +40,6 @@ contract TestExponential {
     }
 
     function LFMExpMul(uint256 x) public view returns (uint256) {
-        return LibFixedMath.uintMul(LibFixedMath.exp(-LibFixedMath.toFixed(x)), ONE);
+        return LibFixedMath.uintMul(LFMExp(x), ONE);
     }
 }
