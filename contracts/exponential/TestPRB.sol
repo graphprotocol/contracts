@@ -18,6 +18,7 @@ contract TestPRB {
     uint32 constant LAMBDA_NUMERATOR = 2;
     uint32 constant LAMBDA_DENOMINATOR = 10;
     SD59x18 constant ONE = SD59x18.wrap(1e18);
+    SD59x18 constant ONEe18 = SD59x18.wrap(1e36);
 
     function PRBCalcTx() public returns (int256) {
         return PRBCalc();
@@ -44,6 +45,6 @@ contract TestPRB {
     }
 
     function PRBExpMul(int256 x) public view returns (int256) {
-        return convert(mul(PRBExp(x), wrap(1e36)));
+        return convert(mul(PRBExp(x), ONEe18));
     }
 }

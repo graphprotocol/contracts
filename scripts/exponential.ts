@@ -3,6 +3,7 @@ import '@nomiclabs/hardhat-ethers'
 
 import { TestLFM } from '../build/types/TestLFM'
 import { TestPRB } from '../build/types/TestPRB'
+import { TestABDK } from '../build/types/TestABDK'
 import { BigNumber } from 'ethers'
 
 interface FormulaResult {
@@ -30,6 +31,12 @@ async function main() {
   const testPRB = (await TestPRBFactory.deploy()) as TestPRB
   await testPRB.deployed()
   console.log(`TestPRB deployed to ${testPRB.address}`)
+
+  // Deploy TestABDK contract
+  const TestABDKFactory = await hre.ethers.getContractFactory('TestABDK')
+  const testABDK = (await TestABDKFactory.deploy()) as TestABDK
+  await testABDK.deployed()
+  console.log(`TestABDK deployed to ${testABDK.address}`)
 
   console.log(`\n*** Exponential Test ***`)
   console.log('Calculates rebates with the following formula:')
@@ -110,20 +117,50 @@ async function main() {
     })
   }
 
+  // *** ABDK: Formula ***
+  console.log(`\nCalculate formula using solidity ABDK...`)
+  const solExpABDKResults: ExpResult[] = []
+
+  const txABDK = await testABDK.ABDKCalcTx()
+  const receiptABDK = await txABDK.wait()
+  const solABDKFormulaResult: FormulaResult = {
+    gasUsed: receiptABDK.gasUsed.sub(MIN_TX_GAS),
+    result: await testABDK.ABDKCalc(),
+  }
+
+  // *** ABDK: Exp ***
+  console.log(`\nCalculate exp using solidity ABDK.Math...`)
+
+  for (const value of expValues) {
+    const valueBytes = await testABDK.fromInt(-value)
+    const expTx = await testABDK.ABDKExpTx(valueBytes)
+    const expReceipt = await expTx.wait()
+    const expResult = await testABDK.ABDKExpMul(valueBytes)
+    solExpABDKResults.push({
+      value: BigNumber.from(value),
+      result: expResult,
+      gasUsed: expReceipt.gasUsed.sub(MIN_TX_GAS),
+    })
+  }
+
   // Compare
   console.log(`\n*** Compare formula precision...`)
   console.log(`JavaScript   =`, jsFormulaResult.result.toString())
   console.log(`LibFixedMath =`, solLFMFormulaResult.result.toString())
   console.log(`PRB.Math     =`, solPRBFormulaResult.result.toString())
+  console.log(`ABDK         =`, solABDKFormulaResult.result.toString())
 
   // log error
   const error = jsFormulaResult.result.sub(solLFMFormulaResult.result).abs()
   console.log(`LibFixedMath Error =`, error.toString())
   const prbError = jsFormulaResult.result.sub(solPRBFormulaResult.result).abs()
   console.log(`PRB.Math Error     =`, prbError.toString())
+  const abdkError = jsFormulaResult.result.sub(solABDKFormulaResult.result).abs()
+  console.log(`ABDK Error         =`, abdkError.toString())
 
   console.log(`LibFixedMath gas used =`, solLFMFormulaResult.gasUsed.toString())
   console.log(`PRB.Math gas used     =`, solPRBFormulaResult.gasUsed.toString())
+  console.log(`ABDK gas used         =`, solABDKFormulaResult.gasUsed.toString())
 
   console.log(`\n*** Compare exp precision...`)
   for (let index = 0; index < expValues.length; index++) {
@@ -133,14 +170,18 @@ async function main() {
     console.log(`JavaScript   =`, jsExpResults[index].result.toString())
     console.log(`LibFixedMath =`, solExpLFMResults[index].result.toString())
     console.log(`PRB.Math     =`, solExpPRBResults[index].result.toString())
+    console.log(`ABDK         =`, solExpABDKResults[index].result.toString())
 
     const error = jsExpResults[index].result.sub(solExpLFMResults[index].result).abs()
     console.log(`LibFixedMath Error =`, error.toString())
     const prbError = jsExpResults[index].result.sub(solExpPRBResults[index].result).abs()
     console.log(`PRB.Math Error     =`, prbError.toString())
+    const abdkError = jsExpResults[index].result.sub(solExpABDKResults[index].result).abs()
+    console.log(`ABDK Error         =`, abdkError.toString())
 
     console.log(`LibFixedMath gas used =`, solExpLFMResults[index].gasUsed.toString())
     console.log(`PRB.Math gas used     =`, solExpPRBResults[index].gasUsed.toString())
+    console.log(`ABDK gas used         =`, solExpABDKResults[index].gasUsed.toString())
   }
 }
 

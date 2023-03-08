@@ -10,7 +10,7 @@ import "./LibFixedMath.sol";
 
 contract TestLFM {
     // INPUTS
-    uint256 constant ONE = 1e18;
+    uint256 constant ONEe18 = 1e18;
     uint256 constant FEES = 10e18;
     uint256 constant STAKE = 100e18;
     uint32 constant LAMBDA_NUMERATOR = 2;
@@ -40,6 +40,6 @@ contract TestLFM {
     }
 
     function LFMExpMul(uint256 x) public view returns (uint256) {
-        return LibFixedMath.uintMul(LFMExp(x), ONE);
+        return LibFixedMath.uintMul(LFMExp(x), ONEe18);
     }
 }
