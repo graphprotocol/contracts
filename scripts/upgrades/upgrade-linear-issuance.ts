@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import { BigNumber, providers } from 'ethers'
 import PQueue from 'p-queue'
-import { ActiveAllocation, getActiveAllocations, getSignaledSubgraphs } from './queries'
+import { getActiveAllocations, getSignaledSubgraphs } from './queries'
 import { deployContract, waitTransaction, toBN, toGRT } from '../../cli/network'
 import { aggregate } from '../../cli/multicall'
 import { chunkify } from '../../cli/helpers'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { deriveChannelKey, formatGRT } from '../../test/lib/testHelpers'
+import { deriveChannelKey } from '../../test/lib/testHelpers'
 
 const { ethers } = hre
 
@@ -125,8 +125,9 @@ async function main() {
   }
 
   // ### batch 2
-  // accept L2 implementations
-  // TODO: L2 actions
+  // accept L2 implementations : we are doing that on a different test
+
+  // >> setup environment to make calculations easier <<
 
   // get all non-allocated subraphs
   const blockNumber0 = await provider.getBlockNumber()
@@ -189,6 +190,27 @@ async function main() {
     await Promise.all(txs.map((tx) => waitTransaction(superIndexer, tx)))
   }
 
+  // -- SUPER CURATOR ---
+  // council to signal the diff
+  {
+    const signaledTokens = await contracts.GraphToken.balanceOf(contracts.Curation.address)
+    const signaledTokensDiff = toGRT('6500000').sub(signaledTokens)
+    console.log('SignaledTokens:', signaledTokens)
+    console.log('SignaledTokens[diff]:', signaledTokensDiff)
+
+    const tx1 = await contracts.GraphToken.connect(council).approve(
+      contracts.Curation.address,
+      signaledTokensDiff.add(toGRT('100000')),
+    )
+    const tx2 = await contracts.Curation.connect(council).mint(
+      darkSubgraphs[0].id,
+      signaledTokensDiff,
+      0,
+    )
+    await provider.send('evm_mine', [])
+    await Promise.all([tx1, tx2].map((tx) => waitTransaction(council, tx)))
+  }
+
   // ### batch 3
   // accrue all signal and upgrade the rewards function
   // ensures the snapshot for rewards is updated right before the issuance formula changes.
@@ -235,8 +257,6 @@ async function main() {
     `Adding ${darkAllocations.length} dark allocations for a total of ${allocationIds.length}`,
   )
 
-  // TODO: do una tacuen de pure accrual para desestimar el tema con las allos
-
   const pendingRewards1 = await getAllocationsPendingRewards(
     allocationIds,
     contracts.RewardsManager,
@@ -244,7 +264,8 @@ async function main() {
   )
 
   // move forward a few blocks
-  for (let i = 0; i < 1; i++) await provider.send('evm_mine', [])
+  const nBlocks = 1
+  for (let i = 0; i < nBlocks; i++) await provider.send('evm_mine', [])
 
   // snapshot: get pending rewards after doing ops
   const blockNumber2 = await provider.getBlockNumber()
@@ -261,8 +282,9 @@ async function main() {
   )
 
   // get issuance difference
-  const issuanceDiff = ISSUANCE_PER_BLOCK.sub(pendingRewards2.sub(pendingRewards1))
-  const accRewardsDiff = ISSUANCE_PER_BLOCK.sub(
+  const expectedIssuance = ISSUANCE_PER_BLOCK.mul(nBlocks)
+  const issuanceDiff = expectedIssuance.sub(pendingRewards2.sub(pendingRewards1))
+  const accRewardsDiff = expectedIssuance.sub(
     accRewardsPerSignal2.sub(accRewardsPerSignal1).mul(signaledTokens).div(toGRT(1)),
   )
   const blockDiff = blockNumber2 - blockNumber1
