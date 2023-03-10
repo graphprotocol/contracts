@@ -15,6 +15,8 @@ contract TestLFM {
     uint256 constant STAKE = 100e18;
     uint32 constant LAMBDA_NUMERATOR = 2;
     uint32 constant LAMBDA_DENOMINATOR = 10;
+    uint32 constant ALPHA_NUMERATOR = 1;
+    uint32 constant ALPHA_DENOMINATOR = 1;
 
     function LFMCalcTx() public returns (uint256) {
         return LFMCalc();
@@ -28,6 +30,19 @@ contract TestLFM {
         int256 exponential = LibFixedMath.exp(-exponent);
         int256 factor = LibFixedMath.sub(LibFixedMath.one(), exponential);
 
+        return LibFixedMath.uintMul(factor, FEES);
+    }
+
+    function LFMCalcTx2() public returns (uint256) {
+        return LFMCalc2();
+    }
+
+    function LFMCalc2() public view returns (uint256) {
+        int256 alpha = LibFixedMath.toFixed(int32(ALPHA_NUMERATOR), int32(ALPHA_DENOMINATOR));
+        int256 lambda = LibFixedMath.toFixed(int32(LAMBDA_NUMERATOR), int32(LAMBDA_DENOMINATOR));
+
+        int256 exp = LibFixedMath.exp(-LibFixedMath.mulDiv(lambda, int256(STAKE), int256(FEES)));
+        int256 factor = LibFixedMath.sub(LibFixedMath.one(), LibFixedMath.mul(alpha, exp));
         return LibFixedMath.uintMul(factor, FEES);
     }
 

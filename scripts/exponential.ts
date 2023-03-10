@@ -70,12 +70,20 @@ async function main() {
   // *** LibFixedMath: Formula ***
   console.log(`\nCalculate formula using solidity LibFixedMath...`)
   const solExpLFMResults: ExpResult[] = []
+  const solExpLFMResults2: ExpResult[] = []
 
   const tx = await testLFM.LFMCalcTx()
   const receipt = await tx.wait()
   const solLFMFormulaResult: FormulaResult = {
     gasUsed: receipt.gasUsed.sub(MIN_TX_GAS),
     result: await testLFM.LFMCalc(),
+  }
+
+  const tx2 = await testLFM.LFMCalcTx2()
+  const receipt2 = await tx2.wait()
+  const solLFMFormulaResult2: FormulaResult = {
+    gasUsed: receipt2.gasUsed.sub(MIN_TX_GAS),
+    result: await testLFM.LFMCalc2(),
   }
 
   // *** LibFixedMath: Exp ***
@@ -147,18 +155,22 @@ async function main() {
   console.log(`\n*** Compare formula precision...`)
   console.log(`JavaScript   =`, jsFormulaResult.result.toString())
   console.log(`LibFixedMath =`, solLFMFormulaResult.result.toString())
+  console.log(`LibFixedMath2=`, solLFMFormulaResult2.result.toString())
   console.log(`PRB.Math     =`, solPRBFormulaResult.result.toString())
   console.log(`ABDK         =`, solABDKFormulaResult.result.toString())
 
   // log error
   const error = jsFormulaResult.result.sub(solLFMFormulaResult.result).abs()
   console.log(`LibFixedMath Error =`, error.toString())
+  const error2 = jsFormulaResult.result.sub(solLFMFormulaResult2.result).abs()
+  console.log(`LibFixedMath2 Error=`, error2.toString())
   const prbError = jsFormulaResult.result.sub(solPRBFormulaResult.result).abs()
   console.log(`PRB.Math Error     =`, prbError.toString())
   const abdkError = jsFormulaResult.result.sub(solABDKFormulaResult.result).abs()
   console.log(`ABDK Error         =`, abdkError.toString())
 
   console.log(`LibFixedMath gas used =`, solLFMFormulaResult.gasUsed.toString())
+  console.log(`LibFixedMath2 gas used=`, solLFMFormulaResult2.gasUsed.toString())
   console.log(`PRB.Math gas used     =`, solPRBFormulaResult.gasUsed.toString())
   console.log(`ABDK gas used         =`, solABDKFormulaResult.gasUsed.toString())
 
