@@ -77,9 +77,16 @@ export function getContractConfig(
     if (name.startsWith('init')) {
       const initList = Object.entries(contractConfig.init) as Array<Array<string>>
       for (const [initName, initValue] of initList) {
+        // This allows passing structs as constructor params
+        // We can't however inject CLI env variables into struct params
+        const value =
+          typeof initValue === 'object'
+            ? Object.values(initValue)
+            : parseConfigValue(initValue, addressBook, cli)
+
         contractParams.push({
           name: initName,
-          value: parseConfigValue(initValue, addressBook, cli),
+          value: value,
         } as {
           name: string
           value: string

@@ -6,8 +6,6 @@ enum AllocationState {
   Null,
   Active,
   Closed,
-  Finalized,
-  Claimed,
 }
 
 let indexerFixtures: IndexerFixture[]

@@ -30,7 +30,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('./gre/gre')
-  ;['contracts', 'bridge', 'deployment', 'actions', 'verify', 'e2e'].forEach((folder) => {
+  ;['contracts', 'bridge', 'deployment', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))

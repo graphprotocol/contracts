@@ -2,9 +2,9 @@ import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
 import { deployContract } from '../lib/deployment'
-import { RebatePoolMock } from '../../build/types/RebatePoolMock'
+import { LibExponential } from '../../build/types/LibExponential'
 
-import { getAccounts, toBN, toGRT, formatGRT, Account, initNetwork } from '../lib/testHelpers'
+import { getAccounts, toGRT, formatGRT, Account, initNetwork } from '../lib/testHelpers'
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toFixed = (n: number | BigNumber, precision = 12) => {
@@ -14,7 +14,7 @@ const toFixed = (n: number | BigNumber, precision = 12) => {
   return toFloat(n).toFixed(precision)
 }
 
-type RebateRatio = number[]
+type RebateParameters = number[]
 
 interface RebateTestCase {
   totalRewards: number
@@ -24,10 +24,39 @@ interface RebateTestCase {
   totalStake: number
 }
 
-describe('Staking:Rebate', () => {
+// This function calculates the exponential rebates formula in Typescript so we can compare against
+// the Solidity implementation
+export function exponentialRebates(
+  fees: number,
+  stake: number,
+  alphaNumerator: number,
+  alphaDenominator: number,
+  lambdaNumerator: number,
+  lambdaDenominator: number,
+): number {
+  const alpha = alphaNumerator / alphaDenominator
+  if (alpha === 0) {
+    return fees
+  }
+
+  const lambda = lambdaNumerator / lambdaDenominator
+  if (fees === 0 || stake === 0 || lambda === 0) {
+    return 0
+  }
+
+  const exponent = (lambda * stake) / fees
+  // LibExponential.MAX_EXPONENT = 15
+  if (exponent > 15) {
+    return fees
+  }
+
+  return fees * (1 - alpha * Math.exp(-exponent))
+}
+
+describe('Staking:rebates', () => {
   let deployer: Account
 
-  let rebatePoolMock: RebatePoolMock
+  let libExponential: LibExponential
 
   const testCases: RebateTestCase[] = [
     { totalRewards: 1400, fees: 100, totalFees: 1400, stake: 5000, totalStake: 7300 },
@@ -52,51 +81,29 @@ describe('Staking:Rebate', () => {
     { totalRewards: 1300, fees: 1000, totalFees: 1300, stake: 0, totalStake: 0 },
   ]
 
-  // This function calculates the Cobb-Douglas formula in Typescript so we can compare against
-  // the Solidity implementation
-  // TODO: consider using bignumber.js to get extra precision
-  function cobbDouglas(
-    totalRewards: number,
-    fees: number,
-    totalFees: number,
-    stake: number,
-    totalStake: number,
-    alphaNumerator: number,
-    alphaDenominator: number,
-  ) {
-    if (totalFees === 0 || totalStake === 0) {
-      return 0
-    }
-    const feeRatio = fees / totalFees
-    const stakeRatio = stake / totalStake
-    const alpha = alphaNumerator / alphaDenominator
-    return totalRewards * feeRatio ** alpha * stakeRatio ** (1 - alpha)
-  }
-
   // Test if the Solidity implementation of the rebate formula match the local implementation
-  async function shouldMatchFormulas(testCases: RebateTestCase[], alpha: RebateRatio) {
-    const [alphaNumerator, alphaDenominator] = alpha
+  async function shouldMatchFormulas(testCases: RebateTestCase[], rebateParams: RebateParameters) {
+    const [alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator] = rebateParams
 
     for (const testCase of testCases) {
-      // Test Typescript cobb-doubglas formula implementation
-      const r1 = cobbDouglas(
-        testCase.totalRewards,
+      // Test Typescript exponential rebates formula implementation
+      const r1 = exponentialRebates(
         testCase.fees,
-        testCase.totalFees,
         testCase.stake,
-        testCase.totalStake,
         alphaNumerator,
         alphaDenominator,
+        lambdaNumerator,
+        lambdaDenominator,
       )
+
       // Convert non-alpha values to wei before sending for precision
-      const r2 = await rebatePoolMock.cobbDouglas(
-        toGRT(testCase.totalRewards),
+      const r2 = await libExponential.exponentialRebates(
         toGRT(testCase.fees),
-        toGRT(testCase.totalFees),
         toGRT(testCase.stake),
-        toGRT(testCase.totalStake),
         alphaNumerator,
         alphaDenominator,
+        lambdaNumerator,
+        lambdaDenominator,
       )
 
       // Must match : contracts to local implementation
@@ -104,91 +111,47 @@ describe('Staking:Rebate', () => {
     }
   }
 
-  // Test if the fees deposited into the rebate pool are conserved, this means that we are
-  // not able to extract more rewards than we initially deposited
-  async function shouldConserveBalances(testCases: RebateTestCase[], alpha: RebateRatio) {
-    const [alphaNumerator, alphaDenominator] = alpha
-    await rebatePoolMock.setRebateRatio(alphaNumerator, alphaDenominator)
-
-    let totalFees = toBN(0)
-    for (const testCase of testCases) {
-      totalFees = totalFees.add(toGRT(testCase.fees))
-      await rebatePoolMock.add(toGRT(testCase.fees), toGRT(testCase.stake))
-    }
-
-    let totalRewards = toBN(0)
-    for (const testCase of testCases) {
-      const rewards = await redeem(toGRT(testCase.fees), toGRT(testCase.stake))
-      totalRewards = totalRewards.add(rewards)
-    }
-
-    expect(totalRewards).lte(totalFees)
-  }
-
-  async function shouldMatchOut(testCases: RebateTestCase[], alpha: RebateRatio) {
-    const [alphaNumerator, alphaDenominator] = alpha
-    await rebatePoolMock.setRebateRatio(alphaNumerator, alphaDenominator)
-
-    let totalFees = toBN(0)
-    for (const testCase of testCases) {
-      totalFees = totalFees.add(toGRT(testCase.fees))
-      await rebatePoolMock.add(toGRT(testCase.fees), toGRT(testCase.stake))
-    }
-
-    for (const testCase of testCases) {
-      const rebatePool = await rebatePoolMock.rebatePool()
-      const unclaimedFees = rebatePool.fees.sub(rebatePool.claimedRewards)
-      const rewards = await redeem(toGRT(testCase.fees), toGRT(testCase.stake))
-      let expectedOut = await rebatePoolMock.cobbDouglas(
-        toGRT(testCase.totalRewards),
-        toGRT(testCase.fees),
-        toGRT(testCase.totalFees),
-        toGRT(testCase.stake),
-        toGRT(testCase.totalStake),
-        alphaNumerator,
-        alphaDenominator,
-      )
-      if (expectedOut.gt(unclaimedFees)) {
-        expectedOut = unclaimedFees
-      }
-      expect(rewards).eq(expectedOut)
-    }
-  }
-
-  async function redeem(fees: BigNumber, stake: BigNumber): Promise<BigNumber> {
-    const tx = await rebatePoolMock.pop(fees, stake)
-    const rx = await tx.wait()
-    return rx.events[0].args[0]
-  }
-
-  async function testAlphas(fn, testCases) {
-    // Typical alpha
-    it('alpha 0.90', async function () {
-      const alpha: RebateRatio = [90, 100]
+  async function testRebateParameters(fn, testCases) {
+    // *** Exponential rebates ***
+    // Typical alpha and lambda
+    it('alpha 1 - lambda 0.6', async function () {
+      const alpha: RebateParameters = [10, 10, 6, 10]
       await fn(testCases, alpha)
     })
 
-    // Typical alpha
-    it('alpha 0.25', async function () {
-      const alpha: RebateRatio = [1, 4]
+    // Typical alpha and lambda
+    it('alpha 0.25 - lambda 0.1', async function () {
+      const alpha: RebateParameters = [1, 4, 1, 10]
       await fn(testCases, alpha)
     })
 
-    // Periodic alpha
+    // Periodic alpha and lambda
     it('alpha 0.33~', async function () {
-      const alpha: RebateRatio = [1, 3]
+      const alpha: RebateParameters = [1, 3, 2, 3]
       await fn(testCases, alpha)
     })
 
-    // Small alpha
-    it('alpha 0.005', async function () {
-      const alpha: RebateRatio = [1, 200]
+    // Small alpha typical lambda
+    it('alpha 0.005 - lambda 0.6', async function () {
+      const alpha: RebateParameters = [1, 200, 6, 10]
       await fn(testCases, alpha)
     })
 
-    // Edge alpha
-    it('alpha 1', async function () {
-      const alpha: RebateRatio = [1, 1]
+    // Typical alpha small lambda
+    it('alpha 1 - lambda 0.6', async function () {
+      const alpha: RebateParameters = [1, 1, 1, 200]
+      await fn(testCases, alpha)
+    })
+
+    // Edge alpha - typical lambda
+    it('alpha 0 - lambda 0.6', async function () {
+      const alpha: RebateParameters = [0, 1, 6, 10]
+      await fn(testCases, alpha)
+    })
+
+    // Typical alpha - edge lambda
+    it('alpha 1 - lambda 0', async function () {
+      const alpha: RebateParameters = [1, 1, 0, 10]
       await fn(testCases, alpha)
     })
   }
@@ -196,51 +159,23 @@ describe('Staking:Rebate', () => {
   beforeEach(async function () {
     await initNetwork()
     ;[deployer] = await getAccounts()
-    rebatePoolMock = (await deployContract(
-      'RebatePoolMock',
+    libExponential = (await deployContract(
+      'LibExponential',
       deployer.signer,
-    )) as unknown as RebatePoolMock
+    )) as unknown as LibExponential
   })
 
-  describe('should match cobb-douglas Solidity implementation', function () {
+  describe('should match rebates Solidity implementation', function () {
     describe('normal test case', function () {
-      testAlphas(shouldMatchFormulas, testCases)
+      testRebateParameters(shouldMatchFormulas, testCases)
     })
 
     describe('edge #1 test case', function () {
-      testAlphas(shouldMatchFormulas, edgeCases1)
+      testRebateParameters(shouldMatchFormulas, edgeCases1)
     })
 
     describe('edge #2 test case', function () {
-      testAlphas(shouldMatchFormulas, edgeCases2)
-    })
-  })
-
-  describe('should match rewards out from rebates', function () {
-    describe('normal test case', function () {
-      testAlphas(shouldMatchOut, testCases)
-    })
-
-    describe('edge #1 test case', function () {
-      testAlphas(shouldMatchOut, edgeCases1)
-    })
-
-    describe('edge #2 test case', function () {
-      testAlphas(shouldMatchFormulas, edgeCases2)
-    })
-  })
-
-  describe('should always be that sum of rebate rewards obtained <= to total rewards', function () {
-    describe('normal test case', function () {
-      testAlphas(shouldConserveBalances, testCases)
-    })
-
-    describe('edge #1 test case', function () {
-      testAlphas(shouldConserveBalances, edgeCases1)
-    })
-
-    describe('edge #2 test case', function () {
-      testAlphas(shouldMatchFormulas, edgeCases2)
+      testRebateParameters(shouldMatchFormulas, edgeCases2)
     })
   })
 })
