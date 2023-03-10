@@ -39,7 +39,12 @@ interface IStaking is IStakingData {
 
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
 
-    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external;
+    function setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external;
 
     function setDelegationRatio(uint32 _delegationRatio) external;
 

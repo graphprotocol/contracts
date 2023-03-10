@@ -21,7 +21,7 @@ import "./libs/Stakes.sol";
  * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
  * contract also has the slashing functionality.
  */
-contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
+contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
     using Rebates for Rebates.Pool;
@@ -215,12 +215,12 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         uint32 _maxAllocationEpochs,
         uint32 _delegationUnbondingPeriod,
         uint32 _delegationRatio,
-        uint32 _rebateAlphaNumerator,
-        uint32 _rebateAlphaDenominator
+        RebatesParameters calldata _rebatesParameters
     ) external onlyImpl {
         Managed._initialize(_controller);
 
         // Settings
+
         _setMinimumIndexerStake(_minimumIndexerStake);
         _setThawingPeriod(_thawingPeriod);
 
@@ -235,7 +235,12 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         _setDelegationParametersCooldown(0);
         _setDelegationTaxPercentage(0);
 
-        _setRebateRatio(_rebateAlphaNumerator, _rebateAlphaDenominator);
+        _setRebateParameters(
+            _rebatesParameters.alphaNumerator,
+            _rebatesParameters.alphaDenominator,
+            _rebatesParameters.lambdaNumerator,
+            _rebatesParameters.lambdaDenominator
+        );
     }
 
     /**
@@ -348,28 +353,46 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Set the rebate ratio (fees to allocated stake).
-     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
-     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     * @dev Set the rebate parameters.
+     * @param _alphaNumerator Numerator of `alpha` in the rebates function
+     * @param _alphaDenominator Denominator of `alpha` in the rebates function
+     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
+     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
      */
-    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator)
-        external
-        override
-        onlyGovernor
-    {
-        _setRebateRatio(_alphaNumerator, _alphaDenominator);
+    function setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external override onlyGovernor {
+        _setRebateParameters(
+            _alphaNumerator,
+            _alphaDenominator,
+            _lambdaNumerator,
+            _lambdaDenominator
+        );
     }
 
     /**
-     * @dev Set the rebate ratio (fees to allocated stake).
-     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
-     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     * @dev Set the rebate parameters.
+     * @param _alphaNumerator Numerator of `alpha` in the rebates function
+     * @param _alphaDenominator Denominator of `alpha` in the rebates function
+     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
+     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
      */
-    function _setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) private {
+    function _setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) private {
         require(_alphaNumerator > 0 && _alphaDenominator > 0, "!alpha");
+        require(_lambdaNumerator > 0 && _lambdaDenominator > 0, "!lambda");
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
-        emit ParameterUpdated("rebateRatio");
+        lambdaNumerator = _lambdaNumerator;
+        lambdaDenominator = _lambdaDenominator;
+        emit ParameterUpdated("rebateParameters");
     }
 
     /**
@@ -1210,7 +1233,7 @@ contract Staking is StakingV2Storage, GraphUpgradeable, IStaking, Multicall {
         // Account collected fees and effective allocation in rebate pool for the epoch
         Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
         if (!rebatePool.exists()) {
-            rebatePool.init(alphaNumerator, alphaDenominator);
+            rebatePool.init(alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
         }
         rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 

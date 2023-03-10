@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "../staking/libs/Rebates.sol";
 import "../staking/libs/Cobbs.sol";
+import "../staking/libs/Exponential.sol";
 
 // Mock contract used for testing rebates
 contract RebatePoolMock {
@@ -22,8 +23,13 @@ contract RebatePoolMock {
     event Redeemed(uint256 value);
 
     // Set the alpha for rebates
-    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external {
-        rebatePool.init(_alphaNumerator, _alphaDenominator);
+    function setRebateParameter(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external {
+        rebatePool.init(_alphaNumerator, _alphaDenominator, _lambdaNumerator, _lambdaDenominator);
     }
 
     // Add fees and stake to the rebate pool
@@ -61,6 +67,26 @@ contract RebatePoolMock {
                 _totalStake,
                 _alphaNumerator,
                 _alphaDenominator
+            );
+    }
+
+    // Stub to test the exponential rebates formula directly
+    function exponentialRebates(
+        uint256 _fees,
+        uint256 _stake,
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external pure returns (uint256) {
+        return
+            LibExponential.exponentialRebates(
+                _fees,
+                _stake,
+                _alphaNumerator,
+                _alphaDenominator,
+                _lambdaNumerator,
+                _lambdaDenominator
             );
     }
 }
