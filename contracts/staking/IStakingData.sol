@@ -51,4 +51,14 @@ interface IStakingData {
         uint256 tokensLocked; // Tokens locked for undelegation
         uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
     }
+
+    /**
+     * @dev Rebates parameters. Used to avoid stack too deep errors in Staking initialize function.
+     */
+    struct RebatesParameters {
+        uint32 alphaNumerator;
+        uint32 alphaDenominator;
+        uint32 lambdaNumerator;
+        uint32 lambdaDenominator;
+    }
 }

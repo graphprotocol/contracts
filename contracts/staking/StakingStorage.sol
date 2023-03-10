@@ -31,7 +31,7 @@ contract StakingV1Storage is Managed {
     // Maximum allocation time
     uint32 public maxAllocationEpochs;
 
-    // Rebate ratio
+    // Rebate parameters
     uint32 public alphaNumerator;
     uint32 public alphaDenominator;
 
@@ -86,4 +86,10 @@ contract StakingV1Storage is Managed {
 contract StakingV2Storage is StakingV1Storage {
     // Destination of accrued rewards : beneficiary => rewards destination
     mapping(address => address) public rewardsDestination;
+}
+
+contract StakingV3Storage is StakingV2Storage {
+    // Additional rebate parameters for exponential rebates
+    uint32 public lambdaNumerator;
+    uint32 public lambdaDenominator;
 }
