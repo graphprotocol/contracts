@@ -31,17 +31,20 @@ library LibExponential {
         uint32 lambdaNumerator,
         uint32 lambdaDenominator
     ) public pure returns (uint256) {
+        // If alpha is zero indexer gets 100% fees rebate
         int256 alpha = LibFixedMath.toFixed(int32(alphaNumerator), int32(alphaDenominator));
-        int256 lambda = LibFixedMath.toFixed(int32(lambdaNumerator), int32(lambdaDenominator));
-        int256 stakeFeesRatio = LibFixedMath.toFixed(int256(stake), int256(fees));
+        if (alpha == 0) {
+            return fees;
+        }
 
-        // No fees rebate if any of the parameters are zero...
-        if (stakeFeesRatio == 0 || alpha == 0 || lambda == 0) {
+        // No fees rebate if stake, fees or lambda are zero...
+        int256 lambda = LibFixedMath.toFixed(int32(lambdaNumerator), int32(lambdaDenominator));
+        if (stake == 0 || fees == 0 || lambda == 0) {
             return 0;
         }
 
         // Award all fees as rebate if the exponent is too large
-        int256 exponent = LibFixedMath.mul(lambda, stakeFeesRatio);
+        int256 exponent = LibFixedMath.mulDiv(lambda, int256(stake), int256(fees));
         if (LibFixedMath.toInteger(exponent) > MAX_EXPONENT) {
             return fees;
         }
