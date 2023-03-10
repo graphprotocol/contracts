@@ -203,28 +203,38 @@ describe('Staking:Config', () => {
     })
   })
 
-  describe('rebateRatio', function () {
+  describe('rebateParameters', function () {
     it('should be setup on init', async function () {
       expect(await staking.alphaNumerator()).eq(toBN(85))
       expect(await staking.alphaDenominator()).eq(toBN(100))
+      expect(await staking.lambdaNumerator()).eq(toBN(6))
+      expect(await staking.lambdaDenominator()).eq(toBN(10))
     })
 
-    it('should set `rebateRatio`', async function () {
-      await staking.connect(governor.signer).setRebateRatio(5, 6)
+    it('should set `rebateParameters`', async function () {
+      await staking.connect(governor.signer).setRebateParameters(5, 6, 7, 8)
       expect(await staking.alphaNumerator()).eq(toBN(5))
       expect(await staking.alphaDenominator()).eq(toBN(6))
+      expect(await staking.lambdaNumerator()).eq(toBN(7))
+      expect(await staking.lambdaDenominator()).eq(toBN(8))
     })
 
-    it('reject set `rebateRatio` if out of bounds', async function () {
-      const tx1 = staking.connect(governor.signer).setRebateRatio(0, 1)
+    it('reject set `rebateParameters` if out of bounds', async function () {
+      const tx1 = staking.connect(governor.signer).setRebateParameters(0, 1, 1, 1)
       await expect(tx1).revertedWith('!alpha')
 
-      const tx2 = staking.connect(governor.signer).setRebateRatio(1, 0)
+      const tx2 = staking.connect(governor.signer).setRebateParameters(1, 0, 1, 1)
       await expect(tx2).revertedWith('!alpha')
+
+      const tx3 = staking.connect(governor.signer).setRebateParameters(1, 1, 0, 1)
+      await expect(tx3).revertedWith('!lambda')
+
+      const tx4 = staking.connect(governor.signer).setRebateParameters(1, 1, 1, 0)
+      await expect(tx4).revertedWith('!lambda')
     })
 
-    it('reject set `rebateRatio` if not allowed', async function () {
-      const tx = staking.connect(other.signer).setRebateRatio(1, 1)
+    it('reject set `rebateParameters` if not allowed', async function () {
+      const tx = staking.connect(other.signer).setRebateParameters(1, 1, 1, 1)
       await expect(tx).revertedWith('Only Controller governor')
     })
   })

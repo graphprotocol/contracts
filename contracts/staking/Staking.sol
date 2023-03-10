@@ -386,7 +386,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         uint32 _lambdaNumerator,
         uint32 _lambdaDenominator
     ) private {
-        require(_alphaNumerator > 0 && _alphaDenominator > 0, "!alpha");
+        require(_alphaDenominator > 0, "!alpha");
         require(_lambdaNumerator > 0 && _lambdaDenominator > 0, "!lambda");
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;

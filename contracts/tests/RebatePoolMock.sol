@@ -23,7 +23,7 @@ contract RebatePoolMock {
     event Redeemed(uint256 value);
 
     // Set the alpha for rebates
-    function setRebateParameter(
+    function setRebateParameters(
         uint32 _alphaNumerator,
         uint32 _alphaDenominator,
         uint32 _lambdaNumerator,
