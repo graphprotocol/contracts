@@ -2,7 +2,7 @@
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert, initNetwork, toBN } from './testHelpers'
+import { evmSnapshot, evmRevert, initNetwork } from './testHelpers'
 import { BridgeMock } from '../../build/types/BridgeMock'
 import { InboxMock } from '../../build/types/InboxMock'
 import { OutboxMock } from '../../build/types/OutboxMock'
@@ -24,6 +24,7 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { LibExponential } from '../../build/types/LibExponential'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -33,6 +34,7 @@ export interface L1FixtureContracts {
   curation: Curation
   gns: L1GNS
   staking: IL1Staking
+  libExponential: LibExponential
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -48,6 +50,7 @@ export interface L2FixtureContracts {
   curation: L2Curation
   gns: L2GNS
   staking: IL2Staking
+  libExponential: LibExponential
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -109,6 +112,7 @@ export class NetworkFixture {
       gns = await deployment.deployL1GNS(deployer, controller.address, proxyAdmin)
       staking = await deployment.deployL1Staking(deployer, controller.address, proxyAdmin)
     }
+    const libExponential = await deployment.deployLibExponential(deployer)
     const disputeManager = await deployment.deployDisputeManager(
       deployer,
       controller.address,
@@ -190,6 +194,7 @@ export class NetworkFixture {
         curation,
         gns,
         staking,
+        libExponential,
         rewardsManager,
         serviceRegistry,
         proxyAdmin,
@@ -204,6 +209,7 @@ export class NetworkFixture {
         curation,
         gns,
         staking,
+        libExponential,
         rewardsManager,
         serviceRegistry,
         proxyAdmin,

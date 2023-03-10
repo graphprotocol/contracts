@@ -38,7 +38,7 @@ export const getChainID = (): number => {
 
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
-type ContractParam = string | BigNumber | number
+type ContractParam = string | BigNumber | number | { [key: string]: any }
 type DeployResult = {
   contract: Contract
   creationCodeHash: string
@@ -68,7 +68,12 @@ export const isContractDeployed = async (
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash
-    const creationCodeHash = hashHexString(artifact.bytecode)
+    let creationCodeHash: string
+    try {
+      creationCodeHash = hashHexString(artifact.bytecode)
+    } catch (error) {
+      // Noop - assume contract is not deployed
+    }
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
       logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)

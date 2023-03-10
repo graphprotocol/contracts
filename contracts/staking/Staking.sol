@@ -11,14 +11,14 @@ import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { IStakingBase } from "./IStakingBase.sol";
-import { StakingV3Storage } from "./StakingStorage.sol";
+import { StakingV4Storage } from "./StakingStorage.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
-import { Rebates } from "./libs/Rebates.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { Managed } from "../governance/Managed.sol";
 import { ICuration } from "../curation/ICuration.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { StakingExtension } from "./StakingExtension.sol";
+import { LibExponential } from "./libs/Exponential.sol";
 
 /**
  * @title Base Staking contract
@@ -30,10 +30,9 @@ import { StakingExtension } from "./StakingExtension.sol";
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, Multicall {
+abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, Multicall {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
-    using Rebates for Rebates.Pool;
 
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
@@ -86,12 +85,10 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
      * @param _thawingPeriod Number of epochs that tokens get locked after unstaking
      * @param _protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
      * @param _curationPercentage Percentage of query fees that are given to curators (in PPM)
-     * @param _channelDisputeEpochs The period in epochs that needs to pass before fees in rebate pool can be claimed
      * @param _maxAllocationEpochs The maximum number of epochs that an allocation can be active
      * @param _delegationUnbondingPeriod The period in epochs that tokens get locked after undelegating
      * @param _delegationRatio The ratio between an indexer's own stake and the delegation they can use
-     * @param _rebateAlphaNumerator The numerator of the alpha factor used to calculate the rebate
-     * @param _rebateAlphaDenominator The denominator of the alpha factor used to calculate the rebate
+     * @param _rebatesParameters Alpha and lambda parameters for rebates function
      * @param _extensionImpl Address of the StakingExtension implementation
      */
     function initialize(
@@ -100,27 +97,30 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
         uint32 _thawingPeriod,
         uint32 _protocolPercentage,
         uint32 _curationPercentage,
-        uint32 _channelDisputeEpochs,
         uint32 _maxAllocationEpochs,
         uint32 _delegationUnbondingPeriod,
         uint32 _delegationRatio,
-        uint32 _rebateAlphaNumerator,
-        uint32 _rebateAlphaDenominator,
+        RebatesParameters calldata _rebatesParameters,
         address _extensionImpl
     ) external override onlyImpl {
         Managed._initialize(_controller);
 
         // Settings
+
         _setMinimumIndexerStake(_minimumIndexerStake);
         _setThawingPeriod(_thawingPeriod);
 
         _setProtocolPercentage(_protocolPercentage);
         _setCurationPercentage(_curationPercentage);
 
-        _setChannelDisputeEpochs(_channelDisputeEpochs);
         _setMaxAllocationEpochs(_maxAllocationEpochs);
 
-        _setRebateRatio(_rebateAlphaNumerator, _rebateAlphaDenominator);
+        _setRebateParameters(
+            _rebatesParameters.alphaNumerator,
+            _rebatesParameters.alphaDenominator,
+            _rebatesParameters.lambdaNumerator,
+            _rebatesParameters.lambdaDenominator
+        );
 
         extensionImpl = _extensionImpl;
 
@@ -191,14 +191,6 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the period in epochs that need to pass before fees in rebate pool can be claimed.
-     * @param _channelDisputeEpochs Period in epochs
-     */
-    function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external override onlyGovernor {
-        _setChannelDisputeEpochs(_channelDisputeEpochs);
-    }
-
-    /**
      * @notice Set the max time allowed for indexers to allocate on a subgraph
      * before others are allowed to close the allocation.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
@@ -208,16 +200,24 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the rebate ratio (fees to allocated stake).
-     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
-     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     * @dev Set the rebate parameters.
+     * @param _alphaNumerator Numerator of `alpha` in the rebates function
+     * @param _alphaDenominator Denominator of `alpha` in the rebates function
+     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
+     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
      */
-    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator)
-        external
-        override
-        onlyGovernor
-    {
-        _setRebateRatio(_alphaNumerator, _alphaDenominator);
+    function setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external override onlyGovernor {
+        _setRebateParameters(
+            _alphaNumerator,
+            _alphaDenominator,
+            _lambdaNumerator,
+            _lambdaDenominator
+        );
     }
 
     /**
@@ -353,12 +353,12 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Collect query fees from state channels and assign them to an allocation.
+     * @dev Collect and rebate query fees from state channels to the indexer
      * Funds received are only accepted from a valid sender.
-     * @dev To avoid reverting on the withdrawal from channel flow this function will:
-     * 1) Accept calls with zero tokens.
-     * 2) Accept calls after an allocation passed the dispute period, in that case, all
-     *    the received tokens are burned.
+     * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
+     * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
+     * This implementation allows collecting multiple times on the same allocation, keeping track of the
+     * total amount rebated, the total amount collected and compensating the indexer for the difference.
      * @param _tokens Amount of tokens to collect
      * @param _allocationID Allocation where the tokens will be assigned
      */
@@ -373,25 +373,23 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
-        // Get allocation
         Allocation storage alloc = __allocations[_allocationID];
-        uint256 queryFees = _tokens;
-        uint256 curationFees = 0;
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
+
+        uint256 queryFees = _tokens; // Tokens collected from the channel
+        uint256 protocolTax = 0; // Tokens burnt as protocol tax
+        uint256 curationFees = 0; // Tokens distributed to curators as curation fees
+        uint256 queryRebates = 0; // Tokens to distribute to indexer
+        uint256 delegationRewards = 0; // Tokens to distribute to delegators
 
         // Process query fees only if non-zero amount
         if (queryFees > 0) {
-            // Pull tokens to collect from the authorized sender
+            // -- Pull tokens from the authorized sender --
             IGraphToken graphToken = graphToken();
-            TokenUtils.pullTokens(graphToken, msg.sender, _tokens);
+            TokenUtils.pullTokens(graphToken, msg.sender, queryFees);
 
             // -- Collect protocol tax --
-            // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-                allocState == AllocationState.Closed)
-                ? __protocolPercentage
-                : MAX_PPM;
-            uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
+            protocolTax = _collectTax(graphToken, queryFees, __protocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
             // -- Collect curation fees --
@@ -404,52 +402,63 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
             );
             queryFees = queryFees.sub(curationFees);
 
-            // Add funds to the allocation
+            // -- Process rebate reward --
+            // Using accumulated fees and subtracting previously distributed rebates
+            // allows for multiple vouchers to be collected while following the rebate formula
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
+            uint256 newRebates = LibExponential.exponentialRebates(
+                alloc.collectedFees,
+                alloc.tokens,
+                __alphaNumerator,
+                __alphaDenominator,
+                __lambdaNumerator,
+                __lambdaDenominator
+            );
 
-            // When allocation is closed redirect funds to the rebate pool
-            // This way we can keep collecting tokens even after the allocation is closed and
-            // before it gets to the finalized state.
-            if (allocState == AllocationState.Closed) {
-                Rebates.Pool storage rebatePool = __rebates[alloc.closedAtEpoch];
-                rebatePool.fees = rebatePool.fees.add(queryFees);
+            //  -- Ensure rebates to distribute are within bounds --
+            // Indexers can become under or over rebated if rebate parameters (alpha, lambda)
+            // change between successive collect calls for the same allocation
+
+            // Ensure rebates to distribute are not negative (indexer is over-rebated)
+            queryRebates = MathUtils.diffOrZero(newRebates, alloc.distributedRebates);
+
+            // Ensure rebates to distribute are not greater than available (indexer is under-rebated)
+            queryRebates = MathUtils.min(queryRebates, queryFees);
+
+            // -- Burn rebates remanent --
+            TokenUtils.burnTokens(graphToken, queryFees.sub(queryRebates));
+
+            // -- Distribute rebates --
+            if (queryRebates > 0) {
+                alloc.distributedRebates = alloc.distributedRebates.add(queryRebates);
+
+                // -- Collect delegation rewards into the delegation pool --
+                delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
+                queryRebates = queryRebates.sub(delegationRewards);
+
+                // -- Transfer or restake rebates --
+                _sendRewards(
+                    graphToken,
+                    queryRebates,
+                    alloc.indexer,
+                    __rewardsDestination[alloc.indexer] == address(0)
+                );
             }
         }
 
-        emit AllocationCollected(
+        emit RebateCollected(
+            msg.sender,
             alloc.indexer,
             subgraphDeploymentID,
+            _allocationID,
             epochManager().currentEpoch(),
             _tokens,
-            _allocationID,
-            msg.sender,
+            protocolTax,
             curationFees,
-            queryFees
+            queryFees,
+            queryRebates,
+            delegationRewards
         );
-    }
-
-    /**
-     * @notice Claim tokens from the rebate pool.
-     * @param _allocationID Allocation from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claim(address _allocationID, bool _restake) external override notPaused {
-        _claim(_allocationID, _restake);
-    }
-
-    /**
-     * @dev Claim tokens from the rebate pool for many allocations.
-     * @param _allocationID Array of allocations from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claimMany(address[] calldata _allocationID, bool _restake)
-        external
-        override
-        notPaused
-    {
-        for (uint256 i = 0; i < _allocationID.length; i++) {
-            _claim(_allocationID[i], _restake);
-        }
     }
 
     /**
@@ -622,16 +631,6 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Internal: Set the period in epochs that need to pass before fees in rebate pool can be claimed.
-     * @param _channelDisputeEpochs Period in epochs
-     */
-    function _setChannelDisputeEpochs(uint32 _channelDisputeEpochs) private {
-        require(_channelDisputeEpochs > 0, "!channelDisputeEpochs");
-        __channelDisputeEpochs = _channelDisputeEpochs;
-        emit ParameterUpdated("channelDisputeEpochs");
-    }
-
-    /**
      * @dev Internal: Set the max time allowed for indexers stake on allocations.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
@@ -641,15 +640,25 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Set the rebate ratio (fees to allocated stake).
-     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
-     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     * @dev Set the rebate parameters.
+     * @param _alphaNumerator Numerator of `alpha` in the rebates function
+     * @param _alphaDenominator Denominator of `alpha` in the rebates function
+     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
+     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
      */
-    function _setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) private {
-        require(_alphaNumerator > 0 && _alphaDenominator > 0, "!alpha");
+    function _setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) private {
+        require(_alphaDenominator > 0, "!alpha");
+        require(_lambdaNumerator > 0 && _lambdaDenominator > 0, "!lambda");
         __alphaNumerator = _alphaNumerator;
         __alphaDenominator = _alphaDenominator;
-        emit ParameterUpdated("rebateRatio");
+        __lambdaNumerator = _lambdaNumerator;
+        __lambdaDenominator = _lambdaDenominator;
+        emit ParameterUpdated("rebateParameters");
     }
 
     /**
@@ -783,8 +792,9 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
             epochManager().currentEpoch(), // createdAtEpoch
             0, // closedAtEpoch
             0, // Initialize collected fees
-            0, // Initialize effective allocation
-            (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0 // Initialize accumulated rewards per stake allocated
+            0, // Initialize effective allocation (DEPRECATED)
+            (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0, // Initialize accumulated rewards per stake allocated
+            0 // Initialize distributed rebates
         );
         __allocations[_allocationID] = alloc;
 
@@ -839,26 +849,8 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
             require(isIndexer, "!auth");
         }
 
-        // Close the allocation and start counting a period to settle remaining payments from
-        // state channels.
+        // Close the allocation
         __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
-        // -- Rebate Pool --
-
-        // Calculate effective allocation for the amount of epochs it remained allocated
-        alloc.effectiveAllocation = _getEffectiveAllocation(
-            __maxAllocationEpochs,
-            alloc.tokens,
-            epochs
-        );
-        __allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
-
-        // Account collected fees and effective allocation in rebate pool for the epoch
-        Rebates.Pool storage rebatePool = __rebates[alloc.closedAtEpoch];
-        if (!rebatePool.exists()) {
-            rebatePool.init(__alphaNumerator, __alphaDenominator);
-        }
-        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // -- Rewards Distribution --
 
@@ -887,69 +879,9 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
             alloc.closedAtEpoch,
             alloc.tokens,
             _allocationID,
-            alloc.effectiveAllocation,
             msg.sender,
             _poi,
             !isIndexer
-        );
-    }
-
-    /**
-     * @dev Claim tokens from the rebate pool.
-     * @param _allocationID Allocation from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function _claim(address _allocationID, bool _restake) private {
-        // Funds can only be claimed after a period of time passed since allocation was closed
-        AllocationState allocState = _getAllocationState(_allocationID);
-        require(allocState == AllocationState.Finalized, "!finalized");
-
-        // Get allocation
-        Allocation memory alloc = __allocations[_allocationID];
-
-        // Only the indexer or operator can decide if to restake
-        bool restake = _isAuth(alloc.indexer) ? _restake : false;
-
-        // Process rebate reward
-        Rebates.Pool storage rebatePool = __rebates[alloc.closedAtEpoch];
-        uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
-
-        // Add delegation rewards to the delegation pool
-        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
-        tokensToClaim = tokensToClaim.sub(delegationRewards);
-
-        // Purge allocation data except for:
-        // - indexer: used in disputes and to avoid reusing an allocationID
-        // - subgraphDeploymentID: used in disputes
-        __allocations[_allocationID].tokens = 0;
-        __allocations[_allocationID].createdAtEpoch = 0; // This avoid collect(), close() and claim() to be called
-        __allocations[_allocationID].closedAtEpoch = 0;
-        __allocations[_allocationID].collectedFees = 0;
-        __allocations[_allocationID].effectiveAllocation = 0;
-        __allocations[_allocationID].accRewardsPerAllocatedToken = 0;
-
-        // -- Interactions --
-
-        IGraphToken graphToken = graphToken();
-
-        // When all allocations processed then burn unclaimed fees and prune rebate pool
-        if (rebatePool.unclaimedAllocationsCount == 0) {
-            TokenUtils.burnTokens(graphToken, rebatePool.unclaimedFees());
-            delete __rebates[alloc.closedAtEpoch];
-        }
-
-        // When there are tokens to claim from the rebate pool, transfer or restake
-        _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
-
-        emit RebateClaimed(
-            alloc.indexer,
-            alloc.subgraphDeploymentID,
-            _allocationID,
-            epochManager().currentEpoch(),
-            alloc.closedAtEpoch,
-            tokensToClaim,
-            rebatePool.unclaimedAllocationsCount,
-            delegationRewards
         );
     }
 
@@ -1144,35 +1076,11 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
         if (alloc.indexer == address(0)) {
             return AllocationState.Null;
         }
-        if (alloc.createdAtEpoch == 0) {
-            return AllocationState.Claimed;
-        }
 
-        uint256 closedAtEpoch = alloc.closedAtEpoch;
-        if (closedAtEpoch == 0) {
+        if (alloc.closedAtEpoch == 0) {
             return AllocationState.Active;
         }
 
-        uint256 epochs = epochManager().epochsSince(closedAtEpoch);
-        if (epochs >= __channelDisputeEpochs) {
-            return AllocationState.Finalized;
-        }
         return AllocationState.Closed;
-    }
-
-    /**
-     * @dev Get the effective stake allocation considering epochs from allocation to closing.
-     * @param _maxAllocationEpochs Max amount of epochs to cap the allocated stake
-     * @param _tokens Amount of tokens allocated
-     * @param _numEpochs Number of epochs that passed from allocation to closing
-     * @return Effective allocated tokens across epochs
-     */
-    function _getEffectiveAllocation(
-        uint256 _maxAllocationEpochs,
-        uint256 _tokens,
-        uint256 _numEpochs
-    ) private pure returns (uint256) {
-        bool shouldCap = _maxAllocationEpochs > 0 && _numEpochs > _maxAllocationEpochs;
-        return _tokens.mul((shouldCap) ? _maxAllocationEpochs : _numEpochs);
     }
 }
