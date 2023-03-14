@@ -205,10 +205,10 @@ describe('Staking:Config', () => {
 
   describe('rebateParameters', function () {
     it('should be setup on init', async function () {
-      expect(await staking.alphaNumerator()).eq(toBN(85))
+      expect(await staking.alphaNumerator()).eq(toBN(100))
       expect(await staking.alphaDenominator()).eq(toBN(100))
-      expect(await staking.lambdaNumerator()).eq(toBN(6))
-      expect(await staking.lambdaDenominator()).eq(toBN(10))
+      expect(await staking.lambdaNumerator()).eq(toBN(60))
+      expect(await staking.lambdaDenominator()).eq(toBN(100))
     })
 
     it('should set `rebateParameters`', async function () {
@@ -220,9 +220,6 @@ describe('Staking:Config', () => {
     })
 
     it('reject set `rebateParameters` if out of bounds', async function () {
-      const tx1 = staking.connect(governor.signer).setRebateParameters(0, 1, 1, 1)
-      await expect(tx1).revertedWith('!alpha')
-
       const tx2 = staking.connect(governor.signer).setRebateParameters(1, 0, 1, 1)
       await expect(tx2).revertedWith('!alpha')
 

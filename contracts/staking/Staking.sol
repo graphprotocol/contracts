@@ -1044,21 +1044,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Claim tokens from the rebate pool for many allocations.
-     * @param _allocationID Array of allocations from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    // function claimMany(address[] calldata _allocationID, bool _restake)
-    //     external
-    //     override
-    //     notPaused
-    // {
-    //     for (uint256 i = 0; i < _allocationID.length; i++) {
-    //         _claim(_allocationID[i], _restake);
-    //     }
-    // }
-
-    /**
      * @dev Stake tokens on the indexer.
      * This function does not check minimum indexer stake requirement to allow
      * to be called by functions that increase the stake when collecting rewards

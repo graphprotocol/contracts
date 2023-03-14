@@ -5,6 +5,7 @@ import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Staking } from '../../build/types/Staking'
+import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -52,6 +53,12 @@ describe('Staking:Allocation', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
+  let libExponential: LibExponential
+
+  let alphaNumerator: number
+  let alphaDenominator: number
+  let lambdaNumerator: number
+  let lambdaDenominator: number
 
   // Test values
 
@@ -81,6 +88,9 @@ describe('Staking:Allocation', () => {
   }
 
   const shouldAllocate = async (tokensToAllocate: BigNumber) => {
+    // Advance epoch to prevent epoch jumping mid test
+    await advanceToNextEpoch(epochManager)
+
     // Before state
     const beforeStake = await staking.stakes(indexer.address)
 
@@ -130,9 +140,14 @@ describe('Staking:Allocation', () => {
     const beforeIndexerTokens = await grt.balanceOf(indexer.address)
 
     // Claim rebates
-    const tokensToClaim = beforeAlloc.effectiveAllocation.eq(0)
-      ? toBN(0)
-      : beforeAlloc.collectedFees
+    const tokensToClaim = await libExponential.exponentialRebates(
+      beforeAlloc.collectedFees,
+      beforeAlloc.effectiveAllocation,
+      alphaNumerator,
+      alphaDenominator,
+      lambdaNumerator,
+      lambdaDenominator,
+    )
     const currentEpoch = await epochManager.currentEpoch()
     const tx = staking.connect(indexer.signer).claim(allocationID, restake)
     await expect(tx)
@@ -255,10 +270,16 @@ describe('Staking:Allocation', () => {
     ;[me, governor, indexer, slasher, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation, epochManager, grt, staking } = await fixture.load(
+    ;({ curation, epochManager, grt, staking, libExponential } = await fixture.load(
       governor.signer,
       slasher.signer,
     ))
+    ;[alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator] = await Promise.all([
+      staking.alphaNumerator(),
+      staking.alphaDenominator(),
+      staking.lambdaNumerator(),
+      staking.lambdaDenominator(),
+    ])
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
@@ -911,9 +932,14 @@ describe('Staking:Allocation', () => {
 
             // Verify that the claimed tokens are restaked
             const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
-            const tokensToClaim = beforeAlloc.effectiveAllocation.eq(0)
-              ? toBN(0)
-              : beforeAlloc.collectedFees
+            const tokensToClaim = await libExponential.exponentialRebates(
+              beforeAlloc.collectedFees,
+              beforeAlloc.effectiveAllocation,
+              alphaNumerator,
+              alphaDenominator,
+              lambdaNumerator,
+              lambdaDenominator,
+            )
             expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToClaim))
           })
 
@@ -934,9 +960,14 @@ describe('Staking:Allocation', () => {
 
             // Verify that the claimed tokens are restaked
             const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
-            const tokensToClaim = beforeAlloc.effectiveAllocation.eq(0)
-              ? toBN(0)
-              : beforeAlloc.collectedFees
+            const tokensToClaim = await libExponential.exponentialRebates(
+              beforeAlloc.collectedFees,
+              beforeAlloc.effectiveAllocation,
+              alphaNumerator,
+              alphaDenominator,
+              lambdaNumerator,
+              lambdaDenominator,
+            )
             expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToClaim))
           })
 
