@@ -24,6 +24,56 @@ interface RebateTestCase {
   totalStake: number
 }
 
+// This function calculates the Cobb-Douglas formula in Typescript so we can compare against
+// the Solidity implementation
+// TODO: consider using bignumber.js to get extra precision
+export function cobbDouglas(
+  totalRewards: number,
+  fees: number,
+  totalFees: number,
+  stake: number,
+  totalStake: number,
+  alphaNumerator: number,
+  alphaDenominator: number,
+) {
+  if (totalFees === 0 || totalStake === 0) {
+    return 0
+  }
+  const feeRatio = fees / totalFees
+  const stakeRatio = stake / totalStake
+  const alpha = alphaNumerator / alphaDenominator
+  return totalRewards * feeRatio ** alpha * stakeRatio ** (1 - alpha)
+}
+
+// This function calculates the exponential rebates formula in Typescript so we can compare against
+// the Solidity implementation
+export function exponentialRebates(
+  fees: number,
+  stake: number,
+  alphaNumerator: number,
+  alphaDenominator: number,
+  lambdaNumerator: number,
+  lambdaDenominator: number,
+) {
+  const alpha = alphaNumerator / alphaDenominator
+  if (alpha === 0) {
+    return fees
+  }
+
+  const lambda = lambdaNumerator / lambdaDenominator
+  if (fees === 0 || stake === 0 || lambda === 0) {
+    return 0
+  }
+
+  const exponent = (lambda * stake) / fees
+  // LibExponential.MAX_EXPONENT = 15
+  if (exponent > 15) {
+    return fees
+  }
+
+  return fees * (1 - alpha * Math.exp(-exponent))
+}
+
 describe('Staking:Rebate', () => {
   let deployer: Account
 
@@ -51,56 +101,6 @@ describe('Staking:Rebate', () => {
     { totalRewards: 1300, fees: 200, totalFees: 1300, stake: 0, totalStake: 0 },
     { totalRewards: 1300, fees: 1000, totalFees: 1300, stake: 0, totalStake: 0 },
   ]
-
-  // This function calculates the Cobb-Douglas formula in Typescript so we can compare against
-  // the Solidity implementation
-  // TODO: consider using bignumber.js to get extra precision
-  function cobbDouglas(
-    totalRewards: number,
-    fees: number,
-    totalFees: number,
-    stake: number,
-    totalStake: number,
-    alphaNumerator: number,
-    alphaDenominator: number,
-  ) {
-    if (totalFees === 0 || totalStake === 0) {
-      return 0
-    }
-    const feeRatio = fees / totalFees
-    const stakeRatio = stake / totalStake
-    const alpha = alphaNumerator / alphaDenominator
-    return totalRewards * feeRatio ** alpha * stakeRatio ** (1 - alpha)
-  }
-
-  // This function calculates the exponential rebates formula in Typescript so we can compare against
-  // the Solidity implementation
-  function exponentialRebates(
-    fees: number,
-    stake: number,
-    alphaNumerator: number,
-    alphaDenominator: number,
-    lambdaNumerator: number,
-    lambdaDenominator: number,
-  ) {
-    const alpha = alphaNumerator / alphaDenominator
-    if (alpha === 0) {
-      return fees
-    }
-
-    const lambda = lambdaNumerator / lambdaDenominator
-    if (fees === 0 || stake === 0 || lambda === 0) {
-      return 0
-    }
-
-    const exponent = (lambda * stake) / fees
-    // LibExponential.MAX_EXPONENT = 15
-    if (exponent > 15) {
-      return fees
-    }
-
-    return fees * (1 - alpha * Math.exp(-exponent))
-  }
 
   // Test if the Solidity implementation of the rebate formula match the local implementation
   async function shouldMatchFormulas(testCases: RebateTestCase[], rebateParams: RebateParameters) {

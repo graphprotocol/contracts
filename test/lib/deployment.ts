@@ -22,6 +22,7 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { LibExponential } from '../../build/types/LibExponential'
 
 // Disable logging for tests
 logger.pause()
@@ -304,4 +305,8 @@ export async function deployL2GRT(
     [await deployer.getAddress()],
     deployer,
   ) as unknown as L2GraphToken
+}
+
+export async function deployLibExponential(deployer: Signer): Promise<LibExponential> {
+  return deployContract('LibExponential', deployer) as Promise<LibExponential>
 }

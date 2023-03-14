@@ -3,6 +3,7 @@ import { constants, BigNumber } from 'ethers'
 
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
+import { LibExponential } from '../../build/types/LibExponential'
 import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -35,6 +36,7 @@ describe('Staking::Delegation', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
+  let libExponential: LibExponential
 
   // Test values
   const poi = randomHexBytes()
@@ -180,7 +182,7 @@ describe('Staking::Delegation', () => {
     ;[me, delegator, delegator2, governor, indexer, indexer2, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ epochManager, grt, staking } = await fixture.load(governor.signer))
+    ;({ epochManager, grt, staking, libExponential } = await fixture.load(governor.signer))
 
     // Distribute test funds
     for (const wallet of [delegator, delegator2]) {
@@ -631,8 +633,23 @@ describe('Staking::Delegation', () => {
 
       // Calculate tokens to claim and expected delegation fees
       const beforeAlloc = await staking.getAllocation(allocationID)
-      const delegationFees = percentageOf(queryFeeCut, beforeAlloc.collectedFees)
-      const tokensToClaim = beforeAlloc.collectedFees.sub(delegationFees)
+      const [alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator] =
+        await Promise.all([
+          staking.alphaNumerator(),
+          staking.alphaDenominator(),
+          staking.lambdaNumerator(),
+          staking.lambdaDenominator(),
+        ])
+      const totalClaimTokens = await libExponential.exponentialRebates(
+        beforeAlloc.collectedFees,
+        beforeAlloc.effectiveAllocation,
+        alphaNumerator,
+        alphaDenominator,
+        lambdaNumerator,
+        lambdaDenominator,
+      )
+      const delegationFees = percentageOf(queryFeeCut, totalClaimTokens)
+      const tokensToClaim = totalClaimTokens.sub(delegationFees)
 
       // Claim from rebate pool
       const currentEpoch = await epochManager.currentEpoch()
