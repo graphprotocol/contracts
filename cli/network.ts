@@ -35,7 +35,7 @@ export const getChainID = (): number => {
 
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
-type ContractParam = string | BigNumber | number
+type ContractParam = string | BigNumber | number | { [key: string]: any }
 type DeployResult = {
   contract: Contract
   creationCodeHash: string

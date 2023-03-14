@@ -49,8 +49,10 @@ export const defaults = {
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
     delegationUnbondingPeriod: 1, // in epochs
-    alphaNumerator: 85,
+    alphaNumerator: 100,
     alphaDenominator: 100,
+    lambdaNumerator: 60,
+    lambdaDenominator: 100,
   },
   token: {
     initialSupply: toGRT('10000000000'), // 10 billion
@@ -216,8 +218,12 @@ export async function deployStaking(
       defaults.staking.maxAllocationEpochs,
       defaults.staking.delegationUnbondingPeriod,
       0,
-      defaults.staking.alphaNumerator,
-      defaults.staking.alphaDenominator,
+      {
+        alphaNumerator: defaults.staking.alphaNumerator,
+        alphaDenominator: defaults.staking.alphaDenominator,
+        lambdaNumerator: defaults.staking.lambdaNumerator,
+        lambdaDenominator: defaults.staking.lambdaDenominator,
+      },
     ],
     deployer,
   ) as unknown as Staking

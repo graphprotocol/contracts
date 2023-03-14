@@ -933,23 +933,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Close multiple allocations and free the staked tokens.
-     * To be eligible for rewards a proof of indexing must be presented.
-     * Presenting a bad proof is subject to slashable condition.
-     * To opt out for rewards set _poi to 0x0
-     * @param _requests An array of CloseAllocationRequest
-     */
-    function closeAllocationMany(CloseAllocationRequest[] calldata _requests)
-        external
-        override
-        notPaused
-    {
-        for (uint256 i = 0; i < _requests.length; i++) {
-            _closeAllocation(_requests[i].allocationID, _requests[i].poi);
-        }
-    }
-
-    /**
      * @dev Close and allocate. This will perform a close and then create a new Allocation
      * atomically on the same transaction.
      * @param _closingAllocationID The identifier of the allocation to be closed
@@ -1065,15 +1048,15 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _allocationID Array of allocations from where we are claiming tokens
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function claimMany(address[] calldata _allocationID, bool _restake)
-        external
-        override
-        notPaused
-    {
-        for (uint256 i = 0; i < _allocationID.length; i++) {
-            _claim(_allocationID[i], _restake);
-        }
-    }
+    // function claimMany(address[] calldata _allocationID, bool _restake)
+    //     external
+    //     override
+    //     notPaused
+    // {
+    //     for (uint256 i = 0; i < _allocationID.length; i++) {
+    //         _claim(_allocationID[i], _restake);
+    //     }
+    // }
 
     /**
      * @dev Stake tokens on the indexer.
