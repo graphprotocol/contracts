@@ -73,13 +73,37 @@ describe('Staking configuration', () => {
 
   it('alphaNumerator should match "rebateAlphaNumerator" in the config file', async function () {
     const value = await Staking.alphaNumerator()
-    const expected = getItemValue(graphConfig, 'contracts/Staking/init/rebateAlphaNumerator')
+    const expected = getItemValue(
+      graphConfig,
+      'contracts/Staking/init/rebateParameters/alphaNumerator',
+    )
     expect(value).eq(expected)
   })
 
   it('alphaDenominator should match "rebateAlphaDenominator" in the config file', async function () {
     const value = await Staking.alphaDenominator()
-    const expected = getItemValue(graphConfig, 'contracts/Staking/init/rebateAlphaDenominator')
+    const expected = getItemValue(
+      graphConfig,
+      'contracts/Staking/init/rebateParameters/alphaDenominator',
+    )
+    expect(value).eq(expected)
+  })
+
+  it('lambdaNumerator should match "rebateLambdaNumerator" in the config file', async function () {
+    const value = await Staking.lambdaNumerator()
+    const expected = getItemValue(
+      graphConfig,
+      'contracts/Staking/init/rebateParameters/lambdaNumerator',
+    )
+    expect(value).eq(expected)
+  })
+
+  it('lambdaDenominator should match "rebateLambdaDenominator" in the config file', async function () {
+    const value = await Staking.lambdaDenominator()
+    const expected = getItemValue(
+      graphConfig,
+      'contracts/Staking/init/rebateParameters/lambdaDenominator',
+    )
     expect(value).eq(expected)
   })
 
