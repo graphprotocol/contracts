@@ -84,6 +84,9 @@ describe('Staking:Allocation', () => {
     // Before state
     const beforeStake = await staking.stakes(indexer.address)
 
+    // Advance to next epoch to prevent issues doing this at an epoch boundary
+    await advanceToNextEpoch(epochManager)
+
     // Allocate
     const currentEpoch = await epochManager.currentEpoch()
     const tx = allocate(tokensToAllocate)
