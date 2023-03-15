@@ -39,7 +39,7 @@ export const settersList = {
   // Epochs
   'epochs-length': { contract: 'EpochManager', name: 'setEpochLength' },
   // Rewards
-  'rewards-issuance-rate': { contract: 'RewardsManager', name: 'setIssuanceRate' },
+  'rewards-issuance-per-block': { contract: 'RewardsManager', name: 'setIssuancePerBlock' },
   'subgraph-availability-oracle': {
     contract: 'RewardsManager',
     name: 'setSubgraphAvailabilityOracle',
