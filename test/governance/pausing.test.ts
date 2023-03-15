@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { constants } from 'ethers'
 
 import { Controller } from '../../build/types/Controller'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { getAccounts, Account, toGRT } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'
@@ -14,7 +14,7 @@ describe('Pausing', () => {
 
   let fixture: NetworkFixture
 
-  let staking: Staking
+  let staking: IStaking
   let controller: Controller
 
   const setPartialPause = async (account: Account, setValue: boolean) => {

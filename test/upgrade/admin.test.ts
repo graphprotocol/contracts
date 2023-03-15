@@ -5,7 +5,7 @@ import '@nomiclabs/hardhat-ethers'
 import { GraphProxy } from '../../build/types/GraphProxy'
 import { Curation } from '../../build/types/Curation'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import * as deployment from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
@@ -24,7 +24,7 @@ describe('Upgrades', () => {
 
   let proxyAdmin: GraphProxyAdmin
   let curation: Curation
-  let staking: Staking
+  let staking: IStaking
   let stakingProxy: GraphProxy
 
   before(async function () {

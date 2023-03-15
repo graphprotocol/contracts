@@ -31,6 +31,8 @@ describe('L1GraphTokenGateway', () => {
   let mockL2GRT: Account
   let mockL2Gateway: Account
   let pauseGuardian: Account
+  let mockL2GNS: Account
+  let mockL2Staking: Account
   let fixture: NetworkFixture
 
   let grt: GraphToken
@@ -64,8 +66,17 @@ describe('L1GraphTokenGateway', () => {
   )
 
   before(async function () {
-    ;[governor, tokenSender, l2Receiver, mockRouter, mockL2GRT, mockL2Gateway, pauseGuardian] =
-      await getAccounts()
+    ;[
+      governor,
+      tokenSender,
+      l2Receiver,
+      mockRouter,
+      mockL2GRT,
+      mockL2Gateway,
+      pauseGuardian,
+      mockL2GNS,
+      mockL2Staking,
+    ] = await getAccounts()
 
     // Dummy code on the mock router so that it appears as a contract
     await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
@@ -292,6 +303,8 @@ describe('L1GraphTokenGateway', () => {
           mockRouter.address,
           mockL2GRT.address,
           mockL2Gateway.address,
+          mockL2GNS.address,
+          mockL2Staking.address,
         )
         let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
@@ -323,6 +336,8 @@ describe('L1GraphTokenGateway', () => {
             mockRouter.address,
             mockL2GRT.address,
             mockL2Gateway.address,
+            mockL2GNS.address,
+            mockL2Staking.address,
           )
           await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
           let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
@@ -428,6 +443,8 @@ describe('L1GraphTokenGateway', () => {
         mockRouter.address,
         mockL2GRT.address,
         mockL2Gateway.address,
+        mockL2GNS.address,
+        mockL2Staking.address,
       )
     })
 

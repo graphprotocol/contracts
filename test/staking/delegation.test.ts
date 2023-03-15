@@ -3,7 +3,7 @@ import { constants, BigNumber } from 'ethers'
 
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -34,7 +34,7 @@ describe('Staking::Delegation', () => {
 
   let epochManager: EpochManager
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Test values
   const poi = randomHexBytes()

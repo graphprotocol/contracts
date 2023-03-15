@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
@@ -19,7 +19,7 @@ describe('Staking:Config', () => {
 
   let fixture: NetworkFixture
 
-  let staking: Staking
+  let staking: IStaking
 
   before(async function () {
     ;[me, other, governor, slasher] = await getAccounts()

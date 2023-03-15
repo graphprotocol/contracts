@@ -3,7 +3,7 @@ import { constants } from 'ethers'
 
 import { GRTWithdrawHelper } from '../../build/types/GRTWithdrawHelper'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import * as deployment from '../lib/deployment'
@@ -26,7 +26,7 @@ describe('WithdrawHelper', () => {
   let fixture: NetworkFixture
 
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
   let withdrawHelper: GRTWithdrawHelper
 
   function createWithdrawData(callData: string) {
