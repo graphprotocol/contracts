@@ -58,6 +58,8 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
+      - fn: "addMinter"
+        minter: "${{L1GraphTokenGateway.address}}"
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
