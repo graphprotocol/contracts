@@ -136,8 +136,8 @@ export function getGraphConfigPaths(
   let l1GraphConfigPath =
     opts.l1GraphConfig ??
     (isHHL1 ? opts.graphConfig : undefined) ??
-    l1Network?.graphConfig ??
-    hre.config.graph.l1GraphConfig
+    hre.config.graph.l1GraphConfig ??
+    l1Network?.graphConfig
 
   logDebug(`> L1 graph config`)
   logDebug(`1) opts.l1GraphConfig: ${opts.l1GraphConfig}`)
@@ -156,8 +156,8 @@ export function getGraphConfigPaths(
   let l2GraphConfigPath =
     opts.l2GraphConfig ??
     (!isHHL1 ? opts.graphConfig : undefined) ??
-    l2Network?.graphConfig ??
-    hre.config.graph.l2GraphConfig
+    hre.config.graph.l2GraphConfig ??
+    l2Network?.graphConfig
 
   logDebug(`> L2 graph config`)
   logDebug(`1) opts.l2GraphConfig: ${opts.l2GraphConfig}`)
