@@ -46,7 +46,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
      */
     // solhint-disable-next-line payable-fallback, no-complex-fallback
     fallback() external {
-        require(address(this) != _implementation(), "only through proxy");
+        require(_implementation() != address(0), "only through proxy");
         // solhint-disable-next-line no-inline-assembly
         assembly {
             // (a) get free memory pointer
