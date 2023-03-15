@@ -65,7 +65,12 @@ export const isContractDeployed = async (
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash
-    const creationCodeHash = hashHexString(artifact.bytecode)
+    let creationCodeHash: string
+    try {
+      creationCodeHash = hashHexString(artifact.bytecode)
+    } catch (error) {
+      // Noop - assume contract is not deployed
+    }
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
       logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)
