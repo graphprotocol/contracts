@@ -39,6 +39,20 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
     l1Inbox.address,
     l1Router.address,
   ])
+
+  const l1GNS = cli.contracts.L1GNS
+  logger.info('L1 GNS address: ' + l1GNS.address)
+  const l2GNS = arbAddressBook.getEntry('L2GNS')
+  logger.info('L2 GNS address: ' + l2GNS.address)
+  await sendTransaction(cli.wallet, l1GNS, 'setCounterpartGNSAddress', [l2GNS.address])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [l1GNS.address])
+
+  const l1Staking = cli.contracts.L1Staking
+  logger.info('L1 Staking address: ' + l1Staking.address)
+  const l2Staking = arbAddressBook.getEntry('L2Staking')
+  logger.info('L2 Staking address: ' + l2Staking.address)
+  await sendTransaction(cli.wallet, l1Staking, 'setCounterpartStakingAddress', [l2Staking.address])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [l1Staking.address])
 }
 
 export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -67,6 +81,18 @@ export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const l2Router = arbAddressBook.getEntry('L2GatewayRouter')
   logger.info('L2 Router address: ' + l2Router.address)
   await sendTransaction(cli.wallet, gateway, 'setL2Router', [l2Router.address])
+
+  const l1GNS = l1AddressBook.getEntry('L1GNS')
+  const l2GNS = cli.contracts['L2GNS']
+  logger.info('L1 GNS address: ' + l1GNS.address)
+  logger.info('L2 GNS address: ' + l2GNS.address)
+  await sendTransaction(cli.wallet, l2GNS, 'setCounterpartGNSAddress', [l1GNS.address])
+
+  const l1Staking = l1AddressBook.getEntry('L1Staking')
+  const l2Staking = cli.contracts['L2Staking']
+  logger.info('L1 Staking address: ' + l1Staking.address)
+  logger.info('L2 Staking address: ' + l2Staking.address)
+  await sendTransaction(cli.wallet, l2Staking, 'setCounterpartStakingAddress', [l1Staking.address])
 
   logger.info('L2 Gateway address: ' + gateway.address)
   await sendTransaction(cli.wallet, token, 'setGateway', [gateway.address])
