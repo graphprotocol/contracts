@@ -42,14 +42,14 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
 
   const l1GNS = cli.contracts.L1GNS
   logger.info('L1 GNS address: ' + l1GNS.address)
-  const l2GNS = arbAddressBook.getEntry('L2GNS')
+  const l2GNS = l2AddressBook.getEntry('L2GNS')
   logger.info('L2 GNS address: ' + l2GNS.address)
   await sendTransaction(cli.wallet, l1GNS, 'setCounterpartGNSAddress', [l2GNS.address])
   await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [l1GNS.address])
 
   const l1Staking = cli.contracts.L1Staking
   logger.info('L1 Staking address: ' + l1Staking.address)
-  const l2Staking = arbAddressBook.getEntry('L2Staking')
+  const l2Staking = l2AddressBook.getEntry('L2Staking')
   logger.info('L2 Staking address: ' + l2Staking.address)
   await sendTransaction(cli.wallet, l1Staking, 'setCounterpartStakingAddress', [l2Staking.address])
   await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [l1Staking.address])
