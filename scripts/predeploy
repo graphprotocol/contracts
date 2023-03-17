@@ -4,5 +4,7 @@ cat addresses.json |
     jq '."1"."IENS".address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"' |
     jq '."5"."IENS".address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"' |
     jq '."1"."IEthereumDIDRegistry".address = "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"' |
-    jq '."5"."IEthereumDIDRegistry".address = "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"' > addresses.json.tmp
+    jq '."5"."IEthereumDIDRegistry".address = "0xdCa7EF03e98e0DC2B855bE647C39ABe984fcF21B"' |
+    jq '."42161"."IEthereumDIDRegistry".address = "0xa9AEb1c6f14f4244547B9a0946C485DA99047638"' |
+    jq '."421613"."IEthereumDIDRegistry".address = "0x8FFfcD6a85D29E9C33517aaf60b16FE4548f517E"' > addresses.json.tmp
 mv addresses.json.tmp addresses.json
