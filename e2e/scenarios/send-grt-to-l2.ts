@@ -25,7 +25,7 @@ async function main() {
       amount: account.amount.toString(),
       sender: bridgeFixture.funder.address,
       recipient: account.signer.address,
-      deploymentFile: bridgeFixture.deploymentFile,
+      //deploymentFile: bridgeFixture.deploymentFile,
     })
   }
 }

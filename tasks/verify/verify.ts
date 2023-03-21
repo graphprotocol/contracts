@@ -5,6 +5,7 @@ import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/con
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
 import { loadEnv } from '../../cli/env'
 import { cliOpts } from '../../cli/defaults'
+import { readConfig } from '../../cli/config'
 import { getContractConfig } from '../../cli/config'
 import { Wallet } from 'ethers'
 import fs from 'fs'
@@ -88,41 +89,49 @@ task('verifyAll', 'Verifies all contracts on etherscan')
       addressBook: args.addressBook,
       graphConfig: args.graphConfig,
     })
+    const graphConfigNoMeta = readConfig(args.graphConfig, false)
 
     const accounts = await hre.ethers.getSigners()
     const env = await loadEnv(args, accounts[0] as unknown as Wallet)
 
     for (const contractName of addressBook.listEntries()) {
-      console.log(`\n> Verifying contract ${contractName}...`)
+      try {
+        console.log(`\n> Verifying contract ${contractName}...`)
 
-      const contractConfig = getContractConfig(graphConfig, addressBook, contractName, env)
-      const contractPath = getContractPath(contractName)
-      const constructorParams = contractConfig.params.map((p) => p.value.toString())
+        const contractConfig = getContractConfig(graphConfigNoMeta, addressBook, contractName, env)
+        console.log('getpath')
+        const contractPath = getContractPath(contractName)
+        console.log('getparams')
+        const constructorParams = contractConfig.params.map((p) => p.value.toString())
 
-      if (contractPath) {
-        const contract = addressBook.getEntry(contractName)
+        if (contractPath) {
+          console.log('getentry')
+          const contract = addressBook.getEntry(contractName)
 
-        if (contract.implementation) {
-          console.log('Contract is upgradeable, verifying proxy...')
-          const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
+          if (contract.implementation) {
+            console.log('Contract is upgradeable, verifying proxy...')
+            const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
 
-          // Verify proxy
+            // Verify proxy
+            await safeVerify(hre, {
+              address: contract.address,
+              contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
+              constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
+            })
+          }
+
+          // Verify implementation
+          console.log('Verifying implementation...')
           await safeVerify(hre, {
-            address: contract.address,
-            contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
-            constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
+            address: contract.implementation?.address ?? contract.address,
+            contract: `${contractPath}:${contractName}`,
+            constructorArgsParams: contract.implementation ? [] : constructorParams,
           })
+        } else {
+          console.log(`Contract ${contractName} not found.`)
         }
-
-        // Verify implementation
-        console.log('Verifying implementation...')
-        await safeVerify(hre, {
-          address: contract.implementation?.address ?? contract.address,
-          contract: `${contractPath}:${contractName}`,
-          constructorArgsParams: contract.implementation ? [] : constructorParams,
-        })
-      } else {
-        console.log(`Contract ${contractName} not found.`)
+      } catch (error) {
+        console.trace(error)
       }
     }
   })
