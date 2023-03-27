@@ -132,6 +132,8 @@ contracts:
     init:
       controller: "${{Controller.address}}"
     calls:
+      - fn: "setIssuancePerBlock"
+        issuancePerBlock: "6036500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
       - fn: "syncAllContracts"
