@@ -58,6 +58,8 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
+      - fn: "addMinter"
+        minter: "${{L1GraphTokenGateway.address}}"
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
@@ -131,8 +133,8 @@ contracts:
     init:
       controller: "${{Controller.address}}"
     calls:
-      - fn: "setIssuanceRate"
-        issuanceRate: "1000000011247641700" # per block increase of total supply, blocks in a year = 365*60*60*24/13
+      - fn: "setIssuancePerBlock"
+        issuancePerBlock: "114155251141552511415" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
       - fn: "syncAllContracts"

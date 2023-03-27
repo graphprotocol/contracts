@@ -67,7 +67,7 @@ const staking: Contract = {
 
 const rewardsManager: Contract = {
   name: 'RewardsManager',
-  initParams: [{ name: 'issuanceRate', type: 'BigNumber' }],
+  initParams: [{ name: 'issuancePerBlock', type: 'BigNumber' }],
 }
 
 const contractList: Contract[] = [epochManager, curation, disputeManager, staking, rewardsManager]
