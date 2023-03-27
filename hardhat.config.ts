@@ -158,7 +158,7 @@ const config: HardhatUserConfig = {
       graphConfig: 'config/graph.localhost.yml',
     },
     localhost: {
-      chainId: 1337,
+      chainId: 5,
       url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
