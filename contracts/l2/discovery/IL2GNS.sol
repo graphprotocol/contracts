@@ -28,15 +28,22 @@ interface IL2GNS is ICallhookReceiver {
      * @notice Finish a subgraph migration from L1.
      * The subgraph must have been previously sent through the bridge
      * using the sendSubgraphToL2 function on L1GNS.
-     * @param _subgraphID Subgraph ID
+     * @param _l2SubgraphID Subgraph ID in L2 (aliased from the L1 subgraph ID)
      * @param _subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
      * @param _subgraphMetadata IPFS hash of the subgraph metadata
      * @param _versionMetadata IPFS hash of the version metadata
      */
     function finishSubgraphMigrationFromL1(
-        uint256 _subgraphID,
+        uint256 _l2SubgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _subgraphMetadata,
         bytes32 _versionMetadata
     ) external;
+
+    /**
+     * @notice Return the aliased L2 subgraph ID from a migrated L1 subgraph ID
+     * @param _l1SubgraphID L1 subgraph ID
+     * @return L2 subgraph ID
+     */
+    function getAliasedL2SubgraphID(uint256 _l1SubgraphID) external pure returns (uint256);
 }
