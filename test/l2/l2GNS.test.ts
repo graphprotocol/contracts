@@ -784,4 +784,28 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('INVALID_CODE')
     })
   })
+  describe('getAliasedL2SubgraphID', function () {
+    it('returns the L2 subgraph ID that is the L1 subgraph ID with an offset', async function () {
+      const l1SubgraphId = ethers.BigNumber.from(
+        '68799548758199140224151701590582019137924969401915573086349306511960790045480',
+      )
+      const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
+      const offset = ethers.BigNumber.from(
+        '0x1111000000000000000000000000000000000000000000000000000000001111',
+      )
+      const base = ethers.constants.MaxUint256.add(1)
+      const expectedL2SubgraphId = l1SubgraphId.add(offset).mod(base)
+      expect(l2SubgraphId).eq(expectedL2SubgraphId)
+    })
+    it('wraps around MAX_UINT256 in case of overflow', async function () {
+      const l1SubgraphId = ethers.constants.MaxUint256
+      const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
+      const offset = ethers.BigNumber.from(
+        '0x1111000000000000000000000000000000000000000000000000000000001111',
+      )
+      const base = ethers.constants.MaxUint256.add(1)
+      const expectedL2SubgraphId = l1SubgraphId.add(offset).mod(base)
+      expect(l2SubgraphId).eq(expectedL2SubgraphId)
+    })
+  })
 })
