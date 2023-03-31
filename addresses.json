@@ -119,10 +119,10 @@
       "txHash": "0xc9519823017be9245d753e4b2eb9f865e1e14cad0bfaf22a0d47a956c178876e",
       "proxy": true,
       "implementation": {
-        "address": "0xC717874BCc55010BA53097f03846489F2bc3733d",
-        "creationCodeHash": "0x501cf205062d65cf2b36e2c1f4b78aeef719e1c64335201eb353d2f81babbb16",
-        "runtimeCodeHash": "0xed46f129c54ccf48e0586737086f2200851203550556f97a7929f2739b8dde83",
-        "txHash": "0xc1dad1ba90b7d470a2fb5efaaff43603dd9e77bf035dcc9d7bc1e5bf10f73064"
+        "address": "0xA3f1CbF66cBd71ae8b70Ee2240FB0307200959E3",
+        "creationCodeHash": "0xa23c7f5bed84ae96a8367722cac071803194e51616540d8a0948cde47f00487c",
+        "runtimeCodeHash": "0xa66dbf0f9e8ab96718f1086259487a5e2b3ecee30f80ad912d745456750eb6d5",
+        "txHash": "0x66d5ab069a7e094cc634bbf89254ad67140cf009bc5a7b0536f89a386b72c028"
       }
     },
     "Staking": {
@@ -305,7 +305,7 @@
         "txHash": "0x7916c7ec194b7b289fa07e7a262b501cbe0cc915117515107050e10e4b2fa815"
       }
     },
-    "Curation": {
+    "L2Curation": {
       "address": "0xB61Ced82311ceBcd0c57cc7089FC18fd86C3362b",
       "initArgs": [
         "0x839D0caea2169AA72b1CFeeA6C3546a27396eA93",
@@ -320,10 +320,10 @@
       "txHash": "0x82eab033027ac7ea2c6a2a3c746d263037409b7b171536796429392458a41881",
       "proxy": true,
       "implementation": {
-        "address": "0xeAa910fc3E110E2280DD4aE1ab5A3b265FfA784a",
-        "creationCodeHash": "0xcecff03bf0399aaffe4418f13c036f655cb7b26de7b51ef27ecbe844441283f0",
-        "runtimeCodeHash": "0xae8083fbfc55919332bddb47b775b61dca2fe1ab23d5a9f6e17f9f2fea1a862c",
-        "txHash": "0xfbc5555e375e36a82258c2d045c33c53cad41f7e953da9ee6d53ecf7bd65ab22"
+        "address": "0x71f549AA35da8F19Cab4a560f9b183dF1E4B0bBd",
+        "creationCodeHash": "0x4e2c3f6708842ddcb894780e7fbb95cbf396e93929dc81b6eb93a6032373b94b",
+        "runtimeCodeHash": "0x20e55c2b4f77c6557a5db231fd787da71c8b7e2fc091503a10e91692c5292c74",
+        "txHash": "0x20b9dc1716c814c4c2eec940d2238bcd46e9fa7b2b84b7bb11868580dc2f403f"
       }
     },
     "SubgraphNFTDescriptor": {
@@ -351,10 +351,10 @@
       "txHash": "0xb00a0d8e152b40e1a4901f75254c79e69a30aa166e650290e16cae96f1b01414",
       "proxy": true,
       "implementation": {
-        "address": "0xEAA939fdb3D6a71D7Eb12685b0Ff56FC6cd6c8d5",
-        "creationCodeHash": "0x501cf205062d65cf2b36e2c1f4b78aeef719e1c64335201eb353d2f81babbb16",
-        "runtimeCodeHash": "0xed46f129c54ccf48e0586737086f2200851203550556f97a7929f2739b8dde83",
-        "txHash": "0x6cfcc9da8c4442970b981b30d3ce7a15a641bbd165b825b432cfa4973369cb9b"
+        "address": "0x9d0bF3B20BE60E9BEE8E7A7Ce8e41e66EDcABdfa",
+        "creationCodeHash": "0x31861c9002521bd5472e70677d55ae44e445faecaf709f061c55565a550b9793",
+        "runtimeCodeHash": "0xed35efed86c6f9e67bfeedde229562b094e165298ad42345edbf81882203ab90",
+        "txHash": "0x9c0e19d6053210d30aa83b93e9b99b9788c4618dd58b8665b202eb3e3661e2ba"
       }
     },
     "Staking": {
