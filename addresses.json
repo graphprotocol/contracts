@@ -107,7 +107,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0x6cb4bf5a6b883f9362068b7fa4d39efc4ee6c7147fff133eb68a7d96e15bf5cb"
     },
-    "GNS": {
+    "L1GNS": {
       "address": "0x7f5E21C6D3a5436a735E5FFda2A433d0cE6d28F1",
       "initArgs": [
         "0x10c757a74a957f0E3f02d95119f366cb5Ac80673",
@@ -339,7 +339,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0x8e174948eda414c78c25eb850379cc0a2a6829638ba6b0261bac90253228a2ea"
     },
-    "GNS": {
+    "L2GNS": {
       "address": "0xcD8D979C74E3d47e47443c9430110b4E917b831F",
       "initArgs": [
         "0x839D0caea2169AA72b1CFeeA6C3546a27396eA93",
