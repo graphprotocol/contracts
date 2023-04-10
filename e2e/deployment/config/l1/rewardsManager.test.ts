@@ -12,6 +12,6 @@ describe('[L1] RewardsManager configuration', () => {
 
   it('issuancePerBlock should match "issuancePerBlock" in the config file', async function () {
     const value = await RewardsManager.issuancePerBlock()
-    expect(value).eq('114155251141552511415') // hardcoded as it's set with a function call rather than init parameter
+    expect(value).eq('114693500000000000000') // hardcoded as it's set with a function call rather than init parameter
   })
 })
