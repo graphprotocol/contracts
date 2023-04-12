@@ -1,8 +1,8 @@
 general:
   arbitrator: &arbitrator "0xE1FDD398329C6b74C14cf19100316f0826a492d3" # Arbitration Council
   governor: &governor "0x48301Fe520f72994d32eAd72E2B6A8447873CF50" # Graph Council
-  authority: &authority "0x982D10c56b8BBbD6e09048F5c5f01b43C65D5aE0" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x5d3B6F98F1cCdF873Df0173CDE7335874a396c4d" # Subgraph Availability Oracle
+  authority: &authority "0xF994fB0f5c06B31E364B868886140cC30A7fcF15" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0xE24f399999D47D276Da88FAa7646e2C597822333" # Subgraph Availability Oracle
   pauseGuardian: &pauseGuardian "0x8290362Aba20D17c51995085369E001Bad99B21c" # Protocol pause guardian
   allocationExchangeOwner: &allocationExchangeOwner "0x74Db79268e63302d3FC69FB5a7627F7454a41732" # Allocation Exchange owner
 
@@ -58,6 +58,8 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
+      - fn: "addMinter"
+        minter: "${{L1GraphTokenGateway.address}}"
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
@@ -131,8 +133,8 @@ contracts:
     init:
       controller: "${{Controller.address}}"
     calls:
-      - fn: "setIssuanceRate"
-        issuanceRate: "1000000011247641700" # per block increase of total supply, blocks in a year = 365*60*60*24/13
+      - fn: "setIssuancePerBlock"
+        issuancePerBlock: "114693500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
       - fn: "syncAllContracts"
