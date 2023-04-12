@@ -154,6 +154,15 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         _;
     }
 
+    modifier onlyPendingDispute(bytes32 _disputeID) {
+        require(isDisputeCreated(_disputeID), "Dispute does not exist");
+        require(
+            disputes[_disputeID].status == IDisputeManager.DisputeStatus.Pending,
+            "Dispute must be pending"
+        );
+        _;
+    }
+
     // -- Functions --
 
     /**
@@ -290,7 +299,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _disputeID True if dispute already exists
      */
     function isDisputeCreated(bytes32 _disputeID) public view override returns (bool) {
-        return disputes[_disputeID].fisherman != address(0);
+        return disputes[_disputeID].status != DisputeStatus.Null;
     }
 
     /**
@@ -556,15 +565,6 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         return disputeID;
     }
 
-    modifier onlyPendingDispute(bytes32 _disputeID) {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-        require(
-            disputes[_disputeID].status == IDisputeManager.DisputeStatus.Pending,
-            "Dispute must be pending"
-        );
-        _;
-    }
-
     /**
      * @dev The arbitrator accepts a dispute as being valid.
      * This function will revert if the indexer is not slashable, whether because it does not have
@@ -647,16 +647,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     {
         Dispute storage dispute = disputes[_disputeID];
 
-        // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Drawn;
-
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
-        // Resolve the conflicting dispute if any
-        if (_isDisputeInConflict(dispute)) {
-            drawDispute(dispute.relatedDisputeID);
-        }
+        // resolve related dispute if any
+        _resolveDisputeInConflict(dispute);
+
+        // store dispute status
+        dispute.status = IDisputeManager.DisputeStatus.Drawn;
 
         emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
@@ -693,15 +691,15 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _dispute Dispute
      * @return True if resolved
      */
-    // function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
-    //     if (_isDisputeInConflict(_dispute)) {
-    //         bytes32 relatedDisputeID = _dispute.relatedDisputeID;
-    //         Dispute storage relatedDispute = disputes[relatedDisputeID];
-    //         delete disputes[relatedDisputeID];
-    //         return true;
-    //     }
-    //     return false;
-    // }
+    function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
+        if (_isDisputeInConflict(_dispute)) {
+            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
+            Dispute storage relatedDispute = disputes[relatedDisputeID];
+            relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
+            return true;
+        }
+        return false;
+    }
 
     /**
      * @dev Pull deposit from submitter account.

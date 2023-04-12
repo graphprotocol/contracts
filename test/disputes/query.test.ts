@@ -537,7 +537,7 @@ describe('DisputeManager:Query', async () => {
       await disputeManager.connect(arbitrator.signer).drawDispute(dID1)
       // Check
       const relatedDispute = await disputeManager.disputes(dID2)
-      expect(relatedDispute.status).not.eq(3) // 3 = DisputeStatus.Pending
+      expect(relatedDispute.status).not.eq(4) // 4 = DisputeStatus.Pending
     })
   })
 })

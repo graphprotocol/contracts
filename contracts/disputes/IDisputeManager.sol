@@ -13,6 +13,7 @@ interface IDisputeManager {
     }
 
     enum DisputeStatus {
+        Null,
         Accepted,
         Rejected,
         Drawn,
