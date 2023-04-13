@@ -57,7 +57,8 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * Since the indexer address might be an L1-only contract, the function takes a beneficiary
      * address that will be the indexer's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
-     * must be at least `_maxSubmissionCost + _gasPriceBid * _maxGas`.
+     * must be at _exactly_ `_maxSubmissionCost + _gasPriceBid * _maxGas`.
+     * Any refunds for the submission fee or L2 gas will be lost.
      * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously migrated stake, this must match the previously-used value.
      * @param _amount Amount of stake GRT to migrate to L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
@@ -71,6 +72,10 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable override {
+        require(
+            msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
+            "INVALID_ETH_AMOUNT"
+        );
         _migrateStakeToL2(
             msg.sender,
             _l2Beneficiary,
@@ -94,6 +99,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * The ETH for the L2 gas will be pulled from the L1GraphTokenLockMigrator, so the owner of
      * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
      * ETH into the L1GraphTokenLockMigrator contract (using its depositETH function).
+     * Any refunds for the submission fee or L2 gas will be lost.
      * @param _amount Amount of stake GRT to migrate to L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
@@ -130,7 +136,8 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * Since the delegator's address might be an L1-only contract, the function takes a beneficiary
      * address that will be the delegator's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
-     * must be at least `_maxSubmissionCost + _gasPriceBid * _maxGas`.
+     * must be _exactly_ `_maxSubmissionCost + _gasPriceBid * _maxGas`.
+     * Any refunds for the submission fee or L2 gas will be lost.
      * @param _indexer Address of the indexer (in L1, before migrating)
      * @param _l2Beneficiary Address of the delegator in L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
@@ -144,6 +151,10 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable override {
+        require(
+            msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
+            "INVALID_ETH_AMOUNT"
+        );
         _migrateDelegationToL2(
             msg.sender,
             _indexer,
@@ -166,6 +177,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * The ETH for the L2 gas will be pulled from the L1GraphTokenLockMigrator, so the owner of
      * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
      * ETH into the L1GraphTokenLockMigrator contract (using its depositETH function).
+     * Any refunds for the submission fee or L2 gas will be lost.
      * @param _indexer Address of the indexer (in L1, before migrating)
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket

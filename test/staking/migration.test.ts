@@ -153,6 +153,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('tokensStaked == 0')
       })
@@ -171,7 +174,9 @@ describe('L1Staking:Migration', () => {
       const expectedSeqNum = options.expectedSeqNum ?? 1
       const tx = staking
         .connect(indexer.signer)
-        .migrateStakeToL2(l2Beneficiary, amountToSend, maxGas, gasPriceBid, maxSubmissionCost)
+        .migrateStakeToL2(l2Beneficiary, amountToSend, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+        })
       const expectedFunctionData = defaultAbiCoder.encode(['tuple(address)'], [[l2Indexer.address]])
 
       const expectedCallhookData = defaultAbiCoder.encode(
@@ -222,6 +227,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('!minimumIndexerStake remaining')
       })
@@ -234,6 +242,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('!minimumIndexerStake sent')
       })
@@ -247,13 +258,18 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('tokensLocked != 0')
       })
       it('should not allow migrating to a beneficiary that is address zero', async function () {
         const tx = staking
           .connect(indexer.signer)
-          .migrateStakeToL2(AddressZero, tokensToStake, maxGas, gasPriceBid, maxSubmissionCost)
+          .migrateStakeToL2(AddressZero, tokensToStake, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+          })
         await expect(tx).revertedWith('l2Beneficiary == 0')
       })
       it('should not allow migrating the whole stake if there are open allocations', async function () {
@@ -266,6 +282,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('allocated')
       })
@@ -287,8 +306,26 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('! allocation capacity')
+      })
+      it('should not allow migrating if the ETH sent is more than required', async function () {
+        const tx = staking
+          .connect(indexer.signer)
+          .migrateStakeToL2(
+            indexer.address,
+            tokensToStake,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)).add(1),
+            },
+          )
+        await expect(tx).revertedWith('INVALID_ETH_AMOUNT')
       })
       it('sends the tokens and a message through the L1GraphTokenGateway', async function () {
         const amountToSend = minimumIndexerStake
@@ -338,6 +375,9 @@ describe('L1Staking:Migration', () => {
           maxGas,
           gasPriceBid,
           maxSubmissionCost,
+          {
+            value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+          },
         )
         await expect(tx).revertedWith('l2Beneficiary != previous')
       })
@@ -403,6 +443,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await staking.connect(delegator.signer).undelegate(indexer.address, actualDelegation)
         const tx = await staking
@@ -437,6 +480,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         const tx = staking
           .connect(delegator.signer)
@@ -454,6 +500,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         const tx = staking
           .connect(delegator.signer)
@@ -469,6 +518,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         const tx = staking
           .connect(delegator.signer)
@@ -490,6 +542,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('indexer not migrated')
       })
@@ -504,6 +559,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const tx = staking
@@ -514,6 +572,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('l2Beneficiary == 0')
       })
@@ -528,6 +589,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await staking.connect(delegator.signer).undelegate(indexer.address, toGRT('1'))
 
@@ -539,6 +603,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('tokensLocked != 0')
       })
@@ -551,6 +618,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const tx = staking
@@ -561,6 +631,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('delegation == 0')
       })
@@ -578,6 +651,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const expectedFunctionData = defaultAbiCoder.encode(
@@ -605,6 +681,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         // seqNum is 2 because the first bridge call was in migrateStakeToL2
         await expect(tx)
@@ -631,6 +710,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         await staking
@@ -641,6 +723,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const tx = staking
@@ -651,6 +736,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx).revertedWith('delegation == 0')
       })
@@ -668,6 +756,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         await staking
@@ -678,6 +769,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -690,6 +784,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
         await expect(tx)
           .emit(staking, 'DelegationMigratedToL2')
@@ -700,6 +797,36 @@ describe('L1Staking:Migration', () => {
             l2Indexer.address,
             actualDelegation,
           )
+      })
+      it('rejects calls if the ETH value is larger than expected', async function () {
+        const tokensToDelegate = toGRT('10000')
+        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking
+          .connect(indexer.signer)
+          .migrateStakeToL2(
+            l2Indexer.address,
+            minimumIndexerStake,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
+          )
+
+        const tx = staking
+          .connect(delegator.signer)
+          .migrateDelegationToL2(
+            indexer.address,
+            l2Delegator.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)).add(1),
+            },
+          )
+        await expect(tx).revertedWith('INVALID_ETH_AMOUNT')
       })
     })
     describe('migrateLockedDelegationToL2', function () {
@@ -718,6 +845,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const expectedFunctionData = defaultAbiCoder.encode(
@@ -774,6 +904,9 @@ describe('L1Staking:Migration', () => {
             maxGas,
             gasPriceBid,
             maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
           )
 
         const tx = staking
