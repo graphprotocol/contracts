@@ -149,6 +149,9 @@ describe('L2Staking', () => {
         .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens100k)
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k)
+      const delegationPool = await staking.delegationPools(me.address)
+      expect(delegationPool.indexingRewardCut).eq(toBN(1000000)) // 1 in PPM
+      expect(delegationPool.queryFeeCut).eq(toBN(1000000)) // 1 in PPM
     })
     it('adds stake to an existing indexer that was already migrated', async function () {
       const functionData = defaultAbiCoder.encode(['tuple(address)'], [[me.address]])
@@ -176,7 +179,7 @@ describe('L2Staking', () => {
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k.add(tokens100k))
     })
-    it('adds stake to an existing indexer that was staked in L2', async function () {
+    it('adds stake to an existing indexer that was staked in L2 (without changing delegation params)', async function () {
       const functionData = defaultAbiCoder.encode(['tuple(address)'], [[me.address]])
 
       const callhookData = defaultAbiCoder.encode(
@@ -184,6 +187,7 @@ describe('L2Staking', () => {
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
       await staking.connect(me.signer).stake(tokens100k)
+      await staking.connect(me.signer).setDelegationParameters(1000, 1000, 1000)
       const tx = gatewayFinalizeTransfer(
         mockL1Staking.address,
         staking.address,
@@ -196,6 +200,9 @@ describe('L2Staking', () => {
         .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens100k)
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k.add(tokens100k))
+      const delegationPool = await staking.delegationPools(me.address)
+      expect(delegationPool.indexingRewardCut).eq(toBN(1000))
+      expect(delegationPool.queryFeeCut).eq(toBN(1000))
     })
   })
 
