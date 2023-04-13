@@ -93,9 +93,7 @@ contract L2Staking is Staking, IL2StakingBase {
         uint256 _amount,
         IL2Staking.ReceiveIndexerStakeData memory _indexerData
     ) internal {
-        address indexer = _indexerData.indexer;
-        __stakes[indexer].deposit(_amount);
-        emit StakeDeposited(indexer, _amount);
+        _stake(_indexerData.indexer, _amount);
     }
 
     /**

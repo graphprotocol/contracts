@@ -705,7 +705,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
      * @param _indexer Address of staking party
      * @param _tokens Amount of tokens to stake
      */
-    function _stake(address _indexer, uint256 _tokens) private {
+    function _stake(address _indexer, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
         __stakes[_indexer].deposit(_tokens);
 
