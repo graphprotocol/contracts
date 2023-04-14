@@ -211,11 +211,13 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         uint32 _thawingPeriod,
         uint32 _protocolPercentage,
         uint32 _curationPercentage,
-        uint32 _channelDisputeEpochs,
         uint32 _maxAllocationEpochs,
         uint32 _delegationUnbondingPeriod,
         uint32 _delegationRatio,
-        RebatesParameters calldata _rebatesParameters
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
     ) external onlyImpl {
         Managed._initialize(_controller);
 
@@ -227,7 +229,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         _setProtocolPercentage(_protocolPercentage);
         _setCurationPercentage(_curationPercentage);
 
-        _setChannelDisputeEpochs(_channelDisputeEpochs);
         _setMaxAllocationEpochs(_maxAllocationEpochs);
 
         _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
@@ -236,10 +237,10 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         _setDelegationTaxPercentage(0);
 
         _setRebateParameters(
-            _rebatesParameters.alphaNumerator,
-            _rebatesParameters.alphaDenominator,
-            _rebatesParameters.lambdaNumerator,
-            _rebatesParameters.lambdaDenominator
+            _alphaNumerator,
+            _alphaDenominator,
+            _lambdaNumerator,
+            _lambdaDenominator
         );
     }
 
@@ -315,24 +316,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         require(_percentage <= MAX_PPM, ">percentage");
         protocolPercentage = _percentage;
         emit ParameterUpdated("protocolPercentage");
-    }
-
-    /**
-     * @dev Set the period in epochs that need to pass before fees in rebate pool can be claimed.
-     * @param _channelDisputeEpochs Period in epochs
-     */
-    function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external override onlyGovernor {
-        _setChannelDisputeEpochs(_channelDisputeEpochs);
-    }
-
-    /**
-     * @dev Internal: Set the period in epochs that need to pass before fees in rebate pool can be claimed.
-     * @param _channelDisputeEpochs Period in epochs
-     */
-    function _setChannelDisputeEpochs(uint32 _channelDisputeEpochs) private {
-        require(_channelDisputeEpochs > 0, "!channelDisputeEpochs");
-        channelDisputeEpochs = _channelDisputeEpochs;
-        emit ParameterUpdated("channelDisputeEpochs");
     }
 
     /**
@@ -959,7 +942,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     }
 
     /**
-     * @dev Collect query fees from state channels and assign them to an allocation.
+     * @dev Collect and rebate query fees from state channels to the indexer
      * Funds received are only accepted from a valid sender.
      * To avoid reverting on the withdrawal from channel flow this function will:
      * 1) Accept calls with zero tokens.
@@ -987,17 +970,12 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
 
         // Process query fees only if non-zero amount
         if (queryFees > 0) {
-            // Pull tokens to collect from the authorized sender
+            // -- Pull tokens from the authorized sender --
             IGraphToken graphToken = graphToken();
-            TokenUtils.pullTokens(graphToken, msg.sender, _tokens);
+            TokenUtils.pullTokens(graphToken, msg.sender, queryFees);
 
             // -- Collect protocol tax --
-            // If the Allocation is not active or closed we are going to charge a 100% protocol tax
-            uint256 usedProtocolPercentage = (allocState == AllocationState.Active ||
-                allocState == AllocationState.Closed)
-                ? protocolPercentage
-                : MAX_PPM;
-            uint256 protocolTax = _collectTax(graphToken, queryFees, usedProtocolPercentage);
+            uint256 protocolTax = _collectTax(graphToken, queryFees, protocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
             // -- Collect curation fees --
@@ -1013,13 +991,58 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             // Add funds to the allocation
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
 
-            // When allocation is closed redirect funds to the rebate pool
-            // This way we can keep collecting tokens even after the allocation is closed and
-            // before it gets to the finalized state.
-            if (allocState == AllocationState.Closed) {
-                Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-                rebatePool.fees = rebatePool.fees.add(queryFees);
+            ///////
+
+            // Process rebate reward
+            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
+            uint256 tokensToClaim = rebatePool.redeem(
+                alloc.collectedFees,
+                alloc.effectiveAllocation
+            );
+
+            // Add delegation rewards to the delegation pool
+            uint256 delegationRewards = _collectDelegationQueryRewards(
+                alloc.indexer,
+                tokensToClaim
+            );
+            tokensToClaim = tokensToClaim.sub(delegationRewards);
+
+            // Purge allocation data except for:
+            // - indexer: used in disputes and to avoid reusing an allocationID
+            // - subgraphDeploymentID: used in disputes
+            allocations[_allocationID].tokens = 0;
+            allocations[_allocationID].createdAtEpoch = 0; // This avoid collect(), close() and claim() to be called
+            allocations[_allocationID].closedAtEpoch = 0;
+            allocations[_allocationID].collectedFees = 0;
+            allocations[_allocationID].effectiveAllocation = 0;
+            allocations[_allocationID].accRewardsPerAllocatedToken = 0;
+
+            // -- Interactions --
+
+            IGraphToken graphToken = graphToken();
+
+            // When all allocations processed then burn unclaimed fees and prune rebate pool
+            if (rebatePool.unclaimedAllocationsCount == 0) {
+                TokenUtils.burnTokens(graphToken, rebatePool.unclaimedFees());
+                delete rebates[alloc.closedAtEpoch];
             }
+
+            // When there are tokens to claim from the rebate pool, transfer or restake
+            // Only the indexer or operator can decide if to restake
+            bool restake = _isAuth(alloc.indexer) ? _restake : false;
+            _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
+
+            emit RebateClaimed(
+                alloc.indexer,
+                alloc.subgraphDeploymentID,
+                _allocationID,
+                epochManager().currentEpoch(),
+                alloc.closedAtEpoch,
+                tokensToClaim,
+                rebatePool.unclaimedAllocationsCount,
+                delegationRewards
+            );
+            ///////
         }
 
         emit AllocationCollected(
@@ -1032,15 +1055,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             curationFees,
             queryFees
         );
-    }
-
-    /**
-     * @dev Claim tokens from the rebate pool.
-     * @param _allocationID Allocation from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claim(address _allocationID, bool _restake) external override notPaused {
-        _claim(_allocationID, _restake);
     }
 
     /**
@@ -1184,11 +1198,8 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             require(isIndexer, "!auth");
         }
 
-        // Close the allocation and start counting a period to settle remaining payments from
-        // state channels.
+        // Close the allocation
         allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
-        // -- Rebate Pool --
 
         // Calculate effective allocation for the amount of epochs it remained allocated
         alloc.effectiveAllocation = _getEffectiveAllocation(
@@ -1197,13 +1208,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             epochs
         );
         allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
-
-        // Account collected fees and effective allocation in rebate pool for the epoch
-        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-        if (!rebatePool.exists()) {
-            rebatePool.init(alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
-        }
-        rebatePool.addToPool(alloc.collectedFees, alloc.effectiveAllocation);
 
         // -- Rewards Distribution --
 
@@ -1244,59 +1248,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
      * @param _allocationID Allocation from where we are claiming tokens
      * @param _restake True if restake fees instead of transfer to indexer
      */
-    function _claim(address _allocationID, bool _restake) private {
-        // Funds can only be claimed after a period of time passed since allocation was closed
-        AllocationState allocState = _getAllocationState(_allocationID);
-        require(allocState == AllocationState.Finalized, "!finalized");
-
-        // Get allocation
-        Allocation memory alloc = allocations[_allocationID];
-
-        // Only the indexer or operator can decide if to restake
-        bool restake = _isAuth(alloc.indexer) ? _restake : false;
-
-        // Process rebate reward
-        Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-        uint256 tokensToClaim = rebatePool.redeem(alloc.collectedFees, alloc.effectiveAllocation);
-
-        // Add delegation rewards to the delegation pool
-        uint256 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, tokensToClaim);
-        tokensToClaim = tokensToClaim.sub(delegationRewards);
-
-        // Purge allocation data except for:
-        // - indexer: used in disputes and to avoid reusing an allocationID
-        // - subgraphDeploymentID: used in disputes
-        allocations[_allocationID].tokens = 0;
-        allocations[_allocationID].createdAtEpoch = 0; // This avoid collect(), close() and claim() to be called
-        allocations[_allocationID].closedAtEpoch = 0;
-        allocations[_allocationID].collectedFees = 0;
-        allocations[_allocationID].effectiveAllocation = 0;
-        allocations[_allocationID].accRewardsPerAllocatedToken = 0;
-
-        // -- Interactions --
-
-        IGraphToken graphToken = graphToken();
-
-        // When all allocations processed then burn unclaimed fees and prune rebate pool
-        if (rebatePool.unclaimedAllocationsCount == 0) {
-            TokenUtils.burnTokens(graphToken, rebatePool.unclaimedFees());
-            delete rebates[alloc.closedAtEpoch];
-        }
-
-        // When there are tokens to claim from the rebate pool, transfer or restake
-        _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
-
-        emit RebateClaimed(
-            alloc.indexer,
-            alloc.subgraphDeploymentID,
-            _allocationID,
-            epochManager().currentEpoch(),
-            alloc.closedAtEpoch,
-            tokensToClaim,
-            rebatePool.unclaimedAllocationsCount,
-            delegationRewards
-        );
-    }
+    function _claim(address _allocationID, bool _restake) private {}
 
     /**
      * @dev Delegate tokens to an indexer.
@@ -1537,19 +1489,11 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         if (alloc.indexer == address(0)) {
             return AllocationState.Null;
         }
-        if (alloc.createdAtEpoch == 0) {
-            return AllocationState.Claimed;
-        }
 
-        uint256 closedAtEpoch = alloc.closedAtEpoch;
-        if (closedAtEpoch == 0) {
+        if (alloc.closedAtEpoch == 0) {
             return AllocationState.Active;
         }
 
-        uint256 epochs = epochManager().epochsSince(closedAtEpoch);
-        if (epochs >= channelDisputeEpochs) {
-            return AllocationState.Finalized;
-        }
         return AllocationState.Closed;
     }
 

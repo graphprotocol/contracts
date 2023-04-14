@@ -14,15 +14,11 @@ interface IStaking is IStakingData {
      * - Null = indexer == address(0)
      * - Active = not Null && tokens > 0
      * - Closed = Active && closedAtEpoch != 0
-     * - Finalized = Closed && closedAtEpoch + channelDisputeEpochs > now()
-     * - Claimed = not Null && tokens == 0
      */
     enum AllocationState {
         Null,
         Active,
-        Closed,
-        Finalized,
-        Claimed
+        Closed
     }
 
     // -- Configuration --
@@ -34,8 +30,6 @@ interface IStaking is IStakingData {
     function setCurationPercentage(uint32 _percentage) external;
 
     function setProtocolPercentage(uint32 _percentage) external;
-
-    function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external;
 
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
 

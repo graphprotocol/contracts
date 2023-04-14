@@ -5,19 +5,12 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./Cobbs.sol";
 import "./Exponential.sol";
 
 /**
  * @title A collection of data structures and functions to manage Rebates
  *        Used for low-level state changes, require() conditions should be evaluated
  *        at the caller function scope.
- *
- *        Supports two types of rebate pools:
- *          - Cobb-Douglas, the initial rebates implementation (deprecated)
- *          - Exponential, the new rebates implementation
- *
- *        Note that Cobb-Douglas rebates logic can't be removed to allow open pools to be closed.
  */
 library Rebates {
     using SafeMath for uint256;
@@ -103,29 +96,15 @@ library Rebates {
 
         // Calculate the rebate rewards for the indexer
         if (pool.fees > 0 && pool.effectiveAllocatedStake > 0) {
-            if (pool.lambdaDenominator > 0) {
-                // Exponential rebates
-                rebateReward = LibExponential.exponentialRebates(
-                    _indexerFees,
-                    _indexerEffectiveAllocatedStake,
-                    pool.alphaNumerator,
-                    pool.alphaDenominator,
-                    pool.lambdaNumerator,
-                    pool.lambdaDenominator
-                );
-            } else {
-                // (Deprecated) Cobb-Douglas rebates
-                // Keeping this logic to allow existing open pools to be closed
-                rebateReward = LibCobbDouglas.cobbDouglas(
-                    pool.fees, // totalRewards
-                    _indexerFees,
-                    pool.fees,
-                    _indexerEffectiveAllocatedStake,
-                    pool.effectiveAllocatedStake,
-                    pool.alphaNumerator,
-                    pool.alphaDenominator
-                );
-            }
+            // Exponential rebates
+            rebateReward = LibExponential.exponentialRebates(
+                _indexerFees,
+                _indexerEffectiveAllocatedStake,
+                pool.alphaNumerator,
+                pool.alphaDenominator,
+                pool.lambdaNumerator,
+                pool.lambdaDenominator
+            );
 
             // Under NO circumstance we will reward more than total fees in the pool
             uint256 _unclaimedFees = pool.unclaimedFees();

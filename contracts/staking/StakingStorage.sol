@@ -45,7 +45,7 @@ contract StakingV1Storage is Managed {
     mapping(bytes32 => uint256) public subgraphAllocations;
 
     // Rebate pools : epoch => Pool
-    mapping(uint256 => Rebates.Pool) public rebates;
+    mapping(uint256 => Rebates.Pool) private __DEPRECATED_rebates;
 
     // -- Slashing --
 
