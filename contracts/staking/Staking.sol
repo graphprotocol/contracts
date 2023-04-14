@@ -18,6 +18,7 @@ import { Stakes } from "./libs/Stakes.sol";
 import { Managed } from "../governance/Managed.sol";
 import { ICuration } from "../curation/ICuration.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { StakingExtension } from "./StakingExtension.sol";
 
 /**
  * @title Base Staking contract
@@ -123,8 +124,8 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = extensionImpl.delegatecall(
-            abi.encodeWithSignature(
-                "initialize(uint32,uint32,uint32,uint32)",
+            abi.encodeWithSelector(
+                StakingExtension.initialize.selector,
                 _delegationUnbondingPeriod,
                 0,
                 _delegationRatio,
