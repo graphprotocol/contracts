@@ -675,4 +675,15 @@ describe('Staking::Delegation', () => {
       await expect(tx).revertedWith('!shares')
     })
   })
+  describe('isDelegator', function () {
+    it('should return true if the address is a delegator', async function () {
+      await staking.connect(indexer.signer).stake(toGRT('1000'))
+      await shouldDelegate(delegator, toGRT('1'))
+      expect(await staking.isDelegator(indexer.address, delegator.address)).eq(true)
+    })
+
+    it('should return false if the address is not a delegator', async function () {
+      expect(await staking.isDelegator(indexer.address, delegator.address)).eq(false)
+    })
+  })
 })

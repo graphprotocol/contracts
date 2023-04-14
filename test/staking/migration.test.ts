@@ -7,6 +7,7 @@ import { IL1Staking } from '../../build/types/IL1Staking'
 import { IController } from '../../build/types/IController'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L1GraphTokenLockMigratorMock } from '../../build/types/L1GraphTokenLockMigratorMock'
+import { L1GraphTokenLockMigratorBadMock } from '../../build/types/L1GraphTokenLockMigratorBadMock'
 
 import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
@@ -48,6 +49,7 @@ describe('L1Staking:Migration', () => {
   let l1GraphTokenGateway: L1GraphTokenGateway
   let arbitrumMocks: ArbitrumL1Mocks
   let l1GraphTokenLockMigrator: L1GraphTokenLockMigratorMock
+  let l1GraphTokenLockMigratorBad: L1GraphTokenLockMigratorBadMock
 
   // Test values
   const indexerTokens = toGRT('10000000')
@@ -116,7 +118,13 @@ describe('L1Staking:Migration', () => {
       governor.signer,
     )) as unknown as L1GraphTokenLockMigratorMock
 
+    l1GraphTokenLockMigratorBad = (await deployContract(
+      'L1GraphTokenLockMigratorBadMock',
+      governor.signer,
+    )) as unknown as L1GraphTokenLockMigratorBadMock
+
     await setAccountBalance(l1GraphTokenLockMigrator.address, parseEther('1'))
+    await setAccountBalance(l1GraphTokenLockMigratorBad.address, parseEther('1'))
 
     await staking
       .connect(governor.signer)
@@ -445,6 +453,16 @@ describe('L1Staking:Migration', () => {
           .connect(indexer.signer)
           .migrateLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('LOCK NOT MIGRATED')
+      })
+      it('should not allow migrating if the migrator contract does not provide enough ETH', async function () {
+        await staking
+          .connect(governor.signer)
+          .setL1GraphTokenLockMigrator(l1GraphTokenLockMigratorBad.address)
+        await l1GraphTokenLockMigratorBad.setMigratedAddress(indexer.address, l2Indexer.address)
+        const tx = staking
+          .connect(indexer.signer)
+          .migrateLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
+        await expect(tx).revertedWith('ETH TRANSFER FAILED')
       })
     })
     describe('unlockDelegationToMigratedIndexer', function () {
@@ -966,6 +984,32 @@ describe('L1Staking:Migration', () => {
           .connect(delegator.signer)
           .migrateLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('LOCK NOT MIGRATED')
+      })
+      it('rejects calls if the migrator contract does not provide enough ETH', async function () {
+        const tokensToDelegate = toGRT('10000')
+        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+
+        await staking
+          .connect(indexer.signer)
+          .migrateStakeToL2(
+            l2Indexer.address,
+            minimumIndexerStake,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
+          )
+        await staking
+          .connect(governor.signer)
+          .setL1GraphTokenLockMigrator(l1GraphTokenLockMigratorBad.address)
+
+        await l1GraphTokenLockMigratorBad.setMigratedAddress(delegator.address, l2Delegator.address)
+        const tx = staking
+          .connect(delegator.signer)
+          .migrateLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
+        await expect(tx).revertedWith('ETH TRANSFER FAILED')
       })
     })
   })
