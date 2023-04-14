@@ -1,21 +1,19 @@
 import { expect } from 'chai'
-import { constants, BigNumber, Event } from 'ethers'
-import { defaultAbiCoder, ParamType, parseEther } from 'ethers/lib/utils'
+import { constants, BigNumber } from 'ethers'
+import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { GraphToken } from '../../build/types/GraphToken'
 import { IL1Staking } from '../../build/types/IL1Staking'
-import { IStaking } from '../../build/types/IStaking'
+import { IController } from '../../build/types/IController'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L1GraphTokenLockMigratorMock } from '../../build/types/L1GraphTokenLockMigratorMock'
 
 import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import {
-  advanceBlockTo,
   deriveChannelKey,
   getAccounts,
   randomHexBytes,
-  latestBlock,
   toBN,
   toGRT,
   provider,
@@ -25,7 +23,7 @@ import {
 } from '../lib/testHelpers'
 import { deployContract } from '../lib/deployment'
 
-const { AddressZero, MaxUint256 } = constants
+const { AddressZero } = constants
 
 describe('L1Staking:Migration', () => {
   let me: Account
@@ -46,6 +44,7 @@ describe('L1Staking:Migration', () => {
 
   let grt: GraphToken
   let staking: IL1Staking
+  let controller: IController
   let l1GraphTokenGateway: L1GraphTokenGateway
   let arbitrumMocks: ArbitrumL1Mocks
   let l1GraphTokenLockMigrator: L1GraphTokenLockMigratorMock
@@ -97,7 +96,7 @@ describe('L1Staking:Migration', () => {
 
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.load(governor.signer, slasher.signer)
-    ;({ grt, staking, l1GraphTokenGateway } = fixtureContracts)
+    ;({ grt, staking, l1GraphTokenGateway, controller } = fixtureContracts)
     // Dummy code on the mock router so that it appears as a contract
     await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
     arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
@@ -218,6 +217,23 @@ describe('L1Staking:Migration', () => {
       })
     })
     describe('migrateStakeToL2', function () {
+      it('should not allow migrating if the protocol is partially paused', async function () {
+        await controller.setPartialPaused(true)
+
+        const tx = staking
+          .connect(indexer.signer)
+          .migrateStakeToL2(
+            l2Indexer.address,
+            tokensToStake.sub(minimumIndexerStake),
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
+          )
+        await expect(tx).revertedWith('Partial-paused')
+      })
       it('should not allow migrating but leaving less than the minimum indexer stake', async function () {
         const tx = staking
           .connect(indexer.signer)
@@ -384,6 +400,14 @@ describe('L1Staking:Migration', () => {
     })
 
     describe('migrateLockedStakeToL2', function () {
+      it('should not allow migrating if the protocol is partially paused', async function () {
+        await controller.setPartialPaused(true)
+
+        const tx = staking
+          .connect(indexer.signer)
+          .migrateLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
+        await expect(tx).revertedWith('Partial-paused')
+      })
       it('sends a message through L1GraphTokenGateway like migrateStakeToL2, but gets the beneficiary and ETH from a migrator contract', async function () {
         const amountToSend = minimumIndexerStake
 
@@ -417,8 +441,6 @@ describe('L1Staking:Migration', () => {
         )
       })
       it('should not allow migrating if the migrator contract returns a zero address beneficiary', async function () {
-        const amountToSend = minimumIndexerStake
-
         const tx = staking
           .connect(indexer.signer)
           .migrateLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
@@ -460,6 +482,14 @@ describe('L1Staking:Migration', () => {
         await expect(tx2)
           .emit(staking, 'StakeDelegatedWithdrawn')
           .withArgs(indexer.address, delegator.address, actualDelegation)
+      })
+      it('rejects calls if the protocol is partially paused', async function () {
+        await controller.setPartialPaused(true)
+
+        const tx = staking
+          .connect(delegator.signer)
+          .unlockDelegationToMigratedIndexer(indexer.address)
+        await expect(tx).revertedWith('Partial-paused')
       })
       it('rejects calls if the indexer has not migrated their stake', async function () {
         const tokensToDelegate = toGRT('10000')
@@ -530,6 +560,23 @@ describe('L1Staking:Migration', () => {
       })
     })
     describe('migrateDelegationToL2', function () {
+      it('rejects calls if the protocol is partially paused', async function () {
+        await controller.setPartialPaused(true)
+
+        const tx = staking
+          .connect(delegator.signer)
+          .migrateDelegationToL2(
+            indexer.address,
+            l2Delegator.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
+            },
+          )
+        await expect(tx).revertedWith('Partial-paused')
+      })
       it('rejects calls if the delegated indexer has not migrated stake to L2', async function () {
         const tokensToDelegate = toGRT('10000')
         await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -830,6 +877,14 @@ describe('L1Staking:Migration', () => {
       })
     })
     describe('migrateLockedDelegationToL2', function () {
+      it('rejects calls if the protocol is partially paused', async function () {
+        await controller.setPartialPaused(true)
+
+        const tx = staking
+          .connect(delegator.signer)
+          .migrateLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
+        await expect(tx).revertedWith('Partial-paused')
+      })
       it('sends delegated tokens to L2 like migrateDelegationToL2, but gets the beneficiary and ETH from the L1GraphTokenLockMigrator', async function () {
         const tokensToDelegate = toGRT('10000')
         await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
@@ -893,9 +948,7 @@ describe('L1Staking:Migration', () => {
       it('rejects calls if the migrator contract returns a zero address beneficiary', async function () {
         const tokensToDelegate = toGRT('10000')
         await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
-        const actualDelegation = tokensToDelegate.sub(
-          tokensToDelegate.mul(delegationTaxPPM).div(1000000),
-        )
+
         await staking
           .connect(indexer.signer)
           .migrateStakeToL2(

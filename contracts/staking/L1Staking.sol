@@ -71,7 +71,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external payable override {
+    ) external payable override notPartialPaused {
         require(
             msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
             "INVALID_ETH_AMOUNT"
@@ -110,7 +110,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external override {
+    ) external override notPartialPaused {
         address l2Beneficiary = l1GraphTokenLockMigrator.migratedWalletAddress(msg.sender);
         require(l2Beneficiary != address(0), "LOCK NOT MIGRATED");
         uint256 balance = address(this).balance;
@@ -150,7 +150,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external payable override {
+    ) external payable override notPartialPaused {
         require(
             msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
             "INVALID_ETH_AMOUNT"
@@ -188,7 +188,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
-    ) external override {
+    ) external override notPartialPaused {
         address l2Beneficiary = l1GraphTokenLockMigrator.migratedWalletAddress(msg.sender);
         require(l2Beneficiary != address(0), "LOCK NOT MIGRATED");
         uint256 balance = address(this).balance;
@@ -215,7 +215,11 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * and can be withdrawn with `withdrawDelegated()` immediately after calling this.
      * @param _indexer Address of the indexer (in L1, before migrating)
      */
-    function unlockDelegationToMigratedIndexer(address _indexer) external override {
+    function unlockDelegationToMigratedIndexer(address _indexer)
+        external
+        override
+        notPartialPaused
+    {
         require(
             indexerMigratedToL2[_indexer] != address(0) && __stakes[_indexer].tokensStaked == 0,
             "indexer not migrated"
