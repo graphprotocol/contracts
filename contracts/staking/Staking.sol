@@ -156,7 +156,9 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the minimum stake required to be an indexer.
+     * @notice Set the minimum stake required to be an indexer. Note the
+     * minimum stake in L2 MUST be the same as in L1, or migrated stake might
+     * fail to be redeemed in L2.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
@@ -527,12 +529,6 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
         require(_tokens > 0, "!tokens");
 
-        // Ensure minimum stake
-        require(
-            __stakes[_indexer].tokensSecureStake().add(_tokens) >= __minimumIndexerStake,
-            "!minimumIndexerStake"
-        );
-
         // Transfer tokens to stake from caller to this contract
         TokenUtils.pullTokens(graphToken(), msg.sender, _tokens);
 
@@ -708,6 +704,12 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     function _stake(address _indexer, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
         __stakes[_indexer].deposit(_tokens);
+
+        // Ensure minimum stake
+        require(
+            __stakes[_indexer].tokensSecureStake().add(_tokens) >= __minimumIndexerStake,
+            "!minimumIndexerStake"
+        );
 
         // Initialize the delegation pool the first time
         if (__delegationPools[_indexer].updatedAtBlock == 0) {
