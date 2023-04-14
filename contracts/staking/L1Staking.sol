@@ -226,7 +226,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         );
 
         Delegation storage delegation = __delegationPools[_indexer].delegators[msg.sender];
-        require(delegation.tokensLockedUntil != 0, "! locked");
+        require(delegation.tokensLocked != 0, "! locked");
 
         // Unlock the delegation
         delegation.tokensLockedUntil = epochManager().currentEpoch();
@@ -349,7 +349,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         Delegation storage delegation = pool.delegators[_delegator];
 
         // Check that the delegation is not locked for undelegation
-        require(delegation.tokensLockedUntil == 0, "tokensLocked != 0");
+        require(delegation.tokensLocked == 0, "tokensLocked != 0");
         require(delegation.shares != 0, "delegation == 0");
         // Calculate tokens to get in exchange for the shares
         uint256 tokensToSend = delegation.shares.mul(pool.tokens).div(pool.shares);
