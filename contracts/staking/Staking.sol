@@ -35,7 +35,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     using Rebates for Rebates.Pool;
 
     /// @dev 100% in parts per million
-    uint32 private constant MAX_PPM = 1000000;
+    uint32 internal constant MAX_PPM = 1000000;
 
     // -- Events are declared in IStakingBase -- //
 
@@ -156,9 +156,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the minimum stake required to be an indexer. Note the
-     * minimum stake in L2 MUST be the same as in L1, or migrated stake might
-     * fail to be redeemed in L2.
+     * @notice Set the minimum stake required to be an indexer.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
@@ -663,7 +661,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
         uint32 _indexingRewardCut,
         uint32 _queryFeeCut,
         uint32 _cooldownBlocks
-    ) private {
+    ) internal {
         // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
         require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");

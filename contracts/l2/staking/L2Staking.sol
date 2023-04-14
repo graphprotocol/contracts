@@ -93,7 +93,16 @@ contract L2Staking is Staking, IL2StakingBase {
         uint256 _amount,
         IL2Staking.ReceiveIndexerStakeData memory _indexerData
     ) internal {
-        _stake(_indexerData.indexer, _amount);
+        address _indexer = _indexerData.indexer;
+        // Deposit tokens into the indexer stake
+        __stakes[_indexer].deposit(_amount);
+
+        // Initialize the delegation pool the first time
+        if (__delegationPools[_indexer].updatedAtBlock == 0) {
+            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, __delegationParametersCooldown);
+        }
+
+        emit StakeDeposited(_indexer, _amount);
     }
 
     /**
