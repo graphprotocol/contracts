@@ -10,6 +10,9 @@ import {
   setAccountBalance,
   latestBlock,
   advanceBlocks,
+  deriveChannelKey,
+  randomHexBytes,
+  advanceToNextEpoch,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 import { toBN } from '../lib/testHelpers'
@@ -19,6 +22,11 @@ import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../build/types/GraphToken'
 
 const { AddressZero } = ethers.constants
+
+const subgraphDeploymentID = randomHexBytes()
+const channelKey = deriveChannelKey()
+const allocationID = channelKey.address
+const metadata = randomHexBytes(32)
 
 describe('L2Staking', () => {
   let me: Account
@@ -40,6 +48,20 @@ describe('L2Staking', () => {
   const tokens10k = toGRT('10000')
   const tokens100k = toGRT('100000')
   const tokens1m = toGRT('1000000')
+
+  // Allocate with test values
+  const allocate = async (tokens: BigNumber) => {
+    return staking
+      .connect(me.signer)
+      .allocateFrom(
+        me.address,
+        subgraphDeploymentID,
+        tokens,
+        allocationID,
+        metadata,
+        await channelKey.generateProof(me.address),
+      )
+  }
 
   const gatewayFinalizeTransfer = async function (
     from: string,
@@ -266,6 +288,53 @@ describe('L2Staking', () => {
         .withArgs(me.address, other.address, tokens10k, expectedNewShares)
       const delegation = await staking.getDelegation(me.address, other.address)
       expect(delegation.shares).to.equal(expectedTotalShares)
+    })
+    it('returns delegation to the delegator if it would produce no shares', async function () {
+      await fixtureContracts.rewardsManager
+        .connect(governor.signer)
+        .setIssuancePerBlock(toGRT('114'))
+
+      await staking.connect(me.signer).stake(tokens100k)
+      await staking.connect(me.signer).delegate(me.address, toBN(1)) // 1 weiGRT == 1 share
+
+      await staking.connect(me.signer).setDelegationParameters(1000, 1000, 1000)
+      await grt.connect(me.signer).approve(fixtureContracts.curation.address, tokens10k)
+      await fixtureContracts.curation.connect(me.signer).mint(subgraphDeploymentID, tokens10k, 0)
+
+      await allocate(tokens100k)
+      await advanceToNextEpoch(fixtureContracts.epochManager)
+      await advanceToNextEpoch(fixtureContracts.epochManager)
+      await staking.connect(me.signer).closeAllocation(allocationID, randomHexBytes(32))
+      // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
+
+      const functionData = defaultAbiCoder.encode(
+        ['tuple(address,address)'],
+        [[me.address, other.address]],
+      )
+
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'bytes'],
+        [toBN(1), functionData], // code = 1 means RECEIVE_DELEGATION_CODE
+      )
+      const delegatorGRTBalanceBefore = await grt.balanceOf(other.address)
+      const tx = gatewayFinalizeTransfer(
+        mockL1Staking.address,
+        staking.address,
+        toBN(1), // Less than 1 share!
+        callhookData,
+      )
+
+      await expect(tx)
+        .emit(l2GraphTokenGateway, 'DepositFinalized')
+        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toBN(1))
+      const delegation = await staking.getDelegation(me.address, other.address)
+      await expect(tx)
+        .emit(staking, 'MigratedDelegationReturnedToDelegator')
+        .withArgs(me.address, other.address, toBN(1))
+
+      expect(delegation.shares).to.equal(0)
+      const delegatorGRTBalanceAfter = await grt.balanceOf(other.address)
+      expect(delegatorGRTBalanceAfter.sub(delegatorGRTBalanceBefore)).to.equal(toBN(1))
     })
   })
   describe('onTokenTransfer with invalid messages', function () {

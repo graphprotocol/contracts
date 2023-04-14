@@ -124,13 +124,28 @@ contract L2Staking is Staking, IL2StakingBase {
         // Calculate shares to issue (without applying any delegation tax)
         uint256 shares = (pool.tokens == 0) ? _amount : _amount.mul(pool.shares).div(pool.tokens);
 
-        // Update the delegation pool
-        pool.tokens = pool.tokens.add(_amount);
-        pool.shares = pool.shares.add(shares);
+        if (shares == 0) {
+            // If no shares would be issued (probably a rounding issue or attack), return the tokens to the delegator
+            graphToken().transfer(_delegationData.delegator, _amount);
+            emit MigratedDelegationReturnedToDelegator(
+                _delegationData.indexer,
+                _delegationData.delegator,
+                _amount
+            );
+        } else {
+            // Update the delegation pool
+            pool.tokens = pool.tokens.add(_amount);
+            pool.shares = pool.shares.add(shares);
 
-        // Update the individual delegation
-        delegation.shares = delegation.shares.add(shares);
+            // Update the individual delegation
+            delegation.shares = delegation.shares.add(shares);
 
-        emit StakeDelegated(_delegationData.indexer, _delegationData.delegator, _amount, shares);
+            emit StakeDelegated(
+                _delegationData.indexer,
+                _delegationData.delegator,
+                _amount,
+                shares
+            );
+        }
     }
 }
