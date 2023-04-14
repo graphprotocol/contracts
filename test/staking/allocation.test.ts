@@ -374,6 +374,7 @@ describe('Staking:Allocation', () => {
       })
 
       it('should allocate', async function () {
+        await advanceToNextEpoch(epochManager)
         await shouldAllocate(tokensToAllocate)
       })
 
@@ -414,6 +415,7 @@ describe('Staking:Allocation', () => {
       })
 
       it('reject allocate reusing an allocation ID', async function () {
+        await advanceToNextEpoch(epochManager)
         const someTokensToAllocate = toGRT('10')
         await shouldAllocate(someTokensToAllocate)
         const tx = allocate(someTokensToAllocate)
