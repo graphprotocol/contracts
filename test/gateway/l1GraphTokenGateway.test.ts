@@ -16,6 +16,7 @@ import {
   toGRT,
   Account,
   applyL1ToL2Alias,
+  advanceBlocks,
   provider,
 } from '../lib/testHelpers'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
@@ -431,8 +432,8 @@ describe('L1GraphTokenGateway', () => {
         )
       const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
       const senderBalance = await grt.balanceOf(tokenSender.address)
-      await expect(escrowBalance).eq(toGRT('10'))
-      await expect(senderBalance).eq(toGRT('990'))
+      expect(escrowBalance).eq(toGRT('10'))
+      expect(senderBalance).eq(toGRT('990'))
     }
     before(async function () {
       await fixture.configureL1Bridge(
@@ -447,6 +448,183 @@ describe('L1GraphTokenGateway', () => {
       )
     })
 
+    describe('updateL2MintAllowance', function () {
+      it('rejects calls that are not from the governor', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(pauseGuardian.address)
+          .updateL2MintAllowance(toGRT('1'), await latestBlock())
+        await expect(tx).revertedWith('Only Controller governor')
+      })
+      it('does not allow using a future or current block number', async function () {
+        const issuancePerBlock = toGRT('120')
+        let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
+        const tx1 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
+        const tx2 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        const tx3 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx3)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+      })
+      it('does not allow using a block number lower than or equal to the previous one', async function () {
+        const issuancePerBlock = toGRT('120')
+        const issuanceUpdatedAtBlock = await latestBlock()
+        const tx1 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx1)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        const tx2 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx2).revertedWith('BLOCK_MUST_BE_INCREMENTING')
+        const tx3 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock.sub(1))
+        await expect(tx3).revertedWith('BLOCK_MUST_BE_INCREMENTING')
+        const tx4 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock.add(1))
+        await expect(tx4)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(issuancePerBlock, issuancePerBlock, issuanceUpdatedAtBlock.add(1))
+      })
+      it('updates the snapshot and issuance to follow a new linear function, accumulating up to the specified block', async function () {
+        const issuancePerBlock = toGRT('120')
+        const issuanceUpdatedAtBlock = (await latestBlock()).sub(2)
+        const tx1 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx1)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        // Now the mint allowance should be issuancePerBlock * 3
+        expect(
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+        ).to.eq(issuancePerBlock.mul(3))
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(0)
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+          issuanceUpdatedAtBlock,
+        )
+
+        await advanceBlocks(10)
+
+        const newIssuancePerBlock = toGRT('200')
+        const newIssuanceUpdatedAtBlock = (await latestBlock()).sub(1)
+
+        const expectedAccumulatedSnapshot = issuancePerBlock.mul(
+          newIssuanceUpdatedAtBlock.sub(issuanceUpdatedAtBlock),
+        )
+        const tx2 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(newIssuancePerBlock, newIssuanceUpdatedAtBlock)
+        await expect(tx2)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(expectedAccumulatedSnapshot, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
+
+        expect(
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+        ).to.eq(expectedAccumulatedSnapshot.add(newIssuancePerBlock.mul(2)))
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
+          expectedAccumulatedSnapshot,
+        )
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+          newIssuanceUpdatedAtBlock,
+        )
+      })
+    })
+    describe('setL2MintAllowanceParametersManual', function () {
+      it('rejects calls that are not from the governor', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(pauseGuardian.address)
+          .setL2MintAllowanceParametersManual(toGRT('0'), toGRT('1'), await latestBlock())
+        await expect(tx).revertedWith('Only Controller governor')
+      })
+      it('does not allow using a future or current block number', async function () {
+        const issuancePerBlock = toGRT('120')
+        let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
+        const tx1 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
+        const tx2 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
+        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        const tx3 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+        await expect(tx3)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
+      })
+      it('updates the snapshot and issuance to follow a new linear function, manually setting the snapshot value', async function () {
+        const issuancePerBlock = toGRT('120')
+        const issuanceUpdatedAtBlock = (await latestBlock()).sub(2)
+        const snapshotValue = toGRT('10')
+        const tx1 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(
+            snapshotValue,
+            issuancePerBlock,
+            issuanceUpdatedAtBlock,
+          )
+        await expect(tx1)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(snapshotValue, issuancePerBlock, issuanceUpdatedAtBlock)
+        // Now the mint allowance should be 10 + issuancePerBlock * 3
+        expect(
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+        ).to.eq(snapshotValue.add(issuancePerBlock.mul(3)))
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(snapshotValue)
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+          issuanceUpdatedAtBlock,
+        )
+
+        await advanceBlocks(10)
+
+        const newIssuancePerBlock = toGRT('200')
+        const newIssuanceUpdatedAtBlock = (await latestBlock()).sub(1)
+        const newSnapshotValue = toGRT('10')
+
+        const tx2 = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2MintAllowanceParametersManual(
+            newSnapshotValue,
+            newIssuancePerBlock,
+            newIssuanceUpdatedAtBlock,
+          )
+        await expect(tx2)
+          .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
+          .withArgs(newSnapshotValue, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
+
+        expect(
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+        ).to.eq(newSnapshotValue.add(newIssuancePerBlock.mul(2)))
+        expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
+          newSnapshotValue,
+        )
+        expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(newIssuancePerBlock)
+        expect(await l1GraphTokenGateway.lastL2MintAllowanceUpdateBlock()).to.eq(
+          newIssuanceUpdatedAtBlock,
+        )
+      })
+    })
     describe('calculateL2TokenAddress', function () {
       it('returns the L2 token address', async function () {
         expect(await l1GraphTokenGateway.calculateL2TokenAddress(grt.address)).eq(mockL2GRT.address)
@@ -594,7 +772,7 @@ describe('L1GraphTokenGateway', () => {
         )
         await expect(tx).revertedWith('ONLY_COUNTERPART_GATEWAY')
       })
-      it('reverts if the gateway does not have tokens', async function () {
+      it('reverts if the gateway does not have tokens or allowance', async function () {
         // This scenario should never really happen, but we still
         // test that the gateway reverts in this case
         const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
@@ -624,7 +802,7 @@ describe('L1GraphTokenGateway', () => {
             toBN('0'),
             encodedCalldata,
           )
-        await expect(tx).revertedWith('BRIDGE_OUT_OF_FUNDS')
+        await expect(tx).revertedWith('INVALID_L2_MINT_AMOUNT')
       })
       it('reverts if the gateway is revoked from escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
@@ -697,8 +875,105 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('8'))
         const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
         const senderBalance = await grt.balanceOf(tokenSender.address)
-        await expect(escrowBalance).eq(toGRT('2'))
-        await expect(senderBalance).eq(toGRT('998'))
+        expect(escrowBalance).eq(toGRT('2'))
+        expect(senderBalance).eq(toGRT('998'))
+      })
+      it('mints tokens up to the L2 mint allowance', async function () {
+        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+
+        // Start accruing L2 mint allowance at 2 GRT per block
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(toGRT('2'), await latestBlock())
+        await advanceBlocks(2)
+        // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
+        // there should be 8 GRT allowed to be minted from L2 in the next block.
+
+        // At this point, the gateway holds 10 GRT in escrow
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
+          [
+            grt.address,
+            l2Receiver.address,
+            tokenSender.address,
+            toGRT('18'),
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
+        )
+        // The real outbox would require a proof, which would
+        // validate that the tx was initiated by the L2 gateway but our mock
+        // just executes unconditionally
+        const tx = outboxMock
+          .connect(tokenSender.signer)
+          .executeTransaction(
+            toBN('0'),
+            [],
+            toBN('0'),
+            mockL2Gateway.address,
+            l1GraphTokenGateway.address,
+            toBN('1337'),
+            await latestBlock(),
+            toBN('133701337'),
+            toBN('0'),
+            encodedCalldata,
+          )
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'WithdrawalFinalized')
+          .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('18'))
+          .emit(l1GraphTokenGateway, 'TokensMintedFromL2')
+          .withArgs(toGRT('8'))
+        expect(await l1GraphTokenGateway.totalMintedFromL2()).to.eq(toGRT('8'))
+        expect(
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+        ).to.eq(toGRT('8'))
+
+        const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
+        const senderBalance = await grt.balanceOf(tokenSender.address)
+        expect(escrowBalance).eq(toGRT('0'))
+        expect(senderBalance).eq(toGRT('1008'))
+      })
+      it('reverts if the amount to mint is over the allowance', async function () {
+        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+
+        // Start accruing L2 mint allowance at 2 GRT per block
+        await l1GraphTokenGateway
+          .connect(governor.signer)
+          .updateL2MintAllowance(toGRT('2'), await latestBlock())
+        await advanceBlocks(2)
+        // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
+        // there should be 8 GRT allowed to be minted from L2 in the next block.
+
+        // At this point, the gateway holds 10 GRT in escrow
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
+          [
+            grt.address,
+            l2Receiver.address,
+            tokenSender.address,
+            toGRT('18.001'),
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
+        )
+        // The real outbox would require a proof, which would
+        // validate that the tx was initiated by the L2 gateway but our mock
+        // just executes unconditionally
+        const tx = outboxMock
+          .connect(tokenSender.signer)
+          .executeTransaction(
+            toBN('0'),
+            [],
+            toBN('0'),
+            mockL2Gateway.address,
+            l1GraphTokenGateway.address,
+            toBN('1337'),
+            await latestBlock(),
+            toBN('133701337'),
+            toBN('0'),
+            encodedCalldata,
+          )
+        await expect(tx).revertedWith('INVALID_L2_MINT_AMOUNT')
       })
     })
   })

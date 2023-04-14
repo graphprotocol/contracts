@@ -68,7 +68,7 @@ export const defaults = {
     initialSupply: toGRT('10000000000'), // 10 billion
   },
   rewards: {
-    issuanceRate: toGRT('1.000000023206889619'), // 5% annual rate
+    issuancePerBlock: toGRT('114.155251141552511415'), // 300M GRT/year
     dripInterval: toBN('50400'), // 1 week in blocks (post-Merge)
   },
 }

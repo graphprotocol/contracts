@@ -15,7 +15,7 @@ interface IRewardsManager {
 
     // -- Config --
 
-    function setIssuanceRate(uint256 _issuanceRate) external;
+    function setIssuancePerBlock(uint256 _issuancePerBlock) external;
 
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
 

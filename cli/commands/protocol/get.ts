@@ -34,7 +34,7 @@ export const gettersList = {
   'epochs-length': { contract: 'EpochManager', name: 'epochLength' },
   'epochs-current': { contract: 'EpochManager', name: 'currentEpoch' },
   // Rewards
-  'rewards-issuance-rate': { contract: 'RewardsManager', name: 'issuanceRate' },
+  'rewards-issuance-per-block': { contract: 'RewardsManager', name: 'issuancePerBlock' },
   'subgraph-availability-oracle': {
     contract: 'RewardsManager',
     name: 'subgraphAvailabilityOracle',
