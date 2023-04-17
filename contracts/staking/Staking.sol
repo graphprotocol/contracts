@@ -54,6 +54,8 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
             let ptr := mload(0x40)
 
             // (b) get address of the implementation
+            // CAREFUL here: this only works because extensionImpl is the first variable in this slot
+            // (otherwise we may have to apply an offset)
             let impl := and(sload(extensionImpl.slot), 0xffffffffffffffffffffffffffffffffffffffff)
 
             // (1) copy incoming call data
