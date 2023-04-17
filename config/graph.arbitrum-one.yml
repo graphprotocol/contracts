@@ -111,15 +111,13 @@ contracts:
       thawingPeriod: 186092 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 7 # in epochs
       maxAllocationEpochs: 28 # in epochs
       delegationUnbondingPeriod: 28 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
-      rebateParameters:
-        alphaNumerator: 100 # alphaNumerator / alphaDenominator
-        alphaDenominator: 100 # alphaNumerator / alphaDenominator
-        lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
-        lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
+      alphaNumerator: 100 # alphaNumerator / alphaDenominator
+      alphaDenominator: 100 # alphaNumerator / alphaDenominator
+      lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
+      lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
     calls:
       - fn: "setDelegationTaxPercentage"
         delegationTaxPercentage: 5000 # parts per million

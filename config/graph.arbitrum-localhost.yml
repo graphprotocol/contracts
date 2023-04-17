@@ -115,11 +115,10 @@ contracts:
       maxAllocationEpochs: 4 # in epochs
       delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
-      rebateParameters:
-        alphaNumerator: 100 # alphaNumerator / alphaDenominator
-        alphaDenominator: 100 # alphaNumerator / alphaDenominator
-        lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
-        lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
+      alphaNumerator: 100 # alphaNumerator / alphaDenominator
+      alphaDenominator: 100 # alphaNumerator / alphaDenominator
+      lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
+      lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
     calls:
       - fn: "setDelegationTaxPercentage"
         delegationTaxPercentage: 5000 # parts per million
