@@ -112,25 +112,6 @@ describe('Staking:Config', () => {
     })
   })
 
-  describe('channelDisputeEpochs', function () {
-    it('should set `channelDisputeEpochs`', async function () {
-      const newValue = toBN('5')
-      await staking.connect(governor.signer).setChannelDisputeEpochs(newValue)
-      expect(await staking.channelDisputeEpochs()).eq(newValue)
-    })
-
-    it('reject set `channelDisputeEpochs` if not allowed', async function () {
-      const newValue = toBN('5')
-      const tx = staking.connect(other.signer).setChannelDisputeEpochs(newValue)
-      await expect(tx).revertedWith('Only Controller governor')
-    })
-
-    it('reject set `channelDisputeEpochs` to zero', async function () {
-      const tx = staking.connect(governor.signer).setChannelDisputeEpochs(0)
-      await expect(tx).revertedWith('!channelDisputeEpochs')
-    })
-  })
-
   describe('curationPercentage', function () {
     it('should set `curationPercentage`', async function () {
       const newValue = toBN('5')

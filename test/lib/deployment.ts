@@ -46,7 +46,6 @@ export const defaults = {
   },
   staking: {
     minimumIndexerStake: toGRT('10'),
-    channelDisputeEpochs: 1,
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
     delegationUnbondingPeriod: 1, // in epochs
@@ -215,16 +214,13 @@ export async function deployStaking(
       defaults.staking.thawingPeriod,
       0,
       0,
-      defaults.staking.channelDisputeEpochs,
       defaults.staking.maxAllocationEpochs,
       defaults.staking.delegationUnbondingPeriod,
       0,
-      {
-        alphaNumerator: defaults.staking.alphaNumerator,
-        alphaDenominator: defaults.staking.alphaDenominator,
-        lambdaNumerator: defaults.staking.lambdaNumerator,
-        lambdaDenominator: defaults.staking.lambdaDenominator,
-      },
+      defaults.staking.alphaNumerator,
+      defaults.staking.alphaDenominator,
+      defaults.staking.lambdaNumerator,
+      defaults.staking.lambdaDenominator,
     ],
     deployer,
   ) as unknown as Staking
