@@ -149,7 +149,7 @@ interface IStakingBase is IStakingData {
      * @notice Initialize this contract.
      * @param _controller Address of the controller that manages this contract
      * @param _minimumIndexerStake Minimum amount of tokens that an indexer must stake
-     * @param _thawingPeriod Number of epochs that tokens get locked after unstaking
+     * @param _thawingPeriod Number of blocks that tokens get locked after unstaking
      * @param _protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
      * @param _curationPercentage Percentage of query fees that are given to curators (in PPM)
      * @param _channelDisputeEpochs The period in epochs that needs to pass before fees in rebate pool can be claimed
