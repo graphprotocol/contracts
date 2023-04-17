@@ -11,8 +11,9 @@ import "../utils/TokenUtils.sol";
 
 import "./IStaking.sol";
 import "./StakingStorage.sol";
+
+import "./libs/Exponential.sol";
 import "./libs/MathUtils.sol";
-import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
 /**
@@ -24,7 +25,6 @@ import "./libs/Stakes.sol";
 contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
-    using Rebates for Rebates.Pool;
 
     // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
@@ -115,22 +115,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     );
 
     /**
-     * @dev Emitted when `indexer` collected `tokens` amount in `epoch` for `allocationID`.
-     * These funds are related to `subgraphDeploymentID`.
-     * The `from` value is the sender of the collected funds.
-     */
-    event AllocationCollected(
-        address indexed indexer,
-        bytes32 indexed subgraphDeploymentID,
-        uint256 epoch,
-        uint256 tokens,
-        address indexed allocationID,
-        address from,
-        uint256 curationFees,
-        uint256 rebateFees
-    );
-
-    /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * The `effectiveAllocation` are the tokens allocated from creation to closing.
@@ -150,20 +134,25 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     );
 
     /**
-     * @dev Emitted when `indexer` claimed a rebate on `subgraphDeploymentID` during `epoch`
-     * related to the `forEpoch` rebate pool.
-     * The rebate is for `tokens` amount and `unclaimedAllocationsCount` are left for claim
-     * in the rebate pool. `delegationFees` collected and sent to delegation pool.
+     * @dev Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
+     * `epoch` is the protocol epoch the rebate was collected on
+     * The rebate is for `tokens` amount which are being provided by `assetHolder`; `queryFees`
+     * is the amount up for rebate after `curationFees` are distributed and `protocolTax` is burnt.
+     * `queryRebates` is the amount distributed to the `indexer` with `delegationFees` collected
+     * and sent to the delegation pool.
      */
-    event RebateClaimed(
+    event RebateCollected(
+        address assetHolder,
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         address indexed allocationID,
         uint256 epoch,
-        uint256 forEpoch,
         uint256 tokens,
-        uint256 unclaimedAllocationsCount,
-        uint256 delegationFees
+        uint256 protocolTax,
+        uint256 curationFees,
+        uint256 queryFees,
+        uint256 queryRebates,
+        uint256 delegationRewards
     );
 
     /**
@@ -944,10 +933,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     /**
      * @dev Collect and rebate query fees from state channels to the indexer
      * Funds received are only accepted from a valid sender.
-     * To avoid reverting on the withdrawal from channel flow this function will:
-     * 1) Accept calls with zero tokens.
-     * 2) Accept calls after an allocation passed the dispute period, in that case, all
-     *    the received tokens are burned.
+     * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
      * @param _tokens Amount of tokens to collect
      * @param _allocationID Allocation where the tokens will be assigned
      */
@@ -962,11 +948,14 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
-        // Get allocation
         Allocation storage alloc = allocations[_allocationID];
-        uint256 queryFees = _tokens;
-        uint256 curationFees = 0;
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
+
+        uint256 queryFees = _tokens;
+        uint256 protocolTax = 0;
+        uint256 queryRebates = 0;
+        uint256 curationFees = 0;
+        uint256 delegationRewards = 0;
 
         // Process query fees only if non-zero amount
         if (queryFees > 0) {
@@ -975,7 +964,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             TokenUtils.pullTokens(graphToken, msg.sender, queryFees);
 
             // -- Collect protocol tax --
-            uint256 protocolTax = _collectTax(graphToken, queryFees, protocolPercentage);
+            protocolTax = _collectTax(graphToken, queryFees, protocolPercentage);
             queryFees = queryFees.sub(protocolTax);
 
             // -- Collect curation fees --
@@ -988,72 +977,49 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             );
             queryFees = queryFees.sub(curationFees);
 
-            // Add funds to the allocation
+            // -- Process rebate reward --
+            // Using accumulated fees and subtracting previously distributed rebates
+            // allows for multiple vouchers to be collected
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
-
-            ///////
-
-            // Process rebate reward
-            Rebates.Pool storage rebatePool = rebates[alloc.closedAtEpoch];
-            uint256 tokensToClaim = rebatePool.redeem(
+            uint256 accumulatedRebates = LibExponential.exponentialRebates(
                 alloc.collectedFees,
-                alloc.effectiveAllocation
+                alloc.effectiveAllocation,
+                alphaNumerator,
+                alphaDenominator,
+                lambdaNumerator,
+                lambdaDenominator
             );
+            queryRebates = accumulatedRebates.sub(alloc.distributedRebates);
+            alloc.distributedRebates = accumulatedRebates;
 
-            // Add delegation rewards to the delegation pool
-            uint256 delegationRewards = _collectDelegationQueryRewards(
+            // -- Burn rebates remanent --
+            TokenUtils.burnTokens(graphToken, _tokens.sub(queryRebates));
+
+            // -- Collect delegation rewards into the delegation pool --
+            delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
+            queryRebates = queryRebates.sub(delegationRewards);
+
+            // -- Transfer or restake rebates --
+            _sendRewards(
+                graphToken,
+                queryRebates,
                 alloc.indexer,
-                tokensToClaim
+                rewardsDestination[alloc.indexer] == address(0)
             );
-            tokensToClaim = tokensToClaim.sub(delegationRewards);
-
-            // Purge allocation data except for:
-            // - indexer: used in disputes and to avoid reusing an allocationID
-            // - subgraphDeploymentID: used in disputes
-            allocations[_allocationID].tokens = 0;
-            allocations[_allocationID].createdAtEpoch = 0; // This avoid collect(), close() and claim() to be called
-            allocations[_allocationID].closedAtEpoch = 0;
-            allocations[_allocationID].collectedFees = 0;
-            allocations[_allocationID].effectiveAllocation = 0;
-            allocations[_allocationID].accRewardsPerAllocatedToken = 0;
-
-            // -- Interactions --
-
-            IGraphToken graphToken = graphToken();
-
-            // When all allocations processed then burn unclaimed fees and prune rebate pool
-            if (rebatePool.unclaimedAllocationsCount == 0) {
-                TokenUtils.burnTokens(graphToken, rebatePool.unclaimedFees());
-                delete rebates[alloc.closedAtEpoch];
-            }
-
-            // When there are tokens to claim from the rebate pool, transfer or restake
-            // Only the indexer or operator can decide if to restake
-            bool restake = _isAuth(alloc.indexer) ? _restake : false;
-            _sendRewards(graphToken, tokensToClaim, alloc.indexer, restake);
-
-            emit RebateClaimed(
-                alloc.indexer,
-                alloc.subgraphDeploymentID,
-                _allocationID,
-                epochManager().currentEpoch(),
-                alloc.closedAtEpoch,
-                tokensToClaim,
-                rebatePool.unclaimedAllocationsCount,
-                delegationRewards
-            );
-            ///////
         }
 
-        emit AllocationCollected(
+        emit RebateCollected(
+            msg.sender,
             alloc.indexer,
             subgraphDeploymentID,
+            _allocationID,
             epochManager().currentEpoch(),
             _tokens,
-            _allocationID,
-            msg.sender,
+            protocolTax,
             curationFees,
-            queryFees
+            queryFees,
+            queryRebates,
+            delegationRewards
         );
     }
 
@@ -1143,7 +1109,8 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             0, // closedAtEpoch
             0, // Initialize collected fees
             0, // Initialize effective allocation
-            (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0 // Initialize accumulated rewards per stake allocated
+            (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0, // Initialize accumulated rewards per stake allocated
+            0 // Initialize distributed rebates
         );
         allocations[_allocationID] = alloc;
 

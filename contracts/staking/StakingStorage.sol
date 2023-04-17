@@ -5,7 +5,6 @@ pragma solidity ^0.7.6;
 import "../governance/Managed.sol";
 
 import "./IStakingData.sol";
-import "./libs/Rebates.sol";
 import "./libs/Stakes.sol";
 
 contract StakingV1Storage is Managed {
@@ -32,6 +31,7 @@ contract StakingV1Storage is Managed {
     uint32 public maxAllocationEpochs;
 
     // Rebate parameters
+    // Originally used for Cobb-Douglas rebates, now used for exponential rebates
     uint32 public alphaNumerator;
     uint32 public alphaDenominator;
 
@@ -45,7 +45,7 @@ contract StakingV1Storage is Managed {
     mapping(bytes32 => uint256) public subgraphAllocations;
 
     // Rebate pools : epoch => Pool
-    mapping(uint256 => Rebates.Pool) private __DEPRECATED_rebates;
+    mapping(uint256 => uint256) private __DEPRECATED_rebates;
 
     // -- Slashing --
 

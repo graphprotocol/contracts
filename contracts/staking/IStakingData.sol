@@ -16,6 +16,7 @@ interface IStakingData {
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when closed
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
+        uint256 distributedRebates; // Collected rebates that have been rebated
     }
 
     /**

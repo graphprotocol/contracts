@@ -125,8 +125,6 @@ interface IStaking is IStakingData {
 
     function collect(uint256 _tokens, address _allocationID) external;
 
-    function claim(address _allocationID, bool _restake) external;
-
     // -- Getters and calculations --
 
     function hasStake(address _indexer) external view returns (bool);
