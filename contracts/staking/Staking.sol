@@ -756,7 +756,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
         require(_allocationID != address(0), "!alloc");
         require(_getAllocationState(_allocationID) == AllocationState.Null, "!null");
 
-        // Caller must prove that they own the private key for the allocationID adddress
+        // Caller must prove that they own the private key for the allocationID address
         // The proof is an Ethereum signed message of KECCAK256(indexerAddress,allocationID)
         bytes32 messageHash = keccak256(abi.encodePacked(_indexer, _allocationID));
         bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
