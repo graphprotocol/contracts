@@ -14,7 +14,7 @@ interface IStakingData {
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
-        uint256 effectiveAllocation; // Effective allocation when closed
+        uint256 __DEPRECATED_effectiveAllocation; // Effective allocation when closed
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
         uint256 distributedRebates; // Collected rebates that have been rebated
     }

@@ -117,7 +117,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
     /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
-     * The `effectiveAllocation` are the tokens allocated from creation to closing.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
      * `isPublic` is true if the sender was someone other than the indexer.
      */
@@ -127,7 +126,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         uint256 epoch,
         uint256 tokens,
         address indexed allocationID,
-        uint256 effectiveAllocation,
         address sender,
         bytes32 poi,
         bool isPublic
@@ -983,7 +981,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
             uint256 accumulatedRebates = LibExponential.exponentialRebates(
                 alloc.collectedFees,
-                alloc.effectiveAllocation,
+                alloc.tokens,
                 alphaNumerator,
                 alphaDenominator,
                 lambdaNumerator,
@@ -1108,7 +1106,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             epochManager().currentEpoch(), // createdAtEpoch
             0, // closedAtEpoch
             0, // Initialize collected fees
-            0, // Initialize effective allocation
+            0, // Initialize effective allocation (DEPRECATED)
             (_tokens > 0) ? _updateRewards(_subgraphDeploymentID) : 0, // Initialize accumulated rewards per stake allocated
             0 // Initialize distributed rebates
         );
@@ -1168,14 +1166,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         // Close the allocation
         allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
-        // Calculate effective allocation for the amount of epochs it remained allocated
-        alloc.effectiveAllocation = _getEffectiveAllocation(
-            maxAllocationEpochs,
-            alloc.tokens,
-            epochs
-        );
-        allocations[_allocationID].effectiveAllocation = alloc.effectiveAllocation;
-
         // -- Rewards Distribution --
 
         // Process non-zero-allocation rewards tracking
@@ -1203,19 +1193,11 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.closedAtEpoch,
             alloc.tokens,
             _allocationID,
-            alloc.effectiveAllocation,
             msg.sender,
             _poi,
             !isIndexer
         );
     }
-
-    /**
-     * @dev Claim tokens from the rebate pool.
-     * @param _allocationID Allocation from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function _claim(address _allocationID, bool _restake) private {}
 
     /**
      * @dev Delegate tokens to an indexer.
@@ -1462,22 +1444,6 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         }
 
         return AllocationState.Closed;
-    }
-
-    /**
-     * @dev Get the effective stake allocation considering epochs from allocation to closing.
-     * @param _maxAllocationEpochs Max amount of epochs to cap the allocated stake
-     * @param _tokens Amount of tokens allocated
-     * @param _numEpochs Number of epochs that passed from allocation to closing
-     * @return Effective allocated tokens across epochs
-     */
-    function _getEffectiveAllocation(
-        uint256 _maxAllocationEpochs,
-        uint256 _tokens,
-        uint256 _numEpochs
-    ) private pure returns (uint256) {
-        bool shouldCap = _maxAllocationEpochs > 0 && _numEpochs > _maxAllocationEpochs;
-        return _tokens.mul((shouldCap) ? _maxAllocationEpochs : _numEpochs);
     }
 
     /**
