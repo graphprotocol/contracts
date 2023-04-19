@@ -119,10 +119,10 @@
       "txHash": "0xc9519823017be9245d753e4b2eb9f865e1e14cad0bfaf22a0d47a956c178876e",
       "proxy": true,
       "implementation": {
-        "address": "0xA3f1CbF66cBd71ae8b70Ee2240FB0307200959E3",
-        "creationCodeHash": "0xa23c7f5bed84ae96a8367722cac071803194e51616540d8a0948cde47f00487c",
-        "runtimeCodeHash": "0xa66dbf0f9e8ab96718f1086259487a5e2b3ecee30f80ad912d745456750eb6d5",
-        "txHash": "0x66d5ab069a7e094cc634bbf89254ad67140cf009bc5a7b0536f89a386b72c028"
+        "address": "0x701ba382f0CfDa055B97B72523328a6a444aB60F",
+        "creationCodeHash": "0xf9f840d95c4b4d7048a7e2faccb698974bd11d92ab14202812445c734e266c45",
+        "runtimeCodeHash": "0x4a667b6a49f8998d74c06a617db527e07cc8b5e9a3295255c792f964795fc642",
+        "txHash": "0x356a8f9dbcf9864abc8c511513716e0df8113921b479d4e4481ee7e868aa248d"
       }
     },
     "Staking": {
