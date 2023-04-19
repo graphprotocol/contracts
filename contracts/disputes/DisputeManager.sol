@@ -651,7 +651,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         TokenUtils.pushTokens(graphToken(), dispute.fisherman, dispute.deposit);
 
         // resolve related dispute if any
-        _resolveDisputeInConflict(dispute);
+        _drawDisputeInConflict(dispute);
 
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Drawn;
@@ -660,28 +660,13 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Resolve a dispute by removing it from storage and returning a memory copy.
-     * @param _disputeID ID of the dispute to resolve
-     * @return Dispute
-     */
-    // function _resolveDispute(bytes32 _disputeID) private returns (Dispute memory) {
-    //     require(isDisputeCreated(_disputeID), "Dispute does not exist");
-
-    //     Dispute memory dispute = disputes[_disputeID];
-
-    //     // Resolve dispute
-    //     delete disputes[_disputeID]; // Re-entrancy
-
-    //     return dispute;
-    // }
-
-    /**
      * @dev Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
     function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
         bytes32 relatedID = _dispute.relatedDisputeID;
+        // this is so the check returns false when rejecting the related dispute.
         return
             relatedID != 0 && disputes[relatedID].status == IDisputeManager.DisputeStatus.Pending;
     }
@@ -691,7 +676,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _dispute Dispute
      * @return True if resolved
      */
-    function _resolveDisputeInConflict(Dispute memory _dispute) private returns (bool) {
+    function _drawDisputeInConflict(Dispute memory _dispute) private returns (bool) {
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];

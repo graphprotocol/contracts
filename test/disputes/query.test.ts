@@ -516,8 +516,10 @@ describe('DisputeManager:Query', async () => {
       // Do
       await disputeManager.connect(arbitrator.signer).acceptDispute(dID1)
       // Check
+      const mainDispute = await disputeManager.disputes(dID1)
+      expect(mainDispute.status).to.eq(1) // 1 = DisputeStatus.Accepted
       const relatedDispute = await disputeManager.disputes(dID2)
-      expect(relatedDispute.status).not.eq(3) // 3 = DisputeStatus.Pending
+      expect(relatedDispute.status).to.eq(2) // 2 = DisputeStatus.Rejected
     })
 
     it('should not allow to reject, user need to accept the related dispute ID to reject it', async function () {
