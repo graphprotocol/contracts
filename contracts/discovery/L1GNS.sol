@@ -44,6 +44,8 @@ contract L1GNS is GNS, L1GNSV1Storage {
     /**
      * @notice Send a subgraph's data and tokens to L2.
      * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
+     * Note that any L2 gas/fee refunds will be lost, so the function only accepts
+     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid.
      * @param _subgraphID Subgraph ID
      * @param _l2Owner Address that will own the subgraph in L2 (could be the L1 owner, but could be different if the L1 owner is an L1 contract)
      * @param _maxGas Max gas to use for the L2 retryable ticket
@@ -58,6 +60,10 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
         require(!subgraphMigratedToL2[_subgraphID], "ALREADY_DONE");
+        require(
+            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
+            "INVALID_ETH_VALUE"
+        );
 
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
         // This is just like onlySubgraphAuth, but we want it to run after the subgraphMigratedToL2 check
@@ -115,6 +121,8 @@ contract L1GNS is GNS, L1GNSV1Storage {
      * that the retryable ticket is redeemed before expiration, or the signal will be lost.
      * It is up to the caller to verify that the subgraph migration was finished in L2,
      * but if it wasn't, the tokens will be sent to the beneficiary in L2.
+     * Note that any L2 gas/fee refunds will be lost, so the function only accepts
+     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid.
      * @dev Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
      * @param _beneficiary Address that will receive the tokens in L2
@@ -130,7 +138,10 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
         require(subgraphMigratedToL2[_subgraphID], "!MIGRATED");
-
+        require(
+            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
+            "INVALID_ETH_VALUE"
+        );
         // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 

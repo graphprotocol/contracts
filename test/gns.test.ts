@@ -1236,6 +1236,19 @@ describe('L1GNS', () => {
 
         await expect(tx).revertedWith('GNS: Must be active')
       })
+      it('rejects calls with more ETH than maxSubmissionCost + maxGas * gasPriceBid', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+          })
+        await expect(tx).revertedWith('INVALID_ETH_VALUE')
+      })
       it('does not allow curators to burn signal after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
@@ -1613,6 +1626,28 @@ describe('L1GNS', () => {
           )
 
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
+      })
+      it('rejects calls with more ETH than maxSubmissionCost + maxGas * gasPriceBid', async function () {
+        const subgraph0 = await publishCurateAndSendSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+            },
+          )
+
+        await expect(tx).revertedWith('INVALID_ETH_VALUE')
       })
       it('rejects calls if the curator has withdrawn the GRT', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()
