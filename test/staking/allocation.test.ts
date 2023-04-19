@@ -113,7 +113,7 @@ describe('Staking:Allocation', () => {
   const shouldCollect = async (
     tokensToCollect: BigNumber,
     _allocationID?: string,
-  ): Promise<BigNumber> => {
+  ): Promise<{ queryRebates: BigNumber; queryFeesBurnt: BigNumber }> => {
     const alloID = _allocationID ?? allocationID
     // Should have a particular state before claiming
     expect(await staking.getAllocationState(alloID)).to.be.oneOf([
@@ -157,9 +157,10 @@ describe('Staking:Allocation', () => {
       lambdaNumerator,
       lambdaDenominator,
     )
-    const queryRebates = beforeAlloc.distributedRebates.gt(accumulatedRebates)
+    let queryRebates = beforeAlloc.distributedRebates.gt(accumulatedRebates)
       ? BigNumber.from(0)
       : accumulatedRebates.sub(beforeAlloc.distributedRebates)
+    queryRebates = queryRebates.gt(queryFees) ? queryFees : queryRebates
     const queryFeesBurnt = queryFees.sub(queryRebates)
 
     // Collect tokens from allocation
@@ -224,9 +225,7 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.closedAtEpoch).eq(beforeAlloc.closedAtEpoch)
     expect(afterAlloc.collectedFees).eq(beforeAlloc.collectedFees.add(rebateFees))
     expect(afterAlloc.collectedFees).eq(queryFees.add(beforeAlloc.collectedFees))
-    expect(afterAlloc.distributedRebates).eq(
-      queryRebates.eq(BigNumber.from(0)) ? beforeAlloc.distributedRebates : accumulatedRebates,
-    )
+    expect(afterAlloc.distributedRebates).eq(beforeAlloc.distributedRebates.add(queryRebates))
 
     // Funds distributed to indexer
     console.log(`* Indexer balance before: ${ethers.utils.formatEther(beforeIndexerBalance)}`)
@@ -245,7 +244,7 @@ describe('Staking:Allocation', () => {
       expect(afterIndexerBalance).eq(beforeIndexerBalance.add(queryRebates))
     }
 
-    return queryRebates
+    return { queryRebates, queryFeesBurnt }
   }
 
   const shouldCollectMultiple = async (collections: BigNumber[]) => {
@@ -253,7 +252,7 @@ describe('Staking:Allocation', () => {
     const totalTokensToCollect = collections.reduce((a, b) => a.add(b), BigNumber.from(0))
     let rebatedAmountMultiple = BigNumber.from(0)
     for (const collect of collections) {
-      rebatedAmountMultiple = rebatedAmountMultiple.add(await shouldCollect(collect))
+      rebatedAmountMultiple = rebatedAmountMultiple.add((await shouldCollect(collect)).queryRebates)
     }
 
     // Reset rebates state by closing allocation, advancing epoch and opening a new allocation
@@ -266,7 +265,8 @@ describe('Staking:Allocation', () => {
     )
 
     // Collect `tokensToCollect` with a single voucher
-    const rebatedAmountFull = await shouldCollect(totalTokensToCollect, anotherAllocationID)
+    const rebatedAmountFull = (await shouldCollect(totalTokensToCollect, anotherAllocationID))
+      .queryRebates
 
     // Check rebated amounts match
     console.log(`rebatedAmountSplit: ${ethers.utils.formatEther(rebatedAmountMultiple)}`)
@@ -583,7 +583,7 @@ describe('Staking:Allocation', () => {
       await shouldCollectMultiple([bigCollect, smallCollect])
     })
 
-    it('should not fail if parameters are changed', async function () {
+    it('should resolve over-rebated scenarios correctly', async function () {
       // Set up a new allocation with `tokensToAllocate` staked
       await staking.connect(indexer.signer).stake(tokensToStake)
       await allocate(
@@ -603,7 +603,8 @@ describe('Staking:Allocation', () => {
       // First collection
       // Indexer gets 100% of the query fees due to α = 0
       const firstRebates = await shouldCollect(firstTokensToCollect, anotherAllocationID)
-      expect(firstRebates).gte(firstTokensToCollect)
+      expect(firstRebates.queryRebates).eq(firstTokensToCollect)
+      expect(firstRebates.queryFeesBurnt).eq(BigNumber.from(0))
 
       // Update rebate parameters, α = 1, λ = 1
       await staking.setRebateParameters(1, 1, 1, 1)
@@ -612,16 +613,92 @@ describe('Staking:Allocation', () => {
       // Indexer gets 0% of the query fees
       // Parameters changed so now they are over-rebated and should get "negative rebates", instead they get 0
       const secondRebates = await shouldCollect(secondTokensToCollect, anotherAllocationID)
-      expect(secondRebates).eq(BigNumber.from(0))
+      expect(secondRebates.queryRebates).eq(BigNumber.from(0))
+      expect(secondRebates.queryFeesBurnt).eq(secondTokensToCollect)
 
       // Third collection
       // Previous collection plus this new one tip the balance and indexer is no longer over-rebated
-      // They get rebates again
+      // They get rebates and burn again
       const thirdRebates = await shouldCollect(thirdTokensToCollect, anotherAllocationID)
-      expect(thirdRebates).gte(BigNumber.from(0))
+      expect(thirdRebates.queryRebates).gt(BigNumber.from(0))
+      expect(thirdRebates.queryFeesBurnt).gt(BigNumber.from(0))
+    })
+
+    it('should resolve under-rebated scenarios correctly', async function () {
+      // Set up a new allocation with `tokensToAllocate` staked
+      await staking.connect(indexer.signer).stake(tokensToStake)
+      await allocate(
+        tokensToAllocate,
+        anotherAllocationID,
+        await anotherChannelKey.generateProof(indexer.address),
+      )
+
+      // Set initial rebate parameters, α = 1, λ = 1
+      await staking.setRebateParameters(1, 1, 1, 1)
+
+      // Collection amounts
+      const firstTokensToCollect = tokensToAllocate
+      const secondTokensToCollect = tokensToAllocate
+      const thirdTokensToCollect = tokensToAllocate.mul(50)
+
+      // First collection
+      // Indexer gets rebates and burn
+      const firstRebates = await shouldCollect(firstTokensToCollect, anotherAllocationID)
+      expect(firstRebates.queryRebates).gt(BigNumber.from(0))
+      expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
+
+      // Update rebate parameters, α = 0.1, λ = 1
+      await staking.setRebateParameters(1, 10, 1, 1)
+
+      // Second collection
+      // Indexer gets 100% of the query fees
+      // Parameters changed so now they are under-rebated and should get more than the available amount but we cap it
+      const secondRebates = await shouldCollect(secondTokensToCollect, anotherAllocationID)
+      expect(secondRebates.queryRebates).eq(secondTokensToCollect)
+      expect(secondRebates.queryFeesBurnt).eq(BigNumber.from(0))
+
+      // Third collection
+      // Previous collection plus this new one tip the balance and indexer is no longer under-rebated
+      // They get rebates and burn again
+      const thirdRebates = await shouldCollect(thirdTokensToCollect, anotherAllocationID)
+      expect(thirdRebates.queryRebates).gt(BigNumber.from(0))
+      expect(thirdRebates.queryFeesBurnt).gt(BigNumber.from(0))
+    })
+
+    it('should get stuck under-rebated if alpha is changed to zero', async function () {
+      // Set up a new allocation with `tokensToAllocate` staked
+      await staking.connect(indexer.signer).stake(tokensToStake)
+      await allocate(
+        tokensToAllocate,
+        anotherAllocationID,
+        await anotherChannelKey.generateProof(indexer.address),
+      )
+
+      // Set initial rebate parameters, α = 1, λ = 1
+      await staking.setRebateParameters(1, 1, 1, 1)
+
+      // First collection
+      // Indexer gets rebates and burn
+      const firstRebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+      expect(firstRebates.queryRebates).gt(BigNumber.from(0))
+      expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
+
+      // Update rebate parameters, α = 0, λ = 1
+      await staking.setRebateParameters(0, 1, 1, 1)
+
+      // Succesive collections
+      // Indexer gets 100% of the query fees
+      // Parameters changed so now they are under-rebated and should get more than the available amount but we cap it
+      // Distributed amount will never catch up due to the initial collection which was less than 100%
+      for (const _i of [...Array(10).keys()]) {
+        const succesiveRebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+        expect(succesiveRebates.queryRebates).eq(tokensToCollect)
+        expect(succesiveRebates.queryFeesBurnt).eq(BigNumber.from(0))
+      }
     })
 
     it.skip(`should test multiple rebate parameter configurations`)
+    it.skip(`should test multiple fees configurations`)
     it.skip(`what about in transition collectedFees`)
   })
 

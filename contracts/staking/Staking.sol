@@ -932,6 +932,9 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
      * @dev Collect and rebate query fees from state channels to the indexer
      * Funds received are only accepted from a valid sender.
      * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
+     * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
+     * This implementation allows collecting multiple times on the same allocation, keeping track of the
+     * total amount rebated, the total amount collected and compensating the indexer for the difference.
      * @param _tokens Amount of tokens to collect
      * @param _allocationID Allocation where the tokens will be assigned
      */
@@ -949,11 +952,11 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
         Allocation storage alloc = allocations[_allocationID];
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
-        uint256 queryFees = _tokens;
-        uint256 protocolTax = 0;
-        uint256 queryRebates = 0;
-        uint256 curationFees = 0;
-        uint256 delegationRewards = 0;
+        uint256 queryFees = _tokens; // Tokens collected from the channel
+        uint256 protocolTax = 0; // Tokens burnt as protocol tax
+        uint256 curationFees = 0; // Tokens distributed to curators as curation fees
+        uint256 queryRebates = 0; // Tokens to distribute to indexer
+        uint256 delegationRewards = 0; // Tokens to distribute to delegators
 
         // Process query fees only if non-zero amount
         if (queryFees > 0) {
@@ -977,9 +980,9 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
 
             // -- Process rebate reward --
             // Using accumulated fees and subtracting previously distributed rebates
-            // allows for multiple vouchers to be collected
+            // allows for multiple vouchers to be collected while following the rebate formula
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
-            uint256 accumulatedRebates = LibExponential.exponentialRebates(
+            uint256 newRebates = LibExponential.exponentialRebates(
                 alloc.collectedFees,
                 alloc.tokens,
                 alphaNumerator,
@@ -988,19 +991,24 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
                 lambdaDenominator
             );
 
-            // Ensure rebates to distribute are not negative
-            // This can happen if rebate parameters (alpha, lambda) change
-            // between successive collect calls for the same allocation
-            queryRebates = accumulatedRebates > alloc.distributedRebates
-                ? accumulatedRebates.sub(alloc.distributedRebates)
+            //  -- Ensure rebates to distribute are within bounds --
+            // Indexers can become under or over rebated if rebate parameters (alpha, lambda)
+            // change between successive collect calls for the same allocation
+
+            // Ensure rebates to distribute are not negative (indexer is over-rebated)
+            queryRebates = newRebates > alloc.distributedRebates
+                ? newRebates.sub(alloc.distributedRebates)
                 : 0;
+
+            // Ensure rebates to distribute are not greater than available (indexer is under-rebated)
+            queryRebates = queryFees > queryRebates ? queryRebates : queryFees;
 
             // -- Burn rebates remanent --
             TokenUtils.burnTokens(graphToken, queryFees.sub(queryRebates));
 
             // -- Distribute rebates --
             if (queryRebates > 0) {
-                alloc.distributedRebates = accumulatedRebates;
+                alloc.distributedRebates = alloc.distributedRebates.add(queryRebates);
 
                 // -- Collect delegation rewards into the delegation pool --
                 delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
