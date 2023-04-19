@@ -987,23 +987,33 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
                 lambdaNumerator,
                 lambdaDenominator
             );
-            queryRebates = accumulatedRebates.sub(alloc.distributedRebates);
-            alloc.distributedRebates = accumulatedRebates;
+
+            // Ensure rebates to distribute are not negative
+            // This can happen if rebate parameters (alpha, lambda) change
+            // between successive collect calls for the same allocation
+            queryRebates = accumulatedRebates > alloc.distributedRebates
+                ? accumulatedRebates.sub(alloc.distributedRebates)
+                : 0;
 
             // -- Burn rebates remanent --
             TokenUtils.burnTokens(graphToken, queryFees.sub(queryRebates));
 
-            // -- Collect delegation rewards into the delegation pool --
-            delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
-            queryRebates = queryRebates.sub(delegationRewards);
+            // -- Distribute rebates --
+            if (queryRebates > 0) {
+                alloc.distributedRebates = accumulatedRebates;
 
-            // -- Transfer or restake rebates --
-            _sendRewards(
-                graphToken,
-                queryRebates,
-                alloc.indexer,
-                rewardsDestination[alloc.indexer] == address(0)
-            );
+                // -- Collect delegation rewards into the delegation pool --
+                delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
+                queryRebates = queryRebates.sub(delegationRewards);
+
+                // -- Transfer or restake rebates --
+                _sendRewards(
+                    graphToken,
+                    queryRebates,
+                    alloc.indexer,
+                    rewardsDestination[alloc.indexer] == address(0)
+                );
+            }
         }
 
         emit RebateCollected(
