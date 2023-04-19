@@ -53,7 +53,7 @@ export function exponentialRebates(
   return fees * (1 - alpha * Math.exp(-exponent))
 }
 
-describe('Rebates:exponential', () => {
+describe('Staking:rebates', () => {
   let deployer: Account
 
   let libExponential: LibExponential

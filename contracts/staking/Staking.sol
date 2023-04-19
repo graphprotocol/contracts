@@ -991,7 +991,7 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             alloc.distributedRebates = accumulatedRebates;
 
             // -- Burn rebates remanent --
-            TokenUtils.burnTokens(graphToken, _tokens.sub(queryRebates));
+            TokenUtils.burnTokens(graphToken, queryFees.sub(queryRebates));
 
             // -- Collect delegation rewards into the delegation pool --
             delegationRewards = _collectDelegationQueryRewards(alloc.indexer, queryRebates);
