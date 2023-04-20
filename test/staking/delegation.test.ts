@@ -3,7 +3,6 @@ import { constants, BigNumber } from 'ethers'
 
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { LibExponential } from '../../build/types/LibExponential'
 import { Staking } from '../../build/types/Staking'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -20,7 +19,6 @@ import {
 
 const { AddressZero, HashZero } = constants
 const MAX_PPM = toBN('1000000')
-const percentageOf = (ppm: BigNumber, value): BigNumber => value.sub(ppm.mul(value).div(MAX_PPM))
 
 describe('Staking::Delegation', () => {
   let me: Account
@@ -36,7 +34,6 @@ describe('Staking::Delegation', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: Staking
-  let libExponential: LibExponential
 
   // Test values
   const poi = randomHexBytes()
@@ -182,7 +179,7 @@ describe('Staking::Delegation', () => {
     ;[me, delegator, delegator2, governor, indexer, indexer2, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ epochManager, grt, staking, libExponential } = await fixture.load(governor.signer))
+    ;({ epochManager, grt, staking } = await fixture.load(governor.signer))
 
     // Distribute test funds
     for (const wallet of [delegator, delegator2]) {
@@ -595,83 +592,6 @@ describe('Staking::Delegation', () => {
       expect(await staking.getIndexerCapacity(indexer.address)).eq(0)
     })
 
-    it('should send delegation cut of query fees to delegation pool', async function () {
-      // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
-      await epochManager.setEpochLength(toBN((60 * 60) / 15))
-
-      // 1:10 delegation capacity
-      await staking.connect(governor.signer).setDelegationRatio(10)
-
-      // Set delegation rules for the indexer
-      const indexingRewardCut = toBN('800000') // indexer keep 80%
-      const queryFeeCut = toBN('950000') // indexer keeps 95%
-      const cooldownBlocks = 5
-      await staking
-        .connect(indexer.signer)
-        .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
-
-      // Delegate
-      await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
-
-      // Prepare allocation
-      await setupAllocation(tokensToAllocate)
-
-      // Collect some funds
-      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
-
-      // Advance blocks to get the channel in epoch where it can be closed
-      await advanceToNextEpoch(epochManager)
-
-      // Close allocation
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-
-      // Advance blocks to get the channel in epoch where it can be claimed
-      await advanceToNextEpoch(epochManager)
-
-      // Delegation pool before allocation closed
-      const beforeDelegationPool = await staking.delegationPools(indexer.address)
-
-      // Calculate tokens to claim and expected delegation fees
-      const beforeAlloc = await staking.getAllocation(allocationID)
-      const [alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator] =
-        await Promise.all([
-          staking.alphaNumerator(),
-          staking.alphaDenominator(),
-          staking.lambdaNumerator(),
-          staking.lambdaDenominator(),
-        ])
-      const totalClaimTokens = await libExponential.exponentialRebates(
-        beforeAlloc.collectedFees,
-        beforeAlloc.effectiveAllocation,
-        alphaNumerator,
-        alphaDenominator,
-        lambdaNumerator,
-        lambdaDenominator,
-      )
-      const delegationFees = percentageOf(queryFeeCut, totalClaimTokens)
-      const tokensToClaim = totalClaimTokens.sub(delegationFees)
-
-      // Claim from rebate pool
-      const currentEpoch = await epochManager.currentEpoch()
-      const tx = staking.connect(indexer.signer).claim(allocationID, true)
-      await expect(tx)
-        .emit(staking, 'RebateClaimed')
-        .withArgs(
-          indexer.address,
-          subgraphDeploymentID,
-          allocationID,
-          currentEpoch,
-          beforeAlloc.closedAtEpoch,
-          tokensToClaim,
-          toBN('0'),
-          delegationFees,
-        )
-
-      // State updated
-      const afterDelegationPool = await staking.delegationPools(indexer.address)
-      expect(afterDelegationPool.tokens).eq(beforeDelegationPool.tokens.add(delegationFees))
-    })
-
     it('revert if it cannot assign the smallest amount of shares', async function () {
       // Init the delegation pool
       await shouldDelegate(delegator, tokensToDelegate)
@@ -683,8 +603,6 @@ describe('Staking::Delegation', () => {
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-      await advanceToNextEpoch(epochManager)
-      await staking.connect(indexer.signer).claim(allocationID, true)
 
       // Delegate with such small amount of tokens (1 wei) that we do not have enough precision
       // to even assign 1 wei of shares

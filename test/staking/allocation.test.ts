@@ -34,6 +34,7 @@ describe('Staking:Allocation', () => {
   let me: Account
   let governor: Account
   let indexer: Account
+  let delegator: Account
   let slasher: Account
   let assetHolder: Account
 
@@ -49,6 +50,7 @@ describe('Staking:Allocation', () => {
 
   const indexerTokens = toGRT('1000')
   const tokensToStake = toGRT('100')
+  const tokensToDelegate = toGRT('10')
   const tokensToAllocate = toGRT('100')
   const tokensToCollect = toGRT('100')
   const subgraphDeploymentID = randomHexBytes()
@@ -128,6 +130,7 @@ describe('Staking:Allocation', () => {
     const beforeAlloc = await staking.getAllocation(alloID)
     const beforeIndexerBalance = await grt.balanceOf(indexer.address)
     const beforeStake = await staking.stakes(indexer.address)
+    const beforeDelegationPool = await staking.delegationPools(indexer.address)
 
     // Advance blocks to get the allocation in epoch where it can be closed
     await advanceToNextEpoch(epochManager)
@@ -165,6 +168,10 @@ describe('Staking:Allocation', () => {
     queryRebates = queryRebates.gt(queryFees) ? queryFees : queryRebates
     const queryFeesBurnt = queryFees.sub(queryRebates)
 
+    const indexerCut = queryRebates.mul(beforeDelegationPool.queryFeeCut).div(MAX_PPM)
+    const delegationRewards = queryRebates.sub(indexerCut)
+    queryRebates = queryRebates.sub(delegationRewards)
+
     // Collect tokens from allocation
     const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, alloID)
     await expect(tx)
@@ -180,7 +187,7 @@ describe('Staking:Allocation', () => {
         curationFees,
         queryFees,
         queryRebates,
-        BigNumber.from('0'), // Delegator rewards tested separately
+        delegationRewards,
       )
 
     // After state
@@ -197,9 +204,9 @@ describe('Staking:Allocation', () => {
     // tokensToCollect = queryFees + protocolFees + curationFees
     expect(tokensToCollect).eq(queryFees.add(protocolFees).add(curationFees))
 
-    // Check that rebated fees + fees burnt equals collected tokens after tax and curator fee
-    // queryFees = queryRebates + queryFeesBurnt
-    expect(queryFees).eq(queryRebates.add(queryFeesBurnt))
+    // Check that queryFees are distributed
+    // queryFees = queryRebates + queryFeesBurnt + delegationRewards
+    expect(queryFees).eq(queryRebates.add(queryFeesBurnt).add(delegationRewards))
 
     // Check that curation reserves increased for the SubgraphDeployment
     expect(afterPool.tokens).eq(beforePool.tokens.add(curationFees))
@@ -210,7 +217,9 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.closedAtEpoch).eq(beforeAlloc.closedAtEpoch)
     expect(afterAlloc.accRewardsPerAllocatedToken).eq(beforeAlloc.accRewardsPerAllocatedToken)
     expect(afterAlloc.collectedFees).eq(beforeAlloc.collectedFees.add(queryFees))
-    expect(afterAlloc.distributedRebates).eq(beforeAlloc.distributedRebates.add(queryRebates))
+    expect(afterAlloc.distributedRebates).eq(
+      beforeAlloc.distributedRebates.add(queryRebates).add(delegationRewards),
+    )
 
     // // Funds distributed to indexer or restaked
     const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
@@ -247,13 +256,14 @@ describe('Staking:Allocation', () => {
     const rebatedAmountFull = (await shouldCollect(totalTokensToCollect, anotherAllocationID))
       .queryRebates
 
-    // Check rebated amounts match
-    expect(rebatedAmountMultiple).to.equal(rebatedAmountFull)
+    // Check rebated amounts match, allow a small error margin of 5 wei
+    // Due to rounding it's not possible to guarantee an exact match in case of multiple collections
+    expect(rebatedAmountMultiple.sub(rebatedAmountFull)).lt(5)
   }
   // -- Tests --
 
   before(async function () {
-    ;[me, governor, indexer, slasher, assetHolder] = await getAccounts()
+    ;[me, governor, indexer, delegator, slasher, assetHolder] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ curation, epochManager, grt, staking, libExponential } = await fixture.load(
@@ -264,6 +274,10 @@ describe('Staking:Allocation', () => {
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
     await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+
+    // Give some funds to the delegator and approve staking contract to use funds on delegator behalf
+    await grt.connect(governor.signer).mint(delegator.address, tokensToDelegate)
+    await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
 
     // Allow the asset holder
     await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
@@ -477,15 +491,19 @@ describe('Staking:Allocation', () => {
 
     // * Test with different curation fees and protocol tax
     for (const params of [
-      { curationPercentage: toBN('0'), protocolPercentage: toBN('0') },
-      { curationPercentage: toBN('0'), protocolPercentage: toBN('100000') },
-      { curationPercentage: toBN('200000'), protocolPercentage: toBN('0') },
-      { curationPercentage: toBN('200000'), protocolPercentage: toBN('100000') },
+      { curationPercentage: toBN('0'), protocolPercentage: toBN('0'), queryFeeCut: toBN('0') },
+      { curationPercentage: toBN('0'), protocolPercentage: toBN('100000'), queryFeeCut: toBN('0') },
+      { curationPercentage: toBN('200000'), protocolPercentage: toBN('0'), queryFeeCut: toBN('0') },
+      {
+        curationPercentage: toBN('200000'),
+        protocolPercentage: toBN('100000'),
+        queryFeeCut: toBN('950000'),
+      },
     ]) {
       context(
-        `> with ${toPercentage(params.curationPercentage)}% curationPercentage and ${toPercentage(
+        `> with ${toPercentage(params.curationPercentage)}% curationFees, ${toPercentage(
           params.protocolPercentage,
-        )}% protocolPercentage`,
+        )}% protocolTax and ${toPercentage(params.queryFeeCut)}% queryFeeCut`,
         async function () {
           beforeEach(async function () {
             // Set a protocol fee percentage
@@ -493,6 +511,13 @@ describe('Staking:Allocation', () => {
 
             // Set a curation fee percentage
             await staking.connect(governor.signer).setCurationPercentage(params.curationPercentage)
+
+            // Setup delegation
+            await staking.connect(governor.signer).setDelegationRatio(10) // 1:10 delegation capacity
+            await staking
+              .connect(indexer.signer)
+              .setDelegationParameters(toBN('800000'), params.queryFeeCut, 5)
+            await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
           })
 
           it('should collect funds from asset holder (restake=true)', async function () {
