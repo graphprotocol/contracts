@@ -22,6 +22,7 @@ import {
 const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
+const toPercentage = (ppm: BigNumber) => ppm.mul(100).div(MAX_PPM).toNumber()
 
 enum AllocationState {
   Null,
@@ -187,24 +188,6 @@ describe('Staking:Allocation', () => {
     const afterAlloc = await staking.getAllocation(alloID)
     const afterIndexerBalance = await grt.balanceOf(indexer.address)
 
-    // console.log(`afterTokenSupply: ${ethers.utils.formatEther(afterTokenSupply)}`)
-    // console.log(`beforeTokenSupply: ${ethers.utils.formatEther(beforeTokenSupply)}`)
-    console.log(`\n* Collecting ${ethers.utils.formatEther(tokensToCollect)} GRT`)
-    console.log(`  - queryFees: ${ethers.utils.formatEther(queryFees)}`)
-    console.log(`  - protocolFees: ${ethers.utils.formatEther(protocolFees)}`)
-    console.log(`  - curationFees: ${ethers.utils.formatEther(curationFees)}`)
-
-    // console.log(`rebateFees: ${ethers.utils.formatEther(rebateFees)}`)
-    console.log(`* Query fees to be rebated: ${ethers.utils.formatEther(queryFees)}`)
-    console.log(`  - queryRebates: ${ethers.utils.formatEther(queryRebates)}`)
-    console.log(`  - queryFeesBurnt: ${ethers.utils.formatEther(queryFeesBurnt)}`)
-    console.log(`* Accumulated rebates: ${ethers.utils.formatEther(afterAlloc.distributedRebates)}`)
-    // console.log(
-    //   `sumSupply: ${ethers.utils.formatEther(
-    //     beforeTokenSupply.sub(protocolFees).sub(queryFeesBurnt),
-    //   )}`,
-    // )
-
     // Check that protocol fees are burnt
     expect(afterTokenSupply).eq(beforeTokenSupply.sub(protocolFees).sub(queryFeesBurnt))
 
@@ -227,17 +210,8 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.collectedFees).eq(queryFees.add(beforeAlloc.collectedFees))
     expect(afterAlloc.distributedRebates).eq(beforeAlloc.distributedRebates.add(queryRebates))
 
-    // Funds distributed to indexer
-    console.log(`* Indexer balance before: ${ethers.utils.formatEther(beforeIndexerBalance)}`)
-    console.log(`* Indexer balance after: ${ethers.utils.formatEther(afterIndexerBalance)}`)
-    console.log(
-      `* Indexer balance diff: ${ethers.utils.formatEther(
-        afterIndexerBalance.sub(beforeIndexerBalance),
-      )}`,
-    )
-    console.log(`* Rebates: ${ethers.utils.formatEther(queryRebates)}`)
+    // // Funds distributed to indexer
     const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
-    console.log(restake)
     if (restake) {
       expect(afterIndexerBalance).eq(beforeIndexerBalance)
     } else {
@@ -269,8 +243,6 @@ describe('Staking:Allocation', () => {
       .queryRebates
 
     // Check rebated amounts match
-    console.log(`rebatedAmountSplit: ${ethers.utils.formatEther(rebatedAmountMultiple)}`)
-    console.log(`rebatedAmountFull: ${ethers.utils.formatEther(rebatedAmountFull)}`)
     expect(rebatedAmountMultiple).to.equal(rebatedAmountFull)
   }
   // -- Tests --
@@ -486,11 +458,86 @@ describe('Staking:Allocation', () => {
       await staking.connect(indexer.signer).stake(tokensToStake)
       await allocate(tokensToAllocate)
 
+      // Add some signal to the subgraph to enable curation fees
+      const tokensToSignal = toGRT('100')
+      await grt.connect(governor.signer).mint(me.address, tokensToSignal)
+      await grt.connect(me.signer).approve(curation.address, tokensToSignal)
+      await curation.connect(me.signer).mint(subgraphDeploymentID, tokensToSignal, 0)
+
       // Fund asset holder wallet
       const tokensToFund = toGRT('100000')
       await grt.connect(governor.signer).mint(assetHolder.address, tokensToFund)
       await grt.connect(assetHolder.signer).approve(staking.address, tokensToFund)
     })
+
+    // * Test with different curation fees and protocol tax
+    for (const params of [
+      { curationPercentage: toBN('0'), protocolPercentage: toBN('0') },
+      { curationPercentage: toBN('0'), protocolPercentage: toBN('100000') },
+      { curationPercentage: toBN('200000'), protocolPercentage: toBN('0') },
+      { curationPercentage: toBN('200000'), protocolPercentage: toBN('100000') },
+    ]) {
+      context(
+        `> with ${toPercentage(params.curationPercentage)}% curationPercentage and ${toPercentage(
+          params.protocolPercentage,
+        )}% protocolPercentage`,
+        async function () {
+          beforeEach(async function () {
+            // Set a protocol fee percentage
+            await staking.connect(governor.signer).setProtocolPercentage(params.protocolPercentage)
+
+            // Set a curation fee percentage
+            await staking.connect(governor.signer).setCurationPercentage(params.curationPercentage)
+          })
+
+          it('should collect funds from asset holder (restake=true)', async function () {
+            await shouldCollect(tokensToCollect)
+          })
+
+          it('should collect funds from asset holder (restake=false)', async function () {
+            // Set a random rewards destination address
+            await staking.connect(governor.signer).setRewardsDestination(me.address)
+            await shouldCollect(tokensToCollect)
+          })
+
+          it('should collect funds on both active and closed allocations', async function () {
+            // Collect from active allocation
+            await shouldCollect(tokensToCollect)
+
+            // Close allocation
+            await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+
+            // Collect from closed allocation
+            await shouldCollect(tokensToCollect)
+          })
+
+          it('should collect zero tokens', async function () {
+            await shouldCollect(toGRT('0'))
+          })
+
+          it('should allow multiple collections on the same allocation', async function () {
+            // Collect `tokensToCollect` with 4 different vouchers
+            // This can represent vouchers not necessarily from the same gateway
+            const splitCollect = tokensToCollect.div(4)
+            await shouldCollectMultiple(Array(4).fill(splitCollect))
+          })
+
+          it('should allow multiple collections on the same allocation (edge case 1: small then big)', async function () {
+            // Collect `tokensToCollect` with 2 vouchers, one small and then one big
+            const smallCollect = tokensToCollect.div(100)
+            const bigCollect = tokensToCollect.sub(smallCollect)
+            await shouldCollectMultiple([smallCollect, bigCollect])
+          })
+
+          it('should allow multiple collections on the same allocation (edge case 2: big then small)', async function () {
+            // Collect `tokensToCollect` with 2 vouchers, one big and then one small
+            const smallCollect = tokensToCollect.div(100)
+            const bigCollect = tokensToCollect.sub(smallCollect)
+            await shouldCollectMultiple([bigCollect, smallCollect])
+          })
+        },
+      )
+    }
 
     it('reject collect if invalid collection', async function () {
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, AddressZero)
@@ -501,86 +548,6 @@ describe('Staking:Allocation', () => {
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, invalidAllocationID)
       await expect(tx).revertedWith('!collect')
-    })
-
-    it('should collect funds from asset holder (restake=true)', async function () {
-      await shouldCollect(tokensToCollect)
-    })
-
-    it('should collect funds from asset holder (restake=false)', async function () {
-      // Set a random rewards destination address
-      await staking.connect(governor.signer).setRewardsDestination(me.address)
-      await shouldCollect(tokensToCollect)
-    })
-
-    it('should collect funds on both active and closed allocations', async function () {
-      // Collect from active allocation
-      await shouldCollect(tokensToCollect)
-
-      // Close allocation
-      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-
-      // Collect from closed allocation
-      await shouldCollect(tokensToCollect)
-    })
-
-    it('should collect funds from asset holder + curation fees', async function () {
-      // Curate the subgraph from where we collect fees to get curation fees distributed
-      const tokensToSignal = toGRT('100')
-      await grt.connect(governor.signer).mint(me.address, tokensToSignal)
-      await grt.connect(me.signer).approve(curation.address, tokensToSignal)
-      await curation.connect(me.signer).mint(subgraphDeploymentID, tokensToSignal, 0)
-
-      // Curation parameters
-      const curationPercentage = toBN('200000') // 20%
-      await staking.connect(governor.signer).setCurationPercentage(curationPercentage)
-
-      // Collect
-      await shouldCollect(tokensToCollect)
-    })
-
-    it('should collect funds from asset holder + curation fees + protocol fee', async function () {
-      // Curate the subgraph from where we collect fees to get curation fees distributed
-      const tokensToSignal = toGRT('100')
-      await grt.connect(governor.signer).mint(me.address, tokensToSignal)
-      await grt.connect(me.signer).approve(curation.address, tokensToSignal)
-      await curation.connect(me.signer).mint(subgraphDeploymentID, tokensToSignal, 0)
-
-      // Set a protocol fee percentage
-      const protocolPercentage = toBN('100000') // 10%
-      await staking.connect(governor.signer).setProtocolPercentage(protocolPercentage)
-
-      // Set a curation fee percentage
-      const curationPercentage = toBN('200000') // 20%
-      await staking.connect(governor.signer).setCurationPercentage(curationPercentage)
-
-      // Collect
-      await shouldCollect(tokensToCollect)
-    })
-
-    it('should collect zero tokens', async function () {
-      await shouldCollect(toGRT('0'))
-    })
-
-    it('should allow multiple collections on the same allocation', async function () {
-      // Collect `tokensToCollect` with 4 different vouchers
-      // This can represent vouchers not necessarily from the same gateway
-      const splitCollect = tokensToCollect.div(4)
-      await shouldCollectMultiple(Array(4).fill(splitCollect))
-    })
-
-    it('should allow multiple collections on the same allocation (edge case 1: small then big)', async function () {
-      // Collect `tokensToCollect` with 2 vouchers, one small and then one big
-      const smallCollect = tokensToCollect.div(100)
-      const bigCollect = tokensToCollect.sub(smallCollect)
-      await shouldCollectMultiple([smallCollect, bigCollect])
-    })
-
-    it('should allow multiple collections on the same allocation (edge case 2: big then small)', async function () {
-      // Collect `tokensToCollect` with 2 vouchers, one big and then one small
-      const smallCollect = tokensToCollect.div(100)
-      const bigCollect = tokensToCollect.sub(smallCollect)
-      await shouldCollectMultiple([bigCollect, smallCollect])
     })
 
     it('should resolve over-rebated scenarios correctly', async function () {
@@ -696,10 +663,6 @@ describe('Staking:Allocation', () => {
         expect(succesiveRebates.queryFeesBurnt).eq(BigNumber.from(0))
       }
     })
-
-    it.skip(`should test multiple rebate parameter configurations`)
-    it.skip(`should test multiple fees configurations`)
-    it.skip(`what about in transition collectedFees`)
   })
 
   /**
