@@ -25,7 +25,7 @@ contract StakingV1Storage is Managed {
     uint32 public protocolPercentage;
 
     // Period for allocation to be finalized
-    uint32 public channelDisputeEpochs;
+    uint32 private __DEPRECATE_channelDisputeEpochs;
 
     // Maximum allocation time
     uint32 public maxAllocationEpochs;
