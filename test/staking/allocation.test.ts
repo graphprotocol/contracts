@@ -127,6 +127,7 @@ describe('Staking:Allocation', () => {
     const beforePool = await curation.pools(subgraphDeploymentID)
     const beforeAlloc = await staking.getAllocation(alloID)
     const beforeIndexerBalance = await grt.balanceOf(indexer.address)
+    const beforeStake = await staking.stakes(indexer.address)
 
     // Advance blocks to get the allocation in epoch where it can be closed
     await advanceToNextEpoch(epochManager)
@@ -187,6 +188,7 @@ describe('Staking:Allocation', () => {
     const afterPool = await curation.pools(subgraphDeploymentID)
     const afterAlloc = await staking.getAllocation(alloID)
     const afterIndexerBalance = await grt.balanceOf(indexer.address)
+    const afterStake = await staking.stakes(indexer.address)
 
     // Check that protocol fees are burnt
     expect(afterTokenSupply).eq(beforeTokenSupply.sub(protocolFees).sub(queryFeesBurnt))
@@ -202,20 +204,23 @@ describe('Staking:Allocation', () => {
     // Check that curation reserves increased for the SubgraphDeployment
     expect(afterPool.tokens).eq(beforePool.tokens.add(curationFees))
 
-    // Verify allocation is updated and allocation is not cleaned
+    // Verify allocation struct
     expect(afterAlloc.tokens).eq(beforeAlloc.tokens)
     expect(afterAlloc.createdAtEpoch).eq(beforeAlloc.createdAtEpoch)
     expect(afterAlloc.closedAtEpoch).eq(beforeAlloc.closedAtEpoch)
-    expect(afterAlloc.collectedFees).eq(beforeAlloc.collectedFees.add(rebateFees))
-    expect(afterAlloc.collectedFees).eq(queryFees.add(beforeAlloc.collectedFees))
+    expect(afterAlloc.accRewardsPerAllocatedToken).eq(beforeAlloc.accRewardsPerAllocatedToken)
+    expect(afterAlloc.collectedFees).eq(beforeAlloc.collectedFees.add(queryFees))
     expect(afterAlloc.distributedRebates).eq(beforeAlloc.distributedRebates.add(queryRebates))
 
-    // // Funds distributed to indexer
+    // // Funds distributed to indexer or restaked
     const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
     if (restake) {
       expect(afterIndexerBalance).eq(beforeIndexerBalance)
+      // Next invariant is only true if there are no delegation rewards (which is true in this case)
+      expect(afterStake.tokensStaked).eq(beforeStake.tokensStaked.add(queryRebates))
     } else {
       expect(afterIndexerBalance).eq(beforeIndexerBalance.add(queryRebates))
+      expect(afterStake.tokensStaked).eq(beforeStake.tokensStaked)
     }
 
     return { queryRebates, queryFeesBurnt }
