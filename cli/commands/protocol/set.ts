@@ -11,10 +11,9 @@ export const settersList = {
   // Staking
   'staking-slasher': { contract: 'Staking', name: 'setSlasher' },
   'staking-thawing-period': { contract: 'Staking', name: 'setThawingPeriod' },
-  'staking-dispute-epochs': { contract: 'Staking', name: 'setChannelDisputeEpochs' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
   'staking-protocol-percentage': { contract: 'Staking', name: 'setProtocolPercentage' },
-  'staking-delegation-ratio': { contract: 'Staking', name: 'setDelegationRatio' },
+  'staking-delegation-parameters': { contract: 'Staking', name: 'setDelegationParameters' },
   'staking-delegation-parameters-cooldown': {
     contract: 'Staking',
     name: 'setDelegationParametersCooldown',

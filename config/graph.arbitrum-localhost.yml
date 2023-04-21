@@ -111,7 +111,6 @@ contracts:
       thawingPeriod: 6646 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 2 # in epochs
       maxAllocationEpochs: 4 # in epochs
       delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
