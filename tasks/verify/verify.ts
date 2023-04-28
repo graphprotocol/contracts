@@ -10,6 +10,7 @@ import { Wallet } from 'ethers'
 import fs from 'fs'
 import path from 'path'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
+import { readConfig } from '../../cli/config'
 
 task('sourcify', 'Verifies contract on sourcify')
   .addPositionalParam('address', 'Address of the smart contract to verify', undefined, types.string)
@@ -48,26 +49,29 @@ task('sourcifyAll', 'Verifies all contracts on sourcify')
 
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
+      try {
+        const contractPath = getContractPath(contractName)
+        if (contractPath) {
+          const contract = addressBook.getEntry(contractName)
+          if (contract.implementation) {
+            console.log('Contract is upgradeable, verifying proxy...')
 
-      const contractPath = getContractPath(contractName)
-      if (contractPath) {
-        const contract = addressBook.getEntry(contractName)
-        if (contract.implementation) {
-          console.log('Contract is upgradeable, verifying proxy...')
+            await hre.run('sourcify', {
+              address: contract.address,
+              contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
+            })
+          }
 
+          // Verify implementation
           await hre.run('sourcify', {
-            address: contract.address,
-            contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
+            address: contract.implementation?.address ?? contract.address,
+            contract: `${contractPath}:${contractName}`,
           })
+        } else {
+          console.log(`Contract ${contractName} not found.`)
         }
-
-        // Verify implementation
-        await hre.run('sourcify', {
-          address: contract.implementation?.address ?? contract.address,
-          contract: `${contractPath}:${contractName}`,
-        })
-      } else {
-        console.log(`Contract ${contractName} not found.`)
+      } catch (err) {
+        console.log(err)
       }
     }
   })
@@ -84,45 +88,49 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, graphConfig } = hre.graph({
+    let { addressBook, graphConfig } = hre.graph({
       addressBook: args.addressBook,
       graphConfig: args.graphConfig,
     })
+    graphConfig = readConfig(args.graphConfig)
 
     const accounts = await hre.ethers.getSigners()
     const env = await loadEnv(args, accounts[0] as unknown as Wallet)
 
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
+      try {
+        const contractConfig = getContractConfig(graphConfig, addressBook, contractName, env)
+        const contractPath = getContractPath(contractName)
+        const constructorParams = contractConfig.params.map((p) => p.value.toString())
 
-      const contractConfig = getContractConfig(graphConfig, addressBook, contractName, env)
-      const contractPath = getContractPath(contractName)
-      const constructorParams = contractConfig.params.map((p) => p.value.toString())
+        if (contractPath) {
+          const contract = addressBook.getEntry(contractName)
 
-      if (contractPath) {
-        const contract = addressBook.getEntry(contractName)
+          if (contract.implementation) {
+            console.log('Contract is upgradeable, verifying proxy...')
+            const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
 
-        if (contract.implementation) {
-          console.log('Contract is upgradeable, verifying proxy...')
-          const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
+            // Verify proxy
+            await safeVerify(hre, {
+              address: contract.address,
+              contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
+              constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
+            })
+          }
 
-          // Verify proxy
+          // Verify implementation
+          console.log('Verifying implementation...')
           await safeVerify(hre, {
-            address: contract.address,
-            contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
-            constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
+            address: contract.implementation?.address ?? contract.address,
+            contract: `${contractPath}:${contractName}`,
+            constructorArgsParams: contract.implementation ? [] : constructorParams,
           })
+        } else {
+          console.log(`Contract ${contractName} not found.`)
         }
-
-        // Verify implementation
-        console.log('Verifying implementation...')
-        await safeVerify(hre, {
-          address: contract.implementation?.address ?? contract.address,
-          contract: `${contractPath}:${contractName}`,
-          constructorArgsParams: contract.implementation ? [] : constructorParams,
-        })
-      } else {
-        console.log(`Contract ${contractName} not found.`)
+      } catch (err) {
+        console.log(err)
       }
     }
   })
