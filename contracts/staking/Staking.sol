@@ -996,12 +996,10 @@ contract Staking is StakingV3Storage, GraphUpgradeable, IStaking, Multicall {
             // change between successive collect calls for the same allocation
 
             // Ensure rebates to distribute are not negative (indexer is over-rebated)
-            queryRebates = newRebates > alloc.distributedRebates
-                ? newRebates.sub(alloc.distributedRebates)
-                : 0;
+            queryRebates = MathUtils.diffOrZero(newRebates, alloc.distributedRebates);
 
             // Ensure rebates to distribute are not greater than available (indexer is under-rebated)
-            queryRebates = queryFees > queryRebates ? queryRebates : queryFees;
+            queryRebates = MathUtils.min(queryRebates, queryFees);
 
             // -- Burn rebates remanent --
             TokenUtils.burnTokens(graphToken, queryFees.sub(queryRebates));
