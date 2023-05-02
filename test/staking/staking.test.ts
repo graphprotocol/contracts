@@ -115,8 +115,8 @@ describe('Staking:Stakes', () => {
       })
 
       it('reject stake less than minimum indexer stake', async function () {
-        expect(toGRT('1')).lte(await staking.minimumIndexerStake())
-        const tx = staking.connect(indexer.signer).stake(toGRT('1'))
+        const amount = (await staking.minimumIndexerStake()).sub(toGRT('1'))
+        const tx = staking.connect(indexer.signer).stake(amount)
         await expect(tx).revertedWith('!minimumIndexerStake')
       })
 

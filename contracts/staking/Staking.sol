@@ -703,14 +703,14 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
      * @param _tokens Amount of tokens to stake
      */
     function _stake(address _indexer, uint256 _tokens) internal {
-        // Deposit tokens into the indexer stake
-        __stakes[_indexer].deposit(_tokens);
-
         // Ensure minimum stake
         require(
             __stakes[_indexer].tokensSecureStake().add(_tokens) >= __minimumIndexerStake,
             "!minimumIndexerStake"
         );
+
+        // Deposit tokens into the indexer stake
+        __stakes[_indexer].deposit(_tokens);
 
         // Initialize the delegation pool the first time
         if (__delegationPools[_indexer].updatedAtBlock == 0) {
