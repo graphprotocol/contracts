@@ -9,7 +9,7 @@ import { IL1StakingBase } from "./IL1StakingBase.sol";
 /**
  * @title Interface for the L1 Staking contract
  * @notice This is the interface that should be used when interacting with the L1 Staking contract.
- * It extends the IStaking interface with the functions that are specific to L1, adding the migration helpers
+ * It extends the IStaking interface with the functions that are specific to L1, adding the transfer tools
  * to send stake and delegation to L2.
  * @dev Note that L1Staking doesn't actually inherit this interface. This is because of
  * the custom setup of the Staking contract where part of the functionality is implemented

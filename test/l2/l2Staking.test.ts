@@ -175,7 +175,7 @@ describe('L2Staking', () => {
       expect(delegationPool.indexingRewardCut).eq(toBN(1000000)) // 1 in PPM
       expect(delegationPool.queryFeeCut).eq(toBN(1000000)) // 1 in PPM
     })
-    it('adds stake to an existing indexer that was already migrated', async function () {
+    it('adds stake to an existing indexer that was already transferred', async function () {
       const functionData = defaultAbiCoder.encode(['tuple(address)'], [[me.address]])
 
       const callhookData = defaultAbiCoder.encode(
@@ -329,7 +329,7 @@ describe('L2Staking', () => {
         .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toBN(1))
       const delegation = await staking.getDelegation(me.address, other.address)
       await expect(tx)
-        .emit(staking, 'MigratedDelegationReturnedToDelegator')
+        .emit(staking, 'TransferredDelegationReturnedToDelegator')
         .withArgs(me.address, other.address, toBN(1))
 
       expect(delegation.shares).to.equal(0)

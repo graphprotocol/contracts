@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { IL1GraphTokenLockMigrator } from "./IL1GraphTokenLockMigrator.sol";
+import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
 
 /**
  * @title L1StakingV1Storage
@@ -12,10 +12,10 @@ import { IL1GraphTokenLockMigrator } from "./IL1GraphTokenLockMigrator.sol";
  * reduce the size of the gap accordingly.
  */
 abstract contract L1StakingV1Storage {
-    /// If an indexer has migrated to L2, this mapping will hold the indexer's address in L2
-    mapping(address => address) public indexerMigratedToL2;
+    /// If an indexer has transferred to L2, this mapping will hold the indexer's address in L2
+    mapping(address => address) public indexerTransferredToL2;
     /// @dev For locked indexers/delegations, this contract holds the mapping of L1 to L2 addresses
-    IL1GraphTokenLockMigrator internal l1GraphTokenLockMigrator;
+    IL1GraphTokenLockTransferTool internal l1GraphTokenLockTransferTool;
     /// @dev Storage gap to keep storage slots fixed in future versions
     uint256[50] private __gap;
 }

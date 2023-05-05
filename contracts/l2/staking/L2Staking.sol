@@ -127,7 +127,7 @@ contract L2Staking is Staking, IL2StakingBase {
         if (shares == 0) {
             // If no shares would be issued (probably a rounding issue or attack), return the tokens to the delegator
             graphToken().transfer(_delegationData.delegator, _amount);
-            emit MigratedDelegationReturnedToDelegator(
+            emit TransferredDelegationReturnedToDelegator(
                 _delegationData.indexer,
                 _delegationData.delegator,
                 _amount

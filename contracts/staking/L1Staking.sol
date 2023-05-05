@@ -14,7 +14,7 @@ import { L1StakingV1Storage } from "./L1StakingStorage.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { IL1StakingBase } from "./IL1StakingBase.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
-import { IL1GraphTokenLockMigrator } from "./IL1GraphTokenLockMigrator.sol";
+import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
 
 /**
  * @title L1Staking contract
@@ -27,45 +27,46 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
 
     /**
      * @notice Receive ETH into the Staking contract
-     * @dev Only the L1GraphTokenLockMigrator can send ETH, as part of the
-     * migration of stake/delegation for vesting lock wallets.
+     * @dev Only the L1GraphTokenLockTransferTool can send ETH, as part of the
+     * transfer of stake/delegation for vesting lock wallets.
      */
     receive() external payable {
-        require(msg.sender == address(l1GraphTokenLockMigrator), "Only migrator can send ETH");
+        require(
+            msg.sender == address(l1GraphTokenLockTransferTool),
+            "Only transfer tool can send ETH"
+        );
     }
 
     /**
-     * @notice Set the L1GraphTokenLockMigrator contract address
+     * @notice Set the L1GraphTokenLockTransferTool contract address
      * @dev This function can only be called by the governor.
-     * @param _l1GraphTokenLockMigrator Address of the L1GraphTokenLockMigrator contract
+     * @param _l1GraphTokenLockTransferTool Address of the L1GraphTokenLockTransferTool contract
      */
-    function setL1GraphTokenLockMigrator(IL1GraphTokenLockMigrator _l1GraphTokenLockMigrator)
-        external
-        override
-        onlyGovernor
-    {
-        l1GraphTokenLockMigrator = _l1GraphTokenLockMigrator;
-        emit L1GraphTokenLockMigratorSet(address(_l1GraphTokenLockMigrator));
+    function setL1GraphTokenLockTransferTool(
+        IL1GraphTokenLockTransferTool _l1GraphTokenLockTransferTool
+    ) external override onlyGovernor {
+        l1GraphTokenLockTransferTool = _l1GraphTokenLockTransferTool;
+        emit L1GraphTokenLockTransferToolSet(address(_l1GraphTokenLockTransferTool));
     }
 
     /**
      * @notice Send an indexer's stake to L2.
      * @dev This function can only be called by the indexer (not an operator).
      * It will validate that the remaining stake is sufficient to cover all the allocated
-     * stake, so the indexer might have to close some allocations before migrating.
+     * stake, so the indexer might have to close some allocations before transferring.
      * It will also check that the indexer's stake is not locked for withdrawal.
      * Since the indexer address might be an L1-only contract, the function takes a beneficiary
      * address that will be the indexer's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
      * must be at _exactly_ `_maxSubmissionCost + _gasPriceBid * _maxGas`.
      * Any refunds for the submission fee or L2 gas will be lost.
-     * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously migrated stake, this must match the previously-used value.
-     * @param _amount Amount of stake GRT to migrate to L2
+     * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously transferred stake, this must match the previously-used value.
+     * @param _amount Amount of stake GRT to transfer to L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
-    function migrateStakeToL2(
+    function transferStakeToL2(
         address _l2Beneficiary,
         uint256 _amount,
         uint256 _maxGas,
@@ -76,7 +77,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
             "INVALID_ETH_AMOUNT"
         );
-        _migrateStakeToL2(
+        _transferStakeToL2(
             msg.sender,
             _l2Beneficiary,
             _amount,
@@ -91,33 +92,33 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * @notice Send an indexer's stake to L2, from a GraphTokenLockWallet vesting contract.
      * @dev This function can only be called by the indexer (not an operator).
      * It will validate that the remaining stake is sufficient to cover all the allocated
-     * stake, so the indexer might have to close some allocations before migrating.
+     * stake, so the indexer might have to close some allocations before transferring.
      * It will also check that the indexer's stake is not locked for withdrawal.
-     * The L2 beneficiary for the stake will be determined by calling the L1GraphTokenLockMigrator contract,
-     * so the caller must have previously migrated tokens through that first
-     * (see GIP-0046 for details: https://forum.thegraph.com/t/gip-0046-l2-migration-helpers/4023).
-     * The ETH for the L2 gas will be pulled from the L1GraphTokenLockMigrator, so the owner of
+     * The L2 beneficiary for the stake will be determined by calling the L1GraphTokenLockTransferTool contract,
+     * so the caller must have previously transferred tokens through that first
+     * (see GIP-0046 for details: https://forum.thegraph.com/t/4023).
+     * The ETH for the L2 gas will be pulled from the L1GraphTokenLockTransferTool, so the owner of
      * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
-     * ETH into the L1GraphTokenLockMigrator contract (using its depositETH function).
+     * ETH into the L1GraphTokenLockTransferTool contract (using its depositETH function).
      * Any refunds for the submission fee or L2 gas will be lost.
-     * @param _amount Amount of stake GRT to migrate to L2
+     * @param _amount Amount of stake GRT to transfer to L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
-    function migrateLockedStakeToL2(
+    function transferLockedStakeToL2(
         uint256 _amount,
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external override notPartialPaused {
-        address l2Beneficiary = l1GraphTokenLockMigrator.migratedWalletAddress(msg.sender);
-        require(l2Beneficiary != address(0), "LOCK NOT MIGRATED");
+        address l2Beneficiary = l1GraphTokenLockTransferTool.l2WalletAddress(msg.sender);
+        require(l2Beneficiary != address(0), "LOCK NOT TRANSFERRED");
         uint256 balance = address(this).balance;
         uint256 ethAmount = _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid));
-        l1GraphTokenLockMigrator.pullETH(msg.sender, ethAmount);
+        l1GraphTokenLockTransferTool.pullETH(msg.sender, ethAmount);
         require(address(this).balance == balance.add(ethAmount), "ETH TRANSFER FAILED");
-        _migrateStakeToL2(
+        _transferStakeToL2(
             msg.sender,
             l2Beneficiary,
             _amount,
@@ -131,20 +132,20 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
     /**
      * @notice Send a delegator's delegated tokens to L2
      * @dev This function can only be called by the delegator.
-     * This function will validate that the indexer has migrated their stake using migrateStakeToL2,
+     * This function will validate that the indexer has transferred their stake using transferStakeToL2,
      * and that the delegation is not locked for undelegation.
      * Since the delegator's address might be an L1-only contract, the function takes a beneficiary
      * address that will be the delegator's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
      * must be _exactly_ `_maxSubmissionCost + _gasPriceBid * _maxGas`.
      * Any refunds for the submission fee or L2 gas will be lost.
-     * @param _indexer Address of the indexer (in L1, before migrating)
+     * @param _indexer Address of the indexer (in L1, before transferring to L2)
      * @param _l2Beneficiary Address of the delegator in L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
-    function migrateDelegationToL2(
+    function transferDelegationToL2(
         address _indexer,
         address _l2Beneficiary,
         uint256 _maxGas,
@@ -155,7 +156,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
             "INVALID_ETH_AMOUNT"
         );
-        _migrateDelegationToL2(
+        _transferDelegationToL2(
             msg.sender,
             _indexer,
             _l2Beneficiary,
@@ -169,33 +170,33 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
     /**
      * @notice Send a delegator's delegated tokens to L2, for a GraphTokenLockWallet vesting contract
      * @dev This function can only be called by the delegator.
-     * This function will validate that the indexer has migrated their stake using migrateStakeToL2,
+     * This function will validate that the indexer has transferred their stake using transferStakeToL2,
      * and that the delegation is not locked for undelegation.
-     * The L2 beneficiary for the delegation will be determined by calling the L1GraphTokenLockMigrator contract,
-     * so the caller must have previously migrated tokens through that first
-     * (see GIP-0046 for details: https://forum.thegraph.com/t/gip-0046-l2-migration-helpers/4023).
-     * The ETH for the L2 gas will be pulled from the L1GraphTokenLockMigrator, so the owner of
+     * The L2 beneficiary for the delegation will be determined by calling the L1GraphTokenLockTransferTool contract,
+     * so the caller must have previously transferred tokens through that first
+     * (see GIP-0046 for details: https://forum.thegraph.com/t/4023).
+     * The ETH for the L2 gas will be pulled from the L1GraphTokenLockTransferTool, so the owner of
      * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
-     * ETH into the L1GraphTokenLockMigrator contract (using its depositETH function).
+     * ETH into the L1GraphTokenLockTransferTool contract (using its depositETH function).
      * Any refunds for the submission fee or L2 gas will be lost.
-     * @param _indexer Address of the indexer (in L1, before migrating)
+     * @param _indexer Address of the indexer (in L1, before transferring to L2)
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
-    function migrateLockedDelegationToL2(
+    function transferLockedDelegationToL2(
         address _indexer,
         uint256 _maxGas,
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external override notPartialPaused {
-        address l2Beneficiary = l1GraphTokenLockMigrator.migratedWalletAddress(msg.sender);
-        require(l2Beneficiary != address(0), "LOCK NOT MIGRATED");
+        address l2Beneficiary = l1GraphTokenLockTransferTool.l2WalletAddress(msg.sender);
+        require(l2Beneficiary != address(0), "LOCK NOT TRANSFERRED");
         uint256 balance = address(this).balance;
         uint256 ethAmount = _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid));
-        l1GraphTokenLockMigrator.pullETH(msg.sender, ethAmount);
+        l1GraphTokenLockTransferTool.pullETH(msg.sender, ethAmount);
         require(address(this).balance == balance.add(ethAmount), "ETH TRANSFER FAILED");
-        _migrateDelegationToL2(
+        _transferDelegationToL2(
             msg.sender,
             _indexer,
             l2Beneficiary,
@@ -207,22 +208,22 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
     }
 
     /**
-     * @notice Unlock a delegator's delegated tokens, if the indexer has migrated
+     * @notice Unlock a delegator's delegated tokens, if the indexer has transferred to L2
      * @dev This function can only be called by the delegator.
-     * This function will validate that the indexer has migrated their stake using migrateStakeToL2,
+     * This function will validate that the indexer has transferred their stake using transferStakeToL2,
      * and that the indexer has no remaining stake in L1.
      * The tokens must previously be locked for undelegation by calling `undelegate()`,
      * and can be withdrawn with `withdrawDelegated()` immediately after calling this.
-     * @param _indexer Address of the indexer (in L1, before migrating)
+     * @param _indexer Address of the indexer (in L1, before transferring to L2)
      */
-    function unlockDelegationToMigratedIndexer(address _indexer)
+    function unlockDelegationToTransferredIndexer(address _indexer)
         external
         override
         notPartialPaused
     {
         require(
-            indexerMigratedToL2[_indexer] != address(0) && __stakes[_indexer].tokensStaked == 0,
-            "indexer not migrated"
+            indexerTransferredToL2[_indexer] != address(0) && __stakes[_indexer].tokensStaked == 0,
+            "indexer not transferred"
         );
 
         Delegation storage delegation = __delegationPools[_indexer].delegators[msg.sender];
@@ -232,25 +233,25 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         delegation.tokensLockedUntil = epochManager().currentEpoch();
 
         // After this, the delegator should be able to withdraw in the current block
-        emit StakeDelegatedUnlockedDueToMigration(_indexer, msg.sender);
+        emit StakeDelegatedUnlockedDueToL2Transfer(_indexer, msg.sender);
     }
 
     /**
      * @dev Implements sending an indexer's stake to L2.
      * This function can only be called by the indexer (not an operator).
      * It will validate that the remaining stake is sufficient to cover all the allocated
-     * stake, so the indexer might have to close some allocations before migrating.
+     * stake, so the indexer might have to close some allocations before transferring.
      * It will also check that the indexer's stake is not locked for withdrawal.
      * Since the indexer address might be an L1-only contract, the function takes a beneficiary
      * address that will be the indexer's address in L2.
-     * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously migrated stake, this must match the previously-used value.
-     * @param _amount Amount of stake GRT to migrate to L2
+     * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously transferred stake, this must match the previously-used value.
+     * @param _amount Amount of stake GRT to transfer to L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      * @param _ethAmount Amount of ETH to send with the retryable ticket
      */
-    function _migrateStakeToL2(
+    function _transferStakeToL2(
         address _indexer,
         address _l2Beneficiary,
         uint256 _amount,
@@ -261,16 +262,19 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
     ) internal {
         Stakes.Indexer storage indexerStake = __stakes[_indexer];
         require(indexerStake.tokensStaked != 0, "tokensStaked == 0");
-        // Indexers shouldn't be trying to withdraw tokens before migrating to L2.
+        // Indexers shouldn't be trying to withdraw tokens before transferring to L2.
         // Allowing this would complicate our accounting so we require that they have no
         // tokens locked for withdrawal.
         require(indexerStake.tokensLocked == 0, "tokensLocked != 0");
 
         require(_l2Beneficiary != address(0), "l2Beneficiary == 0");
-        if (indexerMigratedToL2[_indexer] != address(0)) {
-            require(indexerMigratedToL2[_indexer] == _l2Beneficiary, "l2Beneficiary != previous");
+        if (indexerTransferredToL2[_indexer] != address(0)) {
+            require(
+                indexerTransferredToL2[_indexer] == _l2Beneficiary,
+                "l2Beneficiary != previous"
+            );
         } else {
-            indexerMigratedToL2[_indexer] = _l2Beneficiary;
+            indexerTransferredToL2[_indexer] = _l2Beneficiary;
             require(_amount >= __minimumIndexerStake, "!minimumIndexerStake sent");
         }
         // Ensure minimum stake
@@ -315,24 +319,24 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             extraData
         );
 
-        emit IndexerMigratedToL2(_indexer, _l2Beneficiary, _amount);
+        emit IndexerStakeTransferredToL2(_indexer, _l2Beneficiary, _amount);
     }
 
     /**
      * @dev Implements sending a delegator's delegated tokens to L2.
      * This function can only be called by the delegator.
-     * This function will validate that the indexer has migrated their stake using migrateStakeToL2,
+     * This function will validate that the indexer has transferred their stake using transferStakeToL2,
      * and that the delegation is not locked for undelegation.
      * Since the delegator's address might be an L1-only contract, the function takes a beneficiary
      * address that will be the delegator's address in L2.
-     * @param _indexer Address of the indexer (in L1, before migrating)
+     * @param _indexer Address of the indexer (in L1, before transferring to L2)
      * @param _l2Beneficiary Address of the delegator in L2
      * @param _maxGas Max gas to use for the L2 retryable ticket
      * @param _gasPriceBid Gas price bid for the L2 retryable ticket
      * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
      * @param _ethAmount Amount of ETH to send with the retryable ticket
      */
-    function _migrateDelegationToL2(
+    function _transferDelegationToL2(
         address _delegator,
         address _indexer,
         address _l2Beneficiary,
@@ -342,7 +346,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _ethAmount
     ) internal {
         require(_l2Beneficiary != address(0), "l2Beneficiary == 0");
-        require(indexerMigratedToL2[_indexer] != address(0), "indexer not migrated");
+        require(indexerTransferredToL2[_indexer] != address(0), "indexer not transferred");
 
         // Get the delegation pool of the indexer
         DelegationPool storage pool = __delegationPools[_indexer];
@@ -363,7 +367,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         bytes memory extraData;
         {
             IL2Staking.ReceiveDelegationData memory functionData;
-            functionData.indexer = indexerMigratedToL2[_indexer];
+            functionData.indexer = indexerTransferredToL2[_indexer];
             functionData.delegator = _l2Beneficiary;
             extraData = abi.encode(
                 uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE),
@@ -379,11 +383,11 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             _ethAmount,
             extraData
         );
-        emit DelegationMigratedToL2(
+        emit DelegationTransferredToL2(
             _delegator,
             _l2Beneficiary,
             _indexer,
-            indexerMigratedToL2[_indexer],
+            indexerTransferredToL2[_indexer],
             tokensToSend
         );
     }
