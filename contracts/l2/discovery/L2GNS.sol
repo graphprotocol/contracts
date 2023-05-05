@@ -21,7 +21,7 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
  * This particular contract is meant to be deployed in L2, and includes helper functions to
- * receive subgraphs that are migrated from L1.
+ * receive subgraphs that are transferred from L1.
  */
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
@@ -36,8 +36,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         address indexed _owner,
         uint256 _tokens
     );
-    /// @dev Emitted when a subgraph migration from L1 is finalized, so the subgraph is published
-    event SubgraphMigrationFinalized(uint256 indexed _l2SubgraphID);
+    /// @dev Emitted when a subgraph transfer from L1 is finalized, so the subgraph is published on L2
+    event SubgraphL2TransferFinalized(uint256 indexed _l2SubgraphID);
     /// @dev Emitted when the L1 balance for a curator has been claimed
     event CuratorBalanceReceived(
         uint256 indexed _l1SubgraphId,
@@ -46,7 +46,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _tokens
     );
     /// @dev Emitted when the L1 balance for a curator has been returned to the beneficiary.
-    /// This can happen if the subgraph migration was not finished when the curator's tokens arrived.
+    /// This can happen if the subgraph transfer was not finished when the curator's tokens arrived.
     event CuratorBalanceReturnedToBeneficiary(
         uint256 indexed _l1SubgraphID,
         address indexed _l2Curator,
@@ -70,7 +70,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * If the code is RECEIVE_SUBGRAPH_CODE, the beneficiary is the address of the
      * owner of the subgraph on L2.
      * If the code is RECEIVE_CURATOR_BALANCE_CODE, then the beneficiary is the
-     * address of the curator in L2. In this case, If the subgraph migration was never finished
+     * address of the curator in L2. In this case, If the subgraph transfer was never finished
      * (or the subgraph doesn't exist), the tokens will be sent to the curator.
      * @dev This function is called by the L2GraphTokenGateway contract.
      * @param _from Token sender in L1 (must be the L1GNS)
@@ -98,7 +98,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @notice Finish a subgraph migration from L1.
+     * @notice Finish a subgraph transfer from L1.
      * The subgraph must have been previously sent through the bridge
      * using the sendSubgraphToL2 function on L1GNS.
      * @param _l2SubgraphID Subgraph ID (aliased from the L1 subgraph ID)
@@ -106,19 +106,17 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphMetadata IPFS hash of the subgraph metadata
      * @param _versionMetadata IPFS hash of the version metadata
      */
-    function finishSubgraphMigrationFromL1(
+    function finishSubgraphTransferFromL1(
         uint256 _l2SubgraphID,
         bytes32 _subgraphDeploymentID,
         bytes32 _subgraphMetadata,
         bytes32 _versionMetadata
     ) external override notPartialPaused onlySubgraphAuth(_l2SubgraphID) {
-        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[
-            _l2SubgraphID
-        ];
+        IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[_l2SubgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(_l2SubgraphID);
-        require(migratedData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
-        require(!migratedData.l2Done, "ALREADY_DONE");
-        migratedData.l2Done = true;
+        require(transferData.subgraphReceivedOnL2BlockNumber != 0, "INVALID_SUBGRAPH");
+        require(!transferData.l2Done, "ALREADY_DONE");
+        transferData.l2Done = true;
 
         // New subgraph deployment must be non-empty
         require(_subgraphDeploymentID != 0, "GNS: deploymentID != 0");
@@ -126,7 +124,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IL2Curation curation = IL2Curation(address(curation()));
         // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
         // Buy all signal from the new deployment
-        uint256 vSignal = curation.mintTaxFree(_subgraphDeploymentID, migratedData.tokens);
+        uint256 vSignal = curation.mintTaxFree(_subgraphDeploymentID, transferData.tokens);
         uint256 nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
 
         subgraphData.disabled = false;
@@ -141,11 +139,11 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         emit SubgraphUpgraded(
             _l2SubgraphID,
             subgraphData.vSignal,
-            migratedData.tokens,
+            transferData.tokens,
             _subgraphDeploymentID
         );
         emit SubgraphVersionUpdated(_l2SubgraphID, _subgraphDeploymentID, _versionMetadata);
-        emit SubgraphMigrationFinalized(_l2SubgraphID);
+        emit SubgraphL2TransferFinalized(_l2SubgraphID);
     }
 
     /**
@@ -220,7 +218,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @notice Return the aliased L2 subgraph ID from a migrated L1 subgraph ID
+     * @notice Return the aliased L2 subgraph ID from a transferred L1 subgraph ID
      * @param _l1SubgraphID L1 subgraph ID
      * @return L2 subgraph ID
      */
@@ -231,7 +229,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     /**
      * @dev Receive a subgraph from L1.
      * This function will initialize a subgraph received through the bridge,
-     * and store the migration data so that it's finalized later using finishSubgraphMigrationFromL1.
+     * and store the transfer data so that it's finalized later using finishSubgraphTransferFromL1.
      * @param _l1SubgraphID Subgraph ID in L1 (will be aliased)
      * @param _subgraphOwner Owner of the subgraph
      * @param _tokens Tokens to be deposited in the subgraph
@@ -243,19 +241,19 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     ) internal {
         uint256 l2SubgraphID = getAliasedL2SubgraphID(_l1SubgraphID);
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
-        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[l2SubgraphID];
+        IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
 
         subgraphData.reserveRatioDeprecated = fixedReserveRatio;
-        // The subgraph will be disabled until finishSubgraphMigrationFromL1 is called
+        // The subgraph will be disabled until finishSubgraphTransferFromL1 is called
         subgraphData.disabled = true;
 
-        migratedData.tokens = _tokens;
-        migratedData.subgraphReceivedOnL2BlockNumber = block.number;
+        transferData.tokens = _tokens;
+        transferData.subgraphReceivedOnL2BlockNumber = block.number;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
         // Note we do this here so that we can later do the onlySubgraphAuth
-        // check in finishSubgraphMigrationFromL1.
+        // check in finishSubgraphTransferFromL1.
         _mintNFT(_subgraphOwner, l2SubgraphID);
 
         emit SubgraphReceivedFromL1(_l1SubgraphID, l2SubgraphID, _subgraphOwner, _tokens);
@@ -263,7 +261,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
     /**
      * @notice Deposit GRT into a subgraph and mint signal, using tokens received from L1.
-     * If the subgraph migration was never finished (or the subgraph doesn't exist), the tokens will be sent to the curator.
+     * If the subgraph transfer was never finished (or the subgraph doesn't exist), the tokens will be sent to the curator.
      * @dev This looks a lot like GNS.mintSignal, but doesn't pull the tokens from the
      * curator and has no slippage protection.
      * @param _l1SubgraphID Subgraph ID in L1 (will be aliased)
@@ -276,11 +274,11 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _tokensIn
     ) internal {
         uint256 l2SubgraphID = getAliasedL2SubgraphID(_l1SubgraphID);
-        IL2GNS.SubgraphL2MigrationData storage migratedData = subgraphL2MigrationData[l2SubgraphID];
+        IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
 
-        // If subgraph migration wasn't finished, we should send the tokens to the curator
-        if (!migratedData.l2Done || subgraphData.disabled) {
+        // If subgraph transfer wasn't finished, we should send the tokens to the curator
+        if (!transferData.l2Done || subgraphData.disabled) {
             graphToken().transfer(_curator, _tokensIn);
             emit CuratorBalanceReturnedToBeneficiary(_l1SubgraphID, _curator, _tokensIn);
         } else {

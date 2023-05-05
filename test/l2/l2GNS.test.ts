@@ -88,7 +88,7 @@ describe('L2GNS', () => {
       versionMetadata: randomHexBytes(),
     }
   }
-  const migrateMockSubgraphFromL1 = async function (
+  const transferMockSubgraphFromL1 = async function (
     l1SubgraphId: string,
     curatedTokens: BigNumber,
     subgraphMetadata: string,
@@ -103,7 +103,7 @@ describe('L2GNS', () => {
     const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
     await gns
       .connect(me.signer)
-      .finishSubgraphMigrationFromL1(
+      .finishSubgraphTransferFromL1(
         l2SubgraphId,
         newSubgraph0.subgraphDeploymentID,
         subgraphMetadata,
@@ -281,12 +281,12 @@ describe('L2GNS', () => {
         .emit(gns, 'SubgraphReceivedFromL1')
         .withArgs(l1SubgraphId, l2SubgraphId, me.address, curatedTokens)
 
-      const migrationData = await gns.subgraphL2MigrationData(l2SubgraphId)
+      const transferData = await gns.subgraphL2TransferData(l2SubgraphId)
       const subgraphData = await gns.subgraphs(l2SubgraphId)
 
-      expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l2Done).eq(false)
-      expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
+      expect(transferData.tokens).eq(curatedTokens)
+      expect(transferData.l2Done).eq(false)
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -321,12 +321,12 @@ describe('L2GNS', () => {
         .emit(gns, 'SubgraphReceivedFromL1')
         .withArgs(l1SubgraphId, l2SubgraphId, me.address, curatedTokens)
 
-      const migrationData = await gns.subgraphL2MigrationData(l2SubgraphId)
+      const transferData = await gns.subgraphL2TransferData(l2SubgraphId)
       const subgraphData = await gns.subgraphs(l2SubgraphId)
 
-      expect(migrationData.tokens).eq(curatedTokens)
-      expect(migrationData.l2Done).eq(false)
-      expect(migrationData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
+      expect(transferData.tokens).eq(curatedTokens)
+      expect(transferData.l2Done).eq(false)
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -348,8 +348,8 @@ describe('L2GNS', () => {
     })
   })
 
-  describe('finishing a subgraph migration from L1', function () {
-    it('publishes the migrated subgraph and mints signal with no tax', async function () {
+  describe('finishing a subgraph transfer from L1', function () {
+    it('publishes the transferred subgraph and mints signal with no tax', async function () {
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
@@ -365,7 +365,7 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           subgraphMetadata,
@@ -381,12 +381,12 @@ describe('L2GNS', () => {
       await expect(tx)
         .emit(gns, 'SubgraphVersionUpdated')
         .withArgs(l2SubgraphId, newSubgraph0.subgraphDeploymentID, versionMetadata)
-      await expect(tx).emit(gns, 'SubgraphMigrationFinalized').withArgs(l2SubgraphId)
+      await expect(tx).emit(gns, 'SubgraphL2TransferFinalized').withArgs(l2SubgraphId)
 
       const subgraphAfter = await gns.subgraphs(l2SubgraphId)
-      const migrationDataAfter = await gns.subgraphL2MigrationData(l2SubgraphId)
+      const transferDataAfter = await gns.subgraphL2TransferData(l2SubgraphId)
       expect(subgraphAfter.vSignal).eq(expectedSignal)
-      expect(migrationDataAfter.l2Done).eq(true)
+      expect(transferDataAfter.l2Done).eq(true)
       expect(subgraphAfter.disabled).eq(false)
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
       const expectedNSignal = await gns.vSignalToNSignal(l2SubgraphId, expectedSignal)
@@ -403,7 +403,7 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(other.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           subgraphMetadata,
@@ -417,7 +417,7 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           metadata,
@@ -425,13 +425,13 @@ describe('L2GNS', () => {
         )
       await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
     })
-    it('rejects calls for a subgraph that was not migrated', async function () {
+    it('rejects calls for a subgraph that was not transferred from L1', async function () {
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
       const metadata = randomHexBytes()
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2Subgraph.id,
           newSubgraph0.subgraphDeploymentID,
           metadata,
@@ -464,7 +464,7 @@ describe('L2GNS', () => {
       )
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           subgraphMetadata,
@@ -480,12 +480,12 @@ describe('L2GNS', () => {
       await expect(tx)
         .emit(gns, 'SubgraphVersionUpdated')
         .withArgs(l2SubgraphId, newSubgraph0.subgraphDeploymentID, versionMetadata)
-      await expect(tx).emit(gns, 'SubgraphMigrationFinalized').withArgs(l2SubgraphId)
+      await expect(tx).emit(gns, 'SubgraphL2TransferFinalized').withArgs(l2SubgraphId)
 
       const subgraphAfter = await gns.subgraphs(l2SubgraphId)
-      const migrationDataAfter = await gns.subgraphL2MigrationData(l2SubgraphId)
+      const transferDataAfter = await gns.subgraphL2TransferData(l2SubgraphId)
       expect(subgraphAfter.vSignal).eq(expectedSignal)
-      expect(migrationDataAfter.l2Done).eq(true)
+      expect(transferDataAfter.l2Done).eq(true)
       expect(subgraphAfter.disabled).eq(false)
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
       expect(await curation.getCurationPoolTokens(newSubgraph0.subgraphDeploymentID)).eq(
@@ -503,10 +503,10 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(l2SubgraphId, HashZero, metadata, metadata)
+        .finishSubgraphTransferFromL1(l2SubgraphId, HashZero, metadata, metadata)
       await expect(tx).revertedWith('GNS: deploymentID != 0')
     })
-    it('rejects calls if the subgraph migration was already finished', async function () {
+    it('rejects calls if the subgraph transfer was already finished', async function () {
       const metadata = randomHexBytes()
       const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
@@ -517,7 +517,7 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       await gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           metadata,
@@ -526,7 +526,7 @@ describe('L2GNS', () => {
 
       const tx = gns
         .connect(me.signer)
-        .finishSubgraphMigrationFromL1(
+        .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
           metadata,
@@ -543,7 +543,7 @@ describe('L2GNS', () => {
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
+      await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
@@ -584,7 +584,7 @@ describe('L2GNS', () => {
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
+      await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
@@ -623,7 +623,7 @@ describe('L2GNS', () => {
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
+      await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
@@ -639,7 +639,7 @@ describe('L2GNS', () => {
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
+      await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
@@ -703,7 +703,7 @@ describe('L2GNS', () => {
       // so the GNS balance should be the same
       expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
-    it('if a subgraph migration was not finished, it returns the tokens to the beneficiary', async function () {
+    it('if a subgraph transfer was not finished, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
@@ -715,7 +715,7 @@ describe('L2GNS', () => {
       )
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookDataSG)
 
-      // At this point the SG exists, but migration is not finished
+      // At this point the SG exists, but transfer is not finished
 
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
@@ -735,14 +735,14 @@ describe('L2GNS', () => {
       expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
 
-    it('if a subgraph was deprecated after migration, it returns the tokens to the beneficiary', async function () {
+    it('if a subgraph was deprecated after transfer, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
       await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
-      await migrateMockSubgraphFromL1(
+      await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
         subgraphMetadata,
@@ -751,7 +751,7 @@ describe('L2GNS', () => {
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       await gns.connect(me.signer).deprecateSubgraph(l2SubgraphId)
 
-      // SG was migrated, but is deprecated now!
+      // SG was transferred, but is deprecated now!
 
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],

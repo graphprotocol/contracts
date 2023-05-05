@@ -284,7 +284,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @notice Decodes calldata required for migration of tokens
+     * @notice Decodes calldata required for transfer of tokens to L1
      * @dev extraData can be left empty
      * @param _data Encoded callhook data
      * @return Sender of the tx

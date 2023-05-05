@@ -227,7 +227,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     /**
      * @notice Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @dev This function charges no tax and can only be called by GNS in specific scenarios (for now
-     * only during an L1-L2 migration).
+     * only during an L1-L2 transfer).
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokensIn Amount of Graph Tokens to deposit
      * @return Signal minted
