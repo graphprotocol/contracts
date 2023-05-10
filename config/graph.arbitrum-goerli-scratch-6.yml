@@ -62,7 +62,7 @@ contracts:
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
-  Curation:
+  L2Curation:
     proxy: true
     init:
       controller: "${{Controller.address}}"
@@ -84,7 +84,7 @@ contracts:
       qrySlashingPercentage: 25000 # in parts per million
     calls:
       - fn: "syncAllContracts"
-  GNS:
+  L2GNS:
     proxy: true
     init:
       controller: "${{Controller.address}}"
@@ -103,7 +103,7 @@ contracts:
         minter: "${{GNS.address}}"
       - fn: "transferOwnership"
         owner: *governor
-  Staking:
+  L2Staking:
     proxy: true
     init:
       controller: "${{Controller.address}}"

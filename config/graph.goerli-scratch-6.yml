@@ -85,7 +85,7 @@ contracts:
       qrySlashingPercentage: 25000 # in parts per million
     calls:
       - fn: "syncAllContracts"
-  GNS:
+  L1GNS:
     proxy: true
     init:
       controller: "${{Controller.address}}"
@@ -104,7 +104,7 @@ contracts:
         minter: "${{GNS.address}}"
       - fn: "transferOwnership"
         owner: *governor
-  Staking:
+  L1Staking:
     proxy: true
     init:
       controller: "${{Controller.address}}"
