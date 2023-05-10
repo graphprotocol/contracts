@@ -9,7 +9,7 @@ import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import {
   advanceBlocks,
@@ -45,7 +45,7 @@ describe('Rewards', () => {
   let grt: GraphToken
   let curation: Curation
   let epochManager: EpochManager
-  let staking: Staking
+  let staking: IStaking
   let rewardsManager: RewardsManager
 
   // Derive some channel keys for each indexer used to sign attestations
