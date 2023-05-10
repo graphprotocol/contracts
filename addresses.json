@@ -107,7 +107,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0xfe7c5b02a2ee203d4a8f9d8e8047f3019d46cabf98395026c8a14ab488035267"
     },
-    "GNS": {
+    "L1GNS": {
       "address": "0x474Da6ECd19F23408f5c524403cD0F989EAa9302",
       "initArgs": [
         "0x7e22EEC74baf0665BB40D3Dc7Bc26C139f375EE1",
@@ -119,10 +119,10 @@
       "txHash": "0xd9d42b225c339a00312312ff75be1022982d647bbc32bba2e7337e611a7aca5c",
       "proxy": true,
       "implementation": {
-        "address": "0xdC7532FF82A235fE0872dEf4BF16229C66Ca0307",
-        "creationCodeHash": "0x501cf205062d65cf2b36e2c1f4b78aeef719e1c64335201eb353d2f81babbb16",
-        "runtimeCodeHash": "0xed46f129c54ccf48e0586737086f2200851203550556f97a7929f2739b8dde83",
-        "txHash": "0x7c71b409a83e14ff792dd2403f193bc0e51754efc80b034b3c28609277fa7f6e"
+        "address": "0xd07ED32e48C0a8c8c4B1b54752a8361E8186ACdF",
+        "creationCodeHash": "0x102fda07b41a7097e027c4b0ffb7108bd3eb3f6d6b47da4f78438d5a12346039",
+        "runtimeCodeHash": "0xb4086167d2a8b6db4dce0052a527c6d8de67e538d3e274fa51999428e87154c1",
+        "txHash": "0x30675a871e3e145dd36f9e92e4655503c298f5fadd1f29404b9c4ff68667e9de"
       }
     },
     "Staking": {
