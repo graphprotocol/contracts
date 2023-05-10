@@ -363,7 +363,7 @@
         "txHash": "0x411242cdf758c92cd48074bf3bdd59d98541c688f833780ecdf7d32c3f81ea4c"
       }
     },
-    "Staking": {
+    "L2Staking": {
       "address": "0xE1C81Cc0a49f3104C717aC4880BF62cfDC8f9AA7",
       "initArgs": [
         "0x9D37940e2349Fb8C3085f4283E4AD61bb28281f3",
