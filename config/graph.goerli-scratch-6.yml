@@ -26,7 +26,7 @@ contracts:
         contractAddress: "${{RewardsManager.address}}"
       - fn: "setContractProxy"
         id: "0x1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034" # keccak256('Staking')
-        contractAddress: "${{Staking.address}}"
+        contractAddress: "${{L1Staking.address}}"
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
@@ -118,6 +118,7 @@ contracts:
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+      extensionImpl: "${{StakingExtension.address}}"
     calls:
       - fn: "setDelegationTaxPercentage"
         delegationTaxPercentage: 5000 # parts per million
@@ -141,7 +142,7 @@ contracts:
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
-      staking: "${{Staking.address}}"
+      staking: "${{L1Staking.address}}"
       governor: *allocationExchangeOwner
       authority: *authority
     calls:
