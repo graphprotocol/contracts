@@ -133,12 +133,18 @@ export const applyL1ToL2Alias = (l1Address: string): string => {
   return l2AddressAsNumber.mod(mask).toHexString()
 }
 
+export async function impersonateAccount(address: string): Promise<Signer> {
+  await provider().send('hardhat_impersonateAccount', [address])
+  return hre.ethers.getSigner(address)
+}
+
+export async function setAccountBalance(address: string, newBalance: BigNumber): Promise<void> {
+  await provider().send('hardhat_setBalance', [address, hexValue(newBalance)])
+}
+
 // Adapted from:
 // https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/test/utils/messaging.ts#L5
 export async function getL2SignerFromL1(l1Address: string): Promise<Signer> {
   const l2Address = applyL1ToL2Alias(l1Address)
-  await provider().send('hardhat_impersonateAccount', [l2Address])
-  const l2Signer = await hre.ethers.getSigner(l2Address)
-
-  return l2Signer
+  return impersonateAccount(l2Address)
 }
