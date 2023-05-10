@@ -305,7 +305,7 @@
         "txHash": "0x4b67e7099df5d9163d05dad46821b12b1479939f26e48f8b20a5c6973deb1ed7"
       }
     },
-    "Curation": {
+    "L2Curation": {
       "address": "0x69F13c4290852541f25b0e108831027580889F2D",
       "initArgs": [
         "0x9D37940e2349Fb8C3085f4283E4AD61bb28281f3",
@@ -320,10 +320,10 @@
       "txHash": "0xa371918eefa01c4a8c12749837b47c6f9eb909d7145d4c3b69fa61ede8943ad8",
       "proxy": true,
       "implementation": {
-        "address": "0x224C76bDc38343BfAa24191d3135cb30FA995902",
-        "creationCodeHash": "0xcecff03bf0399aaffe4418f13c036f655cb7b26de7b51ef27ecbe844441283f0",
-        "runtimeCodeHash": "0xae8083fbfc55919332bddb47b775b61dca2fe1ab23d5a9f6e17f9f2fea1a862c",
-        "txHash": "0x819657cbb18a0073be409c3de8d583c167c908e0572a3319cecb70df52b591c9"
+        "address": "0xE9E127825110Cc7bAe0d8AB80045D95e39fE0762",
+        "creationCodeHash": "0x42aab497c651de439984ba5eaa31a72f12a3ff6583ad62c5218e2f6a6fdc00d1",
+        "runtimeCodeHash": "0x98b278f2f4818b248bb0d315de457f6dc0d18f64f035d639fb65f432d50e9bd2",
+        "txHash": "0x0046af828eb4e9fa92b16be921434643f03c8b7892b5a1d4fb68332542be3456"
       }
     },
     "SubgraphNFTDescriptor": {
@@ -339,7 +339,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0x4d9b73ab9853f84d96598f808ccbdceebb340de02f068e27b2ab7ab5f07b62fc"
     },
-    "GNS": {
+    "L2GNS": {
       "address": "0x4ea042442DE86664463164E32253B9aA270141c5",
       "initArgs": [
         "0x9D37940e2349Fb8C3085f4283E4AD61bb28281f3",
@@ -351,10 +351,10 @@
       "txHash": "0x03d497c812f809baf0b862b034f2df73de3e01ddd9bb0aac834bbfb7dcfc7a1d",
       "proxy": true,
       "implementation": {
-        "address": "0x424c31CBfe2f716D69f18399D4a02e4175d7aE61",
-        "creationCodeHash": "0x501cf205062d65cf2b36e2c1f4b78aeef719e1c64335201eb353d2f81babbb16",
-        "runtimeCodeHash": "0xed46f129c54ccf48e0586737086f2200851203550556f97a7929f2739b8dde83",
-        "txHash": "0x4d6cb8730710b2ea995de6a3ec439cbb0b28f57733719f27e6ee0edb373fa558"
+        "address": "0xEBb49ffbeEc7545918251C65ec0D98F6332981Ca",
+        "creationCodeHash": "0x0bde02009c8ffbe1e184a998815ccb864aef8bdc5e70dd797f42270916a82a3d",
+        "runtimeCodeHash": "0xb47f4cc0fdb8050c5ffd84450fd5fc7252e74e149b822a783748fd4740cf030d",
+        "txHash": "0x411242cdf758c92cd48074bf3bdd59d98541c688f833780ecdf7d32c3f81ea4c"
       }
     },
     "Staking": {
