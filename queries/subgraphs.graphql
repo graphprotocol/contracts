@@ -1,0 +1,9 @@
+query SubgraphDeploymentsAtBlock($first: Int, $block: Int) {
+  subgraphDeployments(block: { number: $block }, where: { signalledTokens_gt: 0 }, first: $first, orderBy: id) {
+    id
+    signalledTokens
+    indexerAllocations {
+      id
+    }
+  }
+}

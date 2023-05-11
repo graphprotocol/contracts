@@ -1,0 +1,12 @@
+sources:
+  - name: graph-network
+    handler:
+      graphql:
+        endpoint: https://api.thegraph.com/subgraphs/name/{context.networkSubgraph:graphprotocol/graph-network-mainnet}
+    transforms:
+      - autoPagination:
+          validateSchema: true
+
+documents:
+  - queries/allocations.graphql
+  - queries/subgraphs.graphql

@@ -92,16 +92,9 @@ export const waitTransaction = async (
   tx: ContractTransaction,
 ): Promise<providers.TransactionReceipt> => {
   const receipt = await sender.provider.waitForTransaction(tx.hash)
-  const networkName = (await sender.provider.getNetwork()).name
-  if (networkName === 'goerli') {
-    receipt.status // 1 = success, 0 = failure
-      ? logger.info(`Transaction succeeded: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
-      : logger.warn(`Transaction failed: 'https://${networkName}.etherscan.io/tx/${tx.hash}'`)
-  } else {
-    receipt.status
-      ? logger.info(`Transaction succeeded: ${tx.hash}`)
-      : logger.warn(`Transaction failed: ${tx.hash}`)
-  }
+  receipt.status
+    ? logger.info(`Transaction succeeded: ${tx.hash} #${tx.blockNumber}`)
+    : logger.warn(`Transaction failed: ${tx.hash} #${tx.blockNumber}`)
   return receipt
 }
 
