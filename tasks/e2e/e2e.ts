@@ -19,6 +19,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
     'l2GraphConfig',
     'addressBook',
     'disableSecureAccounts',
+    'fork',
   ]
 
   for (const arg of greArgs) {
@@ -132,3 +133,47 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
       throw new Error(`No test found for scenario ${args.scenario}`)
     }
   })
+
+task('e2e:upgrade', 'Run upgrade tests')
+  .addPositionalParam('upgrade', 'Name of the upgrade to run')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
+  .addFlag('fork', 'Enable fork behavior on GRE')
+  .addFlag('post', 'Wether to run pre/post upgrade scripts')
+  .addOptionalParam('addressBook', cliOpts.addressBook.description)
+  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('l1GraphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('l2GraphConfig', cliOpts.graphConfig.description)
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    setGraphConfig(args, hre)
+    await runUpgrade(args, hre, args.post ? 'post' : 'pre')
+  })
+
+async function runUpgrade(args: any, hre: HardhatRuntimeEnvironment, type: 'pre' | 'post') {
+  const script = `e2e/upgrades/${args.upgrade}/${type}-upgrade.ts`
+  const test = `e2e/upgrades/${args.upgrade}/${type}-upgrade.test.ts`
+
+  console.log(`> Running ${type}-upgrade: ${args.upgrade}`)
+  console.log(`- script file: ${script}`)
+  console.log(`- test file: ${test}`)
+
+  // Run script
+  if (fs.existsSync(script)) {
+    console.log(`> Running ${type}-upgrade script: ${script}`)
+    await runScriptWithHardhat(hre.hardhatArguments, script, [
+      args.addressBook,
+      args.graphConfig,
+      args.l1GraphConfig,
+      args.l2GraphConfig,
+      args.disableSecureAccounts,
+      args.fork,
+    ])
+  }
+
+  // Run test
+  if (fs.existsSync(test)) {
+    console.log(`> Running ${type}-upgrade test: ${test}`)
+    await hre.run(TASK_TEST, {
+      testFiles: [test],
+    })
+  }
+}

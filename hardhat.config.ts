@@ -155,14 +155,12 @@ const config: HardhatUserConfig = {
         interval: 13000,
       },
       hardfork: 'london',
-      graphConfig: 'config/graph.localhost.yml',
     },
     localhost: {
       chainId: 1337,
       url: 'http://localhost:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
-      graphConfig: 'config/graph.localhost.yml',
     },
     localnitrol1: {
       chainId: 1337,
@@ -181,6 +179,7 @@ const config: HardhatUserConfig = {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
     l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
     l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
+    fork: process.env.FORK === 'true',
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
