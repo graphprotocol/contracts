@@ -1,24 +1,24 @@
-import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
 import { extendConfig, extendEnvironment } from 'hardhat/config'
 import { lazyFunction, lazyObject } from 'hardhat/plugins'
+import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
+import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import { Wallet } from 'ethers'
+import path from 'path'
 
 import { getAddressBook } from '../cli/address-book'
-import { loadContracts } from '../cli/contracts'
 import { readConfig } from '../cli/config'
+import { loadContracts } from '../cli/contracts'
+import { getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
+import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from './config'
+import { getSecureAccountsProvider } from './providers'
+import { logDebug, logWarn } from './helpers/logger'
 import {
   GraphNetworkEnvironment,
   GraphRuntimeEnvironment,
   GraphRuntimeEnvironmentOptions,
 } from './type-extensions'
-import { getChains, getDefaultProviders, getAddressBookPath, getGraphConfigPaths } from './config'
-import { getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
-import { logDebug, logWarn } from './helpers/logger'
-import path from 'path'
-import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
-import { Wallet } from 'ethers'
 
 import 'hardhat-secure-accounts'
-import { getSecureAccountsProvider } from './providers'
 
 // Graph Runtime Environment (GRE) extensions for the HRE
 
@@ -186,7 +186,12 @@ function buildGraphNetworkEnvironment(
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),
     getDeployer: lazyFunction(() => async () => getDeployer(await getUpdatedProvider())),
     getNamedAccounts: lazyFunction(
-      () => async () => getNamedAccounts(await getUpdatedProvider(), graphConfigPath),
+      () => async (impersonate?: boolean) =>
+        getNamedAccounts(
+          impersonate ? provider : await getUpdatedProvider(),
+          graphConfigPath,
+          impersonate,
+        ),
     ),
     getTestAccounts: lazyFunction(
       () => async () => getTestAccounts(await getUpdatedProvider(), graphConfigPath),

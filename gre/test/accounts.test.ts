@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import { ethers } from 'ethers'
 import { GraphRuntimeEnvironment } from '../type-extensions'
 import { useEnvironment } from './helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 chai.use(chaiAsPromised)
 
@@ -153,6 +154,32 @@ describe('GRE usage > secure accounts', function () {
 
         expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
         expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+        const tx = account.sendTransaction({
+          to: ethers.constants.AddressZero,
+          value: ethers.utils.parseEther('0'),
+        })
+        expect(tx).to.eventually.be.rejected
+      }
+    })
+
+    it('should allow impersonating named accounts', async function () {
+      const accounts = await graph.l1.getNamedAccounts(true)
+      const secureAccounts = await graphSecureAccounts.l1.getNamedAccounts(true)
+
+      const accountNames = Object.keys(accounts)
+
+      for (const name of accountNames) {
+        const account: SignerWithAddress = accounts[name]
+        const secureAccount: SignerWithAddress = secureAccounts[name]
+
+        expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
+        expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+
+        const tx = account.sendTransaction({
+          to: ethers.constants.AddressZero,
+          value: ethers.utils.parseEther('0'),
+        })
+        expect(tx).to.eventually.be.rejected
       }
     })
   })

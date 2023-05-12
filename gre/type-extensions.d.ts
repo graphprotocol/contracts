@@ -38,7 +38,7 @@ export interface GraphNetworkEnvironment {
   contracts: NetworkContracts
   graphConfig: any
   addressBook: AddressBook
-  getNamedAccounts: () => Promise<NamedAccounts>
+  getNamedAccounts: (impersonate?: boolean) => Promise<NamedAccounts>
   getTestAccounts: () => Promise<SignerWithAddress[]>
   getDeployer: () => Promise<SignerWithAddress>
   getWallets: () => Promise<Wallet[]>
