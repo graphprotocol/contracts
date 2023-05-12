@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumberish, ethers } from 'ethers'
-import { NetworkContracts } from '../../../cli/contracts'
-import { randomHexBytes, sendTransaction } from '../../../cli/network'
+import { NetworkContracts } from '../../cli/contracts'
+import { randomHexBytes, sendTransaction } from '../../cli/network'
 import { ensureGRTAllowance } from './accounts'
 
 export const stake = async (

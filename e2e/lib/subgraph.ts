@@ -1,9 +1,9 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
-import { NetworkContracts } from '../../../cli/contracts'
-import { randomHexBytes, sendTransaction } from '../../../cli/network'
 import hre from 'hardhat'
+import { NetworkContracts } from '../../cli/contracts'
+import { randomHexBytes, sendTransaction } from '../../cli/network'
 
 export const recreatePreviousSubgraphId = async (
   contracts: NetworkContracts,

@@ -25,6 +25,7 @@ addresses-local.json
 localNetwork.json
 arbitrum-addresses-local.json
 tx-*.log
+addresses-fork.json
 
 # Keys
 .keystore
