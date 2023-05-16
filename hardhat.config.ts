@@ -166,15 +166,15 @@ const config: HardhatUserConfig = {
     },
     localnitrol1: {
       chainId: 1337,
-      url: 'http://localhost:8545',
-      accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
-      graphConfig: 'config/graph.localhost.yml',
+      url: 'https://goerli-test.staging.thegraph.com/',
+      accounts: getAccountsKeys(),
+      graphConfig: 'config/graph.devnet-1.yml',
     },
     localnitrol2: {
       chainId: 412346,
-      url: 'http://localhost:8547',
-      accounts: { mnemonic: DEFAULT_L2_TEST_MNEMONIC },
-      graphConfig: 'config/graph.arbitrum-localhost.yml',
+      url: 'https://goerli-test.staging.thegraph.com/nitro',
+      accounts: getAccountsKeys(),
+      graphConfig: 'config/graph.arbitrum-devnet-1.yml',
     },
   },
   graph: {

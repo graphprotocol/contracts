@@ -39,3 +39,36 @@ task('migrate:accounts', 'Creates protocol accounts and saves them in graph conf
 
     writeConfig(taskArgs.graphConfig, graphConfig.toString())
   })
+
+task('migrate:fund', 'Funds protocol accounts from the deployer')
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
+  .setAction(async (taskArgs, hre) => {
+    const { getDeployer } = hre.graph(taskArgs)
+
+    console.log('> Funding addresses')
+
+    const deployer = await getDeployer()
+    const [
+      ,
+      arbitrator,
+      governor,
+      authority,
+      availabilityOracle,
+      pauseGuardian,
+      allocationExchangeOwner,
+    ] = await hre.ethers.getSigners()
+    const accounts = [
+      arbitrator,
+      governor,
+      authority,
+      availabilityOracle,
+      pauseGuardian,
+      allocationExchangeOwner,
+    ]
+    for (const account of accounts) {
+      await deployer.sendTransaction({
+        to: account.address,
+        value: hre.ethers.utils.parseEther('0.5'),
+      })
+    }
+  })

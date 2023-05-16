@@ -24,6 +24,14 @@
       "address": "0x6BEbC4925716945D46F0Ec336D5C2564F419682C"
     }
   },
+  "1337": {
+    "L1GatewayRouter": {
+      "address": "0x4535771b8D5C43100f126EdACfEc7eb60d391312"
+    },
+    "IInbox": {
+      "address": "0x360e7e76c3296e4b975da13cb81d9bec99ef8f00"
+    }
+  },
   "42161": {
     "L2GatewayRouter": {
       "address": "0x5288c571Fd7aD117beA99bF60FE0846C4E84F933"
@@ -37,6 +45,11 @@
   "421613": {
     "L2GatewayRouter": {
       "address": "0xE5B9d8d42d656d1DcB8065A6c012FE3780246041"
+    }
+  },
+  "412346": {
+    "L2GatewayRouter": {
+      "address": "0x7b650845242a96595f3a9766D4e8e5ab0887936A"
     }
   }
 }
