@@ -3,6 +3,7 @@ import yargs, { Argv } from 'yargs'
 import { redeemSendToL2Command, sendToL2Command } from './to-l2'
 import { startSendToL1Command, finishSendToL1Command, waitFinishSendToL1Command } from './to-l1'
 import { cliOpts } from '../../defaults'
+import { finishSubgraphTransferToL2Command, sendSubgraphToL2Command } from './gns-transfer-tools'
 
 export const bridgeCommand = {
   command: 'bridge',
@@ -15,6 +16,8 @@ export const bridgeCommand = {
       .command(startSendToL1Command)
       .command(finishSendToL1Command)
       .command(waitFinishSendToL1Command)
+      .command(sendSubgraphToL2Command)
+      .command(finishSubgraphTransferToL2Command)
   },
   handler: (): void => {
     yargs.showHelp()
