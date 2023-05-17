@@ -13,7 +13,14 @@ enum AllocationState {
 let indexerFixtures: IndexerFixture[]
 
 describe('Open allocations', () => {
-  const { contracts, getTestAccounts } = hre.graph()
+  const graphOpts = {
+    graphConfig: 'config/graph.goerli-scratch-5.yml',
+    addressBook: 'addresses.json',
+    l1GraphConfig: 'config/graph.goerli-scratch-5.yml',
+    l2GraphConfig: 'config/graph.arbitrum-goerli-scratch-5.yml',
+    disableSecureAccounts: true,
+  }
+  const { contracts, getTestAccounts } = hre.graph(graphOpts)
   const { GraphToken, Staking } = contracts
 
   before(async () => {

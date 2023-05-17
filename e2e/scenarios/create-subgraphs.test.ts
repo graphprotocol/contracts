@@ -11,7 +11,14 @@ let subgraphFixtures: SubgraphFixture[]
 let subgraphOwnerFixture: SignerWithAddress
 
 describe('Publish subgraphs', () => {
-  const { contracts, getTestAccounts } = hre.graph()
+  const graphOpts = {
+    graphConfig: 'config/graph.goerli-scratch-5.yml',
+    addressBook: 'addresses.json',
+    l1GraphConfig: 'config/graph.goerli-scratch-5.yml',
+    l2GraphConfig: 'config/graph.arbitrum-goerli-scratch-5.yml',
+    disableSecureAccounts: true,
+  }
+  const { contracts, getTestAccounts } = hre.graph(graphOpts)
   const { GNS, GraphToken, Curation } = contracts
 
   before(async () => {
@@ -26,6 +33,7 @@ describe('Publish subgraphs', () => {
       for (const curator of curatorFixtures) {
         const address = curator.signer.address
         const balance = await GraphToken.balanceOf(address)
+        console.log('Checking balance of ' + curator.signer.address)
         expect(balance).eq(curator.grtBalance.sub(curator.signalled))
       }
     })
@@ -39,6 +47,7 @@ describe('Publish subgraphs', () => {
           subgraphOwnerFixture.address,
           subgraphFixtures.length - i,
         )
+        console.log('Checking published status of ' + subgraphId)
         const isPublished = await GNS.isPublished(subgraphId)
         expect(isPublished).eq(true)
       }
