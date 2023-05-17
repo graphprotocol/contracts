@@ -3,7 +3,6 @@ import { BigNumber } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
 import { NetworkContracts } from '../../../cli/contracts'
 import { randomHexBytes, sendTransaction } from '../../../cli/network'
-import hre from 'hardhat'
 
 export const recreatePreviousSubgraphId = async (
   contracts: NetworkContracts,
@@ -15,7 +14,7 @@ export const recreatePreviousSubgraphId = async (
 }
 
 export const buildSubgraphID = (account: string, seqID: BigNumber): string =>
-  solidityKeccak256(['address', 'uint256', 'uint256'], [account, seqID, hre.network.config.chainId])
+  solidityKeccak256(['address', 'uint256'], [account, seqID])
 
 export const publishNewSubgraph = async (
   contracts: NetworkContracts,

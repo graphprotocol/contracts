@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.7.6;
-pragma abicoder v2;
 
-import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import { BancorFormula } from "../bancor/BancorFormula.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
@@ -13,9 +12,10 @@ import { TokenUtils } from "../utils/TokenUtils.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
-import { CurationV2Storage } from "./CurationStorage.sol";
+import { CurationV1Storage } from "./CurationStorage.sol";
 import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
+import { GraphCurationToken } from "./GraphCurationToken.sol";
 
 /**
  * @title Curation contract
@@ -29,13 +29,13 @@ import { IGraphCurationToken } from "./IGraphCurationToken.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract Curation is CurationV2Storage, GraphUpgradeable {
-    using SafeMathUpgradeable for uint256;
+contract Curation is CurationV1Storage, GraphUpgradeable {
+    using SafeMath for uint256;
 
-    /// @dev 100% in parts per million
+    // 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
-    /// @dev Amount of signal you get with your minimum token deposit
+    // Amount of signal you get with your minimum token deposit
     uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
 
     // -- Events --
@@ -71,13 +71,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @notice Initialize this contract.
-     * @param _controller Address of the controller contract that manages this contract
-     * @param _bondingCurve Address of the bonding curve contract (e.g. a BancorFormula)
-     * @param _curationTokenMaster Address of the master copy to use for curation tokens
-     * @param _defaultReserveRatio Default reserve ratio for a curation pool in PPM
-     * @param _curationTaxPercentage Percentage of curation tax to charge when depositing GRT tokens
-     * @param _minimumCurationDeposit Minimum amount of tokens that can be deposited on a new subgraph deployment
+     * @dev Initialize this contract.
      */
     function initialize(
         address _controller,
@@ -86,7 +80,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         uint32 _defaultReserveRatio,
         uint32 _curationTaxPercentage,
         uint256 _minimumCurationDeposit
-    ) external onlyImpl initializer {
+    ) external onlyImpl {
         Managed._initialize(_controller);
 
         require(_bondingCurve != address(0), "Bonding curve must be set");
@@ -101,11 +95,28 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
 
     /**
      * @dev Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserve ratio to `_defaultReserveRatio`
+     * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
      */
     function setDefaultReserveRatio(uint32 _defaultReserveRatio) external override onlyGovernor {
         _setDefaultReserveRatio(_defaultReserveRatio);
+    }
+
+    /**
+     * @dev Internal: Set the default reserve ratio percentage for a curation pool.
+     * @notice Update the default reserver ratio to `_defaultReserveRatio`
+     * @param _defaultReserveRatio Reserve ratio (in PPM)
+     */
+    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
+        // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
+        require(_defaultReserveRatio > 0, "Default reserve ratio must be > 0");
+        require(
+            _defaultReserveRatio <= MAX_PPM,
+            "Default reserve ratio cannot be higher than MAX_PPM"
+        );
+
+        defaultReserveRatio = _defaultReserveRatio;
+        emit ParameterUpdated("defaultReserveRatio");
     }
 
     /**
@@ -122,7 +133,19 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Set the curation tax percentage to charge when a curator deposits GRT tokens.
+     * @dev Internal: Set the minimum deposit amount for curators.
+     * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
+     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
+     */
+    function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
+        require(_minimumCurationDeposit > 0, "Minimum curation deposit cannot be 0");
+
+        minimumCurationDeposit = _minimumCurationDeposit;
+        emit ParameterUpdated("minimumCurationDeposit");
+    }
+
+    /**
+     * @dev Set the curation tax percentage to charge when a curator deposits GRT tokens.
      * @param _percentage Curation tax percentage charged when depositing GRT tokens
      */
     function setCurationTaxPercentage(uint32 _percentage) external override onlyGovernor {
@@ -130,7 +153,21 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Set the master copy to use as clones for the curation token.
+     * @dev Internal: Set the curation tax percentage to charge when a curator deposits GRT tokens.
+     * @param _percentage Curation tax percentage charged when depositing GRT tokens
+     */
+    function _setCurationTaxPercentage(uint32 _percentage) private {
+        require(
+            _percentage <= MAX_PPM,
+            "Curation tax percentage must be below or equal to MAX_PPM"
+        );
+
+        curationTaxPercentage = _percentage;
+        emit ParameterUpdated("curationTaxPercentage");
+    }
+
+    /**
+     * @dev Set the master copy to use as clones for the curation token.
      * @param _curationTokenMaster Address of implementation contract to use for curation tokens
      */
     function setCurationTokenMaster(address _curationTokenMaster) external override onlyGovernor {
@@ -138,8 +175,20 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Assign Graph Tokens collected as curation fees to the curation pool reserve.
-     * @dev This function can only be called by the Staking contract and will do the bookkeeping of
+     * @dev Internal: Set the master copy to use as clones for the curation token.
+     * @param _curationTokenMaster Address of implementation contract to use for curation tokens
+     */
+    function _setCurationTokenMaster(address _curationTokenMaster) private {
+        require(_curationTokenMaster != address(0), "Token master must be non-empty");
+        require(Address.isContract(_curationTokenMaster), "Token master must be a contract");
+
+        curationTokenMaster = _curationTokenMaster;
+        emit ParameterUpdated("curationTokenMaster");
+    }
+
+    /**
+     * @dev Assign Graph Tokens collected as curation fees to the curation pool reserve.
+     * This function can only be called by the Staking contract and will do the bookeeping of
      * transferred tokens into this contract.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
@@ -162,12 +211,11 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
+     * @dev Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @param _subgraphDeploymentID Subgraph deployment pool from where to mint signal
      * @param _tokensIn Amount of Graph Tokens to deposit
      * @param _signalOutMin Expected minimum amount of signal to receive
-     * @return Amount of signal minted
-     * @return Amount of curation tax burned
+     * @return Signal minted and deposit tax
      */
     function mint(
         bytes32 _subgraphDeploymentID,
@@ -175,7 +223,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         uint256 _signalOutMin
     ) external override notPartialPaused returns (uint256, uint256) {
         // Need to deposit some funds
-        require(_tokensIn != 0, "Cannot deposit zero tokens");
+        require(_tokensIn > 0, "Cannot deposit zero tokens");
 
         // Exchange GRT tokens for GCS of the subgraph pool
         (uint256 signalOut, uint256 curationTax) = tokensToSignal(_subgraphDeploymentID, _tokensIn);
@@ -193,9 +241,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
-                IGraphCurationToken gcs = IGraphCurationToken(
-                    ClonesUpgradeable.clone(curationTokenMaster)
-                );
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
                 gcs.initialize(address(this));
                 curationPool.gcs = gcs;
             }
@@ -237,7 +283,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         address curator = msg.sender;
 
         // Validations
-        require(_signalIn != 0, "Cannot burn zero signal");
+        require(_signalIn > 0, "Cannot burn zero signal");
         require(
             getCuratorSignal(curator, _subgraphDeploymentID) >= _signalIn,
             "Cannot burn more signal than you own"
@@ -273,30 +319,16 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Get the amount of token reserves in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
-     * @return Amount of token reserves in the curation pool
-     */
-    function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return pools[_subgraphDeploymentID].tokens;
-    }
-
-    /**
-     * @notice Check if any GRT tokens are deposited for a SubgraphDeployment.
+     * @dev Check if any GRT tokens are deposited for a SubgraphDeployment.
      * @param _subgraphDeploymentID SubgraphDeployment to check if curated
-     * @return True if curated, false otherwise
+     * @return True if curated
      */
     function isCurated(bytes32 _subgraphDeploymentID) public view override returns (bool) {
-        return pools[_subgraphDeploymentID].tokens != 0;
+        return pools[_subgraphDeploymentID].tokens > 0;
     }
 
     /**
-     * @notice Get the amount of signal a curator has in a curation pool.
+     * @dev Get the amount of signal a curator has in a curation pool.
      * @param _curator Curator owning the signal tokens
      * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal owned by a curator for the subgraph deployment
@@ -312,7 +344,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Get the amount of signal in a curation pool.
+     * @dev Get the amount of signal in a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment curation poool
      * @return Amount of signal minted for the subgraph deployment
      */
@@ -327,12 +359,25 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Calculate amount of signal that can be bought with tokens in a curation pool.
+     * @dev Get the amount of token reserves in a curation pool.
+     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @return Amount of token reserves in the curation pool
+     */
+    function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return pools[_subgraphDeploymentID].tokens;
+    }
+
+    /**
+     * @dev Calculate amount of signal that can be bought with tokens in a curation pool.
      * This function considers and excludes the deposit tax.
      * @param _subgraphDeploymentID Subgraph deployment to mint signal
      * @param _tokensIn Amount of tokens used to mint signal
-     * @return Amount of signal that can be bought
-     * @return Amount of tokens that will be burned as curation tax
+     * @return Amount of signal that can be bought and tokens subtracted for the tax
      */
     function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
         public
@@ -386,10 +431,10 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
-     * @notice Calculate number of tokens to get when burning signal from a curation pool.
+     * @dev Calculate number of tokens to get when burning signal from a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment to burn signal
      * @param _signalIn Amount of signal to burn
-     * @return Amount of tokens to get for the specified amount of signal
+     * @return Amount of tokens to get for an amount of signal
      */
     function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
         public
@@ -400,7 +445,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
-            curationPool.tokens != 0,
+            curationPool.tokens > 0,
             "Subgraph deployment must be curated to perform calculations"
         );
         require(
@@ -415,64 +460,6 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
                 curationPool.reserveRatio,
                 _signalIn
             );
-    }
-
-    /**
-     * @dev Internal: Set the default reserve ratio percentage for a curation pool.
-     * @notice Update the default reserver ratio to `_defaultReserveRatio`
-     * @param _defaultReserveRatio Reserve ratio (in PPM)
-     */
-    function _setDefaultReserveRatio(uint32 _defaultReserveRatio) private {
-        // Reserve Ratio must be within 0% to 100% (inclusive, in PPM)
-        require(_defaultReserveRatio != 0, "Default reserve ratio must be > 0");
-        require(
-            _defaultReserveRatio <= MAX_PPM,
-            "Default reserve ratio cannot be higher than MAX_PPM"
-        );
-
-        defaultReserveRatio = _defaultReserveRatio;
-        emit ParameterUpdated("defaultReserveRatio");
-    }
-
-    /**
-     * @dev Internal: Set the minimum deposit amount for curators.
-     * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
-     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
-     */
-    function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
-        require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
-
-        minimumCurationDeposit = _minimumCurationDeposit;
-        emit ParameterUpdated("minimumCurationDeposit");
-    }
-
-    /**
-     * @dev Internal: Set the curation tax percentage (in PPM) to charge when a curator deposits GRT tokens.
-     * @param _percentage Curation tax charged when depositing GRT tokens in PPM
-     */
-    function _setCurationTaxPercentage(uint32 _percentage) private {
-        require(
-            _percentage <= MAX_PPM,
-            "Curation tax percentage must be below or equal to MAX_PPM"
-        );
-
-        curationTaxPercentage = _percentage;
-        emit ParameterUpdated("curationTaxPercentage");
-    }
-
-    /**
-     * @dev Internal: Set the master copy to use as clones for the curation token.
-     * @param _curationTokenMaster Address of implementation contract to use for curation tokens
-     */
-    function _setCurationTokenMaster(address _curationTokenMaster) private {
-        require(_curationTokenMaster != address(0), "Token master must be non-empty");
-        require(
-            AddressUpgradeable.isContract(_curationTokenMaster),
-            "Token master must be a contract"
-        );
-
-        curationTokenMaster = _curationTokenMaster;
-        emit ParameterUpdated("curationTokenMaster");
     }
 
     /**

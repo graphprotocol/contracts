@@ -1,23 +1,12 @@
 import { expect } from 'chai'
-import { utils, BigNumber, Event, Signer } from 'ethers'
+import { utils, BigNumber, Event } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  getAccounts,
-  randomHexBytes,
-  toBN,
-  toGRT,
-  formatGRT,
-  Account,
-  impersonateAccount,
-  setAccountBalance,
-} from '../lib/testHelpers'
-import { GNS } from '../../build/types/GNS'
-import { parseEther } from 'ethers/lib/utils'
+import { getAccounts, randomHexBytes, toBN, toGRT, formatGRT, Account } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
 
@@ -45,14 +34,12 @@ describe('Curation', () => {
   let governor: Account
   let curator: Account
   let stakingMock: Account
-  let gnsImpersonator: Signer
 
   let fixture: NetworkFixture
 
   let curation: Curation
   let grt: GraphToken
   let controller: Controller
-  let gns: GNS
 
   // Test values
   const signalAmountFor1000Tokens = toGRT('3.162277660168379331')
@@ -202,15 +189,11 @@ describe('Curation', () => {
     ;[me, governor, curator, stakingMock] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ controller, curation, grt, gns } = await fixture.load(governor.signer))
+    ;({ controller, curation, grt } = await fixture.load(governor.signer))
 
-    gnsImpersonator = await impersonateAccount(gns.address)
-    await setAccountBalance(gns.address, parseEther('1'))
-    // Give some funds to the curator and GNS impersonator and approve the curation contract
+    // Give some funds to the curator and approve the curation contract
     await grt.connect(governor.signer).mint(curator.address, curatorTokens)
     await grt.connect(curator.signer).approve(curation.address, curatorTokens)
-    await grt.connect(governor.signer).mint(gns.address, curatorTokens)
-    await grt.connect(gnsImpersonator).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
     await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)

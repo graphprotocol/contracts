@@ -9,7 +9,6 @@ import { BancorFormula } from '../../build/types/BancorFormula'
 import { Controller } from '../../build/types/Controller'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { Curation } from '../../build/types/Curation'
-import { L2Curation } from '../../build/types/L2Curation'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GNS } from '../../build/types/GNS'
@@ -23,8 +22,6 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
-import { L2GNS } from '../../build/types/L2GNS'
-import { L1GNS } from '../../build/types/L1GNS'
 
 // Disable logging for tests
 logger.pause()
@@ -123,28 +120,6 @@ export async function deployCuration(
   ) as unknown as Curation
 }
 
-export async function deployL2Curation(
-  deployer: Signer,
-  controller: string,
-  proxyAdmin: GraphProxyAdmin,
-): Promise<L2Curation> {
-  // Dependency
-  const curationTokenMaster = await deployContract('GraphCurationToken', deployer)
-
-  // Deploy
-  return network.deployContractWithProxy(
-    proxyAdmin,
-    'L2Curation',
-    [
-      controller,
-      curationTokenMaster.address,
-      defaults.curation.curationTaxPercentage,
-      defaults.curation.minimumCurationDeposit,
-    ],
-    deployer,
-  ) as unknown as L2Curation
-}
-
 export async function deployDisputeManager(
   deployer: Signer,
   controller: string,
@@ -180,13 +155,13 @@ export async function deployEpochManager(
   ) as unknown as EpochManager
 }
 
-async function deployL1OrL2GNS(
+export async function deployGNS(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
-  isL2: boolean,
-): Promise<L1GNS | L2GNS> {
+): Promise<GNS> {
   // Dependency
+  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
   const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
   const subgraphNFT = (await deployContract(
     'SubgraphNFT',
@@ -194,17 +169,11 @@ async function deployL1OrL2GNS(
     await deployer.getAddress(),
   )) as SubgraphNFT
 
-  let name: string
-  if (isL2) {
-    name = 'L2GNS'
-  } else {
-    name = 'L1GNS'
-  }
   // Deploy
   const proxy = (await network.deployContractWithProxy(
     proxyAdmin,
-    name,
-    [controller, subgraphNFT.address],
+    'GNS',
+    [controller, bondingCurve.address, subgraphNFT.address],
     deployer,
   )) as unknown as GNS
 
@@ -212,27 +181,7 @@ async function deployL1OrL2GNS(
   await subgraphNFT.connect(deployer).setMinter(proxy.address)
   await subgraphNFT.connect(deployer).setTokenDescriptor(subgraphDescriptor.address)
 
-  if (isL2) {
-    return proxy as L2GNS
-  } else {
-    return proxy as L1GNS
-  }
-}
-
-export async function deployL1GNS(
-  deployer: Signer,
-  controller: string,
-  proxyAdmin: GraphProxyAdmin,
-): Promise<L1GNS> {
-  return deployL1OrL2GNS(deployer, controller, proxyAdmin, false) as unknown as L1GNS
-}
-
-export async function deployL2GNS(
-  deployer: Signer,
-  controller: string,
-  proxyAdmin: GraphProxyAdmin,
-): Promise<L2GNS> {
-  return deployL1OrL2GNS(deployer, controller, proxyAdmin, true) as unknown as L2GNS
+  return proxy
 }
 
 export async function deployServiceRegistry(
