@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "3.0.0",
+  "version": "4.0.0-devnet1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
