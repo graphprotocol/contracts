@@ -29,6 +29,7 @@ describe('L2GraphTokenGateway', () => {
   let mockL1Gateway: Account
   let pauseGuardian: Account
   let mockL1GNS: Account
+  let mockL1Staking: Account
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
@@ -57,6 +58,7 @@ describe('L2GraphTokenGateway', () => {
       l2Receiver,
       pauseGuardian,
       mockL1GNS,
+      mockL1Staking,
     ] = await getAccounts()
 
     fixture = new NetworkFixture()
@@ -191,6 +193,7 @@ describe('L2GraphTokenGateway', () => {
           mockL1GRT.address,
           mockL1Gateway.address,
           mockL1GNS.address,
+          mockL1Staking.address,
         )
         let tx = l2GraphTokenGateway.connect(governor.signer).setPaused(true)
         await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(true)
@@ -222,6 +225,7 @@ describe('L2GraphTokenGateway', () => {
             mockL1GRT.address,
             mockL1Gateway.address,
             mockL1GNS.address,
+            mockL1Staking.address,
           )
           await l2GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
           let tx = l2GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
@@ -285,6 +289,7 @@ describe('L2GraphTokenGateway', () => {
         mockL1GRT.address,
         mockL1Gateway.address,
         mockL1GNS.address,
+        mockL1Staking.address,
       )
     })
 

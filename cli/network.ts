@@ -18,6 +18,9 @@ import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
 import { defaultOverrides } from './defaults'
 import { GraphToken } from '../build/types/GraphToken'
+import { Interface } from 'ethers/lib/utils'
+import { IL1Staking } from '../build/types/IL1Staking'
+import { IL2Staking } from '../build/types/IL2Staking'
 
 const { keccak256, randomBytes, parseUnits, hexlify } = utils
 
@@ -197,7 +200,7 @@ export const deployContract = async (
 
   // Deploy
   const factory = getContractFactory(name, libraries)
-  const contract = await factory.connect(sender).deploy(...args)
+  let contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
   logger.info(`> Deploy ${name}, txHash: ${txHash}`)
   await sender.provider.waitForTransaction(txHash)
@@ -209,6 +212,15 @@ export const deployContract = async (
   logger.info(`= RuntimeCodeHash: ${runtimeCodeHash}`)
   logger.info(`${name} has been deployed to address: ${contract.address}`)
 
+  if (name == 'L1Staking') {
+    // Hack the contract into behaving like an IL1Staking
+    const iface = new Interface(loadArtifact('IL1Staking').abi)
+    contract = new Contract(contract.address, iface, sender) as unknown as IL1Staking
+  } else if (name == 'L2Staking') {
+    // Hack the contract into behaving like an IL2Staking
+    const iface = new Interface(loadArtifact('IL2Staking').abi)
+    contract = new Contract(contract.address, iface, sender) as unknown as IL2Staking
+  }
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
 }
 

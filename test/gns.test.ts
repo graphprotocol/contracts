@@ -63,6 +63,7 @@ describe('L1GNS', () => {
   let mockL2GRT: Account
   let mockL2Gateway: Account
   let mockL2GNS: Account
+  let mockL2Staking: Account
 
   let fixture: NetworkFixture
 
@@ -222,8 +223,17 @@ describe('L1GNS', () => {
   }
 
   before(async function () {
-    ;[me, other, governor, another, mockRouter, mockL2GRT, mockL2Gateway, mockL2GNS] =
-      await getAccounts()
+    ;[
+      me,
+      other,
+      governor,
+      another,
+      mockRouter,
+      mockL2GRT,
+      mockL2Gateway,
+      mockL2GNS,
+      mockL2Staking,
+    ] = await getAccounts()
     // Dummy code on the mock router so that it appears as a contract
     await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
     fixture = new NetworkFixture()
@@ -258,6 +268,7 @@ describe('L1GNS', () => {
       mockL2GRT.address,
       mockL2Gateway.address,
       mockL2GNS.address,
+      mockL2Staking.address,
     )
   })
 

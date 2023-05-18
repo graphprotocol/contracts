@@ -13,7 +13,7 @@ describe('Controller configuration', () => {
     'DisputeManager',
     'EpochManager',
     'RewardsManager',
-    'Staking',
+    'L1Staking',
     'GraphToken',
     'L1GraphTokenGateway',
   ]
@@ -24,7 +24,7 @@ describe('Controller configuration', () => {
     'DisputeManager',
     'EpochManager',
     'RewardsManager',
-    'Staking',
+    'L2Staking',
     'L2GraphToken',
     'L2GraphTokenGateway',
   ]
