@@ -35,6 +35,7 @@ export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
+    l2MinimumCurationDeposit: toBN('1'),
     curationTaxPercentage: 0,
   },
   dispute: {
@@ -139,7 +140,7 @@ export async function deployL2Curation(
       controller,
       curationTokenMaster.address,
       defaults.curation.curationTaxPercentage,
-      defaults.curation.minimumCurationDeposit,
+      defaults.curation.l2MinimumCurationDeposit,
     ],
     deployer,
   ) as unknown as L2Curation
