@@ -35,7 +35,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     uint32 private constant MAX_PPM = 1000000;
 
     /// @dev Amount of signal you get with your minimum token deposit
-    uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18; // 1 signal as 18 decimal number
+    uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1; // 1e-18 signal as 18 decimal number
 
     /// @dev Reserve ratio for all subgraphs set to 100% for a flat bonding curve
     uint32 private immutable fixedReserveRatio = MAX_PPM;
