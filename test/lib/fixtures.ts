@@ -168,6 +168,7 @@ export class NetworkFixture {
     } else {
       await l1GraphTokenGateway.connect(deployer).syncAllContracts()
       await bridgeEscrow.connect(deployer).syncAllContracts()
+      await grt.connect(deployer).addMinter(l1GraphTokenGateway.address)
     }
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
