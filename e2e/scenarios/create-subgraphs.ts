@@ -5,12 +5,12 @@
 //    npx hardhat e2e:scenario create-subgraphs --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { publishNewSubgraph } from './lib/subgraph'
-import { fundAccountsETH, fundAccountsGRT } from './lib/accounts'
-import { signal } from './lib/curation'
+import { publishNewSubgraph } from '../lib/subgraph'
+import { fundAccountsETH, fundAccountsGRT } from '../lib/accounts'
+import { signal } from '../lib/curation'
 import { getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
 import { getCuratorFixtures } from './fixtures/curators'
-import { getGraphOptsFromArgv } from './lib/helpers'
+import { getGraphOptsFromArgv } from '../lib/helpers'
 
 async function main() {
   const graphOpts = getGraphOptsFromArgv()

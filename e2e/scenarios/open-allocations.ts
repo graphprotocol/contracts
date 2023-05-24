@@ -5,10 +5,10 @@
 //    npx hardhat e2e:scenario open-allocations --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { allocateFrom, stake } from './lib/staking'
-import { fundAccountsETH, fundAccountsGRT } from './lib/accounts'
+import { allocateFrom, stake } from '../lib/staking'
+import { fundAccountsETH, fundAccountsGRT } from '../lib/accounts'
 import { getIndexerFixtures } from './fixtures/indexers'
-import { getGraphOptsFromArgv } from './lib/helpers'
+import { getGraphOptsFromArgv } from '../lib/helpers'
 
 async function main() {
   const graphOpts = getGraphOptsFromArgv()
