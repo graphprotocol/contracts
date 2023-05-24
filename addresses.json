@@ -828,7 +828,7 @@
         "txHash": "0xca363c6bc841b43bd896b6d2098434679884d200a28013dedb48a2c95028ce40"
       }
     },
-    "Curation": {
+    "L2Curation": {
       "address": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
       "initArgs": [
         "0x0a8491544221dd212964fbb96487467291b2C97e",
@@ -862,7 +862,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0x4334bd64938c1c5c604bde96467a8601875046569f738e6860851594c91681ff"
     },
-    "GNS": {
+    "L2GNS": {
       "address": "0xec9A7fb6CbC2E41926127929c2dcE6e9c5D33Bec",
       "initArgs": [
         "0x0a8491544221dd212964fbb96487467291b2C97e",
@@ -1047,7 +1047,7 @@
         "txHash": "0x2d6043d89a5f5c4f3d0df0f50264ab7efebc898be0b5d358a00715ba9f657a89"
       }
     },
-    "Curation": {
+    "L2Curation": {
       "address": "0x7080AAcC4ADF4b1E72615D6eb24CDdE40a04f6Ca",
       "initArgs": [
         "0x7f734E995010Aa8d28b912703093d532C37b6EAb",
@@ -1081,7 +1081,7 @@
       "runtimeCodeHash": "0x7216e736a8a8754e88688fbf5c0c7e9caf35c55ecc3a0c5a597b951c56cf7458",
       "txHash": "0xc11917ffedda6867648fa2cb62cca1df3c0ed485a0a0885284e93a2c5d33455c"
     },
-    "GNS": {
+    "L2GNS": {
       "address": "0x6bf9104e054537301cC23A1023Ca30A6Df79eB21",
       "initArgs": [
         "0x7f734E995010Aa8d28b912703093d532C37b6EAb",
