@@ -1,11 +1,10 @@
 import { expect } from 'chai'
-import { constants, BigNumber, PopulatedTransaction, ethers } from 'ethers'
+import { constants, BigNumber, PopulatedTransaction } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
-import { Staking } from '../../build/types/Staking'
 import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
