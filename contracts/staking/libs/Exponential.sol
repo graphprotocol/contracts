@@ -37,13 +37,13 @@ library LibExponential {
             return fees;
         }
 
-        // No fees rebate if stake, fees or lambda are zero...
-        int256 lambda = LibFixedMath.toFixed(int32(lambdaNumerator), int32(lambdaDenominator));
-        if (stake == 0 || fees == 0 || lambda == 0) {
+        // No rebates if no fees...
+        if (fees == 0) {
             return 0;
         }
 
         // Award all fees as rebate if the exponent is too large
+        int256 lambda = LibFixedMath.toFixed(int32(lambdaNumerator), int32(lambdaDenominator));
         int256 exponent = LibFixedMath.mulDiv(lambda, int256(stake), int256(fees));
         if (LibFixedMath.toInteger(exponent) > MAX_EXPONENT) {
             return fees;

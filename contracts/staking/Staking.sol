@@ -406,14 +406,18 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             // Using accumulated fees and subtracting previously distributed rebates
             // allows for multiple vouchers to be collected while following the rebate formula
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
-            uint256 newRebates = LibExponential.exponentialRebates(
-                alloc.collectedFees,
-                alloc.tokens,
-                __alphaNumerator,
-                __alphaDenominator,
-                __lambdaNumerator,
-                __lambdaDenominator
-            );
+
+            // No rebates if indexer has no stake or if lambda is zero
+            uint256 newRebates = (alloc.tokens == 0 || __lambdaNumerator == 0)
+                ? 0
+                : LibExponential.exponentialRebates(
+                    alloc.collectedFees,
+                    alloc.tokens,
+                    __alphaNumerator,
+                    __alphaDenominator,
+                    __lambdaNumerator,
+                    __lambdaDenominator
+                );
 
             //  -- Ensure rebates to distribute are within bounds --
             // Indexers can become under or over rebated if rebate parameters (alpha, lambda)
