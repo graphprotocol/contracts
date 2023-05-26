@@ -587,6 +587,21 @@ describe('Staking:Allocation', () => {
       await expect(tx).revertedWith('!collect')
     })
 
+    it('should get no rebates if allocated stake is zero', async function () {
+      // Create an allocation with no stake
+      await staking.connect(indexer.signer).stake(tokensToStake)
+      await allocate(
+        BigNumber.from(0),
+        anotherAllocationID,
+        await anotherChannelKey.generateProof(indexer.address),
+      )
+
+      // Collect from closed allocation, should get no rebates
+      const rebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+      expect(rebates.queryRebates).eq(BigNumber.from(0))
+      expect(rebates.queryFeesBurnt).eq(tokensToCollect)
+    })
+
     it('should resolve over-rebated scenarios correctly', async function () {
       // Set up a new allocation with `tokensToAllocate` staked
       await staking.connect(indexer.signer).stake(tokensToStake)
