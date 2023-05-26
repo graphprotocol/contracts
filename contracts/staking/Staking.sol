@@ -656,8 +656,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint32 _lambdaNumerator,
         uint32 _lambdaDenominator
     ) private {
-        require(_alphaDenominator > 0, "!alpha");
-        require(_lambdaNumerator > 0 && _lambdaDenominator > 0, "!lambda");
+        require(_alphaDenominator > 0, "!alphaDenominator");
+        require(_lambdaNumerator > 0, "!lambdaNumerator");
+        require(_lambdaDenominator > 0, "!lambdaDenominator");
         __alphaNumerator = _alphaNumerator;
         __alphaDenominator = _alphaDenominator;
         __lambdaNumerator = _lambdaNumerator;
