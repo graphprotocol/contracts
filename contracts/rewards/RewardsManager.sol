@@ -355,6 +355,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @return Rewards amount for an allocation
      */
     function getRewards(address _allocationID) external view override returns (uint256) {
+        IStaking.AllocationState allocState = staking().getAllocationState(_allocationID);
+        if (allocState != IStakingBase.AllocationState.Active) {
+            return 0;
+        }
+
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(

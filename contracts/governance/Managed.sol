@@ -8,6 +8,7 @@ import { ICuration } from "../curation/ICuration.sol";
 import { IEpochManager } from "../epochs/IEpochManager.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { IStaking } from "../staking/IStaking.sol";
+import { IStakingBase } from "../staking/IStakingBase.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { IGNS } from "../discovery/IGNS.sol";
