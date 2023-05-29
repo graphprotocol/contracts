@@ -209,6 +209,8 @@ interface IStakingBase is IStakingData {
      * @dev This function can only be called by the governor.
      * @param _alphaNumerator Numerator of `alpha`
      * @param _alphaDenominator Denominator of `alpha`
+     * @param _lambdaNumerator Numerator of `lambda`
+     * @param _lambdaDenominator Denominator of `lambda`
      */
     function setRebateParameters(
         uint32 _alphaNumerator,
