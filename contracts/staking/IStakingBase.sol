@@ -113,7 +113,7 @@ interface IStakingBase is IStakingData {
      * @dev Emitted when `extensionImpl` was set as the address of the StakingExtension contract
      * to which extended functionality is delegated.
      */
-    event ExtensionImplementationSet(address extensionImpl);
+    event ExtensionImplementationSet(address indexed extensionImpl);
 
     /**
      * @dev Possible states an allocation can be.
