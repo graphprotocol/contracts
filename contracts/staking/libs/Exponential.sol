@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import "./LibFixedMath.sol";
+import { LibFixedMath } from "./LibFixedMath.sol";
 
 library LibExponential {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
