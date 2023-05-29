@@ -188,7 +188,7 @@ describe('L1Staking:L2Transfer', () => {
 
       const expectedCallhookData = defaultAbiCoder.encode(
         ['uint8', 'bytes'],
-        [toBN(0), expectedFunctionData], // code = 1 means RECEIVE_INDEXER_CODE
+        [toBN(0), expectedFunctionData], // code = 0 means RECEIVE_INDEXER_CODE
       )
       const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,

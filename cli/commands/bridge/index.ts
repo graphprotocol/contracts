@@ -8,6 +8,7 @@ import {
   sendCurationToL2Command,
   sendSubgraphToL2Command,
 } from './gns-transfer-tools'
+import { sendDelegationToL2Command, sendStakeToL2Command } from './staking-transfer-tools'
 
 export const bridgeCommand = {
   command: 'bridge',
@@ -23,6 +24,8 @@ export const bridgeCommand = {
       .command(sendSubgraphToL2Command)
       .command(finishSubgraphTransferToL2Command)
       .command(sendCurationToL2Command)
+      .command(sendStakeToL2Command)
+      .command(sendDelegationToL2Command)
   },
   handler: (): void => {
     yargs.showHelp()
