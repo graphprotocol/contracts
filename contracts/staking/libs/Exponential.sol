@@ -4,6 +4,10 @@ pragma solidity ^0.7.6;
 
 import { LibFixedMath } from "./LibFixedMath.sol";
 
+/**
+ * @title LibExponential library
+ * @notice A library to compute qyery fee rebates using an exponential formula
+ */
 library LibExponential {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
     uint32 private constant MAX_EXPONENT = 15;
