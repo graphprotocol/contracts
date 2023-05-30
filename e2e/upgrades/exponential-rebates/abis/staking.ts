@@ -20,4 +20,14 @@ export default [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { internalType: 'address', name: '_allocationID', type: 'address' },
+      { internalType: 'bool', name: '_restake', type: 'bool' },
+    ],
+    name: 'claim',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ]
