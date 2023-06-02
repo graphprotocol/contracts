@@ -6,7 +6,7 @@ import { LibFixedMath } from "./LibFixedMath.sol";
 
 /**
  * @title LibExponential library
- * @notice A library to compute qyery fee rebates using an exponential formula
+ * @notice A library to compute query fee rebates using an exponential formula
  */
 library LibExponential {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
