@@ -1077,7 +1077,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             return AllocationState.Null;
         }
 
-        if (alloc.closedAtEpoch == 0) {
+        if (alloc.createdAtEpoch != 0 && alloc.closedAtEpoch == 0) {
             return AllocationState.Active;
         }
 
