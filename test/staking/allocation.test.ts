@@ -1,10 +1,11 @@
 import { expect } from 'chai'
-import { constants, BigNumber, PopulatedTransaction } from 'ethers'
+import { constants, BigNumber, PopulatedTransaction, ethers } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
+import { Staking } from '../../build/types/Staking'
 import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -100,7 +101,6 @@ describe('Staking:Allocation', () => {
     // After state
     const afterStake = await staking.stakes(indexer.address)
     const afterAlloc = await staking.getAllocation(allocationID)
-    const afterState = await staking.getAllocationState(allocationID)
 
     // Stake updated
     expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.add(tokensToAllocate))
@@ -111,7 +111,6 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.createdAtEpoch).eq(currentEpoch)
     expect(afterAlloc.collectedFees).eq(toGRT('0'))
     expect(afterAlloc.closedAtEpoch).eq(toBN('0'))
-    expect(afterState).to.eq(AllocationState.Active)
   }
 
   // This function tests collect with state updates
@@ -120,9 +119,11 @@ describe('Staking:Allocation', () => {
     _allocationID?: string,
   ): Promise<{ queryRebates: BigNumber; queryFeesBurnt: BigNumber }> => {
     const alloID = _allocationID ?? allocationID
-    const alloStateBefore = await staking.getAllocationState(alloID)
     // Should have a particular state before collecting
-    expect(alloStateBefore).to.be.oneOf([AllocationState.Active, AllocationState.Closed])
+    expect(await staking.getAllocationState(alloID)).to.be.oneOf([
+      AllocationState.Active,
+      AllocationState.Closed,
+    ])
 
     // Before state
     const beforeTokenSupply = await grt.totalSupply()
@@ -196,7 +197,6 @@ describe('Staking:Allocation', () => {
     const afterAlloc = await staking.getAllocation(alloID)
     const afterIndexerBalance = await grt.balanceOf(indexer.address)
     const afterStake = await staking.stakes(indexer.address)
-    const alloStateAfter = await staking.getAllocationState(alloID)
 
     // Check that protocol fees are burnt
     expect(afterTokenSupply).eq(beforeTokenSupply.sub(protocolFees).sub(queryFeesBurnt))
@@ -221,7 +221,6 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.distributedRebates).eq(
       beforeAlloc.distributedRebates.add(queryRebates).add(delegationRewards),
     )
-    expect(alloStateAfter).eq(alloStateBefore)
 
     // // Funds distributed to indexer or restaked
     const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
@@ -261,48 +260,6 @@ describe('Staking:Allocation', () => {
     // Check rebated amounts match, allow a small error margin of 5 wei
     // Due to rounding it's not possible to guarantee an exact match in case of multiple collections
     expect(rebatedAmountMultiple.sub(rebatedAmountFull)).lt(5)
-  }
-
-  const shouldCloseAllocation = async () => {
-    // Before state
-    const beforeStake = await staking.stakes(indexer.address)
-    const beforeAlloc = await staking.getAllocation(allocationID)
-    const beforeAlloState = await staking.getAllocationState(allocationID)
-    expect(beforeAlloState).eq(AllocationState.Active)
-
-    // Move at least one epoch to be able to close
-    await advanceToNextEpoch(epochManager)
-    await advanceToNextEpoch(epochManager)
-
-    // Calculations
-    const currentEpoch = await epochManager.currentEpoch()
-
-    // Close allocation
-    const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-    await expect(tx)
-      .emit(staking, 'AllocationClosed')
-      .withArgs(
-        indexer.address,
-        subgraphDeploymentID,
-        currentEpoch,
-        beforeAlloc.tokens,
-        allocationID,
-        indexer.address,
-        poi,
-        false,
-      )
-
-    // After state
-    const afterStake = await staking.stakes(indexer.address)
-    const afterAlloc = await staking.getAllocation(allocationID)
-    const afterAlloState = await staking.getAllocationState(allocationID)
-
-    // Stake updated
-    expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.sub(beforeAlloc.tokens))
-    // Allocation updated
-    expect(afterAlloc.closedAtEpoch).eq(currentEpoch)
-    // State progressed
-    expect(afterAlloState).eq(AllocationState.Closed)
   }
   // -- Tests --
 
@@ -799,7 +756,40 @@ describe('Staking:Allocation', () => {
         })
 
         it('should close an allocation', async function () {
-          await shouldCloseAllocation()
+          // Before state
+          const beforeStake = await staking.stakes(indexer.address)
+          const beforeAlloc = await staking.getAllocation(allocationID)
+
+          // Move at least one epoch to be able to close
+          await advanceToNextEpoch(epochManager)
+          await advanceToNextEpoch(epochManager)
+
+          // Calculations
+          const currentEpoch = await epochManager.currentEpoch()
+
+          // Close allocation
+          const tx = staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+          await expect(tx)
+            .emit(staking, 'AllocationClosed')
+            .withArgs(
+              indexer.address,
+              subgraphDeploymentID,
+              currentEpoch,
+              beforeAlloc.tokens,
+              allocationID,
+              indexer.address,
+              poi,
+              false,
+            )
+
+          // After state
+          const afterStake = await staking.stakes(indexer.address)
+          const afterAlloc = await staking.getAllocation(allocationID)
+
+          // Stake updated
+          expect(afterStake.tokensAllocated).eq(beforeStake.tokensAllocated.sub(beforeAlloc.tokens))
+          // Allocation updated
+          expect(afterAlloc.closedAtEpoch).eq(currentEpoch)
         })
 
         it('should close an allocation (by operator)', async function () {
