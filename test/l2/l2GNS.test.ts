@@ -391,6 +391,9 @@ describe('L2GNS', () => {
       expect(subgraphAfter.subgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
       const expectedNSignal = await gns.vSignalToNSignal(l2SubgraphId, expectedSignal)
       expect(await gns.getCuratorSignal(l2SubgraphId, me.address)).eq(expectedNSignal)
+      await expect(tx)
+        .emit(gns, 'SignalMinted')
+        .withArgs(l2SubgraphId, me.address, expectedNSignal, expectedSignal, curatedTokens)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
