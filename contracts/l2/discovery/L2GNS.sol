@@ -143,6 +143,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             _subgraphDeploymentID
         );
         emit SubgraphVersionUpdated(_l2SubgraphID, _subgraphDeploymentID, _versionMetadata);
+        emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, transferData.tokens);
         emit SubgraphL2TransferFinalized(_l2SubgraphID);
     }
 
