@@ -357,10 +357,10 @@
       "txHash": "0x03d497c812f809baf0b862b034f2df73de3e01ddd9bb0aac834bbfb7dcfc7a1d",
       "proxy": true,
       "implementation": {
-        "address": "0xEBb49ffbeEc7545918251C65ec0D98F6332981Ca",
-        "creationCodeHash": "0x0bde02009c8ffbe1e184a998815ccb864aef8bdc5e70dd797f42270916a82a3d",
-        "runtimeCodeHash": "0xb47f4cc0fdb8050c5ffd84450fd5fc7252e74e149b822a783748fd4740cf030d",
-        "txHash": "0x411242cdf758c92cd48074bf3bdd59d98541c688f833780ecdf7d32c3f81ea4c"
+        "address": "0x1d52e005650922E57A8a23e16a2eBc599CA51725",
+        "creationCodeHash": "0xab7a8f4163377ef288e0bb8551051a920a83e0ec553b874f0f99b9db880d4e4a",
+        "runtimeCodeHash": "0x9c4fbf132be7d540c99d00475226cb1fcba2625dde67cf3be8679f2374542940",
+        "txHash": "0x08480d6a59b679c645e281b6af2be711584a6be9b92de4415e808ae833b22fa6"
       }
     },
     "L2Staking": {
