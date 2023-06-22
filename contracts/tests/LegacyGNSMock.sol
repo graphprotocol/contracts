@@ -8,7 +8,7 @@ import { IGNS } from "../discovery/IGNS.sol";
 
 /**
  * @title LegacyGNSMock contract
- * @dev This is used to test the migration of legacy subgraphs (both to NFT-based subgraphs and to L2)
+ * @dev This is used to test the migration of legacy subgraphs to NFT-based subgraphs and transferring them to L2
  */
 contract LegacyGNSMock is L1GNS {
     /**

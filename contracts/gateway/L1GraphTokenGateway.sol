@@ -417,7 +417,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Decodes calldata required for migration of tokens
+     * @notice Decodes calldata required for transfer of tokens to L2
      * @dev Data must include maxSubmissionCost, extraData can be left empty. When the router
      * sends an outbound message, data also contains the from address.
      * @param _data encoded callhook data

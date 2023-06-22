@@ -31,11 +31,32 @@ export const displayGasOverrides = (): Overrides => {
   return r
 }
 
+function isMnemonic(mnemonic) {
+  return mnemonic.split(' ').length >= 12 && mnemonic.split(' ').length <= 24
+}
+
+function isPrivateKey(privateKey) {
+  try {
+    utils.getAddress(utils.computeAddress(privateKey))
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
 export const loadEnv = async (argv: CLIArgs, wallet?: Wallet): Promise<CLIEnvironment> => {
   if (!wallet) {
-    wallet = Wallet.fromMnemonic(argv.mnemonic, `m/44'/60'/0'/0/${argv.accountNumber}`).connect(
-      getProvider(argv.providerUrl),
-    )
+    if (isPrivateKey(argv.mnemonic)) {
+      wallet = new Wallet(argv.mnemonic, getProvider(argv.providerUrl))
+    } else if (isMnemonic(argv.mnemonic)) {
+      wallet = Wallet.fromMnemonic(argv.mnemonic, `m/44'/60'/0'/0/${argv.accountNumber}`).connect(
+        getProvider(argv.providerUrl),
+      )
+    } else {
+      throw new Error(
+        'A wallet was not provided, please complete the `mnemonic` argument with a valid value',
+      )
+    }
   }
 
   const balance = await wallet.getBalance()

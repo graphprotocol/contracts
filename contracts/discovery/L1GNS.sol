@@ -20,7 +20,7 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
  * human-readable names. All human readable names emitted in events.
  * The contract implements a multicall behaviour to support batching multiple calls in a single
  * transaction.
- * This L1GNS variant includes some functions to allow migrating subgraphs to L2.
+ * This L1GNS variant includes some functions to allow transferring subgraphs to L2.
  */
 contract L1GNS is GNS, L1GNSV1Storage {
     using SafeMathUpgradeable for uint256;
@@ -44,6 +44,8 @@ contract L1GNS is GNS, L1GNSV1Storage {
     /**
      * @notice Send a subgraph's data and tokens to L2.
      * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
+     * Note that any L2 gas/fee refunds will be lost, so the function only accepts
+     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid.
      * @param _subgraphID Subgraph ID
      * @param _l2Owner Address that will own the subgraph in L2 (could be the L1 owner, but could be different if the L1 owner is an L1 contract)
      * @param _maxGas Max gas to use for the L2 retryable ticket
@@ -57,13 +59,17 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
-        require(!subgraphMigratedToL2[_subgraphID], "ALREADY_DONE");
+        require(!subgraphTransferredToL2[_subgraphID], "ALREADY_DONE");
+        require(
+            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
+            "INVALID_ETH_VALUE"
+        );
 
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
-        // This is just like onlySubgraphAuth, but we want it to run after the subgraphMigratedToL2 check
+        // This is just like onlySubgraphAuth, but we want it to run after the subgraphTransferredToL2 check
         // to revert with a nicer message in that case:
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
-        subgraphMigratedToL2[_subgraphID] = true;
+        subgraphTransferredToL2[_subgraphID] = true;
 
         uint256 curationTokens = curation().burn(
             subgraphData.subgraphDeploymentID,
@@ -75,7 +81,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
 
         // We send only the subgraph owner's tokens and nsignal to L2,
         // and for everyone else we set the withdrawableGRT so that they can choose
-        // to withdraw or migrate their signal.
+        // to withdraw or transfer their signal.
         uint256 ownerNSignal = subgraphData.curatorNSignal[msg.sender];
         uint256 totalSignal = subgraphData.nSignal;
 
@@ -108,13 +114,15 @@ contract L1GNS is GNS, L1GNSV1Storage {
 
     /**
      * @notice Send the balance for a curator's signal in a subgraph that was
-     * migrated to L2, using the L1GraphTokenGateway.
+     * transferred to L2, using the L1GraphTokenGateway.
      * The balance will be claimed for a beneficiary address, as this method can be
      * used by curators that use a contract address in L1 that may not exist in L2.
      * This will set the curator's signal on L1 to zero, so the caller must ensure
      * that the retryable ticket is redeemed before expiration, or the signal will be lost.
-     * It is up to the caller to verify that the subgraph migration was finished in L2,
+     * It is up to the caller to verify that the subgraph transfer was finished in L2,
      * but if it wasn't, the tokens will be sent to the beneficiary in L2.
+     * Note that any L2 gas/fee refunds will be lost, so the function only accepts
+     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid.
      * @dev Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * @param _subgraphID Subgraph ID
      * @param _beneficiary Address that will receive the tokens in L2
@@ -129,8 +137,11 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
-        require(subgraphMigratedToL2[_subgraphID], "!MIGRATED");
-
+        require(subgraphTransferredToL2[_subgraphID], "!TRANSFERRED");
+        require(
+            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
+            "INVALID_ETH_VALUE"
+        );
         // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 

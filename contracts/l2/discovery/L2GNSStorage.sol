@@ -11,8 +11,8 @@ import { IL2GNS } from "./IL2GNS.sol";
  * @dev
  */
 abstract contract L2GNSV1Storage {
-    /// Data for subgraph migration from L1 to L2
-    mapping(uint256 => IL2GNS.SubgraphL2MigrationData) public subgraphL2MigrationData;
+    /// Data for subgraph transfer from L1 to L2
+    mapping(uint256 => IL2GNS.SubgraphL2TransferData) public subgraphL2TransferData;
     /// @dev Storage gap to keep storage slots fixed in future versions
     uint256[50] private __gap;
 }

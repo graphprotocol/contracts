@@ -42,7 +42,7 @@ const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
 }
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
-const toRound = (n: number) => n.toFixed(12)
+const toRound = (n: number) => n.toPrecision(11)
 
 describe('L2Curation:Config', () => {
   let me: Account
@@ -81,7 +81,7 @@ describe('L2Curation:Config', () => {
   describe('minimumCurationDeposit', function () {
     it('should set `minimumCurationDeposit`', async function () {
       // Set right in the constructor
-      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.minimumCurationDeposit)
+      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.l2MinimumCurationDeposit)
 
       // Can set if allowed
       const newValue = toBN('100')
@@ -163,16 +163,16 @@ describe('L2Curation', () => {
   let gns: GNS
 
   // Test values
-  const signalAmountFor1000Tokens = toGRT('10.0')
+  const signalAmountFor1000Tokens = toGRT('1000.0')
+  const signalAmountForMinimumCuration = toBN('1')
   const subgraphDeploymentID = randomHexBytes()
   const curatorTokens = toGRT('1000000000')
   const tokensToDeposit = toGRT('1000')
   const tokensToCollect = toGRT('2000')
 
-  async function calcBondingCurve(
+  async function calcLinearBondingCurve(
     supply: BigNumber,
     reserveBalance: BigNumber,
-    reserveRatio: number,
     depositAmount: BigNumber,
   ): Promise<number> {
     // Handle the initialization of the bonding curve
@@ -181,22 +181,14 @@ describe('L2Curation', () => {
       if (depositAmount.lt(minDeposit)) {
         throw new Error('deposit must be above minimum')
       }
-      const defaultReserveRatio = await curation.defaultReserveRatio()
-      const minSupply = toGRT('1')
+      const minSupply = signalAmountForMinimumCuration
       return (
-        (await calcBondingCurve(
-          minSupply,
-          minDeposit,
-          defaultReserveRatio,
-          depositAmount.sub(minDeposit),
-        )) + toFloat(minSupply)
+        (await calcLinearBondingCurve(minSupply, minDeposit, depositAmount.sub(minDeposit))) +
+        toFloat(minSupply)
       )
     }
     // Calculate bonding curve in the test
-    return (
-      toFloat(supply) *
-      ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
-    )
+    return toFloat(supply) * (toFloat(depositAmount) / toFloat(reserveBalance))
   }
 
   const shouldMint = async (tokensToDeposit: BigNumber, expectedSignal: BigNumber) => {
@@ -419,7 +411,7 @@ describe('L2Curation', () => {
     it('convert tokens to signal if non-curated subgraph', async function () {
       // Conversion
       const nonCuratedSubgraphDeploymentID = randomHexBytes()
-      const tokens = toGRT('1')
+      const tokens = toGRT('0')
       const tx = curation.tokensToSignal(nonCuratedSubgraphDeploymentID, tokens)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
     })
@@ -427,6 +419,8 @@ describe('L2Curation', () => {
 
   describe('curate', async function () {
     it('reject deposit below minimum tokens required', async function () {
+      // Set the minimum to a value greater than 1 so that we can test
+      await curation.connect(governor.signer).setMinimumCurationDeposit(toBN('2'))
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
@@ -434,7 +428,7 @@ describe('L2Curation', () => {
 
     it('should deposit on a subgraph deployment', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
-      const expectedSignal = toGRT('1')
+      const expectedSignal = signalAmountForMinimumCuration // tax = 0 due to rounding
       await shouldMint(tokensToDeposit, expectedSignal)
     })
 
@@ -475,6 +469,8 @@ describe('L2Curation', () => {
     })
 
     it('reject deposit below minimum tokens required', async function () {
+      // Set the minimum to a value greater than 1 so that we can test
+      await curation.connect(governor.signer).setMinimumCurationDeposit(toBN('2'))
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation
         .connect(gnsImpersonator)
@@ -484,7 +480,7 @@ describe('L2Curation', () => {
 
     it('should deposit on a subgraph deployment', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
-      const expectedSignal = toGRT('1')
+      const expectedSignal = signalAmountForMinimumCuration
       await shouldMintTaxFree(tokensToDeposit, expectedSignal)
     })
 
@@ -620,7 +616,7 @@ describe('L2Curation', () => {
     it('should allow to redeem *partially*', async function () {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
-      const expectedTokens = toGRT('100')
+      const expectedTokens = toGRT('1')
       await shouldBurn(signalToRedeem, expectedTokens)
     })
 
@@ -632,6 +628,9 @@ describe('L2Curation', () => {
     })
 
     it('should allow to redeem back below minimum deposit', async function () {
+      // Set the minimum to a value greater than 1 so that we can test
+      await curation.connect(governor.signer).setMinimumCurationDeposit(toGRT('1'))
+
       // Redeem "almost" all signal
       const signal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const signalToRedeem = signal.sub(toGRT('0.000001'))
@@ -732,14 +731,13 @@ describe('L2Curation', () => {
         toGRT('1'), // should mint below minimum deposit
       ]
       for (const tokensToDeposit of tokensToDepositMany) {
-        const expectedSignal = await calcBondingCurve(
+        const expectedSignal = await calcLinearBondingCurve(
           await curation.getCurationPoolSignal(subgraphDeploymentID),
           await curation.getCurationPoolTokens(subgraphDeploymentID),
-          await curation.defaultReserveRatio(),
           tokensToDeposit,
         )
         // SIGNAL_PER_MINIMUM_DEPOSIT should always give the same ratio
-        expect(tokensToDeposit.div(toGRT(expectedSignal))).eq(100)
+        expect(tokensToDeposit.div(toGRT(expectedSignal))).eq(1)
 
         const tx = await curation
           .connect(curator.signer)
@@ -747,25 +745,25 @@ describe('L2Curation', () => {
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
-        expect(toRound(expectedSignal)).eq(toRound(toFloat(signal)))
+        expect(toRound(toFloat(toBN(signal)))).eq(toRound(expectedSignal))
       }
     })
 
-    it('should mint when using the edge case of a 1:1 linear function', async function () {
+    it('should mint when using a different ratio between GRT and signal', async function () {
       this.timeout(60000) // increase timeout for test runner
 
-      // Setup edge case like linear function: 1 GRT = 1 GCS
+      // Setup edge case with 1 GRT = 1 wei signal
       await curation.setMinimumCurationDeposit(toGRT('1'))
 
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit
-        toGRT('1000'), // every time it should mint less GCS due to bonding curve...
+        toGRT('1000'), // every time it should mint proportionally the same GCS due to linear bonding curve...
         toGRT('1000'),
         toGRT('1000'),
         toGRT('2000'),
         toGRT('2000'),
         toGRT('123'),
-        toGRT('1'), // should mint below minimum deposit
+        toGRT('1'),
       ]
 
       // Mint multiple times
@@ -776,7 +774,7 @@ describe('L2Curation', () => {
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
-        expect(tokensToDeposit).eq(signal) // we compare 1:1 ratio
+        expect(tokensToDeposit).eq(signal.mul(toGRT('1'))) // we compare 1 GRT : 1 wei ratio
       }
     })
   })

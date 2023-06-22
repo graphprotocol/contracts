@@ -1024,7 +1024,7 @@ describe('L1GNS', () => {
       expect(id).eq(toBN('0'))
     })
   })
-  describe('Subgraph migration to L2', function () {
+  describe('Subgraph transfer to L2', function () {
     const publishAndCurateOnSubgraph = async function (): Promise<Subgraph> {
       // Publish a named subgraph-0 -> subgraphDeployment0
       const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
@@ -1036,12 +1036,12 @@ describe('L1GNS', () => {
     }
 
     const publishCurateAndSendSubgraph = async function (
-      beforeMigrationCallback?: (subgraphID: string) => Promise<void>,
+      beforeTransferCallback?: (subgraphID: string) => Promise<void>,
     ): Promise<Subgraph> {
       const subgraph0 = await publishAndCurateOnSubgraph()
 
-      if (beforeMigrationCallback != null) {
-        await beforeMigrationCallback(subgraph0.id)
+      if (beforeTransferCallback != null) {
+        await beforeTransferCallback(subgraph0.id)
       }
 
       const maxSubmissionCost = toBN('100')
@@ -1112,8 +1112,8 @@ describe('L1GNS', () => {
         expect(subgraphAfter.disabled).eq(true)
         expect(subgraphAfter.withdrawableGRT).eq(expectedRemainingTokens)
 
-        const migrated = await gns.subgraphMigratedToL2(subgraph0.id)
-        expect(migrated).eq(true)
+        const transferred = await gns.subgraphTransferredToL2(subgraph0.id)
+        expect(transferred).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint8', 'uint256', 'address'],
@@ -1158,8 +1158,8 @@ describe('L1GNS', () => {
         expect(subgraphAfter.disabled).eq(true)
         expect(subgraphAfter.withdrawableGRT).eq(expectedRemainingTokens)
 
-        const migrated = await legacyGNSMock.subgraphMigratedToL2(subgraphID)
-        expect(migrated).eq(true)
+        const transferred = await legacyGNSMock.subgraphTransferredToL2(subgraphID)
+        expect(transferred).eq(true)
 
         const expectedCallhookData = defaultAbiCoder.encode(
           ['uint8', 'uint256', 'address'],
@@ -1246,6 +1246,19 @@ describe('L1GNS', () => {
           })
 
         await expect(tx).revertedWith('GNS: Must be active')
+      })
+      it('rejects calls with more ETH than maxSubmissionCost + maxGas * gasPriceBid', async function () {
+        const subgraph0 = await publishAndCurateOnSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+        const tx = gns
+          .connect(me.signer)
+          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+          })
+        await expect(tx).revertedWith('INVALID_ETH_VALUE')
       })
       it('does not allow curators to burn signal after sending', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
@@ -1446,7 +1459,7 @@ describe('L1GNS', () => {
       })
       it('sets the curator signal to zero so they cannot withdraw', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph(async (_subgraphId) => {
-          // We add another curator before migrating, so the the subgraph doesn't
+          // We add another curator before transferring, so the the subgraph doesn't
           // run out of withdrawable GRT and we can test that it denies the specific curator
           // because they have sent their signal to L2, not because the subgraph is out of GRT.
           await gns.connect(another.signer).mintSignal(_subgraphId, toGRT('1000'), toBN(0))
@@ -1575,7 +1588,7 @@ describe('L1GNS', () => {
             },
           )
 
-        await expect(tx).revertedWith('!MIGRATED')
+        await expect(tx).revertedWith('!TRANSFERRED')
       })
 
       it('rejects calls for a subgraph that was deprecated', async function () {
@@ -1601,7 +1614,7 @@ describe('L1GNS', () => {
             },
           )
 
-        await expect(tx).revertedWith('!MIGRATED')
+        await expect(tx).revertedWith('!TRANSFERRED')
       })
       it('rejects calls with zero maxSubmissionCost', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()
@@ -1624,6 +1637,28 @@ describe('L1GNS', () => {
           )
 
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
+      })
+      it('rejects calls with more ETH than maxSubmissionCost + maxGas * gasPriceBid', async function () {
+        const subgraph0 = await publishCurateAndSendSubgraph()
+
+        const maxSubmissionCost = toBN('100')
+        const maxGas = toBN('10')
+        const gasPriceBid = toBN('20')
+
+        const tx = gns
+          .connect(me.signer)
+          .sendCuratorBalanceToBeneficiaryOnL2(
+            subgraph0.id,
+            other.address,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost,
+            {
+              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+            },
+          )
+
+        await expect(tx).revertedWith('INVALID_ETH_VALUE')
       })
       it('rejects calls if the curator has withdrawn the GRT', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()
