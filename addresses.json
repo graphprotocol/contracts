@@ -146,7 +146,7 @@
         "txHash": "0x218dbb4fd680db263524fc6be36462c18f3e267b87951cd86296eabd4a381183"
       }
     },
-    "Staking": {
+    "L1Staking": {
       "address": "0xF55041E37E12cD407ad00CE2910B8269B01263b9",
       "initArgs": [
         {
@@ -443,7 +443,7 @@
         "txHash": "0xbc6e9171943020d30c22197282311f003e79374e6eeeaab9c360942bdf4193f4"
       }
     },
-    "Staking": {
+    "L1Staking": {
       "address": "0x35e3Cb6B317690d662160d5d02A5b364578F62c9",
       "initArgs": [
         "0x48eD7AfbaB432d1Fc6Ea84EEC70E745d9DAcaF3B",
@@ -647,7 +647,7 @@
         "txHash": "0xb1e63211ea7b036bf35423034bc60490b3b35b199bddc85200ea926b76e16a4e"
       }
     },
-    "Staking": {
+    "L1Staking": {
       "address": "0x5f8e26fAcC23FA4cbd87b8d9Dbbd33D5047abDE1",
       "initArgs": [
         "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
@@ -1099,7 +1099,7 @@
         "txHash": "0x3bb004adf949e9c896e85f6e3124ecea0c223470e3a091e42539613d52679c4d"
       }
     },
-    "Staking": {
+    "L2Staking": {
       "address": "0xcd549d0C43d915aEB21d3a331dEaB9B7aF186D26",
       "initArgs": [
         "0x7f734E995010Aa8d28b912703093d532C37b6EAb",

@@ -15,7 +15,9 @@ import { EpochManager } from '../../build/types/EpochManager'
 import { GNS } from '../../build/types/GNS'
 import { GraphToken } from '../../build/types/GraphToken'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
-import { Staking } from '../../build/types/Staking'
+import { StakingExtension } from '../../build/types/StakingExtension'
+import { IL1Staking } from '../../build/types/IL1Staking'
+import { IL2Staking } from '../../build/types/IL2Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 import { SubgraphNFT } from '../../build/types/SubgraphNFT'
@@ -25,9 +27,16 @@ import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GNS } from '../../build/types/L2GNS'
 import { L1GNS } from '../../build/types/L1GNS'
+import path from 'path'
+import { Artifacts } from 'hardhat/internal/artifacts'
 
 // Disable logging for tests
 logger.pause()
+
+const ARTIFACTS_PATH = path.resolve('build/contracts')
+const artifacts = new Artifacts(ARTIFACTS_PATH)
+const iL1StakingAbi = artifacts.readArtifactSync('IL1Staking').abi
+const iL2StakingAbi = artifacts.readArtifactSync('IL2Staking').abi
 
 // Default configuration used in tests
 
@@ -250,14 +259,18 @@ export async function deployServiceRegistry(
   ) as unknown as Promise<ServiceRegistry>
 }
 
-export async function deployStaking(
+export async function deployL1Staking(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
-): Promise<Staking> {
-  return network.deployContractWithProxy(
+): Promise<IL1Staking> {
+  const extensionImpl = (await deployContract(
+    'StakingExtension',
+    deployer,
+  )) as unknown as StakingExtension
+  return (await network.deployContractWithProxy(
     proxyAdmin,
-    'Staking',
+    'L1Staking',
     [
       controller,
       defaults.staking.minimumIndexerStake,
@@ -270,9 +283,40 @@ export async function deployStaking(
       0,
       defaults.staking.alphaNumerator,
       defaults.staking.alphaDenominator,
+      extensionImpl.address,
     ],
     deployer,
-  ) as unknown as Staking
+  )) as unknown as IL1Staking
+}
+
+export async function deployL2Staking(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<IL2Staking> {
+  const extensionImpl = (await deployContract(
+    'StakingExtension',
+    deployer,
+  )) as unknown as StakingExtension
+  return (await network.deployContractWithProxy(
+    proxyAdmin,
+    'L2Staking',
+    [
+      controller,
+      defaults.staking.minimumIndexerStake,
+      defaults.staking.thawingPeriod,
+      0,
+      0,
+      defaults.staking.channelDisputeEpochs,
+      defaults.staking.maxAllocationEpochs,
+      defaults.staking.delegationUnbondingPeriod,
+      0,
+      defaults.staking.alphaNumerator,
+      defaults.staking.alphaDenominator,
+      extensionImpl.address,
+    ],
+    deployer,
+  )) as unknown as IL2Staking
 }
 
 export async function deployRewardsManager(

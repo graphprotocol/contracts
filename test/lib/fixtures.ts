@@ -15,7 +15,8 @@ import { Curation } from '../../build/types/Curation'
 import { L2Curation } from '../../build/types/L2Curation'
 import { L1GNS } from '../../build/types/L1GNS'
 import { L2GNS } from '../../build/types/L2GNS'
-import { Staking } from '../../build/types/Staking'
+import { IL1Staking } from '../../build/types/IL1Staking'
+import { IL2Staking } from '../../build/types/IL2Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
@@ -31,7 +32,7 @@ export interface L1FixtureContracts {
   grt: GraphToken
   curation: Curation
   gns: L1GNS
-  staking: Staking
+  staking: IL1Staking
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -46,7 +47,7 @@ export interface L2FixtureContracts {
   grt: L2GraphToken
   curation: L2Curation
   gns: L2GNS
-  staking: Staking
+  staking: IL2Staking
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -100,12 +101,14 @@ export class NetworkFixture {
       curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
     }
     let gns: L1GNS | L2GNS
+    let staking: IL1Staking | IL2Staking
     if (isL2) {
       gns = await deployment.deployL2GNS(deployer, controller.address, proxyAdmin)
+      staking = await deployment.deployL2Staking(deployer, controller.address, proxyAdmin)
     } else {
       gns = await deployment.deployL1GNS(deployer, controller.address, proxyAdmin)
+      staking = await deployment.deployL1Staking(deployer, controller.address, proxyAdmin)
     }
-    const staking = await deployment.deployStaking(deployer, controller.address, proxyAdmin)
     const disputeManager = await deployment.deployDisputeManager(
       deployer,
       controller.address,
@@ -173,9 +176,7 @@ export class NetworkFixture {
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await gns.connect(deployer).approveAll()
-    if (!isL2) {
-      await grt.connect(deployer).addMinter(rewardsManager.address)
-    }
+    await grt.connect(deployer).addMinter(rewardsManager.address)
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
@@ -247,6 +248,7 @@ export class NetworkFixture {
     mockL2GRTAddress: string,
     mockL2GatewayAddress: string,
     mockL2GNSAddress: string,
+    mockL2StakingAddress: string,
   ): Promise<any> {
     // First configure the Arbitrum bridge mocks
     await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
@@ -276,6 +278,12 @@ export class NetworkFixture {
     await l1FixtureContracts.l1GraphTokenGateway
       .connect(deployer)
       .addToCallhookAllowlist(l1FixtureContracts.gns.address)
+    await l1FixtureContracts.staking
+      .connect(deployer)
+      .setCounterpartStakingAddress(mockL2StakingAddress)
+    await l1FixtureContracts.l1GraphTokenGateway
+      .connect(deployer)
+      .addToCallhookAllowlist(l1FixtureContracts.staking.address)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
@@ -286,6 +294,7 @@ export class NetworkFixture {
     mockL1GRTAddress: string,
     mockL1GatewayAddress: string,
     mockL1GNSAddress: string,
+    mockL1StakingAddress: string,
   ): Promise<any> {
     // Configure the L2 GRT
     // Configure the gateway
@@ -302,6 +311,9 @@ export class NetworkFixture {
       .connect(deployer)
       .setL1CounterpartAddress(mockL1GatewayAddress)
     await l2FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
+    await l2FixtureContracts.staking
+      .connect(deployer)
+      .setCounterpartStakingAddress(mockL1StakingAddress)
     await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
