@@ -5,8 +5,6 @@ pragma abicoder v2;
 
 import { IStakingBase } from "./IStakingBase.sol";
 import { IStakingExtension } from "./IStakingExtension.sol";
-import { Stakes } from "./libs/Stakes.sol";
-import { IStakingData } from "./IStakingData.sol";
 import { IMulticall } from "../base/IMulticall.sol";
 import { IManaged } from "../governance/IManaged.sol";
 

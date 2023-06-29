@@ -113,7 +113,7 @@ interface IStakingBase is IStakingData {
      * @dev Emitted when `extensionImpl` was set as the address of the StakingExtension contract
      * to which extended functionality is delegated.
      */
-    event ExtensionImplementationSet(address extensionImpl);
+    event ExtensionImplementationSet(address indexed extensionImpl);
 
     /**
      * @dev Possible states an allocation can be.
@@ -209,6 +209,8 @@ interface IStakingBase is IStakingData {
      * @dev This function can only be called by the governor.
      * @param _alphaNumerator Numerator of `alpha`
      * @param _alphaDenominator Denominator of `alpha`
+     * @param _lambdaNumerator Numerator of `lambda`
+     * @param _lambdaDenominator Denominator of `lambda`
      */
     function setRebateParameters(
         uint32 _alphaNumerator,

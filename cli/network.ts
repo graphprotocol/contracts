@@ -320,6 +320,34 @@ export const deployContractAndSave = async (
   return deployResult.contract
 }
 
+export const deployContractImplementationAndSave = async (
+  name: string,
+  args: Array<ContractParam>,
+  sender: Signer,
+  addressBook: AddressBook,
+): Promise<Contract> => {
+  // Deploy the contract
+  const deployResult = await deployContract(name, args, sender)
+
+  // Save address entry
+  const entry = addressBook.getEntry(name)
+  entry.implementation = {
+    address: deployResult.contract.address,
+    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
+    creationCodeHash: deployResult.creationCodeHash,
+    runtimeCodeHash: deployResult.runtimeCodeHash,
+    txHash: deployResult.txHash,
+    libraries:
+      deployResult.libraries && Object.keys(deployResult.libraries).length > 0
+        ? deployResult.libraries
+        : undefined,
+  }
+  addressBook.setEntry(name, entry)
+  logger.info('> Contract saved to address book')
+
+  return deployResult.contract
+}
+
 export const deployContractWithProxyAndSave = async (
   name: string,
   args: Array<ContractParam>,
