@@ -51,12 +51,14 @@ describe('Rewards', () => {
   // Derive some channel keys for each indexer used to sign attestations
   const channelKey1 = deriveChannelKey()
   const channelKey2 = deriveChannelKey()
+  const channelKeyNull = deriveChannelKey()
 
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
 
   const allocationID1 = channelKey1.address
   const allocationID2 = channelKey2.address
+  const allocationIDNull = channelKeyNull.address
 
   const metadata = HashZero
 
@@ -486,6 +488,41 @@ describe('Rewards', () => {
 
         const expectedRewards = contractRewardsAT1.mul(tokensToAllocate).div(WeiPerEther)
         expect(expectedRewards).eq(contractRewards)
+      })
+      it('rewards should be zero if the allocation is closed', async function () {
+        // Update total signalled
+        const signalled1 = toGRT('1500')
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+
+        // Allocate
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1.signer)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Jump
+        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await advanceToNextEpoch(epochManager)
+
+        // Close allocation
+        await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+
+        // Rewards
+        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        expect(contractRewards).eq(BigNumber.from(0))
+      })
+      it('rewards should be zero if the allocation does not exist', async function () {
+        // Rewards
+        const contractRewards = await rewardsManager.getRewards(allocationIDNull)
+        expect(contractRewards).eq(BigNumber.from(0))
       })
     })
 

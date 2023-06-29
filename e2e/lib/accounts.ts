@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, BigNumberish, ContractTransaction } from 'ethers'
 import { ethers } from 'hardhat'
-import { GraphToken } from '../../../build/types/GraphToken'
+import { GraphToken } from '../../build/types/GraphToken'
 import { TransactionResponse } from '@ethersproject/providers'
 
 const checkBalance = async (
