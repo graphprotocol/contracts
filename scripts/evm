@@ -19,9 +19,31 @@ evm_ping() {
     }'
 }
 
+evm_automine() {
+  curl --location --request POST "localhost:$TESTRPC_PORT/" \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+      "jsonrpc":"2.0",
+      "method":"evm_setAutomine",
+      "params":[true],
+      "id":1
+    }'
+    echo
+}
+
 evm_start() {
+  local FORK_URL=$1
+  local FORK_BLOCK_NUMBER="$2"
   echo "Starting our own evm instance at port $TESTRPC_PORT"
-  npx hardhat node --port "$TESTRPC_PORT" > /dev/null &
+  if [[ -n "$FORK_URL" ]]; then
+    if [[ "$FORK_BLOCK_NUMBER" == "latest" ]]; then
+      npx hardhat node --port "$TESTRPC_PORT" --fork "$FORK_URL" > /dev/null &
+    else
+      npx hardhat node --port "$TESTRPC_PORT" --fork "$FORK_URL" --fork-block-number "$FORK_BLOCK_NUMBER" > /dev/null &
+    fi
+  else
+    npx hardhat node --port "$TESTRPC_PORT" > /dev/null & 
+  fi
   retries=0
   while ! evm_ping $TESTRPC_PORT; do
     ((retries=retries+1))
@@ -31,6 +53,8 @@ evm_start() {
     fi
     sleep 1
   done
+
+  echo -e "\nEVM instance is ready"
 }
 
 evm_kill() {

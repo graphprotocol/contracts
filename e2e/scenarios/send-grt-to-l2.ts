@@ -6,7 +6,7 @@
 
 import hre from 'hardhat'
 import { TASK_BRIDGE_TO_L2 } from '../../tasks/bridge/to-l2'
-import { getGraphOptsFromArgv } from './lib/helpers'
+import { getGraphOptsFromArgv } from '../lib/helpers'
 import { getBridgeFixture } from './fixtures/bridge'
 
 async function main() {

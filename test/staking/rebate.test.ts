@@ -40,7 +40,7 @@ export function exponentialRebates(
   }
 
   const lambda = lambdaNumerator / lambdaDenominator
-  if (fees === 0 || stake === 0 || lambda === 0) {
+  if (fees === 0) {
     return 0
   }
 
@@ -115,44 +115,44 @@ describe('Staking:rebates', () => {
     // *** Exponential rebates ***
     // Typical alpha and lambda
     it('alpha 1 - lambda 0.6', async function () {
-      const alpha: RebateParameters = [10, 10, 6, 10]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [10, 10, 6, 10]
+      await fn(testCases, params)
     })
 
     // Typical alpha and lambda
     it('alpha 0.25 - lambda 0.1', async function () {
-      const alpha: RebateParameters = [1, 4, 1, 10]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [1, 4, 1, 10]
+      await fn(testCases, params)
     })
 
     // Periodic alpha and lambda
-    it('alpha 0.33~', async function () {
-      const alpha: RebateParameters = [1, 3, 2, 3]
-      await fn(testCases, alpha)
+    it('alpha ~0.33 - lambda ~0.66', async function () {
+      const params: RebateParameters = [1, 3, 2, 3]
+      await fn(testCases, params)
     })
 
     // Small alpha typical lambda
     it('alpha 0.005 - lambda 0.6', async function () {
-      const alpha: RebateParameters = [1, 200, 6, 10]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [1, 200, 6, 10]
+      await fn(testCases, params)
     })
 
     // Typical alpha small lambda
     it('alpha 1 - lambda 0.6', async function () {
-      const alpha: RebateParameters = [1, 1, 1, 200]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [1, 1, 1, 200]
+      await fn(testCases, params)
     })
 
     // Edge alpha - typical lambda
     it('alpha 0 - lambda 0.6', async function () {
-      const alpha: RebateParameters = [0, 1, 6, 10]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [0, 1, 6, 10]
+      await fn(testCases, params)
     })
 
     // Typical alpha - edge lambda
     it('alpha 1 - lambda 0', async function () {
-      const alpha: RebateParameters = [1, 1, 0, 10]
-      await fn(testCases, alpha)
+      const params: RebateParameters = [1, 1, 0, 10]
+      await fn(testCases, params)
     })
   }
 
