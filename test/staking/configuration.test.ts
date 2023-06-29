@@ -207,13 +207,13 @@ describe('Staking:Config', () => {
 
     it('reject set `rebateParameters` if out of bounds', async function () {
       const tx2 = staking.connect(governor.signer).setRebateParameters(1, 0, 1, 1)
-      await expect(tx2).revertedWith('!alpha')
+      await expect(tx2).revertedWith('!alphaDenominator')
 
       const tx3 = staking.connect(governor.signer).setRebateParameters(1, 1, 0, 1)
-      await expect(tx3).revertedWith('!lambda')
+      await expect(tx3).revertedWith('!lambdaNumerator')
 
       const tx4 = staking.connect(governor.signer).setRebateParameters(1, 1, 1, 0)
-      await expect(tx4).revertedWith('!lambda')
+      await expect(tx4).revertedWith('!lambdaDenominator')
     })
 
     it('reject set `rebateParameters` if not allowed', async function () {

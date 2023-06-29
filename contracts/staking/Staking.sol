@@ -406,14 +406,18 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             // Using accumulated fees and subtracting previously distributed rebates
             // allows for multiple vouchers to be collected while following the rebate formula
             alloc.collectedFees = alloc.collectedFees.add(queryFees);
-            uint256 newRebates = LibExponential.exponentialRebates(
-                alloc.collectedFees,
-                alloc.tokens,
-                __alphaNumerator,
-                __alphaDenominator,
-                __lambdaNumerator,
-                __lambdaDenominator
-            );
+
+            // No rebates if indexer has no stake or if lambda is zero
+            uint256 newRebates = (alloc.tokens == 0 || __lambdaNumerator == 0)
+                ? 0
+                : LibExponential.exponentialRebates(
+                    alloc.collectedFees,
+                    alloc.tokens,
+                    __alphaNumerator,
+                    __alphaDenominator,
+                    __lambdaNumerator,
+                    __lambdaDenominator
+                );
 
             //  -- Ensure rebates to distribute are within bounds --
             // Indexers can become under or over rebated if rebate parameters (alpha, lambda)
@@ -652,8 +656,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint32 _lambdaNumerator,
         uint32 _lambdaDenominator
     ) private {
-        require(_alphaDenominator > 0, "!alpha");
-        require(_lambdaNumerator > 0 && _lambdaDenominator > 0, "!lambda");
+        require(_alphaDenominator > 0, "!alphaDenominator");
+        require(_lambdaNumerator > 0, "!lambdaNumerator");
+        require(_lambdaDenominator > 0, "!lambdaDenominator");
         __alphaNumerator = _alphaNumerator;
         __alphaDenominator = _alphaDenominator;
         __lambdaNumerator = _lambdaNumerator;

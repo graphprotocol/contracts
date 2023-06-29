@@ -1,4 +1,4 @@
-import { HardhatRuntimeEnvironment, Network } from 'hardhat/types/runtime'
+import { Network } from 'hardhat/types/runtime'
 import { NetworksConfig, HttpNetworkConfig } from 'hardhat/types/config'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { HARDHAT_NETWORK_NAME } from 'hardhat/plugins'
@@ -42,6 +42,7 @@ export const getSecureAccountsProvider = async (
   mainNetworkName: string,
   isMainProvider: boolean,
   chainLabel: string,
+  caller: string,
   accountName?: string,
   accountPassword?: string,
 ): Promise<EthersProviderWrapper | undefined> => {
@@ -57,10 +58,10 @@ export const getSecureAccountsProvider = async (
     return undefined
   }
 
-  logDebug(`Using secure accounts provider for ${chainLabel}(${networkName})`)
+  logDebug(`Using secure accounts provider for ${chainLabel}(${networkName}) - Caller is ${caller}`)
   if (accountName === undefined || accountPassword === undefined) {
     console.log(
-      `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName})`,
+      `== Using secure accounts, please unlock an account for ${chainLabel}(${networkName}) - Caller is ${caller}`,
     )
   }
 

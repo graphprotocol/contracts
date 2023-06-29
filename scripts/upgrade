@@ -1,0 +1,101 @@
+#!/bin/bash
+
+set -eo pipefail
+source $(pwd)/scripts/evm
+
+print_separator() {
+  echo -e "\n############################################################################################"
+  echo "# $1"
+  echo "############################################################################################"
+}
+
+### > SCRIPT CONFIG <
+FORK_URL=${FORK_URL}
+FORK_BLOCK_NUMBER=${FORK_BLOCK_NUMBER:-"latest"}
+CHAIN_ID=${CHAIN_ID}
+
+NETWORK=${NETWORK:-"mainnet"}
+ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses.json"}
+GRAPH_CONFIG=${GRAPH_CONFIG:-"config/graph.mainnet.yml"}
+CONTRACT_NAME=${CONTRACT_NAME}
+UPGRADE_NAME=${UPGRADE_NAME}
+
+if [[ -z "$FORK_URL" ]]; then
+  if [[ -n "$INFURA_KEY" ]]; then
+    FORK_URL="https://mainnet.infura.io/v3/$INFURA_KEY"
+  else
+    echo "Must specify FORK_URL or INFURA_KEY!"
+    exit 0
+  fi
+fi
+
+if [[ -z "$CHAIN_ID" ]]; then
+  echo "Must specify CHAIN_ID you are forking from!"
+  exit 0
+fi
+
+if [[ -z "$CONTRACT_NAME" ]]; then
+  echo "Must specify CONTRACT_NAME to upgrade!"
+  exit 0
+fi
+
+if [[ -z "$UPGRADE_NAME" ]]; then
+  echo "Must specify UPGRADE_NAME to upgrade!"
+  exit 0
+fi
+
+print_separator "Running upgrade tests with config"
+echo "- Using forking URL: $FORK_URL"
+echo "- Forking from chain id: $CHAIN_ID"
+echo "- Fork block number: $FORK_BLOCK_NUMBER"
+echo "- Upgrading contract: $CONTRACT_NAME"
+echo "- Upgrade name: $UPGRADE_NAME"
+
+### > SCRIPT START < ###
+## SETUP
+# Compile contracts
+print_separator "Building contracts"
+yarn build
+
+# Build fork address book with actual contract addresses from the forked chain
+jq "{\"$CHAIN_ID\"} + {"\"1337\"": .\"$CHAIN_ID\"} | del(.\"$CHAIN_ID\")" $ADDRESS_BOOK > addresses-fork.json
+
+# Start evm - fork it!
+print_separator "Starting forked chain"
+evm_kill
+evm_start "$FORK_URL" "$FORK_BLOCK_NUMBER"
+evm_automine
+
+# Run pre-upgrade scripts
+print_separator "Running pre-upgrade scripts and tests"
+FORK=true npx hardhat e2e:upgrade "$UPGRADE_NAME" \
+  --network localhost \
+  --graph-config "${GRAPH_CONFIG}" \
+  --address-book addresses-fork.json \
+  --disable-secure-accounts
+
+# Run upgrade
+print_separator "Upgrading contract"
+FORK=true npx hardhat contracts:upgrade \
+  --network localhost \
+  --graph-config "${GRAPH_CONFIG}" \
+  --address-book addresses-fork.json \
+  --contract "${CONTRACT_NAME}" \
+  --disable-secure-accounts
+
+# Run post-upgrade scripts
+print_separator "Running post-upgrade scripts and tests"
+FORK=true npx hardhat e2e:upgrade "$UPGRADE_NAME" \
+  --network localhost \
+  --graph-config "${GRAPH_CONFIG}" \
+  --address-book addresses-fork.json \
+  --disable-secure-accounts \
+  --post
+
+# Kill evm
+print_separator "Clean up"
+read -p "Upgrade test finished! Do you want to keep the evm running? (y/N) " yn
+if [[ $yn != "y" ]]; then
+  evm_kill
+fi
+

@@ -7,11 +7,11 @@
 //    npx hardhat e2e:scenario close-allocations --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { closeAllocation } from './lib/staking'
+import { closeAllocation } from '../lib/staking'
 import { advanceToNextEpoch } from '../../test/lib/testHelpers'
-import { fundAccountsETH } from './lib/accounts'
+import { fundAccountsETH } from '../lib/accounts'
 import { getIndexerFixtures } from './fixtures/indexers'
-import { getGraphOptsFromArgv } from './lib/helpers'
+import { getGraphOptsFromArgv } from '../lib/helpers'
 
 async function main() {
   const graphOpts = getGraphOptsFromArgv()
