@@ -4,6 +4,7 @@ export function getGraphOptsFromArgv(): {
   l1GraphConfig: string | undefined
   l2GraphConfig: string | undefined
   disableSecureAccounts?: boolean | undefined
+  fork?: boolean | undefined
 } {
   const argv = process.argv.slice(2)
 
@@ -16,5 +17,6 @@ export function getGraphOptsFromArgv(): {
     l1GraphConfig: getArgv(2),
     l2GraphConfig: getArgv(3),
     disableSecureAccounts: getArgv(4),
+    fork: getArgv(5),
   }
 }
