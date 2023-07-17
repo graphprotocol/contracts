@@ -7,4 +7,5 @@ module.exports = {
   },
   skipFiles,
   istanbulFolder: './reports/coverage',
+  configureYulOptimizer: true,
 }

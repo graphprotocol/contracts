@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { constants, BigNumber, Event } from 'ethers'
 
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 
@@ -39,7 +39,7 @@ describe('Staking:Stakes', () => {
   let fixture: NetworkFixture
 
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Test values
   const indexerTokens = toGRT('1000')
@@ -115,8 +115,8 @@ describe('Staking:Stakes', () => {
       })
 
       it('reject stake less than minimum indexer stake', async function () {
-        expect(toGRT('1')).lte(await staking.minimumIndexerStake())
-        const tx = staking.connect(indexer.signer).stake(toGRT('1'))
+        const amount = (await staking.minimumIndexerStake()).sub(toGRT('1'))
+        const tx = staking.connect(indexer.signer).stake(amount)
         await expect(tx).revertedWith('!minimumIndexerStake')
       })
 

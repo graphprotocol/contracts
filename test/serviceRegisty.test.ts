@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 
 import { ServiceRegistry } from '../build/types/ServiceRegistry'
-import { Staking } from '../build/types/Staking'
+import { IStaking } from '../build/types/IStaking'
 
 import { getAccounts, Account } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
@@ -14,7 +14,7 @@ describe('ServiceRegistry', () => {
   let fixture: NetworkFixture
 
   let serviceRegistry: ServiceRegistry
-  let staking: Staking
+  let staking: IStaking
 
   const shouldRegister = async (url: string, geohash: string) => {
     // Register the indexer service

@@ -2,6 +2,10 @@
 
 pragma solidity >=0.6.12 <0.8.0;
 
+/**
+ * @title Staking Data interface
+ * @dev This interface defines some structures used by the Staking contract.
+ */
 interface IStakingData {
     /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
@@ -16,16 +20,6 @@ interface IStakingData {
         uint256 collectedFees; // Collected fees for the allocation
         uint256 effectiveAllocation; // Effective allocation when closed
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
-    }
-
-    /**
-     * @dev Represents a request to close an allocation with a specific proof of indexing.
-     * This is passed when calling closeAllocationMany to define the closing parameters for
-     * each allocation.
-     */
-    struct CloseAllocationRequest {
-        address allocationID;
-        bytes32 poi;
     }
 
     // -- Delegation Data --
