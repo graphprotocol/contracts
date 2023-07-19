@@ -1023,6 +1023,7 @@ abstract contract Staking is StakingV3Storage, GraphUpgradeable, IStakingBase, M
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
                 // Then we call collect() to do the transfer bookeeping
+                rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
                 TokenUtils.pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);
             }
