@@ -30,4 +30,24 @@ export default [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'indexer', type: 'address' },
+      { indexed: true, internalType: 'bytes32', name: 'subgraphDeploymentID', type: 'bytes32' },
+      { indexed: true, internalType: 'address', name: 'allocationID', type: 'address' },
+      { indexed: false, internalType: 'uint256', name: 'epoch', type: 'uint256' },
+      { indexed: false, internalType: 'uint256', name: 'forEpoch', type: 'uint256' },
+      { indexed: false, internalType: 'uint256', name: 'tokens', type: 'uint256' },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'unclaimedAllocationsCount',
+        type: 'uint256',
+      },
+      { indexed: false, internalType: 'uint256', name: 'delegationFees', type: 'uint256' },
+    ],
+    name: 'RebateClaimed',
+    type: 'event',
+  },
 ]

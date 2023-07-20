@@ -15,7 +15,12 @@ chai.use(chaiAsPromised)
 describe('[BEFORE UPGRADE] Exponential rebates upgrade', () => {
   const graph = hre.graph()
   const { Staking, EpochManager } = graph.contracts
-  const deployedStaking = new Contract(Staking.address, removedABI, graph.provider)
+
+  const deployedStaking = new Contract(
+    Staking.address,
+    new ethers.utils.Interface([...Staking.interface.format(), ...removedABI]),
+    graph.provider,
+  )
 
   describe('> Storage variables', () => {
     it(`channelDisputeEpochs should exist`, async function () {
@@ -61,8 +66,9 @@ describe('[BEFORE UPGRADE] Exponential rebates upgrade', () => {
 
           // Claim rebate
           await advanceEpochs(EpochManager, 7)
-          await expect(deployedStaking.connect(indexer.signer).claim(allocation.id, false)).to
-            .eventually.be.fulfilled
+          const tx = deployedStaking.connect(indexer.signer).claim(allocation.id, false)
+          await expect(tx).to.eventually.be.fulfilled
+          await expect(tx).to.emit(deployedStaking, 'RebateClaimed')
         }
       }
     })

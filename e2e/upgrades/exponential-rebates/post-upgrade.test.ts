@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { Contract, Signer, ethers } from 'ethers'
+import { Contract, ethers } from 'ethers'
 import hre from 'hardhat'
 
 import removedABI from './abis/staking'
@@ -14,12 +14,12 @@ chai.use(chaiAsPromised)
 describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
   const graph = hre.graph()
   const { Staking, EpochManager } = graph.contracts
-  const deployedStaking = new Contract(Staking.address, removedABI, graph.provider)
-  let deployer: SignerWithAddress
 
-  before(async function () {
-    deployer = await graph.getDeployer()
-  })
+  const deployedStaking = new Contract(
+    Staking.address,
+    new ethers.utils.Interface([...Staking.interface.format(), ...removedABI]),
+    graph.provider,
+  )
 
   describe('> Storage variables', () => {
     it(`channelDisputeEpochs should not exist`, async function () {
@@ -82,28 +82,28 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
       }
     })
 
-    // it('should be able to collect but not claim rebates', async function () {
-    //   for (const indexer of indexers) {
-    //     for (const allocation of indexer.allocationsBatch2) {
-    //       // Close allocation first
-    //       await advanceToNextEpoch(EpochManager)
-    //       await Staking.connect(indexer.signer).closeAllocation(allocation.id, randomHexBytes())
+    it('should be able to collect but not claim rebates', async function () {
+      for (const indexer of indexers) {
+        for (const allocation of indexer.allocationsBatch2) {
+          // Close allocation first
+          await advanceToNextEpoch(EpochManager)
+          await Staking.connect(indexer.signer).closeAllocation(allocation.id, randomHexBytes())
 
-    //       // Collect query fees
-    //       const assetHolder = await graph.getDeployer()
-    //       await expect(
-    //         Staking.connect(assetHolder).collect(ethers.utils.parseEther('1000'), allocation.id),
-    //       ).to.eventually.be.fulfilled
+          // Collect query fees
+          const assetHolder = await graph.getDeployer()
+          await expect(
+            Staking.connect(assetHolder).collect(ethers.utils.parseEther('1000'), allocation.id),
+          ).to.eventually.be.fulfilled
 
-    //       // Claim rebate
-    //       await advanceEpochs(EpochManager, 7)
-    //       const tx = await deployedStaking.connect(indexer.signer).claim(allocation.id, false)
-    //       console.log(tx)
-
-    //       await expect(deployedStaking.connect(indexer.signer).claim(allocation.id, false)).to
-    //         .eventually.be.rejected
-    //     }
-    //   }
-    // })
+          // Claim rebate
+          // Staking has a fallback function, so calling claim won't revert
+          // We check instead the event is not emitted
+          await advanceEpochs(EpochManager, 7)
+          const tx = deployedStaking.connect(indexer.signer).claim(allocation.id, false)
+          await expect(tx).to.eventually.be.fulfilled
+          await expect(tx).not.to.emit(deployedStaking, 'RebateClaimed')
+        }
+      }
+    })
   })
 })
