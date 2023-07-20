@@ -463,12 +463,12 @@
       "txHash": "0x1960be49029284756037cf3ee8afe9eeaba93de4ba84875c5eefd5d2289903bd",
       "proxy": true,
       "implementation": {
-        "address": "0x8E56ee65Ed613f2AecA8898D19497D288601bdeb",
-        "creationCodeHash": "0xc11ee08fc39fc62ba834be312e3c90f125385a333e0caed07bff116baf4c8121",
-        "runtimeCodeHash": "0xa0f12a9f441f148f8efd267f65b00eedb860d926aed2c5706711f72c3fa3e17b",
-        "txHash": "0x5ae66fb4956b2b733aa6a44d08c701d480d2d665d1aa12cc2a22ce1c23e6a61a",
+        "address": "0xef2757855d2802bA53733901F90C91645973f743",
+        "creationCodeHash": "0x2782dbd9d409f8b9070037bac434a4145c24e96290079d95edad86a347a336f1",
+        "runtimeCodeHash": "0xeafd8e4c184d7b4c2e5c8252c31876f0a0be79b8e1a4cec09fd64bdff87187c9",
+        "txHash": "0x3d66cca1278a2420d87f316b7e80afad934937e1824f69b0c5dfd3751d873d92",
         "libraries": {
-          "LibCobbDouglas": "0x86f0f6cd9a38A851E3AB8f110be06B77C199eC1F"
+          "LibCobbDouglas": "0xc68cd0d2ca533232Fd86D6e48b907338B2E0a74A"
         }
       }
     },
@@ -1125,12 +1125,12 @@
       "txHash": "0xc98ebdd0a80b97ef8f6305903ef6496a7781db76a5b1b3c3c3b2b10dbd9a7af5",
       "proxy": true,
       "implementation": {
-        "address": "0x824EB36c110a7d688D44213fD622462C68480809",
-        "creationCodeHash": "0x0ec60ec4edef559f29d6d5f8f27f6d08fd50f0be04cc424118c369d3546021b6",
-        "runtimeCodeHash": "0xf4c2f0a793a8af077f42e410e19ff73ab169f86646cdc4c6d354d02da5a86cb6",
-        "txHash": "0x6de083f86a76d9581b087bb09f1a676bf8b2d779c1c141f726ad7bb70ef8ac0e",
+        "address": "0x5d8e793975424c1aF146e20b583234e9D4F5D458",
+        "creationCodeHash": "0x2d8b645b4857a5dacfb43026cf5b494c2c21575170abaf25a72f099e423d3748",
+        "runtimeCodeHash": "0x4896d29f52e411944272a6214e9bc207d8bb73cdf3e5accc8786224dc22bcb28",
+        "txHash": "0xd6650b86cd724004d77f7b561158b6bfa1fc4185879ff59adc8592b37c44aee3",
         "libraries": {
-          "LibCobbDouglas": "0x5082fcD66C1Cb1FdE6c8E2c7a6F25F81A6AfDBce"
+          "LibCobbDouglas": "0xF40C4bb41a3a097Db1b034373C4f2d5a7377cD37"
         }
       }
     },
