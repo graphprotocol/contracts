@@ -96,12 +96,9 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
           ).to.eventually.be.fulfilled
 
           // Claim rebate
-          // Staking has a fallback function, so calling claim won't revert
-          // We check instead the event is not emitted
           await advanceEpochs(EpochManager, 7)
           const tx = deployedStaking.connect(indexer.signer).claim(allocation.id, false)
-          await expect(tx).to.eventually.be.fulfilled
-          await expect(tx).not.to.emit(deployedStaking, 'RebateClaimed')
+          await expect(tx).to.eventually.be.rejected
         }
       }
     })

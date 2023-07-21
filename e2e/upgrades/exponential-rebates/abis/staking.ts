@@ -31,6 +31,16 @@ export default [
     type: 'function',
   },
   {
+    inputs: [
+      { internalType: 'address', name: '_allocationID', type: 'address' },
+      { internalType: 'bool', name: '_restake', type: 'bool' },
+    ],
+    name: 'claimo',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: 'address', name: 'indexer', type: 'address' },
