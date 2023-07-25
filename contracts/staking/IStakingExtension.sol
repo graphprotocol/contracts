@@ -4,7 +4,6 @@ pragma solidity >=0.6.12 <0.8.0;
 pragma abicoder v2;
 
 import { IStakingData } from "./IStakingData.sol";
-import { Rebates } from "./libs/Rebates.sol";
 import { Stakes } from "./libs/Stakes.sol";
 
 /**
@@ -256,14 +255,6 @@ interface IStakingExtension is IStakingData {
     function subgraphAllocations(bytes32 _subgraphDeploymentId) external view returns (uint256);
 
     /**
-     * @notice Getter for rebates[_epoch]:
-     * gets the rebate pool for a particular epoch.
-     * @param _epoch Epoch for which to query the rebate pool
-     * @return Rebate pool for the specified epoch, as a Rebates.Pool struct
-     */
-    function rebates(uint256 _epoch) external view returns (Rebates.Pool memory);
-
-    /**
      * @notice Getter for slashers[_maybeSlasher]:
      * returns true if the address is a slasher, i.e. an entity that can slash indexers
      * @param _maybeSlasher Address for which to check the slasher role
@@ -300,14 +291,6 @@ interface IStakingExtension is IStakingData {
     function protocolPercentage() external view returns (uint32);
 
     /**
-     * @notice Getter for channelDisputeEpochs: the time in epochs
-     * between closing an allocation and the moment it becomes finalized so
-     * query fees can be claimed.
-     * @return Channel dispute period in epochs
-     */
-    function channelDisputeEpochs() external view returns (uint32);
-
-    /**
      * @notice Getter for maxAllocationEpochs: the maximum time in epochs
      * that an allocation can be open before anyone is allowed to close it. This
      * also caps the effective allocation when sending the allocation's query fees
@@ -317,18 +300,28 @@ interface IStakingExtension is IStakingData {
     function maxAllocationEpochs() external view returns (uint32);
 
     /**
-     * @notice Getter for alphaNumerator: the numerator of the Cobb-Douglas
-     * rebate ratio.
-     * @return Rebate ratio numerator
+     * @notice Getter for the numerator of the rebates alpha parameter
+     * @return Alpha numerator
      */
     function alphaNumerator() external view returns (uint32);
 
     /**
-     * @notice Getter for alphaDenominator: the denominator of the Cobb-Douglas
-     * rebate ratio.
-     * @return Rebate ratio denominator
+     * @notice Getter for the denominator of the rebates alpha parameter
+     * @return Alpha denominator
      */
     function alphaDenominator() external view returns (uint32);
+
+    /**
+     * @notice Getter for the numerator of the rebates lambda parameter
+     * @return Lambda numerator
+     */
+    function lambdaNumerator() external view returns (uint32);
+
+    /**
+     * @notice Getter for the denominator of the rebates lambda parameter
+     * @return Lambda denominator
+     */
+    function lambdaDenominator() external view returns (uint32);
 
     /**
      * @notice Getter for stakes[_indexer]:

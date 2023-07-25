@@ -17,7 +17,7 @@ interface UpgradeableContract {
 const UPGRADEABLE_CONTRACTS: UpgradeableContract[] = [
   { name: 'EpochManager' },
   { name: 'Curation' },
-  { name: 'Staking', libraries: ['LibCobbDouglas'] },
+  { name: 'Staking', libraries: ['LibExponential'] },
   { name: 'DisputeManager' },
   { name: 'RewardsManager' },
   { name: 'ServiceRegistry' },

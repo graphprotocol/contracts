@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import { ethers } from 'ethers'
 import { GraphRuntimeEnvironment } from '../type-extensions'
 import { useEnvironment } from './helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 chai.use(chaiAsPromised)
 
@@ -39,7 +40,7 @@ describe('GRE usage > account management', function () {
       const wallets = await graph.getWallets()
 
       for (const wallet of wallets) {
-        expect(wallet.signMessage('test')).to.eventually.be.fulfilled
+        await expect(wallet.signMessage('test')).to.eventually.be.fulfilled
       }
     })
 
@@ -65,7 +66,7 @@ describe('GRE usage > account management', function () {
       for (let i = 0; i < 20; i++) {
         const derived = ethers.Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${i}`)
         const wallet = await graph.getWallet(derived.address)
-        expect(wallet.signMessage('test')).to.eventually.be.fulfilled
+        await expect(wallet.signMessage('test')).to.eventually.be.fulfilled
       }
     })
 
@@ -118,8 +119,8 @@ describe('GRE usage > secure accounts', function () {
       const deployer = await graph.l1.getDeployer()
       const deployerSecureAccount = await graphSecureAccounts.l1.getDeployer()
 
-      expect(deployer.signMessage('test')).to.eventually.be.fulfilled
-      expect(deployerSecureAccount.signMessage('test')).to.eventually.be.fulfilled
+      await expect(deployer.signMessage('test')).to.eventually.be.fulfilled
+      await expect(deployerSecureAccount.signMessage('test')).to.eventually.be.fulfilled
     })
   })
 
@@ -151,8 +152,13 @@ describe('GRE usage > secure accounts', function () {
         const account = accounts[name]
         const secureAccount = secureAccounts[name]
 
-        expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
-        expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+        await expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
+        await expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+        const tx = account.sendTransaction({
+          to: ethers.constants.AddressZero,
+          value: ethers.utils.parseEther('0'),
+        })
+        await expect(tx).to.eventually.be.rejected
       }
     })
   })
@@ -174,8 +180,42 @@ describe('GRE usage > secure accounts', function () {
       const secureAccounts = await graphSecureAccounts.l1.getTestAccounts()
 
       for (let i = 0; i < accounts.length; i++) {
-        expect(accounts[i].signMessage('test')).to.eventually.be.fulfilled
-        expect(secureAccounts[i].signMessage('test')).to.eventually.be.fulfilled
+        await expect(accounts[i].signMessage('test')).to.eventually.be.fulfilled
+        await expect(secureAccounts[i].signMessage('test')).to.eventually.be.fulfilled
+      }
+    })
+  })
+})
+
+describe('GRE usage > fork', function () {
+  useEnvironment('graph-config', 'hardhat')
+
+  let graph: GraphRuntimeEnvironment
+
+  beforeEach(function () {
+    graph = this.hre.graph({
+      fork: true,
+    })
+  })
+  describe('getNamedAccounts', function () {
+    it('should allow impersonating named accounts', async function () {
+      const accounts = await graph.l1.getNamedAccounts()
+      const secureAccounts = await graph.l1.getNamedAccounts()
+
+      const accountNames = Object.keys(accounts)
+
+      for (const name of accountNames) {
+        const account: SignerWithAddress = accounts[name]
+        const secureAccount: SignerWithAddress = secureAccounts[name]
+
+        await expect(account.signMessage('test')).to.eventually.be.rejectedWith(/unknown account/)
+        await expect(secureAccount.signMessage('test')).to.eventually.be.rejected
+
+        const tx = account.sendTransaction({
+          to: ethers.constants.AddressZero,
+          value: ethers.utils.parseEther('0'),
+        })
+        await expect(tx).to.eventually.be.fulfilled
       }
     })
   })

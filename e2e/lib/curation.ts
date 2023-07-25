@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumberish } from 'ethers'
-import { NetworkContracts } from '../../../cli/contracts'
-import { sendTransaction } from '../../../cli/network'
+import { NetworkContracts } from '../../cli/contracts'
+import { sendTransaction } from '../../cli/network'
 import { ensureGRTAllowance } from './accounts'
 
 export const signal = async (
