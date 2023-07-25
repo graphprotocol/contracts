@@ -239,6 +239,12 @@
   "42161": {
     "IEthereumDIDRegistry": {
       "address": "0xa9AEb1c6f14f4244547B9a0946C485DA99047638"
+    },
+    "StakingExtension": {
+      "address": "0x9D8B1C75681cB7Bdc31A88feD4DCf62c4053ecc5",
+      "creationCodeHash": "0x105ab964d46b3e9208aae1d0e5f40d7bd1450d979b9b5f56966fcd7fe3b44803",
+      "runtimeCodeHash": "0xb4a55a3aaa9fe067a273172d4a20f4a05e5a53f74c86f56a757c4a355e122b3c",
+      "txHash": "0xe1d531876d258dd2070e1fef184c4c5bd3b8b06cbdf26a79e3e98de16cf30703"
     }
   },
   "421613": {
