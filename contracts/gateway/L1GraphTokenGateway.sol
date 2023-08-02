@@ -40,6 +40,14 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     address public escrow;
     /// Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
     mapping(address => bool) public callhookAllowlist;
+    /// Total amount minted from L2
+    uint256 public totalMintedFromL2;
+    /// Accumulated allowance for tokens minted from L2 at lastL2MintAllowanceUpdateBlock
+    uint256 public accumulatedL2MintAllowanceSnapshot;
+    /// Block at which new L2 allowance starts accumulating
+    uint256 public lastL2MintAllowanceUpdateBlock;
+    /// New L2 mint allowance per block
+    uint256 public l2MintAllowancePerBlock;
 
     /// Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
@@ -71,6 +79,14 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     event AddedToCallhookAllowlist(address newAllowlisted);
     /// Emitted when an address is removed from the callhook allowlist
     event RemovedFromCallhookAllowlist(address notAllowlisted);
+    /// Emitted when the L2 mint allowance per block is updated
+    event L2MintAllowanceUpdated(
+        uint256 accumulatedL2MintAllowanceSnapshot,
+        uint256 l2MintAllowancePerBlock,
+        uint256 lastL2MintAllowanceUpdateBlock
+    );
+    /// Emitted when tokens are minted due to an incoming transfer from L2
+    event TokensMintedFromL2(uint256 amount);
 
     /**
      * @dev Allows a function to be called only by the gateway's L2 counterpart.
@@ -183,6 +199,56 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
+     * @dev Updates the L2 mint allowance per block
+     * It is meant to be called _after_ the issuancePerBlock is updated in L2.
+     * The caller should provide the new issuance per block and the block at which it was updated,
+     * the function will automatically compute the values so that the bridge's mint allowance
+     * correctly tracks the maximum rewards minted in L2.
+     * @param _l2IssuancePerBlock New issuancePerBlock that has been set in L2
+     * @param _updateBlockNum L1 Block number at which issuancePerBlock was updated in L2
+     */
+    function updateL2MintAllowance(uint256 _l2IssuancePerBlock, uint256 _updateBlockNum)
+        external
+        onlyGovernor
+    {
+        require(_updateBlockNum < block.number, "BLOCK_MUST_BE_PAST");
+        require(_updateBlockNum > lastL2MintAllowanceUpdateBlock, "BLOCK_MUST_BE_INCREMENTING");
+        accumulatedL2MintAllowanceSnapshot = accumulatedL2MintAllowanceAtBlock(_updateBlockNum);
+        lastL2MintAllowanceUpdateBlock = _updateBlockNum;
+        l2MintAllowancePerBlock = _l2IssuancePerBlock;
+        emit L2MintAllowanceUpdated(
+            accumulatedL2MintAllowanceSnapshot,
+            l2MintAllowancePerBlock,
+            lastL2MintAllowanceUpdateBlock
+        );
+    }
+
+    /**
+     * @dev Manually sets the parameters used to compute the L2 mint allowance
+     * The use of this function is not recommended, use updateL2MintAllowance instead;
+     * this one is only meant to be used as a backup recovery if a previous call to
+     * updateL2MintAllowance was done with incorrect values.
+     * @param _accumulatedL2MintAllowanceSnapshot Accumulated L2 mint allowance at L1 block _lastL2MintAllowanceUpdateBlock
+     * @param _l2MintAllowancePerBlock L2 issuance per block since block number _lastL2MintAllowanceUpdateBlock
+     * @param _lastL2MintAllowanceUpdateBlock L1 Block number at which issuancePerBlock was last updated in L2
+     */
+    function setL2MintAllowanceParametersManual(
+        uint256 _accumulatedL2MintAllowanceSnapshot,
+        uint256 _l2MintAllowancePerBlock,
+        uint256 _lastL2MintAllowanceUpdateBlock
+    ) external onlyGovernor {
+        require(_lastL2MintAllowanceUpdateBlock < block.number, "BLOCK_MUST_BE_PAST");
+        accumulatedL2MintAllowanceSnapshot = _accumulatedL2MintAllowanceSnapshot;
+        l2MintAllowancePerBlock = _l2MintAllowancePerBlock;
+        lastL2MintAllowanceUpdateBlock = _lastL2MintAllowanceUpdateBlock;
+        emit L2MintAllowanceUpdated(
+            accumulatedL2MintAllowanceSnapshot,
+            l2MintAllowancePerBlock,
+            lastL2MintAllowanceUpdateBlock
+        );
+    }
+
+    /**
      * @notice Creates and sends a retryable ticket to transfer GRT to L2 using the Arbitrum Inbox.
      * The tokens are escrowed by the gateway until they are withdrawn back to L1.
      * The ticket must be redeemed on L2 to receive tokens at the specified address.
@@ -277,8 +343,10 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
 
         uint256 escrowBalance = token.balanceOf(escrow);
-        // If the bridge doesn't have enough tokens, something's very wrong!
-        require(_amount <= escrowBalance, "BRIDGE_OUT_OF_FUNDS");
+        if (_amount > escrowBalance) {
+            // This will revert if trying to mint more than allowed
+            _mintFromL2(_amount.sub(escrowBalance));
+        }
         token.transferFrom(escrow, _to, _amount);
 
         emit WithdrawalFinalized(_l1Token, _from, _to, 0, _amount);
@@ -349,7 +417,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Decodes calldata required for migration of tokens
+     * @notice Decodes calldata required for transfer of tokens to L2
      * @dev Data must include maxSubmissionCost, extraData can be left empty. When the router
      * sends an outbound message, data also contains the from address.
      * @param _data encoded callhook data
@@ -380,5 +448,43 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         // and additional L2 calldata
         (maxSubmissionCost, extraData) = abi.decode(extraData, (uint256, bytes));
         return (from, maxSubmissionCost, extraData);
+    }
+
+    /**
+     * @dev Get the accumulated L2 mint allowance at a particular block number
+     * @param _blockNum Block at which allowance will be computed
+     * @return The accumulated GRT amount that can be minted from L2 at the specified block
+     */
+    function accumulatedL2MintAllowanceAtBlock(uint256 _blockNum) public view returns (uint256) {
+        require(_blockNum >= lastL2MintAllowanceUpdateBlock, "INVALID_BLOCK_FOR_MINT_ALLOWANCE");
+        return
+            accumulatedL2MintAllowanceSnapshot.add(
+                l2MintAllowancePerBlock.mul(_blockNum.sub(lastL2MintAllowanceUpdateBlock))
+            );
+    }
+
+    /**
+     * @dev Mint new L1 tokens coming  from L2
+     * This will check if the amount to mint is within the L2's mint allowance, and revert otherwise.
+     * The tokens will be sent to the bridge escrow (from where they will then be sent to the destinatary
+     * of the current inbound transfer).
+     * @param _amount Number of tokens to mint
+     */
+    function _mintFromL2(uint256 _amount) internal {
+        // If we're trying to mint more than allowed, something's gone terribly wrong
+        // (either the L2 issuance is wrong, or the Arbitrum bridge has been compromised)
+        require(_l2MintAmountAllowed(_amount), "INVALID_L2_MINT_AMOUNT");
+        totalMintedFromL2 = totalMintedFromL2.add(_amount);
+        graphToken().mint(escrow, _amount);
+        emit TokensMintedFromL2(_amount);
+    }
+
+    /**
+     * @dev Check if minting a certain amount of tokens from L2 is within allowance
+     * @param _amount Number of tokens that would be minted
+     * @return true if minting those tokens is allowed, or false if it would be over allowance
+     */
+    function _l2MintAmountAllowed(uint256 _amount) internal view returns (bool) {
+        return (totalMintedFromL2.add(_amount) <= accumulatedL2MintAllowanceAtBlock(block.number));
     }
 }

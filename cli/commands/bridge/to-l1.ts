@@ -10,6 +10,12 @@ import { BigNumber } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { providers } from 'ethers'
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
+import { getL2ToL1MessageReader, getL2ToL1MessageWriter } from '../../arbitrum'
+import { getContractAt } from '../../network'
+import { Argv } from 'yargs'
+
+const LEGACY_L2_GRT_ADDRESS = '0x23A941036Ae778Ac51Ab04CEa08Ed6e2FE103614'
+const LEGACY_L2_GATEWAY_ADDRESS = '0x09e9222e96e7b4ae2a407b98d48e330053351eee'
 
 const FOURTEEN_DAYS_IN_SECONDS = 24 * 3600 * 14
 
@@ -77,12 +83,26 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   const l2Wallet = cli.wallet.connect(l2Provider)
   const l2AddressBook = getAddressBook(cliArgs.addressBook, l2ChainId.toString())
 
-  const gateway = loadAddressBookContract('L2GraphTokenGateway', l2AddressBook, l2Wallet)
-  const l2GRT = loadAddressBookContract('L2GraphToken', l2AddressBook, l2Wallet) as L2GraphToken
+  let gateway: L2GraphTokenGateway
+  let l2GRT: L2GraphToken
+  if (cliArgs.legacyToken) {
+    gateway = getContractAt(
+      'L2GraphTokenGateway',
+      LEGACY_L2_GATEWAY_ADDRESS,
+      l2Wallet,
+    ) as L2GraphTokenGateway
+    l2GRT = getContractAt('L2GraphToken', LEGACY_L2_GRT_ADDRESS, l2Wallet) as L2GraphToken
+  } else {
+    gateway = loadAddressBookContract(
+      'L2GraphTokenGateway',
+      l2AddressBook,
+      l2Wallet,
+    ) as L2GraphTokenGateway
+    l2GRT = loadAddressBookContract('L2GraphToken', l2AddressBook, l2Wallet) as L2GraphToken
+  }
 
-  const l1Gateway = cli.contracts['L1GraphTokenGateway']
   logger.info(`Will send ${cliArgs.amount} GRT to ${recipient}`)
-  logger.info(`Using L2 gateway ${gateway.address} and L1 gateway ${l1Gateway.address}`)
+  logger.info(`Using L2 gateway ${gateway.address}`)
 
   const senderBalance = await l2GRT.balanceOf(cli.wallet.address)
   if (senderBalance.lt(amount)) {
@@ -90,8 +110,10 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
   }
 
   const params = [l1GRTAddress, recipient, amount, '0x']
-  logger.info('Approving token transfer')
-  await sendTransaction(l2Wallet, l2GRT, 'approve', [gateway.address, amount])
+  if (!cliArgs.legacyToken) {
+    logger.info('Approving token transfer')
+    await sendTransaction(l2Wallet, l2GRT, 'approve', [gateway.address, amount])
+  }
   logger.info('Sending outbound transfer transaction')
   const receipt = await sendTransaction(
     l2Wallet,
@@ -99,10 +121,11 @@ export const startSendToL1 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Prom
     'outboundTransfer(address,address,uint256,bytes)',
     params,
   )
-  const l2Receipt = new L2TransactionReceipt(receipt)
-  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
 
-  const ethBlockNum = l2ToL1Message.getFirstExecutableBlock(l2Provider)
+  const l2ToL1Message = await getL2ToL1MessageReader(receipt, cli.wallet.provider, l2Provider)
+  const l2Receipt = new L2TransactionReceipt(receipt)
+
+  const ethBlockNum = await l2ToL1Message.getFirstExecutableBlock(l2Provider)
   if (ethBlockNum === null) {
     logger.info(`L2 to L1 message can or already has been executed. If not finalized call`)
   } else {
@@ -133,11 +156,20 @@ export const finishSendToL1 = async (
 
   const l2AddressBook = getAddressBook(cliArgs.addressBook, l2ChainId.toString())
 
-  const gateway = loadAddressBookContract(
-    'L2GraphTokenGateway',
-    l2AddressBook,
-    l2Provider,
-  ) as L2GraphTokenGateway
+  let gateway: L2GraphTokenGateway
+  if (cliArgs.legacyToken) {
+    gateway = getContractAt(
+      'L2GraphTokenGateway',
+      LEGACY_L2_GATEWAY_ADDRESS,
+      l2Provider,
+    ) as L2GraphTokenGateway
+  } else {
+    gateway = loadAddressBookContract(
+      'L2GraphTokenGateway',
+      l2AddressBook,
+      l2Provider,
+    ) as L2GraphTokenGateway
+  }
   let txHash: string
   if (cliArgs.txHash) {
     txHash = cliArgs.txHash
@@ -157,11 +189,12 @@ export const finishSendToL1 = async (
     txHash = allEvents[allEvents.length - 1].transactionHash
   }
   logger.info(`Getting receipt from transaction ${txHash}`)
-  const receipt = await l2Provider.getTransactionReceipt(txHash)
-
-  const l2Receipt = new L2TransactionReceipt(receipt)
-  logger.info(`Getting L2 to L1 message...`)
-  const l2ToL1Message = (await l2Receipt.getL2ToL1Messages(cli.wallet))[0]
+  const l2ToL1Message = await getL2ToL1MessageWriter(
+    txHash,
+    cli.wallet.provider,
+    l2Provider,
+    cli.wallet,
+  )
 
   if (wait) {
     const retryDelayMs = cliArgs.retryDelaySeconds ? cliArgs.retryDelaySeconds * 1000 : 60000
@@ -190,6 +223,22 @@ export const finishSendToL1 = async (
 export const startSendToL1Command = {
   command: 'start-send-to-l1 <amount> [recipient]',
   describe: 'Start an L2-to-L1 Graph Token transaction',
+  builder: (yargs: Argv): Argv => {
+    return yargs
+      .option('legacy-token', {
+        type: 'boolean',
+        default: false,
+        description: 'Use the legacy GRT token',
+      })
+      .positional('amount', {
+        type: 'string',
+        description: 'The amount of tokens to send',
+      })
+      .positional('recipient', {
+        type: 'string',
+        description: 'The recipient of the tokens on L1. Same as the L2 sender if empty.',
+      })
+  },
   handler: async (argv: CLIArgs): Promise<void> => {
     return startSendToL1(await loadEnv(argv), argv)
   },
@@ -200,6 +249,18 @@ export const finishSendToL1Command = {
   describe:
     'Finish an L2-to-L1 Graph Token transaction. L2 dispute period must have completed. ' +
     'If txHash is not specified, the last withdrawal from the main account in the past 14 days will be redeemed.',
+  builder: (yargs: Argv): Argv => {
+    return yargs
+      .option('legacy-token', {
+        type: 'boolean',
+        default: false,
+        description: 'Use the legacy GRT token',
+      })
+      .positional('txHash', {
+        type: 'string',
+        description: 'The transaction hash of the withdrawal on L2',
+      })
+  },
   handler: async (argv: CLIArgs): Promise<void> => {
     return finishSendToL1(await loadEnv(argv), argv, false)
   },

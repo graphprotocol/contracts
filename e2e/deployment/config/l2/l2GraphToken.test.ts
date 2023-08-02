@@ -46,9 +46,9 @@ describe('[L2] L2GraphToken', () => {
       await expect(tx).revertedWith('Only Governor can call')
     })
 
-    it('RewardsManager should not be minter (for now)', async function () {
+    it('RewardsManager should be minter', async function () {
       const rewardsMgrIsMinter = await L2GraphToken.isMinter(RewardsManager.address)
-      expect(rewardsMgrIsMinter).eq(false)
+      expect(rewardsMgrIsMinter).eq(true)
     })
   })
 })

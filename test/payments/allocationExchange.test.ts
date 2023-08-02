@@ -3,7 +3,7 @@ import { BigNumber, constants, Wallet } from 'ethers'
 
 import { AllocationExchange } from '../../build/types/AllocationExchange'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import * as deployment from '../lib/deployment'
@@ -33,7 +33,7 @@ describe('AllocationExchange', () => {
   let fixture: NetworkFixture
 
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
   let allocationExchange: AllocationExchange
 
   async function createVoucher(

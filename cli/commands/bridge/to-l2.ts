@@ -6,6 +6,7 @@ import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getProvider, sendTransaction, toGRT, ensureAllowance, toBN } from '../../network'
 import { chainIdIsL2, estimateRetryableTxGas } from '../../cross-chain'
+import { getL1ToL2MessageWriter } from '../../arbitrum'
 
 const logAutoRedeemReason = (autoRedeemRec) => {
   if (autoRedeemRec == null) {
@@ -39,6 +40,8 @@ const checkAndRedeemMessage = async (l1ToL2Message: L1ToL2MessageWriter) => {
   }
   logger.info(`Transfer successful: ${l2TxHash}`)
 }
+
+const ifNotNullToBN = (val: string | null) => (val == null ? val : toBN(val))
 
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
@@ -105,9 +108,12 @@ export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<v
   // get l2 ticket status
   if (txReceipt.status == 1) {
     logger.info('Waiting for message to propagate to L2...')
-    const l1Receipt = new L1TransactionReceipt(txReceipt)
-    const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(cli.wallet.connect(l2Provider))
-    const l1ToL2Message = l1ToL2Messages[0]
+    const l1ToL2Message = await getL1ToL2MessageWriter(
+      txReceipt,
+      cli.wallet.provider,
+      l2Provider,
+      cli.wallet,
+    )
     try {
       await checkAndRedeemMessage(l1ToL2Message)
     } catch (e) {
@@ -168,9 +174,9 @@ export const sendToL2Command = {
         description: 'Calldata to pass to the recipient. Must be allowlisted in the bridge',
       })
       .coerce({
-        maxGas: toBN,
-        gasPriceBid: toBN,
-        maxSubmissionCost: toBN,
+        maxGas: ifNotNullToBN,
+        gasPriceBid: ifNotNullToBN,
+        maxSubmissionCost: ifNotNullToBN,
       })
   },
   handler: async (argv: CLIArgs): Promise<void> => {

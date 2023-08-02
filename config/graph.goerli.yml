@@ -1,8 +1,8 @@
 general:
   arbitrator: &arbitrator "0xFD01aa87BeB04D0ac764FC298aCFd05FfC5439cD" # Arbitration Council
   governor: &governor "0xf1135bFF22512FF2A585b8d4489426CE660f204c" # Graph Council
-  authority: &authority "0x52e498aE9B8A5eE2A5Cd26805F06A9f29A7F489F" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x14053D40ea2E81D3AB0739728a54ab84F21200F9" # Subgraph Availability Oracle
+  authority: &authority "0x043C3ae868c8740eB935f22C668B74583F4968D0" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0x3994E316418053b253F7cF7B8Ca2452DEa46CbD1" # Subgraph Availability Oracle
   pauseGuardian: &pauseGuardian "0x6855D551CaDe60754D145fb5eDCD90912D860262" # Protocol pause guardian
   allocationExchangeOwner: &allocationExchangeOwner "0xf1135bFF22512FF2A585b8d4489426CE660f204c" # Allocation Exchange owner
 
@@ -14,7 +14,7 @@ contracts:
         contractAddress: "${{Curation.address}}"
       - fn: "setContractProxy"
         id: "0x39605a6c26a173774ca666c67ef70cf491880e5d3d6d0ca66ec0a31034f15ea3" # keccak256('GNS')
-        contractAddress: "${{GNS.address}}"
+        contractAddress: "${{L1GNS.address}}"
       - fn: "setContractProxy"
         id: "0xf942813d07d17b56de9a9afc8de0ced6e8c053bbfdcc87b7badea4ddcf27c307" # keccak256('DisputeManager')
         contractAddress: "${{DisputeManager.address}}"
@@ -26,7 +26,7 @@ contracts:
         contractAddress: "${{RewardsManager.address}}"
       - fn: "setContractProxy"
         id: "0x1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034" # keccak256('Staking')
-        contractAddress: "${{Staking.address}}"
+        contractAddress: "${{L1Staking.address}}"
       - fn: "setContractProxy"
         id: "0x45fc200c7e4544e457d3c5709bfe0d520442c30bbcbdaede89e8d4a4bbc19247" # keccak256('GraphToken')
         contractAddress: "${{GraphToken.address}}"
@@ -58,6 +58,8 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
+      - fn: "addMinter"
+        minter: "${{L1GraphTokenGateway.address}}"
       - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
@@ -83,11 +85,10 @@ contracts:
       qrySlashingPercentage: 25000 # in parts per million
     calls:
       - fn: "syncAllContracts"
-  GNS:
+  L1GNS:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      bondingCurve: "${{BancorFormula.address}}"
       subgraphNFT: "${{SubgraphNFT.address}}"
     calls:
       - fn: "approveAll"
@@ -99,10 +100,10 @@ contracts:
       - fn: "setTokenDescriptor"
         tokenDescriptor: "${{SubgraphNFTDescriptor.address}}"
       - fn: "setMinter"
-        minter: "${{GNS.address}}"
+        minter: "${{L1GNS.address}}"
       - fn: "transferOwnership"
         owner: *governor
-  Staking:
+  L1Staking:
     proxy: true
     init:
       controller: "${{Controller.address}}"
@@ -116,6 +117,7 @@ contracts:
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
       rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+      extensionImpl: "${{StakingExtension.address}}"
     calls:
       - fn: "setDelegationTaxPercentage"
         delegationTaxPercentage: 5000 # parts per million
@@ -128,15 +130,15 @@ contracts:
     init:
       controller: "${{Controller.address}}"
     calls:
-      - fn: "setIssuanceRate"
-        issuanceRate: "1000000012184945188" # per block increase of total supply, blocks in a year = 365*60*60*24/13
+      - fn: "setIssuancePerBlock"
+        issuancePerBlock: "114693500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
       - fn: "syncAllContracts"
   AllocationExchange:
     init:
       graphToken: "${{GraphToken.address}}"
-      staking: "${{Staking.address}}"
+      staking: "${{L1Staking.address}}"
       governor: *allocationExchangeOwner
       authority: *authority
     calls:

@@ -1,11 +1,15 @@
 import { expect } from 'chai'
+import { ethers } from 'hardhat'
 import { constants } from 'ethers'
 
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
-import { defaults } from '../lib/deployment'
+import { defaults, deployContract } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 import { getAccounts, toBN, toGRT, Account } from '../lib/testHelpers'
+import { GraphProxy } from '../../build/types/GraphProxy'
+import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
+import { network } from '../../cli'
 
 const { AddressZero } = constants
 
@@ -19,13 +23,14 @@ describe('Staking:Config', () => {
 
   let fixture: NetworkFixture
 
-  let staking: Staking
+  let staking: IStaking
+  let proxyAdmin: GraphProxyAdmin
 
   before(async function () {
     ;[me, other, governor, slasher] = await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ staking } = await fixture.load(governor.signer, slasher.signer))
+    ;({ staking, proxyAdmin } = await fixture.load(governor.signer, slasher.signer))
   })
 
   beforeEach(async function () {
@@ -196,6 +201,29 @@ describe('Staking:Config', () => {
 
     it('reject set `rebateRatio` if not allowed', async function () {
       const tx = staking.connect(other.signer).setRebateRatio(1, 1)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+  })
+
+  describe('Staking and StakingExtension', function () {
+    it('does not allow calling the fallback from the Staking implementation', async function () {
+      const impl = await proxyAdmin.getProxyImplementation(staking.address)
+
+      const factory = await ethers.getContractFactory('StakingExtension')
+      const implAsStaking = factory.attach(impl) as IStaking
+      const tx = implAsStaking.connect(other.signer).setDelegationRatio(50)
+      await expect(tx).revertedWith('only through proxy')
+    })
+    it('can set the staking extension implementation with setExtensionImpl', async function () {
+      const newImpl = await network.deployContract('StakingExtension', [], governor.signer)
+      const tx = await staking.connect(governor.signer).setExtensionImpl(newImpl.contract.address)
+      await expect(tx)
+        .emit(staking, 'ExtensionImplementationSet')
+        .withArgs(newImpl.contract.address)
+    })
+    it('rejects calls to setExtensionImpl from non-governor', async function () {
+      const newImpl = await network.deployContract('StakingExtension', [], governor.signer)
+      const tx = staking.connect(other.signer).setExtensionImpl(newImpl.contract.address)
       await expect(tx).revertedWith('Only Controller governor')
     })
   })

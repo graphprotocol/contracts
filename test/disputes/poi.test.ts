@@ -4,7 +4,7 @@ import { utils } from 'ethers'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -35,7 +35,7 @@ describe('DisputeManager:POI', async () => {
   let disputeManager: DisputeManager
   let epochManager: EpochManager
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Derive some channel keys for each indexer used to sign attestations
   const indexerChannelKey = deriveChannelKey()

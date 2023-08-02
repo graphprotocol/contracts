@@ -4,7 +4,7 @@ import { constants, BigNumber, PopulatedTransaction } from 'ethers'
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -51,7 +51,7 @@ describe('Staking:Allocation', () => {
   let curation: Curation
   let epochManager: EpochManager
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Test values
 
@@ -312,6 +312,11 @@ describe('Staking:Allocation', () => {
       expect(beforeOperator).eq(true)
       expect(afterOperator).eq(false)
     })
+    it('should reject setting the operator to the msg.sender', async function () {
+      await expect(
+        staking.connect(indexer.signer).setOperator(indexer.address, true),
+      ).to.be.revertedWith('operator == sender')
+    })
   })
 
   describe('rewardsDestination', function () {
@@ -356,7 +361,7 @@ describe('Staking:Allocation', () => {
 
     it('reject allocate if no tokens staked', async function () {
       const tx = allocate(toBN('1'))
-      await expect(tx).revertedWith('!capacity')
+      await expect(tx).revertedWith('!minimumIndexerStake')
     })
 
     it('reject allocate zero tokens if no minimum stake', async function () {
@@ -376,6 +381,7 @@ describe('Staking:Allocation', () => {
       })
 
       it('should allocate', async function () {
+        await advanceToNextEpoch(epochManager)
         await shouldAllocate(tokensToAllocate)
       })
 
@@ -416,6 +422,7 @@ describe('Staking:Allocation', () => {
       })
 
       it('reject allocate reusing an allocation ID', async function () {
+        await advanceToNextEpoch(epochManager)
         const someTokensToAllocate = toGRT('10')
         await shouldAllocate(someTokensToAllocate)
         const tx = allocate(someTokensToAllocate)
@@ -584,6 +591,9 @@ describe('Staking:Allocation', () => {
     for (const tokensToAllocate of [toBN(100), toBN(0)]) {
       context(`> with ${tokensToAllocate} allocated tokens`, async function () {
         beforeEach(async function () {
+          // Advance to next epoch to avoid creating the allocation
+          // right at the epoch boundary, which would mess up the tests.
+          await advanceToNextEpoch(epochManager)
           await allocate(tokensToAllocate)
         })
 
@@ -954,5 +964,112 @@ describe('Staking:Allocation', () => {
         })
       })
     }
+  })
+
+  describe('claimMany', function () {
+    beforeEach(async function () {
+      // Stake
+      await staking.connect(indexer.signer).stake(tokensToStake)
+
+      // Set channel dispute period to one epoch
+      await staking.connect(governor.signer).setChannelDisputeEpochs(toBN('1'))
+
+      // Fund wallets
+      await grt.connect(governor.signer).mint(assetHolder.address, tokensToCollect.mul(2))
+      await grt.connect(assetHolder.signer).approve(staking.address, tokensToCollect.mul(2))
+    })
+    it('should claim many rebates with restake', async function () {
+      // Allocate
+      await allocate(toBN(100))
+
+      // Create a second allocation with a different allocationID
+      const channelKey2 = deriveChannelKey()
+      const allocationID2 = channelKey2.address
+      const metadata2 = randomHexBytes(32)
+      const poi2 = randomHexBytes()
+      const subgraphDeploymentID2 = randomHexBytes(32)
+
+      await staking
+        .connect(indexer.signer)
+        .allocateFrom(
+          indexer.address,
+          subgraphDeploymentID2,
+          toBN(200),
+          allocationID2,
+          metadata2,
+          await channelKey2.generateProof(indexer.address),
+        )
+
+      // Collect some funds
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID2)
+
+      // Advance blocks to get the allocation in epoch where it can be closed
+      await advanceToNextEpoch(epochManager)
+
+      // Close the allocations
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      await advanceToNextEpoch(epochManager) // Make sure they fall in different rebate pools
+      await staking.connect(indexer.signer).closeAllocation(allocationID2, poi2)
+
+      // Advance blocks to get the allocation in epoch where it can be claimed
+      await advanceToNextEpoch(epochManager)
+
+      // Before state
+      const beforeIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+      const beforeAlloc1 = await staking.allocations(allocationID)
+      const beforeAlloc2 = await staking.allocations(allocationID2)
+
+      // Claim with restake
+      expect(await staking.getAllocationState(allocationID)).eq(AllocationState.Finalized)
+      expect(await staking.getAllocationState(allocationID2)).eq(AllocationState.Finalized)
+      const tx = await staking
+        .connect(indexer.signer)
+        .claimMany([allocationID, allocationID2], true)
+
+      // Verify that the claimed tokens are restaked
+      const afterIndexerStake = await staking.getIndexerStakedTokens(indexer.address)
+      const tokensToClaim = beforeAlloc1.effectiveAllocation.eq(0)
+        ? toBN(0)
+        : beforeAlloc1.collectedFees
+      const tokensToClaim2 = beforeAlloc2.effectiveAllocation.eq(0)
+        ? toBN(0)
+        : beforeAlloc2.collectedFees
+      expect(afterIndexerStake).eq(beforeIndexerStake.add(tokensToClaim).add(tokensToClaim2))
+    })
+  })
+
+  describe('isAllocation', function () {
+    it('should return true if allocation exists', async function () {
+      // Allocate
+      await staking.connect(indexer.signer).stake(tokensToStake)
+      await allocate(toBN(100))
+
+      // Check
+      expect(await staking.isAllocation(allocationID)).eq(true)
+    })
+    it('should still return true after an allocation is closed', async function () {
+      // Allocate
+      await staking.connect(indexer.signer).stake(tokensToStake)
+      await allocate(toBN(100))
+
+      // Collect some funds
+      await grt.connect(governor.signer).mint(assetHolder.address, tokensToCollect)
+      await grt.connect(assetHolder.signer).approve(staking.address, tokensToCollect)
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+
+      // Advance blocks to get the allocation in epoch where it can be closed
+      await advanceToNextEpoch(epochManager)
+
+      // Close the allocation
+      await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+
+      // Check
+      expect(await staking.isAllocation(allocationID)).eq(true)
+    })
+    it('should return false if allocation does not exist', async function () {
+      // Check
+      expect(await staking.isAllocation(allocationID)).eq(false)
+    })
   })
 })

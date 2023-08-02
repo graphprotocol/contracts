@@ -9,12 +9,15 @@ import { BancorFormula } from '../../build/types/BancorFormula'
 import { Controller } from '../../build/types/Controller'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { Curation } from '../../build/types/Curation'
+import { L2Curation } from '../../build/types/L2Curation'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GNS } from '../../build/types/GNS'
 import { GraphToken } from '../../build/types/GraphToken'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
-import { Staking } from '../../build/types/Staking'
+import { StakingExtension } from '../../build/types/StakingExtension'
+import { IL1Staking } from '../../build/types/IL1Staking'
+import { IL2Staking } from '../../build/types/IL2Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 import { SubgraphNFT } from '../../build/types/SubgraphNFT'
@@ -22,9 +25,18 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { L2GNS } from '../../build/types/L2GNS'
+import { L1GNS } from '../../build/types/L1GNS'
+import path from 'path'
+import { Artifacts } from 'hardhat/internal/artifacts'
 
 // Disable logging for tests
 logger.pause()
+
+const ARTIFACTS_PATH = path.resolve('build/contracts')
+const artifacts = new Artifacts(ARTIFACTS_PATH)
+const iL1StakingAbi = artifacts.readArtifactSync('IL1Staking').abi
+const iL2StakingAbi = artifacts.readArtifactSync('IL2Staking').abi
 
 // Default configuration used in tests
 
@@ -32,6 +44,7 @@ export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
+    l2MinimumCurationDeposit: toBN('1'),
     curationTaxPercentage: 0,
   },
   dispute: {
@@ -56,7 +69,7 @@ export const defaults = {
     initialSupply: toGRT('10000000000'), // 10 billion
   },
   rewards: {
-    issuanceRate: toGRT('1.000000023206889619'), // 5% annual rate
+    issuancePerBlock: toGRT('114.155251141552511415'), // 300M GRT/year
     dripInterval: toBN('50400'), // 1 week in blocks (post-Merge)
   },
 }
@@ -120,6 +133,28 @@ export async function deployCuration(
   ) as unknown as Curation
 }
 
+export async function deployL2Curation(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2Curation> {
+  // Dependency
+  const curationTokenMaster = await deployContract('GraphCurationToken', deployer)
+
+  // Deploy
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'L2Curation',
+    [
+      controller,
+      curationTokenMaster.address,
+      defaults.curation.curationTaxPercentage,
+      defaults.curation.l2MinimumCurationDeposit,
+    ],
+    deployer,
+  ) as unknown as L2Curation
+}
+
 export async function deployDisputeManager(
   deployer: Signer,
   controller: string,
@@ -155,13 +190,13 @@ export async function deployEpochManager(
   ) as unknown as EpochManager
 }
 
-export async function deployGNS(
+async function deployL1OrL2GNS(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
-): Promise<GNS> {
+  isL2: boolean,
+): Promise<L1GNS | L2GNS> {
   // Dependency
-  const bondingCurve = (await deployContract('BancorFormula', deployer)) as unknown as BancorFormula
   const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', deployer)
   const subgraphNFT = (await deployContract(
     'SubgraphNFT',
@@ -169,11 +204,17 @@ export async function deployGNS(
     await deployer.getAddress(),
   )) as SubgraphNFT
 
+  let name: string
+  if (isL2) {
+    name = 'L2GNS'
+  } else {
+    name = 'L1GNS'
+  }
   // Deploy
   const proxy = (await network.deployContractWithProxy(
     proxyAdmin,
-    'GNS',
-    [controller, bondingCurve.address, subgraphNFT.address],
+    name,
+    [controller, subgraphNFT.address],
     deployer,
   )) as unknown as GNS
 
@@ -181,7 +222,27 @@ export async function deployGNS(
   await subgraphNFT.connect(deployer).setMinter(proxy.address)
   await subgraphNFT.connect(deployer).setTokenDescriptor(subgraphDescriptor.address)
 
-  return proxy
+  if (isL2) {
+    return proxy as L2GNS
+  } else {
+    return proxy as L1GNS
+  }
+}
+
+export async function deployL1GNS(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L1GNS> {
+  return deployL1OrL2GNS(deployer, controller, proxyAdmin, false) as unknown as L1GNS
+}
+
+export async function deployL2GNS(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<L2GNS> {
+  return deployL1OrL2GNS(deployer, controller, proxyAdmin, true) as unknown as L2GNS
 }
 
 export async function deployServiceRegistry(
@@ -198,14 +259,18 @@ export async function deployServiceRegistry(
   ) as unknown as Promise<ServiceRegistry>
 }
 
-export async function deployStaking(
+export async function deployL1Staking(
   deployer: Signer,
   controller: string,
   proxyAdmin: GraphProxyAdmin,
-): Promise<Staking> {
-  return network.deployContractWithProxy(
+): Promise<IL1Staking> {
+  const extensionImpl = (await deployContract(
+    'StakingExtension',
+    deployer,
+  )) as unknown as StakingExtension
+  return (await network.deployContractWithProxy(
     proxyAdmin,
-    'Staking',
+    'L1Staking',
     [
       controller,
       defaults.staking.minimumIndexerStake,
@@ -218,9 +283,40 @@ export async function deployStaking(
       0,
       defaults.staking.alphaNumerator,
       defaults.staking.alphaDenominator,
+      extensionImpl.address,
     ],
     deployer,
-  ) as unknown as Staking
+  )) as unknown as IL1Staking
+}
+
+export async function deployL2Staking(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<IL2Staking> {
+  const extensionImpl = (await deployContract(
+    'StakingExtension',
+    deployer,
+  )) as unknown as StakingExtension
+  return (await network.deployContractWithProxy(
+    proxyAdmin,
+    'L2Staking',
+    [
+      controller,
+      defaults.staking.minimumIndexerStake,
+      defaults.staking.thawingPeriod,
+      0,
+      0,
+      defaults.staking.channelDisputeEpochs,
+      defaults.staking.maxAllocationEpochs,
+      defaults.staking.delegationUnbondingPeriod,
+      0,
+      defaults.staking.alphaNumerator,
+      defaults.staking.alphaDenominator,
+      extensionImpl.address,
+    ],
+    deployer,
+  )) as unknown as IL2Staking
 }
 
 export async function deployRewardsManager(
