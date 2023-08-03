@@ -976,7 +976,6 @@ describe('Rewards', () => {
 
       // allow the asset holder
       const tokensToCollect = toGRT('10000')
-      await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
 
       // signal in two subgraphs in the same block
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
