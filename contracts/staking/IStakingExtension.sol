@@ -239,15 +239,6 @@ interface IStakingExtension is IStakingData {
     function rewardsDestination(address _indexer) external view returns (address);
 
     /**
-     * @notice Getter for assetHolders[_maybeAssetHolder]:
-     * returns true if the address is an asset holder, i.e. an entity that can collect
-     * query fees into the Staking contract.
-     * @param _maybeAssetHolder The address that may or may not be an asset holder
-     * @return True if the address is an asset holder
-     */
-    function assetHolders(address _maybeAssetHolder) external view returns (bool);
-
-    /**
      * @notice Getter for subgraphAllocations[_subgraphDeploymentId]:
      * returns the amount of tokens allocated to a subgraph deployment.
      * @param _subgraphDeploymentId The subgraph deployment for which to query the allocations
