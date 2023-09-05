@@ -780,7 +780,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
         // Creates an allocation
         // Allocation identifiers are not reused
-        // Anyone can send collected funds to the allocation using collect()g
+        // Anyone can send collected funds to the allocation using collect()
         Allocation memory alloc = Allocation(
             _indexer,
             _subgraphDeploymentID,
