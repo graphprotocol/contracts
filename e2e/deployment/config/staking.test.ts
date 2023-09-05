@@ -50,15 +50,6 @@ describe('Staking configuration', () => {
     expect(value).eq(expected)
   })
 
-  it('channelDisputeEpochs should match "channelDisputeEpochs" in the config file', async function () {
-    const value = await Staking.channelDisputeEpochs()
-    const expected = getItemValue(
-      graphConfig,
-      `contracts/${contractName}/init/channelDisputeEpochs`,
-    )
-    expect(value).eq(expected)
-  })
-
   it('maxAllocationEpochs should match "maxAllocationEpochs" in the config file', async function () {
     const value = await Staking.maxAllocationEpochs()
     const expected = getItemValue(graphConfig, `contracts/${contractName}/init/maxAllocationEpochs`)
@@ -80,20 +71,38 @@ describe('Staking configuration', () => {
     expect(value).eq(expected)
   })
 
-  it('alphaNumerator should match "rebateAlphaNumerator" in the config file', async function () {
+  it('alphaNumerator should match "alphaNumerator" in the config file', async function () {
     const value = await Staking.alphaNumerator()
     const expected = getItemValue(
       graphConfig,
-      `contracts/${contractName}/init/rebateAlphaNumerator`,
+      `contracts/${contractName}/init/rebateParameters/alphaNumerator`,
     )
     expect(value).eq(expected)
   })
 
-  it('alphaDenominator should match "rebateAlphaDenominator" in the config file', async function () {
+  it('alphaDenominator should match "alphaDenominator" in the config file', async function () {
     const value = await Staking.alphaDenominator()
     const expected = getItemValue(
       graphConfig,
-      `contracts/${contractName}/init/rebateAlphaDenominator`,
+      `contracts/${contractName}/init/rebateParameters/alphaDenominator`,
+    )
+    expect(value).eq(expected)
+  })
+
+  it('lambdaNumerator should match "lambdaNumerator" in the config file', async function () {
+    const value = await Staking.lambdaNumerator()
+    const expected = getItemValue(
+      graphConfig,
+      `contracts/${contractName}/init/rebateParameters/lambdaNumerator`,
+    )
+    expect(value).eq(expected)
+  })
+
+  it('lambdaDenominator should match "lambdaDenominator" in the config file', async function () {
+    const value = await Staking.lambdaDenominator()
+    const expected = getItemValue(
+      graphConfig,
+      `contracts/${contractName}/init/rebateParameters/lambdaDenominator`,
     )
     expect(value).eq(expected)
   })

@@ -4,12 +4,11 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { StakingV3Storage } from "./StakingStorage.sol";
+import { StakingV4Storage } from "./StakingStorage.sol";
 import { IStakingExtension } from "./IStakingExtension.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { Rebates } from "./libs/Rebates.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { IStakingData } from "./IStakingData.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
@@ -21,7 +20,7 @@ import { MathUtils } from "./libs/MathUtils.sol";
  * Staking contract, and is only kept separate to keep the Staking contract size
  * within limits.
  */
-contract StakingExtension is StakingV3Storage, GraphUpgradeable, IStakingExtension {
+contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtension {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
@@ -334,16 +333,6 @@ contract StakingExtension is StakingV3Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for rebates[_epoch]:
-     * gets the rebate pool for a particular epoch.
-     * @param _epoch Epoch for which to query the rebate pool
-     * @return Rebate pool for the specified epoch, as a Rebates.Pool struct
-     */
-    function rebates(uint256 _epoch) external view override returns (Rebates.Pool memory) {
-        return __rebates[_epoch];
-    }
-
-    /**
      * @notice Getter for slashers[_maybeSlasher]:
      * returns true if the address is a slasher, i.e. an entity that can slash indexers
      * @param _maybeSlasher Address for which to check the slasher role
@@ -390,16 +379,6 @@ contract StakingExtension is StakingV3Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for channelDisputeEpochs: the time in epochs
-     * between closing an allocation and the moment it becomes finalized so
-     * query fees can be claimed.
-     * @return Channel dispute period in epochs
-     */
-    function channelDisputeEpochs() external view override returns (uint32) {
-        return __channelDisputeEpochs;
-    }
-
-    /**
      * @notice Getter for maxAllocationEpochs: the maximum time in epochs
      * that an allocation can be open before anyone is allowed to close it. This
      * also caps the effective allocation when sending the allocation's query fees
@@ -411,21 +390,35 @@ contract StakingExtension is StakingV3Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for alphaNumerator: the numerator of the Cobb-Douglas
-     * rebate ratio.
-     * @return Rebate ratio numerator
+     * @notice Getter for the numerator of the rebates alpha parameter
+     * @return Alpha numerator
      */
     function alphaNumerator() external view override returns (uint32) {
         return __alphaNumerator;
     }
 
     /**
-     * @notice Getter for alphaDenominator: the denominator of the Cobb-Douglas
-     * rebate ratio.
-     * @return Rebate ratio denominator
+     * @notice Getter for the denominator of the rebates alpha parameter
+     * @return Alpha denominator
      */
     function alphaDenominator() external view override returns (uint32) {
         return __alphaDenominator;
+    }
+
+    /**
+     * @notice Getter for the numerator of the rebates lambda parameter
+     * @return Lambda numerator
+     */
+    function lambdaNumerator() external view override returns (uint32) {
+        return __lambdaNumerator;
+    }
+
+    /**
+     * @notice Getter for the denominator of the rebates lambda parameter
+     * @return Lambda denominator
+     */
+    function lambdaDenominator() external view override returns (uint32) {
+        return __lambdaDenominator;
     }
 
     /**

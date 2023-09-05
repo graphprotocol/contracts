@@ -33,6 +33,7 @@ describe('DisputeManager:Query', async () => {
   let arbitrator: Account
   let indexer: Account
   let indexer2: Account
+  let rewardsDestination: Account
   let fisherman: Account
   let fisherman2: Account
   let assetHolder: Account
@@ -126,8 +127,18 @@ describe('DisputeManager:Query', async () => {
   }
 
   before(async function () {
-    ;[me, other, governor, arbitrator, indexer, indexer2, fisherman, fisherman2, assetHolder] =
-      await getAccounts()
+    ;[
+      me,
+      other,
+      governor,
+      arbitrator,
+      indexer,
+      indexer2,
+      fisherman,
+      fisherman2,
+      assetHolder,
+      rewardsDestination,
+    ] = await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
@@ -204,6 +215,8 @@ describe('DisputeManager:Query', async () => {
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
+      // set rewards destination so collected query fees are not added to indexer balance
+      await staking.connect(indexer.signer).setRewardsDestination(rewardsDestination.address)
       await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
       await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)

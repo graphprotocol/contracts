@@ -56,15 +56,6 @@ export const closeAllocation = async (cli: CLIEnvironment, cliArgs: CLIArgs): Pr
   await sendTransaction(cli.wallet, staking, 'closeAllocation', [allocationID, poi])
 }
 
-export const claim = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
-  const allocationID = cliArgs.allocationID
-  const restake = cliArgs.restake
-  const staking = cli.contracts.Staking
-
-  logger.info(`Claiming allocation ${allocationID} with restake = ${restake}...`)
-  await sendTransaction(cli.wallet, staking, 'claim', [allocationID, restake])
-}
-
 export const delegate = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   const indexer = cliArgs.indexer
   const amount = parseGRT(cliArgs.amount)
@@ -227,28 +218,6 @@ export const stakingCommand = {
         },
         handler: async (argv: CLIArgs): Promise<void> => {
           return closeAllocation(await loadEnv(argv), argv)
-        },
-      })
-      .command({
-        command: 'claim',
-        describe: 'Claim rebate',
-        builder: (yargs: Argv) => {
-          return yargs
-            .option('allocationID', {
-              description: 'The allocation claimed from the rebate pool',
-              type: 'string',
-              requiresArg: true,
-              demandOption: true,
-            })
-            .option('restake', {
-              description: 'True if you are restaking the fees, rather than withdrawing',
-              type: 'boolean',
-              requiresArg: true,
-              demandOption: true,
-            })
-        },
-        handler: async (argv: CLIArgs): Promise<void> => {
-          return claim(await loadEnv(argv), argv)
         },
       })
       .command({

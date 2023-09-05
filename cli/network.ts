@@ -38,7 +38,7 @@ export const getChainID = (): number => {
 
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
-type ContractParam = string | BigNumber | number
+type ContractParam = string | BigNumber | number | { [key: string]: any }
 type DeployResult = {
   contract: Contract
   creationCodeHash: string
@@ -68,7 +68,12 @@ export const isContractDeployed = async (
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash
-    const creationCodeHash = hashHexString(artifact.bytecode)
+    let creationCodeHash: string
+    try {
+      creationCodeHash = hashHexString(artifact.bytecode)
+    } catch (error) {
+      // Noop - assume contract is not deployed
+    }
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
       logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)
@@ -310,6 +315,34 @@ export const deployContractAndSave = async (
         ? deployResult.libraries
         : undefined,
   })
+  logger.info('> Contract saved to address book')
+
+  return deployResult.contract
+}
+
+export const deployContractImplementationAndSave = async (
+  name: string,
+  args: Array<ContractParam>,
+  sender: Signer,
+  addressBook: AddressBook,
+): Promise<Contract> => {
+  // Deploy the contract
+  const deployResult = await deployContract(name, args, sender)
+
+  // Save address entry
+  const entry = addressBook.getEntry(name)
+  entry.implementation = {
+    address: deployResult.contract.address,
+    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
+    creationCodeHash: deployResult.creationCodeHash,
+    runtimeCodeHash: deployResult.runtimeCodeHash,
+    txHash: deployResult.txHash,
+    libraries:
+      deployResult.libraries && Object.keys(deployResult.libraries).length > 0
+        ? deployResult.libraries
+        : undefined,
+  }
+  addressBook.setEntry(name, entry)
   logger.info('> Contract saved to address book')
 
   return deployResult.contract

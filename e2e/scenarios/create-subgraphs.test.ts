@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { recreatePreviousSubgraphId } from './lib/subgraph'
+import { recreatePreviousSubgraphId } from '../lib/subgraph'
 import { BigNumber } from 'ethers'
 import { CuratorFixture, getCuratorFixtures } from './fixtures/curators'
 import { SubgraphFixture, getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'

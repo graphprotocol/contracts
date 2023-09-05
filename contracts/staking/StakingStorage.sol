@@ -5,7 +5,6 @@ pragma solidity ^0.7.6;
 import { Managed } from "../governance/Managed.sol";
 
 import { IStakingData } from "./IStakingData.sol";
-import { Rebates } from "./libs/Rebates.sol";
 import { Stakes } from "./libs/Stakes.sol";
 
 /**
@@ -33,15 +32,17 @@ contract StakingV1Storage is Managed {
     uint32 internal __protocolPercentage;
 
     /// @dev Period for allocation to be finalized
-    uint32 internal __channelDisputeEpochs;
+    uint32 private __DEPRECATED_channelDisputeEpochs;
 
     /// @dev Maximum allocation time
     uint32 internal __maxAllocationEpochs;
 
-    /// @dev Rebate ratio numerator
+    /// @dev Rebate alpha numerator
+    // Originally used for Cobb-Douglas rebates, now used for exponential rebates
     uint32 internal __alphaNumerator;
 
-    /// @dev Rebate ratio denominator
+    /// @dev Rebate alpha denominator
+    // Originally used for Cobb-Douglas rebates, now used for exponential rebates
     uint32 internal __alphaDenominator;
 
     /// @dev Indexer stakes : indexer => Stake
@@ -53,8 +54,8 @@ contract StakingV1Storage is Managed {
     /// @dev Subgraph Allocations: subgraphDeploymentID => tokens
     mapping(bytes32 => uint256) internal __subgraphAllocations;
 
-    /// @dev Rebate pools : epoch => Pool
-    mapping(uint256 => Rebates.Pool) internal __rebates;
+    // Rebate pools : epoch => Pool
+    mapping(uint256 => uint256) private __DEPRECATED_rebates;
 
     // -- Slashing --
 
@@ -106,15 +107,25 @@ contract StakingV2Storage is StakingV1Storage {
 /**
  * @title StakingV3Storage
  * @notice This contract holds all the storage variables for the base Staking contract, version 3.
- * @dev Note that this is the first version that includes a storage gap - if adding
- * future versions, make sure to move the gap to the new version and
- * reduce the size of the gap accordingly.
  */
 contract StakingV3Storage is StakingV2Storage {
     /// @dev Address of the counterpart Staking contract on L1/L2
     address internal counterpartStakingAddress;
     /// @dev Address of the StakingExtension implementation
     address internal extensionImpl;
+}
+
+/**
+ * @title StakingV4Storage
+ * @notice This contract holds all the storage variables for the base Staking contract, version 4.
+ * @dev Note that it includes a storage gap - if adding future versions, make sure to move the gap
+ * to the new version and reduce the size of the gap accordingly.
+ */
+contract StakingV4Storage is StakingV3Storage {
+    // Additional rebate parameters for exponential rebates
+    uint32 internal __lambdaNumerator;
+    uint32 internal __lambdaDenominator;
+
     /// @dev Gap to allow adding variables in future upgrades (since L1Staking and L2Staking can have their own storage as well)
     uint256[50] private __gap;
 }

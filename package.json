@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "5.0.2",
+  "version": "5.2.1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -100,6 +100,7 @@
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
     "test:coverage": "scripts/coverage",
     "test:gre": "cd gre && mocha --exit --recursive 'test/**/*.test.ts' && cd ..",
+    "test:upgrade": "scripts/upgrade",
     "lint": "yarn lint:ts && yarn lint:sol",
     "lint:fix": "yarn lint:ts:fix && yarn lint:sol:fix",
     "lint:ts": "eslint '**/*.{js,ts}'",

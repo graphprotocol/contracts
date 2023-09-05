@@ -1,8 +1,8 @@
 general:
   arbitrator: &arbitrator "0xF89688d5d44d73cc4dE880857A3940487076e5A4" # Arbitration Council (TODO: update)
   governor: &governor "0x5CeeeE16F30357d49c50bcd7F520ca6527cf388a" # Graph Council (TODO: update)
-  authority: &authority "0x2ebFDb50f104c96ee0D1d4D00a4e49f53f4a29c0" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0xb05B7488B4c3639cD23d74AA063bD58dec6d8b7e" # Subgraph Availability Oracle (TODO: update)
+  authority: &authority "0xac01B0b3B2Dc5D8E0D484c02c4d077C15C96a7b4" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0xa99a56fa38a6b9553853c84e11458aeccdad509b" # Subgraph Availability Oracle (TODO: update)
   pauseGuardian: &pauseGuardian "0x4B6C90B9fE29dfa521188B6547989C23d613b79B" # Protocol pause guardian (TODO: update)
   allocationExchangeOwner: &allocationExchangeOwner "0x05F359b1319f1Ca9b799CB6386F31421c2c49dBA" # Allocation Exchange owner (TODO: update)
 
@@ -108,12 +108,14 @@ contracts:
       thawingPeriod: 6646 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 2 # in epochs
-      maxAllocationEpochs: 4 # in epochs
+      maxAllocationEpochs: 8 # in epochs
       delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
-      rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
-      rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+      rebateParameters:
+        alphaNumerator: 100 # alphaNumerator / alphaDenominator
+        alphaDenominator: 100 # alphaNumerator / alphaDenominator
+        lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
+        lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
       extensionImpl: "${{StakingExtension.address}}"
     calls:
       - fn: "setDelegationTaxPercentage"

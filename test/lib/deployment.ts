@@ -27,16 +27,10 @@ import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GNS } from '../../build/types/L2GNS'
 import { L1GNS } from '../../build/types/L1GNS'
-import path from 'path'
-import { Artifacts } from 'hardhat/internal/artifacts'
+import { LibExponential } from '../../build/types/LibExponential'
 
 // Disable logging for tests
 logger.pause()
-
-const ARTIFACTS_PATH = path.resolve('build/contracts')
-const artifacts = new Artifacts(ARTIFACTS_PATH)
-const iL1StakingAbi = artifacts.readArtifactSync('IL1Staking').abi
-const iL2StakingAbi = artifacts.readArtifactSync('IL2Staking').abi
 
 // Default configuration used in tests
 
@@ -58,12 +52,13 @@ export const defaults = {
   },
   staking: {
     minimumIndexerStake: toGRT('10'),
-    channelDisputeEpochs: 1,
     maxAllocationEpochs: 5,
     thawingPeriod: 20, // in blocks
     delegationUnbondingPeriod: 1, // in epochs
-    alphaNumerator: 85,
+    alphaNumerator: 100,
     alphaDenominator: 100,
+    lambdaNumerator: 60,
+    lambdaDenominator: 100,
   },
   token: {
     initialSupply: toGRT('10000000000'), // 10 billion
@@ -277,12 +272,15 @@ export async function deployL1Staking(
       defaults.staking.thawingPeriod,
       0,
       0,
-      defaults.staking.channelDisputeEpochs,
       defaults.staking.maxAllocationEpochs,
       defaults.staking.delegationUnbondingPeriod,
       0,
-      defaults.staking.alphaNumerator,
-      defaults.staking.alphaDenominator,
+      {
+        alphaNumerator: defaults.staking.alphaNumerator,
+        alphaDenominator: defaults.staking.alphaDenominator,
+        lambdaNumerator: defaults.staking.lambdaNumerator,
+        lambdaDenominator: defaults.staking.lambdaDenominator,
+      },
       extensionImpl.address,
     ],
     deployer,
@@ -307,12 +305,15 @@ export async function deployL2Staking(
       defaults.staking.thawingPeriod,
       0,
       0,
-      defaults.staking.channelDisputeEpochs,
       defaults.staking.maxAllocationEpochs,
       defaults.staking.delegationUnbondingPeriod,
       0,
-      defaults.staking.alphaNumerator,
-      defaults.staking.alphaDenominator,
+      {
+        alphaNumerator: defaults.staking.alphaNumerator,
+        alphaDenominator: defaults.staking.alphaDenominator,
+        lambdaNumerator: defaults.staking.lambdaNumerator,
+        lambdaDenominator: defaults.staking.lambdaDenominator,
+      },
       extensionImpl.address,
     ],
     deployer,
@@ -394,4 +395,8 @@ export async function deployL2GRT(
     [await deployer.getAddress()],
     deployer,
   ) as unknown as L2GraphToken
+}
+
+export async function deployLibExponential(deployer: Signer): Promise<LibExponential> {
+  return deployContract('LibExponential', deployer) as Promise<LibExponential>
 }

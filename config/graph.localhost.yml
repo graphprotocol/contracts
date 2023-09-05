@@ -52,6 +52,11 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+      # rebateParameters:
+      #   alphaNumerator: 100 # alphaNumerator / alphaDenominator
+      #   alphaDenominator: 100 # alphaNumerator / alphaDenominator
+      #   lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
+      #   lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # in wei
@@ -111,12 +116,14 @@ contracts:
       thawingPeriod: 6646 # in blocks
       protocolPercentage: 10000 # in parts per million
       curationPercentage: 100000 # in parts per million
-      channelDisputeEpochs: 2 # in epochs
       maxAllocationEpochs: 4 # in epochs
       delegationUnbondingPeriod: 12 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
-      rebateAlphaNumerator: 77 # rebateAlphaNumerator / rebateAlphaDenominator
-      rebateAlphaDenominator: 100 # rebateAlphaNumerator / rebateAlphaDenominator
+      rebateParameters:
+        alphaNumerator: 100 # alphaNumerator / alphaDenominator
+        alphaDenominator: 100 # alphaNumerator / alphaDenominator
+        lambdaNumerator: 60 # lambdaNumerator / lambdaDenominator
+        lambdaDenominator: 100 # lambdaNumerator / lambdaDenominator
       extensionImpl: "${{StakingExtension.address}}"
     calls:
       - fn: "setDelegationTaxPercentage"
