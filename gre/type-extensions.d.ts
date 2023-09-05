@@ -12,6 +12,7 @@ export interface GraphRuntimeEnvironmentOptions {
   graphConfig?: string
   enableTxLogging?: boolean
   disableSecureAccounts?: boolean
+  fork?: boolean
 
   // These are mostly for testing purposes
   l1AccountName?: string

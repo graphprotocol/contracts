@@ -45,25 +45,8 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `indexer` collected `tokens` amount in `epoch` for `allocationID`.
-     * These funds are related to `subgraphDeploymentID`.
-     * The `from` value is the sender of the collected funds.
-     */
-    event AllocationCollected(
-        address indexed indexer,
-        bytes32 indexed subgraphDeploymentID,
-        uint256 epoch,
-        uint256 tokens,
-        address indexed allocationID,
-        address from,
-        uint256 curationFees,
-        uint256 rebateFees
-    );
-
-    /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
-     * The `effectiveAllocation` are the tokens allocated from creation to closing.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
      * `isPublic` is true if the sender was someone other than the indexer.
      */
@@ -73,27 +56,31 @@ interface IStakingBase is IStakingData {
         uint256 epoch,
         uint256 tokens,
         address indexed allocationID,
-        uint256 effectiveAllocation,
         address sender,
         bytes32 poi,
         bool isPublic
     );
 
     /**
-     * @dev Emitted when `indexer` claimed a rebate on `subgraphDeploymentID` during `epoch`
-     * related to the `forEpoch` rebate pool.
-     * The rebate is for `tokens` amount and `unclaimedAllocationsCount` are left for claim
-     * in the rebate pool. `delegationFees` collected and sent to delegation pool.
+     * @dev Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
+     * `epoch` is the protocol epoch the rebate was collected on
+     * The rebate is for `tokens` amount which are being provided by `assetHolder`; `queryFees`
+     * is the amount up for rebate after `curationFees` are distributed and `protocolTax` is burnt.
+     * `queryRebates` is the amount distributed to the `indexer` with `delegationFees` collected
+     * and sent to the delegation pool.
      */
-    event RebateClaimed(
+    event RebateCollected(
+        address assetHolder,
         address indexed indexer,
         bytes32 indexed subgraphDeploymentID,
         address indexed allocationID,
         uint256 epoch,
-        uint256 forEpoch,
         uint256 tokens,
-        uint256 unclaimedAllocationsCount,
-        uint256 delegationFees
+        uint256 protocolTax,
+        uint256 curationFees,
+        uint256 queryFees,
+        uint256 queryRebates,
+        uint256 delegationRewards
     );
 
     /**
@@ -126,7 +113,7 @@ interface IStakingBase is IStakingData {
      * @dev Emitted when `extensionImpl` was set as the address of the StakingExtension contract
      * to which extended functionality is delegated.
      */
-    event ExtensionImplementationSet(address extensionImpl);
+    event ExtensionImplementationSet(address indexed extensionImpl);
 
     /**
      * @dev Possible states an allocation can be.
@@ -134,15 +121,11 @@ interface IStakingBase is IStakingData {
      * - Null = indexer == address(0)
      * - Active = not Null && tokens > 0
      * - Closed = Active && closedAtEpoch != 0
-     * - Finalized = Closed && closedAtEpoch + channelDisputeEpochs > now()
-     * - Claimed = not Null && tokens == 0
      */
     enum AllocationState {
         Null,
         Active,
-        Closed,
-        Finalized,
-        Claimed
+        Closed
     }
 
     /**
@@ -152,12 +135,10 @@ interface IStakingBase is IStakingData {
      * @param _thawingPeriod Number of blocks that tokens get locked after unstaking
      * @param _protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
      * @param _curationPercentage Percentage of query fees that are given to curators (in PPM)
-     * @param _channelDisputeEpochs The period in epochs that needs to pass before fees in rebate pool can be claimed
      * @param _maxAllocationEpochs The maximum number of epochs that an allocation can be active
      * @param _delegationUnbondingPeriod The period in epochs that tokens get locked after undelegating
      * @param _delegationRatio The ratio between an indexer's own stake and the delegation they can use
-     * @param _rebateAlphaNumerator The numerator of the alpha factor used to calculate the rebate
-     * @param _rebateAlphaDenominator The denominator of the alpha factor used to calculate the rebate
+     * @param _rebatesParameters Alpha and lambda parameters for rebates function
      * @param _extensionImpl Address of the StakingExtension implementation
      */
     function initialize(
@@ -166,12 +147,10 @@ interface IStakingBase is IStakingData {
         uint32 _thawingPeriod,
         uint32 _protocolPercentage,
         uint32 _curationPercentage,
-        uint32 _channelDisputeEpochs,
         uint32 _maxAllocationEpochs,
         uint32 _delegationUnbondingPeriod,
         uint32 _delegationRatio,
-        uint32 _rebateAlphaNumerator,
-        uint32 _rebateAlphaDenominator,
+        RebatesParameters calldata _rebatesParameters,
         address _extensionImpl
     ) external;
 
@@ -218,13 +197,6 @@ interface IStakingBase is IStakingData {
     function setProtocolPercentage(uint32 _percentage) external;
 
     /**
-     * @notice Set the period in epochs that need to pass before fees in rebate pool can be claimed.
-     * @dev This function can only be called by the governor.
-     * @param _channelDisputeEpochs Period in epochs
-     */
-    function setChannelDisputeEpochs(uint32 _channelDisputeEpochs) external;
-
-    /**
      * @notice Set the max time allowed for indexers to allocate on a subgraph
      * before others are allowed to close the allocation.
      * @dev This function can only be called by the governor.
@@ -233,12 +205,19 @@ interface IStakingBase is IStakingData {
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
 
     /**
-     * @notice Set the rebate ratio (fees to allocated stake).
+     * @notice Set the rebate parameters
      * @dev This function can only be called by the governor.
-     * @param _alphaNumerator Numerator of `alpha` in the cobb-douglas function
-     * @param _alphaDenominator Denominator of `alpha` in the cobb-douglas function
+     * @param _alphaNumerator Numerator of `alpha`
+     * @param _alphaDenominator Denominator of `alpha`
+     * @param _lambdaNumerator Numerator of `lambda`
+     * @param _lambdaDenominator Denominator of `lambda`
      */
-    function setRebateRatio(uint32 _alphaNumerator, uint32 _alphaDenominator) external;
+    function setRebateParameters(
+        uint32 _alphaNumerator,
+        uint32 _alphaDenominator,
+        uint32 _lambdaNumerator,
+        uint32 _lambdaDenominator
+    ) external;
 
     /**
      * @notice Set an address as allowed asset holder.
@@ -359,20 +338,6 @@ interface IStakingBase is IStakingData {
      * @param _allocationID Allocation where the tokens will be assigned
      */
     function collect(uint256 _tokens, address _allocationID) external;
-
-    /**
-     * @notice Claim tokens from the rebate pool.
-     * @param _allocationID Allocation from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claim(address _allocationID, bool _restake) external;
-
-    /**
-     * @dev Claim tokens from the rebate pool for many allocations.
-     * @param _allocationID Array of allocations from where we are claiming tokens
-     * @param _restake True if restake fees instead of transfer to indexer
-     */
-    function claimMany(address[] calldata _allocationID, bool _restake) external;
 
     /**
      * @notice Return true if operator is allowed for indexer.

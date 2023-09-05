@@ -56,12 +56,13 @@ const staking: Contract = {
     { name: 'thawingPeriod', type: 'number' },
     { name: 'protocolPercentage', type: 'number' },
     { name: 'curationPercentage', type: 'number' },
-    { name: 'channelDisputeEpochs', type: 'number' },
     { name: 'maxAllocationEpochs', type: 'number' },
     { name: 'delegationUnbondingPeriod', type: 'number' },
     { name: 'delegationRatio', type: 'number' },
     { name: 'rebateAlphaNumerator', type: 'number', getter: 'alphaNumerator' },
     { name: 'rebateAlphaDenominator', type: 'number', getter: 'alphaDenominator' },
+    { name: 'rebateLambdaNumerator', type: 'number', getter: 'lambdaNumerator' },
+    { name: 'rebateLambdaDenominator', type: 'number', getter: 'lambdaDenominator' },
   ],
 }
 
