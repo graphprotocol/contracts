@@ -600,7 +600,7 @@ describe('Staking:Allocation', () => {
           })
 
           it('should collect zero tokens', async function () {
-            await shouldCollect(toGRT('0'))
+            await shouldCollect(toGRT('0'), { expectEvent: false })
           })
 
           it('should allow multiple collections on the same allocation', async function () {
