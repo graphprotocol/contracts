@@ -412,10 +412,10 @@
       "txHash": "0xf1b1f0f28b80068bcc9fd6ef475be6324a8b23cbdb792f7344f05ce00aa997d7",
       "proxy": true,
       "implementation": {
-        "address": "0xAeaA2B058539750b740E858f97159E6856948670",
-        "creationCodeHash": "0x022576ab4b739ee17dab126ea7e5a6814bda724aa0e4c6735a051b38a76bd597",
-        "runtimeCodeHash": "0xc7b1f9bef01ef92779aab0ae9be86376c47584118c508f5b4e612a694a4aab93",
-        "txHash": "0x400bfb7b6c384363b859a66930590507ddca08ebedf64b20c4b5f6bc8e76e125"
+        "address": "0x2b757ad83e4ed51ecae8d4dc9ade8e3fa29f7bdc",
+        "creationCodeHash": "0xde37904a7c087e05dc5f84e46a7ff35e1f75f013db373c72715d81d21921de4a",
+        "runtimeCodeHash": "0x867f82ea221eee52ee0db10a2b49ed8051f4ffc4069238d01f8a0110798a51ef",
+        "txHash": "0x928ed1d624aecbfdb60d5840c2b9cc81573b9dbe3ec96cf6d86dc8194cb7fdac"
       }
     },
     "SubgraphNFTDescriptor": {
