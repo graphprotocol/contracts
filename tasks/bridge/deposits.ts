@@ -37,15 +37,10 @@ task(TASK_BRIDGE_DEPOSITS, 'List deposits initiated on L1GraphTokenGateway')
       `Tracking 'DepositFinalized' events on L2GraphTokenGateway (${l2Gateway.address}) from block ${l2StartBlock} onwards`,
     )
 
-    const deposits = await l1Gateway.queryFilter(
-      l1Gateway.filters.DepositInitiated(),
-      l1StartBlock,
-      l1EndBlock,
-    )
-    console.log(`Found ${deposits.length} deposits on L1`)
-
     const depositInitiatedEvents = await Promise.all(
-      deposits.map(async (e) => {
+      (
+        await l1Gateway.queryFilter(l1Gateway.filters.DepositInitiated(), l1StartBlock, l1EndBlock)
+      ).map(async (e) => {
         const retryableTicket = await getL1ToL2MessageReader(
           e.transactionHash,
           graph.l1.provider,
