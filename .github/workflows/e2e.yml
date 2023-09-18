@@ -2,7 +2,7 @@ name: Run E2E tests
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
     paths:
       - contracts/**
       - config/**
