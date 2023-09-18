@@ -2,7 +2,7 @@ name: Run GRE tests
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
     paths:
       - gre/**
   pull_request: {}
