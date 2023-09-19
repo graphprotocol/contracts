@@ -65,8 +65,8 @@ describe('Pausing', () => {
     await setPartialPause(guardian, false)
   })
   it('should fail partial pause if not guardian or governor', async function () {
-    const tx = controller.connect(me.signer).setPauseGuardian(guardian.address)
-    await expect(tx).revertedWith('Only Governor can call')
+    const tx = controller.connect(me.signer).setPartialPaused(true)
+    await expect(tx).revertedWith('Only Governor or Guardian can call')
   })
   it('should check that a function fails when partialPause is set', async function () {
     await setPartialPause(governor, true)
