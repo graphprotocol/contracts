@@ -302,17 +302,6 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for assetHolders[_maybeAssetHolder]:
-     * returns true if the address is an asset holder, i.e. an entity that can collect
-     * query fees into the Staking contract.
-     * @param _maybeAssetHolder The address that may or may not be an asset holder
-     * @return True if the address is an asset holder
-     */
-    function assetHolders(address _maybeAssetHolder) external view override returns (bool) {
-        return __assetHolders[_maybeAssetHolder];
-    }
-
-    /**
      * @notice Getter for operatorAuth[_indexer][_maybeOperator]:
      * returns true if the operator is authorized to operate on behalf of the indexer.
      * @param _indexer The indexer address for which to query authorization

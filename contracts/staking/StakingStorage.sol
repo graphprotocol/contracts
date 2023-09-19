@@ -89,8 +89,8 @@ contract StakingV1Storage is Managed {
 
     // -- Asset Holders --
 
-    /// @dev Allowed AssetHolders that can collect query fees: assetHolder => is allowed
-    mapping(address => bool) internal __assetHolders;
+    /// @dev DEPRECATED: Allowed AssetHolders: assetHolder => is allowed
+    mapping(address => bool) private __DEPRECATED_assetHolders; // solhint-disable-line var-name-mixedcase
 }
 
 /**
