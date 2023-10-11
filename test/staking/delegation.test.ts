@@ -599,6 +599,7 @@ describe('Staking::Delegation', () => {
       await staking.connect(governor.signer).setDelegationRatio(10)
       await staking.connect(indexer.signer).setDelegationParameters(0, 0, 0)
       await setupAllocation(tokensToAllocate)
+      await advanceToNextEpoch(epochManager)
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).closeAllocation(allocationID, poi)

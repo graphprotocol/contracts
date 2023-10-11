@@ -533,6 +533,7 @@ describe('Staking:Allocation', () => {
     beforeEach(async function () {
       // Create the allocation
       await staking.connect(indexer.signer).stake(tokensToStake)
+      await advanceToNextEpoch(epochManager)
       await allocate(tokensToAllocate)
 
       // Add some signal to the subgraph to enable curation fees
@@ -630,6 +631,11 @@ describe('Staking:Allocation', () => {
     it('reject collect if invalid collection', async function () {
       const tx = staking.connect(indexer.signer).collect(tokensToCollect, AddressZero)
       await expect(tx).revertedWith('!alloc')
+    })
+
+    it('reject collect if allocation has been open for less than 1 epoch', async function () {
+      const tx = staking.connect(indexer.signer).collect(tokensToCollect, allocationID)
+      await expect(tx).revertedWith('!epoch')
     })
 
     it('reject collect if allocation does not exist', async function () {

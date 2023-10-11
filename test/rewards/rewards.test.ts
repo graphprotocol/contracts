@@ -1042,7 +1042,7 @@ describe('Rewards', () => {
         ])
 
       // move time fwd
-      await advanceBlock()
+      await advanceToNextEpoch(epochManager)
 
       // collect funds into staking for that sub
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID1)
