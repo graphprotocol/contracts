@@ -69,8 +69,8 @@ contract StakingV1Storage is Managed {
     /// then they can use up to 500 GRT from the delegated stake
     uint32 internal __delegationRatio;
 
-    /// @dev Time in blocks an indexer needs to wait to change delegation parameters
-    uint32 internal __delegationParametersCooldown;
+    /// @dev Time in blocks an indexer needs to wait to change delegation parameters (deprecated)
+    uint32 internal __DEPRECATED_delegationParametersCooldown;
 
     /// @dev Time in epochs a delegator needs to wait to withdraw delegated stake
     uint32 internal __delegationUnbondingPeriod; // in epochs

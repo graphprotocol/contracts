@@ -29,7 +29,7 @@ interface IStakingData {
      * @dev Delegation pool information. One per indexer.
      */
     struct DelegationPool {
-        uint32 cooldownBlocks; // Blocks to wait before updating parameters
+        uint32 cooldownBlocksDeprecated; // Blocks to wait before updating parameters (deprecated)
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated

@@ -41,18 +41,16 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * initialize() function, so it uses the same access control check to ensure it is
      * being called by the Staking implementation as part of the proxy upgrade process.
      * @param _delegationUnbondingPeriod Delegation unbonding period in blocks
-     * @param _cooldownBlocks Minimum time between changes to delegation parameters, in blocks
      * @param _delegationRatio Delegation capacity multiplier (e.g. 10 means 10x the indexer stake)
      * @param _delegationTaxPercentage Percentage of delegated tokens to burn as delegation tax, expressed in parts per million
      */
     function initialize(
         uint32 _delegationUnbondingPeriod,
-        uint32 _cooldownBlocks,
+        uint32, //_cooldownBlocks, deprecated
         uint32 _delegationRatio,
         uint32 _delegationTaxPercentage
     ) external onlyImpl {
         _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
-        _setDelegationParametersCooldown(_cooldownBlocks);
         _setDelegationRatio(_delegationRatio);
         _setDelegationTaxPercentage(_delegationTaxPercentage);
     }
@@ -75,16 +73,6 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      */
     function setDelegationRatio(uint32 _delegationRatio) external override onlyGovernor {
         _setDelegationRatio(_delegationRatio);
-    }
-
-    /**
-     * @notice Set the minimum time in blocks an indexer needs to wait to change delegation parameters.
-     * Indexers can set a custom amount time for their own cooldown, but it must be greater than this.
-     * @dev This function is only callable by the governor
-     * @param _blocks Number of blocks to set the delegation parameters cooldown period
-     */
-    function setDelegationParametersCooldown(uint32 _blocks) external override onlyGovernor {
-        _setDelegationParametersCooldown(_blocks);
     }
 
     /**
@@ -241,15 +229,6 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for delegationParametersCooldown:
-     * Minimum time in blocks an indexer needs to wait to change delegation parameters
-     * @return Delegation parameters cooldown in blocks
-     */
-    function delegationParametersCooldown() external view override returns (uint32) {
-        return __delegationParametersCooldown;
-    }
-
-    /**
      * @notice Getter for delegationUnbondingPeriod:
      * Time in epochs a delegator needs to wait to withdraw delegated stake
      * @return Delegation unbonding period in epochs
@@ -282,7 +261,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         DelegationPool storage pool = __delegationPools[_indexer];
         return
             DelegationPoolReturn(
-                pool.cooldownBlocks, // Blocks to wait before updating parameters
+                0, // Blocks to wait before updating parameters (deprecated)
                 pool.indexingRewardCut, // in PPM
                 pool.queryFeeCut, // in PPM
                 pool.updatedAtBlock, // Block when the pool was last updated
@@ -506,15 +485,6 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     function _setDelegationRatio(uint32 _delegationRatio) private {
         __delegationRatio = _delegationRatio;
         emit ParameterUpdated("delegationRatio");
-    }
-
-    /**
-     * @dev Internal: Set the time in blocks an indexer needs to wait to change delegation parameters.
-     * @param _blocks Number of blocks to set the delegation parameters cooldown period
-     */
-    function _setDelegationParametersCooldown(uint32 _blocks) private {
-        __delegationParametersCooldown = _blocks;
-        emit ParameterUpdated("delegationParametersCooldown");
     }
 
     /**

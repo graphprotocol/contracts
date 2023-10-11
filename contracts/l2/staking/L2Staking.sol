@@ -99,7 +99,7 @@ contract L2Staking is Staking, IL2StakingBase {
 
         // Initialize the delegation pool the first time
         if (__delegationPools[_indexer].updatedAtBlock == 0) {
-            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, __delegationParametersCooldown);
+            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM);
         }
 
         emit StakeDeposited(_indexer, _amount);

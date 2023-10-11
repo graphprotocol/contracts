@@ -601,7 +601,7 @@ describe('Rewards', () => {
           .setDelegationParameters(
             delegationParams.indexingRewardCut,
             delegationParams.queryFeeCut,
-            delegationParams.cooldownBlocks,
+            0,
           )
 
         // Delegate
@@ -793,7 +793,7 @@ describe('Rewards', () => {
         const delegationParams = {
           indexingRewardCut: toBN('823000'), // 82.30%
           queryFeeCut: toBN('80000'), // 8%
-          cooldownBlocks: 5,
+          cooldownBlocks: 0,
         }
         const tokensToDelegate = toGRT('2000')
 

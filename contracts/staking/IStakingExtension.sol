@@ -20,7 +20,7 @@ interface IStakingExtension is IStakingData {
      * the original DelegationPool in IStakingData.sol contains a nested mapping.
      */
     struct DelegationPoolReturn {
-        uint32 cooldownBlocks; // Blocks to wait before updating parameters
+        uint32 cooldownBlocksDeprecated; // Blocks to wait before updating parameters (deprecated)
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated
@@ -84,14 +84,6 @@ interface IStakingExtension is IStakingData {
      * @param _delegationRatio Delegation capacity multiplier
      */
     function setDelegationRatio(uint32 _delegationRatio) external;
-
-    /**
-     * @notice Set the minimum time in blocks an indexer needs to wait to change delegation parameters.
-     * Indexers can set a custom amount time for their own cooldown, but it must be greater than this.
-     * @dev This function is only callable by the governor
-     * @param _blocks Number of blocks to set the delegation parameters cooldown period
-     */
-    function setDelegationParametersCooldown(uint32 _blocks) external;
 
     /**
      * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
@@ -190,13 +182,6 @@ interface IStakingExtension is IStakingData {
      * @return Delegation ratio
      */
     function delegationRatio() external view returns (uint32);
-
-    /**
-     * @notice Getter for delegationParametersCooldown:
-     * Minimum time in blocks an indexer needs to wait to change delegation parameters
-     * @return Delegation parameters cooldown in blocks
-     */
-    function delegationParametersCooldown() external view returns (uint32);
 
     /**
      * @notice Getter for delegationUnbondingPeriod:
