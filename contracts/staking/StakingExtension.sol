@@ -26,6 +26,8 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
 
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
+    /// @dev Minimum delegation for the first delegator of an indexer
+    uint256 private constant MINIMUM_DELEGATION = 1e18;
 
     /**
      * @dev Check if the caller is the slasher.
@@ -544,9 +546,13 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0)
-            ? delegatedTokens
-            : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares;
+        if (pool.tokens == 0) {
+            require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
+            shares = delegatedTokens;
+        } else {
+            shares = delegatedTokens.mul(pool.shares).div(pool.tokens);
+        }
         require(shares > 0, "!shares");
 
         // Update the delegation pool

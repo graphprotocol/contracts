@@ -372,6 +372,17 @@ describe('Staking::Delegation', () => {
         await expect(tx).revertedWith('!tokens')
       })
 
+      it('reject delegate with less than 1 GRT when the pool is not initialized', async function () {
+        const tokensToDelegate = toGRT('0.5')
+        const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await expect(tx).revertedWith('!minimum-delegation')
+      })
+
+      it('allows delegating under 1 GRT when the pool is initialized', async function () {
+        await shouldDelegate(delegator, toGRT('1'))
+        await shouldDelegate(delegator, toGRT('0.01'))
+      })
+
       it('reject delegate to empty address', async function () {
         const tokensToDelegate = toGRT('100')
         const tx = staking.connect(delegator.signer).delegate(AddressZero, tokensToDelegate)
