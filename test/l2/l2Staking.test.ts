@@ -337,7 +337,7 @@ describe('L2Staking', () => {
       const delegatorGRTBalanceAfter = await grt.balanceOf(other.address)
       expect(delegatorGRTBalanceAfter.sub(delegatorGRTBalanceBefore)).to.equal(toBN(1))
     })
-    it('returns delegation to the delegator if it initialize the pool with less than the minimum delegation', async function () {
+    it('returns delegation to the delegator if it initializes the pool with less than the minimum delegation', async function () {
       await fixtureContracts.rewardsManager
         .connect(governor.signer)
         .setIssuancePerBlock(toGRT('114'))
@@ -383,7 +383,7 @@ describe('L2Staking', () => {
       const delegatorGRTBalanceAfter = await grt.balanceOf(other.address)
       expect(delegatorGRTBalanceAfter.sub(delegatorGRTBalanceBefore)).to.equal(toGRT('0.1'))
     })
-    it('adds delegation under the minimum if the pool is initialized', async function () {
+    it('returns delegation under the minimum if the pool is initialized', async function () {
       await staking.connect(me.signer).stake(tokens100k)
 
       // Initialize the delegation pool to allow delegating less than 1 GRT
@@ -398,6 +398,7 @@ describe('L2Staking', () => {
         ['uint8', 'bytes'],
         [toBN(1), functionData], // code = 1 means RECEIVE_DELEGATION_CODE
       )
+      const delegatorGRTBalanceBefore = await grt.balanceOf(other.address)
       const tx = gatewayFinalizeTransfer(
         mockL1Staking.address,
         staking.address,
@@ -408,12 +409,15 @@ describe('L2Staking', () => {
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
         .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toGRT('0.1'))
-      const expectedShares = toGRT('0.1')
-      await expect(tx)
-        .emit(staking, 'StakeDelegated')
-        .withArgs(me.address, other.address, toGRT('0.1'), expectedShares)
+
       const delegation = await staking.getDelegation(me.address, other.address)
-      expect(delegation.shares).to.equal(expectedShares)
+      await expect(tx)
+        .emit(staking, 'TransferredDelegationReturnedToDelegator')
+        .withArgs(me.address, other.address, toGRT('0.1'))
+
+      expect(delegation.shares).to.equal(0)
+      const delegatorGRTBalanceAfter = await grt.balanceOf(other.address)
+      expect(delegatorGRTBalanceAfter.sub(delegatorGRTBalanceBefore)).to.equal(toGRT('0.1'))
     })
   })
   describe('onTokenTransfer with invalid messages', function () {

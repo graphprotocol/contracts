@@ -26,7 +26,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
 
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
-    /// @dev Minimum delegation for the first delegator of an indexer
+    /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;
 
     /**
@@ -530,8 +530,8 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         address _indexer,
         uint256 _tokens
     ) private returns (uint256) {
-        // Only delegate a non-zero amount of tokens
-        require(_tokens > 0, "!tokens");
+        // Only allow delegations over a minimum, to prevent rounding attacks
+        require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
         // Only delegate to non-empty address
         require(_indexer != address(0), "!indexer");
         // Only delegate to staked indexer
@@ -546,13 +546,9 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares;
-        if (pool.tokens == 0) {
-            require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
-            shares = delegatedTokens;
-        } else {
-            shares = delegatedTokens.mul(pool.shares).div(pool.tokens);
-        }
+        uint256 shares = (pool.tokens == 0)
+            ? delegatedTokens
+            : delegatedTokens.mul(pool.shares).div(pool.tokens);
         require(shares > 0, "!shares");
 
         // Update the delegation pool
@@ -603,6 +599,13 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
 
         // Update the delegation
         delegation.shares = delegation.shares.sub(_shares);
+        // Enforce more than the minimum delegation is left,
+        // to prevent rounding attacks
+        require(
+            delegation.shares == 0 ||
+                delegation.shares.mul(pool.tokens).div(pool.shares) >= MINIMUM_DELEGATION,
+            "!minimum-delegation"
+        );
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
         delegation.tokensLockedUntil = epochManager().currentEpoch().add(
             __delegationUnbondingPeriod

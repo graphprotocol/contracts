@@ -20,6 +20,7 @@ import {
 
 const { AddressZero, HashZero } = constants
 const MAX_PPM = toBN('1000000')
+const tokensToCollect = toGRT('50000000000000000000')
 
 describe('Staking::Delegation', () => {
   let me: Account
@@ -190,10 +191,12 @@ describe('Staking::Delegation', () => {
     }
 
     // Distribute test funds
-    for (const wallet of [me, indexer, indexer2, assetHolder]) {
+    for (const wallet of [me, indexer, indexer2]) {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
     }
+    await grt.connect(governor.signer).mint(assetHolder.address, tokensToCollect)
+    await grt.connect(assetHolder.signer).approve(staking.address, tokensToCollect)
   })
 
   beforeEach(async function () {
@@ -369,7 +372,7 @@ describe('Staking::Delegation', () => {
       it('reject delegate with zero tokens', async function () {
         const tokensToDelegate = toGRT('0')
         const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
-        await expect(tx).revertedWith('!tokens')
+        await expect(tx).revertedWith('!minimum-delegation')
       })
 
       it('reject delegate with less than 1 GRT when the pool is not initialized', async function () {
@@ -378,9 +381,11 @@ describe('Staking::Delegation', () => {
         await expect(tx).revertedWith('!minimum-delegation')
       })
 
-      it('allows delegating under 1 GRT when the pool is initialized', async function () {
+      it('reject delegating under 1 GRT when the pool is initialized', async function () {
         await shouldDelegate(delegator, toGRT('1'))
-        await shouldDelegate(delegator, toGRT('0.01'))
+        const tokensToDelegate = toGRT('0.5')
+        const tx = staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await expect(tx).revertedWith('!minimum-delegation')
       })
 
       it('reject delegate to empty address', async function () {
@@ -479,6 +484,12 @@ describe('Staking::Delegation', () => {
         await advanceToNextEpoch(epochManager) // epoch 2
         await shouldUndelegate(delegator, toGRT('10'))
       })
+
+      it('reject undelegate if remaining tokens are less than the minimum', async function () {
+        await shouldDelegate(delegator, toGRT('100'))
+        const tx = staking.connect(delegator.signer).undelegate(indexer.address, toGRT('99.5'))
+        await expect(tx).revertedWith('!minimum-delegation')
+      })
     })
 
     describe('withdraw', function () {
@@ -534,7 +545,6 @@ describe('Staking::Delegation', () => {
     // Test values
     const tokensToStake = toGRT('200')
     const tokensToAllocate = toGRT('2000')
-    const tokensToCollect = toGRT('500')
     const tokensToDelegate = toGRT('1800')
     const subgraphDeploymentID = randomHexBytes()
     const channelKey = deriveChannelKey()
@@ -604,9 +614,11 @@ describe('Staking::Delegation', () => {
 
     it('revert if it cannot assign the smallest amount of shares', async function () {
       // Init the delegation pool
-      await shouldDelegate(delegator, tokensToDelegate)
-
+      await shouldDelegate(delegator, toGRT('1'))
+      const tokensToAllocate = toGRT('1')
       // Collect funds thru full allocation cycle
+      // Set rebate alpha to 0 to ensure all fees are collected
+      await staking.connect(governor.signer).setRebateParameters(0, 1, 1, 1)
       await staking.connect(governor.signer).setDelegationRatio(10)
       await staking.connect(indexer.signer).setDelegationParameters(0, 0, 0)
       await setupAllocation(tokensToAllocate)
@@ -614,10 +626,12 @@ describe('Staking::Delegation', () => {
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
+      // We've callected 5e18 GRT (a ridiculous amount),
+      // which means the price of a share is now 5 GRT
 
-      // Delegate with such small amount of tokens (1 wei) that we do not have enough precision
-      // to even assign 1 wei of shares
-      const tx = staking.connect(delegator.signer).delegate(indexer.address, toBN(1))
+      // Delegate with such small amount of tokens (1 GRT) that we do not have enough precision
+      // to even assign 1 share
+      const tx = staking.connect(delegator.signer).delegate(indexer.address, toGRT('1'))
       await expect(tx).revertedWith('!shares')
     })
   })
