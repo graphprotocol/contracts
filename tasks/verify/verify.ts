@@ -5,7 +5,7 @@ import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/con
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
 import { loadEnv } from '../../cli/env'
 import { cliOpts } from '../../cli/defaults'
-import { getContractConfig } from '../../cli/config'
+import { getContractConfig, readConfig } from '../../cli/config'
 import { Wallet } from 'ethers'
 import fs from 'fs'
 import path from 'path'
@@ -84,10 +84,10 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, graphConfig } = hre.graph({
+    const { addressBook } = hre.graph({
       addressBook: args.addressBook,
-      graphConfig: args.graphConfig,
     })
+    const graphConfig = readConfig(args.graphConfig)
 
     const accounts = await hre.ethers.getSigners()
     const env = await loadEnv(args, accounts[0] as unknown as Wallet)

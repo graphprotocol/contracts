@@ -64,6 +64,7 @@ const networkConfigs: NetworkConfig[] = [
   { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
   { network: 'kovan', chainId: 42 },
   { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
+  { network: 'sepolia', chainId: 11155111, graphConfig: 'config/graph.sepolia.yml' },
   {
     network: 'arbitrum-one',
     chainId: 42161,
@@ -75,6 +76,12 @@ const networkConfigs: NetworkConfig[] = [
     chainId: 421613,
     url: 'https://goerli-rollup.arbitrum.io/rpc',
     graphConfig: 'config/graph.arbitrum-goerli.yml',
+  },
+  {
+    network: 'arbitrum-sepolia',
+    chainId: 421614,
+    url: 'https://sepolia-rollup.arbitrum.io/rpcblock',
+    graphConfig: 'config/graph.arbitrum-sepolia.yml',
   },
 ]
 
