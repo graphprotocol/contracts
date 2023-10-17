@@ -1,10 +1,10 @@
 general:
   arbitrator: &arbitrator "0x1726A5d52e279d02ff4732eCeB2D67BFE5Add328" # EOA (TODO: update to a multisig)
   governor: &governor "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # EOA (TODO: update to a multisig)
-  authority: &authority "0xac01B0b3B2Dc5D8E0D484c02c4d077C15C96a7b4" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0xa99a56fa38a6b9553853c84e11458aeccdad509b" # Subgraph Availability Oracle (TODO: update)
-  pauseGuardian: &pauseGuardian "0x4B6C90B9fE29dfa521188B6547989C23d613b79B" # Protocol pause guardian (TODO: update)
-  allocationExchangeOwner: &allocationExchangeOwner "0x05F359b1319f10x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3Ca9b799CB6386F31421c2c49dBA" # Allocation Exchange owner (TODO: update)
+  authority: &authority "0x49D4CFC037430cA9355B422bAeA7E9391e1d3215" # Authority that signs payment vouchers
+  availabilityOracle: &availabilityOracle "0x5e4e823Ed094c035133eEC5Ec0d08ae1Af04e9Fa" # Subgraph Availability Oracle
+  pauseGuardian: &pauseGuardian "0xa0444508232dA3FA6C2f96a5f105f3f0cc0d20D7" # Protocol pause guardian
+  allocationExchangeOwner: &allocationExchangeOwner "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # Allocation Exchange owner
 
 contracts:
   Controller:
@@ -59,7 +59,6 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
-      - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
   L2Curation:
