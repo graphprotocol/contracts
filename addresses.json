@@ -1397,16 +1397,16 @@
       }
     },
     "AllocationExchange": {
-      "address": "0x44da00c8a04Bc3b681Dd63F480dDe9737a880A34",
+      "address": "0x9BD4FBDa981D628AbA16F261f810dD59E5bAf9eA",
       "constructorArgs": [
         "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
         "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
-        "0x05F359b1319f1Ca9b799CB6386F31421c2c49dBA",
-        "0xac01B0b3B2Dc5D8E0D484c02c4d077C15C96a7b4"
+        "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
+        "0x49D4CFC037430cA9355B422bAeA7E9391e1d3215"
       ],
       "creationCodeHash": "0x2963baeedb2d0f5a95fa41f6c89e48e5bf177ca439379fc6becd54870d330ab0",
       "runtimeCodeHash": "0xd8b53b3f65b49198d35392e0fd11da229a40d15a96151bca2976cbbe36b909d5",
-      "txHash": "0x4df240971cd77488cf3d94ed6235b8ee873252c0bf3c6a300cb0aff98462b4f3"
+      "txHash": "0xa1a9410662d43463c39802e887f33a1401ed0fc35bf22c5be275e62141eae442"
     },
     "L2GraphTokenGateway": {
       "address": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
