@@ -13,10 +13,6 @@ export const gettersList = {
   'staking-thawing-period': { contract: 'Staking', name: 'thawingPeriod' },
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'maxAllocationEpochs' },
   'staking-delegation-ratio': { contract: 'Staking', name: 'delegationRatio' },
-  'staking-delegation-parameters-cooldown': {
-    contract: 'Staking',
-    name: 'delegationParametersCooldown',
-  },
   'staking-delegation-unbonding-period': { contract: 'Staking', name: 'delegationUnbondingPeriod' },
   'protocol-percentage': { contract: 'Staking', name: 'protocolPercentage' },
   // Curation
