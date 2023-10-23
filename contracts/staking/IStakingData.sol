@@ -18,7 +18,7 @@ interface IStakingData {
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
-        uint256 __DEPRECATED_effectiveAllocation; // Effective allocation when closed
+        uint256 __DEPRECATED_effectiveAllocation; // solhint-disable-line var-name-mixedcase
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
         uint256 distributedRebates; // Collected rebates that have been rebated
     }
@@ -29,7 +29,7 @@ interface IStakingData {
      * @dev Delegation pool information. One per indexer.
      */
     struct DelegationPool {
-        uint32 cooldownBlocksDeprecated; // Blocks to wait before updating parameters (deprecated)
+        uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated

@@ -244,7 +244,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
         IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
 
-        subgraphData.reserveRatioDeprecated = fixedReserveRatio;
+        subgraphData.__DEPRECATED_reserveRatio = fixedReserveRatio;
         // The subgraph will be disabled until finishSubgraphTransferFromL1 is called
         subgraphData.disabled = true;
 

@@ -20,7 +20,7 @@ interface IStakingExtension is IStakingData {
      * the original DelegationPool in IStakingData.sol contains a nested mapping.
      */
     struct DelegationPoolReturn {
-        uint32 cooldownBlocksDeprecated; // Blocks to wait before updating parameters (deprecated)
+        uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated

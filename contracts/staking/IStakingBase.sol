@@ -90,7 +90,7 @@ interface IStakingBase is IStakingData {
         address indexed indexer,
         uint32 indexingRewardCut,
         uint32 queryFeeCut,
-        uint32 cooldownBlocksDeprecated
+        uint32 __DEPRECATED_cooldownBlocks // solhint-disable-line var-name-mixedcase
     );
 
     /**

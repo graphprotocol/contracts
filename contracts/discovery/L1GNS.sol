@@ -107,7 +107,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
             extraData
         );
 
-        subgraphData.reserveRatioDeprecated = 0;
+        subgraphData.__DEPRECATED_reserveRatio = 0;
         _burnNFT(_subgraphID);
         emit SubgraphSentToL2(_subgraphID, msg.sender, _l2Owner, tokensForL2);
     }

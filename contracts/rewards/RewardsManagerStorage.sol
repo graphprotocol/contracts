@@ -8,7 +8,7 @@ import "../governance/Managed.sol";
 contract RewardsManagerV1Storage is Managed {
     // -- State --
 
-    uint256 private issuanceRateDeprecated;
+    uint256 private __DEPRECATED_issuanceRate; // solhint-disable-line var-name-mixedcase
     uint256 public accRewardsPerSignal;
     uint256 public accRewardsPerSignalLastBlockUpdated;
 
@@ -29,7 +29,7 @@ contract RewardsManagerV2Storage is RewardsManagerV1Storage {
 
 contract RewardsManagerV3Storage is RewardsManagerV2Storage {
     // Snapshot of the total supply of GRT when accRewardsPerSignal was last updated
-    uint256 private tokenSupplySnapshotDeprecated;
+    uint256 private __DEPRECATED_tokenSupplySnapshot; // solhint-disable-line var-name-mixedcase
 }
 
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
