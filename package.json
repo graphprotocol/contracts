@@ -1,12 +1,13 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "5.2.2",
+  "version": "5.2.2-test-sdk",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
   },
   "files": [
     "dist/**/*",
+    "build/contracts/**/*",
     "README.md",
     "LICENSE",
     "addresses.json"
