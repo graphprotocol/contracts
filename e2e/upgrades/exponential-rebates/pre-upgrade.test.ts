@@ -8,7 +8,7 @@ import allocations from './fixtures/allocations'
 import indexers from './fixtures/indexers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { randomHexBytes } from '../../../cli/network'
-import { advanceEpochs, advanceToNextEpoch } from '../../../test/lib/testHelpers'
+import { advanceEpochs, advanceToNextEpoch } from '@graphprotocol/sdk'
 
 chai.use(chaiAsPromised)
 

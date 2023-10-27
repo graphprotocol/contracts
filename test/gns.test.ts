@@ -1,31 +1,21 @@
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
-import { defaultAbiCoder, Interface } from 'ethers/lib/utils'
-import { SubgraphDeploymentID } from '@graphprotocol/common-ts'
+import { defaultAbiCoder } from 'ethers/lib/utils'
+import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
 
 import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
 import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
-import {
-  getAccounts,
-  randomHexBytes,
-  Account,
-  toGRT,
-  advanceBlocks,
-  provider,
-} from './lib/testHelpers'
+import { getAccounts, randomHexBytes, Account, provider } from './lib/testHelpers'
 import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
-import { toBN, formatGRT } from './lib/testHelpers'
-import { getContractAt } from '../cli/network'
+import { getContractAt, toBN, toGRT } from '../cli/network'
 import { deployContract } from './lib/deployment'
 import { network } from '../cli'
 import { Controller } from '../build/types/Controller'
 import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
 import { L1GNS } from '../build/types/L1GNS'
-import path from 'path'
-import { Artifacts } from 'hardhat/internal/artifacts'
 import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import {
   AccountDefaultName,
@@ -35,20 +25,15 @@ import {
   createDefaultName,
   PublishSubgraph,
   Subgraph,
-  getTokensAndVSignal,
   publishNewSubgraph,
   publishNewVersion,
   mintSignal,
   deprecateSubgraph,
   burnSignal,
 } from './lib/gnsUtils'
+import { advanceBlocks } from '@graphprotocol/sdk'
 
 const { AddressZero, HashZero } = ethers.constants
-
-const ARTIFACTS_PATH = path.resolve('build/contracts')
-const artifacts = new Artifacts(ARTIFACTS_PATH)
-const l2GNSabi = artifacts.readArtifactSync('L2GNS').abi
-const l2GNSIface = new Interface(l2GNSabi)
 
 // Utils
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))

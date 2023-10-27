@@ -3,11 +3,12 @@ import { namehash, solidityKeccak256 } from 'ethers/lib/utils'
 import { Curation } from '../../build/types/Curation'
 import { L1GNS } from '../../build/types/L1GNS'
 import { L2GNS } from '../../build/types/L2GNS'
-import { Account, getChainID, randomHexBytes, toBN } from './testHelpers'
+import { Account, getChainID, randomHexBytes } from './testHelpers'
 import { expect } from 'chai'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { toBN } from '@graphprotocol/sdk'
 
 // Entities
 export interface PublishSubgraph {

@@ -11,19 +11,21 @@ import { RewardsManager } from '../../build/types/RewardsManager'
 import { IStaking } from '../../build/types/IStaking'
 
 import {
-  advanceBlocks,
   deriveChannelKey,
   getAccounts,
   randomHexBytes,
+  Account,
+  provider,
+} from '../lib/testHelpers'
+import {
+  advanceBlock,
+  advanceBlocks,
+  advanceToNextEpoch,
+  formatGRT,
   latestBlock,
   toBN,
   toGRT,
-  formatGRT,
-  Account,
-  advanceToNextEpoch,
-  provider,
-  advanceBlock,
-} from '../lib/testHelpers'
+} from '@graphprotocol/sdk'
 
 const MAX_PPM = 1000000
 
@@ -239,6 +241,9 @@ describe('Rewards', () => {
     describe('getNewRewardsPerSignal', function () {
       it('accrued per signal when no tokens signalled', async function () {
         // When there is no tokens signalled no rewards are accrued
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         const accrued = await rewardsManager.getNewRewardsPerSignal()
         expect(accrued).eq(0)
@@ -512,6 +517,9 @@ describe('Rewards', () => {
 
         // Jump
         await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Close allocation
@@ -626,11 +634,17 @@ describe('Rewards', () => {
 
       it('should distribute rewards on closed allocation and stake', async function () {
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Before state
@@ -680,6 +694,9 @@ describe('Rewards', () => {
 
       it('does not revert with an underflow if the minimum signal changes', async function () {
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
@@ -687,6 +704,9 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
@@ -698,6 +718,9 @@ describe('Rewards', () => {
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocationSignalingAfter()
@@ -705,6 +728,9 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
@@ -717,11 +743,17 @@ describe('Rewards', () => {
       it('does not revert if signal was already under minimum', async function () {
         await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(2000))
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
@@ -736,11 +768,17 @@ describe('Rewards', () => {
         await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
 
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Before state
@@ -798,11 +836,17 @@ describe('Rewards', () => {
         const tokensToDelegate = toGRT('2000')
 
         // Align with the epoch boundary
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         // Setup the allocation and delegators
         await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Before state
@@ -852,6 +896,9 @@ describe('Rewards', () => {
         await setupIndexerAllocation()
 
         // Jump
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
@@ -884,6 +931,9 @@ describe('Rewards', () => {
         )
 
       // Jump
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager)
 
       // Remove all signal from the subgraph
@@ -900,6 +950,9 @@ describe('Rewards', () => {
       // If rewards are not monotonically increasing, this can trigger
       // a subtraction overflow error as seen in mainnet tx:
       // 0xb6bf7bbc446720a7409c482d714aebac239dd62e671c3c94f7e93dd3a61835ab
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager)
 
       // Setup
@@ -946,6 +999,9 @@ describe('Rewards', () => {
       await expect(tx3).emit(staking, 'AllocationCreated')
     })
     it('two simultanous-similar allocations should get same amount of rewards', async function () {
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager)
 
       // Setup
@@ -980,6 +1036,9 @@ describe('Rewards', () => {
       await staking.connect(indexer1.signer).multicall([tx1.data, tx2.data])
 
       // Jump
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager)
 
       // Close allocations simultaneously

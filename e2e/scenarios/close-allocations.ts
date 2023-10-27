@@ -7,14 +7,13 @@
 //    npx hardhat e2e:scenario close-allocations --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { closeAllocation } from '../lib/staking'
-import { advanceToNextEpoch } from '../../test/lib/testHelpers'
-import { fundAccountsETH } from '../lib/accounts'
 import { getIndexerFixtures } from './fixtures/indexers'
-import { getGraphOptsFromArgv } from '../lib/helpers'
+
+import { advanceToNextEpoch, closeAllocation, ensureETHBalance } from '@graphprotocol/sdk'
+import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 
 async function main() {
-  const graphOpts = getGraphOptsFromArgv()
+  const graphOpts = getGREOptsFromArgv()
   const graph = hre.graph(graphOpts)
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
@@ -24,7 +23,10 @@ async function main() {
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await fundAccountsETH(deployer, indexers, indexerETHBalances)
+  await ensureETHBalance(graph.contracts, deployer, {
+    beneficiaries: indexers,
+    amounts: indexerETHBalances,
+  })
 
   // == Time travel on local networks, ensure allocations can be closed
   if (['hardhat', 'localhost'].includes(hre.network.name)) {
@@ -37,7 +39,9 @@ async function main() {
 
   for (const indexer of indexerFixtures) {
     for (const allocation of indexer.allocations.filter((a) => a.close)) {
-      await closeAllocation(graph.contracts, indexer.signer, allocation.signer.address)
+      await closeAllocation(graph.contracts, indexer.signer, {
+        allocationId: allocation.signer.address,
+      })
     }
   }
 }

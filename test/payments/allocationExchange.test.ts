@@ -12,10 +12,10 @@ import {
   getAccounts,
   randomAddress,
   randomHexBytes,
-  toGRT,
   Account,
 } from '../lib/testHelpers'
 import { arrayify, joinSignature, SigningKey, solidityKeccak256 } from 'ethers/lib/utils'
+import { toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero, MaxUint256 } = constants
 

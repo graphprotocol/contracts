@@ -4,19 +4,10 @@ import { constants, BigNumber } from 'ethers'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
-import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  advanceToNextEpoch,
-  deriveChannelKey,
-  getAccounts,
-  latestBlock,
-  randomHexBytes,
-  toGRT,
-  toBN,
-  Account,
-} from '../lib/testHelpers'
+import { deriveChannelKey, getAccounts, randomHexBytes, Account } from '../lib/testHelpers'
+import { advanceToNextEpoch, latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero, HashZero } = constants
 const MAX_PPM = toBN('1000000')
@@ -35,7 +26,6 @@ describe('Staking::Delegation', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: IStaking
-  let libExponential: LibExponential
 
   // Test values
   const poi = randomHexBytes()
@@ -459,6 +449,9 @@ describe('Staking::Delegation', () => {
 
         await shouldUndelegate(delegator, toGRT('1'))
         await shouldUndelegate(delegator2, toGRT('50'))
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         await shouldUndelegate(delegator, toGRT('25'))
       })
@@ -467,7 +460,13 @@ describe('Staking::Delegation', () => {
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator, toGRT('50'))
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 1
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 2
         await shouldUndelegate(delegator, toGRT('10'))
       })
@@ -496,7 +495,13 @@ describe('Staking::Delegation', () => {
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('1000'))
         await shouldUndelegate(delegator, tokensToWithdraw)
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 1
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 2
 
         // Withdraw
@@ -510,7 +515,13 @@ describe('Staking::Delegation', () => {
         await staking.setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('1000'))
         await shouldUndelegate(delegator, tokensToWithdraw)
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 1
+        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await advanceToNextEpoch(epochManager) // epoch 2
 
         // We stake on indexer2 so the delegator is able to re-delegate to it
@@ -603,6 +614,9 @@ describe('Staking::Delegation', () => {
       await staking.connect(indexer.signer).setDelegationParameters(0, 0, 0)
       await setupAllocation(tokensToAllocate)
       await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID)
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager)
       await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
 

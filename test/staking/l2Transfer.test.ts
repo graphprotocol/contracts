@@ -15,14 +15,13 @@ import {
   deriveChannelKey,
   getAccounts,
   randomHexBytes,
-  toBN,
-  toGRT,
   provider,
   Account,
   setAccountBalance,
   impersonateAccount,
 } from '../lib/testHelpers'
 import { deployContract } from '../lib/deployment'
+import { toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

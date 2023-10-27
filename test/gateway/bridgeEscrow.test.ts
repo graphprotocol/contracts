@@ -6,7 +6,8 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { getAccounts, toGRT, Account } from '../lib/testHelpers'
+import { getAccounts, Account } from '../lib/testHelpers'
+import { toGRT } from '@graphprotocol/sdk'
 
 describe('BridgeEscrow', () => {
   let governor: Account

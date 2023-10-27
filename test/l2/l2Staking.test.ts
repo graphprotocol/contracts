@@ -5,21 +5,17 @@ import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 import {
   getAccounts,
   Account,
-  toGRT,
   getL2SignerFromL1,
   setAccountBalance,
-  latestBlock,
-  advanceBlocks,
   deriveChannelKey,
   randomHexBytes,
-  advanceToNextEpoch,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
-import { toBN } from '../lib/testHelpers'
 
 import { IL2Staking } from '../../build/types/IL2Staking'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../build/types/GraphToken'
+import { advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = ethers.constants
 
@@ -302,7 +298,13 @@ describe('L2Staking', () => {
       await fixtureContracts.curation.connect(me.signer).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(fixtureContracts.epochManager)
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(fixtureContracts.epochManager)
       await staking.connect(me.signer).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share

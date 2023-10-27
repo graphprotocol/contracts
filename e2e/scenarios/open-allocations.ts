@@ -5,13 +5,12 @@
 //    npx hardhat e2e:scenario open-allocations --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { allocateFrom, stake } from '../lib/staking'
-import { fundAccountsETH, fundAccountsGRT } from '../lib/accounts'
 import { getIndexerFixtures } from './fixtures/indexers'
-import { getGraphOptsFromArgv } from '../lib/helpers'
+import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
+import { allocateFrom, ensureETHBalance, ensureGRTBalance, stake } from '@graphprotocol/sdk'
 
 async function main() {
-  const graphOpts = getGraphOptsFromArgv()
+  const graphOpts = getGREOptsFromArgv()
   const graph = hre.graph(graphOpts)
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
@@ -22,14 +21,20 @@ async function main() {
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await fundAccountsETH(deployer, indexers, indexerETHBalances)
-  await fundAccountsGRT(deployer, indexers, indexerGRTBalances, graph.contracts.GraphToken)
+  await ensureETHBalance(graph.contracts, deployer, {
+    beneficiaries: indexers,
+    amounts: indexerETHBalances,
+  })
+  await ensureGRTBalance(graph.contracts, deployer, {
+    beneficiaries: indexers,
+    amounts: indexerGRTBalances,
+  })
 
   // == Stake
   console.log('\n== Staking tokens')
 
   for (const indexer of indexerFixtures) {
-    await stake(graph.contracts, indexer.signer, indexer.stake)
+    await stake(graph.contracts, indexer.signer, { amount: indexer.stake })
   }
 
   // == Open allocations
@@ -37,13 +42,11 @@ async function main() {
 
   for (const indexer of indexerFixtures) {
     for (const allocation of indexer.allocations) {
-      await allocateFrom(
-        graph.contracts,
-        indexer.signer,
-        allocation.signer,
-        allocation.subgraphDeploymentId,
-        allocation.amount,
-      )
+      await allocateFrom(graph.contracts, indexer.signer, {
+        allocationSigner: allocation.signer,
+        subgraphDeploymentID: allocation.subgraphDeploymentId,
+        amount: allocation.amount,
+      })
     }
   }
 }

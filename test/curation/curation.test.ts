@@ -9,15 +9,13 @@ import { NetworkFixture } from '../lib/fixtures'
 import {
   getAccounts,
   randomHexBytes,
-  toBN,
-  toGRT,
-  formatGRT,
   Account,
   impersonateAccount,
   setAccountBalance,
 } from '../lib/testHelpers'
 import { GNS } from '../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
+import { formatGRT, toBN, toGRT } from '@graphprotocol/sdk'
 
 const MAX_PPM = 1000000
 

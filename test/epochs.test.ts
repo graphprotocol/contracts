@@ -5,15 +5,8 @@ import { EpochManager } from '../build/types/EpochManager'
 
 import * as deployment from './lib/deployment'
 import { defaults } from './lib/deployment'
-import {
-  advanceBlock,
-  advanceBlockTo,
-  latestBlock,
-  getAccounts,
-  toBN,
-  Account,
-  initNetwork,
-} from './lib/testHelpers'
+import { getAccounts, Account, initNetwork } from './lib/testHelpers'
+import { advanceBlock, advanceBlockTo, latestBlock, toBN } from '@graphprotocol/sdk'
 
 describe('EpochManager', () => {
   let me: Account

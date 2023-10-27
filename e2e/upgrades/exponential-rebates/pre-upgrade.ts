@@ -1,8 +1,8 @@
 import hre, { ethers } from 'hardhat'
-import { getGraphOptsFromArgv } from '../../lib/helpers'
+import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 
 async function main() {
-  const graphOpts = getGraphOptsFromArgv()
+  const graphOpts = getGREOptsFromArgv()
   const graph = hre.graph(graphOpts)
   const { GraphToken, Staking } = graph.contracts
 

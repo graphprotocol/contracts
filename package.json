@@ -12,8 +12,9 @@
     "addresses.json"
   ],
   "dependencies": {
+    "@graphprotocol/sdk": "^0.0.1",
     "console-table-printer": "^2.11.1",
-    "ethers": "^5.6.0"
+    "ethers": "^5.7.0"
   },
   "devDependencies": {
     "@arbitrum/sdk": "^3.0.0",
@@ -22,7 +23,7 @@
     "@defi-wonderland/smock": "^2.0.7",
     "@ethersproject/experimental": "^5.6.0",
     "@graphprotocol/common-ts": "^1.8.3",
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^3.4.1",
@@ -59,7 +60,7 @@
     "form-data": "^4.0.0",
     "glob": "^8.0.3",
     "graphql-tag": "^2.12.4",
-    "hardhat": "^2.9.5",
+    "hardhat": "~2.14.0",
     "hardhat-abi-exporter": "^2.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",

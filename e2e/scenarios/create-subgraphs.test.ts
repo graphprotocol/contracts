@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { recreatePreviousSubgraphId } from '../lib/subgraph'
+import { recreatePreviousSubgraphId } from '@graphprotocol/sdk'
 import { BigNumber } from 'ethers'
 import { CuratorFixture, getCuratorFixtures } from './fixtures/curators'
 import { SubgraphFixture, getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
@@ -34,11 +34,10 @@ describe('Publish subgraphs', () => {
   describe('Subgraphs', () => {
     it(`should be published`, async function () {
       for (let i = 0; i < subgraphFixtures.length; i++) {
-        const subgraphId = await recreatePreviousSubgraphId(
-          contracts,
-          subgraphOwnerFixture.address,
-          subgraphFixtures.length - i,
-        )
+        const subgraphId = await recreatePreviousSubgraphId(contracts, undefined, {
+          owner: subgraphOwnerFixture.address,
+          previousIndex: subgraphFixtures.length - i,
+        })
         const isPublished = await GNS.isPublished(subgraphId)
         expect(isPublished).eq(true)
       }
@@ -47,11 +46,10 @@ describe('Publish subgraphs', () => {
     it(`should have signal`, async function () {
       for (let i = 0; i < subgraphFixtures.length; i++) {
         const subgraph = subgraphFixtures[i]
-        const subgraphId = await recreatePreviousSubgraphId(
-          contracts,
-          subgraphOwnerFixture.address,
-          subgraphFixtures.length - i,
-        )
+        const subgraphId = await recreatePreviousSubgraphId(contracts, undefined, {
+          owner: subgraphOwnerFixture.address,
+          previousIndex: subgraphFixtures.length - i,
+        })
 
         let totalSignal: BigNumber = BigNumber.from(0)
         for (const curator of curatorFixtures) {

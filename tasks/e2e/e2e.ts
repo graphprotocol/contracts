@@ -4,8 +4,8 @@ import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import { cliOpts } from '../../cli/defaults'
 import fs from 'fs'
-import { isL1 } from '../../gre/helpers/chain'
 import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 
 const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
@@ -25,7 +25,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
   for (const arg of greArgs) {
     if (args[arg]) {
       if (arg === 'graphConfig') {
-        const l1 = isL1(hre.config.networks[hre.network.name].chainId)
+        const l1 = isGraphL1ChainId(hre.config.networks[hre.network.name].chainId)
         hre.config.graph[l1 ? 'l1GraphConfig' : 'l2GraphConfig'] = args[arg]
       } else {
         hre.config.graph[arg] = args[arg]

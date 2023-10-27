@@ -6,11 +6,11 @@
 
 import hre from 'hardhat'
 import { TASK_BRIDGE_TO_L2 } from '../../tasks/bridge/to-l2'
-import { getGraphOptsFromArgv } from '../lib/helpers'
 import { getBridgeFixture } from './fixtures/bridge'
+import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 
 async function main() {
-  const graphOpts = getGraphOptsFromArgv()
+  const graphOpts = getGREOptsFromArgv()
   const graph = hre.graph(graphOpts)
 
   const l1Deployer = await graph.l1.getDeployer()

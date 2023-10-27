@@ -11,10 +11,10 @@ import { FakeContract, smock } from '@defi-wonderland/smock'
 
 use(smock.matchers)
 
-import { getAccounts, toGRT, Account, toBN, getL2SignerFromL1 } from '../lib/testHelpers'
-import { Interface } from 'ethers/lib/utils'
+import { getAccounts, Account, getL2SignerFromL1 } from '../lib/testHelpers'
 import { deployContract } from '../lib/deployment'
 import { RewardsManager } from '../../build/types/RewardsManager'
+import { toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

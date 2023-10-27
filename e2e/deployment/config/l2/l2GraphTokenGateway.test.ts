@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getAddressBook } from '../../../../cli/address-book'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -10,7 +10,7 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
 
   let unauthorized: SignerWithAddress
   before(async function () {
-    if (GraphChain.isL1(graph.chainId)) this.skip()
+    if (isGraphL1ChainId(graph.chainId)) this.skip()
     unauthorized = (await graph.getTestAccounts())[0]
   })
 

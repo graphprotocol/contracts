@@ -3,7 +3,7 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import { execSync } from 'child_process'
 
-import 'hardhat/types/runtime'
+// import 'hardhat/types/runtime'
 import { HardhatUserConfig } from 'hardhat/types'
 
 dotenv.config()
@@ -29,7 +29,7 @@ import 'hardhat-storage-layout'
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
-  require('./gre/gre')
+  require('@graphprotocol/sdk/gre')
   ;['contracts', 'bridge', 'deployment', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)

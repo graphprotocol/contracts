@@ -1,6 +1,5 @@
 import { Contract, Signer } from 'ethers'
 
-import { toBN, toGRT } from './testHelpers'
 import { logger } from '../../cli/logging'
 import { network } from '../../cli'
 
@@ -28,6 +27,7 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GNS } from '../../build/types/L2GNS'
 import { L1GNS } from '../../build/types/L1GNS'
 import { LibExponential } from '../../build/types/LibExponential'
+import { toBN, toGRT } from '@graphprotocol/sdk'
 
 // Disable logging for tests
 logger.pause()

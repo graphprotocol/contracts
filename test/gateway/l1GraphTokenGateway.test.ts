@@ -9,17 +9,9 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 
 import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
-import {
-  getAccounts,
-  latestBlock,
-  toBN,
-  toGRT,
-  Account,
-  applyL1ToL2Alias,
-  advanceBlocks,
-  provider,
-} from '../lib/testHelpers'
+import { getAccounts, Account, applyL1ToL2Alias, provider } from '../lib/testHelpers'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { advanceBlocks, latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

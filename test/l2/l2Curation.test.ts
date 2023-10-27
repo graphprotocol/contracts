@@ -10,16 +10,14 @@ import { NetworkFixture } from '../lib/fixtures'
 import {
   getAccounts,
   randomHexBytes,
-  toBN,
-  toGRT,
-  formatGRT,
   Account,
   impersonateAccount,
   setAccountBalance,
   randomAddress,
 } from '../lib/testHelpers'
 import { GNS } from '../../build/types/GNS'
-import { parseEther, toUtf8String } from 'ethers/lib/utils'
+import { parseEther } from 'ethers/lib/utils'
+import { formatGRT, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

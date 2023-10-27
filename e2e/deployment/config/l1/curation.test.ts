@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('[L1] Curation configuration', () => {
   const graph = hre.graph()
@@ -11,7 +11,7 @@ describe('[L1] Curation configuration', () => {
   } = graph
 
   before(async function () {
-    if (GraphChain.isL2(graph.chainId)) this.skip()
+    if (isGraphL2ChainId(graph.chainId)) this.skip()
   })
 
   it('should be controlled by Controller', async function () {

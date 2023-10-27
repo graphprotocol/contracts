@@ -1,17 +1,17 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] L2Curation configuration', () => {
   const graph = hre.graph()
   const {
     graphConfig,
-    contracts: { Controller, L2Curation, BancorFormula, GraphCurationToken },
+    contracts: { Controller, L2Curation, GraphCurationToken },
   } = graph
 
   before(async function () {
-    if (GraphChain.isL1(graph.chainId)) this.skip()
+    if (isGraphL1ChainId(graph.chainId)) this.skip()
   })
 
   it('should be controlled by Controller', async function () {

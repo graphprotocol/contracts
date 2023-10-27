@@ -5,7 +5,8 @@ import { Curation } from '../../build/types/Curation'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, Account, randomAddress } from '../lib/testHelpers'
+import { getAccounts, Account, randomAddress } from '../lib/testHelpers'
+import { toBN } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

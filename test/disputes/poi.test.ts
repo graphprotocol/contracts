@@ -7,18 +7,10 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  advanceBlock,
-  advanceToNextEpoch,
-  deriveChannelKey,
-  getAccounts,
-  randomHexBytes,
-  toBN,
-  toGRT,
-  Account,
-} from '../lib/testHelpers'
+import { deriveChannelKey, getAccounts, randomHexBytes, Account } from '../lib/testHelpers'
 
 import { MAX_PPM } from './common'
+import { advanceBlock, advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { keccak256 } = utils
 
@@ -160,6 +152,9 @@ describe('DisputeManager:POI', async () => {
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
+      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
       // set rewards destination so collected query fees are not added to indexer balance
       await staking.connect(indexer.signer).setRewardsDestination(rewardsDestination.address)

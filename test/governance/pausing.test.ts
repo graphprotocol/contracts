@@ -4,8 +4,9 @@ import { constants } from 'ethers'
 import { Controller } from '../../build/types/Controller'
 import { IStaking } from '../../build/types/IStaking'
 
-import { getAccounts, Account, toGRT } from '../lib/testHelpers'
+import { getAccounts, Account } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'
+import { toGRT } from '@graphprotocol/sdk'
 
 describe('Pausing', () => {
   let me: Account

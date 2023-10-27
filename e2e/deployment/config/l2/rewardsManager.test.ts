@@ -1,13 +1,13 @@
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/chain'
 
 describe('[L2] RewardsManager configuration', () => {
   const graph = hre.graph()
   const { RewardsManager } = graph.contracts
 
   before(async function () {
-    if (GraphChain.isL1(graph.chainId)) this.skip()
+    if (isGraphL1ChainId(graph.chainId)) this.skip()
   })
 
   it('issuancePerBlock should be zero', async function () {

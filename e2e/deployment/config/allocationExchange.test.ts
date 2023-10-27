@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { NamedAccounts } from '../../../gre/type-extensions'
+import { NamedAccounts } from '@graphprotocol/sdk/gre'
 
 describe('AllocationExchange configuration', () => {
   const {

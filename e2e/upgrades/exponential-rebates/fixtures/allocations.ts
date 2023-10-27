@@ -3,13 +3,7 @@
 // - block number: 17324022
 // Allocation ids obtained from network subgraph
 
-export enum AllocationState {
-  Null,
-  Active,
-  Closed,
-  Finalized,
-  Claimed,
-}
+import { AllocationState } from '@graphprotocol/sdk'
 
 export default [
   { id: '0x00b7a526e1e42ba1f14e69f487aad31350164a9e', state: AllocationState.Null },

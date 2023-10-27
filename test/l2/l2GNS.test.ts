@@ -6,13 +6,10 @@ import {
   getAccounts,
   randomHexBytes,
   Account,
-  toGRT,
   getL2SignerFromL1,
   setAccountBalance,
-  latestBlock,
 } from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
-import { toBN } from '../lib/testHelpers'
 
 import { L2GNS } from '../../build/types/L2GNS'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
@@ -30,6 +27,7 @@ import {
 } from '../lib/gnsUtils'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
+import { latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { HashZero } = ethers.constants
 

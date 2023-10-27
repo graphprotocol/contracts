@@ -4,12 +4,12 @@ import { constants } from 'ethers'
 
 import { IStaking } from '../../build/types/IStaking'
 
-import { defaults, deployContract } from '../lib/deployment'
+import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, toGRT, Account } from '../lib/testHelpers'
-import { GraphProxy } from '../../build/types/GraphProxy'
+import { getAccounts, Account } from '../lib/testHelpers'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { network } from '../../cli'
+import { toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

@@ -5,15 +5,18 @@
 //    npx hardhat e2e:scenario create-subgraphs --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { publishNewSubgraph } from '../lib/subgraph'
-import { fundAccountsETH, fundAccountsGRT } from '../lib/accounts'
-import { signal } from '../lib/curation'
 import { getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
 import { getCuratorFixtures } from './fixtures/curators'
-import { getGraphOptsFromArgv } from '../lib/helpers'
+import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
+import {
+  ensureETHBalance,
+  ensureGRTBalance,
+  publishNewSubgraph,
+  mintSignal,
+} from '@graphprotocol/sdk'
 
 async function main() {
-  const graphOpts = getGraphOptsFromArgv()
+  const graphOpts = getGREOptsFromArgv()
   const graph = hre.graph(graphOpts)
   const testAccounts = await graph.getTestAccounts()
 
@@ -30,22 +33,22 @@ async function main() {
 
   // == Fund participants
   console.log('\n== Fund subgraph owners and curators')
-  await fundAccountsETH(
-    deployer,
-    [...subgraphOwners, ...curators],
-    [...subgraphOwnerETHBalance, ...curatorETHBalances],
-  )
-  await fundAccountsGRT(deployer, curators, curatorGRTBalances, graph.contracts.GraphToken)
+  await ensureETHBalance(graph.contracts, deployer, {
+    beneficiaries: [...subgraphOwners, ...curators],
+    amounts: [...subgraphOwnerETHBalance, ...curatorETHBalances],
+  })
+  await ensureGRTBalance(graph.contracts, deployer, {
+    beneficiaries: curators,
+    amounts: curatorGRTBalances,
+  })
 
   // == Publish subgraphs
   console.log('\n== Publishing subgraphs')
 
   for (const subgraph of subgraphFixtures) {
-    const id = await publishNewSubgraph(
-      graph.contracts,
-      subgraphOwnerFixture.signer,
-      subgraph.deploymentId,
-    )
+    const id = await publishNewSubgraph(graph.contracts, subgraphOwnerFixture.signer, {
+      deploymentId: subgraph.deploymentId,
+    })
     const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)
     if (subgraphData) subgraphData.subgraphId = id
   }
@@ -56,7 +59,10 @@ async function main() {
     for (const subgraph of curator.subgraphs) {
       const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)
       if (subgraphData)
-        await signal(graph.contracts, curator.signer, subgraphData.subgraphId, subgraph.signal)
+        await mintSignal(graph.contracts, curator.signer, {
+          subgraphId: subgraphData.subgraphId,
+          amount: subgraph.signal,
+        })
     }
   }
 }

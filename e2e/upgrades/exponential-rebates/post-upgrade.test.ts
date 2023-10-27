@@ -1,13 +1,18 @@
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { Contract, ethers } from 'ethers'
 import hre from 'hardhat'
+import { Contract, ethers } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import {
+  advanceEpochs,
+  advanceToNextEpoch,
+  randomHexBytes,
+  AllocationState,
+} from '@graphprotocol/sdk'
 
 import removedABI from './abis/staking'
-import allocations, { AllocationState } from './fixtures/allocations'
+import allocations from './fixtures/allocations'
 import indexers from './fixtures/indexers'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { advanceEpochs, advanceToNextEpoch, randomHexBytes } from '../../../test/lib/testHelpers'
 
 chai.use(chaiAsPromised)
 

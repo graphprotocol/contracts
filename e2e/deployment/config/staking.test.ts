@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../cli/config'
-import GraphChain from '../../../gre/helpers/chain'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('Staking configuration', () => {
   const {
@@ -10,7 +10,7 @@ describe('Staking configuration', () => {
     chainId,
   } = hre.graph()
   let contractName: string
-  if (GraphChain.isL2(chainId)) {
+  if (isGraphL2ChainId(chainId)) {
     contractName = 'L2Staking'
   } else {
     contractName = 'L1Staking'

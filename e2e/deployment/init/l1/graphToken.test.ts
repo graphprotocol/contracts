@@ -1,14 +1,14 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('[L1] GraphToken initialization', () => {
   const graph = hre.graph()
   const { GraphToken } = graph.contracts
 
   before(async function () {
-    if (GraphChain.isL2(graph.chainId)) this.skip()
+    if (isGraphL2ChainId(graph.chainId)) this.skip()
   })
 
   it('total supply should match "initialSupply" on the config file', async function () {

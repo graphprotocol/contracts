@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] GraphToken initialization', () => {
   const graph = hre.graph()
   const { GraphToken } = graph.contracts
 
   before(async function () {
-    if (GraphChain.isL1(graph.chainId)) this.skip()
+    if (isGraphL1ChainId(graph.chainId)) this.skip()
   })
 
   it('total supply should be zero', async function () {

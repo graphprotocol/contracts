@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre, { ethers } from 'hardhat'
-import { NamedAccounts } from '../../../gre/type-extensions'
-import GraphChain from '../../../gre/helpers/chain'
+import { NamedAccounts } from '@graphprotocol/sdk/gre'
+import { isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('Controller configuration', () => {
   const graph = hre.graph()
@@ -61,7 +61,7 @@ describe('Controller configuration', () => {
   })
 
   describe('proxy contract', async function () {
-    const proxyContracts = GraphChain.isL1(graph.chainId) ? l1ProxyContracts : l2ProxyContracts
+    const proxyContracts = isGraphL1ChainId(graph.chainId) ? l1ProxyContracts : l2ProxyContracts
     for (const contract of proxyContracts) {
       it(`${contract} should match deployed`, async function () {
         await proxyShouldMatchDeployed(contract)

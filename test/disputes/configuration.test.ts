@@ -5,7 +5,8 @@ import { DisputeManager } from '../../build/types/DisputeManager'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, toBN, Account } from '../lib/testHelpers'
+import { getAccounts, Account } from '../lib/testHelpers'
+import { toBN } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 

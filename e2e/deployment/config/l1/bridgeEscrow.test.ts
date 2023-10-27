@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import GraphChain from '../../../../gre/helpers/chain'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('[L1] BridgeEscrow configuration', function () {
   const graph = hre.graph()
   const { Controller, BridgeEscrow } = graph.contracts
 
   before(async function () {
-    if (GraphChain.isL2(graph.chainId)) this.skip()
+    if (isGraphL2ChainId(graph.chainId)) this.skip()
   })
 
   it('should be controlled by Controller', async function () {

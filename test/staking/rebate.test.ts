@@ -4,7 +4,8 @@ import { BigNumber } from 'ethers'
 import { deployContract } from '../lib/deployment'
 import { LibExponential } from '../../build/types/LibExponential'
 
-import { getAccounts, toGRT, formatGRT, Account, initNetwork } from '../lib/testHelpers'
+import { getAccounts, Account, initNetwork } from '../lib/testHelpers'
+import { formatGRT, toGRT } from '@graphprotocol/sdk'
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toFixed = (n: number | BigNumber, precision = 12) => {

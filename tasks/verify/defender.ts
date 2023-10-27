@@ -4,8 +4,12 @@ import { HardhatRuntimeEnvironment as HRE } from 'hardhat/types'
 import { constants } from 'ethers'
 import { appendFileSync } from 'fs'
 import type { VerificationResponse } from '@openzeppelin/hardhat-defender/dist/verify-deployment'
+import { GraphNetworkContractName, isGraphNetworkContractName } from '@graphprotocol/sdk'
 
-async function main(args: { referenceUrl?: string; contracts: string[] }, hre: HRE) {
+async function main(
+  args: { referenceUrl?: string; contracts: GraphNetworkContractName[] },
+  hre: HRE,
+) {
   const { referenceUrl, contracts } = args
   const { defender, network, graph } = hre
   const summaryPath = process.env.GITHUB_STEP_SUMMARY
@@ -19,6 +23,9 @@ async function main(args: { referenceUrl?: string; contracts: string[] }, hre: H
   const errs = []
 
   for (const contractName of contracts) {
+    if (!isGraphNetworkContractName(contractName)) {
+      throw new Error(`Invalid contract name: ${contractName}`)
+    }
     const entry = addressBook.getEntry(contractName)
     if (!entry || entry.address === constants.AddressZero) {
       errs.push([contractName, { message: `Entry not found on address book.` }])

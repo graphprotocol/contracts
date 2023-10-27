@@ -7,16 +7,13 @@ import { IStaking } from '../../build/types/IStaking'
 import { NetworkFixture } from '../lib/fixtures'
 
 import {
-  advanceBlockTo,
   deriveChannelKey,
   getAccounts,
   randomHexBytes,
-  latestBlock,
-  toBN,
-  toGRT,
   provider,
   Account,
 } from '../lib/testHelpers'
+import { advanceBlockTo, latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero, MaxUint256 } = constants
 

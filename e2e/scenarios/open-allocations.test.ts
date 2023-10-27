@@ -1,12 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getIndexerFixtures, IndexerFixture } from './fixtures/indexers'
+import { AllocationState } from '@graphprotocol/sdk'
 
-enum AllocationState {
-  Null,
-  Active,
-  Closed,
-}
+import { getIndexerFixtures, IndexerFixture } from './fixtures/indexers'
 
 let indexerFixtures: IndexerFixture[]
 

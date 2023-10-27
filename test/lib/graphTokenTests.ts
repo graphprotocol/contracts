@@ -3,10 +3,11 @@ import { constants, utils, BytesLike, BigNumber, Signature } from 'ethers'
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 
 import * as deployment from './deployment'
-import { getAccounts, getChainID, toBN, toGRT, Account, initNetwork } from './testHelpers'
+import { getAccounts, getChainID, Account, initNetwork } from './testHelpers'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { GraphToken } from '../../build/types/GraphToken'
+import { toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero, MaxUint256 } = constants
 const { keccak256, SigningKey } = utils

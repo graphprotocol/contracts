@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { cliOpts } from '../../cli/defaults'
-import GraphChain from '../../gre/helpers/chain'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
@@ -28,7 +28,7 @@ task('migrate:unpause:bridge', 'Unpause bridge')
     const { L1GraphTokenGateway, L2GraphTokenGateway } = graph.contracts
 
     console.log('> Unpausing bridge')
-    const GraphTokenGateway = GraphChain.isL2(graph.chainId)
+    const GraphTokenGateway = isGraphL2ChainId(graph.chainId)
       ? L2GraphTokenGateway
       : L1GraphTokenGateway
     const tx = await GraphTokenGateway.connect(governor).setPaused(false)

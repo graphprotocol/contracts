@@ -1,11 +1,12 @@
 import { expect } from 'chai'
 
-import { getAccounts, toGRT, Account, initNetwork } from '../lib/testHelpers'
+import { getAccounts, Account, initNetwork } from '../lib/testHelpers'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 
 import { grtTests } from '../lib/graphTokenTests'
 import { NetworkFixture } from '../lib/fixtures'
+import { toGRT } from '@graphprotocol/sdk'
 
 describe('L2GraphToken', () => {
   describe('Base GRT behavior', () => {
