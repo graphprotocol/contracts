@@ -9,7 +9,7 @@ import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { deriveChannelKey, getAccounts, randomHexBytes, Account } from '../lib/testHelpers'
-import { advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
+import { advanceEpochs, advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 
@@ -70,9 +70,6 @@ describe('Staking:Allocation', () => {
 
   const shouldAllocate = async (tokensToAllocate: BigNumber) => {
     // Advance epoch to prevent epoch jumping mid test
-    // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await advanceToNextEpoch(epochManager)
 
     // Before state
@@ -128,9 +125,6 @@ describe('Staking:Allocation', () => {
     const beforeDelegationPool = await staking.delegationPools(indexer.address)
 
     // Advance blocks to get the allocation in epoch where it can be closed
-    // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await advanceToNextEpoch(epochManager)
 
     // Collect fees and calculate expected results
@@ -245,9 +239,6 @@ describe('Staking:Allocation', () => {
 
     // Reset rebates state by closing allocation, advancing epoch and opening a new allocation
     await staking.connect(indexer.signer).closeAllocation(allocationID, poi)
-    // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await advanceToNextEpoch(epochManager)
     await allocate(
       tokensToAllocate,
@@ -272,13 +263,7 @@ describe('Staking:Allocation', () => {
     expect(beforeAlloState).eq(AllocationState.Active)
 
     // Move at least one epoch to be able to close
-    // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await advanceToNextEpoch(epochManager)
-    // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await advanceToNextEpoch(epochManager)
 
     // Calculations
@@ -445,9 +430,6 @@ describe('Staking:Allocation', () => {
       })
 
       it('should allocate', async function () {
-        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         await shouldAllocate(tokensToAllocate)
       })
@@ -489,9 +471,6 @@ describe('Staking:Allocation', () => {
       })
 
       it('reject allocate reusing an allocation ID', async function () {
-        // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         await advanceToNextEpoch(epochManager)
         const someTokensToAllocate = toGRT('10')
         await shouldAllocate(someTokensToAllocate)
@@ -788,9 +767,6 @@ describe('Staking:Allocation', () => {
         beforeEach(async function () {
           // Advance to next epoch to avoid creating the allocation
           // right at the epoch boundary, which would mess up the tests.
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
 
           // Allocate
@@ -810,9 +786,6 @@ describe('Staking:Allocation', () => {
 
         it('reject close if not the owner of allocation', async function () {
           // Move at least one epoch to be able to close
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
 
           // Close allocation
@@ -822,9 +795,6 @@ describe('Staking:Allocation', () => {
 
         it('reject close if allocation is already closed', async function () {
           // Move at least one epoch to be able to close
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
 
           // First closing
@@ -841,13 +811,7 @@ describe('Staking:Allocation', () => {
 
         it('should close an allocation (by operator)', async function () {
           // Move at least one epoch to be able to close
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
 
           // Reject to close if the address is not operator
@@ -866,9 +830,6 @@ describe('Staking:Allocation', () => {
 
           // Move max allocation epochs to close by delegator
           const maxAllocationEpochs = await staking.maxAllocationEpochs()
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceEpochs(epochManager, maxAllocationEpochs + 1)
 
           // Closing should only be possible if allocated tokens > 0
@@ -919,13 +880,7 @@ describe('Staking:Allocation', () => {
             )
 
           // Move at least one epoch to be able to close
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
-          // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           await advanceToNextEpoch(epochManager)
 
           // Close multiple allocations in one tx
@@ -960,9 +915,6 @@ describe('Staking:Allocation', () => {
 
     it('should close and create a new allocation', async function () {
       // Move at least one epoch to be able to close
-      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       await advanceToNextEpoch(epochManager)
 
       // Close and allocate

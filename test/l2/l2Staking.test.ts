@@ -298,13 +298,7 @@ describe('L2Staking', () => {
       await fixtureContracts.curation.connect(me.signer).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
-      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       await advanceToNextEpoch(fixtureContracts.epochManager)
-      // TODO: EpochManager != EpochManager in tests vs SDK, need to migrate test deploy code to SDK
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       await advanceToNextEpoch(fixtureContracts.epochManager)
       await staking.connect(me.signer).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
