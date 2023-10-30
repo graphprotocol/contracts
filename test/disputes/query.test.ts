@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants } from 'ethers'
 import { createAttestation, Receipt } from '@graphprotocol/common-ts'
@@ -8,33 +9,29 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  deriveChannelKey,
-  getAccounts,
-  getChainID,
-  randomHexBytes,
-  Account,
-} from '../lib/testHelpers'
 
 import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
-import { advanceBlock, advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
+import { helpers, deriveChannelKey, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, HashZero } = constants
 
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
 
 describe('DisputeManager:Query', async () => {
-  let me: Account
-  let other: Account
-  let governor: Account
-  let arbitrator: Account
-  let indexer: Account
-  let indexer2: Account
-  let rewardsDestination: Account
-  let fisherman: Account
-  let fisherman2: Account
-  let assetHolder: Account
+  let me: SignerWithAddress
+  let other: SignerWithAddress
+  let governor: SignerWithAddress
+  let arbitrator: SignerWithAddress
+  let indexer: SignerWithAddress
+  let indexer2: SignerWithAddress
+  let rewardsDestination: SignerWithAddress
+  let fisherman: SignerWithAddress
+  let fisherman2: SignerWithAddress
+  let assetHolder: SignerWithAddress
 
+  const graph = hre.graph()
   let fixture: NetworkFixture
 
   let disputeManager: DisputeManager
@@ -66,7 +63,7 @@ describe('DisputeManager:Query', async () => {
   async function buildAttestation(receipt: Receipt, signer: string) {
     const attestation = await createAttestation(
       signer,
-      await getChainID(),
+      graph.chainId,
       disputeManager.address,
       receipt,
       '0',
@@ -86,7 +83,7 @@ describe('DisputeManager:Query', async () => {
 
   async function setupIndexers() {
     // Dispute manager is allowed to slash
-    await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
+    await staking.connect(governor).setSlasher(disputeManager.address, true)
 
     // Stake
     const indexerList = [
@@ -105,13 +102,13 @@ describe('DisputeManager:Query', async () => {
       const { channelKey, allocationID, account: indexerAccount } = activeIndexer
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexerAccount.address, indexerTokens)
-      await grt.connect(indexerAccount.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor).mint(indexerAccount.address, indexerTokens)
+      await grt.connect(indexerAccount).approve(staking.address, indexerTokens)
 
       // Indexer stake funds
-      await staking.connect(indexerAccount.signer).stake(indexerTokens)
+      await staking.connect(indexerAccount).stake(indexerTokens)
       await staking
-        .connect(indexerAccount.signer)
+        .connect(indexerAccount)
         .allocateFrom(
           indexerAccount.address,
           dispute.receipt.subgraphDeploymentID,
@@ -135,23 +132,23 @@ describe('DisputeManager:Query', async () => {
       fisherman2,
       assetHolder,
       rewardsDestination,
-    ] = await getAccounts()
+    ] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
-      governor.signer,
-      other.signer,
-      arbitrator.signer,
+      governor,
+      other,
+      arbitrator,
     ))
 
     // Give some funds to the fisherman
     for (const dst of [fisherman, fisherman2]) {
-      await grt.connect(governor.signer).mint(dst.address, fishermanTokens)
-      await grt.connect(dst.signer).approve(disputeManager.address, fishermanTokens)
+      await grt.connect(governor).mint(dst.address, fishermanTokens)
+      await grt.connect(dst).approve(disputeManager.address, fishermanTokens)
     }
 
     // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
+    await staking.connect(governor).setAssetHolder(assetHolder.address, true)
 
     // Create an attestation
     const attestation = await buildAttestation(receipt, indexer1ChannelKey.privKey)
@@ -178,7 +175,7 @@ describe('DisputeManager:Query', async () => {
     it('reject create a dispute if attestation does not refer to valid indexer', async function () {
       // Create dispute
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Indexer cannot be found for the attestation')
     })
@@ -190,20 +187,20 @@ describe('DisputeManager:Query', async () => {
       const indexerCollectedTokens = toGRT('10')
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
-      await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor).mint(indexer.address, indexerTokens)
+      await grt.connect(indexer).approve(staking.address, indexerTokens)
 
       // Give some funds to the channel
-      await grt.connect(governor.signer).mint(assetHolder.address, indexerCollectedTokens)
-      await grt.connect(assetHolder.signer).approve(staking.address, indexerCollectedTokens)
+      await grt.connect(governor).mint(assetHolder.address, indexerCollectedTokens)
+      await grt.connect(assetHolder).approve(staking.address, indexerCollectedTokens)
 
       // Set the thawing period to zero to make the test easier
-      await staking.connect(governor.signer).setThawingPeriod(toBN('1'))
+      await staking.connect(governor).setThawingPeriod(toBN('1'))
 
       // Indexer stake funds, allocate, close allocation, unstake and withdraw the stake fully
-      await staking.connect(indexer.signer).stake(indexerTokens)
+      await staking.connect(indexer).stake(indexerTokens)
       const tx1 = await staking
-        .connect(indexer.signer)
+        .connect(indexer)
         .allocateFrom(
           indexer.address,
           dispute.receipt.subgraphDeploymentID,
@@ -214,18 +211,18 @@ describe('DisputeManager:Query', async () => {
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
-      await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
+      await helpers.mineEpoch(epochManager) // wait the required one epoch to close allocation
       // set rewards destination so collected query fees are not added to indexer balance
-      await staking.connect(indexer.signer).setRewardsDestination(rewardsDestination.address)
-      await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
-      await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
-      await staking.connect(indexer.signer).unstake(indexerTokens)
-      await advanceBlock() // pass thawing period
-      await staking.connect(indexer.signer).withdraw()
+      await staking.connect(indexer).setRewardsDestination(rewardsDestination.address)
+      await staking.connect(assetHolder).collect(indexerCollectedTokens, event1.allocationID)
+      await staking.connect(indexer).closeAllocation(event1.allocationID, poi)
+      await staking.connect(indexer).unstake(indexerTokens)
+      await hardhatHelpers.mine() // pass thawing period
+      await staking.connect(indexer).withdraw()
 
       // Create dispute
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
       await expect(tx).revertedWith('Dispute indexer has no stake')
     })
@@ -243,7 +240,7 @@ describe('DisputeManager:Query', async () => {
 
           // Create invalid dispute as deposit is below minimum
           const tx = disputeManager
-            .connect(fisherman.signer)
+            .connect(fisherman)
             .createQueryDispute(dispute.encodedAttestation, belowMinimumDeposit)
           await expect(tx).revertedWith('Dispute deposit is under minimum required')
         })
@@ -251,7 +248,7 @@ describe('DisputeManager:Query', async () => {
         it('should create a dispute', async function () {
           // Create dispute
           const tx = disputeManager
-            .connect(fisherman.signer)
+            .connect(fisherman)
             .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
           await expect(tx)
             .emit(disputeManager, 'QueryDisputeCreated')
@@ -268,25 +265,21 @@ describe('DisputeManager:Query', async () => {
 
       describe('accept a dispute', function () {
         it('reject to accept a non-existing dispute', async function () {
-          const tx = disputeManager
-            .connect(arbitrator.signer)
-            .acceptDispute(NON_EXISTING_DISPUTE_ID)
+          const tx = disputeManager.connect(arbitrator).acceptDispute(NON_EXISTING_DISPUTE_ID)
           await expect(tx).revertedWith('Dispute does not exist')
         })
       })
 
       describe('reject a dispute', function () {
         it('reject to reject a non-existing dispute', async function () {
-          const tx = disputeManager
-            .connect(arbitrator.signer)
-            .rejectDispute(NON_EXISTING_DISPUTE_ID)
+          const tx = disputeManager.connect(arbitrator).rejectDispute(NON_EXISTING_DISPUTE_ID)
           await expect(tx).revertedWith('Dispute does not exist')
         })
       })
 
       describe('draw a dispute', function () {
         it('reject to draw a non-existing dispute', async function () {
-          const tx = disputeManager.connect(arbitrator.signer).drawDispute(NON_EXISTING_DISPUTE_ID)
+          const tx = disputeManager.connect(arbitrator).drawDispute(NON_EXISTING_DISPUTE_ID)
           await expect(tx).revertedWith('Dispute does not exist')
         })
       })
@@ -295,7 +288,7 @@ describe('DisputeManager:Query', async () => {
         beforeEach(async function () {
           // Create dispute
           await disputeManager
-            .connect(fisherman.signer)
+            .connect(fisherman)
             .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
         })
 
@@ -313,7 +306,7 @@ describe('DisputeManager:Query', async () => {
 
             // Create dispute
             const tx = disputeManager
-              .connect(fisherman.signer)
+              .connect(fisherman)
               .createQueryDispute(newDispute.encodedAttestation, fishermanDeposit)
             await expect(tx)
               .emit(disputeManager, 'QueryDisputeCreated')
@@ -329,13 +322,13 @@ describe('DisputeManager:Query', async () => {
 
           it('should create dispute as long as it is from different fisherman', async function () {
             await disputeManager
-              .connect(fisherman2.signer)
+              .connect(fisherman2)
               .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
           })
 
           it('reject create duplicated dispute', async function () {
             const tx = disputeManager
-              .connect(fisherman.signer)
+              .connect(fisherman)
               .createQueryDispute(dispute.encodedAttestation, fishermanDeposit)
             await expect(tx).revertedWith('Dispute already created')
           })
@@ -343,24 +336,22 @@ describe('DisputeManager:Query', async () => {
 
         describe('accept a dispute', function () {
           it('reject to accept a dispute if not the arbitrator', async function () {
-            const tx = disputeManager.connect(me.signer).acceptDispute(dispute.id)
+            const tx = disputeManager.connect(me).acceptDispute(dispute.id)
             await expect(tx).revertedWith('Caller is not the Arbitrator')
           })
 
           it('reject to accept a dispute if not slasher', async function () {
             // Dispute manager is not allowed to slash
-            await staking.connect(governor.signer).setSlasher(disputeManager.address, false)
+            await staking.connect(governor).setSlasher(disputeManager.address, false)
 
             // Perform transaction (accept)
-            const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
+            const tx = disputeManager.connect(arbitrator).acceptDispute(dispute.id)
             await expect(tx).revertedWith('!slasher')
           })
 
           it('reject to accept a dispute if zero tokens to slash', async function () {
-            await disputeManager
-              .connect(governor.signer)
-              .setSlashingPercentage(toBN('0'), toBN('0'))
-            const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
+            await disputeManager.connect(governor).setSlashingPercentage(toBN('0'), toBN('0'))
+            const tx = disputeManager.connect(arbitrator).acceptDispute(dispute.id)
             await expect(tx).revertedWith('Dispute has zero tokens to slash')
           })
 
@@ -374,7 +365,7 @@ describe('DisputeManager:Query', async () => {
             const { slashAmount, rewardsAmount } = await calculateSlashConditions(indexer.address)
 
             // Perform transaction (accept)
-            const tx = disputeManager.connect(arbitrator.signer).acceptDispute(dispute.id)
+            const tx = disputeManager.connect(arbitrator).acceptDispute(dispute.id)
             await expect(tx)
               .emit(disputeManager, 'DisputeAccepted')
               .withArgs(
@@ -403,7 +394,7 @@ describe('DisputeManager:Query', async () => {
 
         describe('reject a dispute', async function () {
           it('reject to reject a dispute if not the arbitrator', async function () {
-            const tx = disputeManager.connect(me.signer).rejectDispute(dispute.id)
+            const tx = disputeManager.connect(me).rejectDispute(dispute.id)
             await expect(tx).revertedWith('Caller is not the Arbitrator')
           })
 
@@ -413,7 +404,7 @@ describe('DisputeManager:Query', async () => {
             const beforeTotalSupply = await grt.totalSupply()
 
             // Perform transaction (reject)
-            const tx = disputeManager.connect(arbitrator.signer).rejectDispute(dispute.id)
+            const tx = disputeManager.connect(arbitrator).rejectDispute(dispute.id)
             await expect(tx)
               .emit(disputeManager, 'DisputeRejected')
               .withArgs(dispute.id, dispute.indexerAddress, fisherman.address, fishermanDeposit)
@@ -432,7 +423,7 @@ describe('DisputeManager:Query', async () => {
 
         describe('draw a dispute', async function () {
           it('reject to draw a dispute if not the arbitrator', async function () {
-            const tx = disputeManager.connect(me.signer).drawDispute(dispute.id)
+            const tx = disputeManager.connect(me).drawDispute(dispute.id)
             await expect(tx).revertedWith('Caller is not the Arbitrator')
           })
 
@@ -441,7 +432,7 @@ describe('DisputeManager:Query', async () => {
             const beforeFishermanBalance = await grt.balanceOf(fisherman.address)
 
             // Perform transaction (draw)
-            const tx = disputeManager.connect(arbitrator.signer).drawDispute(dispute.id)
+            const tx = disputeManager.connect(arbitrator).drawDispute(dispute.id)
             await expect(tx)
               .emit(disputeManager, 'DisputeDrawn')
               .withArgs(dispute.id, dispute.indexerAddress, fisherman.address, fishermanDeposit)
@@ -478,7 +469,7 @@ describe('DisputeManager:Query', async () => {
     it('reject if attestations are not in conflict', async function () {
       const [attestation1, attestation2] = await getIndependentAttestations()
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createQueryDisputeConflict(
           encodeAttestation(attestation1),
           encodeAttestation(attestation2),
@@ -491,7 +482,7 @@ describe('DisputeManager:Query', async () => {
       const dID1 = createQueryDisputeID(attestation1, indexer.address, fisherman.address)
       const dID2 = createQueryDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createQueryDisputeConflict(
           encodeAttestation(attestation1),
           encodeAttestation(attestation2),
@@ -510,7 +501,7 @@ describe('DisputeManager:Query', async () => {
       const dID1 = createQueryDisputeID(attestation1, indexer.address, fisherman.address)
       const dID2 = createQueryDisputeID(attestation2, indexer2.address, fisherman.address)
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createQueryDisputeConflict(
           encodeAttestation(attestation1),
           encodeAttestation(attestation2),
@@ -523,7 +514,7 @@ describe('DisputeManager:Query', async () => {
       // Setup
       const [dID1, dID2] = await setupConflictingDisputes()
       // Do
-      await disputeManager.connect(arbitrator.signer).acceptDispute(dID1)
+      await disputeManager.connect(arbitrator).acceptDispute(dID1)
       // Check
       const relatedDispute = await disputeManager.disputes(dID2)
       expect(relatedDispute.indexer).eq(AddressZero)
@@ -533,7 +524,7 @@ describe('DisputeManager:Query', async () => {
       // Setup
       const [dID1] = await setupConflictingDisputes()
       // Do
-      const tx = disputeManager.connect(arbitrator.signer).rejectDispute(dID1)
+      const tx = disputeManager.connect(arbitrator).rejectDispute(dID1)
       await expect(tx).revertedWith(
         'Dispute for conflicting attestation, must accept the related ID to reject',
       )
@@ -543,7 +534,7 @@ describe('DisputeManager:Query', async () => {
       // Setup
       const [dID1, dID2] = await setupConflictingDisputes()
       // Do
-      await disputeManager.connect(arbitrator.signer).drawDispute(dID1)
+      await disputeManager.connect(arbitrator).drawDispute(dID1)
       // Check
       const relatedDispute = await disputeManager.disputes(dID2)
       expect(relatedDispute.indexer).eq(AddressZero)

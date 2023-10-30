@@ -1,21 +1,17 @@
+import hre from 'hardhat'
+import helpers from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
-import { utils, BigNumber, Event, Signer } from 'ethers'
+import { utils, BigNumber, Event } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import {
-  getAccounts,
-  randomHexBytes,
-  Account,
-  impersonateAccount,
-  setAccountBalance,
-} from '../lib/testHelpers'
 import { GNS } from '../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
-import { formatGRT, toBN, toGRT } from '@graphprotocol/sdk'
+import { formatGRT, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const MAX_PPM = 1000000
 
@@ -39,11 +35,11 @@ const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: number) => n.toFixed(12)
 
 describe('Curation', () => {
-  let me: Account
-  let governor: Account
-  let curator: Account
-  let stakingMock: Account
-  let gnsImpersonator: Signer
+  let me: SignerWithAddress
+  let governor: SignerWithAddress
+  let curator: SignerWithAddress
+  let stakingMock: SignerWithAddress
+  let gnsImpersonator: SignerWithAddress
 
   let fixture: NetworkFixture
 
@@ -51,6 +47,8 @@ describe('Curation', () => {
   let grt: GraphToken
   let controller: Controller
   let gns: GNS
+
+  const graph = hre.graph()
 
   // Test values
   const signalAmountFor1000Tokens = toGRT('3.162277660168379331')
@@ -106,7 +104,7 @@ describe('Curation', () => {
     const curationTax = tokensToDeposit.mul(toBN(curationTaxPercentage)).div(toBN(MAX_PPM))
 
     // Curate
-    const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+    const tx = curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
     await expect(tx)
       .emit(curation, 'Signalled')
       .withArgs(curator.address, subgraphDeploymentID, tokensToDeposit, expectedSignal, curationTax)
@@ -148,7 +146,7 @@ describe('Curation', () => {
     const beforeTotalTokens = await grt.balanceOf(curation.address)
 
     // Redeem
-    const tx = curation.connect(curator.signer).burn(subgraphDeploymentID, signalToRedeem, 0)
+    const tx = curation.connect(curator).burn(subgraphDeploymentID, signalToRedeem, 0)
     await expect(tx)
       .emit(curation, 'Burned')
       .withArgs(curator.address, subgraphDeploymentID, expectedTokens, signalToRedeem)
@@ -182,8 +180,8 @@ describe('Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Source of tokens must be the staking for this to work
-    await grt.connect(stakingMock.signer).transfer(curation.address, tokensToCollect)
-    const tx = curation.connect(stakingMock.signer).collect(subgraphDeploymentID, tokensToCollect)
+    await grt.connect(stakingMock).transfer(curation.address, tokensToCollect)
+    const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
     await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
 
     // After state
@@ -197,22 +195,23 @@ describe('Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, governor, curator, stakingMock] = await getAccounts()
+    ;[me, governor, curator, stakingMock] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    ;({ controller, curation, grt, gns } = await fixture.load(governor.signer))
+    ;({ controller, curation, grt, gns } = await fixture.load(governor))
 
-    gnsImpersonator = await impersonateAccount(gns.address)
-    await setAccountBalance(gns.address, parseEther('1'))
+    await helpers.impersonateAccount(gns.address)
+    gnsImpersonator = await hre.ethers.getSigner(gns.address)
+    await helpers.setBalance(gns.address, parseEther('1'))
     // Give some funds to the curator and GNS impersonator and approve the curation contract
-    await grt.connect(governor.signer).mint(curator.address, curatorTokens)
-    await grt.connect(curator.signer).approve(curation.address, curatorTokens)
-    await grt.connect(governor.signer).mint(gns.address, curatorTokens)
+    await grt.connect(governor).mint(curator.address, curatorTokens)
+    await grt.connect(curator).approve(curation.address, curatorTokens)
+    await grt.connect(governor).mint(gns.address, curatorTokens)
     await grt.connect(gnsImpersonator).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
-    await grt.connect(governor.signer).mint(stakingMock.address, tokensToCollect)
-    await grt.connect(stakingMock.signer).approve(curation.address, tokensToCollect)
+    await grt.connect(governor).mint(stakingMock.address, tokensToCollect)
+    await grt.connect(stakingMock).approve(curation.address, tokensToCollect)
   })
 
   beforeEach(async function () {
@@ -233,7 +232,7 @@ describe('Curation', () => {
 
     it('convert signal to tokens', async function () {
       // Curate
-      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+      await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
 
       // Conversion
       const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
@@ -244,7 +243,7 @@ describe('Curation', () => {
     it('convert signal to tokens (with curation tax)', async function () {
       // Set curation tax
       const curationTaxPercentage = 50000 // 5%
-      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+      await curation.connect(governor).setCurationTaxPercentage(curationTaxPercentage)
 
       // Curate
       const expectedCurationTax = tokensToDeposit.mul(curationTaxPercentage).div(MAX_PPM)
@@ -252,7 +251,7 @@ describe('Curation', () => {
         subgraphDeploymentID,
         tokensToDeposit,
       )
-      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+      await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
 
       // Conversion
       const signal = await curation.getCurationPoolSignal(subgraphDeploymentID)
@@ -280,7 +279,7 @@ describe('Curation', () => {
   describe('curate', async function () {
     it('reject deposit below minimum tokens required', async function () {
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
-      const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+      const tx = curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
     })
 
@@ -298,7 +297,7 @@ describe('Curation', () => {
 
     it('should get signal according to bonding curve (and account for curation tax)', async function () {
       // Set curation tax
-      await curation.connect(governor.signer).setCurationTaxPercentage(50000) // 5%
+      await curation.connect(governor).setCurationTaxPercentage(50000) // 5%
 
       // Mint
       const tokensToDeposit = toGRT('1000')
@@ -313,7 +312,7 @@ describe('Curation', () => {
       const tokensToDeposit = toGRT('1000')
       const expectedSignal = signalAmountFor1000Tokens
       const tx = curation
-        .connect(curator.signer)
+        .connect(curator)
         .mint(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
@@ -324,30 +323,28 @@ describe('Curation', () => {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
         await controller
-          .connect(governor.signer)
+          .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
         await curation.syncAllContracts() // call sync because we change the proxy for staking
 
-        const tx = curation
-          .connect(stakingMock.signer)
-          .collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('Subgraph deployment must be curated to collect fees')
       })
     })
 
     context('> curated', async function () {
       beforeEach(async function () {
-        await curation.connect(curator.signer).mint(subgraphDeploymentID, toGRT('1000'), 0)
+        await curation.connect(curator).mint(subgraphDeploymentID, toGRT('1000'), 0)
       })
 
       it('reject collect tokens distributed from invalid address', async function () {
-        const tx = curation.connect(me.signer).collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation.connect(me).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('Caller must be the staking contract')
       })
 
       it('should collect tokens distributed to the curation pool', async function () {
         await controller
-          .connect(governor.signer)
+          .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
         await curation.syncAllContracts() // call sync because we change the proxy for staking
 
@@ -360,7 +357,7 @@ describe('Curation', () => {
 
       it('should collect tokens and then unsignal all', async function () {
         await controller
-          .connect(governor.signer)
+          .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
         await curation.syncAllContracts() // call sync because we change the proxy for staking
 
@@ -377,7 +374,7 @@ describe('Curation', () => {
 
       it('should collect tokens and then unsignal multiple times', async function () {
         await controller
-          .connect(governor.signer)
+          .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
         await curation.syncAllContracts() // call sync because we change the proxy for staking
 
@@ -390,9 +387,7 @@ describe('Curation', () => {
         const signalOutPartial = (
           await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
         ).sub(signalOutRemainder)
-        const tx1 = await curation
-          .connect(curator.signer)
-          .burn(subgraphDeploymentID, signalOutPartial, 0)
+        const tx1 = await curation.connect(curator).burn(subgraphDeploymentID, signalOutPartial, 0)
         const r1 = await tx1.wait()
         const event1 = curation.interface.parseLog(r1.events[2]).args
         const tokensOut1 = event1.tokens
@@ -402,7 +397,7 @@ describe('Curation', () => {
 
         // Unsignal the rest
         const tx2 = await curation
-          .connect(curator.signer)
+          .connect(curator)
           .burn(subgraphDeploymentID, signalOutRemainder, 0)
         const r2 = await tx2.wait()
         const event2 = curation.interface.parseLog(r2.events[2]).args
@@ -415,16 +410,16 @@ describe('Curation', () => {
 
   describe('burn', async function () {
     beforeEach(async function () {
-      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+      await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
     })
 
     it('reject redeem more than a curator owns', async function () {
-      const tx = curation.connect(me.signer).burn(subgraphDeploymentID, toGRT('1'), 0)
+      const tx = curation.connect(me).burn(subgraphDeploymentID, toGRT('1'), 0)
       await expect(tx).revertedWith('Cannot burn more signal than you own')
     })
 
     it('reject redeem zero signal', async function () {
-      const tx = curation.connect(me.signer).burn(subgraphDeploymentID, toGRT('0'), 0)
+      const tx = curation.connect(me).burn(subgraphDeploymentID, toGRT('0'), 0)
       await expect(tx).revertedWith('Cannot burn zero signal')
     })
 
@@ -467,7 +462,7 @@ describe('Curation', () => {
       const expectedTokens = tokensToDeposit
 
       const tx = curation
-        .connect(curator.signer)
+        .connect(curator)
         .burn(subgraphDeploymentID, signalToRedeem, expectedTokens.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
@@ -481,7 +476,7 @@ describe('Curation', () => {
       await shouldBurn(signalToRedeem, expectedTokens)
 
       // Mint again on the same subgraph
-      await curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
+      await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
 
       // Check state
       const afterSubgraphPool = await curation.pools(subgraphDeploymentID)
@@ -498,9 +493,7 @@ describe('Curation', () => {
       // Signal multiple times
       let totalSignal = toGRT('0')
       for (const tokensToDeposit of chunkify(totalDeposits, 10)) {
-        const tx = await curation
-          .connect(curator.signer)
-          .mint(subgraphDeploymentID, tokensToDeposit, 0)
+        const tx = await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
@@ -510,9 +503,7 @@ describe('Curation', () => {
       // Redeem signal multiple times
       let totalTokens = toGRT('0')
       for (const signalToRedeem of chunkify(totalSignal, 10)) {
-        const tx = await curation
-          .connect(curator.signer)
-          .burn(subgraphDeploymentID, signalToRedeem, 0)
+        const tx = await curation.connect(curator).burn(subgraphDeploymentID, signalToRedeem, 0)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const tokens = event.args['tokens']
@@ -550,9 +541,7 @@ describe('Curation', () => {
           tokensToDeposit,
         )
 
-        const tx = await curation
-          .connect(curator.signer)
-          .mint(subgraphDeploymentID, tokensToDeposit, 0)
+        const tx = await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
@@ -580,9 +569,7 @@ describe('Curation', () => {
 
       // Mint multiple times
       for (const tokensToDeposit of tokensToDepositMany) {
-        const tx = await curation
-          .connect(curator.signer)
-          .mint(subgraphDeploymentID, tokensToDeposit, 0)
+        const tx = await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
         const receipt = await tx.wait()
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']

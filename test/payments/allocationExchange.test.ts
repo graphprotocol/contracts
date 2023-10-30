@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber, constants, Wallet } from 'ethers'
 
@@ -7,15 +8,9 @@ import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import * as deployment from '../lib/deployment'
-import {
-  deriveChannelKey,
-  getAccounts,
-  randomAddress,
-  randomHexBytes,
-  Account,
-} from '../lib/testHelpers'
 import { arrayify, joinSignature, SigningKey, solidityKeccak256 } from 'ethers/lib/utils'
-import { toGRT } from '@graphprotocol/sdk'
+import { deriveChannelKey, randomAddress, randomHexBytes, toGRT } from '@graphprotocol/sdk'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -26,8 +21,8 @@ interface Voucher {
 }
 
 describe('AllocationExchange', () => {
-  let governor: Account
-  let indexer: Account
+  let governor: SignerWithAddress
+  let indexer: SignerWithAddress
   let authority: Wallet
 
   let fixture: NetworkFixture
@@ -35,6 +30,8 @@ describe('AllocationExchange', () => {
   let grt: GraphToken
   let staking: IStaking
   let allocationExchange: AllocationExchange
+
+  const graph = hre.graph()
 
   async function createVoucher(
     allocationID: string,
@@ -53,14 +50,14 @@ describe('AllocationExchange', () => {
   }
 
   before(async function () {
-    ;[governor, indexer] = await getAccounts()
+    ;[governor, indexer] = await graph.getTestAccounts()
     authority = Wallet.createRandom()
 
     fixture = new NetworkFixture()
-    ;({ grt, staking } = await fixture.load(governor.signer))
+    ;({ grt, staking } = await fixture.load(governor))
     allocationExchange = (await deployment.deployContract(
       'AllocationExchange',
-      governor.signer,
+      governor,
       grt.address,
       staking.address,
       governor.address,
@@ -69,16 +66,16 @@ describe('AllocationExchange', () => {
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
-    await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
-    await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+    await grt.connect(governor).mint(indexer.address, indexerTokens)
+    await grt.connect(indexer).approve(staking.address, indexerTokens)
 
     // Give some funds to the AllocationExchange
     const exchangeTokens = toGRT('2000')
-    await grt.connect(governor.signer).mint(allocationExchange.address, exchangeTokens)
+    await grt.connect(governor).mint(allocationExchange.address, exchangeTokens)
 
     // Ensure the exchange is correctly setup
-    await staking.connect(governor.signer).setAssetHolder(allocationExchange.address, true)
-    await allocationExchange.connect(governor.signer).setAuthority(authority.address, true)
+    await staking.connect(governor).setAssetHolder(allocationExchange.address, true)
+    await allocationExchange.connect(governor).setAuthority(authority.address, true)
     await allocationExchange.approveAll()
   })
 
@@ -99,9 +96,9 @@ describe('AllocationExchange', () => {
 
     // Setup staking
     const stakeTokens = toGRT('100000')
-    await staking.connect(indexer.signer).stake(stakeTokens)
+    await staking.connect(indexer).stake(stakeTokens)
     await staking
-      .connect(indexer.signer)
+      .connect(indexer)
       .allocateFrom(
         indexer.address,
         subgraphDeploymentID,
@@ -117,25 +114,25 @@ describe('AllocationExchange', () => {
     it('should set an authority', async function () {
       // Set authority
       const newAuthority = randomAddress()
-      const tx1 = allocationExchange.connect(governor.signer).setAuthority(newAuthority, true)
+      const tx1 = allocationExchange.connect(governor).setAuthority(newAuthority, true)
       await expect(tx1).emit(allocationExchange, 'AuthoritySet').withArgs(newAuthority, true)
       expect(await allocationExchange.authority(newAuthority)).eq(true)
 
       // Unset authority
-      const tx2 = allocationExchange.connect(governor.signer).setAuthority(newAuthority, false)
+      const tx2 = allocationExchange.connect(governor).setAuthority(newAuthority, false)
       await expect(tx2).emit(allocationExchange, 'AuthoritySet').withArgs(newAuthority, false)
       expect(await allocationExchange.authority(newAuthority)).eq(false)
     })
 
     it('reject set an authority if not allowed', async function () {
       const newAuthority = randomAddress()
-      const tx = allocationExchange.connect(indexer.signer).setAuthority(newAuthority, true)
+      const tx = allocationExchange.connect(indexer).setAuthority(newAuthority, true)
       await expect(tx).revertedWith('Only Governor can call')
     })
 
     it('reject set an empty authority', async function () {
       const newAuthority = AddressZero
-      const tx = allocationExchange.connect(governor.signer).setAuthority(newAuthority, true)
+      const tx = allocationExchange.connect(governor).setAuthority(newAuthority, true)
       await expect(tx).revertedWith('Exchange: empty authority')
     })
 
@@ -152,7 +149,7 @@ describe('AllocationExchange', () => {
 
       const destinationAddress = randomAddress()
       const amount = toGRT('1000')
-      const tx = allocationExchange.connect(governor.signer).withdraw(destinationAddress, amount)
+      const tx = allocationExchange.connect(governor).withdraw(destinationAddress, amount)
       await expect(tx)
         .emit(allocationExchange, 'TokensWithdrawn')
         .withArgs(destinationAddress, amount)
@@ -167,14 +164,14 @@ describe('AllocationExchange', () => {
     it('reject withdraw zero amount', async function () {
       const destinationAddress = randomAddress()
       const amount = toGRT('0')
-      const tx = allocationExchange.connect(governor.signer).withdraw(destinationAddress, amount)
+      const tx = allocationExchange.connect(governor).withdraw(destinationAddress, amount)
       await expect(tx).revertedWith('Exchange: empty amount')
     })
 
     it('reject withdraw to zero destination', async function () {
       const destinationAddress = AddressZero
       const amount = toGRT('1000')
-      const tx = allocationExchange.connect(governor.signer).withdraw(destinationAddress, amount)
+      const tx = allocationExchange.connect(governor).withdraw(destinationAddress, amount)
       await expect(tx).revertedWith('Exchange: empty destination')
     })
 
@@ -232,7 +229,7 @@ describe('AllocationExchange', () => {
       const allocationID = '0xfefefefefefefefefefefefefefefefefefefefe'
 
       // Ensure the exchange is correctly setup
-      await allocationExchange.connect(governor.signer).setAuthority(authority.address, true)
+      await allocationExchange.connect(governor).setAuthority(authority.address, true)
       await allocationExchange.approveAll()
 
       // Initiate a withdrawal

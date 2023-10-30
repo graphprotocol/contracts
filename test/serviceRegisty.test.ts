@@ -1,15 +1,17 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 
 import { ServiceRegistry } from '../build/types/ServiceRegistry'
 import { IStaking } from '../build/types/IStaking'
 
-import { getAccounts, Account } from './lib/testHelpers'
 import { NetworkFixture } from './lib/fixtures'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('ServiceRegistry', () => {
-  let governor: Account
-  let indexer: Account
-  let operator: Account
+  const graph = hre.graph()
+  let governor: SignerWithAddress
+  let indexer: SignerWithAddress
+  let operator: SignerWithAddress
 
   let fixture: NetworkFixture
 
@@ -18,7 +20,7 @@ describe('ServiceRegistry', () => {
 
   const shouldRegister = async (url: string, geohash: string) => {
     // Register the indexer service
-    const tx = serviceRegistry.connect(indexer.signer).register(url, geohash)
+    const tx = serviceRegistry.connect(indexer).register(url, geohash)
     await expect(tx)
       .emit(serviceRegistry, 'ServiceRegistered')
       .withArgs(indexer.address, url, geohash)
@@ -30,10 +32,10 @@ describe('ServiceRegistry', () => {
   }
 
   before(async function () {
-    ;[governor, indexer, operator] = await getAccounts()
+    ;[governor, indexer, operator] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    ;({ serviceRegistry, staking } = await fixture.load(governor.signer, governor.signer))
+    ;({ serviceRegistry, staking } = await fixture.load(governor, governor))
   })
 
   beforeEach(async function () {
@@ -65,22 +67,22 @@ describe('ServiceRegistry', () => {
     })
 
     it('reject registering empty URL', async function () {
-      const tx = serviceRegistry.connect(indexer.signer).register('', '')
+      const tx = serviceRegistry.connect(indexer).register('', '')
       await expect(tx).revertedWith('Service must specify a URL')
     })
 
     describe('operator', function () {
       it('reject register from unauthorized operator', async function () {
         const tx = serviceRegistry
-          .connect(operator.signer)
+          .connect(operator)
           .registerFor(indexer.address, 'http://thegraph.com', '')
         await expect(tx).revertedWith('!auth')
       })
 
       it('should register from operator', async function () {
         // Auth and register
-        await staking.connect(indexer.signer).setOperator(operator.address, true)
-        await serviceRegistry.connect(operator.signer).registerFor(indexer.address, url, geo)
+        await staking.connect(indexer).setOperator(operator.address, true)
+        await serviceRegistry.connect(operator).registerFor(indexer.address, url, geo)
 
         // Updated state
         const indexerService = await serviceRegistry.services(indexer.address)
@@ -96,35 +98,35 @@ describe('ServiceRegistry', () => {
 
     it('should unregister existing registration', async function () {
       // Register the indexer service
-      await serviceRegistry.connect(indexer.signer).register(url, geo)
+      await serviceRegistry.connect(indexer).register(url, geo)
 
       // Unregister the indexer service
-      const tx = serviceRegistry.connect(indexer.signer).unregister()
+      const tx = serviceRegistry.connect(indexer).unregister()
       await expect(tx).emit(serviceRegistry, 'ServiceUnregistered').withArgs(indexer.address)
     })
 
     it('reject unregister non-existing registration', async function () {
-      const tx = serviceRegistry.connect(indexer.signer).unregister()
+      const tx = serviceRegistry.connect(indexer).unregister()
       await expect(tx).revertedWith('Service already unregistered')
     })
 
     describe('operator', function () {
       it('reject unregister from unauthorized operator', async function () {
         // Register the indexer service
-        await serviceRegistry.connect(indexer.signer).register(url, geo)
+        await serviceRegistry.connect(indexer).register(url, geo)
 
         // Unregister
-        const tx = serviceRegistry.connect(operator.signer).unregisterFor(indexer.address)
+        const tx = serviceRegistry.connect(operator).unregisterFor(indexer.address)
         await expect(tx).revertedWith('!auth')
       })
 
       it('should unregister from operator', async function () {
         // Register the indexer service
-        await serviceRegistry.connect(indexer.signer).register(url, geo)
+        await serviceRegistry.connect(indexer).register(url, geo)
 
         // Auth and unregister
-        await staking.connect(indexer.signer).setOperator(operator.address, true)
-        await serviceRegistry.connect(operator.signer).unregisterFor(indexer.address)
+        await staking.connect(indexer).setOperator(operator.address, true)
+        await serviceRegistry.connect(operator).unregisterFor(indexer.address)
 
         // Updated state
         const indexerService = await serviceRegistry.services(indexer.address)

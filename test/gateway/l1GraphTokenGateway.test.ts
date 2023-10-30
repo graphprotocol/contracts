@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, Signer, utils } from 'ethers'
 
@@ -9,22 +10,24 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 
 import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
-import { getAccounts, Account, applyL1ToL2Alias, provider } from '../lib/testHelpers'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
-import { advanceBlocks, latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
+import { applyL1ToL2Alias, toBN, toGRT } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
 
 describe('L1GraphTokenGateway', () => {
-  let governor: Account
-  let tokenSender: Account
-  let l2Receiver: Account
-  let mockRouter: Account
-  let mockL2GRT: Account
-  let mockL2Gateway: Account
-  let pauseGuardian: Account
-  let mockL2GNS: Account
-  let mockL2Staking: Account
+  const graph = hre.graph()
+  let governor: SignerWithAddress
+  let tokenSender: SignerWithAddress
+  let l2Receiver: SignerWithAddress
+  let mockRouter: SignerWithAddress
+  let mockL2GRT: SignerWithAddress
+  let mockL2Gateway: SignerWithAddress
+  let pauseGuardian: SignerWithAddress
+  let mockL2GNS: SignerWithAddress
+  let mockL2Staking: SignerWithAddress
   let fixture: NetworkFixture
 
   let grt: GraphToken
@@ -68,18 +71,18 @@ describe('L1GraphTokenGateway', () => {
       pauseGuardian,
       mockL2GNS,
       mockL2Staking,
-    ] = await getAccounts()
+    ] = await graph.getTestAccounts()
 
     // Dummy code on the mock router so that it appears as a contract
-    await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
+    await hardhatHelpers.setCode(mockRouter.address, '0x1234')
     fixture = new NetworkFixture()
-    fixtureContracts = await fixture.load(governor.signer)
+    fixtureContracts = await fixture.load(governor)
     ;({ grt, l1GraphTokenGateway, bridgeEscrow } = fixtureContracts)
 
     // Give some funds to the token sender
-    await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
+    await grt.connect(governor).mint(tokenSender.address, senderTokens)
     // Deploy contracts that mock Arbitrum's bridge contracts
-    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
+    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
     ;({ bridgeMock, inboxMock, outboxMock } = arbitrumMocks)
   })
 
@@ -101,7 +104,7 @@ describe('L1GraphTokenGateway', () => {
     describe('outboundTransfer', function () {
       it('reverts because it is paused', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .outboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -120,7 +123,7 @@ describe('L1GraphTokenGateway', () => {
     describe('finalizeInboundTransfer', function () {
       it('revert because it is paused', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .finalizeInboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -135,23 +138,23 @@ describe('L1GraphTokenGateway', () => {
     describe('setArbitrumAddresses', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .setArbitrumAddresses(inboxMock.address, mockRouter.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('rejects setting an EOA as router or inbox', async function () {
         let tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setArbitrumAddresses(tokenSender.address, mockRouter.address)
         await expect(tx).revertedWith('INBOX_MUST_BE_CONTRACT')
         tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setArbitrumAddresses(inboxMock.address, tokenSender.address)
         await expect(tx).revertedWith('ROUTER_MUST_BE_CONTRACT')
       })
       it('sets inbox and router address', async function () {
         const tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setArbitrumAddresses(inboxMock.address, mockRouter.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'ArbitrumAddressesSet')
@@ -163,13 +166,11 @@ describe('L1GraphTokenGateway', () => {
 
     describe('setL2TokenAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
-          .setL2TokenAddress(mockL2GRT.address)
+        const tx = l1GraphTokenGateway.connect(tokenSender).setL2TokenAddress(mockL2GRT.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2GRT', async function () {
-        const tx = l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(mockL2GRT.address)
+        const tx = l1GraphTokenGateway.connect(governor).setL2TokenAddress(mockL2GRT.address)
         await expect(tx).emit(l1GraphTokenGateway, 'L2TokenAddressSet').withArgs(mockL2GRT.address)
         expect(await l1GraphTokenGateway.l2GRT()).eq(mockL2GRT.address)
       })
@@ -178,13 +179,13 @@ describe('L1GraphTokenGateway', () => {
     describe('setL2CounterpartAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .setL2CounterpartAddress(mockL2Gateway.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2Counterpart which can be queried with counterpartGateway()', async function () {
         const tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2CounterpartAddress(mockL2Gateway.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'L2CounterpartAddressSet')
@@ -195,15 +196,11 @@ describe('L1GraphTokenGateway', () => {
     })
     describe('setEscrowAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
-          .setEscrowAddress(bridgeEscrow.address)
+        const tx = l1GraphTokenGateway.connect(tokenSender).setEscrowAddress(bridgeEscrow.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets escrow', async function () {
-        const tx = l1GraphTokenGateway
-          .connect(governor.signer)
-          .setEscrowAddress(bridgeEscrow.address)
+        const tx = l1GraphTokenGateway.connect(governor).setEscrowAddress(bridgeEscrow.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'EscrowAddressSet')
           .withArgs(bridgeEscrow.address)
@@ -213,7 +210,7 @@ describe('L1GraphTokenGateway', () => {
     describe('addToCallhookAllowlist', function () {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
@@ -221,14 +218,12 @@ describe('L1GraphTokenGateway', () => {
         ).eq(false)
       })
       it('rejects adding an EOA to the callhook allowlist', async function () {
-        const tx = l1GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookAllowlist(tokenSender.address)
+        const tx = l1GraphTokenGateway.connect(governor).addToCallhookAllowlist(tokenSender.address)
         await expect(tx).revertedWith('MUST_BE_CONTRACT')
       })
       it('adds an address to the callhook allowlist', async function () {
         const tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'AddedToCallhookAllowlist')
@@ -241,10 +236,10 @@ describe('L1GraphTokenGateway', () => {
     describe('removeFromCallhookAllowlist', function () {
       it('is not callable by addreses that are not the governor', async function () {
         await l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
@@ -253,10 +248,10 @@ describe('L1GraphTokenGateway', () => {
       })
       it('removes an address from the callhook allowlist', async function () {
         await l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
         const tx = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'RemovedFromCallhookAllowlist')
@@ -268,28 +263,26 @@ describe('L1GraphTokenGateway', () => {
     })
     describe('Pausable behavior', () => {
       it('cannot be paused or unpaused by someone other than governor or pauseGuardian', async () => {
-        let tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(false)
+        let tx = l1GraphTokenGateway.connect(tokenSender).setPaused(false)
         await expect(tx).revertedWith('Only Governor or Guardian')
-        tx = l1GraphTokenGateway.connect(tokenSender.signer).setPaused(true)
+        tx = l1GraphTokenGateway.connect(tokenSender).setPaused(true)
         await expect(tx).revertedWith('Only Governor or Guardian')
       })
       it('cannot be unpaused if some state variables are not set', async function () {
-        let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        let tx = l1GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('INBOX_NOT_SET')
         await l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setArbitrumAddresses(arbitrumMocks.inboxMock.address, mockRouter.address)
-        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        tx = l1GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('L2_COUNTERPART_NOT_SET')
-        await l1GraphTokenGateway
-          .connect(governor.signer)
-          .setL2CounterpartAddress(mockL2Gateway.address)
-        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        await l1GraphTokenGateway.connect(governor).setL2CounterpartAddress(mockL2Gateway.address)
+        tx = l1GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('ESCROW_NOT_SET')
       })
       it('can be paused and unpaused by the governor', async function () {
         await fixture.configureL1Bridge(
-          governor.signer,
+          governor,
           arbitrumMocks,
           fixtureContracts,
           mockRouter.address,
@@ -298,31 +291,29 @@ describe('L1GraphTokenGateway', () => {
           mockL2GNS.address,
           mockL2Staking.address,
         )
-        let tx = l1GraphTokenGateway.connect(governor.signer).setPaused(true)
+        let tx = l1GraphTokenGateway.connect(governor).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
         await expect(await l1GraphTokenGateway.paused()).eq(true)
-        tx = l1GraphTokenGateway.connect(governor.signer).setPaused(false)
+        tx = l1GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
         await expect(await l1GraphTokenGateway.paused()).eq(false)
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
           const tx = l1GraphTokenGateway
-            .connect(tokenSender.signer)
+            .connect(tokenSender)
             .setPauseGuardian(pauseGuardian.address)
           await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
-          const tx = l1GraphTokenGateway
-            .connect(governor.signer)
-            .setPauseGuardian(pauseGuardian.address)
+          const tx = l1GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
           await expect(tx)
             .emit(l1GraphTokenGateway, 'NewPauseGuardian')
             .withArgs(AddressZero, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
           await fixture.configureL1Bridge(
-            governor.signer,
+            governor,
             arbitrumMocks,
             fixtureContracts,
             mockRouter.address,
@@ -331,11 +322,11 @@ describe('L1GraphTokenGateway', () => {
             mockL2GNS.address,
             mockL2Staking.address,
           )
-          await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
-          let tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(true)
+          await l1GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
+          let tx = l1GraphTokenGateway.connect(pauseGuardian).setPaused(true)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
           await expect(await l1GraphTokenGateway.paused()).eq(true)
-          tx = l1GraphTokenGateway.connect(pauseGuardian.signer).setPaused(false)
+          tx = l1GraphTokenGateway.connect(pauseGuardian).setPaused(false)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
           await expect(await l1GraphTokenGateway.paused()).eq(false)
         })
@@ -429,7 +420,7 @@ describe('L1GraphTokenGateway', () => {
     }
     before(async function () {
       await fixture.configureL1Bridge(
-        governor.signer,
+        governor,
         arbitrumMocks,
         fixtureContracts,
         mockRouter.address,
@@ -444,24 +435,24 @@ describe('L1GraphTokenGateway', () => {
       it('rejects calls that are not from the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(pauseGuardian.address)
-          .updateL2MintAllowance(toGRT('1'), await latestBlock())
+          .updateL2MintAllowance(toGRT('1'), await hardhatHelpers.time.latestBlock())
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
-        let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
+        let issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 2
         const tx1 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
+        issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 1 // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock() // This will be block.number-1 in our next tx
         const tx3 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx3)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
@@ -469,40 +460,42 @@ describe('L1GraphTokenGateway', () => {
       })
       it('does not allow using a block number lower than or equal to the previous one', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = await latestBlock()
+        const issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock()
         const tx1 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         const tx2 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx2).revertedWith('BLOCK_MUST_BE_INCREMENTING')
         const tx3 = l1GraphTokenGateway
-          .connect(governor.signer)
-          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock.sub(1))
+          .connect(governor)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock - 1)
         await expect(tx3).revertedWith('BLOCK_MUST_BE_INCREMENTING')
         const tx4 = l1GraphTokenGateway
-          .connect(governor.signer)
-          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock.add(1))
+          .connect(governor)
+          .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock + 1)
         await expect(tx4)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
-          .withArgs(issuancePerBlock, issuancePerBlock, issuanceUpdatedAtBlock.add(1))
+          .withArgs(issuancePerBlock, issuancePerBlock, issuanceUpdatedAtBlock + 1)
       })
       it('updates the snapshot and issuance to follow a new linear function, accumulating up to the specified block', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = (await latestBlock()).sub(2)
+        const issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 2
         const tx1 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be issuancePerBlock * 3
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
+            await hardhatHelpers.time.latestBlock(),
+          ),
         ).to.eq(issuancePerBlock.mul(3))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(0)
         expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
@@ -510,23 +503,25 @@ describe('L1GraphTokenGateway', () => {
           issuanceUpdatedAtBlock,
         )
 
-        await advanceBlocks(10)
+        await hardhatHelpers.mine(10)
 
         const newIssuancePerBlock = toGRT('200')
-        const newIssuanceUpdatedAtBlock = (await latestBlock()).sub(1)
+        const newIssuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 1
 
         const expectedAccumulatedSnapshot = issuancePerBlock.mul(
-          newIssuanceUpdatedAtBlock.sub(issuanceUpdatedAtBlock),
+          newIssuanceUpdatedAtBlock - issuanceUpdatedAtBlock,
         )
         const tx2 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .updateL2MintAllowance(newIssuancePerBlock, newIssuanceUpdatedAtBlock)
         await expect(tx2)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
           .withArgs(expectedAccumulatedSnapshot, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
+            await hardhatHelpers.time.latestBlock(),
+          ),
         ).to.eq(expectedAccumulatedSnapshot.add(newIssuancePerBlock.mul(2)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           expectedAccumulatedSnapshot,
@@ -541,24 +536,28 @@ describe('L1GraphTokenGateway', () => {
       it('rejects calls that are not from the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(pauseGuardian.address)
-          .setL2MintAllowanceParametersManual(toGRT('0'), toGRT('1'), await latestBlock())
+          .setL2MintAllowanceParametersManual(
+            toGRT('0'),
+            toGRT('1'),
+            await hardhatHelpers.time.latestBlock(),
+          )
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
-        let issuanceUpdatedAtBlock = (await latestBlock()).add(2)
+        let issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 2
         const tx1 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = (await latestBlock()).add(1) // This will be block.number in our next tx
+        issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 1 // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = await latestBlock() // This will be block.number-1 in our next tx
+        issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock() // This will be block.number-1 in our next tx
         const tx3 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx3)
           .emit(l1GraphTokenGateway, 'L2MintAllowanceUpdated')
@@ -566,10 +565,10 @@ describe('L1GraphTokenGateway', () => {
       })
       it('updates the snapshot and issuance to follow a new linear function, manually setting the snapshot value', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = (await latestBlock()).sub(2)
+        const issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 2
         const snapshotValue = toGRT('10')
         const tx1 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2MintAllowanceParametersManual(
             snapshotValue,
             issuancePerBlock,
@@ -580,7 +579,9 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(snapshotValue, issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be 10 + issuancePerBlock * 3
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
+            await hardhatHelpers.time.latestBlock(),
+          ),
         ).to.eq(snapshotValue.add(issuancePerBlock.mul(3)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(snapshotValue)
         expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
@@ -588,14 +589,14 @@ describe('L1GraphTokenGateway', () => {
           issuanceUpdatedAtBlock,
         )
 
-        await advanceBlocks(10)
+        await hardhatHelpers.mine(10)
 
         const newIssuancePerBlock = toGRT('200')
-        const newIssuanceUpdatedAtBlock = (await latestBlock()).sub(1)
+        const newIssuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 1
         const newSnapshotValue = toGRT('10')
 
         const tx2 = l1GraphTokenGateway
-          .connect(governor.signer)
+          .connect(governor)
           .setL2MintAllowanceParametersManual(
             newSnapshotValue,
             newIssuancePerBlock,
@@ -606,7 +607,9 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(newSnapshotValue, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
+            await hardhatHelpers.time.latestBlock(),
+          ),
         ).to.eq(newSnapshotValue.add(newIssuancePerBlock.mul(2)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           newSnapshotValue,
@@ -631,7 +634,7 @@ describe('L1GraphTokenGateway', () => {
     describe('outboundTransfer', function () {
       it('reverts when called with the wrong token address', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .outboundTransfer(
             tokenSender.address,
             l2Receiver.address,
@@ -646,21 +649,21 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx).revertedWith('TOKEN_NOT_GRT')
       })
       it('puts tokens in escrow and creates a retryable ticket', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender, defaultData, emptyCallHookData)
       })
       it('decodes the sender address from messages sent by the router', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
         const routerEncodedData = utils.defaultAbiCoder.encode(
           ['address', 'bytes'],
           [tokenSender.address, defaultData],
         )
-        await testValidOutboundTransfer(mockRouter.signer, routerEncodedData, emptyCallHookData)
+        await testValidOutboundTransfer(mockRouter, routerEncodedData, emptyCallHookData)
       })
       it('reverts when called with no submission cost', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .outboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -675,9 +678,9 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
       })
       it('reverts when called with nonempty calldata, if the sender is not allowlisted', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .outboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -693,21 +696,19 @@ describe('L1GraphTokenGateway', () => {
       })
       it('allows sending nonempty calldata, if the sender is allowlisted', async function () {
         // Make the sender a contract so that it can be allowed to send callhooks
-        await provider().send('hardhat_setCode', [tokenSender.address, '0x1234'])
-        await l1GraphTokenGateway
-          .connect(governor.signer)
-          .addToCallhookAllowlist(tokenSender.address)
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await hardhatHelpers.setCode(tokenSender.address, '0x1234')
+        await l1GraphTokenGateway.connect(governor).addToCallhookAllowlist(tokenSender.address)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(
-          tokenSender.signer,
+          tokenSender,
           defaultDataWithNotEmptyCallHookData,
           notEmptyCallHookData,
         )
       })
       it('reverts when the sender does not have enough GRT', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('1001'))
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('1001'))
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .outboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -726,7 +727,7 @@ describe('L1GraphTokenGateway', () => {
     describe('finalizeInboundTransfer', function () {
       it('reverts when called by an account that is not the bridge', async function () {
         const tx = l1GraphTokenGateway
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .finalizeInboundTransfer(
             grt.address,
             l2Receiver.address,
@@ -750,14 +751,14 @@ describe('L1GraphTokenGateway', () => {
         // The real outbox would require a proof, which would
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
-        const tx = outboxMock.connect(tokenSender.signer).executeTransaction(
+        const tx = outboxMock.connect(tokenSender).executeTransaction(
           toBN('0'),
           [],
           toBN('0'),
           l2Receiver.address, // Note this is not mockL2Gateway
           l1GraphTokenGateway.address,
           toBN('1337'),
-          await latestBlock(),
+          await hardhatHelpers.time.latestBlock(),
           toBN('133701337'),
           toBN('0'),
           encodedCalldata,
@@ -781,7 +782,7 @@ describe('L1GraphTokenGateway', () => {
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
         const tx = outboxMock
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .executeTransaction(
             toBN('0'),
             [],
@@ -789,7 +790,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await latestBlock(),
+            await hardhatHelpers.time.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -797,11 +798,11 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx).revertedWith('INVALID_L2_MINT_AMOUNT')
       })
       it('reverts if the gateway is revoked from escrow', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender, defaultData, emptyCallHookData)
         // At this point, the gateway holds 10 GRT in escrow
         // But we revoke the gateway's permission to move the funds:
-        await bridgeEscrow.connect(governor.signer).revokeAll(l1GraphTokenGateway.address)
+        await bridgeEscrow.connect(governor).revokeAll(l1GraphTokenGateway.address)
         const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
           'finalizeInboundTransfer',
           [
@@ -816,7 +817,7 @@ describe('L1GraphTokenGateway', () => {
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
         const tx = outboxMock
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .executeTransaction(
             toBN('0'),
             [],
@@ -824,7 +825,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await latestBlock(),
+            await hardhatHelpers.time.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -832,8 +833,8 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
       })
       it('sends tokens out of escrow', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender, defaultData, emptyCallHookData)
         // At this point, the gateway holds 10 GRT in escrow
         const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
           'finalizeInboundTransfer',
@@ -849,7 +850,7 @@ describe('L1GraphTokenGateway', () => {
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
         const tx = outboxMock
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .executeTransaction(
             toBN('0'),
             [],
@@ -857,7 +858,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await latestBlock(),
+            await hardhatHelpers.time.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -871,14 +872,14 @@ describe('L1GraphTokenGateway', () => {
         expect(senderBalance).eq(toGRT('998'))
       })
       it('mints tokens up to the L2 mint allowance', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender, defaultData, emptyCallHookData)
 
         // Start accruing L2 mint allowance at 2 GRT per block
         await l1GraphTokenGateway
-          .connect(governor.signer)
-          .updateL2MintAllowance(toGRT('2'), await latestBlock())
-        await advanceBlocks(2)
+          .connect(governor)
+          .updateL2MintAllowance(toGRT('2'), await hardhatHelpers.time.latestBlock())
+        await hardhatHelpers.mine(2)
         // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
         // there should be 8 GRT allowed to be minted from L2 in the next block.
 
@@ -897,7 +898,7 @@ describe('L1GraphTokenGateway', () => {
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
         const tx = outboxMock
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .executeTransaction(
             toBN('0'),
             [],
@@ -905,7 +906,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await latestBlock(),
+            await hardhatHelpers.time.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -917,7 +918,9 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(toGRT('8'))
         expect(await l1GraphTokenGateway.totalMintedFromL2()).to.eq(toGRT('8'))
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await latestBlock()),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
+            await hardhatHelpers.time.latestBlock(),
+          ),
         ).to.eq(toGRT('8'))
 
         const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
@@ -926,14 +929,14 @@ describe('L1GraphTokenGateway', () => {
         expect(senderBalance).eq(toGRT('1008'))
       })
       it('reverts if the amount to mint is over the allowance', async function () {
-        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        await testValidOutboundTransfer(tokenSender.signer, defaultData, emptyCallHookData)
+        await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender, defaultData, emptyCallHookData)
 
         // Start accruing L2 mint allowance at 2 GRT per block
         await l1GraphTokenGateway
-          .connect(governor.signer)
-          .updateL2MintAllowance(toGRT('2'), await latestBlock())
-        await advanceBlocks(2)
+          .connect(governor)
+          .updateL2MintAllowance(toGRT('2'), await hardhatHelpers.time.latestBlock())
+        await hardhatHelpers.mine(2)
         // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
         // there should be 8 GRT allowed to be minted from L2 in the next block.
 
@@ -952,7 +955,7 @@ describe('L1GraphTokenGateway', () => {
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
         const tx = outboxMock
-          .connect(tokenSender.signer)
+          .connect(tokenSender)
           .executeTransaction(
             toBN('0'),
             [],
@@ -960,7 +963,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await latestBlock(),
+            await hardhatHelpers.time.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,

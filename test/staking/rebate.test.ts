@@ -1,11 +1,12 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
 import { deployContract } from '../lib/deployment'
 import { LibExponential } from '../../build/types/LibExponential'
 
-import { getAccounts, Account, initNetwork } from '../lib/testHelpers'
-import { formatGRT, toGRT } from '@graphprotocol/sdk'
+import { formatGRT, helpers, toGRT } from '@graphprotocol/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toFixed = (n: number | BigNumber, precision = 12) => {
@@ -55,7 +56,8 @@ export function exponentialRebates(
 }
 
 describe('Staking:rebates', () => {
-  let deployer: Account
+  const graph = hre.graph()
+  let deployer: SignerWithAddress
 
   let libExponential: LibExponential
 
@@ -158,12 +160,9 @@ describe('Staking:rebates', () => {
   }
 
   beforeEach(async function () {
-    await initNetwork()
-    ;[deployer] = await getAccounts()
-    libExponential = (await deployContract(
-      'LibExponential',
-      deployer.signer,
-    )) as unknown as LibExponential
+    await helpers.initNetwork()
+    ;[deployer] = await graph.getTestAccounts()
+    libExponential = (await deployContract('LibExponential', deployer)) as unknown as LibExponential
   })
 
   describe('should match rebates Solidity implementation', function () {

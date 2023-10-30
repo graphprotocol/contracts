@@ -1,11 +1,12 @@
-import { expect } from 'chai'
 import hre from 'hardhat'
+import { expect } from 'chai'
 import '@nomiclabs/hardhat-ethers'
 
 import { GraphGovernance } from '../../build/types/GraphGovernance'
 
 import { deployProxyAdmin, deployGraphGovernance } from '../lib/deployment'
-import { getAccounts, Account, randomHexBytes } from '../lib/testHelpers'
+import { randomHexBytes } from '@graphprotocol/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { ethers } = hre
 const { HashZero } = ethers.constants
@@ -17,17 +18,18 @@ enum ProposalResolution {
 }
 
 describe('GraphGovernance', () => {
-  let deployer: Account
-  let governor: Account
-  let someone: Account
+  const graph = hre.graph()
+  let deployer: SignerWithAddress
+  let governor: SignerWithAddress
+  let someone: SignerWithAddress
 
   let gov: GraphGovernance
 
   beforeEach(async function () {
-    ;[deployer, governor, someone] = await getAccounts()
+    ;[deployer, governor, someone] = await graph.getTestAccounts()
 
-    const proxyAdmin = await deployProxyAdmin(deployer.signer)
-    gov = await deployGraphGovernance(deployer.signer, governor.address, proxyAdmin)
+    const proxyAdmin = await deployProxyAdmin(deployer)
+    gov = await deployGraphGovernance(deployer, governor.address, proxyAdmin)
   })
 
   describe('proposals', function () {
@@ -37,7 +39,7 @@ describe('GraphGovernance', () => {
 
     it('should create a proposal', async function () {
       const tx = gov
-        .connect(governor.signer)
+        .connect(governor)
         .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       await expect(tx)
         .emit(gov, 'ProposalCreated')
@@ -52,28 +54,28 @@ describe('GraphGovernance', () => {
 
     it('reject create a proposal if not allowed', async function () {
       const tx = gov
-        .connect(someone.signer)
+        .connect(someone)
         .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       await expect(tx).revertedWith('Only Governor can call')
     })
 
     it('reject create a proposal with empty proposalId', async function () {
       const tx = gov
-        .connect(governor.signer)
+        .connect(governor)
         .createProposal(HashZero, HashZero, metadata, ProposalResolution.Null)
       await expect(tx).revertedWith('!proposalId')
     })
 
     it('reject create a proposal with empty votes proof', async function () {
       const tx = gov
-        .connect(governor.signer)
+        .connect(governor)
         .createProposal(proposalId, HashZero, metadata, ProposalResolution.Null)
       await expect(tx).revertedWith('!votes')
     })
 
     it('reject create a proposal with empty resolution', async function () {
       const tx = gov
-        .connect(governor.signer)
+        .connect(governor)
         .createProposal(proposalId, votes, metadata, ProposalResolution.Null)
       await expect(tx).revertedWith('!resolved')
     })
@@ -81,7 +83,7 @@ describe('GraphGovernance', () => {
     context('> proposal created', function () {
       beforeEach(async function () {
         await gov
-          .connect(governor.signer)
+          .connect(governor)
           .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
       })
 
@@ -89,7 +91,7 @@ describe('GraphGovernance', () => {
         const newvotes = randomHexBytes(32)
         const newResolution = ProposalResolution.Rejected
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .updateProposal(proposalId, newvotes, metadata, newResolution)
         await expect(tx)
           .emit(gov, 'ProposalUpdated')
@@ -103,7 +105,7 @@ describe('GraphGovernance', () => {
 
       it('reject create a duplicated proposal', async function () {
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .createProposal(proposalId, votes, metadata, ProposalResolution.Accepted)
         await expect(tx).revertedWith('proposed')
       })
@@ -111,28 +113,28 @@ describe('GraphGovernance', () => {
       it('reject update a non-existing proposal', async function () {
         const nonProposalId = randomHexBytes(32)
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .updateProposal(nonProposalId, votes, metadata, ProposalResolution.Accepted)
         await expect(tx).revertedWith('!proposed')
       })
 
       it('reject update with empty proposalId', async function () {
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .updateProposal(HashZero, HashZero, metadata, ProposalResolution.Null)
         await expect(tx).revertedWith('!proposalId')
       })
 
       it('reject update a proposal with empty votes proof', async function () {
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .updateProposal(proposalId, HashZero, metadata, ProposalResolution.Null)
         await expect(tx).revertedWith('!votes')
       })
 
       it('reject update a proposal with empty resolution', async function () {
         const tx = gov
-          .connect(governor.signer)
+          .connect(governor)
           .updateProposal(proposalId, votes, metadata, ProposalResolution.Null)
         await expect(tx).revertedWith('!resolved')
       })

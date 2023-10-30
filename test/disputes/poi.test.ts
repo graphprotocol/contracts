@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { utils } from 'ethers'
 
@@ -7,21 +8,24 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { deriveChannelKey, getAccounts, randomHexBytes, Account } from '../lib/testHelpers'
 
 import { MAX_PPM } from './common'
-import { advanceBlock, advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
+import { helpers, deriveChannelKey, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { keccak256 } = utils
 
 describe('DisputeManager:POI', async () => {
-  let other: Account
-  let governor: Account
-  let arbitrator: Account
-  let indexer: Account
-  let rewardsDestination: Account
-  let fisherman: Account
-  let assetHolder: Account
+  let other: SignerWithAddress
+  let governor: SignerWithAddress
+  let arbitrator: SignerWithAddress
+  let indexer: SignerWithAddress
+  let rewardsDestination: SignerWithAddress
+  let fisherman: SignerWithAddress
+  let assetHolder: SignerWithAddress
+
+  const graph = hre.graph()
 
   let fixture: NetworkFixture
 
@@ -55,7 +59,7 @@ describe('DisputeManager:POI', async () => {
 
   async function setupIndexers() {
     // Dispute manager is allowed to slash
-    await staking.connect(governor.signer).setSlasher(disputeManager.address, true)
+    await staking.connect(governor).setSlasher(disputeManager.address, true)
 
     // Stake & allocate
     const indexerList = [
@@ -65,13 +69,13 @@ describe('DisputeManager:POI', async () => {
       const { channelKey, allocationID, account: indexerAccount } = activeIndexer
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexerAccount.address, indexerTokens)
-      await grt.connect(indexerAccount.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor).mint(indexerAccount.address, indexerTokens)
+      await grt.connect(indexerAccount).approve(staking.address, indexerTokens)
 
       // Indexer stake funds
-      await staking.connect(indexerAccount.signer).stake(indexerTokens)
+      await staking.connect(indexerAccount).stake(indexerTokens)
       await staking
-        .connect(indexerAccount.signer)
+        .connect(indexerAccount)
         .allocateFrom(
           indexerAccount.address,
           subgraphDeploymentID,
@@ -85,21 +89,21 @@ describe('DisputeManager:POI', async () => {
 
   before(async function () {
     ;[other, governor, arbitrator, indexer, fisherman, assetHolder, rewardsDestination] =
-      await getAccounts()
+      await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
-      governor.signer,
-      other.signer,
-      arbitrator.signer,
+      governor,
+      other,
+      arbitrator,
     ))
 
     // Give some funds to the fisherman
-    await grt.connect(governor.signer).mint(fisherman.address, fishermanTokens)
-    await grt.connect(fisherman.signer).approve(disputeManager.address, fishermanTokens)
+    await grt.connect(governor).mint(fisherman.address, fishermanTokens)
+    await grt.connect(fisherman).approve(disputeManager.address, fishermanTokens)
 
     // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
+    await staking.connect(governor).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -116,7 +120,7 @@ describe('DisputeManager:POI', async () => {
 
       // Create dispute
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createIndexingDispute(invalidAllocationID, fishermanDeposit)
       await expect(tx).revertedWith('Dispute allocation must exist')
     })
@@ -128,20 +132,20 @@ describe('DisputeManager:POI', async () => {
       const indexerCollectedTokens = toGRT('10')
 
       // Give some funds to the indexer
-      await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
-      await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+      await grt.connect(governor).mint(indexer.address, indexerTokens)
+      await grt.connect(indexer).approve(staking.address, indexerTokens)
 
       // Give some funds to the channel
-      await grt.connect(governor.signer).mint(assetHolder.address, indexerCollectedTokens)
-      await grt.connect(assetHolder.signer).approve(staking.address, indexerCollectedTokens)
+      await grt.connect(governor).mint(assetHolder.address, indexerCollectedTokens)
+      await grt.connect(assetHolder).approve(staking.address, indexerCollectedTokens)
 
       // Set the thawing period to one to make the test easier
-      await staking.connect(governor.signer).setThawingPeriod(toBN('1'))
+      await staking.connect(governor).setThawingPeriod(toBN('1'))
 
       // Indexer stake funds, allocate, close, unstake and withdraw the stake fully
-      await staking.connect(indexer.signer).stake(indexerTokens)
+      await staking.connect(indexer).stake(indexerTokens)
       const tx1 = await staking
-        .connect(indexer.signer)
+        .connect(indexer)
         .allocateFrom(
           indexer.address,
           subgraphDeploymentID,
@@ -152,18 +156,18 @@ describe('DisputeManager:POI', async () => {
         )
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
-      await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
+      await helpers.mineEpoch(epochManager) // wait the required one epoch to close allocation
       // set rewards destination so collected query fees are not added to indexer balance
-      await staking.connect(indexer.signer).setRewardsDestination(rewardsDestination.address)
-      await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
-      await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
-      await staking.connect(indexer.signer).unstake(indexerTokens)
-      await advanceBlock() // pass thawing period
-      await staking.connect(indexer.signer).withdraw()
+      await staking.connect(indexer).setRewardsDestination(rewardsDestination.address)
+      await staking.connect(assetHolder).collect(indexerCollectedTokens, event1.allocationID)
+      await staking.connect(indexer).closeAllocation(event1.allocationID, poi)
+      await staking.connect(indexer).unstake(indexerTokens)
+      await hardhatHelpers.mine() // pass thawing period
+      await staking.connect(indexer).withdraw()
 
       // Create dispute
       const tx = disputeManager
-        .connect(fisherman.signer)
+        .connect(fisherman)
         .createIndexingDispute(event1.allocationID, fishermanDeposit)
       await expect(tx).revertedWith('Dispute indexer has no stake')
     })
@@ -176,7 +180,7 @@ describe('DisputeManager:POI', async () => {
       it('should create a dispute', async function () {
         // Create dispute
         const tx = disputeManager
-          .connect(fisherman.signer)
+          .connect(fisherman)
           .createIndexingDispute(allocationID, fishermanDeposit)
         await expect(tx)
           .emit(disputeManager, 'IndexingDisputeCreated')
@@ -195,13 +199,13 @@ describe('DisputeManager:POI', async () => {
         beforeEach(async function () {
           // Create dispute
           await disputeManager
-            .connect(fisherman.signer)
+            .connect(fisherman)
             .createIndexingDispute(allocationID, fishermanDeposit)
         })
 
         it('reject create duplicated dispute', async function () {
           const tx = disputeManager
-            .connect(fisherman.signer)
+            .connect(fisherman)
             .createIndexingDispute(allocationID, fishermanDeposit)
           await expect(tx).revertedWith('Dispute already created')
         })
@@ -219,7 +223,7 @@ describe('DisputeManager:POI', async () => {
             const { slashAmount, rewardsAmount } = await calculateSlashConditions(indexer.address)
 
             // Perform transaction (accept)
-            const tx = disputeManager.connect(arbitrator.signer).acceptDispute(disputeID)
+            const tx = disputeManager.connect(arbitrator).acceptDispute(disputeID)
             await expect(tx)
               .emit(disputeManager, 'DisputeAccepted')
               .withArgs(

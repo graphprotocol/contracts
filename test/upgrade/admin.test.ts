@@ -9,16 +9,17 @@ import { IStaking } from '../../build/types/IStaking'
 
 import * as deployment from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, Account } from '../lib/testHelpers'
 
 import { getContractAt } from '../../cli/network'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
 
 describe('Upgrades', () => {
-  let me: Account
-  let governor: Account
+  const graph = hre.graph()
+  let me: SignerWithAddress
+  let governor: SignerWithAddress
 
   let fixture: NetworkFixture
 
@@ -28,11 +29,11 @@ describe('Upgrades', () => {
   let stakingProxy: GraphProxy
 
   before(async function () {
-    ;[me, governor] = await getAccounts()
+    ;[me, governor] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    ;({ proxyAdmin, staking, curation } = await fixture.load(governor.signer))
-    stakingProxy = getContractAt('GraphProxy', staking.address, governor.signer) as GraphProxy
+    ;({ proxyAdmin, staking, curation } = await fixture.load(governor))
+    stakingProxy = getContractAt('GraphProxy', staking.address, governor) as GraphProxy
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
   })
@@ -95,18 +96,16 @@ describe('Upgrades', () => {
         const oldImplementationAddress = await proxyAdmin.getProxyImplementation(staking.address)
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
 
-        const stakingProxy = getContractAt('GraphProxy', staking.address, governor.signer)
+        const stakingProxy = getContractAt('GraphProxy', staking.address, governor)
 
         // Upgrade the Staking:Proxy to a new implementation
-        const tx1 = proxyAdmin
-          .connect(governor.signer)
-          .upgrade(staking.address, newImplementationAddress)
+        const tx1 = proxyAdmin.connect(governor).upgrade(staking.address, newImplementationAddress)
         await expect(tx1)
           .emit(stakingProxy, 'PendingImplementationUpdated')
           .withArgs(AddressZero, newImplementationAddress)
 
         const tx2 = proxyAdmin
-          .connect(governor.signer)
+          .connect(governor)
           .acceptProxy(newImplementationAddress, staking.address)
         await expect(tx2)
           .emit(stakingProxy, 'ImplementationUpdated')
@@ -122,7 +121,7 @@ describe('Upgrades', () => {
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
 
         // Upgrade the Staking:Proxy to a new implementation
-        const tx = proxyAdmin.connect(me.signer).upgrade(staking.address, newImplementationAddress)
+        const tx = proxyAdmin.connect(me).upgrade(staking.address, newImplementationAddress)
         await expect(tx).revertedWith('Only Governor can call')
       })
 
@@ -130,7 +129,7 @@ describe('Upgrades', () => {
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
 
         // Due to the transparent proxy we should not be able to upgrade from other than the proxy admin
-        const tx = stakingProxy.connect(governor.signer).upgradeTo(newImplementationAddress)
+        const tx = stakingProxy.connect(governor).upgradeTo(newImplementationAddress)
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",
         )
@@ -140,7 +139,7 @@ describe('Upgrades', () => {
     describe('acceptUpgrade', function () {
       it('reject accept upgrade if not using the ProxyAdmin', async function () {
         // Due to the transparent proxy we should not be able to accept upgrades from other than the proxy admin
-        const tx = stakingProxy.connect(governor.signer).acceptUpgrade()
+        const tx = stakingProxy.connect(governor).acceptUpgrade()
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",
         )
@@ -150,30 +149,30 @@ describe('Upgrades', () => {
     describe('acceptProxy', function () {
       it('reject accept proxy if not using the ProxyAdmin', async function () {
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
-        const implementation = getContractAt('Curation', newImplementationAddress, governor.signer)
+        const implementation = getContractAt('Curation', newImplementationAddress, governor)
 
         // Start an upgrade to a new implementation
-        await proxyAdmin.connect(governor.signer).upgrade(staking.address, newImplementationAddress)
+        await proxyAdmin.connect(governor).upgrade(staking.address, newImplementationAddress)
 
         // Try to accept the proxy directly from the implementation, this should not work, only from the ProxyAdmin
-        const tx = implementation.connect(governor.signer).acceptProxy(staking.address)
+        const tx = implementation.connect(governor).acceptProxy(staking.address)
         await expect(tx).revertedWith('Caller must be the proxy admin')
       })
     })
 
     describe('changeProxyAdmin', function () {
       it('should set the proxy admin of a proxy', async function () {
-        const otherProxyAdmin = await deployment.deployProxyAdmin(governor.signer)
+        const otherProxyAdmin = await deployment.deployProxyAdmin(governor)
 
         await proxyAdmin
-          .connect(governor.signer)
+          .connect(governor)
           .changeProxyAdmin(staking.address, otherProxyAdmin.address)
         expect(await otherProxyAdmin.getProxyAdmin(staking.address)).eq(otherProxyAdmin.address)
 
         // Should not find the change admin function in the proxy due to transparent proxy
         // as this ProxyAdmin is not longer the owner
         const tx = proxyAdmin
-          .connect(governor.signer)
+          .connect(governor)
           .changeProxyAdmin(staking.address, otherProxyAdmin.address)
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",
@@ -181,17 +180,15 @@ describe('Upgrades', () => {
       })
 
       it('reject change admin if not the governor of the ProxyAdmin', async function () {
-        const otherProxyAdmin = await deployment.deployProxyAdmin(governor.signer)
+        const otherProxyAdmin = await deployment.deployProxyAdmin(governor)
 
-        const tx = proxyAdmin
-          .connect(me.signer)
-          .changeProxyAdmin(staking.address, otherProxyAdmin.address)
+        const tx = proxyAdmin.connect(me).changeProxyAdmin(staking.address, otherProxyAdmin.address)
         await expect(tx).revertedWith('Only Governor can call')
       })
 
       it('reject change admin if not using the ProxyAdmin', async function () {
         // Due to the transparent proxy we should not be able to set admin from other than the proxy admin
-        const tx = stakingProxy.connect(governor.signer).setAdmin(me.address)
+        const tx = stakingProxy.connect(governor).setAdmin(me.address)
         await expect(tx).revertedWith(
           "function selector was not recognized and there's no fallback function",
         )

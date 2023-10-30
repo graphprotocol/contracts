@@ -1,21 +1,16 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
-import {
-  getAccounts,
-  Account,
-  getL2SignerFromL1,
-  setAccountBalance,
-  deriveChannelKey,
-  randomHexBytes,
-} from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { IL2Staking } from '../../build/types/IL2Staking'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../build/types/GraphToken'
-import { advanceToNextEpoch, toBN, toGRT } from '@graphprotocol/sdk'
+import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = ethers.constants
 
@@ -25,15 +20,16 @@ const allocationID = channelKey.address
 const metadata = randomHexBytes(32)
 
 describe('L2Staking', () => {
-  let me: Account
-  let other: Account
-  let another: Account
-  let governor: Account
-  let mockRouter: Account
-  let mockL1GRT: Account
-  let mockL1Gateway: Account
-  let mockL1GNS: Account
-  let mockL1Staking: Account
+  const graph = hre.graph()
+  let me: SignerWithAddress
+  let other: SignerWithAddress
+  let another: SignerWithAddress
+  let governor: SignerWithAddress
+  let mockRouter: SignerWithAddress
+  let mockL1GRT: SignerWithAddress
+  let mockL1Gateway: SignerWithAddress
+  let mockL1GNS: SignerWithAddress
+  let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
 
   let fixtureContracts: L2FixtureContracts
@@ -48,7 +44,7 @@ describe('L2Staking', () => {
   // Allocate with test values
   const allocate = async (tokens: BigNumber) => {
     return staking
-      .connect(me.signer)
+      .connect(me)
       .allocateFrom(
         me.address,
         subgraphDeploymentID,
@@ -65,9 +61,9 @@ describe('L2Staking', () => {
     amount: BigNumber,
     callhookData: string,
   ): Promise<ContractTransaction> {
-    const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
+    const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
     // Eth for gas:
-    await setAccountBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+    await hardhatHelpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
@@ -86,18 +82,18 @@ describe('L2Staking', () => {
       mockL1Gateway,
       mockL1GNS,
       mockL1Staking,
-    ] = await getAccounts()
+    ] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    fixtureContracts = await fixture.loadL2(governor.signer)
+    fixtureContracts = await fixture.loadL2(governor)
     ;({ l2GraphTokenGateway, staking, grt } = fixtureContracts)
 
-    await grt.connect(governor.signer).mint(me.address, tokens1m)
-    await grt.connect(me.signer).approve(staking.address, tokens1m)
-    await grt.connect(governor.signer).mint(other.address, tokens1m)
-    await grt.connect(other.signer).approve(staking.address, tokens1m)
+    await grt.connect(governor).mint(me.address, tokens1m)
+    await grt.connect(me).approve(staking.address, tokens1m)
+    await grt.connect(governor).mint(other.address, tokens1m)
+    await grt.connect(other).approve(staking.address, tokens1m)
     await fixture.configureL2Bridge(
-      governor.signer,
+      governor,
       fixtureContracts,
       mockRouter.address,
       mockL1GRT.address,
@@ -117,7 +113,7 @@ describe('L2Staking', () => {
 
   describe('receive()', function () {
     it('should not allow receiving ETH', async function () {
-      const tx = me.signer.sendTransaction({
+      const tx = me.sendTransaction({
         to: staking.address,
         value: parseEther('1'),
       })
@@ -132,9 +128,7 @@ describe('L2Staking', () => {
         ['uint8', 'bytes'],
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
-      const tx = staking
-        .connect(me.signer)
-        .onTokenTransfer(mockL1GNS.address, tokens100k, callhookData)
+      const tx = staking.connect(me).onTokenTransfer(mockL1GNS.address, tokens100k, callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1Staking', async function () {
@@ -204,8 +198,8 @@ describe('L2Staking', () => {
         ['uint8', 'bytes'],
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
-      await staking.connect(me.signer).stake(tokens100k)
-      await staking.connect(me.signer).setDelegationParameters(1000, 1000, 1000)
+      await staking.connect(me).stake(tokens100k)
+      await staking.connect(me).setDelegationParameters(1000, 1000, 1000)
       const tx = gatewayFinalizeTransfer(
         mockL1Staking.address,
         staking.address,
@@ -226,7 +220,7 @@ describe('L2Staking', () => {
 
   describe('receiving delegation from L1 (onTokenTransfer)', function () {
     it('adds delegation for a new delegator', async function () {
-      await staking.connect(me.signer).stake(tokens100k)
+      await staking.connect(me).stake(tokens100k)
 
       const functionData = defaultAbiCoder.encode(
         ['tuple(address,address)'],
@@ -255,8 +249,8 @@ describe('L2Staking', () => {
       expect(delegation.shares).to.equal(expectedShares)
     })
     it('adds delegation for an existing delegator', async function () {
-      await staking.connect(me.signer).stake(tokens100k)
-      await staking.connect(other.signer).delegate(me.address, tokens10k)
+      await staking.connect(me).stake(tokens100k)
+      await staking.connect(other).delegate(me.address, tokens10k)
 
       const functionData = defaultAbiCoder.encode(
         ['tuple(address,address)'],
@@ -286,21 +280,19 @@ describe('L2Staking', () => {
       expect(delegation.shares).to.equal(expectedTotalShares)
     })
     it('returns delegation to the delegator if it would produce no shares', async function () {
-      await fixtureContracts.rewardsManager
-        .connect(governor.signer)
-        .setIssuancePerBlock(toGRT('114'))
+      await fixtureContracts.rewardsManager.connect(governor).setIssuancePerBlock(toGRT('114'))
 
-      await staking.connect(me.signer).stake(tokens100k)
-      await staking.connect(me.signer).delegate(me.address, toBN(1)) // 1 weiGRT == 1 share
+      await staking.connect(me).stake(tokens100k)
+      await staking.connect(me).delegate(me.address, toBN(1)) // 1 weiGRT == 1 share
 
-      await staking.connect(me.signer).setDelegationParameters(1000, 1000, 1000)
-      await grt.connect(me.signer).approve(fixtureContracts.curation.address, tokens10k)
-      await fixtureContracts.curation.connect(me.signer).mint(subgraphDeploymentID, tokens10k, 0)
+      await staking.connect(me).setDelegationParameters(1000, 1000, 1000)
+      await grt.connect(me).approve(fixtureContracts.curation.address, tokens10k)
+      await fixtureContracts.curation.connect(me).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
-      await advanceToNextEpoch(fixtureContracts.epochManager)
-      await advanceToNextEpoch(fixtureContracts.epochManager)
-      await staking.connect(me.signer).closeAllocation(allocationID, randomHexBytes(32))
+      await helpers.mineEpoch(fixtureContracts.epochManager)
+      await helpers.mineEpoch(fixtureContracts.epochManager)
+      await staking.connect(me).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
 
       const functionData = defaultAbiCoder.encode(

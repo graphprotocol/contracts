@@ -8,12 +8,7 @@ import hre from 'hardhat'
 import { getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
 import { getCuratorFixtures } from './fixtures/curators'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
-import {
-  ensureETHBalance,
-  ensureGRTBalance,
-  publishNewSubgraph,
-  mintSignal,
-} from '@graphprotocol/sdk'
+import { helpers, publishNewSubgraph, mintSignal, setGRTBalances } from '@graphprotocol/sdk'
 
 async function main() {
   const graphOpts = getGREOptsFromArgv()
@@ -25,22 +20,22 @@ async function main() {
   const curatorFixtures = getCuratorFixtures(testAccounts)
 
   const deployer = await graph.getDeployer()
-  const subgraphOwners = [subgraphOwnerFixture.signer.address]
-  const subgraphOwnerETHBalance = [subgraphOwnerFixture.ethBalance]
-  const curators = curatorFixtures.map((c) => c.signer.address)
-  const curatorETHBalances = curatorFixtures.map((i) => i.ethBalance)
-  const curatorGRTBalances = curatorFixtures.map((i) => i.grtBalance)
+  const ethBalances = [
+    {
+      address: subgraphOwnerFixture.signer.address,
+      balance: subgraphOwnerFixture.ethBalance,
+    },
+  ]
+  curatorFixtures.map((c) => ethBalances.push({ address: c.signer.address, balance: c.ethBalance }))
+  const grtBalances = curatorFixtures.map((c) => ({
+    address: c.signer.address,
+    balance: c.grtBalance,
+  }))
 
   // == Fund participants
   console.log('\n== Fund subgraph owners and curators')
-  await ensureETHBalance(graph.contracts, deployer, {
-    beneficiaries: [...subgraphOwners, ...curators],
-    amounts: [...subgraphOwnerETHBalance, ...curatorETHBalances],
-  })
-  await ensureGRTBalance(graph.contracts, deployer, {
-    beneficiaries: curators,
-    amounts: curatorGRTBalances,
-  })
+  await helpers.setBalances(ethBalances)
+  await setGRTBalances(graph.contracts, deployer, grtBalances)
 
   // == Publish subgraphs
   console.log('\n== Publishing subgraphs')

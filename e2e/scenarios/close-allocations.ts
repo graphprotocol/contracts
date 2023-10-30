@@ -9,7 +9,8 @@
 import hre from 'hardhat'
 import { getIndexerFixtures } from './fixtures/indexers'
 
-import { advanceToNextEpoch, closeAllocation, ensureETHBalance } from '@graphprotocol/sdk'
+import { helpers, closeAllocation } from '@graphprotocol/sdk'
+
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 
 async function main() {
@@ -17,21 +18,19 @@ async function main() {
   const graph = hre.graph(graphOpts)
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
-  const deployer = await graph.getDeployer()
-  const indexers = indexerFixtures.map((i) => i.signer.address)
-  const indexerETHBalances = indexerFixtures.map((i) => i.ethBalance)
+  const ethBalances = indexerFixtures.map((i) => ({
+    address: i.signer.address,
+    balance: i.ethBalance,
+  }))
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await ensureETHBalance(graph.contracts, deployer, {
-    beneficiaries: indexers,
-    amounts: indexerETHBalances,
-  })
+  await helpers.setBalances(ethBalances)
 
   // == Time travel on local networks, ensure allocations can be closed
   if (['hardhat', 'localhost'].includes(hre.network.name)) {
     console.log('\n== Advancing to next epoch')
-    await advanceToNextEpoch(graph.contracts.EpochManager)
+    await helpers.mineEpoch(graph.contracts.EpochManager)
   }
 
   // == Close allocations

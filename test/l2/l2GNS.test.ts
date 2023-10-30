@@ -1,33 +1,34 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
-import {
-  getAccounts,
-  randomHexBytes,
-  Account,
-  getL2SignerFromL1,
-  setAccountBalance,
-} from '../lib/testHelpers'
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
 import { L2GNS } from '../../build/types/L2GNS'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import {
-  buildSubgraph,
-  buildSubgraphID,
   burnSignal,
   DEFAULT_RESERVE_RATIO,
   deprecateSubgraph,
   mintSignal,
   publishNewSubgraph,
   publishNewVersion,
-  PublishSubgraph,
-  Subgraph,
 } from '../lib/gnsUtils'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
-import { latestBlock, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  buildSubgraph,
+  buildSubgraphID,
+  helpers,
+  PublishSubgraph,
+  randomHexBytes,
+  Subgraph,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { HashZero } = ethers.constants
 
@@ -39,14 +40,15 @@ interface L1SubgraphParams {
 }
 
 describe('L2GNS', () => {
-  let me: Account
-  let other: Account
-  let governor: Account
-  let mockRouter: Account
-  let mockL1GRT: Account
-  let mockL1Gateway: Account
-  let mockL1GNS: Account
-  let mockL1Staking: Account
+  const graph = hre.graph()
+  let me: SignerWithAddress
+  let other: SignerWithAddress
+  let governor: SignerWithAddress
+  let mockRouter: SignerWithAddress
+  let mockL1GRT: SignerWithAddress
+  let mockL1Gateway: SignerWithAddress
+  let mockL1GNS: SignerWithAddress
+  let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
 
   let fixtureContracts: L2FixtureContracts
@@ -69,9 +71,9 @@ describe('L2GNS', () => {
     amount: BigNumber,
     callhookData: string,
   ): Promise<ContractTransaction> {
-    const mockL1GatewayL2Alias = await getL2SignerFromL1(mockL1Gateway.address)
+    const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
     // Eth for gas:
-    await setAccountBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+    await hardhatHelpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
@@ -81,7 +83,7 @@ describe('L2GNS', () => {
 
   const defaultL1SubgraphParams = async function (): Promise<L1SubgraphParams> {
     return {
-      l1SubgraphId: await buildSubgraphID(me.address, toBN('1'), 1),
+      l1SubgraphId: await buildSubgraphID(me.address, toBN('1')),
       curatedTokens: toGRT('1337'),
       subgraphMetadata: randomHexBytes(),
       versionMetadata: randomHexBytes(),
@@ -101,7 +103,7 @@ describe('L2GNS', () => {
 
     const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
     await gns
-      .connect(me.signer)
+      .connect(me)
       .finishSubgraphTransferFromL1(
         l2SubgraphId,
         newSubgraph0.subgraphDeploymentID,
@@ -113,15 +115,15 @@ describe('L2GNS', () => {
   before(async function () {
     newSubgraph0 = buildSubgraph()
     ;[me, other, governor, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
-      await getAccounts()
+      await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    fixtureContracts = await fixture.loadL2(governor.signer)
+    fixtureContracts = await fixture.loadL2(governor)
     ;({ l2GraphTokenGateway, gns, curation, grt } = fixtureContracts)
 
-    await grt.connect(governor.signer).mint(me.address, toGRT('10000'))
+    await grt.connect(governor).mint(me.address, toGRT('10000'))
     await fixture.configureL2Bridge(
-      governor.signer,
+      governor,
       fixtureContracts,
       mockRouter.address,
       mockL1GRT.address,
@@ -147,14 +149,14 @@ describe('L2GNS', () => {
       newSubgraph0 = buildSubgraph()
       newSubgraph1 = buildSubgraph()
       // Give some funds to the signers and approve gns contract to use funds on signers behalf
-      await grt.connect(governor.signer).mint(me.address, tokens100000)
-      await grt.connect(governor.signer).mint(other.address, tokens100000)
-      await grt.connect(me.signer).approve(gns.address, tokens100000)
-      await grt.connect(me.signer).approve(curation.address, tokens100000)
-      await grt.connect(other.signer).approve(gns.address, tokens100000)
-      await grt.connect(other.signer).approve(curation.address, tokens100000)
+      await grt.connect(governor).mint(me.address, tokens100000)
+      await grt.connect(governor).mint(other.address, tokens100000)
+      await grt.connect(me).approve(gns.address, tokens100000)
+      await grt.connect(me).approve(curation.address, tokens100000)
+      await grt.connect(other).approve(gns.address, tokens100000)
+      await grt.connect(other).approve(curation.address, tokens100000)
       // Update curation tax to test the functionality of it in disableNameSignal()
-      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+      await curation.connect(governor).setCurationTaxPercentage(curationTaxPercentage)
       subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
       await mintSignal(me, subgraph.id, tokens10000, gns, curation)
     })
@@ -170,7 +172,7 @@ describe('L2GNS', () => {
 
     it('should reject a new version with the same subgraph deployment ID', async function () {
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .publishNewVersion(
           subgraph.id,
           newSubgraph0.subgraphDeploymentID,
@@ -183,7 +185,7 @@ describe('L2GNS', () => {
 
     it('should reject publishing a version to a subgraph that does not exist', async function () {
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .publishNewVersion(
           randomHexBytes(32),
           newSubgraph1.subgraphDeploymentID,
@@ -194,7 +196,7 @@ describe('L2GNS', () => {
 
     it('reject if not the owner', async function () {
       const tx = gns
-        .connect(other.signer)
+        .connect(other)
         .publishNewVersion(
           subgraph.id,
           newSubgraph1.subgraphDeploymentID,
@@ -205,7 +207,7 @@ describe('L2GNS', () => {
 
     it('should NOT fail when upgrade tries to point to a pre-curated', async function () {
       // Curate directly to the deployment
-      await curation.connect(me.signer).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+      await curation.connect(me).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
 
       await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
     })
@@ -213,7 +215,7 @@ describe('L2GNS', () => {
     it('should upgrade version when there is no signal with no signal migration', async function () {
       await burnSignal(me, subgraph.id, gns, curation)
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .publishNewVersion(
           subgraph.id,
           newSubgraph1.subgraphDeploymentID,
@@ -227,7 +229,7 @@ describe('L2GNS', () => {
     it('should fail when subgraph is deprecated', async function () {
       await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .publishNewVersion(
           subgraph.id,
           newSubgraph1.subgraphDeploymentID,
@@ -245,9 +247,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      const tx = gns
-        .connect(me.signer)
-        .onTokenTransfer(mockL1GNS.address, curatedTokens, callhookData)
+      const tx = gns.connect(me).onTokenTransfer(mockL1GNS.address, curatedTokens, callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
@@ -287,7 +287,9 @@ describe('L2GNS', () => {
 
       expect(transferData.tokens).eq(curatedTokens)
       expect(transferData.l2Done).eq(false)
-      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(
+        await hardhatHelpers.time.latestBlock(),
+      )
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -327,7 +329,9 @@ describe('L2GNS', () => {
 
       expect(transferData.tokens).eq(curatedTokens)
       expect(transferData.l2Done).eq(false)
-      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(
+        await hardhatHelpers.time.latestBlock(),
+      )
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -365,7 +369,7 @@ describe('L2GNS', () => {
       )
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -406,7 +410,7 @@ describe('L2GNS', () => {
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
-        .connect(other.signer)
+        .connect(other)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -416,11 +420,11 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('GNS: Must be authorized')
     })
     it('rejects calls for a subgraph that does not exist', async function () {
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'), 1)
+      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'))
       const metadata = randomHexBytes()
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -434,7 +438,7 @@ describe('L2GNS', () => {
       const metadata = randomHexBytes()
 
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2Subgraph.id,
           newSubgraph0.subgraphDeploymentID,
@@ -458,16 +462,14 @@ describe('L2GNS', () => {
         newSubgraph0.subgraphDeploymentID,
         curatedTokens,
       )
-      await grt.connect(me.signer).approve(curation.address, toGRT('100'))
-      await curation
-        .connect(me.signer)
-        .mint(newSubgraph0.subgraphDeploymentID, toGRT('100'), toBN('0'))
+      await grt.connect(me).approve(curation.address, toGRT('100'))
+      await curation.connect(me).mint(newSubgraph0.subgraphDeploymentID, toGRT('100'), toBN('0'))
 
       expect(await curation.getCurationPoolTokens(newSubgraph0.subgraphDeploymentID)).eq(
         toGRT('100'),
       )
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -506,7 +508,7 @@ describe('L2GNS', () => {
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(l2SubgraphId, HashZero, metadata, metadata)
       await expect(tx).revertedWith('GNS: deploymentID != 0')
     })
@@ -520,7 +522,7 @@ describe('L2GNS', () => {
       await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       await gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -529,7 +531,7 @@ describe('L2GNS', () => {
         )
 
       const tx = gns
-        .connect(me.signer)
+        .connect(me)
         .finishSubgraphTransferFromL1(
           l2SubgraphId,
           newSubgraph0.subgraphDeploymentID,
@@ -541,9 +543,9 @@ describe('L2GNS', () => {
   })
   describe('claiming a curator balance with a message from L1 (onTokenTransfer)', function () {
     it('assigns a curator balance to a beneficiary', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -582,9 +584,9 @@ describe('L2GNS', () => {
       expect(l2NewCuratorSignal).eq(expectedNewCuratorSignal)
     })
     it('adds the signal to any existing signal for the beneficiary', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -596,9 +598,9 @@ describe('L2GNS', () => {
       )
 
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
-      await grt.connect(governor.signer).mint(other.address, toGRT('10'))
-      await grt.connect(other.signer).approve(gns.address, toGRT('10'))
-      await gns.connect(other.signer).mintSignal(l2SubgraphId, toGRT('10'), toBN(0))
+      await grt.connect(governor).mint(other.address, toGRT('10'))
+      await grt.connect(other).approve(gns.address, toGRT('10'))
+      await gns.connect(other).mintSignal(l2SubgraphId, toGRT('10'), toBN(0))
       const prevSignal = await gns.getCuratorSignal(l2SubgraphId, other.address)
 
       const newCuratorTokens = toGRT('10')
@@ -637,7 +639,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(1), l1SubgraphId, me.address],
       )
-      const tx = gns.connect(me.signer).onTokenTransfer(mockL1GNS.address, toGRT('1'), callhookData)
+      const tx = gns.connect(me).onTokenTransfer(mockL1GNS.address, toGRT('1'), callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
@@ -658,9 +660,9 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ONLY_L1_GNS_THROUGH_BRIDGE')
     })
     it('if a subgraph does not exist, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId } = await defaultL1SubgraphParams()
 
@@ -684,9 +686,9 @@ describe('L2GNS', () => {
     it('for an L2-native subgraph, it sends the tokens to the beneficiary', async function () {
       // This should never really happen unless there's a clash in subgraph IDs (which should
       // also never happen), but we test it anyway to ensure it's a well-defined behavior
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
 
@@ -708,9 +710,9 @@ describe('L2GNS', () => {
       expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
     it('if a subgraph transfer was not finished, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookDataSG = defaultAbiCoder.encode(
@@ -740,9 +742,9 @@ describe('L2GNS', () => {
     })
 
     it('if a subgraph was deprecated after transfer, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -753,7 +755,7 @@ describe('L2GNS', () => {
         versionMetadata,
       )
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
-      await gns.connect(me.signer).deprecateSubgraph(l2SubgraphId)
+      await gns.connect(me).deprecateSubgraph(l2SubgraphId)
 
       // SG was transferred, but is deprecated now!
 

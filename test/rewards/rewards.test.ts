@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 import { BigNumber as BN } from 'bignumber.js'
@@ -11,21 +12,15 @@ import { RewardsManager } from '../../build/types/RewardsManager'
 import { IStaking } from '../../build/types/IStaking'
 
 import {
-  deriveChannelKey,
-  getAccounts,
-  randomHexBytes,
-  Account,
-  provider,
-} from '../lib/testHelpers'
-import {
-  advanceBlock,
-  advanceBlocks,
-  advanceToNextEpoch,
+  helpers,
   formatGRT,
-  latestBlock,
+  randomHexBytes,
   toBN,
   toGRT,
+  deriveChannelKey,
 } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const MAX_PPM = 1000000
 
@@ -34,14 +29,15 @@ const { HashZero, WeiPerEther } = constants
 const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
 
 describe('Rewards', () => {
-  let delegator: Account
-  let governor: Account
-  let curator1: Account
-  let curator2: Account
-  let indexer1: Account
-  let indexer2: Account
-  let oracle: Account
-  let assetHolder: Account
+  const graph = hre.graph()
+  let delegator: SignerWithAddress
+  let governor: SignerWithAddress
+  let curator1: SignerWithAddress
+  let curator2: SignerWithAddress
+  let indexer1: SignerWithAddress
+  let indexer2: SignerWithAddress
+  let oracle: SignerWithAddress
+  let assetHolder: SignerWithAddress
 
   let fixture: NetworkFixture
 
@@ -79,7 +75,7 @@ describe('Rewards', () => {
   // Tracks the accumulated rewards as totalSignalled or supply changes across snapshots
   class RewardsTracker {
     totalSignalled = BigNumber.from(0)
-    lastUpdatedBlock = BigNumber.from(0)
+    lastUpdatedBlock = 0
     accumulated = BigNumber.from(0)
 
     static async create() {
@@ -91,13 +87,13 @@ describe('Rewards', () => {
     async snapshot() {
       this.accumulated = this.accumulated.add(await this.accrued())
       this.totalSignalled = await grt.balanceOf(curation.address)
-      this.lastUpdatedBlock = await latestBlock()
+      this.lastUpdatedBlock = await hardhatHelpers.time.latestBlock()
       return this
     }
 
     async elapsedBlocks() {
-      const currentBlock = await latestBlock()
-      return currentBlock.sub(this.lastUpdatedBlock)
+      const currentBlock = await hardhatHelpers.time.latestBlock()
+      return currentBlock - this.lastUpdatedBlock
     }
 
     async accrued() {
@@ -121,7 +117,7 @@ describe('Rewards', () => {
     const tracker = await RewardsTracker.create()
 
     // Jump
-    await advanceBlocks(nBlocks)
+    await hardhatHelpers.mine(nBlocks)
 
     // -- t1 --
 
@@ -137,21 +133,19 @@ describe('Rewards', () => {
 
   before(async function () {
     ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle, assetHolder] =
-      await getAccounts()
+      await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
-      governor.signer,
-    ))
+    ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(governor))
 
     // 200 GRT per block
-    await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
+    await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
 
     // Distribute test funds
     for (const wallet of [indexer1, indexer2, curator1, curator2, assetHolder]) {
-      await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
-      await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
-      await grt.connect(wallet.signer).approve(curation.address, toGRT('1000000'))
+      await grt.connect(governor).mint(wallet.address, toGRT('1000000'))
+      await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
+      await grt.connect(wallet).approve(curation.address, toGRT('1000000'))
     }
   })
 
@@ -166,34 +160,34 @@ describe('Rewards', () => {
   describe('configuration', function () {
     describe('issuance per block update', function () {
       it('reject set issuance per block if unauthorized', async function () {
-        const tx = rewardsManager.connect(indexer1.signer).setIssuancePerBlock(toGRT('1.025'))
+        const tx = rewardsManager.connect(indexer1).setIssuancePerBlock(toGRT('1.025'))
         await expect(tx).revertedWith('Only Controller governor')
       })
 
       it('should set issuance rate to minimum allowed (0)', async function () {
         const newIssuancePerBlock = toGRT('0')
-        await rewardsManager.connect(governor.signer).setIssuancePerBlock(newIssuancePerBlock)
+        await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
       })
 
       it('should set issuance rate', async function () {
         const newIssuancePerBlock = toGRT('100.025')
-        await rewardsManager.connect(governor.signer).setIssuancePerBlock(newIssuancePerBlock)
+        await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
-        expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await latestBlock())
+        expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(
+          await hardhatHelpers.time.latestBlock(),
+        )
       })
     })
 
     describe('subgraph availability service', function () {
       it('reject set subgraph oracle if unauthorized', async function () {
-        const tx = rewardsManager
-          .connect(indexer1.signer)
-          .setSubgraphAvailabilityOracle(oracle.address)
+        const tx = rewardsManager.connect(indexer1).setSubgraphAvailabilityOracle(oracle.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
 
       it('should set subgraph oracle if governor', async function () {
-        await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
         expect(await rewardsManager.subgraphAvailabilityOracle()).eq(oracle.address)
       })
 
@@ -203,29 +197,27 @@ describe('Rewards', () => {
       })
 
       it('should deny subgraph', async function () {
-        await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
 
-        const tx = rewardsManager.connect(oracle.signer).setDenied(subgraphDeploymentID1, true)
-        const blockNum = await latestBlock()
+        const tx = rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, true)
+        const blockNum = await hardhatHelpers.time.latestBlock()
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenylistUpdated')
-          .withArgs(subgraphDeploymentID1, blockNum.add(1))
+          .withArgs(subgraphDeploymentID1, blockNum + 1)
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
       })
 
       it('reject deny subgraph w/ many if not the oracle', async function () {
         const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
-        const tx = rewardsManager
-          .connect(oracle.signer)
-          .setDeniedMany(deniedSubgraphs, [true, true])
+        const tx = rewardsManager.connect(oracle).setDeniedMany(deniedSubgraphs, [true, true])
         await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
       })
 
       it('should deny subgraph w/ many', async function () {
-        await rewardsManager.connect(governor.signer).setSubgraphAvailabilityOracle(oracle.address)
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
 
         const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
-        await rewardsManager.connect(oracle.signer).setDeniedMany(deniedSubgraphs, [true, true])
+        await rewardsManager.connect(oracle).setDeniedMany(deniedSubgraphs, [true, true])
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
         expect(await rewardsManager.isDenied(subgraphDeploymentID2)).eq(true)
       })
@@ -235,13 +227,13 @@ describe('Rewards', () => {
   context('issuing rewards', async function () {
     beforeEach(async function () {
       // 5% minute rate (4 blocks)
-      await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
+      await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
     })
 
     describe('getNewRewardsPerSignal', function () {
       it('accrued per signal when no tokens signalled', async function () {
         // When there is no tokens signalled no rewards are accrued
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         const accrued = await rewardsManager.getNewRewardsPerSignal()
         expect(accrued).eq(0)
       })
@@ -249,7 +241,7 @@ describe('Rewards', () => {
       it('accrued per signal when tokens signalled', async function () {
         // Update total signalled
         const tokensToSignal = toGRT('1000')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, tokensToSignal, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, tokensToSignal, 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
@@ -257,13 +249,13 @@ describe('Rewards', () => {
 
       it('accrued per signal when signalled tokens w/ many subgraphs', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, toGRT('1000'), 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
 
         // Update total signalled
-        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, toGRT('250'), 0)
+        await curation.connect(curator2).mint(subgraphDeploymentID2, toGRT('250'), 0)
 
         // Check
         await shouldGetNewRewardsPerSignal()
@@ -273,7 +265,7 @@ describe('Rewards', () => {
     describe('updateAccRewardsPerSignal', function () {
       it('update the accumulated rewards per signal state', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Snapshot
         const tracker = await RewardsTracker.create()
 
@@ -288,12 +280,12 @@ describe('Rewards', () => {
 
       it('update the accumulated rewards per signal state after many blocks', async function () {
         // Update total signalled
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, toGRT('1000'), 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, toGRT('1000'), 0)
         // Snapshot
         const tracker = await RewardsTracker.create()
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
         await rewardsManager.updateAccRewardsPerSignal()
@@ -309,19 +301,19 @@ describe('Rewards', () => {
       it('accrued for each subgraph', async function () {
         // Curator1 - Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
         const tracker1 = await RewardsTracker.create()
 
         // Curator2 - Update total signalled
         const signalled2 = toGRT('500')
-        await curation.connect(curator2.signer).mint(subgraphDeploymentID2, signalled2, 0)
+        await curation.connect(curator2).mint(subgraphDeploymentID2, signalled2, 0)
 
         // Snapshot
         const tracker2 = await RewardsTracker.create()
         await tracker1.snapshot()
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Snapshot
         await tracker1.snapshot()
@@ -351,12 +343,12 @@ describe('Rewards', () => {
       it('update the accumulated rewards for subgraph state', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
         // Snapshot
         const tracker1 = await RewardsTracker.create()
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
         await rewardsManager.onSubgraphSignalUpdate(subgraphDeploymentID1)
@@ -373,7 +365,7 @@ describe('Rewards', () => {
         expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
 
         const contractBlockUpdated = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
-        const expectedBlockUpdated = await latestBlock()
+        const expectedBlockUpdated = await hardhatHelpers.time.latestBlock()
         expect(expectedBlockUpdated).eq(contractBlockUpdated)
       })
     })
@@ -382,13 +374,13 @@ describe('Rewards', () => {
       it('accrued per allocated token', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -399,7 +391,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Check
         const sg1 = await rewardsManager.subgraphs(subgraphDeploymentID1)
@@ -420,13 +412,13 @@ describe('Rewards', () => {
       it('update the accumulated rewards for allocated tokens state', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -437,7 +429,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
         const expectedSubgraphRewards = toGRT('1400') // 7 blocks since signaling to when we do getAccRewardsForSubgraph
@@ -462,13 +454,13 @@ describe('Rewards', () => {
       it('calculate rewards using the subgraph signalled + allocated tokens', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -479,7 +471,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Rewards
         const contractRewards = await rewardsManager.getRewards(allocationID1)
@@ -496,13 +488,13 @@ describe('Rewards', () => {
       it('rewards should be zero if the allocation is closed', async function () {
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -513,11 +505,11 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await advanceBlocks(ISSUANCE_RATE_PERIODS)
-        await advanceToNextEpoch(epochManager)
+        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mineEpoch(epochManager)
 
         // Close allocation
-        await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         // Rewards
         const contractRewards = await rewardsManager.getRewards(allocationID1)
@@ -543,13 +535,13 @@ describe('Rewards', () => {
 
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -566,9 +558,9 @@ describe('Rewards', () => {
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -580,7 +572,7 @@ describe('Rewards', () => {
 
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
       }
 
       async function setupIndexerAllocationWithDelegation(
@@ -593,13 +585,13 @@ describe('Rewards', () => {
         await epochManager.setEpochLength(10)
 
         // Transfer some funds from the curator, I don't want to mint new tokens
-        await grt.connect(curator1.signer).transfer(delegator.address, tokensToDelegate)
-        await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
+        await grt.connect(curator1).transfer(delegator.address, tokensToDelegate)
+        await grt.connect(delegator).approve(staking.address, tokensToDelegate)
 
         // Stake and set delegation parameters
-        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking.connect(indexer1).stake(tokensToAllocate)
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .setDelegationParameters(
             delegationParams.indexingRewardCut,
             delegationParams.queryFeeCut,
@@ -607,15 +599,15 @@ describe('Rewards', () => {
           )
 
         // Delegate
-        await staking.connect(delegator.signer).delegate(indexer1.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer1.address, tokensToDelegate)
 
         // Update total signalled
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
         // Allocate
         await staking
-          .connect(indexer1.signer)
+          .connect(indexer1)
           .allocateFrom(
             indexer1.address,
             subgraphDeploymentID1,
@@ -628,12 +620,12 @@ describe('Rewards', () => {
 
       it('should distribute rewards on closed allocation and stake', async function () {
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -649,9 +641,7 @@ describe('Rewards', () => {
         const expectedIndexingRewards = toGRT('1400')
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = await staking
-          .connect(indexer1.signer)
-          .closeAllocation(allocationID1, randomHexBytes())
+        const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
@@ -682,17 +672,17 @@ describe('Rewards', () => {
 
       it('does not revert with an underflow if the minimum signal changes', async function () {
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
-        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(toGRT(14000))
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
           .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
@@ -700,33 +690,33 @@ describe('Rewards', () => {
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup
         await setupIndexerAllocationSignalingAfter()
 
-        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(14000))
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(toGRT(14000))
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
           .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
       })
 
       it('does not revert if signal was already under minimum', async function () {
-        await rewardsManager.connect(governor.signer).setMinimumSubgraphSignal(toGRT(2000))
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(toGRT(2000))
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
@@ -735,15 +725,15 @@ describe('Rewards', () => {
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
         const destinationAddress = randomHexBytes(20)
-        await staking.connect(indexer1.signer).setRewardsDestination(destinationAddress)
+        await staking.connect(indexer1).setRewardsDestination(destinationAddress)
 
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup
         await setupIndexerAllocation()
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -759,9 +749,7 @@ describe('Rewards', () => {
         const expectedIndexingRewards = toGRT('1400')
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = await staking
-          .connect(indexer1.signer)
-          .closeAllocation(allocationID1, randomHexBytes())
+        const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         const receipt = await tx.wait()
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
@@ -800,12 +788,12 @@ describe('Rewards', () => {
         const tokensToDelegate = toGRT('2000')
 
         // Align with the epoch boundary
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
         // Setup the allocation and delegators
         await setupIndexerAllocationWithDelegation(tokensToDelegate, delegationParams)
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Before state
         const beforeTokenSupply = await grt.totalSupply()
@@ -813,7 +801,7 @@ describe('Rewards', () => {
         const beforeIndexer1Stake = await staking.getIndexerStakedTokens(indexer1.address)
 
         // Close allocation. At this point rewards should be collected for that indexer
-        await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         // After state
         const afterTokenSupply = await grt.totalSupply()
@@ -847,17 +835,15 @@ describe('Rewards', () => {
 
       it('should deny rewards if subgraph on denylist', async function () {
         // Setup
-        await rewardsManager
-          .connect(governor.signer)
-          .setSubgraphAvailabilityOracle(governor.address)
-        await rewardsManager.connect(governor.signer).setDenied(subgraphDeploymentID1, true)
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+        await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
         await setupIndexerAllocation()
 
         // Jump
-        await advanceToNextEpoch(epochManager)
+        await helpers.mineEpoch(epochManager)
 
         // Close allocation. At this point rewards should be collected for that indexer
-        const tx = staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch())
@@ -869,13 +855,13 @@ describe('Rewards', () => {
     it('close allocation on a subgraph that no longer have signal', async function () {
       // Update total signalled
       const signalled1 = toGRT('1500')
-      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
       // Allocate
       const tokensToAllocate = toGRT('12500')
-      await staking.connect(indexer1.signer).stake(tokensToAllocate)
+      await staking.connect(indexer1).stake(tokensToAllocate)
       await staking
-        .connect(indexer1.signer)
+        .connect(indexer1)
         .allocateFrom(
           indexer1.address,
           subgraphDeploymentID1,
@@ -886,14 +872,14 @@ describe('Rewards', () => {
         )
 
       // Jump
-      await advanceToNextEpoch(epochManager)
+      await helpers.mineEpoch(epochManager)
 
       // Remove all signal from the subgraph
       const curatorShares = await curation.getCuratorSignal(curator1.address, subgraphDeploymentID1)
-      await curation.connect(curator1.signer).burn(subgraphDeploymentID1, curatorShares, 0)
+      await curation.connect(curator1).burn(subgraphDeploymentID1, curatorShares, 0)
 
       // Close allocation. At this point rewards should be collected for that indexer
-      await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+      await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
     })
   })
 
@@ -902,24 +888,24 @@ describe('Rewards', () => {
       // If rewards are not monotonically increasing, this can trigger
       // a subtraction overflow error as seen in mainnet tx:
       // 0xb6bf7bbc446720a7409c482d714aebac239dd62e671c3c94f7e93dd3a61835ab
-      await advanceToNextEpoch(epochManager)
+      await helpers.mineEpoch(epochManager)
 
       // Setup
       await epochManager.setEpochLength(10)
 
       // Update total signalled
       const signalled1 = toGRT('1500')
-      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
       // Stake
       const tokensToStake = toGRT('12500')
-      await staking.connect(indexer1.signer).stake(tokensToStake)
+      await staking.connect(indexer1).stake(tokensToStake)
 
       // Allocate simultaneously, burning in the middle
       const tokensToAlloc = toGRT('5000')
-      await provider().send('evm_setAutomine', [false])
+      await helpers.setAutoMine(false)
       const tx1 = await staking
-        .connect(indexer1.signer)
+        .connect(indexer1)
         .allocateFrom(
           indexer1.address,
           subgraphDeploymentID1,
@@ -928,9 +914,9 @@ describe('Rewards', () => {
           metadata,
           await channelKey1.generateProof(indexer1.address),
         )
-      const tx2 = await grt.connect(indexer1.signer).burn(toGRT(1))
+      const tx2 = await grt.connect(indexer1).burn(toGRT(1))
       const tx3 = await staking
-        .connect(indexer1.signer)
+        .connect(indexer1)
         .allocateFrom(
           indexer1.address,
           subgraphDeploymentID1,
@@ -940,26 +926,26 @@ describe('Rewards', () => {
           await channelKey2.generateProof(indexer1.address),
         )
 
-      await provider().send('evm_mine', [])
-      await provider().send('evm_setAutomine', [true])
+      await hardhatHelpers.mine()
+      await helpers.setAutoMine(true)
 
       await expect(tx1).emit(staking, 'AllocationCreated')
       await expect(tx2).emit(grt, 'Transfer')
       await expect(tx3).emit(staking, 'AllocationCreated')
     })
     it('two simultanous-similar allocations should get same amount of rewards', async function () {
-      await advanceToNextEpoch(epochManager)
+      await helpers.mineEpoch(epochManager)
 
       // Setup
       await epochManager.setEpochLength(10)
 
       // Update total signalled
       const signalled1 = toGRT('1500')
-      await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
       // Stake
       const tokensToStake = toGRT('12500')
-      await staking.connect(indexer1.signer).stake(tokensToStake)
+      await staking.connect(indexer1).stake(tokensToStake)
 
       // Allocate simultaneously
       const tokensToAlloc = toGRT('5000')
@@ -979,15 +965,15 @@ describe('Rewards', () => {
         metadata,
         await channelKey2.generateProof(indexer1.address),
       )
-      await staking.connect(indexer1.signer).multicall([tx1.data, tx2.data])
+      await staking.connect(indexer1).multicall([tx1.data, tx2.data])
 
       // Jump
-      await advanceToNextEpoch(epochManager)
+      await helpers.mineEpoch(epochManager)
 
       // Close allocations simultaneously
       const tx3 = await staking.populateTransaction.closeAllocation(allocationID1, randomHexBytes())
       const tx4 = await staking.populateTransaction.closeAllocation(allocationID2, randomHexBytes())
-      const tx5 = await staking.connect(indexer1.signer).multicall([tx3.data, tx4.data])
+      const tx5 = await staking.connect(indexer1).multicall([tx3.data, tx4.data])
 
       // Both allocations should receive the same amount of rewards
       const receipt = await tx5.wait()
@@ -1015,12 +1001,12 @@ describe('Rewards', () => {
 
       // allow the asset holder
       const tokensToCollect = toGRT('10000')
-      await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
+      await staking.connect(governor).setAssetHolder(assetHolder.address, true)
 
       // signal in two subgraphs in the same block
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
       for (const sub of subgraphs) {
-        await curation.connect(curator1.signer).mint(sub, toGRT('1500'), 0)
+        await curation.connect(curator1).mint(sub, toGRT('1500'), 0)
       }
 
       // snapshot block before any accrual (we substract 1 because accrual starts after the first mint happens)
@@ -1029,7 +1015,7 @@ describe('Rewards', () => {
       // allocate
       const tokensToAllocate = toGRT('12500')
       await staking
-        .connect(indexer1.signer)
+        .connect(indexer1)
         .multicall([
           await staking.populateTransaction.stake(tokensToAllocate).then((tx) => tx.data),
           await staking.populateTransaction
@@ -1045,15 +1031,15 @@ describe('Rewards', () => {
         ])
 
       // move time fwd
-      await advanceBlock()
+      await hardhatHelpers.mine()
 
       // collect funds into staking for that sub
-      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID1)
+      await staking.connect(assetHolder).collect(tokensToCollect, allocationID1)
 
       // check rewards diff
       await rewardsManager.getRewards(allocationID1).then(formatGRT)
 
-      await advanceBlock()
+      await hardhatHelpers.mine()
       const accrual = await getRewardsAccrual(subgraphs)
       const b2 = await epochManager.blockNum().then((x) => x.toNumber())
 

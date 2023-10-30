@@ -8,7 +8,7 @@ import allocations from './fixtures/allocations'
 import indexers from './fixtures/indexers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { randomHexBytes } from '../../../cli/network'
-import { advanceEpochs, advanceToNextEpoch } from '@graphprotocol/sdk'
+import { helpers } from '@graphprotocol/sdk'
 
 chai.use(chaiAsPromised)
 
@@ -55,7 +55,7 @@ describe('[BEFORE UPGRADE] Exponential rebates upgrade', () => {
       for (const indexer of indexers) {
         for (const allocation of indexer.allocationsBatch1) {
           // Close allocation first
-          await advanceToNextEpoch(EpochManager)
+          await helpers.mineEpoch(EpochManager)
           await Staking.connect(indexer.signer).closeAllocation(allocation.id, randomHexBytes())
 
           // Collect query fees
@@ -65,7 +65,7 @@ describe('[BEFORE UPGRADE] Exponential rebates upgrade', () => {
           ).to.eventually.be.fulfilled
 
           // Claim rebate
-          await advanceEpochs(EpochManager, 7)
+          await helpers.mineEpoch(EpochManager, 7)
           const tx = deployedStaking.connect(indexer.signer).claim(allocation.id, false)
           await expect(tx).to.eventually.be.fulfilled
           await expect(tx).to.emit(deployedStaking, 'RebateClaimed')

@@ -1,5 +1,6 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
+import { constants, BigNumber, ethers } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { GraphToken } from '../../build/types/GraphToken'
@@ -11,33 +12,27 @@ import { L1GraphTokenLockTransferToolBadMock } from '../../build/types/L1GraphTo
 
 import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
-import {
-  deriveChannelKey,
-  getAccounts,
-  randomHexBytes,
-  provider,
-  Account,
-  setAccountBalance,
-  impersonateAccount,
-} from '../lib/testHelpers'
 import { deployContract } from '../lib/deployment'
-import { toBN, toGRT } from '@graphprotocol/sdk'
+import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
 
 describe('L1Staking:L2Transfer', () => {
-  let me: Account
-  let governor: Account
-  let indexer: Account
-  let slasher: Account
-  let l2Indexer: Account
-  let delegator: Account
-  let l2Delegator: Account
-  let mockRouter: Account
-  let mockL2GRT: Account
-  let mockL2Gateway: Account
-  let mockL2GNS: Account
-  let mockL2Staking: Account
+  const graph = hre.graph()
+  let me: SignerWithAddress
+  let governor: SignerWithAddress
+  let indexer: SignerWithAddress
+  let slasher: SignerWithAddress
+  let l2Indexer: SignerWithAddress
+  let delegator: SignerWithAddress
+  let l2Delegator: SignerWithAddress
+  let mockRouter: SignerWithAddress
+  let mockL2GRT: SignerWithAddress
+  let mockL2Gateway: SignerWithAddress
+  let mockL2GNS: SignerWithAddress
+  let mockL2Staking: SignerWithAddress
 
   let fixture: NetworkFixture
   let fixtureContracts: L1FixtureContracts
@@ -68,7 +63,7 @@ describe('L1Staking:L2Transfer', () => {
   // Allocate with test values
   const allocate = async (tokens: BigNumber) => {
     return staking
-      .connect(indexer.signer)
+      .connect(indexer)
       .allocateFrom(
         indexer.address,
         subgraphDeploymentID,
@@ -93,16 +88,16 @@ describe('L1Staking:L2Transfer', () => {
       mockL2GNS,
       mockL2Staking,
       l2Delegator,
-    ] = await getAccounts()
+    ] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    fixtureContracts = await fixture.load(governor.signer, slasher.signer)
+    fixtureContracts = await fixture.load(governor, slasher)
     ;({ grt, staking, l1GraphTokenGateway, controller } = fixtureContracts)
     // Dummy code on the mock router so that it appears as a contract
-    await provider().send('hardhat_setCode', [mockRouter.address, '0x1234'])
-    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor.signer)
+    await hardhatHelpers.setCode(mockRouter.address, '0x1234')
+    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
     await fixture.configureL1Bridge(
-      governor.signer,
+      governor,
       arbitrumMocks,
       fixtureContracts,
       mockRouter.address,
@@ -114,30 +109,32 @@ describe('L1Staking:L2Transfer', () => {
 
     l1GraphTokenLockTransferTool = (await deployContract(
       'L1GraphTokenLockTransferToolMock',
-      governor.signer,
+      governor,
     )) as unknown as L1GraphTokenLockTransferToolMock
 
     l1GraphTokenLockTransferToolBad = (await deployContract(
       'L1GraphTokenLockTransferToolBadMock',
-      governor.signer,
+      governor,
     )) as unknown as L1GraphTokenLockTransferToolBadMock
 
-    await setAccountBalance(l1GraphTokenLockTransferTool.address, parseEther('1'))
-    await setAccountBalance(l1GraphTokenLockTransferToolBad.address, parseEther('1'))
+    await helpers.setBalances([
+      { address: l1GraphTokenLockTransferTool.address, balance: parseEther('1') },
+      { address: l1GraphTokenLockTransferToolBad.address, balance: parseEther('1') },
+    ])
 
     await staking
-      .connect(governor.signer)
+      .connect(governor)
       .setL1GraphTokenLockTransferTool(l1GraphTokenLockTransferTool.address)
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
-    await grt.connect(governor.signer).mint(indexer.address, indexerTokens)
-    await grt.connect(indexer.signer).approve(staking.address, indexerTokens)
+    await grt.connect(governor).mint(indexer.address, indexerTokens)
+    await grt.connect(indexer).approve(staking.address, indexerTokens)
 
-    await grt.connect(governor.signer).mint(delegator.address, delegatorTokens)
-    await grt.connect(delegator.signer).approve(staking.address, delegatorTokens)
+    await grt.connect(governor).mint(delegator.address, delegatorTokens)
+    await grt.connect(delegator).approve(staking.address, delegatorTokens)
 
-    await staking.connect(governor.signer).setMinimumIndexerStake(minimumIndexerStake)
-    await staking.connect(governor.signer).setDelegationTaxPercentage(delegationTaxPPM) // 1%
+    await staking.connect(governor).setMinimumIndexerStake(minimumIndexerStake)
+    await staking.connect(governor).setDelegationTaxPercentage(delegationTaxPPM) // 1%
   })
 
   beforeEach(async function () {
@@ -152,7 +149,7 @@ describe('L1Staking:L2Transfer', () => {
     describe('transferStakeToL2', function () {
       it('should not allow transferring for someone who has not staked', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -179,7 +176,7 @@ describe('L1Staking:L2Transfer', () => {
       const l2Beneficiary = options.l2Beneficiary ?? l2Indexer.address
       const expectedSeqNum = options.expectedSeqNum ?? 1
       const tx = staking
-        .connect(indexer.signer)
+        .connect(indexer)
         .transferStakeToL2(l2Beneficiary, amountToSend, maxGas, gasPriceBid, maxSubmissionCost, {
           value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
         })
@@ -203,19 +200,20 @@ describe('L1Staking:L2Transfer', () => {
     }
 
     beforeEach(async function () {
-      await staking.connect(indexer.signer).stake(tokensToStake)
+      await staking.connect(indexer).stake(tokensToStake)
     })
 
     describe('receive()', function () {
       it('should not allow receiving funds from a random address', async function () {
-        const tx = indexer.signer.sendTransaction({
+        const tx = indexer.sendTransaction({
           to: staking.address,
           value: parseEther('1'),
         })
         await expect(tx).revertedWith('Only transfer tool can send ETH')
       })
       it('should allow receiving funds from the transfer tool', async function () {
-        const impersonatedTransferTool = await impersonateAccount(
+        await hardhatHelpers.impersonateAccount(l1GraphTokenLockTransferTool.address)
+        const impersonatedTransferTool = await hre.ethers.getSigner(
           l1GraphTokenLockTransferTool.address,
         )
         const tx = impersonatedTransferTool.sendTransaction({
@@ -230,7 +228,7 @@ describe('L1Staking:L2Transfer', () => {
         await controller.setPartialPaused(true)
 
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake.sub(minimumIndexerStake),
@@ -245,7 +243,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring but leaving less than the minimum indexer stake', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake.sub(minimumIndexerStake).add(1),
@@ -260,7 +258,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring less than the minimum indexer stake the first time', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake.sub(1),
@@ -274,9 +272,9 @@ describe('L1Staking:L2Transfer', () => {
         await expect(tx).revertedWith('!minimumIndexerStake sent')
       })
       it('should not allow transferring if there are tokens locked for withdrawal', async function () {
-        await staking.connect(indexer.signer).unstake(tokensToStake)
+        await staking.connect(indexer).unstake(tokensToStake)
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -291,7 +289,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring to a beneficiary that is address zero', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(AddressZero, tokensToStake, maxGas, gasPriceBid, maxSubmissionCost, {
             value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
           })
@@ -300,7 +298,7 @@ describe('L1Staking:L2Transfer', () => {
       it('should not allow transferring the whole stake if there are open allocations', async function () {
         await allocate(toGRT('10'))
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -315,16 +313,16 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring partial stake if the remaining indexer capacity is insufficient for open allocations', async function () {
         // We set delegation ratio == 1 so an indexer can only use as much delegation as their own stake
-        await staking.connect(governor.signer).setDelegationRatio(1)
+        await staking.connect(governor).setDelegationRatio(1)
         const tokensToDelegate = toGRT('202100')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         // Now the indexer has 200k tokens staked and 200k tokens delegated
         await allocate(toGRT('400000'))
 
         // But if we try to transfer even 100k, we will not have enough indexer capacity to cover the open allocation
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             toGRT('100000'),
@@ -339,7 +337,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring if the ETH sent is more than required', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             indexer.address,
             tokensToStake,
@@ -367,9 +365,9 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should allow transferring partial stake if the remaining capacity can cover the allocations', async function () {
         // We set delegation ratio == 1 so an indexer can only use as much delegation as their own stake
-        await staking.connect(governor.signer).setDelegationRatio(1)
+        await staking.connect(governor).setDelegationRatio(1)
         const tokensToDelegate = toGRT('200000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         // Now the indexer has 200k tokens staked and 200k tokens delegated,
         // but they allocate 200k
@@ -385,7 +383,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('allows transferring several times to the same beneficiary', async function () {
         // Stake a bit more so we're still over the minimum stake after transferring twice
-        await staking.connect(indexer.signer).stake(tokensToStake)
+        await staking.connect(indexer).stake(tokensToStake)
         await shouldTransferIndexerStake(minimumIndexerStake)
         await shouldTransferIndexerStake(toGRT('1000'), { expectedSeqNum: 2 })
         expect((await staking.stakes(indexer.address)).tokensStaked).to.equal(
@@ -394,7 +392,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('should not allow transferring to a different beneficiary the second time', async function () {
         await shouldTransferIndexerStake(minimumIndexerStake)
-        const tx = staking.connect(indexer.signer).transferStakeToL2(
+        const tx = staking.connect(indexer).transferStakeToL2(
           indexer.address, // Note this is different from l2Indexer used before
           minimumIndexerStake,
           maxGas,
@@ -413,7 +411,7 @@ describe('L1Staking:L2Transfer', () => {
         await controller.setPartialPaused(true)
 
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('Partial-paused')
       })
@@ -421,11 +419,11 @@ describe('L1Staking:L2Transfer', () => {
         const amountToSend = minimumIndexerStake
 
         await l1GraphTokenLockTransferTool.setL2WalletAddress(indexer.address, l2Indexer.address)
-        const oldTransferToolEthBalance = await provider().getBalance(
-          l1GraphTokenLockTransferTool.address,
-        )
+        const oldTransferToolEthBalance = await ethers
+          .getDefaultProvider()
+          .getBalance(l1GraphTokenLockTransferTool.address)
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
         const expectedFunctionData = defaultAbiCoder.encode(
           ['tuple(address)'],
@@ -447,39 +445,39 @@ describe('L1Staking:L2Transfer', () => {
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
           .withArgs(staking.address, mockL2Gateway.address, toBN(1), expectedL2Data)
-        expect(await provider().getBalance(l1GraphTokenLockTransferTool.address)).to.equal(
-          oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)),
-        )
+        expect(
+          await ethers.getDefaultProvider().getBalance(l1GraphTokenLockTransferTool.address),
+        ).to.equal(oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)))
       })
       it('should not allow transferring if the transfer tool contract returns a zero address beneficiary', async function () {
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('LOCK NOT TRANSFERRED')
       })
       it('should not allow transferring if the transfer tool contract does not provide enough ETH', async function () {
         await staking
-          .connect(governor.signer)
+          .connect(governor)
           .setL1GraphTokenLockTransferTool(l1GraphTokenLockTransferToolBad.address)
         await l1GraphTokenLockTransferToolBad.setL2WalletAddress(indexer.address, l2Indexer.address)
         const tx = staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('ETH TRANSFER FAILED')
       })
     })
     describe('unlockDelegationToTransferredIndexer', function () {
       beforeEach(async function () {
-        await staking.connect(governor.signer).setDelegationUnbondingPeriod(28) // epochs
+        await staking.connect(governor).setDelegationUnbondingPeriod(28) // epochs
       })
       it('allows a delegator to a transferred indexer to withdraw locked delegation before the unbonding period', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         const actualDelegation = tokensToDelegate.sub(
           tokensToDelegate.mul(delegationTaxPPM).div(1000000),
         )
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -490,16 +488,14 @@ describe('L1Staking:L2Transfer', () => {
               value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
             },
           )
-        await staking.connect(delegator.signer).undelegate(indexer.address, actualDelegation)
+        await staking.connect(delegator).undelegate(indexer.address, actualDelegation)
         const tx = await staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx)
           .emit(staking, 'StakeDelegatedUnlockedDueToL2Transfer')
           .withArgs(indexer.address, delegator.address)
-        const tx2 = await staking
-          .connect(delegator.signer)
-          .withdrawDelegated(indexer.address, AddressZero)
+        const tx2 = await staking.connect(delegator).withdrawDelegated(indexer.address, AddressZero)
         await expect(tx2)
           .emit(staking, 'StakeDelegatedWithdrawn')
           .withArgs(indexer.address, delegator.address, actualDelegation)
@@ -507,24 +503,20 @@ describe('L1Staking:L2Transfer', () => {
       it('rejects calls if the protocol is partially paused', async function () {
         await controller.setPartialPaused(true)
 
-        const tx = staking
-          .connect(delegator.signer)
-          .unlockDelegationToTransferredIndexer(indexer.address)
+        const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx).revertedWith('Partial-paused')
       })
       it('rejects calls if the indexer has not transferred their stake to L2', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
-        const tx = staking
-          .connect(delegator.signer)
-          .unlockDelegationToTransferredIndexer(indexer.address)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
+        const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx).revertedWith('indexer not transferred')
       })
       it('rejects calls if the indexer has only transferred part of their stake but not all', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -535,16 +527,14 @@ describe('L1Staking:L2Transfer', () => {
               value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
             },
           )
-        const tx = staking
-          .connect(delegator.signer)
-          .unlockDelegationToTransferredIndexer(indexer.address)
+        const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx).revertedWith('indexer not transferred')
       })
       it('rejects calls if the delegator has not undelegated first', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -555,14 +545,12 @@ describe('L1Staking:L2Transfer', () => {
               value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
             },
           )
-        const tx = staking
-          .connect(delegator.signer)
-          .unlockDelegationToTransferredIndexer(indexer.address)
+        const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx).revertedWith('! locked')
       })
       it('rejects calls if the caller is not a delegator', async function () {
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             tokensToStake,
@@ -573,9 +561,7 @@ describe('L1Staking:L2Transfer', () => {
               value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
             },
           )
-        const tx = staking
-          .connect(delegator.signer)
-          .unlockDelegationToTransferredIndexer(indexer.address)
+        const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         // The function checks for tokensLockedUntil so this is the error we should get:
         await expect(tx).revertedWith('! locked')
       })
@@ -585,7 +571,7 @@ describe('L1Staking:L2Transfer', () => {
         await controller.setPartialPaused(true)
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -600,10 +586,10 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('rejects calls if the delegated indexer has not transferred stake to L2', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -618,9 +604,9 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('rejects calls if the beneficiary is zero', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -633,7 +619,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             AddressZero,
@@ -648,9 +634,9 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('rejects calls if the delegator has tokens locked for undelegation', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -661,10 +647,10 @@ describe('L1Staking:L2Transfer', () => {
               value: maxSubmissionCost.add(gasPriceBid.mul(maxGas)),
             },
           )
-        await staking.connect(delegator.signer).undelegate(indexer.address, toGRT('1'))
+        await staking.connect(delegator).undelegate(indexer.address, toGRT('1'))
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -679,7 +665,7 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('rejects calls if the delegator has no tokens delegated to the indexer', async function () {
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -692,7 +678,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -707,12 +693,12 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('sends all the tokens delegated to the indexer to the beneficiary on L2, using the gateway', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         const actualDelegation = tokensToDelegate.sub(
           tokensToDelegate.mul(delegationTaxPPM).div(1000000),
         )
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -742,7 +728,7 @@ describe('L1Staking:L2Transfer', () => {
         )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -769,9 +755,9 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('sets the delegation shares to zero so cannot be called twice', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -784,7 +770,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         await staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -797,7 +783,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -812,12 +798,12 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('can be called again if the delegator added more delegation (edge case)', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         const actualDelegation = tokensToDelegate.sub(
           tokensToDelegate.mul(delegationTaxPPM).div(1000000),
         )
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -830,7 +816,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         await staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -842,10 +828,10 @@ describe('L1Staking:L2Transfer', () => {
             },
           )
 
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -868,9 +854,9 @@ describe('L1Staking:L2Transfer', () => {
       })
       it('rejects calls if the ETH value is larger than expected', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -883,7 +869,7 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferDelegationToL2(
             indexer.address,
             l2Delegator.address,
@@ -902,19 +888,19 @@ describe('L1Staking:L2Transfer', () => {
         await controller.setPartialPaused(true)
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('Partial-paused')
       })
       it('sends delegated tokens to L2 like transferDelegationToL2, but gets the beneficiary and ETH from the L1GraphTokenLockTransferTool', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
         const actualDelegation = tokensToDelegate.sub(
           tokensToDelegate.mul(delegationTaxPPM).div(1000000),
         )
 
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -948,11 +934,11 @@ describe('L1Staking:L2Transfer', () => {
           l2Delegator.address,
         )
 
-        const oldTransferToolEthBalance = await provider().getBalance(
-          l1GraphTokenLockTransferTool.address,
-        )
+        const oldTransferToolEthBalance = await ethers
+          .getDefaultProvider()
+          .getBalance(l1GraphTokenLockTransferTool.address)
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
         // seqNum is 2 because the first bridge call was in transferStakeToL2
         await expect(tx)
@@ -967,16 +953,16 @@ describe('L1Staking:L2Transfer', () => {
             l2Indexer.address,
             actualDelegation,
           )
-        expect(await provider().getBalance(l1GraphTokenLockTransferTool.address)).to.equal(
-          oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)),
-        )
+        expect(
+          await ethers.getDefaultProvider().getBalance(l1GraphTokenLockTransferTool.address),
+        ).to.equal(oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)))
       })
       it('rejects calls if the transfer tool contract returns a zero address beneficiary', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -989,16 +975,16 @@ describe('L1Staking:L2Transfer', () => {
           )
 
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('LOCK NOT TRANSFERRED')
       })
       it('rejects calls if the transfer tool contract does not provide enough ETH', async function () {
         const tokensToDelegate = toGRT('10000')
-        await staking.connect(delegator.signer).delegate(indexer.address, tokensToDelegate)
+        await staking.connect(delegator).delegate(indexer.address, tokensToDelegate)
 
         await staking
-          .connect(indexer.signer)
+          .connect(indexer)
           .transferStakeToL2(
             l2Indexer.address,
             minimumIndexerStake,
@@ -1010,7 +996,7 @@ describe('L1Staking:L2Transfer', () => {
             },
           )
         await staking
-          .connect(governor.signer)
+          .connect(governor)
           .setL1GraphTokenLockTransferTool(l1GraphTokenLockTransferToolBad.address)
 
         await l1GraphTokenLockTransferToolBad.setL2WalletAddress(
@@ -1018,7 +1004,7 @@ describe('L1Staking:L2Transfer', () => {
           l2Delegator.address,
         )
         const tx = staking
-          .connect(delegator.signer)
+          .connect(delegator)
           .transferLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
         await expect(tx).revertedWith('ETH TRANSFER FAILED')
       })

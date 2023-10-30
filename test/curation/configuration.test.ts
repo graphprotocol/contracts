@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
@@ -5,26 +6,29 @@ import { Curation } from '../../build/types/Curation'
 
 import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { getAccounts, Account, randomAddress } from '../lib/testHelpers'
-import { toBN } from '@graphprotocol/sdk'
+import { randomAddress, toBN } from '@graphprotocol/sdk'
+
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
 
 const MAX_PPM = 1000000
 
 describe('Curation:Config', () => {
-  let me: Account
-  let governor: Account
+  let me: SignerWithAddress
+  let governor: SignerWithAddress
 
   let fixture: NetworkFixture
 
   let curation: Curation
 
+  const graph = hre.graph()
+
   before(async function () {
-    ;[me, governor] = await getAccounts()
+    ;[me, governor] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture()
-    ;({ curation } = await fixture.load(governor.signer))
+    ;({ curation } = await fixture.load(governor))
   })
 
   beforeEach(async function () {
@@ -42,20 +46,20 @@ describe('Curation:Config', () => {
 
       // Can set if allowed
       const newValue = toBN('100')
-      await curation.connect(governor.signer).setDefaultReserveRatio(newValue)
+      await curation.connect(governor).setDefaultReserveRatio(newValue)
       expect(await curation.defaultReserveRatio()).eq(newValue)
     })
 
     it('reject set `defaultReserveRatio` if out of bounds', async function () {
-      const tx1 = curation.connect(governor.signer).setDefaultReserveRatio(0)
+      const tx1 = curation.connect(governor).setDefaultReserveRatio(0)
       await expect(tx1).revertedWith('Default reserve ratio must be > 0')
 
-      const tx2 = curation.connect(governor.signer).setDefaultReserveRatio(MAX_PPM + 1)
+      const tx2 = curation.connect(governor).setDefaultReserveRatio(MAX_PPM + 1)
       await expect(tx2).revertedWith('Default reserve ratio cannot be higher than MAX_PPM')
     })
 
     it('reject set `defaultReserveRatio` if not allowed', async function () {
-      const tx = curation.connect(me.signer).setDefaultReserveRatio(defaults.curation.reserveRatio)
+      const tx = curation.connect(me).setDefaultReserveRatio(defaults.curation.reserveRatio)
       await expect(tx).revertedWith('Only Controller governor')
     })
   })
@@ -67,18 +71,18 @@ describe('Curation:Config', () => {
 
       // Can set if allowed
       const newValue = toBN('100')
-      await curation.connect(governor.signer).setMinimumCurationDeposit(newValue)
+      await curation.connect(governor).setMinimumCurationDeposit(newValue)
       expect(await curation.minimumCurationDeposit()).eq(newValue)
     })
 
     it('reject set `minimumCurationDeposit` if out of bounds', async function () {
-      const tx = curation.connect(governor.signer).setMinimumCurationDeposit(0)
+      const tx = curation.connect(governor).setMinimumCurationDeposit(0)
       await expect(tx).revertedWith('Minimum curation deposit cannot be 0')
     })
 
     it('reject set `minimumCurationDeposit` if not allowed', async function () {
       const tx = curation
-        .connect(me.signer)
+        .connect(me)
         .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
       await expect(tx).revertedWith('Only Controller governor')
     })
@@ -89,17 +93,17 @@ describe('Curation:Config', () => {
       const curationTaxPercentage = defaults.curation.curationTaxPercentage
 
       // Set new value
-      await curation.connect(governor.signer).setCurationTaxPercentage(0)
-      await curation.connect(governor.signer).setCurationTaxPercentage(curationTaxPercentage)
+      await curation.connect(governor).setCurationTaxPercentage(0)
+      await curation.connect(governor).setCurationTaxPercentage(curationTaxPercentage)
     })
 
     it('reject set `curationTaxPercentage` if out of bounds', async function () {
-      const tx = curation.connect(governor.signer).setCurationTaxPercentage(MAX_PPM + 1)
+      const tx = curation.connect(governor).setCurationTaxPercentage(MAX_PPM + 1)
       await expect(tx).revertedWith('Curation tax percentage must be below or equal to MAX_PPM')
     })
 
     it('reject set `curationTaxPercentage` if not allowed', async function () {
-      const tx = curation.connect(me.signer).setCurationTaxPercentage(0)
+      const tx = curation.connect(me).setCurationTaxPercentage(0)
       await expect(tx).revertedWith('Only Controller governor')
     })
   })
@@ -107,24 +111,24 @@ describe('Curation:Config', () => {
   describe('curationTokenMaster', function () {
     it('should set `curationTokenMaster`', async function () {
       const newCurationTokenMaster = curation.address
-      await curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      await curation.connect(governor).setCurationTokenMaster(newCurationTokenMaster)
     })
 
     it('reject set `curationTokenMaster` to empty value', async function () {
       const newCurationTokenMaster = AddressZero
-      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      const tx = curation.connect(governor).setCurationTokenMaster(newCurationTokenMaster)
       await expect(tx).revertedWith('Token master must be non-empty')
     })
 
     it('reject set `curationTokenMaster` to non-contract', async function () {
       const newCurationTokenMaster = randomAddress()
-      const tx = curation.connect(governor.signer).setCurationTokenMaster(newCurationTokenMaster)
+      const tx = curation.connect(governor).setCurationTokenMaster(newCurationTokenMaster)
       await expect(tx).revertedWith('Token master must be a contract')
     })
 
     it('reject set `curationTokenMaster` if not allowed', async function () {
       const newCurationTokenMaster = curation.address
-      const tx = curation.connect(me.signer).setCurationTokenMaster(newCurationTokenMaster)
+      const tx = curation.connect(me).setCurationTokenMaster(newCurationTokenMaster)
       await expect(tx).revertedWith('Only Controller governor')
     })
   })

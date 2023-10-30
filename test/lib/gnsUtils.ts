@@ -1,58 +1,22 @@
 import { BigNumber, ContractTransaction } from 'ethers'
-import { namehash, solidityKeccak256 } from 'ethers/lib/utils'
+import { namehash } from 'ethers/lib/utils'
 import { Curation } from '../../build/types/Curation'
 import { L1GNS } from '../../build/types/L1GNS'
 import { L2GNS } from '../../build/types/L2GNS'
-import { Account, getChainID, randomHexBytes } from './testHelpers'
 import { expect } from 'chai'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
-import { toBN } from '@graphprotocol/sdk'
+import { PublishSubgraph, Subgraph, buildSubgraphID, toBN } from '@graphprotocol/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 // Entities
-export interface PublishSubgraph {
-  subgraphDeploymentID: string
-  versionMetadata: string
-  subgraphMetadata: string
-}
-
-export interface Subgraph {
-  vSignal: BigNumber
-  nSignal: BigNumber
-  subgraphDeploymentID: string
-  reserveRatioDeprecated: number
-  disabled: boolean
-  withdrawableGRT: BigNumber
-  id?: string
-}
-
 export interface AccountDefaultName {
   name: string
   nameIdentifier: string
 }
 
 export const DEFAULT_RESERVE_RATIO = 1000000
-
-export const buildSubgraphID = async (
-  account: string,
-  seqID: BigNumber,
-  chainID?: number,
-): Promise<string> => {
-  chainID = chainID ?? (await getChainID())
-  return solidityKeccak256(['address', 'uint256', 'uint256'], [account, seqID, chainID])
-}
-
-export const buildLegacySubgraphID = (account: string, seqID: BigNumber): string =>
-  solidityKeccak256(['address', 'uint256'], [account, seqID])
-
-export const buildSubgraph = (): PublishSubgraph => {
-  return {
-    subgraphDeploymentID: randomHexBytes(),
-    versionMetadata: randomHexBytes(),
-    subgraphMetadata: randomHexBytes(),
-  }
-}
 
 export const createDefaultName = (name: string): AccountDefaultName => {
   return {
@@ -71,7 +35,7 @@ export const getTokensAndVSignal = async (
 }
 
 export const publishNewSubgraph = async (
-  account: Account,
+  account: SignerWithAddress,
   newSubgraph: PublishSubgraph,
   gns: L1GNS | L2GNS,
 ): Promise<Subgraph> => {
@@ -82,7 +46,7 @@ export const publishNewSubgraph = async (
 
   // Send tx
   const tx = gns
-    .connect(account.signer)
+    .connect(account)
     .publishNewSubgraph(
       newSubgraph.subgraphDeploymentID,
       newSubgraph.versionMetadata,
@@ -115,7 +79,7 @@ export const publishNewSubgraph = async (
 }
 
 export const publishNewVersion = async (
-  account: Account,
+  account: SignerWithAddress,
   subgraphID: string,
   newSubgraph: PublishSubgraph,
   gns: L1GNS | L2GNS,
@@ -160,7 +124,7 @@ export const publishNewVersion = async (
   )
   // Send tx
   const tx = gns
-    .connect(account.signer)
+    .connect(account)
     .publishNewVersion(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
   const txResult = expect(tx)
     .emit(gns, 'SubgraphVersionUpdated')
@@ -208,7 +172,7 @@ export const publishNewVersion = async (
 }
 
 export const mintSignal = async (
-  account: Account,
+  account: SignerWithAddress,
   subgraphID: string,
   tokensIn: BigNumber,
   gns: L1GNS | L2GNS,
@@ -227,7 +191,7 @@ export const mintSignal = async (
     1: nSignalExpected,
     2: curationTax,
   } = await gns.tokensToNSignal(subgraphID, tokensIn)
-  const tx = gns.connect(account.signer).mintSignal(subgraphID, tokensIn, 0)
+  const tx = gns.connect(account).mintSignal(subgraphID, tokensIn, 0)
   await expect(tx)
     .emit(gns, 'SignalMinted')
     .withArgs(subgraphID, account.address, nSignalExpected, vSignalExpected, tokensIn)
@@ -249,7 +213,7 @@ export const mintSignal = async (
 }
 
 export const burnSignal = async (
-  account: Account,
+  account: SignerWithAddress,
   subgraphID: string,
   gns: L1GNS | L2GNS,
   curation: Curation | L2Curation,
@@ -269,7 +233,7 @@ export const burnSignal = async (
   )
 
   // Send tx
-  const tx = gns.connect(account.signer).burnSignal(subgraphID, beforeUsersNSignal, 0)
+  const tx = gns.connect(account).burnSignal(subgraphID, beforeUsersNSignal, 0)
   await expect(tx)
     .emit(gns, 'SignalBurned')
     .withArgs(subgraphID, account.address, beforeUsersNSignal, vSignalExpected, tokensExpected)
@@ -290,7 +254,7 @@ export const burnSignal = async (
 }
 
 export const deprecateSubgraph = async (
-  account: Account,
+  account: SignerWithAddress,
   subgraphID: string,
   gns: L1GNS | L2GNS,
   curation: Curation | L2Curation,
@@ -304,7 +268,7 @@ export const deprecateSubgraph = async (
   const ownerBalanceBefore = await grt.balanceOf(account.address)
 
   // Send tx
-  const tx = gns.connect(account.signer).deprecateSubgraph(subgraphID)
+  const tx = gns.connect(account).deprecateSubgraph(subgraphID)
   await expect(tx).emit(gns, 'SubgraphDeprecated').withArgs(subgraphID, beforeTokens)
 
   // After state

@@ -2,7 +2,6 @@
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert, initNetwork } from './testHelpers'
 import { BridgeMock } from '../../build/types/BridgeMock'
 import { InboxMock } from '../../build/types/InboxMock'
 import { OutboxMock } from '../../build/types/OutboxMock'
@@ -25,6 +24,8 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { LibExponential } from '../../build/types/LibExponential'
+import { helpers } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -64,11 +65,7 @@ export interface ArbitrumL1Mocks {
 }
 
 export class NetworkFixture {
-  lastSnapshotId: number
-
-  constructor() {
-    this.lastSnapshotId = 0
-  }
+  lastSnapshot: hardhatHelpers.SnapshotRestorer
 
   async _loadLayer(
     deployer: Signer,
@@ -76,7 +73,7 @@ export class NetworkFixture {
     arbitrator: Signer = Wallet.createRandom() as Signer,
     isL2: boolean,
   ): Promise<L1FixtureContracts | L2FixtureContracts> {
-    await initNetwork()
+    await helpers.initNetwork()
 
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
@@ -324,11 +321,11 @@ export class NetworkFixture {
   }
 
   async setUp(): Promise<void> {
-    this.lastSnapshotId = await evmSnapshot()
-    await initNetwork()
+    this.lastSnapshot = await hardhatHelpers.takeSnapshot()
+    await helpers.initNetwork()
   }
 
   async tearDown(): Promise<void> {
-    await evmRevert(this.lastSnapshotId)
+    await this.lastSnapshot.restore()
   }
 }

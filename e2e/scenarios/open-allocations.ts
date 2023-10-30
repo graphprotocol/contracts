@@ -7,7 +7,7 @@
 import hre from 'hardhat'
 import { getIndexerFixtures } from './fixtures/indexers'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
-import { allocateFrom, ensureETHBalance, ensureGRTBalance, stake } from '@graphprotocol/sdk'
+import { helpers, allocateFrom, stake, setGRTBalances } from '@graphprotocol/sdk'
 
 async function main() {
   const graphOpts = getGREOptsFromArgv()
@@ -15,20 +15,19 @@ async function main() {
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
   const deployer = await graph.getDeployer()
-  const indexers = indexerFixtures.map((i) => i.signer.address)
-  const indexerETHBalances = indexerFixtures.map((i) => i.ethBalance)
-  const indexerGRTBalances = indexerFixtures.map((i) => i.grtBalance)
+  const indexerETHBalances = indexerFixtures.map((i) => ({
+    address: i.signer.address,
+    balance: i.ethBalance,
+  }))
+  const indexerGRTBalances = indexerFixtures.map((i) => ({
+    address: i.signer.address,
+    balance: i.grtBalance,
+  }))
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await ensureETHBalance(graph.contracts, deployer, {
-    beneficiaries: indexers,
-    amounts: indexerETHBalances,
-  })
-  await ensureGRTBalance(graph.contracts, deployer, {
-    beneficiaries: indexers,
-    amounts: indexerGRTBalances,
-  })
+  await helpers.setBalances(indexerETHBalances)
+  await setGRTBalances(graph.contracts, deployer, indexerGRTBalances)
 
   // == Stake
   console.log('\n== Staking tokens')

@@ -1,3 +1,4 @@
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
@@ -5,30 +6,28 @@ import { EpochManager } from '../build/types/EpochManager'
 
 import * as deployment from './lib/deployment'
 import { defaults } from './lib/deployment'
-import { getAccounts, Account, initNetwork } from './lib/testHelpers'
-import { advanceBlock, advanceBlockTo, latestBlock, toBN } from '@graphprotocol/sdk'
+import { helpers, toBN } from '@graphprotocol/sdk'
+import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('EpochManager', () => {
-  let me: Account
-  let governor: Account
+  const graph = hre.graph()
+  let me: SignerWithAddress
+  let governor: SignerWithAddress
 
   let epochManager: EpochManager
 
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
-    await initNetwork()
-    ;[me, governor] = await getAccounts()
+    await helpers.initNetwork()
+    ;[me, governor] = await graph.getTestAccounts()
   })
 
   beforeEach(async function () {
-    const controller = await deployment.deployController(governor.signer)
-    const proxyAdmin = await deployment.deployProxyAdmin(governor.signer)
-    epochManager = await deployment.deployEpochManager(
-      governor.signer,
-      controller.address,
-      proxyAdmin,
-    )
+    const controller = await deployment.deployController(governor)
+    const proxyAdmin = await deployment.deployProxyAdmin(governor)
+    epochManager = await deployment.deployEpochManager(governor, controller.address, proxyAdmin)
   })
 
   describe('configuration', () => {
@@ -39,7 +38,7 @@ describe('EpochManager', () => {
       // Update and check new value
       const newEpochLength = toBN('4')
       const currentEpoch = await epochManager.currentEpoch()
-      const tx = epochManager.connect(governor.signer).setEpochLength(newEpochLength)
+      const tx = epochManager.connect(governor).setEpochLength(newEpochLength)
       await expect(tx)
         .emit(epochManager, 'EpochLengthUpdate')
         .withArgs(currentEpoch, newEpochLength)
@@ -49,7 +48,7 @@ describe('EpochManager', () => {
     it('reject set `epochLength` if zero', async function () {
       // Update and check new value
       const newEpochLength = toBN('0')
-      const tx = epochManager.connect(governor.signer).setEpochLength(newEpochLength)
+      const tx = epochManager.connect(governor).setEpochLength(newEpochLength)
       await expect(tx).revertedWith('Epoch length cannot be 0')
     })
   })
@@ -59,7 +58,7 @@ describe('EpochManager', () => {
     // Blocks -> (1,2,3)(4,5,6)(7,8,9)
     // Epochs ->   1    2    3
     beforeEach(async function () {
-      await epochManager.connect(governor.signer).setEpochLength(epochLength)
+      await epochManager.connect(governor).setEpochLength(epochLength)
     })
 
     describe('calculations', () => {
@@ -69,7 +68,7 @@ describe('EpochManager', () => {
       })
 
       it('should return correct block number', async function () {
-        const currentBlock = await latestBlock()
+        const currentBlock = await hardhatHelpers.time.latestBlock()
         expect(await epochManager.blockNum()).eq(currentBlock)
       })
 
@@ -77,12 +76,12 @@ describe('EpochManager', () => {
         // Move right to the start of a new epoch
         const blocksSinceEpochStart = await epochManager.currentEpochBlockSinceStart()
         const blocksToNextEpoch = epochLength.sub(blocksSinceEpochStart)
-        await advanceBlockTo((await epochManager.blockNum()).add(blocksToNextEpoch))
+        await hardhatHelpers.mineUpTo((await epochManager.blockNum()).add(blocksToNextEpoch))
 
         const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance block - will not jump to next epoch
-        await advanceBlock()
+        await hardhatHelpers.mine()
 
         const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
         expect(afterCurrentEpochBlock).equal(beforeCurrentEpochBlock)
@@ -92,7 +91,7 @@ describe('EpochManager', () => {
         const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance blocks to move to the next epoch
-        await advanceBlockTo(beforeCurrentEpochBlock.add(epochLength))
+        await hardhatHelpers.mineUpTo(beforeCurrentEpochBlock.add(epochLength))
 
         const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
         expect(afterCurrentEpochBlock).not.eq(beforeCurrentEpochBlock)
@@ -103,7 +102,7 @@ describe('EpochManager', () => {
 
         // Advance blocks and move to the next epoch
         const currentEpochBlock = await epochManager.currentEpochBlock()
-        await advanceBlockTo(currentEpochBlock.add(epochLength))
+        await hardhatHelpers.mineUpTo(currentEpochBlock.add(epochLength))
 
         const afterCurrentEpoch = await epochManager.currentEpoch()
         expect(afterCurrentEpoch).eq(nextEpoch)
@@ -113,7 +112,7 @@ describe('EpochManager', () => {
     describe('progression', () => {
       beforeEach(async function () {
         const currentEpochBlock = await epochManager.currentEpochBlock()
-        await advanceBlockTo(currentEpochBlock.add(epochLength))
+        await hardhatHelpers.mineUpTo(currentEpochBlock.add(epochLength))
       })
 
       context('> epoch not run', function () {
@@ -124,7 +123,7 @@ describe('EpochManager', () => {
         it('should run new epoch', async function () {
           // Run epoch
           const currentEpoch = await epochManager.currentEpoch()
-          const tx = epochManager.connect(me.signer).runEpoch()
+          const tx = epochManager.connect(me).runEpoch()
           await expect(tx).emit(epochManager, 'EpochRun').withArgs(currentEpoch, me.address)
 
           // State
