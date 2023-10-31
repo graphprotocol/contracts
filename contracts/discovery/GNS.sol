@@ -732,7 +732,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint32 _curationTaxPercentage
     ) internal returns (uint256) {
         if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
-            return 0;
+            return _tokens;
         }
 
         // Tax on the total bonding curve funds
