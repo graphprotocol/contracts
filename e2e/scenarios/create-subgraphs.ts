@@ -43,6 +43,7 @@ async function main() {
   for (const subgraph of subgraphFixtures) {
     const id = await publishNewSubgraph(graph.contracts, subgraphOwnerFixture.signer, {
       deploymentId: subgraph.deploymentId,
+      chainId: graph.chainId,
     })
     const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)
     if (subgraphData) subgraphData.subgraphId = id

@@ -9,7 +9,6 @@ import { IL2Staking } from '../../build/types/IL2Staking'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../build/types/GraphToken'
 import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = ethers.constants
@@ -63,7 +62,7 @@ describe('L2Staking', () => {
   ): Promise<ContractTransaction> {
     const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
     // Eth for gas:
-    await hardhatHelpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+    await helpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)

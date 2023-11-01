@@ -19,7 +19,6 @@ import {
   toGRT,
   deriveChannelKey,
 } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const MAX_PPM = 1000000
@@ -87,12 +86,12 @@ describe('Rewards', () => {
     async snapshot() {
       this.accumulated = this.accumulated.add(await this.accrued())
       this.totalSignalled = await grt.balanceOf(curation.address)
-      this.lastUpdatedBlock = await hardhatHelpers.time.latestBlock()
+      this.lastUpdatedBlock = await helpers.latestBlock()
       return this
     }
 
     async elapsedBlocks() {
-      const currentBlock = await hardhatHelpers.time.latestBlock()
+      const currentBlock = await helpers.latestBlock()
       return currentBlock - this.lastUpdatedBlock
     }
 
@@ -117,7 +116,7 @@ describe('Rewards', () => {
     const tracker = await RewardsTracker.create()
 
     // Jump
-    await hardhatHelpers.mine(nBlocks)
+    await helpers.mine(nBlocks)
 
     // -- t1 --
 
@@ -175,7 +174,7 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
         expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(
-          await hardhatHelpers.time.latestBlock(),
+          await helpers.latestBlock(),
         )
       })
     })
@@ -200,7 +199,7 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
 
         const tx = rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, true)
-        const blockNum = await hardhatHelpers.time.latestBlock()
+        const blockNum = await helpers.latestBlock()
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenylistUpdated')
           .withArgs(subgraphDeploymentID1, blockNum + 1)
@@ -285,7 +284,7 @@ describe('Rewards', () => {
         const tracker = await RewardsTracker.create()
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
         await rewardsManager.updateAccRewardsPerSignal()
@@ -313,7 +312,7 @@ describe('Rewards', () => {
         await tracker1.snapshot()
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Snapshot
         await tracker1.snapshot()
@@ -348,7 +347,7 @@ describe('Rewards', () => {
         const tracker1 = await RewardsTracker.create()
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
         await rewardsManager.onSubgraphSignalUpdate(subgraphDeploymentID1)
@@ -365,7 +364,7 @@ describe('Rewards', () => {
         expect(toRound(expectedAccrued)).eq(toRound(contractAccrued))
 
         const contractBlockUpdated = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
-        const expectedBlockUpdated = await hardhatHelpers.time.latestBlock()
+        const expectedBlockUpdated = await helpers.latestBlock()
         expect(expectedBlockUpdated).eq(contractBlockUpdated)
       })
     })
@@ -391,7 +390,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Check
         const sg1 = await rewardsManager.subgraphs(subgraphDeploymentID1)
@@ -429,7 +428,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
         const expectedSubgraphRewards = toGRT('1400') // 7 blocks since signaling to when we do getAccRewardsForSubgraph
@@ -471,7 +470,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Rewards
         const contractRewards = await rewardsManager.getRewards(allocationID1)
@@ -505,7 +504,7 @@ describe('Rewards', () => {
           )
 
         // Jump
-        await hardhatHelpers.mine(ISSUANCE_RATE_PERIODS)
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
         await helpers.mineEpoch(epochManager)
 
         // Close allocation
@@ -926,7 +925,7 @@ describe('Rewards', () => {
           await channelKey2.generateProof(indexer1.address),
         )
 
-      await hardhatHelpers.mine()
+      await helpers.mine()
       await helpers.setAutoMine(true)
 
       await expect(tx1).emit(staking, 'AllocationCreated')
@@ -1031,7 +1030,7 @@ describe('Rewards', () => {
         ])
 
       // move time fwd
-      await hardhatHelpers.mine()
+      await helpers.mine()
 
       // collect funds into staking for that sub
       await staking.connect(assetHolder).collect(tokensToCollect, allocationID1)
@@ -1039,7 +1038,7 @@ describe('Rewards', () => {
       // check rewards diff
       await rewardsManager.getRewards(allocationID1).then(formatGRT)
 
-      await hardhatHelpers.mine()
+      await helpers.mine()
       const accrual = await getRewardsAccrual(subgraphs)
       const b2 = await epochManager.blockNum().then((x) => x.toNumber())
 

@@ -10,8 +10,7 @@ import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 import { GNS } from '../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
-import { formatGRT, randomAddress, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { formatGRT, randomAddress, randomHexBytes, toBN, toGRT, helpers } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -337,9 +336,8 @@ describe('L2Curation', () => {
     fixture = new NetworkFixture()
     ;({ controller, curation, grt, gns } = await fixture.loadL2(governor))
 
-    await hardhatHelpers.impersonateAccount(gns.address)
-    gnsImpersonator = await hre.ethers.getSigner(gns.address)
-    await hardhatHelpers.setBalance(gns.address, parseEther('1'))
+    gnsImpersonator = await helpers.impersonateAccount(gns.address)
+    await helpers.setBalance(gns.address, parseEther('1'))
     // Give some funds to the curator and GNS impersonator and approve the curation contract
     await grt.connect(governor).mint(curator.address, curatorTokens)
     await grt.connect(curator).approve(curation.address, curatorTokens)

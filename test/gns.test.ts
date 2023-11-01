@@ -29,12 +29,12 @@ import {
 import {
   PublishSubgraph,
   Subgraph,
-  buildLegacySubgraphID,
+  buildLegacySubgraphId,
   buildSubgraph,
-  buildSubgraphID,
+  buildSubgraphId,
   randomHexBytes,
+  helpers,
 } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, HashZero } = ethers.constants
@@ -229,7 +229,7 @@ describe('L1GNS', () => {
       mockL2Staking,
     ] = await graph.getTestAccounts()
     // Dummy code on the mock router so that it appears as a contract
-    await hardhatHelpers.setCode(mockRouter.address, '0x1234')
+    await helpers.setCode(mockRouter.address, '0x1234')
     fixture = new NetworkFixture()
     const fixtureContracts = await fixture.load(governor)
     ;({ grt, curation, gns, controller, proxyAdmin, l1GraphTokenGateway } = fixtureContracts)
@@ -354,7 +354,7 @@ describe('L1GNS', () => {
       let subgraph: Subgraph
 
       beforeEach(async function () {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       })
 
       it('updateSubgraphMetadata emits the event', async function () {
@@ -376,21 +376,21 @@ describe('L1GNS', () => {
 
     describe('isPublished', function () {
       it('should return if the subgraph is published', async function () {
-        const subgraphID = await buildSubgraphID(me.address, toBN(0))
+        const subgraphID = await buildSubgraphId(me.address, toBN(0), graph.chainId)
         expect(await gns.isPublished(subgraphID)).eq(false)
-        await publishNewSubgraph(me, newSubgraph0, gns)
+        await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         expect(await gns.isPublished(subgraphID)).eq(true)
       })
     })
 
     describe('publishNewSubgraph', async function () {
       it('should publish a new subgraph and first version with it', async function () {
-        await publishNewSubgraph(me, newSubgraph0, gns)
+        await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       })
 
       it('should publish a new subgraph with an incremented value', async function () {
-        const subgraph1 = await publishNewSubgraph(me, newSubgraph0, gns)
-        const subgraph2 = await publishNewSubgraph(me, newSubgraph1, gns)
+        const subgraph1 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
+        const subgraph2 = await publishNewSubgraph(me, newSubgraph1, gns, graph.chainId)
         expect(subgraph1.id).not.eq(subgraph2.id)
       })
 
@@ -406,7 +406,7 @@ describe('L1GNS', () => {
       let subgraph: Subgraph
 
       beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(me, subgraph.id, tokens10000, gns, curation)
       })
 
@@ -415,7 +415,12 @@ describe('L1GNS', () => {
       })
 
       it('should publish a new version on an existing subgraph with no current signal', async function () {
-        const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph(), gns)
+        const emptySignalSubgraph = await publishNewSubgraph(
+          me,
+          buildSubgraph(),
+          gns,
+          graph.chainId,
+        )
         await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1, gns, curation)
       })
 
@@ -500,7 +505,7 @@ describe('L1GNS', () => {
     })
     describe('subgraphTokens', function () {
       it('should return the correct number of tokens for a subgraph', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         const taxForMe = (
           await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
         )[1]
@@ -516,7 +521,7 @@ describe('L1GNS', () => {
     })
     describe('subgraphSignal', function () {
       it('should return the correct amount of signal for a subgraph', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         const vSignalForMe = (
           await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
         )[0]
@@ -536,7 +541,7 @@ describe('L1GNS', () => {
       let subgraph: Subgraph
 
       beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(me, subgraph.id, tokens10000, gns, curation)
       })
 
@@ -573,12 +578,12 @@ describe('L1GNS', () => {
   describe('Curating on names', async function () {
     describe('mintSignal()', async function () {
       it('should deposit into the name signal curve', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(other, subgraph.id, tokens10000, gns, curation)
       })
 
       it('should fail when name signal is disabled', async function () {
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
         const tx = gns.connect(me).mintSignal(subgraph.id, tokens1000, 0)
         await expect(tx).revertedWith('GNS: Must be active')
@@ -592,7 +597,7 @@ describe('L1GNS', () => {
 
       it('reject minting if under slippage', async function () {
         // First publish the subgraph
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
         // Set slippage to be 1 less than expected result to force reverting
         const { 1: expectedNSignal } = await gns.tokensToNSignal(subgraph.id, tokens1000)
@@ -605,7 +610,7 @@ describe('L1GNS', () => {
       let subgraph: Subgraph
 
       beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(other, subgraph.id, tokens10000, gns, curation)
       })
 
@@ -648,7 +653,7 @@ describe('L1GNS', () => {
       let otherNSignal: BigNumber
 
       beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(other, subgraph.id, tokens10000, gns, curation)
         otherNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
       })
@@ -683,7 +688,7 @@ describe('L1GNS', () => {
       let subgraph: Subgraph
 
       beforeEach(async () => {
-        subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(other, subgraph.id, tokens10000, gns, curation)
       })
 
@@ -723,7 +728,7 @@ describe('L1GNS', () => {
           toGRT('2000'),
           toGRT('123'),
         ]
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
         // State updated
         const curationTaxPercentage = await curation.curationTaxPercentage()
@@ -764,7 +769,7 @@ describe('L1GNS', () => {
           toGRT('1'), // should mint below minimum deposit
         ]
 
-        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+        const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
         // State updated
         for (const tokensToDeposit of tokensToDepositMany) {
@@ -779,12 +784,12 @@ describe('L1GNS', () => {
       await curation.setMinimumCurationDeposit(toGRT('1'))
 
       // Publish a named subgraph-0 -> subgraphDeployment0
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       // Curate on the first subgraph
       await gns.connect(me).mintSignal(subgraph0.id, toGRT('90000'), 0)
 
       // Publish a named subgraph-1 -> subgraphDeployment0
-      const subgraph1 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph1 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       // Curate on the second subgraph should work
       await gns.connect(me).mintSignal(subgraph1.id, toGRT('10'), 0)
     })
@@ -799,7 +804,11 @@ describe('L1GNS', () => {
         newSubgraph0.subgraphMetadata,
       )
       // Curate on the subgraph
-      const subgraphID = await buildSubgraphID(me.address, await gns.nextAccountSeqID(me.address))
+      const subgraphID = await buildSubgraphId(
+        me.address,
+        await gns.nextAccountSeqID(me.address),
+        graph.chainId,
+      )
       const tx2 = await gns.populateTransaction.mintSignal(subgraphID, toGRT('90000'), 0)
 
       // Batch send transaction
@@ -874,7 +883,7 @@ describe('L1GNS', () => {
       await expect(tx).revertedWith('Must be a minter')
     })
     it('with token descriptor', async function () {
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const subgraphNFTAddress = await gns.subgraphNFT()
       const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
@@ -885,7 +894,7 @@ describe('L1GNS', () => {
     })
 
     it('with token descriptor and baseURI', async function () {
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const subgraphNFTAddress = await gns.subgraphNFT()
       const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
@@ -897,7 +906,7 @@ describe('L1GNS', () => {
     })
 
     it('without token descriptor', async function () {
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const subgraphNFTAddress = await gns.subgraphNFT()
       const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
@@ -909,7 +918,7 @@ describe('L1GNS', () => {
     })
 
     it('without token descriptor and baseURI', async function () {
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const subgraphNFTAddress = await gns.subgraphNFT()
       const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
@@ -924,7 +933,7 @@ describe('L1GNS', () => {
     it('without token descriptor and 0x0 metadata', async function () {
       const newSubgraphNoMetadata = buildSubgraph()
       newSubgraphNoMetadata.subgraphMetadata = HashZero
-      const subgraph0 = await publishNewSubgraph(me, newSubgraphNoMetadata, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraphNoMetadata, gns, graph.chainId)
 
       const subgraphNFTAddress = await gns.subgraphNFT()
       const subgraphNFT = getContractAt('SubgraphNFT', subgraphNFTAddress) as SubgraphNFT
@@ -942,7 +951,7 @@ describe('L1GNS', () => {
         .connect(me)
         .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
       await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
-      const expectedSubgraphID = buildLegacySubgraphID(me.address, seqID)
+      const expectedSubgraphID = buildLegacySubgraphId(me.address, seqID)
       const migratedSubgraphDeploymentID = await legacyGNSMock.getSubgraphDeploymentID(
         expectedSubgraphID,
       )
@@ -973,7 +982,7 @@ describe('L1GNS', () => {
   describe('Legacy subgraph view functions', function () {
     it('isLegacySubgraph returns whether a subgraph is legacy or not', async function () {
       const seqID = toBN('2')
-      const subgraphId = buildLegacySubgraphID(me.address, seqID)
+      const subgraphId = buildLegacySubgraphId(me.address, seqID)
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
       await legacyGNSMock
         .connect(me)
@@ -981,12 +990,12 @@ describe('L1GNS', () => {
 
       expect(await legacyGNSMock.isLegacySubgraph(subgraphId)).eq(true)
 
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock, graph.chainId)
       expect(await legacyGNSMock.isLegacySubgraph(subgraph0.id)).eq(false)
     })
     it('getLegacySubgraphKey returns the account and seqID for a legacy subgraph', async function () {
       const seqID = toBN('2')
-      const subgraphId = buildLegacySubgraphID(me.address, seqID)
+      const subgraphId = buildLegacySubgraphId(me.address, seqID)
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
       await legacyGNSMock
         .connect(me)
@@ -996,7 +1005,7 @@ describe('L1GNS', () => {
       expect(id).eq(seqID)
     })
     it('getLegacySubgraphKey returns zero values for a non-legacy subgraph', async function () {
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, legacyGNSMock, graph.chainId)
       const [account, id] = await legacyGNSMock.getLegacySubgraphKey(subgraph0.id)
       expect(account).eq(AddressZero)
       expect(id).eq(toBN('0'))
@@ -1005,7 +1014,7 @@ describe('L1GNS', () => {
   describe('Subgraph transfer to L2', function () {
     const publishAndCurateOnSubgraph = async function (): Promise<Subgraph> {
       // Publish a named subgraph-0 -> subgraphDeployment0
-      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns)
+      const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       // Curate on the subgraph
       await gns.connect(me).mintSignal(subgraph0.id, toGRT('90000'), 0)
       // Add an additional curator that is not the owner
@@ -1051,7 +1060,7 @@ describe('L1GNS', () => {
       await expect(migrateTx)
         .emit(legacyGNSMock, ' LegacySubgraphClaimed')
         .withArgs(me.address, seqID)
-      const subgraphID = buildLegacySubgraphID(me.address, seqID)
+      const subgraphID = buildLegacySubgraphId(me.address, seqID)
 
       // Curate on the subgraph
       await legacyGNSMock.connect(me).mintSignal(subgraphID, toGRT('10000'), 0)
@@ -1210,7 +1219,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('GNS: Must be active')
       })
       it('rejects a call for a subgraph that does not exist', async function () {
-        const subgraphId = await buildSubgraphID(me.address, toBN(100))
+        const subgraphId = await buildSubgraphId(me.address, toBN(100), graph.chainId)
 
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
@@ -1570,7 +1579,7 @@ describe('L1GNS', () => {
       it('rejects calls for a subgraph that was deprecated', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
 
-        await hardhatHelpers.mine(256)
+        await helpers.mine(256)
         await gns.connect(me).deprecateSubgraph(subgraph0.id)
 
         const maxSubmissionCost = toBN('100')
@@ -1638,7 +1647,6 @@ describe('L1GNS', () => {
       })
       it('rejects calls if the curator has withdrawn the GRT', async function () {
         const subgraph0 = await publishCurateAndSendSubgraph()
-        const afterSubgraph = await gns.subgraphs(subgraph0.id)
 
         await gns.connect(other).withdraw(subgraph0.id)
 

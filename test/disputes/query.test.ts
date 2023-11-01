@@ -12,7 +12,7 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
 import { helpers, deriveChannelKey, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, HashZero } = constants
@@ -217,7 +217,7 @@ describe('DisputeManager:Query', async () => {
       await staking.connect(assetHolder).collect(indexerCollectedTokens, event1.allocationID)
       await staking.connect(indexer).closeAllocation(event1.allocationID, poi)
       await staking.connect(indexer).unstake(indexerTokens)
-      await hardhatHelpers.mine() // pass thawing period
+      await helpers.mine() // pass thawing period
       await staking.connect(indexer).withdraw()
 
       // Create dispute

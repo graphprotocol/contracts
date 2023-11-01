@@ -180,6 +180,7 @@ const config: HardhatUserConfig = {
     l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
     l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
     fork: process.env.FORK === 'true',
+    disableSecureAccounts: process.env.DISABLE_SECURE_ACCOUNTS === 'true',
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,

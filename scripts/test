@@ -29,7 +29,7 @@ fi
 mkdir -p reports
 
 # Run using the standalone evm instance
-npx hardhat test --network hardhat $@
+DISABLE_SECURE_ACCOUNTS=true npx hardhat test --network hardhat $@
 
 if [ "$REPORT_GAS" = true ]; then
   cat reports/gas-report.log

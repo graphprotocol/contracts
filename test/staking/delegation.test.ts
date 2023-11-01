@@ -8,7 +8,6 @@ import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, HashZero } = constants
@@ -311,7 +310,7 @@ describe('Staking::Delegation', () => {
         expect(params.indexingRewardCut).eq(indexingRewardCut)
         expect(params.queryFeeCut).eq(queryFeeCut)
         expect(params.cooldownBlocks).eq(cooldownBlocks)
-        expect(params.updatedAtBlock).eq(await hardhatHelpers.time.latestBlock())
+        expect(params.updatedAtBlock).eq(await helpers.latestBlock())
       })
 
       it('should init delegation parameters on first stake', async function () {
@@ -333,7 +332,7 @@ describe('Staking::Delegation', () => {
         expect(afterParams.indexingRewardCut).eq(MAX_PPM)
         expect(afterParams.queryFeeCut).eq(MAX_PPM)
         expect(afterParams.cooldownBlocks).eq(0)
-        expect(afterParams.updatedAtBlock).eq(await hardhatHelpers.time.latestBlock())
+        expect(afterParams.updatedAtBlock).eq(await helpers.latestBlock())
       })
 
       it('should init delegation parameters on first stake using stakeTo()', async function () {
@@ -355,7 +354,7 @@ describe('Staking::Delegation', () => {
         expect(afterParams.indexingRewardCut).eq(MAX_PPM)
         expect(afterParams.queryFeeCut).eq(MAX_PPM)
         expect(afterParams.cooldownBlocks).eq(0)
-        expect(afterParams.updatedAtBlock).eq(await hardhatHelpers.time.latestBlock())
+        expect(afterParams.updatedAtBlock).eq(await helpers.latestBlock())
       })
     })
   })

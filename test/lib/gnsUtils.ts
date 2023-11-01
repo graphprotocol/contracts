@@ -7,7 +7,7 @@ import { expect } from 'chai'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
-import { PublishSubgraph, Subgraph, buildSubgraphID, toBN } from '@graphprotocol/sdk'
+import { PublishSubgraph, Subgraph, buildSubgraphId, toBN } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 // Entities
@@ -38,10 +38,12 @@ export const publishNewSubgraph = async (
   account: SignerWithAddress,
   newSubgraph: PublishSubgraph,
   gns: L1GNS | L2GNS,
+  chainId: number,
 ): Promise<Subgraph> => {
-  const subgraphID = await buildSubgraphID(
+  const subgraphID = await buildSubgraphId(
     account.address,
     await gns.nextAccountSeqID(account.address),
+    chainId,
   )
 
   // Send tx

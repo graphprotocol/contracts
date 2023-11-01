@@ -23,7 +23,8 @@ describe('L2GraphToken', () => {
     let grt: L2GraphToken
 
     before(async function () {
-      await helpers.initNetwork()
+      await helpers.setIntervalMining(0)
+      await helpers.setAutoMine(true)
       ;[mockL1GRT, mockL2Gateway, governor, user] = await graph.getTestAccounts()
       fixture = new NetworkFixture()
       ;({ grt } = await fixture.loadL2(governor))

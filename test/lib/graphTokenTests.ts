@@ -1,7 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, Signature } from 'ethers'
-
+import { constants, BigNumber, Signature, ethers, Wallet } from 'ethers'
 import * as deployment from './deployment'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
@@ -15,8 +14,8 @@ const L1SALT = '0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026a
 const L2SALT = '0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591'
 
 export function grtTests(isL2: boolean): void {
-  let me: SignerWithAddress
-  let other: SignerWithAddress
+  let me: Wallet
+  let other: Wallet
   let governor: SignerWithAddress
   let salt: string
 
@@ -68,8 +67,11 @@ export function grtTests(isL2: boolean): void {
   }
 
   before(async function () {
-    await helpers.initNetwork()
-    ;[me, other, governor] = await graph.getTestAccounts()
+    await helpers.setIntervalMining(0)
+    await helpers.setAutoMine(true)
+    ;[governor] = await graph.getTestAccounts()
+    me = new ethers.Wallet(mePrivateKey, graph.provider)
+    other = new ethers.Wallet(otherPrivateKey, graph.provider)
   })
 
   beforeEach(async function () {

@@ -45,8 +45,8 @@ describe('[BEFORE UPGRADE] Exponential rebates upgrade', () => {
     before(async function () {
       // Impersonate indexers
       for (const indexer of indexers) {
-        await graph.provider.send('hardhat_impersonateAccount', [indexer.address])
-        await graph.provider.send('hardhat_setBalance', [indexer.address, '0x56BC75E2D63100000']) // 100 Eth
+        await helpers.impersonateAccount(indexer.address)
+        await helpers.setBalance(indexer.address, 100)
         indexer.signer = await SignerWithAddress.create(graph.provider.getSigner(indexer.address))
       }
     })

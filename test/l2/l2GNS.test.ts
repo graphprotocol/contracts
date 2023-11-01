@@ -19,7 +19,7 @@ import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import {
   buildSubgraph,
-  buildSubgraphID,
+  buildSubgraphId,
   helpers,
   PublishSubgraph,
   randomHexBytes,
@@ -27,7 +27,6 @@ import {
   toBN,
   toGRT,
 } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { HashZero } = ethers.constants
@@ -73,7 +72,7 @@ describe('L2GNS', () => {
   ): Promise<ContractTransaction> {
     const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
     // Eth for gas:
-    await hardhatHelpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+    await helpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
@@ -83,7 +82,7 @@ describe('L2GNS', () => {
 
   const defaultL1SubgraphParams = async function (): Promise<L1SubgraphParams> {
     return {
-      l1SubgraphId: await buildSubgraphID(me.address, toBN('1')),
+      l1SubgraphId: await buildSubgraphId(me.address, toBN('1'), graph.chainId),
       curatedTokens: toGRT('1337'),
       subgraphMetadata: randomHexBytes(),
       versionMetadata: randomHexBytes(),
@@ -157,7 +156,7 @@ describe('L2GNS', () => {
       await grt.connect(other).approve(curation.address, tokens100000)
       // Update curation tax to test the functionality of it in disableNameSignal()
       await curation.connect(governor).setCurationTaxPercentage(curationTaxPercentage)
-      subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       await mintSignal(me, subgraph.id, tokens10000, gns, curation)
     })
 
@@ -166,7 +165,7 @@ describe('L2GNS', () => {
     })
 
     it('should publish a new version on an existing subgraph with no current signal', async function () {
-      const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph(), gns)
+      const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph(), gns, graph.chainId)
       await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1, gns, curation)
     })
 
@@ -287,9 +286,7 @@ describe('L2GNS', () => {
 
       expect(transferData.tokens).eq(curatedTokens)
       expect(transferData.l2Done).eq(false)
-      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(
-        await hardhatHelpers.time.latestBlock(),
-      )
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await helpers.latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -301,7 +298,7 @@ describe('L2GNS', () => {
       expect(await gns.ownerOf(l2SubgraphId)).eq(me.address)
     })
     it('does not conflict with a locally created subgraph', async function () {
-      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
@@ -329,9 +326,7 @@ describe('L2GNS', () => {
 
       expect(transferData.tokens).eq(curatedTokens)
       expect(transferData.l2Done).eq(false)
-      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(
-        await hardhatHelpers.time.latestBlock(),
-      )
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await helpers.latestBlock())
 
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
@@ -420,7 +415,7 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('GNS: Must be authorized')
     })
     it('rejects calls for a subgraph that does not exist', async function () {
-      const l1SubgraphId = await buildSubgraphID(me.address, toBN('1'))
+      const l1SubgraphId = await buildSubgraphId(me.address, toBN('1'), graph.chainId)
       const metadata = randomHexBytes()
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
@@ -434,7 +429,7 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
     })
     it('rejects calls for a subgraph that was not transferred from L1', async function () {
-      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       const metadata = randomHexBytes()
 
       const tx = gns
@@ -545,7 +540,7 @@ describe('L2GNS', () => {
     it('assigns a curator balance to a beneficiary', async function () {
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -586,7 +581,7 @@ describe('L2GNS', () => {
     it('adds the signal to any existing signal for the beneficiary', async function () {
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -662,7 +657,7 @@ describe('L2GNS', () => {
     it('if a subgraph does not exist, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId } = await defaultL1SubgraphParams()
 
@@ -688,9 +683,9 @@ describe('L2GNS', () => {
       // also never happen), but we test it anyway to ensure it's a well-defined behavior
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
-      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
+      const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
@@ -712,7 +707,7 @@ describe('L2GNS', () => {
     it('if a subgraph transfer was not finished, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookDataSG = defaultAbiCoder.encode(
@@ -744,7 +739,7 @@ describe('L2GNS', () => {
     it('if a subgraph was deprecated after transfer, it returns the tokens to the beneficiary', async function () {
       const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
       // Eth for gas:
-      await hardhatHelpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()

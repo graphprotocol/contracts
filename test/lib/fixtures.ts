@@ -25,7 +25,6 @@ import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { LibExponential } from '../../build/types/LibExponential'
 import { helpers } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -65,7 +64,7 @@ export interface ArbitrumL1Mocks {
 }
 
 export class NetworkFixture {
-  lastSnapshot: hardhatHelpers.SnapshotRestorer
+  lastSnapshot: any
 
   async _loadLayer(
     deployer: Signer,
@@ -73,7 +72,8 @@ export class NetworkFixture {
     arbitrator: Signer = Wallet.createRandom() as Signer,
     isL2: boolean,
   ): Promise<L1FixtureContracts | L2FixtureContracts> {
-    await helpers.initNetwork()
+    await helpers.setIntervalMining(0)
+    await helpers.setAutoMine(true)
 
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
@@ -321,11 +321,12 @@ export class NetworkFixture {
   }
 
   async setUp(): Promise<void> {
-    this.lastSnapshot = await hardhatHelpers.takeSnapshot()
-    await helpers.initNetwork()
+    this.lastSnapshot = await helpers.takeSnapshot()
+    await helpers.setIntervalMining(0)
+    await helpers.setAutoMine(true)
   }
 
   async tearDown(): Promise<void> {
-    await this.lastSnapshot.restore()
+    await helpers.restoreSnapshot(this.lastSnapshot)
   }
 }

@@ -8,7 +8,6 @@ import { IStaking } from '../../build/types/IStaking'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, MaxUint256 } = constants
@@ -181,7 +180,7 @@ describe('Staking:Stakes', () => {
       it('should unstake and lock tokens for thawing period', async function () {
         const tokensToUnstake = toGRT('2')
         const thawingPeriod = toBN(await staking.thawingPeriod())
-        const currentBlock = await hardhatHelpers.time.latestBlock()
+        const currentBlock = await helpers.latestBlock()
         const until = currentBlock + thawingPeriod.add(toBN('1')).toNumber()
 
         // Unstake
@@ -202,10 +201,10 @@ describe('Staking:Stakes', () => {
         const tokensLockedUntil1 = event1.args['until']
 
         // Move forward before the tokens are unlocked for withdrawal
-        await hardhatHelpers.mineUpTo(tokensLockedUntil1.sub(5))
+        await helpers.mineUpTo(tokensLockedUntil1.sub(5))
 
         // Calculate locking time for tokens taking into account the previous unstake request
-        const currentBlock = await hardhatHelpers.time.latestBlock()
+        const currentBlock = await helpers.latestBlock()
         const lockingPeriod = weightedAverage(
           tokensToUnstake,
           tokensToUnstake,
@@ -241,10 +240,10 @@ describe('Staking:Stakes', () => {
         const tokensLockedUntil1 = event1.args['until']
 
         // Move forward after the tokens are unlocked for withdrawal
-        await hardhatHelpers.mineUpTo(tokensLockedUntil1)
+        await helpers.mineUpTo(tokensLockedUntil1)
 
         // Calculate locking time for tokens taking into account some tokens are withdraweable
-        const currentBlock = await hardhatHelpers.time.latestBlock()
+        const currentBlock = await helpers.latestBlock()
         const expectedLockedUntil = currentBlock + thawingPeriod.add(toBN('1')).toNumber()
 
         // Unstake (2)
@@ -318,7 +317,7 @@ describe('Staking:Stakes', () => {
         // StakeTo & Unstake
         await staking.connect(indexer).stakeTo(indexer.address, newTokens)
         await staking.connect(indexer).unstake(MaxUint256)
-        await hardhatHelpers.mine()
+        await helpers.mine()
 
         // Check state
         const tokensLocked = (await staking.stakes(indexer.address)).tokensLocked
@@ -348,7 +347,7 @@ describe('Staking:Stakes', () => {
         await expect(tx2).revertedWith('!tokens')
 
         // Move forward
-        await hardhatHelpers.mineUpTo(tokensLockedUntil)
+        await helpers.mineUpTo(tokensLockedUntil)
 
         // Withdraw after locking period (all good)
         const beforeBalance = await grt.balanceOf(indexer.address)

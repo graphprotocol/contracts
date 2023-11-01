@@ -14,7 +14,6 @@ import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixt
 
 import { deployContract } from '../lib/deployment'
 import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -94,7 +93,7 @@ describe('L1Staking:L2Transfer', () => {
     fixtureContracts = await fixture.load(governor, slasher)
     ;({ grt, staking, l1GraphTokenGateway, controller } = fixtureContracts)
     // Dummy code on the mock router so that it appears as a contract
-    await hardhatHelpers.setCode(mockRouter.address, '0x1234')
+    await helpers.setCode(mockRouter.address, '0x1234')
     arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
     await fixture.configureL1Bridge(
       governor,
@@ -212,10 +211,10 @@ describe('L1Staking:L2Transfer', () => {
         await expect(tx).revertedWith('Only transfer tool can send ETH')
       })
       it('should allow receiving funds from the transfer tool', async function () {
-        await hardhatHelpers.impersonateAccount(l1GraphTokenLockTransferTool.address)
-        const impersonatedTransferTool = await hre.ethers.getSigner(
+        const impersonatedTransferTool = await helpers.impersonateAccount(
           l1GraphTokenLockTransferTool.address,
         )
+
         const tx = impersonatedTransferTool.sendTransaction({
           to: staking.address,
           value: parseEther('1'),
@@ -419,9 +418,9 @@ describe('L1Staking:L2Transfer', () => {
         const amountToSend = minimumIndexerStake
 
         await l1GraphTokenLockTransferTool.setL2WalletAddress(indexer.address, l2Indexer.address)
-        const oldTransferToolEthBalance = await ethers
-          .getDefaultProvider()
-          .getBalance(l1GraphTokenLockTransferTool.address)
+        const oldTransferToolEthBalance = await graph.provider.getBalance(
+          l1GraphTokenLockTransferTool.address,
+        )
         const tx = staking
           .connect(indexer)
           .transferLockedStakeToL2(minimumIndexerStake, maxGas, gasPriceBid, maxSubmissionCost)
@@ -445,9 +444,9 @@ describe('L1Staking:L2Transfer', () => {
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
           .withArgs(staking.address, mockL2Gateway.address, toBN(1), expectedL2Data)
-        expect(
-          await ethers.getDefaultProvider().getBalance(l1GraphTokenLockTransferTool.address),
-        ).to.equal(oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)))
+        expect(await graph.provider.getBalance(l1GraphTokenLockTransferTool.address)).to.equal(
+          oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)),
+        )
       })
       it('should not allow transferring if the transfer tool contract returns a zero address beneficiary', async function () {
         const tx = staking
@@ -934,9 +933,9 @@ describe('L1Staking:L2Transfer', () => {
           l2Delegator.address,
         )
 
-        const oldTransferToolEthBalance = await ethers
-          .getDefaultProvider()
-          .getBalance(l1GraphTokenLockTransferTool.address)
+        const oldTransferToolEthBalance = await graph.provider.getBalance(
+          l1GraphTokenLockTransferTool.address,
+        )
         const tx = staking
           .connect(delegator)
           .transferLockedDelegationToL2(indexer.address, maxGas, gasPriceBid, maxSubmissionCost)
@@ -953,9 +952,9 @@ describe('L1Staking:L2Transfer', () => {
             l2Indexer.address,
             actualDelegation,
           )
-        expect(
-          await ethers.getDefaultProvider().getBalance(l1GraphTokenLockTransferTool.address),
-        ).to.equal(oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)))
+        expect(await graph.provider.getBalance(l1GraphTokenLockTransferTool.address)).to.equal(
+          oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)),
+        )
       })
       it('rejects calls if the transfer tool contract returns a zero address beneficiary', async function () {
         const tokensToDelegate = toGRT('10000')

@@ -11,7 +11,7 @@ let subgraphFixtures: SubgraphFixture[]
 let subgraphOwnerFixture: SignerWithAddress
 
 describe('Publish subgraphs', () => {
-  const { contracts, getTestAccounts } = hre.graph()
+  const { contracts, getTestAccounts, chainId } = hre.graph()
   const { GNS, GraphToken, Curation } = contracts
 
   before(async () => {
@@ -37,6 +37,7 @@ describe('Publish subgraphs', () => {
         const subgraphId = await recreatePreviousSubgraphId(contracts, undefined, {
           owner: subgraphOwnerFixture.address,
           previousIndex: subgraphFixtures.length - i,
+          chainId: chainId,
         })
         const isPublished = await GNS.isPublished(subgraphId)
         expect(isPublished).eq(true)
@@ -49,6 +50,7 @@ describe('Publish subgraphs', () => {
         const subgraphId = await recreatePreviousSubgraphId(contracts, undefined, {
           owner: subgraphOwnerFixture.address,
           previousIndex: subgraphFixtures.length - i,
+          chainId: chainId,
         })
 
         let totalSignal: BigNumber = BigNumber.from(0)

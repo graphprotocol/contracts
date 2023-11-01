@@ -160,7 +160,8 @@ describe('Staking:rebates', () => {
   }
 
   beforeEach(async function () {
-    await helpers.initNetwork()
+    await helpers.setIntervalMining(0)
+    await helpers.setAutoMine(true)
     ;[deployer] = await graph.getTestAccounts()
     libExponential = (await deployContract('LibExponential', deployer)) as unknown as LibExponential
   })

@@ -26,7 +26,6 @@ describe('Curation:Config', () => {
 
   before(async function () {
     ;[me, governor] = await graph.getTestAccounts()
-
     fixture = new NetworkFixture()
     ;({ curation } = await fixture.load(governor))
   })

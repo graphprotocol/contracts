@@ -7,7 +7,6 @@ import { EpochManager } from '../build/types/EpochManager'
 import * as deployment from './lib/deployment'
 import { defaults } from './lib/deployment'
 import { helpers, toBN } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('EpochManager', () => {
@@ -20,7 +19,8 @@ describe('EpochManager', () => {
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
-    await helpers.initNetwork()
+    await helpers.setIntervalMining(0)
+    await helpers.setAutoMine(true)
     ;[me, governor] = await graph.getTestAccounts()
   })
 
@@ -68,7 +68,7 @@ describe('EpochManager', () => {
       })
 
       it('should return correct block number', async function () {
-        const currentBlock = await hardhatHelpers.time.latestBlock()
+        const currentBlock = await helpers.latestBlock()
         expect(await epochManager.blockNum()).eq(currentBlock)
       })
 
@@ -76,12 +76,12 @@ describe('EpochManager', () => {
         // Move right to the start of a new epoch
         const blocksSinceEpochStart = await epochManager.currentEpochBlockSinceStart()
         const blocksToNextEpoch = epochLength.sub(blocksSinceEpochStart)
-        await hardhatHelpers.mineUpTo((await epochManager.blockNum()).add(blocksToNextEpoch))
+        await helpers.mineUpTo((await epochManager.blockNum()).add(blocksToNextEpoch))
 
         const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance block - will not jump to next epoch
-        await hardhatHelpers.mine()
+        await helpers.mine()
 
         const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
         expect(afterCurrentEpochBlock).equal(beforeCurrentEpochBlock)
@@ -91,7 +91,7 @@ describe('EpochManager', () => {
         const beforeCurrentEpochBlock = await epochManager.currentEpochBlock()
 
         // Advance blocks to move to the next epoch
-        await hardhatHelpers.mineUpTo(beforeCurrentEpochBlock.add(epochLength))
+        await helpers.mineUpTo(beforeCurrentEpochBlock.add(epochLength))
 
         const afterCurrentEpochBlock = await epochManager.currentEpochBlock()
         expect(afterCurrentEpochBlock).not.eq(beforeCurrentEpochBlock)
@@ -102,7 +102,7 @@ describe('EpochManager', () => {
 
         // Advance blocks and move to the next epoch
         const currentEpochBlock = await epochManager.currentEpochBlock()
-        await hardhatHelpers.mineUpTo(currentEpochBlock.add(epochLength))
+        await helpers.mineUpTo(currentEpochBlock.add(epochLength))
 
         const afterCurrentEpoch = await epochManager.currentEpoch()
         expect(afterCurrentEpoch).eq(nextEpoch)
@@ -112,7 +112,7 @@ describe('EpochManager', () => {
     describe('progression', () => {
       beforeEach(async function () {
         const currentEpochBlock = await epochManager.currentEpochBlock()
-        await hardhatHelpers.mineUpTo(currentEpochBlock.add(epochLength))
+        await helpers.mineUpTo(currentEpochBlock.add(epochLength))
       })
 
       context('> epoch not run', function () {

@@ -1,5 +1,4 @@
 import hre from 'hardhat'
-import helpers from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { utils, BigNumber, Event } from 'ethers'
 
@@ -10,7 +9,7 @@ import { Controller } from '../../build/types/Controller'
 import { NetworkFixture } from '../lib/fixtures'
 import { GNS } from '../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
-import { formatGRT, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import { formatGRT, randomHexBytes, toBN, toGRT, helpers } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const MAX_PPM = 1000000
@@ -200,8 +199,7 @@ describe('Curation', () => {
     fixture = new NetworkFixture()
     ;({ controller, curation, grt, gns } = await fixture.load(governor))
 
-    await helpers.impersonateAccount(gns.address)
-    gnsImpersonator = await hre.ethers.getSigner(gns.address)
+    gnsImpersonator = await helpers.impersonateAccount(gns.address)
     await helpers.setBalance(gns.address, parseEther('1'))
     // Give some funds to the curator and GNS impersonator and approve the curation contract
     await grt.connect(governor).mint(curator.address, curatorTokens)

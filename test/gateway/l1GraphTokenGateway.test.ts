@@ -11,8 +11,7 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
-import { applyL1ToL2Alias, toBN, toGRT } from '@graphprotocol/sdk'
-import hardhatHelpers from '@nomicfoundation/hardhat-network-helpers'
+import { helpers, applyL1ToL2Alias, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -74,7 +73,7 @@ describe('L1GraphTokenGateway', () => {
     ] = await graph.getTestAccounts()
 
     // Dummy code on the mock router so that it appears as a contract
-    await hardhatHelpers.setCode(mockRouter.address, '0x1234')
+    await helpers.setCode(mockRouter.address, '0x1234')
     fixture = new NetworkFixture()
     fixtureContracts = await fixture.load(governor)
     ;({ grt, l1GraphTokenGateway, bridgeEscrow } = fixtureContracts)
@@ -435,22 +434,22 @@ describe('L1GraphTokenGateway', () => {
       it('rejects calls that are not from the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(pauseGuardian.address)
-          .updateL2MintAllowance(toGRT('1'), await hardhatHelpers.time.latestBlock())
+          .updateL2MintAllowance(toGRT('1'), await helpers.latestBlock())
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
-        let issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 2
+        let issuanceUpdatedAtBlock = (await helpers.latestBlock()) + 2
         const tx1 = l1GraphTokenGateway
           .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 1 // This will be block.number in our next tx
+        issuanceUpdatedAtBlock = (await helpers.latestBlock()) + 1 // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
           .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock() // This will be block.number-1 in our next tx
+        issuanceUpdatedAtBlock = await helpers.latestBlock() // This will be block.number-1 in our next tx
         const tx3 = l1GraphTokenGateway
           .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
@@ -460,7 +459,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('does not allow using a block number lower than or equal to the previous one', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock()
+        const issuanceUpdatedAtBlock = await helpers.latestBlock()
         const tx1 = l1GraphTokenGateway
           .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
@@ -484,7 +483,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('updates the snapshot and issuance to follow a new linear function, accumulating up to the specified block', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 2
+        const issuanceUpdatedAtBlock = (await helpers.latestBlock()) - 2
         const tx1 = l1GraphTokenGateway
           .connect(governor)
           .updateL2MintAllowance(issuancePerBlock, issuanceUpdatedAtBlock)
@@ -493,9 +492,7 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be issuancePerBlock * 3
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
-            await hardhatHelpers.time.latestBlock(),
-          ),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await helpers.latestBlock()),
         ).to.eq(issuancePerBlock.mul(3))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(0)
         expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
@@ -503,10 +500,10 @@ describe('L1GraphTokenGateway', () => {
           issuanceUpdatedAtBlock,
         )
 
-        await hardhatHelpers.mine(10)
+        await helpers.mine(10)
 
         const newIssuancePerBlock = toGRT('200')
-        const newIssuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 1
+        const newIssuanceUpdatedAtBlock = (await helpers.latestBlock()) - 1
 
         const expectedAccumulatedSnapshot = issuancePerBlock.mul(
           newIssuanceUpdatedAtBlock - issuanceUpdatedAtBlock,
@@ -519,9 +516,7 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(expectedAccumulatedSnapshot, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
-            await hardhatHelpers.time.latestBlock(),
-          ),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await helpers.latestBlock()),
         ).to.eq(expectedAccumulatedSnapshot.add(newIssuancePerBlock.mul(2)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           expectedAccumulatedSnapshot,
@@ -536,26 +531,22 @@ describe('L1GraphTokenGateway', () => {
       it('rejects calls that are not from the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(pauseGuardian.address)
-          .setL2MintAllowanceParametersManual(
-            toGRT('0'),
-            toGRT('1'),
-            await hardhatHelpers.time.latestBlock(),
-          )
+          .setL2MintAllowanceParametersManual(toGRT('0'), toGRT('1'), await helpers.latestBlock())
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('does not allow using a future or current block number', async function () {
         const issuancePerBlock = toGRT('120')
-        let issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 2
+        let issuanceUpdatedAtBlock = (await helpers.latestBlock()) + 2
         const tx1 = l1GraphTokenGateway
           .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx1).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) + 1 // This will be block.number in our next tx
+        issuanceUpdatedAtBlock = (await helpers.latestBlock()) + 1 // This will be block.number in our next tx
         const tx2 = l1GraphTokenGateway
           .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
         await expect(tx2).revertedWith('BLOCK_MUST_BE_PAST')
-        issuanceUpdatedAtBlock = await hardhatHelpers.time.latestBlock() // This will be block.number-1 in our next tx
+        issuanceUpdatedAtBlock = await helpers.latestBlock() // This will be block.number-1 in our next tx
         const tx3 = l1GraphTokenGateway
           .connect(governor)
           .setL2MintAllowanceParametersManual(toGRT('0'), issuancePerBlock, issuanceUpdatedAtBlock)
@@ -565,7 +556,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('updates the snapshot and issuance to follow a new linear function, manually setting the snapshot value', async function () {
         const issuancePerBlock = toGRT('120')
-        const issuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 2
+        const issuanceUpdatedAtBlock = (await helpers.latestBlock()) - 2
         const snapshotValue = toGRT('10')
         const tx1 = l1GraphTokenGateway
           .connect(governor)
@@ -579,9 +570,7 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(snapshotValue, issuancePerBlock, issuanceUpdatedAtBlock)
         // Now the mint allowance should be 10 + issuancePerBlock * 3
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
-            await hardhatHelpers.time.latestBlock(),
-          ),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await helpers.latestBlock()),
         ).to.eq(snapshotValue.add(issuancePerBlock.mul(3)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(snapshotValue)
         expect(await l1GraphTokenGateway.l2MintAllowancePerBlock()).to.eq(issuancePerBlock)
@@ -589,10 +578,10 @@ describe('L1GraphTokenGateway', () => {
           issuanceUpdatedAtBlock,
         )
 
-        await hardhatHelpers.mine(10)
+        await helpers.mine(10)
 
         const newIssuancePerBlock = toGRT('200')
-        const newIssuanceUpdatedAtBlock = (await hardhatHelpers.time.latestBlock()) - 1
+        const newIssuanceUpdatedAtBlock = (await helpers.latestBlock()) - 1
         const newSnapshotValue = toGRT('10')
 
         const tx2 = l1GraphTokenGateway
@@ -607,9 +596,7 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(newSnapshotValue, newIssuancePerBlock, newIssuanceUpdatedAtBlock)
 
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
-            await hardhatHelpers.time.latestBlock(),
-          ),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await helpers.latestBlock()),
         ).to.eq(newSnapshotValue.add(newIssuancePerBlock.mul(2)))
         expect(await l1GraphTokenGateway.accumulatedL2MintAllowanceSnapshot()).to.eq(
           newSnapshotValue,
@@ -696,7 +683,7 @@ describe('L1GraphTokenGateway', () => {
       })
       it('allows sending nonempty calldata, if the sender is allowlisted', async function () {
         // Make the sender a contract so that it can be allowed to send callhooks
-        await hardhatHelpers.setCode(tokenSender.address, '0x1234')
+        await helpers.setCode(tokenSender.address, '0x1234')
         await l1GraphTokenGateway.connect(governor).addToCallhookAllowlist(tokenSender.address)
         await grt.connect(tokenSender).approve(l1GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(
@@ -758,7 +745,7 @@ describe('L1GraphTokenGateway', () => {
           l2Receiver.address, // Note this is not mockL2Gateway
           l1GraphTokenGateway.address,
           toBN('1337'),
-          await hardhatHelpers.time.latestBlock(),
+          await helpers.latestBlock(),
           toBN('133701337'),
           toBN('0'),
           encodedCalldata,
@@ -790,7 +777,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await hardhatHelpers.time.latestBlock(),
+            await helpers.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -825,7 +812,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await hardhatHelpers.time.latestBlock(),
+            await helpers.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -858,7 +845,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await hardhatHelpers.time.latestBlock(),
+            await helpers.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -878,8 +865,8 @@ describe('L1GraphTokenGateway', () => {
         // Start accruing L2 mint allowance at 2 GRT per block
         await l1GraphTokenGateway
           .connect(governor)
-          .updateL2MintAllowance(toGRT('2'), await hardhatHelpers.time.latestBlock())
-        await hardhatHelpers.mine(2)
+          .updateL2MintAllowance(toGRT('2'), await helpers.latestBlock())
+        await helpers.mine(2)
         // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
         // there should be 8 GRT allowed to be minted from L2 in the next block.
 
@@ -906,7 +893,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await hardhatHelpers.time.latestBlock(),
+            await helpers.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
@@ -918,9 +905,7 @@ describe('L1GraphTokenGateway', () => {
           .withArgs(toGRT('8'))
         expect(await l1GraphTokenGateway.totalMintedFromL2()).to.eq(toGRT('8'))
         expect(
-          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(
-            await hardhatHelpers.time.latestBlock(),
-          ),
+          await l1GraphTokenGateway.accumulatedL2MintAllowanceAtBlock(await helpers.latestBlock()),
         ).to.eq(toGRT('8'))
 
         const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
@@ -935,8 +920,8 @@ describe('L1GraphTokenGateway', () => {
         // Start accruing L2 mint allowance at 2 GRT per block
         await l1GraphTokenGateway
           .connect(governor)
-          .updateL2MintAllowance(toGRT('2'), await hardhatHelpers.time.latestBlock())
-        await hardhatHelpers.mine(2)
+          .updateL2MintAllowance(toGRT('2'), await helpers.latestBlock())
+        await helpers.mine(2)
         // Now it's been three blocks since the lastL2MintAllowanceUpdateBlock, so
         // there should be 8 GRT allowed to be minted from L2 in the next block.
 
@@ -963,7 +948,7 @@ describe('L1GraphTokenGateway', () => {
             mockL2Gateway.address,
             l1GraphTokenGateway.address,
             toBN('1337'),
-            await hardhatHelpers.time.latestBlock(),
+            await helpers.latestBlock(),
             toBN('133701337'),
             toBN('0'),
             encodedCalldata,
