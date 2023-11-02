@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import { getItemValue } from '../../../../cli/config'
 import GraphChain from '../../../../gre/helpers/chain'
+import { toGRT } from '../../../../cli/network'
 
 describe('[L2] L2Curation configuration', () => {
   const graph = hre.graph()
@@ -36,9 +37,9 @@ describe('[L2] L2Curation configuration', () => {
     expect(value).eq(expected)
   })
 
-  it('minimumCurationDeposit should match "minimumCurationDeposit" in the config file', async function () {
+  it('minimumCurationDeposit should match the hardcoded value', async function () {
     const value = await L2Curation.minimumCurationDeposit()
-    const expected = getItemValue(graphConfig, 'contracts/L2Curation/init/minimumCurationDeposit')
+    const expected = toGRT('1')
     expect(value).eq(expected)
   })
 })
