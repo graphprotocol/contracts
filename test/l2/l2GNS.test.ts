@@ -300,6 +300,50 @@ describe('L2GNS', () => {
 
       expect(await gns.ownerOf(l2SubgraphId)).eq(me.address)
     })
+    it('returns the curation to the owner if it is under the minimum', async function () {
+      const { l1SubgraphId } = await defaultL1SubgraphParams()
+      const curatedTokens = toGRT('0.1')
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
+      )
+      const ownerBalanceBefore = await grt.balanceOf(me.address)
+      const tx = gatewayFinalizeTransfer(
+        mockL1GNS.address,
+        gns.address,
+        curatedTokens,
+        callhookData,
+      )
+
+      const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
+
+      await expect(tx)
+        .emit(l2GraphTokenGateway, 'DepositFinalized')
+        .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
+      await expect(tx)
+        .emit(gns, 'SubgraphReceivedFromL1')
+        .withArgs(l1SubgraphId, l2SubgraphId, me.address, curatedTokens)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, curatedTokens)
+
+      const transferData = await gns.subgraphL2TransferData(l2SubgraphId)
+      const subgraphData = await gns.subgraphs(l2SubgraphId)
+
+      expect(transferData.tokens).eq(0)
+      expect(transferData.l2Done).eq(false)
+      expect(transferData.subgraphReceivedOnL2BlockNumber).eq(await latestBlock())
+
+      expect(subgraphData.vSignal).eq(0)
+      expect(subgraphData.nSignal).eq(0)
+      expect(subgraphData.subgraphDeploymentID).eq(HashZero)
+      expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
+      expect(subgraphData.disabled).eq(true)
+      expect(subgraphData.withdrawableGRT).eq(0) // Important so that it's not the same as a deprecated subgraph!
+
+      expect(await gns.ownerOf(l2SubgraphId)).eq(me.address)
+      expect(await grt.balanceOf(me.address)).eq(ownerBalanceBefore.add(curatedTokens))
+    })
     it('does not conflict with a locally created subgraph', async function () {
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns)
 
@@ -678,6 +722,36 @@ describe('L2GNS', () => {
         .withArgs(l1SubgraphId, me.address, toGRT('1'))
       const curatorTokensAfter = await grt.balanceOf(me.address)
       expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
+    })
+    it('returns tokens to the beneficiary if they are less than the minimum', async function () {
+      const mockL1GNSL2Alias = await getL2SignerFromL1(mockL1GNS.address)
+      // Eth for gas:
+      await setAccountBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
+        await defaultL1SubgraphParams()
+      await transferMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        subgraphMetadata,
+        versionMetadata,
+      )
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('0.1'), callhookData)
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, toGRT('0.1'))
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('0.1')))
       const gnsBalanceAfter = await grt.balanceOf(gns.address)
       // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
       // so the GNS balance should be the same
