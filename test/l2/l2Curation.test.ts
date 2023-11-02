@@ -79,19 +79,9 @@ describe('L2Curation:Config', () => {
   })
 
   describe('minimumCurationDeposit', function () {
-    it('should set `minimumCurationDeposit`', async function () {
-      // Set right in the constructor
-      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.l2MinimumCurationDeposit)
-
-      // Can set if allowed
-      const newValue = toBN('100')
-      await curation.connect(governor.signer).setMinimumCurationDeposit(newValue)
-      expect(await curation.minimumCurationDeposit()).eq(newValue)
-    })
-
-    it('reject set `minimumCurationDeposit` if out of bounds', async function () {
-      const tx = curation.connect(governor.signer).setMinimumCurationDeposit(0)
-      await expect(tx).revertedWith('Minimum curation deposit cannot be 0')
+    it('should revert trying to set `minimumCurationDeposit`', async function () {
+      const tx = curation.connect(governor.signer).setMinimumCurationDeposit(toGRT('1'))
+      await expect(tx).revertedWith('Not implemented in L2')
     })
 
     it('reject set `minimumCurationDeposit` if not allowed', async function () {
@@ -99,6 +89,10 @@ describe('L2Curation:Config', () => {
         .connect(me.signer)
         .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
       await expect(tx).revertedWith('Only Controller governor')
+    })
+
+    it('should get `minimumCurationDeposit`', async function () {
+      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.l2MinimumCurationDeposit)
     })
   })
 
@@ -164,7 +158,7 @@ describe('L2Curation', () => {
 
   // Test values
   const signalAmountFor1000Tokens = toGRT('1000.0')
-  const signalAmountForMinimumCuration = toBN('1')
+  const signalAmountForMinimumCuration = toGRT('1')
   const subgraphDeploymentID = randomHexBytes()
   const curatorTokens = toGRT('1000000000')
   const tokensToDeposit = toGRT('1000')
@@ -419,8 +413,6 @@ describe('L2Curation', () => {
 
   describe('curate', async function () {
     it('reject deposit below minimum tokens required', async function () {
-      // Set the minimum to a value greater than 1 so that we can test
-      await curation.connect(governor.signer).setMinimumCurationDeposit(toBN('2'))
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation.connect(curator.signer).mint(subgraphDeploymentID, tokensToDeposit, 0)
       await expect(tx).revertedWith('Curation deposit is below minimum required')
@@ -469,8 +461,6 @@ describe('L2Curation', () => {
     })
 
     it('reject deposit below minimum tokens required', async function () {
-      // Set the minimum to a value greater than 1 so that we can test
-      await curation.connect(governor.signer).setMinimumCurationDeposit(toBN('2'))
       const tokensToDeposit = (await curation.minimumCurationDeposit()).sub(toBN(1))
       const tx = curation
         .connect(gnsImpersonator)
@@ -613,6 +603,13 @@ describe('L2Curation', () => {
       await expect(tx).revertedWith('Cannot burn zero signal')
     })
 
+    it('reject redeem if remaining tokens are less than minimum', async function () {
+      const tx = curation
+        .connect(curator.signer)
+        .burn(subgraphDeploymentID, tokensToDeposit.sub(1), 0)
+      await expect(tx).revertedWith('Less than minimum curation left')
+    })
+
     it('should allow to redeem *partially*', async function () {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
@@ -625,29 +622,6 @@ describe('L2Curation', () => {
       const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
       const expectedTokens = tokensToDeposit
       await shouldBurn(signalToRedeem, expectedTokens)
-    })
-
-    it('should allow to redeem back below minimum deposit', async function () {
-      // Set the minimum to a value greater than 1 so that we can test
-      await curation.connect(governor.signer).setMinimumCurationDeposit(toGRT('1'))
-
-      // Redeem "almost" all signal
-      const signal = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
-      const signalToRedeem = signal.sub(toGRT('0.000001'))
-      const expectedTokens = await curation.signalToTokens(subgraphDeploymentID, signalToRedeem)
-      await shouldBurn(signalToRedeem, expectedTokens)
-
-      // The pool should have less tokens that required by minimumCurationDeposit
-      const afterPool = await curation.pools(subgraphDeploymentID)
-      expect(afterPool.tokens).lt(await curation.minimumCurationDeposit())
-
-      // Should be able to deposit more after being under minimumCurationDeposit
-      const tokensToDeposit = toGRT('1')
-      const { 0: expectedSignal } = await curation.tokensToSignal(
-        subgraphDeploymentID,
-        tokensToDeposit,
-      )
-      await shouldMint(tokensToDeposit, expectedSignal)
     })
 
     it('should revert redeem if over slippage', async function () {
@@ -746,35 +720,6 @@ describe('L2Curation', () => {
         const event: Event = receipt.events.pop()
         const signal = event.args['signal']
         expect(toRound(toFloat(toBN(signal)))).eq(toRound(expectedSignal))
-      }
-    })
-
-    it('should mint when using a different ratio between GRT and signal', async function () {
-      this.timeout(60000) // increase timeout for test runner
-
-      // Setup edge case with 1 GRT = 1 wei signal
-      await curation.setMinimumCurationDeposit(toGRT('1'))
-
-      const tokensToDepositMany = [
-        toGRT('1000'), // should mint if we start with number above minimum deposit
-        toGRT('1000'), // every time it should mint proportionally the same GCS due to linear bonding curve...
-        toGRT('1000'),
-        toGRT('1000'),
-        toGRT('2000'),
-        toGRT('2000'),
-        toGRT('123'),
-        toGRT('1'),
-      ]
-
-      // Mint multiple times
-      for (const tokensToDeposit of tokensToDepositMany) {
-        const tx = await curation
-          .connect(curator.signer)
-          .mint(subgraphDeploymentID, tokensToDeposit, 0)
-        const receipt = await tx.wait()
-        const event: Event = receipt.events.pop()
-        const signal = event.args['signal']
-        expect(tokensToDeposit).eq(signal.mul(toGRT('1'))) // we compare 1 GRT : 1 wei ratio
       }
     })
   })

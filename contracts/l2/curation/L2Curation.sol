@@ -34,8 +34,11 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
+    /// @dev Minimum amount of tokens that must be deposited to mint signal
+    uint256 private constant MINIMUM_CURATION_DEPOSIT = 1e18;
+
     /// @dev Amount of signal you get with your minimum token deposit
-    uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1; // 1e-18 signal as 18 decimal number
+    uint256 private constant SIGNAL_PER_MINIMUM_DEPOSIT = 1e18;
 
     /// @dev Reserve ratio for all subgraphs set to 100% for a flat bonding curve
     uint32 private immutable fixedReserveRatio = MAX_PPM;
@@ -85,13 +88,12 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _controller Controller contract that manages this contract
      * @param _curationTokenMaster Address of the GraphCurationToken master copy
      * @param _curationTaxPercentage Percentage of curation tax to be collected
-     * @param _minimumCurationDeposit Minimum amount of tokens that can be deposited as curation signal
      */
     function initialize(
         address _controller,
         address _curationTokenMaster,
         uint32 _curationTaxPercentage,
-        uint256 _minimumCurationDeposit
+        uint256 // _minimumCurationDeposit, not used in L2
     ) external onlyImpl initializer {
         Managed._initialize(_controller);
 
@@ -99,7 +101,6 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         defaultReserveRatio = fixedReserveRatio;
         emit ParameterUpdated("defaultReserveRatio");
         _setCurationTaxPercentage(_curationTaxPercentage);
-        _setMinimumCurationDeposit(_minimumCurationDeposit);
         _setCurationTokenMaster(_curationTokenMaster);
     }
 
@@ -109,19 +110,6 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      */
     function setDefaultReserveRatio(uint32) external view override onlyGovernor {
         revert("Not implemented in L2");
-    }
-
-    /**
-     * @dev Set the minimum deposit amount for curators.
-     * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
-     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
-     */
-    function setMinimumCurationDeposit(uint256 _minimumCurationDeposit)
-        external
-        override
-        onlyGovernor
-    {
-        _setMinimumCurationDeposit(_minimumCurationDeposit);
     }
 
     /**
@@ -296,17 +284,22 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         uint256 _tokensOutMin
     ) external override notPartialPaused returns (uint256) {
         address curator = msg.sender;
-
+        uint256 previousCuratorSignal = getCuratorSignal(curator, _subgraphDeploymentID);
         // Validations
         require(_signalIn != 0, "Cannot burn zero signal");
-        require(
-            getCuratorSignal(curator, _subgraphDeploymentID) >= _signalIn,
-            "Cannot burn more signal than you own"
-        );
+        require(previousCuratorSignal >= _signalIn, "Cannot burn more signal than you own");
 
         // Get the amount of tokens to refund based on returned signal
         uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn);
-
+        if (previousCuratorSignal > _signalIn) {
+            // The user's remaining tokens can't be under the minimum curation,
+            // to prevent rounding attacks
+            uint256 remainingTokens = signalToTokens(
+                _subgraphDeploymentID,
+                previousCuratorSignal - _signalIn
+            );
+            require(remainingTokens >= MINIMUM_CURATION_DEPOSIT, "Less than minimum curation left");
+        }
         // Slippage protection
         require(tokensOut >= _tokensOutMin, "Slippage protection");
 
@@ -448,15 +441,18 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     }
 
     /**
-     * @dev Internal: Set the minimum deposit amount for curators.
-     * Update the minimum deposit amount to `_minimumCurationDeposit`
-     * @param _minimumCurationDeposit Minimum amount of tokens required deposit
+     * @notice (Deprecated in L2) Update the minimum deposit amount to `_minimumCurationDeposit`
      */
-    function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
-        require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
+    function setMinimumCurationDeposit(uint256) external view override onlyGovernor {
+        revert("Not implemented in L2");
+    }
 
-        minimumCurationDeposit = _minimumCurationDeposit;
-        emit ParameterUpdated("minimumCurationDeposit");
+    /**
+     * @notice Getter for minimum curation deposit
+     * @return Minimum amount of tokens that must be deposited to mint signal
+     */
+    function minimumCurationDeposit() external view returns (uint256) {
+        return MINIMUM_CURATION_DEPOSIT;
     }
 
     /**
@@ -510,19 +506,19 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         view
         returns (uint256)
     {
+        require(
+            _tokensIn >= MINIMUM_CURATION_DEPOSIT,
+            "Curation deposit is below minimum required"
+        );
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
         // Init curation pool
         if (curationPool.tokens == 0) {
-            require(
-                _tokensIn >= minimumCurationDeposit,
-                "Curation deposit is below minimum required"
-            );
             return
                 SIGNAL_PER_MINIMUM_DEPOSIT.add(
-                    SIGNAL_PER_MINIMUM_DEPOSIT.mul(_tokensIn.sub(minimumCurationDeposit)).div(
-                        minimumCurationDeposit
+                    SIGNAL_PER_MINIMUM_DEPOSIT.mul(_tokensIn.sub(MINIMUM_CURATION_DEPOSIT)).div(
+                        MINIMUM_CURATION_DEPOSIT
                     )
                 );
         }

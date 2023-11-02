@@ -362,16 +362,16 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         // Init curation pool
         if (curationPool.tokens == 0) {
             require(
-                _tokensIn >= minimumCurationDeposit,
+                _tokensIn >= __minimumCurationDeposit,
                 "Curation deposit is below minimum required"
             );
             return
                 BancorFormula(bondingCurve)
                     .calculatePurchaseReturn(
                         SIGNAL_PER_MINIMUM_DEPOSIT,
-                        minimumCurationDeposit,
+                        __minimumCurationDeposit,
                         defaultReserveRatio,
-                        _tokensIn.sub(minimumCurationDeposit)
+                        _tokensIn.sub(__minimumCurationDeposit)
                     )
                     .add(SIGNAL_PER_MINIMUM_DEPOSIT);
         }
@@ -418,6 +418,14 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     }
 
     /**
+     * @notice Getter for minimum curation deposit
+     * @return Minimum amount of tokens that must be deposited to mint signal
+     */
+    function minimumCurationDeposit() external view returns (uint256) {
+        return __minimumCurationDeposit;
+    }
+
+    /**
      * @dev Internal: Set the default reserve ratio percentage for a curation pool.
      * @notice Update the default reserver ratio to `_defaultReserveRatio`
      * @param _defaultReserveRatio Reserve ratio (in PPM)
@@ -442,7 +450,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
     function _setMinimumCurationDeposit(uint256 _minimumCurationDeposit) private {
         require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
 
-        minimumCurationDeposit = _minimumCurationDeposit;
+        __minimumCurationDeposit = _minimumCurationDeposit;
         emit ParameterUpdated("minimumCurationDeposit");
     }
 

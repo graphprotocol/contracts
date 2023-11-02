@@ -81,6 +81,10 @@ describe('Curation:Config', () => {
         .setMinimumCurationDeposit(defaults.curation.minimumCurationDeposit)
       await expect(tx).revertedWith('Only Controller governor')
     })
+
+    it('should get `minimumCurationDeposit`', async function () {
+      expect(await curation.minimumCurationDeposit()).eq(defaults.curation.minimumCurationDeposit)
+    })
   })
 
   describe('curationTaxPercentage', function () {

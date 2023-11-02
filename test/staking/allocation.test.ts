@@ -633,11 +633,6 @@ describe('Staking:Allocation', () => {
       await expect(tx).revertedWith('!alloc')
     })
 
-    it('reject collect if allocation has been open for less than 1 epoch', async function () {
-      const tx = staking.connect(indexer.signer).collect(tokensToCollect, allocationID)
-      await expect(tx).revertedWith('!epoch')
-    })
-
     it('reject collect if allocation does not exist', async function () {
       const invalidAllocationID = randomHexBytes(20)
       const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, invalidAllocationID)

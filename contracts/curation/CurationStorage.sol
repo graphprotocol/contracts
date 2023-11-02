@@ -43,9 +43,10 @@ abstract contract CurationV1Storage is Managed, ICuration {
     /// @dev This is used as the target for GraphCurationToken clones.
     address public curationTokenMaster;
 
-    /// Minimum amount allowed to be deposited by curators to initialize a pool
-    /// @dev This is the `startPoolBalance` for the bonding curve
-    uint256 public minimumCurationDeposit;
+    /// @dev Minimum amount allowed to be deposited by curators to initialize a pool
+    /// In L2Curation, this is now replaced by the MINIMUM_CURATION_DEPOSIT constant.
+    /// So this is now only used in Curation in L1.
+    uint256 internal __minimumCurationDeposit;
 
     /// Bonding curve library
     /// Unused in L2.

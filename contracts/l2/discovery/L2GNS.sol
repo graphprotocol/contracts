@@ -26,8 +26,12 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
 
+    /// Offset added to subgraph IDs to calculate the L2 alias of L1 subgraph IDs
     uint256 public constant SUBGRAPH_ID_ALIAS_OFFSET =
         uint256(0x1111000000000000000000000000000000000000000000000000000000001111);
+
+    /// @dev Minimum curation deposit, must match the value in L2Curation
+    uint256 private constant MINIMUM_CURATION_DEPOSIT = 1e18;
 
     /// @dev Emitted when a subgraph is received from L1 through the bridge
     event SubgraphReceivedFromL1(
@@ -46,7 +50,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 _tokens
     );
     /// @dev Emitted when the L1 balance for a curator has been returned to the beneficiary.
-    /// This can happen if the subgraph transfer was not finished when the curator's tokens arrived.
+    /// This can happen if the subgraph transfer was not finished when the curator's tokens arrived,
+    /// or if the tokens were under the L2 minimum curation deposit
     event CuratorBalanceReturnedToBeneficiary(
         uint256 indexed _l1SubgraphID,
         address indexed _l2Curator,
@@ -124,26 +129,27 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IL2Curation curation = IL2Curation(address(curation()));
         // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
         // Buy all signal from the new deployment
-        uint256 vSignal = curation.mintTaxFree(_subgraphDeploymentID, transferData.tokens);
-        uint256 nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
+        uint256 vSignal;
+        uint256 nSignal;
+        if (transferData.tokens >= MINIMUM_CURATION_DEPOSIT) {
+            // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
+            // Buy all signal from the new deployment
+            vSignal = curation.mintTaxFree(_subgraphDeploymentID, transferData.tokens);
+            nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
+            subgraphData.vSignal = vSignal;
+            subgraphData.nSignal = nSignal;
+            subgraphData.curatorNSignal[msg.sender] = nSignal;
+            emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, transferData.tokens);
+        }
 
         subgraphData.disabled = false;
-        subgraphData.vSignal = vSignal;
-        subgraphData.nSignal = nSignal;
-        subgraphData.curatorNSignal[msg.sender] = nSignal;
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         // Set the token metadata
         _setSubgraphMetadata(_l2SubgraphID, _subgraphMetadata);
 
         emit SubgraphPublished(_l2SubgraphID, _subgraphDeploymentID, fixedReserveRatio);
-        emit SubgraphUpgraded(
-            _l2SubgraphID,
-            subgraphData.vSignal,
-            transferData.tokens,
-            _subgraphDeploymentID
-        );
+        emit SubgraphUpgraded(_l2SubgraphID, vSignal, transferData.tokens, _subgraphDeploymentID);
         emit SubgraphVersionUpdated(_l2SubgraphID, _subgraphDeploymentID, _versionMetadata);
-        emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, transferData.tokens);
         emit SubgraphL2TransferFinalized(_l2SubgraphID);
     }
 
@@ -248,7 +254,13 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         // The subgraph will be disabled until finishSubgraphTransferFromL1 is called
         subgraphData.disabled = true;
 
-        transferData.tokens = _tokens;
+        if (_tokens >= MINIMUM_CURATION_DEPOSIT) {
+            transferData.tokens = _tokens;
+        } else {
+            // transferData.tokens stays uninitialized at zero
+            graphToken().transfer(_subgraphOwner, _tokens);
+            emit CuratorBalanceReturnedToBeneficiary(_l1SubgraphID, _subgraphOwner, _tokens);
+        }
         transferData.subgraphReceivedOnL2BlockNumber = block.number;
 
         // Mint the NFT. Use the subgraphID as tokenID.
@@ -279,7 +291,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
 
         // If subgraph transfer wasn't finished, we should send the tokens to the curator
-        if (!transferData.l2Done || subgraphData.disabled) {
+        if (!transferData.l2Done || subgraphData.disabled || _tokensIn < MINIMUM_CURATION_DEPOSIT) {
             graphToken().transfer(_curator, _tokensIn);
             emit CuratorBalanceReturnedToBeneficiary(_l1SubgraphID, _curator, _tokensIn);
         } else {

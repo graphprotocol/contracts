@@ -38,7 +38,7 @@ export const defaults = {
   curation: {
     reserveRatio: toBN('500000'),
     minimumCurationDeposit: toGRT('100'),
-    l2MinimumCurationDeposit: toBN('1'),
+    l2MinimumCurationDeposit: toGRT('1'),
     curationTaxPercentage: 0,
   },
   dispute: {
