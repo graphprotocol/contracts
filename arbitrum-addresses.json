@@ -38,5 +38,18 @@
     "L2GatewayRouter": {
       "address": "0xE5B9d8d42d656d1DcB8065A6c012FE3780246041"
     }
+  },
+  "421614": {
+    "L2GatewayRouter": {
+      "address": "0x9fDD1C4E4AA24EEc1d913FABea925594a20d43C7"
+    }
+  },
+  "11155111": {
+    "L1GatewayRouter": {
+      "address": "0xcE18836b233C83325Cc8848CA4487e94C6288264"
+    },
+    "IInbox": {
+      "address": "0xaAe29B0366299461418F5324a79Afc425BE5ae21"
+    }
   }
 }
