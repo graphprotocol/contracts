@@ -30,7 +30,7 @@ import { LibExponential } from '../../build/types/LibExponential'
 import { toBN, toGRT } from '@graphprotocol/sdk'
 
 // Disable logging for tests
-logger.pause()
+// logger.pause()
 
 // Default configuration used in tests
 

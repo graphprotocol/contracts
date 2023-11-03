@@ -9,7 +9,6 @@ task('migrate:ownership', 'Accepts ownership of protocol contracts on behalf of 
   .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
-    const { GraphToken, Controller, GraphProxyAdmin, SubgraphNFT } = graph.contracts
     const { governor } = await graph.getNamedAccounts()
 
     console.log('> Accepting ownership of contracts')
