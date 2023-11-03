@@ -189,10 +189,19 @@ const config: HardhatUserConfig = {
     fork: process.env.FORK === 'true',
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      rinkeby: process.env.ETHERSCAN_API_KEY,
+      goerli: process.env.ETHERSCAN_API_KEY,
+      kovan: process.env.ETHERSCAN_API_KEY,
+      sepolia: process.env.ETHERSCAN_API_KEY,
+      arbitrumOne: process.env.ARBISCAN_API_KEY,
+      arbitrumGoerli: process.env.ARBISCAN_API_KEY,
+      arbitrumSepolia: process.env.ARBISCAN_API_KEY,
+    },
     customChains: [
       {
-        network: 'arbitrum-sepolia',
+        network: 'arbitrumSepolia',
         chainId: 421614,
         urls: {
           apiURL: 'https://api-sepolia.arbiscan.io/api',
